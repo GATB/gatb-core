@@ -1,0 +1,88 @@
+/*****************************************************************************
+ *   GATB : Genome Assembly Tool Box                                         *
+ *   Copyright (c) 2013                                                      *
+ *                                                                           *
+ *   GATB is free software; you can redistribute it and/or modify it under   *
+ *   the CECILL version 2 License, that is compatible with the GNU General   *
+ *   Public License                                                          *
+ *                                                                           *
+ *   This program is distributed in the hope that it will be useful,         *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
+ *   CECILL version 2 License for more details.                              *
+ *****************************************************************************/
+
+/**\page design_page Design of the library
+ *
+ ****************************************************************************************************
+ ****************************************************************************************************
+ * \section coredesign Global design of gatb::core package
+ *
+ ****************************************************************************************************
+ * \subsection coredesign_intro Introduction
+ *
+ * As its name suggests, the gatb::core package holds all the fundamental packages needed for writting
+ * assembly algorithms.
+ *
+ * It holds some generic services, like:
+ *      - operating system abstraction,
+ *      - collections management
+ *      - design patterns
+ *      - genomic banks read/write
+ *      - kmers management
+ *      - De Bruijn graph management
+ *
+ * \image html CoreGlobal.png "Global view of the gatb::core package"
+ *
+ *
+ ****************************************************************************************************
+ * \subsection coredesign_system  Package gatb::core::system
+ *
+ * The gatb::core::system package holds operations related to operating system.
+ *
+ * Making such an abstraction is interesting when considering the following points:
+ * - client code should rely on interfaces defined here and not on specific implementations (for linux, macos, ...)
+ * - client code should not use compilation flags for one specific system (like \#ifdef __LINUX__)
+ * - improved operating system operations should be available to clients without modification in their code
+ *
+ * The idea is so to list all necessary operating system operations that are likely to be used, to make several
+ * interfaces that gather some operations set and to provide specific implementations for several system (linux,
+ * macos, windows).
+ *
+ * \image html SystemGlobal.png "Global view of the gatb::core::system package"
+ *
+ ****************************************************************************************************
+ * \subsection coredesign_tools  Package gatb::core::tools
+ *
+ * The gatb::core::tools package holds generic operations used throughout the project. They are not specific
+ * to genome nor assembly concerns and are defined here in a separate package.
+ *
+ * Roughly speaking, we may find the following operations:
+ *      - design patterns tools (iterator, observer, smart pointer, etc...)
+ *      - collections (container, bag, iterable, etc...)
+ *      - misc
+ *
+ * \image html ToolsGlobal.png "Global view of the gatb::core::tools package"
+ *
+ *
+ *****************************************************************************************************
+ * \subsection coredesign_bank Package gatb::core::bank
+ *
+ * The gatb::core::bank package holds operations related to genomic databases management.
+ *
+ * In particular, we define a gatb::core::bank::IBank interface that is an iterable over gatb::core::bank::Sequence
+ * instances.
+ *
+ * \image html BankGlobal.png "Global view of the gatb::core::bank package"
+ *
+ *
+ ******************************************************************************************************
+ * \subsection coredesign_kmer Package gatb::core::kmer
+ *
+ * The gatb::core::kmer package holds operations related to kmer management.
+ *
+ * A typical case is to create a IBank instance and then an iterator on it; such an iterator can feed the
+ * kmer model for iterating all the kmer from the sequences.
+ *
+ *
+ */
