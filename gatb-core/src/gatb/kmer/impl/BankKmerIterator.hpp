@@ -48,8 +48,8 @@ public:
      * \param[in] bank : the bank whose sequences are to be iterated.
      * \param[in] model : kmer model
      */
-    BankKmerIterator (bank::IBank& bank, Model<kmer_type>& model)
-        : _itSeq(0), _itKmer(model), _isDone(true),  _moduloMask(1), _current(0)
+    BankKmerIterator (bank::IBank& bank, Model<kmer_type>& model, KmerMode mode)
+        : _itSeq(0), _itKmer(model, mode), _isDone(true),  _moduloMask(1), _current(0)
     {
         /** We create an iterator over the sequences of the provided bank.
          * Note that this is a dynamic allocation, so we will have to get rid of the instance
