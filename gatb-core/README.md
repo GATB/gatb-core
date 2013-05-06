@@ -20,7 +20,7 @@ Then, the documentation is available at _build/html/index.html_
 
 and the unit tests can be launched by the following command line :
 
-	build/test/GatbToolsTest out.xml
+	build/test/unit/GatbToolsTest out.xml
 	
 If you don't specify an output file name, you will get no console output, but you will be able to use the exit status code of the command (useful for automatization processes).
 
