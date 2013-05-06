@@ -1,10 +1,15 @@
 #include <gatb/system/impl/System.hpp>
+
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
+#include <gatb/bank/impl/BankHelpers.hpp>
 
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/kmer/impl/BankKmerIterator.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+
+#include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
@@ -24,14 +29,15 @@ using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
+using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc::impl;
 
-//typedef u_int64_t kmer_type;
+typedef u_int64_t kmer_type;
 //typedef ttmath::UInt<2> kmer_type;
 //typedef LargeInt<2> kmer_type;
-typedef Integer<2> kmer_type;
+//typedef Integer<2> kmer_type;
 //typedef __uint128_t kmer_type;
 
 
@@ -57,136 +63,17 @@ struct Hash  {   kmer_type operator () (kmer_type& lkmer)
 
 /********************************************************************************/
 
-class BankKmerIterator : public Iterator<kmer_type>, public AbstractSubjectIterator
-{
-public:
-
-    /** Constructor.
-     * \param[in] bank : the bank whose sequences are to be iterated.
-     * \param[in] model : kmer model
-     */
-    BankKmerIterator (IBank& bank, Model<kmer_type>& model)
-        : _itSeq(0), _itKmer(model), _isDone(true),  _moduloMask(1), _current(0)
-    {
-        /** We create an iterator over the sequences of the provided bank.
-         * Note that this is a dynamic allocation, so we will have to get rid of the instance
-         * in the destructor. */
-        setItSeq (bank.iterator());
-
-        /** We set the modulo mask for which we will send notification to potential listeners.
-         * Such notification is done on outer loop over Sequence objects. */
-        _moduloMask = (1<<10) - 1;
-    }
-
-    /** Destructor. */
-    ~BankKmerIterator ()
-    {
-        /** We get rid of the dynamically allocated Sequence iterator. */
-        setItSeq(0);
-    }
-
-    /** \copydoc Iterator::first */
-    void first()
-    {
-        /** We begin by notifying potential listeners that the iteration is beginning. */
-        notifyInit ();
-
-        /** We reset the iteration counter. We will check when this counter is equal to our modulo;
-         * in such a case, we will notify our potential listeners.  */
-        _current = 0;
-
-        /** We go to the first item of the Sequence iteration. */
-        _itSeq->first ();
-
-        /** We use a shortcut variable in order to avoid some calls to the isDone method for the Sequence iteration.
-         * This is important for performance concerns since the 'isDone' kmer iterator relies on it and that we use
-         * a generic Iterator<Sequence>; in other words, we have here polymorphism on Sequence iterator and we have
-         * to limit such polymorphic calls when the number of calls is huge (overhead due to polymorphism).
-         */
-        _isDone = _itSeq->isDone();
-
-        /** We check that we have at least one sequence to iterate. */
-        if (!_isDone)
-        {
-            /** We configure the kmer iterator with the current sequence data. */
-            _itKmer.setData ((*_itSeq)->getData());
-
-            /** We go to the first kmer. */
-            _itKmer.first ();
-        }
-    }
-
-    /** \copydoc Iterator::next */
-    void next()
-    {
-        /** We look for the next kmer. */
-        _itKmer.next ();
-
-        /** We check the case where the kmer iteration is done. */
-        if (_itKmer.isDone ())
-        {
-            /** We have no more kmer for the current sequence, therefore we go for the next sequence. */
-            _itSeq->next();
-
-            /** We check whether we have another sequence or not. */
-            _isDone = _itSeq->isDone();
-            if (!_isDone)
-            {
-
-                /** We configure the kmer iterator with the current sequence data. */
-                _itKmer.setData ((*_itSeq)->getData());
-
-                /** We go to the first kmer. */
-                _itKmer.first ();
-
-                /** We may have to notify potential listeners if we looped enough items. */
-                if ((_current & _moduloMask) == 0)  { notifyInc (_current);  _current=0; }
-
-                /** We increase the iterated kmers number. */
-                _current++;
-            }
-        }
-    }
-
-    /** \copydoc Iterator::isDone */
-    bool isDone()
-    {
-        /** If we are done, we notify potential listeners. */
-        if (_isDone) { notifyFinish(); }
-
-        /** We return the outer loop isDone status. */
-        return _isDone;
-    }
-
-    /** \copydoc Iterator::item */
-    kmer_type& item ()  { return _itKmer.item(); }
-
-private:
-
-    /** Outer loop iterator on Sequence. */
-    Iterator<Sequence>* _itSeq;
-    void setItSeq (Iterator<Sequence>* itSeq)  { SP_SETATTR(itSeq); }
-
-    /** Inner loop iterator on kmer. */
-    Model<kmer_type>::Iterator _itKmer;
-
-    /** Shortcut (for performance). */
-    bool _isDone;
-
-    u_int32_t _current;
-    u_int32_t _moduloMask;
-};
-
-/********************************************************************************/
-
 template <typename Functor> void iter1 (IBank& bank, Model<kmer_type>& model, Functor& hash, IteratorListener* progress=0)
 {
+    // We use the provided listener if any
+    LOCAL (progress);
+
     // We need an iterator on the FASTA bank.
     Iterator<Sequence>* itBank = bank.iterator();
     LOCAL (itBank);
 
     // We declare two kmer iterators for the two banks and a paired one that links them.
-    Model<kmer_type>::Iterator itKmer (model);
+    Model<kmer_type>::Iterator itKmer (model, KMER_DIRECT);
 
     // We get some information about the kmers.
     u_int64_t nbKmers       = 0;
@@ -231,7 +118,10 @@ template <typename Functor> void iter1 (IBank& bank, Model<kmer_type>& model, Fu
 
 template <typename Functor> void iter2 (IBank& bank, Model<kmer_type>& model, Functor& hash, IteratorListener* progress=0)
 {
-    BankKmerIterator itKmerBank (bank, model);
+    // We use the provided listener if any
+    LOCAL (progress);
+
+    BankKmerIterator<kmer_type> itKmerBank (bank, model, KMER_DIRECT);
 
     // We get some information about the kmers.
     u_int64_t nbKmers       = 0;
@@ -260,49 +150,6 @@ template <typename Functor> void iter2 (IBank& bank, Model<kmer_type>& model, Fu
 
 /********************************************************************************/
 
-void BankConvert (IBank& in, IBank& out, IteratorListener* progress=0)
-{
-#if 1
-    // We need an iterator on the FASTA bank.
-    Iterator<Sequence>* itBank = in.iterator();
-    LOCAL (itBank);
-
-    SubjectIterator<Sequence> itSeq (*itBank, 100*1000);
-
-    if (progress != 0)  {  itSeq.addObserver (*progress);  }
-#else
-
-    Bank::Iterator itBank (in);
-#endif
-
-    u_int64_t   nbSeq = 0;
-    u_int64_t sizeSeq = 0;
-
-    // We get current time stamp
-    ITime::Value t0 = System::time().getTimeStamp();
-
-    for (itSeq.first(); !itSeq.isDone(); itSeq.next())
-    {
-        nbSeq ++;
-        sizeSeq += (itSeq)->getDataSize();
-
-        out.insert ( itSeq.item());
-    }
-
-    out.flush ();
-
-    // We get current time stamp
-    ITime::Value t1 = System::time().getTimeStamp();
-
-    cout << "CONVERSION IN " << (t1-t0) << " msec, "
-         << nbSeq << " sequences, " << sizeSeq << " bytes, "
-         << "file size " << out.getSize()
-         << endl;
-}
-
-
-/********************************************************************************/
-
 int main (int argc, char* argv[])
 {
     if (argc < 3)
@@ -318,6 +165,7 @@ int main (int argc, char* argv[])
 
     // We get the URI of the FASTA bank
     string filename (argv[2]);
+    string filenameBin = filename + ".bin";
 
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
@@ -326,16 +174,23 @@ int main (int argc, char* argv[])
         Model<kmer_type> model (kmerSize);
 
         // We declare the FASTA bank
-        Bank bank (argc-2, argv+2);
+        Bank bank (filename);
 
         // We declare a binary bank
-        BankBinary bankBin (filename + ".bin");
+        BankBinary bankBin (filenameBin);
 
-        // We convert the FASTA bank in binary format
-        BankConvert (bank, bankBin, new Progress (bank.estimateNbSequences(), "FASTA to binary conversion"));
+        if (System::file().doesExist(filenameBin) == false)
+        {
+            // We declare some job listener.
+            Progress progress (bank.estimateNbSequences(), "FASTA to binary conversion");
+
+            // We convert the FASTA bank in binary format
+            IProperties* props = BankHelper::singleton().convert (bank, bankBin, &progress);
+            LOCAL (props);
+        }
 
         //HashNull hash;
-        Hash     hash;
+        Hash hash;
 
         // TEST 1
         iter1 (bankBin, model, hash, new Progress (bank.estimateNbSequences(), "Iterating 1"));
