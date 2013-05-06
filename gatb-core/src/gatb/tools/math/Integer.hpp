@@ -61,7 +61,7 @@ public:
     static const int precision = (nbbits+63)/64;
 
     /** Constructor.
-     * \param[in] val : initial value of the large integer. */
+     * \param[in] c : initial value of the large integer. */
     Integer(const uint64_t& c)
     {
 #ifdef DYNAMIC
