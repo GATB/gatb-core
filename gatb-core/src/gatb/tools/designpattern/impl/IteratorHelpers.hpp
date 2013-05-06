@@ -233,7 +233,7 @@ private:
  *
  * \see SubjectIterator
  */
-class IteratorListener
+class IteratorListener : public SmartPointer
 {
 public:
 
