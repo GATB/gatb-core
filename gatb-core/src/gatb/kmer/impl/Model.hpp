@@ -117,6 +117,7 @@ public:
     public:
         /** Constructor.
          * \param[in] ref : the associated model instance.
+         * \param[in] mode  : give the way kmers are computed
          */
         Iterator (Model& ref, KmerMode mode)
             : _ref(ref), _mode(mode), _idx(0), _idxMax(0), _isBinary(false), _bufferNext(0)    {  _data.buffer = _dataBuffer;   }

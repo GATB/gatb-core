@@ -47,6 +47,7 @@ public:
     /** Constructor.
      * \param[in] bank : the bank whose sequences are to be iterated.
      * \param[in] model : kmer model
+     * \param[in] mode  : give the way kmers are computed
      */
     BankKmerIterator (bank::IBank& bank, Model<kmer_type>& model, KmerMode mode)
         : _itSeq(0), _itKmer(model, mode), _isDone(true),  _moduloMask(1), _current(0)
@@ -68,7 +69,7 @@ public:
         setItSeq(0);
     }
 
-    /** \copydoc Iterator::first */
+    /** \copydoc tools::dp::Iterator::first */
     void first()
     {
         /** We begin by notifying potential listeners that the iteration is beginning. */
@@ -99,7 +100,7 @@ public:
         }
     }
 
-    /** \copydoc Iterator::next */
+    /** \copydoc tools::dp::Iterator::next */
     void next()
     {
         /** We look for the next kmer. */
@@ -131,7 +132,7 @@ public:
         }
     }
 
-    /** \copydoc Iterator::isDone */
+    /** \copydoc tools::dp::Iterator::isDone */
     bool isDone()
     {
         /** If we are done, we notify potential listeners. */
@@ -141,7 +142,7 @@ public:
         return _isDone;
     }
 
-    /** \copydoc Iterator::item */
+    /** \copydoc tools::dp::Iterator::item */
     kmer_type& item ()  { return _itKmer.item(); }
 
 private:
