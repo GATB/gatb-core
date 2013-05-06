@@ -5,6 +5,7 @@
 
 // We use the required packages
 using namespace std;
+using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 
 int main (int argc, char* argv[])
@@ -13,11 +14,11 @@ int main (int argc, char* argv[])
     Model<u_int64_t> model (3);
 
     // We compute the kmer for a given sequence
-    u_int64_t kmer = model.codeSeed ("CAT", false);
+    u_int64_t kmer = model.codeSeed ("CAT", KMER_DIRECT);
     cout << "kmer is " << kmer << endl;
 
     // We compute the next kmer on the right by adding one nucleotide.
-    kmer = model.codeSeedRight (kmer, 'T', false);
+    kmer = model.codeSeedRight (kmer, 'T', KMER_DIRECT);
     cout << "new kmer is " << kmer << endl;
 }
 //! [snippet1]

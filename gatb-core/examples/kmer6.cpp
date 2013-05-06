@@ -18,6 +18,7 @@ using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
 using namespace gatb::core::bank;
 using namespace gatb::core::bank::impl;
+using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 using namespace gatb::core::tools::dp::impl;
 using namespace gatb::core::tools::misc::impl;
@@ -69,8 +70,8 @@ int main (int argc, char* argv[])
         for (itSeq1Notif.first(); !itSeq1Notif.isDone(); itSeq1Notif.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         // We declare two kmer iterators for the two banks and a paired one that links them.
-        Model<kmer_type>::Iterator itKmer1 (model);
-        Model<kmer_type>::Iterator itKmer2 (model);
+        Model<kmer_type>::Iterator itKmer1 (model, KMER_DIRECT);
+        Model<kmer_type>::Iterator itKmer2 (model, KMER_DIRECT);
         PairedIterator<kmer_type,kmer_type> itKmer (itKmer1, itKmer2);
 
         // We loop the two banks with a paired iterator.

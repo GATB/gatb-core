@@ -8,6 +8,7 @@
 // We use the required packages
 using namespace std;
 using namespace gatb::core::tools::misc;
+using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 
 int main (int argc, char* argv[])
@@ -18,7 +19,7 @@ int main (int argc, char* argv[])
     Model<u_int64_t> model (3);
 
     // We declare an iterator on a given sequence.
-    Model<u_int64_t>::Iterator it (model);
+    Model<u_int64_t>::Iterator it (model, KMER_DIRECT);
 
     // We set the data from which we want to extract kmers.
     Data data ((char*)seq, strlen(seq), Data::ASCII);

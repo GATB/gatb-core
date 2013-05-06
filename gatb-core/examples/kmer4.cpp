@@ -9,6 +9,7 @@
 // We use the required packages
 using namespace std;
 using namespace gatb::core::bank::impl;
+using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 
 int main (int argc, char* argv[])
@@ -40,7 +41,7 @@ int main (int argc, char* argv[])
         Bank::Iterator itSeq (b);
 
         // We declare an iterator on a given sequence.
-        Model<u_int64_t>::Iterator itKmer (model);
+        Model<u_int64_t>::Iterator itKmer (model, KMER_DIRECT);
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())

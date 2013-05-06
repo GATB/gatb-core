@@ -11,6 +11,7 @@
 using namespace std;
 using namespace gatb::core::bank;
 using namespace gatb::core::bank::impl;
+using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
@@ -56,7 +57,7 @@ int main (int argc, char* argv[])
         ProgressFunctor fct (bank.estimateNbSequences());    itSeq.addObserver (fct);
 
         // We declare a kmer iterator for the model
-        Model<u_int64_t>::Iterator itKmer (model);
+        Model<u_int64_t>::Iterator itKmer (model, KMER_DIRECT);
 
         // We create a compound iterator that iterates kmer from sequences
         CompoundIterator<Sequence,u_int64_t,Update> it (itSeq, itKmer, Update());
