@@ -32,6 +32,19 @@ namespace core      {
 namespace kmer      {
 /********************************************************************************/
 
+/** \brief enumeration giving the way the kmers are computed. */
+enum KmerMode
+{
+    /** Kmer from direct strand */
+    KMER_DIRECT  = (1<<1),
+    /** Kmer as reverse complement */
+    KMER_REVCOMP = (1<<2),
+    /** Kmer as minimum between the direct and reverse complement */
+    KMER_BOTH    = KMER_DIRECT | KMER_REVCOMP
+};
+
+/********************************************************************************/
+
 /** \brief High level interface for dealing with kmer
  *
  * The IModel provides a mean to do several actions on kmer such as:
@@ -56,16 +69,16 @@ public:
     /** Compute the kmer given some nucleotide data.
      *  Note that we don't check if we have enough nucleotides in the provided data.
      * \param[in] seq : the sequence
-     * \param[in] revcomp : reverse code if true, direct otherwise
+     * \param[in] mode : mode telling how the kmer is computed
      * \return the kmer for the given nucleotides. */
-    virtual kmer_type codeSeed (const char* seq, bool revcomp) = 0;
+    virtual kmer_type codeSeed (const char* seq, KmerMode mode) = 0;
 
     /** Compute the next right kmer given a current kmer and a nucleotide.
      * \param[in] val_seed : the current kmer as a starting point
      * \param[in] nucleotide : the next nucleotide
-     * \param[in] revcomp : reverse code if true, direct otherwise
+     * \param[in] mode : mode telling how the kmer is computed
      * \return the kmer on the right of the given kmer. */
-    virtual kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, bool revcomp) = 0;
+    virtual kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, KmerMode mode) = 0;
 
     /** Destructor. */
     virtual ~IModel () {}
