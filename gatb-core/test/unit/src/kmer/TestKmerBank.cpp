@@ -80,8 +80,8 @@ public:
         for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         /** We declare two kmer iterators for the two banks and a paired one that links them. */
-        Model<u_int64_t>::Iterator itKmer1 (model);
-        Model<u_int64_t>::Iterator itKmer2 (model);
+        Model<u_int64_t>::Iterator itKmer1 (model, KMER_DIRECT);
+        Model<u_int64_t>::Iterator itKmer2 (model, KMER_DIRECT);
         PairedIterator<u_int64_t,u_int64_t> itKmer (itKmer1, itKmer2);
 
         /** We loop the two banks with a paired iterator. */

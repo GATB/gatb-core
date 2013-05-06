@@ -94,21 +94,21 @@ public:
             Model<kmer_type> model (span);
 
             /** We compute the kmer for a given sequence */
-            kmer = model.codeSeed (seq, false);
+            kmer = model.codeSeed (seq, KMER_DIRECT);
             CPPUNIT_ASSERT (kmer == directKmers[0]);
 
             /** We compute some of the next kmers. */
-            kmer = model.codeSeedRight (kmer, seq[3], false);
+            kmer = model.codeSeedRight (kmer, seq[3], KMER_DIRECT);
             CPPUNIT_ASSERT (kmer == directKmers[1]);
 
-            kmer = model.codeSeedRight (kmer, seq[4], false);
+            kmer = model.codeSeedRight (kmer, seq[4], KMER_DIRECT);
             CPPUNIT_ASSERT (kmer == directKmers[2]);
 
-            kmer = model.codeSeedRight (kmer, seq[5], false);
+            kmer = model.codeSeedRight (kmer, seq[5], KMER_DIRECT);
             CPPUNIT_ASSERT (kmer == directKmers[3]);
 
             /** We compute the kmer for a given sequence, in the reverse order. */
-            kmer = model.codeSeed (seq, true);
+            kmer = model.codeSeed (seq, KMER_REVCOMP);
             //CPPUNIT_ASSERT (kmer == 7);
         }
 
@@ -122,7 +122,7 @@ public:
             Model<kmer_type> model (3);
 
             /** We declare an iterator. */
-            typename Model<kmer_type>::Iterator it (model);
+            typename Model<kmer_type>::Iterator it (model, KMER_DIRECT);
 
             /** We set the data from which we want to extract kmers. */
             Data data ((char*)seq, strlen(seq), Data::ASCII);
