@@ -67,7 +67,7 @@ public:
     size_t getMemorySize ()  { return sizeof (kmer_type); }
 
     /** \copydoc IModel::codeSeed */
-    kmer_type codeSeed (const char* seq, bool revcomp)
+    kmer_type codeSeed (const char* seq, KmerMode mode)
     {
         kmer_type x = 0;
         for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + NT2int(seq[i]);  }
@@ -76,7 +76,7 @@ public:
     }
 
     /** \copydoc IModel::codeSeed */
-    kmer_type codeSeed_bin (const char* seq, bool revcomp)
+    kmer_type codeSeed_bin (const char* seq, KmerMode mode)
     {
         kmer_type x = 0;
         for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + (seq[i]);  }
@@ -86,18 +86,28 @@ public:
 
     /** \copydoc IModel::codeSeedRight
      * Copied from original function codeSeedRight from Minia */
-    kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, bool revcomp)
+    kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, KmerMode mode)
     {
-        if (revcomp)    {   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[NT2int(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;  }
-        else            {   return (val_seed*4 + NT2int (nucleotide) ) & _kmerMask;  }
+        switch (mode)
+        {
+        case KMER_REVCOMP:   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[NT2int(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;
+        case KMER_DIRECT:    return (val_seed*4 + NT2int (nucleotide) ) & _kmerMask;
+        case KMER_BOTH:      return 0;
+        default:        return 0;
+        }
     }
 
     /** \copydoc IModel::codeSeedRight
      * Copied from original function codeSeedRight from Minia */
-    kmer_type codeSeedRight_bin (const kmer_type& val_seed, char nucleotide, bool revcomp)
+    kmer_type codeSeedRight_bin (const kmer_type& val_seed, char nucleotide, KmerMode mode)
     {
-        if (revcomp)    {   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;  }
-        else            {   return (val_seed*4 +  nucleotide) & _kmerMask;  }
+        switch (mode)
+        {
+        case KMER_REVCOMP:   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;
+        case KMER_DIRECT:    return (val_seed*4 +  nucleotide) & _kmerMask;
+        case KMER_BOTH:      return 0;
+        default:        return 0;
+        }
     }
 
     /************************************************************/
@@ -108,7 +118,8 @@ public:
         /** Constructor.
          * \param[in] ref : the associated model instance.
          */
-        Iterator (Model& ref) : _ref(ref), _idx(0), _idxMax(0), _isBinary(false), _bufferNext(0)    {  _data.buffer = new char[10*1024];   }
+        Iterator (Model& ref, KmerMode mode)
+            : _ref(ref), _mode(mode), _idx(0), _idxMax(0), _isBinary(false), _bufferNext(0)    {  _data.buffer = _dataBuffer;   }
 
         /** Destructor */
         ~Iterator () {}
@@ -141,16 +152,16 @@ public:
             if (isDone())  { return; }
 
             /** We compute the first kmer. The next kmer will be computed from this one. */
-            if (_isBinary)   {  _current = _ref.codeSeed_bin (_data.getBuffer(), false);  }
-            else             {  _current = _ref.codeSeed     (_data.getBuffer(), false);  }
+            if (_isBinary)   {  _current = _ref.codeSeed_bin (_data.getBuffer(), _mode);  }
+            else             {  _current = _ref.codeSeed     (_data.getBuffer(), _mode);  }
         }
 
         /** \copydoc tools::dp::Iterator::next
          */
         void next()
         {
-            if (_isBinary)  {  _current =  _ref.codeSeedRight_bin (_current, _bufferNext[++_idx], false);  }
-            else            {  _current =  _ref.codeSeedRight     (_current, _bufferNext[++_idx], false);  }
+            if (_isBinary)  {  _current =  _ref.codeSeedRight_bin (_current, _bufferNext[++_idx], _mode);  }
+            else            {  _current =  _ref.codeSeedRight     (_current, _bufferNext[++_idx], _mode);  }
         }
 
         /** \copydoc tools::dp::Iterator::isDone */
@@ -161,9 +172,10 @@ public:
 
     private:
         Model&      _ref;
+        KmerMode    _mode;
         kmer_type   _current;
         tools::misc::Data _data;
-        tools::misc::Data _dataBinary;
+        char        _dataBuffer[10*1024];
         size_t      _idx;
         size_t      _idxMax;
         bool        _isBinary;
