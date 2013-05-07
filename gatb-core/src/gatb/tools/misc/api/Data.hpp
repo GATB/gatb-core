@@ -100,7 +100,7 @@ struct DataConverter
             j+=4;
         }
 
-        out.encoding = Data::BINARY;
+        out.encoding = Data::ASCII;
         out.size     = in.size;
     }
 };
