@@ -16,6 +16,7 @@
 
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
+#include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
@@ -60,7 +61,7 @@ public:
     void tearDown ()  {}
 
     /********************************************************************************/
-    void kmerbank_checkKmersFromBankAndBankBinary_aux (const char* filepath, size_t span)
+    void kmerbank_checkKmersFromBankAndBankBinary_aux (const char* filepath, size_t span, KmerMode mode)
     {
         string filename    = DBPATH (filepath);
         string filenameBin = filepath + string(".bin");
@@ -80,8 +81,8 @@ public:
         for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         /** We declare two kmer iterators for the two banks and a paired one that links them. */
-        Model<u_int64_t>::Iterator itKmer1 (model, KMER_DIRECT);
-        Model<u_int64_t>::Iterator itKmer2 (model, KMER_DIRECT);
+        Model<u_int64_t>::Iterator itKmer1 (model, mode);
+        Model<u_int64_t>::Iterator itKmer2 (model, mode);
         PairedIterator<u_int64_t,u_int64_t> itKmer (itKmer1, itKmer2);
 
         /** We loop the two banks with a paired iterator. */
@@ -112,12 +113,16 @@ public:
     {
         const char* files[] = { "reads1.fa", "reads1.fa.gz", "reads2.fa" };
         size_t      spans[] = { 2, 3, 5, 8, 13, 21, 34, 55 };
+        KmerMode    modes[] = { KMER_DIRECT, KMER_REVCOMP, KMER_MINIMUM};
 
-        for (size_t i=0; i<sizeof(files)/sizeof(files[0]); i++)
+        for (size_t i=0; i<ARRAY_SIZE(files); i++)
         {
-            for (size_t j=0; j<sizeof(spans)/sizeof(spans[0]); j++)
+            for (size_t j=0; j<ARRAY_SIZE(spans); j++)
             {
-                kmerbank_checkKmersFromBankAndBankBinary_aux (files[i], spans[j]);
+                for (size_t k=0; k<ARRAY_SIZE(modes); k++)
+                {
+                    kmerbank_checkKmersFromBankAndBankBinary_aux (files[i], spans[j], modes[k]);
+                }
             }
         }
     }
