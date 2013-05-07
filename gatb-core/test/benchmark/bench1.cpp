@@ -73,7 +73,7 @@ template <typename Functor> void iter1 (IBank& bank, Model<kmer_type>& model, Fu
     LOCAL (itBank);
 
     // We declare two kmer iterators for the two banks and a paired one that links them.
-    Model<kmer_type>::Iterator itKmer (model, KMER_DIRECT);
+    Model<kmer_type>::Iterator itKmer (model, KMER_MINIMUM);
 
     // We get some information about the kmers.
     u_int64_t nbKmers       = 0;
@@ -121,7 +121,7 @@ template <typename Functor> void iter2 (IBank& bank, Model<kmer_type>& model, Fu
     // We use the provided listener if any
     LOCAL (progress);
 
-    BankKmerIterator<kmer_type> itKmerBank (bank, model, KMER_DIRECT);
+    BankKmerIterator<kmer_type> itKmerBank (bank, model, KMER_MINIMUM);
 
     // We get some information about the kmers.
     u_int64_t nbKmers       = 0;
