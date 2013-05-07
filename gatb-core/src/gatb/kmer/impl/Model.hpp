@@ -23,12 +23,16 @@
 
 /********************************************************************************/
 
+#include <gatb/system/api/Exception.hpp>
 #include <gatb/kmer/api/IModel.hpp>
 #include <gatb/bank/api/IAlphabet.hpp>
 #include <gatb/bank/impl/Alphabet.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
 
+#include <vector>
+
+#include <iostream>
 
 /********************************************************************************/
 namespace gatb      {
@@ -67,48 +71,180 @@ public:
     size_t getMemorySize ()  { return sizeof (kmer_type); }
 
     /** \copydoc IModel::codeSeed */
-    kmer_type codeSeed (const char* seq, KmerMode mode)
-    {
-        kmer_type x = 0;
-        for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + NT2int(seq[i]);  }
-        //if (revcomp)  {  x = revcomp64(x); }
-        return x;
-    }
-
-    /** \copydoc IModel::codeSeed */
-    kmer_type codeSeed_bin (const char* seq, KmerMode mode)
-    {
-        kmer_type x = 0;
-        for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + (seq[i]);  }
-        //if (revcomp)  {  x = revcomp64(x); }
-        return x;
-    }
-
-    /** \copydoc IModel::codeSeedRight
-     * Copied from original function codeSeedRight from Minia */
-    kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, KmerMode mode)
+    kmer_type codeSeed (const char* seq, KmerMode mode, int (*transfo)(char nucl) = &NT2int)
     {
         switch (mode)
         {
-        case KMER_REVCOMP:   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[NT2int(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;
-        case KMER_DIRECT:    return (val_seed*4 + NT2int (nucleotide) ) & _kmerMask;
-        case KMER_BOTH:      return 0;
-        default:        return 0;
+            case KMER_DIRECT:
+            {
+                kmer_type x = 0;
+                for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + transfo(seq[i]);  }
+                return x;
+            }
+            case KMER_REVCOMP:
+            {
+                // COULD BE OPTIMIZED
+                kmer_type x = 0;
+                for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + transfo(seq[i]);  }
+                return revcomp64(x);
+            }
+
+            case KMER_MINIMUM:
+            default:
+            {
+                // COULD BE OPTIMIZED
+                kmer_type x = 0;
+                for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + transfo(seq[i]);  }
+                kmer_type y = revcomp64(x);
+                return min (x,y);
+            }
         }
     }
 
     /** \copydoc IModel::codeSeedRight
      * Copied from original function codeSeedRight from Minia */
-    kmer_type codeSeedRight_bin (const kmer_type& val_seed, char nucleotide, KmerMode mode)
+    kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, KmerMode mode, int (*transfo)(char nucl) = &NT2int)
     {
         switch (mode)
         {
-        case KMER_REVCOMP:   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;
-        case KMER_DIRECT:    return (val_seed*4 +  nucleotide) & _kmerMask;
-        case KMER_BOTH:      return 0;
-        default:        return 0;
+        case KMER_DIRECT:    return (val_seed*4 + transfo (nucleotide) ) & _kmerMask;
+
+        case KMER_REVCOMP:   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[transfo(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;
+
+        default:
+        case KMER_MINIMUM:   return min (
+                codeSeedRight (val_seed, nucleotide, KMER_DIRECT,  transfo),
+                codeSeedRight (val_seed, nucleotide, KMER_REVCOMP, transfo)
+            );
         }
     }
+
+#if 1
+    /************************************************************/
+    /** \brief Specific Iterator impl for Model class */
+    class Iterator : public tools::dp::Iterator<kmer_type>
+    {
+    public:
+        /** Constructor.
+         * \param[in] ref : the associated model instance.
+         * \param[in] mode  : give the way kmers are computed
+         */
+        Iterator (Model& ref, KmerMode mode)  : _ref(ref), _mode(mode), _idx(0), _nbKmers(0)  {}
+
+        /** Destructor */
+        ~Iterator () {}
+
+        /** Set the data to be iterated.
+         *  Equivalent to the end of the Minia's KmersBuffer::readkmers()
+         * \param[in] data : the data as information source for the iterator
+         */
+        void setData (tools::misc::Data& d)
+        {
+            /** By default, we will use the provided data with a ASCII encoding. */
+            tools::misc::Data* data = &d;
+
+            /** For ASCII encoding, we need to translate the nucleotides. */
+            int (*transfo)(char nucl) = &NT2int;
+
+            /** We may have to expand the binary data. */
+            if (d.getEncoding() == tools::misc::Data::BINARY)
+            {
+                size_t expandedLen = d.getSize() ;
+                if (_binaryVector.size () < expandedLen)
+                {
+                    _binaryVector.resize (expandedLen + 4);
+                    _binaryData.buffer = _binaryVector.data();
+                    _binaryData.size   = _binaryVector.size();
+                }
+
+                /** We convert the provided binary data into integer encoding. */
+                tools::misc::DataConverter::convert (d, _binaryData);
+
+                data = &_binaryData;
+
+                /** For binary encoding, we need no nucleotide transformation. */
+                transfo = &NTIdentity;
+            }
+
+            /** We compute the number of kmers for the provided data. */
+            _nbKmers = data->getSize() - _ref.getSpan() + 1;
+
+            /** We may have to resize the kmers buffer. Note the +1 => allow the 'next' method to go beyond
+             * the real number of kmers, in order to escape one 'isDone' test. */
+            if (_nbKmers >= _kmersBuffer.size())  { _kmersBuffer.resize (_nbKmers+1); }
+
+            /** Shortcut used for computing kmers recursively. */
+            char* buffer = data->getBuffer() + _ref.getSpan() - 1;
+
+            if (_mode == KMER_DIRECT || _mode == KMER_REVCOMP)
+            {
+                /** We compute the first kmer as a polynomial value. */
+                kmer_type graine = _ref.codeSeed (data->getBuffer(), _mode, transfo);
+                _kmersBuffer[0] = graine;
+
+                /** We compute the next kmers in a recursive way. */
+                for (size_t i=1; i<_nbKmers; i++)
+                {
+                    graine = _ref.codeSeedRight  (graine, buffer[i], _mode, transfo);
+                    _kmersBuffer[i] = graine;
+                }
+            }
+
+            else if (_mode == KMER_MINIMUM)
+            {
+                /** We compute the first kmer as a polynomial value. */
+                kmer_type graine  = _ref.codeSeed (data->getBuffer(), KMER_DIRECT,  transfo);
+                kmer_type revcomp = _ref.codeSeed (data->getBuffer(), KMER_REVCOMP, transfo);
+                _kmersBuffer[0] = min (graine, revcomp);
+
+                /** We compute the next kmers in a recursive way. */
+                for (size_t i=1; i<_nbKmers; i++)
+                {
+                    char c = buffer[i];
+
+#if 1
+                    graine  = _ref.codeSeedRight  (graine,  buffer[i], KMER_DIRECT,  transfo);
+                    revcomp = _ref.codeSeedRight  (revcomp, buffer[i], KMER_REVCOMP, transfo);
+#else
+                    graine =  ( (graine << 2) +  c) & _ref._kmerMask;
+                    revcomp = ((revcomp >> 2) +  ( ((kmer_type) comp_NT[c]) <<  (2*(_ref._sizeKmer-1))  )  ) & _ref._kmerMask;
+#endif
+                    _kmersBuffer[i] = min (graine, revcomp);
+                }
+            }
+        }
+
+        /** \copydoc tools::dp::Iterator::first */
+        void first()
+        {
+            _idx = 0;
+            _current = _kmersBuffer [_idx];
+        }
+
+        /** \copydoc tools::dp::Iterator::next */
+        void next()  {  _current = _kmersBuffer [++_idx];  }
+
+        /** \copydoc tools::dp::Iterator::isDone */
+        bool isDone ()  {  return _idx >= _nbKmers; }
+
+        /** \copydoc tools::dp::Iterator::item */
+        kmer_type& item ()     { return _current; }
+
+    private:
+        Model&      _ref;
+        KmerMode    _mode;
+
+        kmer_type   _current;
+        std::vector<kmer_type> _kmersBuffer;
+
+        int32_t _idx;
+        int32_t _nbKmers;
+
+        tools::misc::Data _binaryData;
+        std::vector<char> _binaryVector;
+    };
+
+#else
 
     /************************************************************/
     /** \brief Specific Iterator impl for Model class */
@@ -183,19 +319,23 @@ public:
         char*       _bufferNext;
     };
 
+#endif
+
 private:
     size_t           _sizeKmer;
     bank::IAlphabet& _alphabet;
     kmer_type        _kmerMask;
 
     /**  A=0, C=1, T=2, G=3 */
-    int NT2int(char nt)
+    static int NT2int(char nt)
     {
         int i;
         i = nt;
         i = (i>>1)&3; // that's quite clever, guillaume.
         return i;
     }
+
+    static int NTIdentity(char nt) { return nt; }
 
     /** */
     u_int64_t revcomp64 (u_int64_t x)

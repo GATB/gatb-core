@@ -36,11 +36,11 @@ namespace kmer      {
 enum KmerMode
 {
     /** Kmer from direct strand */
-    KMER_DIRECT  = (1<<1),
+    KMER_DIRECT,
     /** Kmer as reverse complement */
-    KMER_REVCOMP = (1<<2),
+    KMER_REVCOMP,
     /** Kmer as minimum between the direct and reverse complement */
-    KMER_BOTH    = KMER_DIRECT | KMER_REVCOMP
+    KMER_MINIMUM
 };
 
 /********************************************************************************/
@@ -71,14 +71,14 @@ public:
      * \param[in] seq : the sequence
      * \param[in] mode : mode telling how the kmer is computed
      * \return the kmer for the given nucleotides. */
-    virtual kmer_type codeSeed (const char* seq, KmerMode mode) = 0;
+    virtual kmer_type codeSeed (const char* seq, KmerMode mode, int (*transfo)(char nucl)) = 0;
 
     /** Compute the next right kmer given a current kmer and a nucleotide.
      * \param[in] val_seed : the current kmer as a starting point
      * \param[in] nucleotide : the next nucleotide
      * \param[in] mode : mode telling how the kmer is computed
      * \return the kmer on the right of the given kmer. */
-    virtual kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, KmerMode mode) = 0;
+    virtual kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, KmerMode mode, int (*transfo)(char nucl)) = 0;
 
     /** Destructor. */
     virtual ~IModel () {}
