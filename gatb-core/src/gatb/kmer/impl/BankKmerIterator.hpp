@@ -116,7 +116,6 @@ public:
             _isDone = _itSeq->isDone();
             if (!_isDone)
             {
-
                 /** We configure the kmer iterator with the current sequence data. */
                 _itKmer.setData ((*_itSeq)->getData());
 
