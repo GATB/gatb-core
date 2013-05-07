@@ -24,10 +24,10 @@ using namespace gatb::core::tools::dp::impl;
 using namespace gatb::core::tools::misc::impl;
 using namespace gatb::core::tools::math;
 
-//typedef u_int64_t kmer_type;
+typedef u_int64_t kmer_type;
 //typedef ttmath::UInt<64> kmer_type;
 //typedef LargeInt<64> kmer_type;
-typedef Integer<128> kmer_type;
+//typedef Integer<128> kmer_type;
 
 int main (int argc, char* argv[])
 {
