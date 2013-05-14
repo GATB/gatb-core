@@ -15,7 +15,7 @@
 /** \file Vector.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Iterable interface
+ *  \brief Vector implementation
  */
 
 #ifndef _GATB_CORE_TOOLS_MISC_VECTOR_HPP_
@@ -33,6 +33,10 @@ namespace misc      {
 /********************************************************************************/
 
 /** \brief Vector class allowing to define vectors as sub parts of referred vectors.
+ *
+ * This vector implementation supports two kind of memory management:
+ *      - dynamic allocation: the data buffer is allocated
+ *      - reference : the data buffer is a reference to some existing buffer in memory
  */
 template<typename T> class Vector : public dp::SmartPointer
 {
@@ -60,7 +64,6 @@ public:
     /** \return buffer size (in bytes). */
     size_t size ()  const  { return _size; }
 
-
     /** Data access
      * \param[in] idx : index of the character to be retrieved
      * \return the retrieved character. */
@@ -75,11 +78,9 @@ public:
         _isAllocated = true;
     }
 
-    /** Set the size of the vector. */
-    void setSize (size_t size)
-    {
-        _size = size;
-    }
+    /** Set the size of the vector.
+     * \param[in] size : new size of the vector. */
+    void setSize (size_t size)  {  _size = size;  }
 
     /** Set the current data as a part of a referenced another data.
      * \param[in] ref : data referred by the current instance.
