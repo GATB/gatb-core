@@ -12,6 +12,8 @@
  *   CECILL version 2 License for more details.                              *
  *****************************************************************************/
 
+#include <gatb/kmer/impl/Model.hpp>
+
 //complement of one NT
 const unsigned char comp_NT[4] = {
   2,3,0,1
