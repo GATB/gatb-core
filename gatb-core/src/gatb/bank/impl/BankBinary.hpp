@@ -80,7 +80,7 @@ public:
         Iterator (BankBinary& ref);
 
         /** Destructor */
-        ~Iterator ();
+        virtual ~Iterator ();
 
         /** \copydoc tools::dp::Iterator::first */
         void first();
@@ -92,7 +92,8 @@ public:
         bool isDone ()  { return _isDone; }
 
         /** \copydoc tools::dp::Iterator::item */
-        Sequence& item ()     { return _sequence; }
+        Sequence& item ()     { return *_item; }
+
 
         /** Estimation of the number of sequences. Used (by delegation) by the Bank class.
          * \return the sequences number estimation. */
@@ -103,26 +104,13 @@ public:
         /** Reference to the underlying Iterable instance. */
         BankBinary&    _ref;
 
-        /** We define a custom Sequence type in order to get dummy comments. */
-        struct CustomSequence : bank::Sequence
-        {
-            /**  */
-            const char* getComment () const
-            {
-                static char buffer[256];
-                snprintf (buffer, sizeof(buffer), ">seq_%d_length_%ld", _idx, getDataSize());
-                return buffer;
-            }
-            u_int32_t _idx;
-        };
-
-        /** Current item to be returned by the iterator. */
-        CustomSequence _sequence;
-
         /** Tells whether the iteration is finished or not. */
         bool _isDone;
 
-        char* buffer;
+        /** Block buffer read from file. */
+        tools::misc::Data* _bufferData;
+        void setBufferData (tools::misc::Data* bufferData)  { SP_SETATTR(bufferData); }
+
         int   cpt_buffer;
         int   blocksize_toread;
         int   nseq_lues;
