@@ -27,6 +27,9 @@
 
 #include <gatb/tools/designpattern/api/SmartPointer.hpp>
 
+#include <vector>
+#include <iostream>
+
 /********************************************************************************/
 namespace gatb  {
 namespace core  {
@@ -104,6 +107,9 @@ template <class Item> class Iterator : public SmartPointer
 {
 public:
 
+    /** */
+    Iterator () : _item(&_default), _isRunning(false) {}
+
     /** Method that initializes the iteration. */
     virtual void first() = 0;
 
@@ -130,6 +136,38 @@ public:
 
     /** Another way to iterate: push model, ie a functor is called for each item. */
     template <typename Functor> void iterate (Functor& f)   {  for (first(); !isDone(); next())  { f (item()); }  }
+
+    /** */
+    virtual void setItem (Item& i)  {  _item = &i;  }
+
+    /** */
+    bool get (std::vector<Item>& current)
+    {
+        size_t i=0;
+        for (i=0; i<current.size(); i++)
+        {
+            setItem (current[i]);
+
+            if (_isRunning == false)  { first ();  _isRunning=true; }
+            else                      { next  ();                   }
+
+            if (isDone())
+            {
+                current.resize (i);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void reset ()  { _isRunning = false; }
+
+protected:
+    Item* _item;
+
+private:
+    Item  _default;
+    bool  _isRunning;
 };
 
 /********************************************************************************/

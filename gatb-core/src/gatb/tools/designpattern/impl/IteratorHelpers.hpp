@@ -380,6 +380,12 @@ public:
     /** \copydoc Iterator::item */
     Item& item ()  { return _ref.item(); }
 
+    /** */
+    void setItem (Item& current)  { _ref.setItem(current); }
+
+    /** */
+    void reset ()  { _ref.reset(); }
+
 private:
 
     Iterator<Item>& _ref;
@@ -470,6 +476,9 @@ public:
     /** \copydoc  Iterator::item */
     Item& item ()  { return _ref.item(); }
 
+    /** \copydoc  Iterator::setItem */
+    void setItem (Item& current)  { _ref.setItem(current); }
+
 private:
 
     Iterator<Item>& _ref;
@@ -504,10 +513,42 @@ public:
     /** \copydoc  Iterator::item */
     Item& item ()  { return _ref.item(); }
 
+    /** \copydoc  Iterator::setItem */
+    void setItem (Item& current)  { _ref.setItem(current); }
+
 private:
 
     Iterator<Item>& _ref;
     Filter&         _filter;
+};
+
+/********************************************************************************/
+
+template <class Item> class VectorIterator : public Iterator<Item>
+{
+public:
+    /** */
+    VectorIterator () : _idx(0), _nb (0)  {}
+
+    /** */
+    virtual ~VectorIterator () {}
+
+    /** \copydoc  Iterator::first */
+    void first()  {  _idx = -1;  next ();  }
+
+    /** \copydoc  Iterator::next */
+    void next()  { ++_idx;  if (_idx < _nb ) { this->_item = &(_items[_idx]); }  }
+
+    /** \copydoc  Iterator::isDone */
+    bool isDone() {   return _idx >= _nb;  }
+
+    /** \copydoc  Iterator::item */
+    Item& item ()  { return *(this->_item); }
+
+protected:
+    std::vector<Item> _items;
+    int32_t           _idx;
+    int32_t           _nb;
 };
 
 /********************************************************************************/
