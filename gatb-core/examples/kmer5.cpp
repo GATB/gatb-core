@@ -18,10 +18,10 @@ using namespace gatb::core::tools::dp::impl;
 
 // We need a functor that links two iterators; it updates the inner loop iterator (on kmers)
 // with the data of the outer iterator (on sequences).
-struct Update { void operator() (Iterator<u_int64_t>* itKmer, Sequence* seq)
+struct Update { void operator() (Iterator<kmer_type>* itKmer, Sequence* seq)
 {
     // We have to recover the real type of the iterator (lost due to genericity of InnerIterator)
-    static_cast<Model<u_int64_t>::Iterator*> (itKmer)->setData (seq->getData());
+    static_cast<KmerModel::Iterator*> (itKmer)->setData (seq->getData());
 }};
 
 // We need a functor that shows some iteration progress
@@ -45,7 +45,7 @@ int main (int argc, char* argv[])
         Bank bank (argc-1, argv+1);
 
         // We declare a kmer model with a given span size.
-        Model<u_int64_t> model (27);
+        KmerModel model (27);
 
         // We create a sequence iterator for the bank
         Bank::Iterator itBank (bank);
@@ -57,10 +57,10 @@ int main (int argc, char* argv[])
         ProgressFunctor fct (bank.estimateNbSequences());    itSeq.addObserver (fct);
 
         // We declare a kmer iterator for the model
-        Model<u_int64_t>::Iterator itKmer (model, KMER_DIRECT);
+        KmerModel::Iterator itKmer (model);
 
         // We create a compound iterator that iterates kmer from sequences
-        CompoundIterator<Sequence,u_int64_t,Update> it (itSeq, itKmer, Update());
+        CompoundIterator<Sequence,kmer_type,Update> it (itSeq, itKmer, Update());
 
         // We iterate the kmers.
         for (it.first(); !it.isDone(); it.next())   {  nbKmers++;  }

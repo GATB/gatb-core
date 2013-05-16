@@ -24,11 +24,6 @@ using namespace gatb::core::tools::dp::impl;
 using namespace gatb::core::tools::misc::impl;
 using namespace gatb::core::tools::math;
 
-typedef u_int64_t kmer_type;
-//typedef ttmath::UInt<64> kmer_type;
-//typedef LargeInt<64> kmer_type;
-//typedef Integer<128> kmer_type;
-
 int main (int argc, char* argv[])
 {
     if (argc < 3)
@@ -49,7 +44,7 @@ int main (int argc, char* argv[])
     try
     {
         // We declare a kmer model with a given span size.
-        Model<kmer_type> model (kmerSize);
+        KmerModel model (kmerSize);
 
         // We declare the FASTA bank
         Bank bank1 (filename);
@@ -70,8 +65,8 @@ int main (int argc, char* argv[])
         for (itSeq1Notif.first(); !itSeq1Notif.isDone(); itSeq1Notif.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         // We declare two kmer iterators for the two banks and a paired one that links them.
-        Model<kmer_type>::Iterator itKmer1 (model, KMER_DIRECT);
-        Model<kmer_type>::Iterator itKmer2 (model, KMER_DIRECT);
+        Model<kmer_type>::Iterator itKmer1 (model);
+        Model<kmer_type>::Iterator itKmer2 (model);
         PairedIterator<kmer_type,kmer_type> itKmer (itKmer1, itKmer2);
 
         // We loop the two banks with a paired iterator.
@@ -114,7 +109,8 @@ int main (int argc, char* argv[])
         ITime::Value t1 = System::time().getTimeStamp();
 
         // We dump some information about the iterated kmers;
-        cout << "FOUND " << nbKmers << " kmers in " << (t1-t0) << " msec,  checksum is " << checksumKmers  << endl;
+        cout << "FOUND " << nbKmers << " kmers in " << (t1-t0) << " msec,  checksum is " << checksumKmers  <<  "  ("
+             << kmer_type::getName() << ")" << endl;
 
         // We remove the binary bank
         System::file().remove (filename + ".bin");

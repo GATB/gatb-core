@@ -11,7 +11,7 @@ using namespace gatb::core::kmer::impl;
 int main (int argc, char* argv[])
 {
     // We declare a kmer model with a given span size.
-    Model<u_int64_t> model1 (27);
+    KmerModel model1 (27);
 
     // We get some information about the model.
     cout << "----------  MODEL 1  ----------"                << endl;

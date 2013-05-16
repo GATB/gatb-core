@@ -7,18 +7,15 @@
 using namespace std;
 using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
+using namespace gatb::core::tools::misc;
 
 int main (int argc, char* argv[])
 {
     // We declare a kmer model with a given span size.
-    Model<u_int64_t> model (3);
+    KmerModel model (3);
 
     // We compute the kmer for a given sequence
-    u_int64_t kmer = model.codeSeed ("CAT", KMER_DIRECT);
+    kmer_type kmer = model.codeSeed ("CAT", Data::ASCII);
     cout << "kmer is " << kmer << endl;
-
-    // We compute the next kmer on the right by adding one nucleotide.
-    kmer = model.codeSeedRight (kmer, 'T', KMER_DIRECT);
-    cout << "new kmer is " << kmer << endl;
 }
 //! [snippet1]

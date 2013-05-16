@@ -35,13 +35,13 @@ int main (int argc, char* argv[])
         Bank b (argc-2, argv+2);
 
         // We declare a kmer model with a given span size.
-        Model<u_int64_t> model (kmerSize);
+        KmerModel model (kmerSize);
 
         // We create an iterator over this bank.
         Bank::Iterator itSeq (b);
 
         // We declare an iterator on a given sequence.
-        Model<u_int64_t>::Iterator itKmer (model, KMER_DIRECT);
+        KmerModel::Iterator itKmer (model);
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
