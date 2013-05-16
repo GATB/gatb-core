@@ -68,29 +68,10 @@ public:
         return ModelAbstract<kmer_type>::codeSeed (seq, encoding, KMER_MINIMUM);
     }
 
-    /** \copydoc IModel::codeSeedRight
-     * Copied from original function codeSeedRight from Minia */
+    /** \copydoc IModel::codeSeedRight */
     kmer_type codeSeedRight (const kmer_type& seed, char nucl, tools::misc::Data::Encoding_e encoding)
     {
-        std::cout << "codeSeedRight  NOT IMPLEMENTED..." << std::endl;
-#if 0
-        if (encoding == tools::misc::Data::ASCII)
-        {
-            return std::min (
-                ((seed*4 + (nucl) ) & this->_kmerMask),
-                (((seed >> 2) +  ( ((kmer_type) comp_NT[NT2int(nucl)]) <<  (2*(this->_sizeKmer-1))  )  ) & this->_kmerMask)
-            );
-        }
-        else
-        {
-            return std::min (
-                ((seed*4 + (nucl) ) & this->_kmerMask),
-                (((seed >> 2) +  ( ((kmer_type) comp_NT[(nucl)]) <<  (2*(this->_sizeKmer-1))  )  ) & this->_kmerMask)
-            );
-        }
-#else
-        return 0;
-#endif
+        return ModelAbstract<kmer_type>::codeSeedRight (seed, nucl, encoding, KMER_MINIMUM);
     }
 
     /** */
