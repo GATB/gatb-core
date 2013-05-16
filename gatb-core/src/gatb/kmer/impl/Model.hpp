@@ -25,12 +25,16 @@
 
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/kmer/api/IModel.hpp>
+#include <gatb/kmer/impl/ModelAbstract.hpp>
+
 #include <gatb/bank/api/IAlphabet.hpp>
 #include <gatb/bank/impl/Alphabet.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
+#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
 
 #include <vector>
+#include <algorithm>
 
 #include <iostream>
 
@@ -48,7 +52,7 @@ extern const unsigned char comp_NT    [];
 
 /** \brief TO BE DONE
  */
-template <typename kmer_type> class Model : public IModel<kmer_type>
+template <typename kmer_type> class Model : public ModelAbstract<kmer_type>
 {
 public:
 
@@ -56,302 +60,119 @@ public:
      * \param[in] span : size of the kmers for this model
      * \param[in] alphabet : underlying alphabet
      */
-    Model (size_t span, bank::IAlphabet& alphabet = bank::impl::AlphabetNucleic::singleton()) : _sizeKmer(span), _alphabet(alphabet)
-    {
-        _kmerMask = (((kmer_type)1) << (_sizeKmer*2))-1;
-    }
-
-    /** \copydoc IModel::getAlphabet */
-    bank::IAlphabet&  getAlphabet() { return _alphabet; }
-
-    /** \copydoc IModel::getSpan */
-    size_t getSpan () { return _sizeKmer; }
-
-    /** \copydoc IModel::getMemorySize */
-    size_t getMemorySize ()  { return sizeof (kmer_type); }
+    Model (size_t span, bank::IAlphabet& alphabet= bank::impl::AlphabetNucleic::singleton()) : ModelAbstract<kmer_type> (span, alphabet)  {}
 
     /** \copydoc IModel::codeSeed */
-    kmer_type codeSeed (const char* seq, KmerMode mode, int (*transfo)(char nucl) = &NT2int)
+    kmer_type codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding)
     {
-        switch (mode)
-        {
-            case KMER_DIRECT:
-            {
-                kmer_type x = 0;
-                for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + transfo(seq[i]);  }
-                return x;
-            }
-            case KMER_REVCOMP:
-            {
-                // COULD BE OPTIMIZED
-                kmer_type x = 0;
-                for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + transfo(seq[i]);  }
-                return revcomp64(x);
-            }
-
-            case KMER_MINIMUM:
-            default:
-            {
-                // COULD BE OPTIMIZED
-                kmer_type x = 0;
-                for (size_t i=0; i<_sizeKmer; ++i)  {  x = x*4 + transfo(seq[i]);  }
-                kmer_type y = revcomp64(x);
-                return min (x,y);
-            }
-        }
+        return ModelAbstract<kmer_type>::codeSeed (seq, encoding, KMER_MINIMUM);
     }
 
     /** \copydoc IModel::codeSeedRight
      * Copied from original function codeSeedRight from Minia */
-    kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, KmerMode mode, int (*transfo)(char nucl) = &NT2int)
+    kmer_type codeSeedRight (const kmer_type& seed, char nucl, tools::misc::Data::Encoding_e encoding)
     {
-        switch (mode)
+        std::cout << "codeSeedRight  NOT IMPLEMENTED..." << std::endl;
+#if 0
+        if (encoding == tools::misc::Data::ASCII)
         {
-        case KMER_DIRECT:    return (val_seed*4 + transfo (nucleotide) ) & _kmerMask;
-
-        case KMER_REVCOMP:   return ((val_seed >> 2) +  ( ((kmer_type) comp_NT[transfo(nucleotide)]) <<  (2*(_sizeKmer-1))  )  ) & _kmerMask;
-
-        default:
-        case KMER_MINIMUM:   return min (
-                codeSeedRight (val_seed, nucleotide, KMER_DIRECT,  transfo),
-                codeSeedRight (val_seed, nucleotide, KMER_REVCOMP, transfo)
+            return std::min (
+                ((seed*4 + (nucl) ) & this->_kmerMask),
+                (((seed >> 2) +  ( ((kmer_type) comp_NT[NT2int(nucl)]) <<  (2*(this->_sizeKmer-1))  )  ) & this->_kmerMask)
             );
         }
-    }
-
-#if 1
-    /************************************************************/
-    /** \brief Specific Iterator impl for Model class */
-    class Iterator : public tools::dp::Iterator<kmer_type>
-    {
-    public:
-        /** Constructor.
-         * \param[in] ref : the associated model instance.
-         * \param[in] mode  : give the way kmers are computed
-         */
-        Iterator (Model& ref, KmerMode mode)  : _ref(ref), _mode(mode), _idx(0), _nbKmers(0)  {}
-
-        /** Destructor */
-        ~Iterator () {}
-
-        /** Set the data to be iterated.
-         *  Equivalent to the end of the Minia's KmersBuffer::readkmers()
-         * \param[in] data : the data as information source for the iterator
-         */
-        void setData (tools::misc::Data& d)
+        else
         {
-            /** By default, we will use the provided data with a ASCII encoding. */
-            tools::misc::Data* data = &d;
-
-            /** For ASCII encoding, we need to translate the nucleotides. */
-            int (*transfo)(char nucl) = &NT2int;
-
-            /** We may have to expand the binary data. */
-            if (d.getEncoding() == tools::misc::Data::BINARY)
-            {
-                size_t expandedLen = d.getSize() ;
-                if (_binaryVector.size () < expandedLen)
-                {
-                    _binaryVector.resize (expandedLen + 4);
-                    _binaryData.buffer = _binaryVector.data();
-                    _binaryData.size   = _binaryVector.size();
-                }
-
-                /** We convert the provided binary data into integer encoding. */
-                tools::misc::DataConverter::convert (d, _binaryData);
-
-                data = &_binaryData;
-
-                /** For binary encoding, we need no nucleotide transformation. */
-                transfo = &NTIdentity;
-            }
-
-            /** We compute the number of kmers for the provided data. */
-            _nbKmers = data->getSize() - _ref.getSpan() + 1;
-
-            /** We may have to resize the kmers buffer. Note the +1 => allow the 'next' method to go beyond
-             * the real number of kmers, in order to escape one 'isDone' test. */
-            if (_nbKmers >= _kmersBuffer.size())  { _kmersBuffer.resize (_nbKmers+1); }
-
-            /** Shortcut used for computing kmers recursively. */
-            char* buffer = data->getBuffer() + _ref.getSpan() - 1;
-
-            if (_mode == KMER_DIRECT || _mode == KMER_REVCOMP)
-            {
-                /** We compute the first kmer as a polynomial value. */
-                kmer_type graine = _ref.codeSeed (data->getBuffer(), _mode, transfo);
-                _kmersBuffer[0] = graine;
-
-                /** We compute the next kmers in a recursive way. */
-                for (size_t i=1; i<_nbKmers; i++)
-                {
-                    graine = _ref.codeSeedRight  (graine, buffer[i], _mode, transfo);
-                    _kmersBuffer[i] = graine;
-                }
-            }
-
-            else if (_mode == KMER_MINIMUM)
-            {
-                /** We compute the first kmer as a polynomial value. */
-                kmer_type graine  = _ref.codeSeed (data->getBuffer(), KMER_DIRECT,  transfo);
-                kmer_type revcomp = _ref.codeSeed (data->getBuffer(), KMER_REVCOMP, transfo);
-                _kmersBuffer[0] = min (graine, revcomp);
-
-                /** We compute the next kmers in a recursive way. */
-                for (size_t i=1; i<_nbKmers; i++)
-                {
-                    char c = buffer[i];
-
-#if 1
-                    graine  = _ref.codeSeedRight  (graine,  buffer[i], KMER_DIRECT,  transfo);
-                    revcomp = _ref.codeSeedRight  (revcomp, buffer[i], KMER_REVCOMP, transfo);
+            return std::min (
+                ((seed*4 + (nucl) ) & this->_kmerMask),
+                (((seed >> 2) +  ( ((kmer_type) comp_NT[(nucl)]) <<  (2*(this->_sizeKmer-1))  )  ) & this->_kmerMask)
+            );
+        }
 #else
-                    graine =  ( (graine << 2) +  c) & _ref._kmerMask;
-                    revcomp = ((revcomp >> 2) +  ( ((kmer_type) comp_NT[c]) <<  (2*(_ref._sizeKmer-1))  )  ) & _ref._kmerMask;
+        return 0;
 #endif
-                    _kmersBuffer[i] = min (graine, revcomp);
-                }
-            }
-        }
-
-        /** \copydoc tools::dp::Iterator::first */
-        void first()
-        {
-            _idx = 0;
-            _current = _kmersBuffer [_idx];
-        }
-
-        /** \copydoc tools::dp::Iterator::next */
-        void next()  {  _current = _kmersBuffer [++_idx];  }
-
-        /** \copydoc tools::dp::Iterator::isDone */
-        bool isDone ()  {  return _idx >= _nbKmers; }
-
-        /** \copydoc tools::dp::Iterator::item */
-        kmer_type& item ()     { return _current; }
-
-    private:
-        Model&      _ref;
-        KmerMode    _mode;
-
-        kmer_type   _current;
-        std::vector<kmer_type> _kmersBuffer;
-
-        int32_t _idx;
-        int32_t _nbKmers;
-
-        tools::misc::Data _binaryData;
-        std::vector<char> _binaryVector;
-    };
-
-#else
-
-    /************************************************************/
-    /** \brief Specific Iterator impl for Model class */
-    class Iterator : public tools::dp::Iterator<kmer_type>
-    {
-    public:
-        /** Constructor.
-         * \param[in] ref : the associated model instance.
-         * \param[in] mode  : give the way kmers are computed
-         */
-        Iterator (Model& ref, KmerMode mode)
-            : _ref(ref), _mode(mode), _idx(0), _idxMax(0), _isBinary(false), _bufferNext(0)    {  _data.buffer = _dataBuffer;   }
-
-        /** Destructor */
-        ~Iterator () {}
-
-        /** Set the data to be iterated.
-         * \param[in] data : the data as information source for the iterator
-         */
-        void setData (tools::misc::Data& data)
-        {
-            switch (data.getEncoding())
-            {
-            case tools::misc::Data::ASCII:    _data = data;  break;
-            case tools::misc::Data::BINARY:
-            {
-                tools::misc::DataConverter::convert (data, _data);
-                break;
-            }
-            default: break;
-            }
-
-            _idxMax     = _data.getSize()   - _ref._sizeKmer;
-            _bufferNext = _data.getBuffer() + _ref._sizeKmer - 1;
-            _isBinary   = _data.getEncoding() == tools::misc::Data::BINARY;
-        }
-
-        /** \copydoc tools::dp::Iterator::first */
-        void first()
-        {
-            _idx = 0;
-            if (isDone())  { return; }
-
-            /** We compute the first kmer. The next kmer will be computed from this one. */
-            if (_isBinary)   {  _current = _ref.codeSeed_bin (_data.getBuffer(), _mode);  }
-            else             {  _current = _ref.codeSeed     (_data.getBuffer(), _mode);  }
-        }
-
-        /** \copydoc tools::dp::Iterator::next
-         */
-        void next()
-        {
-            if (_isBinary)  {  _current =  _ref.codeSeedRight_bin (_current, _bufferNext[++_idx], _mode);  }
-            else            {  _current =  _ref.codeSeedRight     (_current, _bufferNext[++_idx], _mode);  }
-        }
-
-        /** \copydoc tools::dp::Iterator::isDone */
-        bool isDone ()  { return _idx > _idxMax; }
-
-        /** \copydoc tools::dp::Iterator::item */
-        kmer_type& item ()     { return _current; }
-
-    private:
-        Model&      _ref;
-        KmerMode    _mode;
-        kmer_type   _current;
-        tools::misc::Data _data;
-        char        _dataBuffer[10*1024];
-        size_t      _idx;
-        size_t      _idxMax;
-        bool        _isBinary;
-        char*       _bufferNext;
-    };
-
-#endif
-
-private:
-    size_t           _sizeKmer;
-    bank::IAlphabet& _alphabet;
-    kmer_type        _kmerMask;
-
-    /**  A=0, C=1, T=2, G=3 */
-    static int NT2int(char nt)
-    {
-        int i;
-        i = nt;
-        i = (i>>1)&3; // that's quite clever, guillaume.
-        return i;
     }
-
-    static int NTIdentity(char nt) { return nt; }
 
     /** */
-    u_int64_t revcomp64 (u_int64_t x)
+    void build (tools::misc::Data& d, std::vector<kmer_type>& kmersBuffer)
     {
-        u_int64_t revcomp = x;
+        tools::misc::Data  binaryData;
 
-        unsigned char * kmerrev  = (unsigned char *) (&revcomp);
-        unsigned char * kmer     = (unsigned char *) (&x);
+        /** By default, we will use the provided data with a ASCII encoding. */
+        tools::misc::Data* data = &d;
 
-        for (size_t i=0; i<8; ++i)  {  kmerrev[7-i] = revcomp_4NT[kmer[i]];  }
+        /** We may have to expand the binary data to integer format. */
+        if (d.getEncoding() == tools::misc::Data::BINARY)
+        {
+            size_t expandedLen = d.size() ;
 
-        return (revcomp >> (2*( 4*sizeof(u_int64_t) - _sizeKmer))  ) ;
+            if (expandedLen > binaryData.size())  {  binaryData.resize (expandedLen + 4);  }
+
+            /** We convert the provided binary data into integer encoding. */
+            tools::misc::Data::convert (d, binaryData);
+
+            data = &binaryData;
+        }
+
+        /** We compute tnbKmershe number of kmers for the provided data. */
+        u_int32_t nbKmers = data->size() - this->getSpan() + 1;
+
+        /** We resize the resulting kmers vector. */
+        kmersBuffer.resize (nbKmers);
+
+        /** Shortcut used for computing kmers recursively. */
+        char* buffer = data->getBuffer() + this->getSpan() - 1;
+
+        /** We compute the first kmer as a polynomial value. */
+        kmer_type graine  = ModelAbstract<kmer_type>::codeSeed (data->getBuffer(), data->getEncoding(), KMER_DIRECT);
+        kmer_type revcomp = ModelAbstract<kmer_type>::codeSeed (data->getBuffer(), data->getEncoding(), KMER_REVCOMP);
+        kmersBuffer[0]    = std::min (graine, revcomp);
+
+        /** NOTE: we have some kind of duplicated code here: the only difference is the way we retrieve the 'c'
+         *  character according toe the encoding mode. We could have some function pointer for factorizing this.
+         *
+         *  BUT, using function pointer would lead to many function calls with bad performance. We prefer therefore
+         *  duplicate code and let inline work when needed.
+         */
+        if (data->getEncoding() == tools::misc::Data::ASCII)
+        {
+            /** We compute the next kmers in a recursive way. */
+            for (size_t i=1; i<nbKmers; i++)
+            {
+                char c = ModelAbstract<kmer_type>::NT2int(buffer[i]);
+                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
+                revcomp = ( (revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
+                kmersBuffer[i] = std::min (graine, revcomp);
+            }
+        }
+        else if (data->getEncoding() == tools::misc::Data::INTEGER)
+        {
+            /** We compute the next kmers in a recursive way. */
+            for (size_t i=1; i<nbKmers; i++)
+            {
+                char c = ModelAbstract<kmer_type>::NTidentity(buffer[i]);
+                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
+                revcomp = ( (revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
+                kmersBuffer[i] = std::min (graine, revcomp);
+            }
+        }
+        else  {  throw system::Exception ("BAD DATA FORMAT TO BE CONVERTED IN KMERS...");  }
     }
-
-    friend class Iterator;
 };
+
+/********************************************************************************/
+
+/** Definition of the "default" Model implementation that relies on the Integer class as kmer type.
+ * The Integer class is the default name for managing integers. It is defined at compilation time.
+ *
+ * The KmerModel can be seen as a shortcut for the every day work with a kmer model; in particular,
+ * end user doesn't have to bother with the template since the default Integer choice is made.
+ */
+typedef Model<gatb::core::tools::math::Integer> KmerModel;
+
+/** Define by default what the kmer_type is: the default Integer type.
+ */
+typedef gatb::core::tools::math::Integer kmer_type;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
