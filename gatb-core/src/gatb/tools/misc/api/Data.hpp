@@ -23,7 +23,13 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/Iterator.hpp>
+#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/impl/System.hpp>
+#include <gatb/tools/misc/api/Range.hpp>
+#include <gatb/tools/misc/api/Vector.hpp>
+
+#include <iostream>
+#include <string.h>
 
 /********************************************************************************/
 namespace gatb      {
@@ -38,9 +44,14 @@ namespace misc      {
  *      - an encoding format
  *      - a buffer holding the actual data
  *      - the size of the data
+ *
+ * It is implemented as a subclass of the Vector class, which allows to define Data
+ * as a sub part of a referred Data instance.
  */
-struct Data
+class Data : public Vector<char>
 {
+public:
+
     /** Define how data is encoded. */
     enum Encoding_e
     {
@@ -52,43 +63,32 @@ struct Data
         BINARY
     };
 
-    /** Constructor.
-     * \param[in] buf : the buffer holding the actual data
-     * \param[in] len : the size of the data
-     * \param[in] encode : the encoding scheme of the buffer
-     */
-    Data (char* buf, size_t len, Encoding_e encode)  : buffer(buf), size(len), encoding(encode)  {}
-
     /** Default constructor. */
-    Data ()  : buffer(0), size(0), encoding(ASCII)  {}
+    Data (Encoding_e encode = BINARY)  : encoding(encode) {}
 
-    /** \return buffer holding the actual data. */
-    char* getBuffer () const  { return buffer; }
+    /** Constructor. */
+    Data (size_t len)  : Vector<char>(len), encoding(BINARY)  {}
 
-    /** \return buffer size (in bytes). */
-    size_t getSize ()  const  { return size; }
+    /** \copydoc Vector<char>::setDataRef */
+    void setDataRef (Data* ref, size_t offset, size_t length)
+    {
+        /** We call the parent method. */
+        Vector<char>::setRef (ref, offset, length);
+
+        /** We set the encoding. */
+        encoding = ref->getEncoding();
+    }
 
     /** \return format of the data. */
     Encoding_e getEncoding ()  const  { return encoding; }
 
-    /** Operator overload for accessing a specific data in the buffer.
-     * \param[in] idx : index of the data to be retrieved
-     * \return the ith data
-     */
-    char& operator[] (size_t idx)  { return buffer[idx]; }
-
-    char*       buffer;
-    int         size;
-    Encoding_e  encoding;
-};
-
-/********************************************************************************/
-
-struct DataConverter
-{
+    /** Conversion from one encoding scheme to another.
+     *  TO BE IMPROVED (support only one kind of conversion, from binary to ascii)
+     * \param[in] in  : input data
+     * \param[in] out : output data */
     static void convert (Data& in, Data& out)
     {
-        size_t nchar = (in.getSize()+3)/4;
+        size_t nchar = (in.size()+3)/4;
         size_t j=0;
         for (size_t i=0; i<nchar; i++)
         {
@@ -100,9 +100,14 @@ struct DataConverter
             j+=4;
         }
 
-        out.encoding = Data::ASCII;
-        out.size     = in.size;
+        out.encoding = Data::INTEGER;
+        out.setSize (in.size());
     }
+
+private:
+
+    /** Encoding scheme of the data instance. */
+    Encoding_e  encoding;
 };
 
 /********************************************************************************/
