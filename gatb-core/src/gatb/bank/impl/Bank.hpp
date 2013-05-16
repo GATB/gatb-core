@@ -151,7 +151,7 @@ public:
         bool isDone ()  { return _isDone; }
 
         /** \copydoc tools::dp::Iterator::item */
-        Sequence& item ()     { return _sequence; }
+        Sequence& item ()     { return *_item; }
 
         /** Estimation of the number of sequences. Used (by delegation) by the Bank class.
          * \return the sequences number estimation. */
@@ -164,9 +164,6 @@ public:
 
         /** Tells what kind of comments we want as a client of the iterator. */
         CommentMode_e  _commentsMode;
-
-        /** Current item to be returned by the iterator. */
-        Sequence _sequence;
 
         /** Tells whether the iteration is finished or not. */
         bool _isDone;
@@ -182,10 +179,11 @@ public:
         void** buffered_file;
         void*  buffered_strings;   // variable_string_t *read, *dummy, *header;
 
-        bool get_next_seq           (char **nseq, int *len);
-        bool get_next_seq           (char **nseq, char **cheader, int *len, int *hlen, CommentMode_e mode);
-        bool get_next_seq_from_file (char **nseq, int *len, int file_id);
-        bool get_next_seq_from_file (char **nseq, char **cheader, int *len, int *hlen, int file_id, CommentMode_e mode);
+        bool get_next_seq           (tools::misc::Vector<char>& data);
+        bool get_next_seq           (tools::misc::Vector<char>& data, char **cheader, int *hlen, CommentMode_e mode);
+
+        bool get_next_seq_from_file (tools::misc::Vector<char>& data, int file_id);
+        bool get_next_seq_from_file (tools::misc::Vector<char>& data, char **cheader, int *hlen, int file_id, CommentMode_e mode);
     };
 
 protected:
