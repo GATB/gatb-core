@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
-add_definitions (-O3 -funroll-loops  -fomit-frame-pointer  -msse3  -DKMER_PRECISION=2)
+add_definitions (-O3 -funroll-loops  -fomit-frame-pointer  -msse3  -DINTEGER_KIND=1  -DKMER_PRECISION=3)
 #add_definitions (-g -p -pg  -DKMER_PRECISION=2)
 
 
