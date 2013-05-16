@@ -167,6 +167,30 @@ protected:
 
         return std::min (direct, rev);
     }
+
+    /** Compute the successor of a kmer in a recursive way.
+     *  WARNING ! we can't compute the minimum of direct and revcomp with this function since we need to know
+     *  both current direct and revcomp for computing the next one.
+     * \param[in] seed : initial kmer from which we want to compute the successor
+     * \param[in] nucl : the nucleotide to be appended to the current kmer
+     * \param[in] encoding : encoding of the source data
+     * \param[in] mode : tells how to compute the kmer.
+     */
+    kmer_type codeSeedRight (const kmer_type& seed, char nucl, tools::misc::Data::Encoding_e encoding, KmerMode mode)
+    {
+        kmer_type direct;
+
+        if (encoding == tools::misc::Data::ASCII)   {  direct = ( (seed << 2) + NT2int(nucl)) & _kmerMask;  }
+        else                                        {  direct = ( (seed << 2) +       (nucl)) & _kmerMask;  }
+
+        if (mode == KMER_DIRECT)  { return direct; }
+
+        kmer_type rev = core::tools::math::revcomp (direct, _sizeKmer);
+
+        if (mode == KMER_REVCOMP)  { return rev; }
+
+        throw system::Exception ("BAD MODE for computing kmer successor");
+    }
 };
 
 /********************************************************************************/
