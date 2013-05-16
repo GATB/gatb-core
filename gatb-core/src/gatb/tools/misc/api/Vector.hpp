@@ -94,14 +94,15 @@ public:
         _isAllocated = false;
     }
 
-    /** Set the current data as a part of a referenced another data.
+    /** Set the current data. Copy is done.
      * \param[in] buffer : data referred by the current instance.
      * \param[in] length : size of the data */
-    void setRef (T* buffer, size_t length)
+    void set (T* buffer, size_t length)
     {
-        _buffer      = buffer;
         _size        = length;
-        _isAllocated = false;
+        _buffer      = (char*) realloc (_buffer, _size*sizeof(char));
+        _isAllocated = true;
+        memcpy (_buffer, buffer, _size*sizeof(char));
     }
 
 private:
