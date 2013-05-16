@@ -36,30 +36,36 @@ namespace bank      {
 struct Sequence
 {
     /** Constructor. */
-    Sequence () : comment(0), commentSize(0) {}
+    Sequence (tools::misc::Data::Encoding_e encoding = tools::misc::Data::ASCII) : comment(0), commentSize(0), _data(encoding)  {}
 
     /** Destructor. */
-    virtual ~Sequence () {}
+    virtual ~Sequence ()  { }
 
     /** \return description of the sequence */
     virtual const char* getComment ()  const  { return comment; }
 
     /** \return the data as a Data structure. */
-    virtual tools::misc::Data& getData () { return data; }
+    virtual tools::misc::Data& getData () { return _data; }
 
     /** \return buffer holding the sequence residues. */
-    virtual char* getDataBuffer ()  const { return data.getBuffer(); }
+    virtual char* getDataBuffer ()  const { return _data.getBuffer(); }
 
     /** \return number of residues of the sequence. */
-    virtual size_t getDataSize () const  { return data.getSize(); }
+    virtual size_t getDataSize () const  { return _data.size(); }
 
     /** \return format of the data. */
-    virtual tools::misc::Data::Encoding_e getDataEncoding () const  { return data.getEncoding(); }
+    virtual tools::misc::Data::Encoding_e getDataEncoding () const  { return _data.getEncoding(); }
 
     char*  comment;
     int    commentSize;
 
-    tools::misc::Data data;
+    void setDataRef (tools::misc::Data* ref, int offset, int length)
+    {
+        _data.setDataRef (ref, offset, length);
+    }
+
+private:
+    tools::misc::Data _data;
 };
 
 /********************************************************************************/
