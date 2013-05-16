@@ -20,8 +20,10 @@
 #include <gatb/bank/impl/Alphabet.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 
-#include <gatb/tools/math/ttmath/ttmath.h>
+#include <gatb/tools/math/NativeInt64.hpp>
+#include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
+#include <gatb/tools/math/Integer.hpp>
 
 #include <iostream>
 
@@ -87,6 +89,7 @@ public:
             const char* seq = "CATTGATAGTGG";
             long directKmers [] = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
             long reverseKmers[] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
+            long minimuKmers [] = {11,  2, 16, 36,  9,  8, 24,  6, 17, 20};
 
             kmer_type kmer;
             size_t span = 3;
@@ -95,43 +98,34 @@ public:
             Model<kmer_type> model (span);
 
             /** We compute the kmer for a given sequence */
-            kmer = model.codeSeed (seq, KMER_DIRECT);
-            CPPUNIT_ASSERT (kmer == directKmers[0]);
+            kmer = model.codeSeed (seq, Data::ASCII);
+            CPPUNIT_ASSERT (kmer == minimuKmers[0]);
 
+#if 0
             /** We compute some of the next kmers. */
-            kmer = model.codeSeedRight (kmer, seq[3], KMER_DIRECT);
-            CPPUNIT_ASSERT (kmer == directKmers[1]);
+            kmer = model.codeSeedRight (kmer, seq[3], Data::ASCII);
+            CPPUNIT_ASSERT (kmer == minimuKmers[1]);
 
-            kmer = model.codeSeedRight (kmer, seq[4], KMER_DIRECT);
-            CPPUNIT_ASSERT (kmer == directKmers[2]);
+            kmer = model.codeSeedRight (kmer, seq[4], Data::ASCII);
+            CPPUNIT_ASSERT (kmer == minimuKmers[2]);
 
-            kmer = model.codeSeedRight (kmer, seq[5], KMER_DIRECT);
-            CPPUNIT_ASSERT (kmer == directKmers[3]);
-
-            /** We compute the kmer for a given sequence, in the reverse order. */
-            kmer = model.codeSeed (seq, KMER_REVCOMP);
-            CPPUNIT_ASSERT (kmer == reverseKmers[0]);
-
-            kmer = model.codeSeedRight (kmer, seq[3], KMER_REVCOMP);
-            CPPUNIT_ASSERT (kmer == reverseKmers[1]);
-
-            kmer = model.codeSeedRight (kmer, seq[4], KMER_REVCOMP);
-            CPPUNIT_ASSERT (kmer == reverseKmers[2]);
-
-            kmer = model.codeSeedRight (kmer, seq[5], KMER_REVCOMP);
-            CPPUNIT_ASSERT (kmer == reverseKmers[3]);
+            kmer = model.codeSeedRight (kmer, seq[5], Data::ASCII);
+            CPPUNIT_ASSERT (kmer == minimuKmers[3]);
+#endif
         }
 
         /********************************************************************************/
         static void kmer_checkIterator_aux (Model<kmer_type>& model, const char* seq, KmerMode mode, long* kmersTable, size_t lenTable)
         {
             /** We declare an iterator. */
-            typename Model<kmer_type>::Iterator it (model, mode);
+            typename Model<kmer_type>::Iterator it (model);
 
             /** We set the data from which we want to extract kmers. */
-            Data data ((char*)seq, strlen(seq), Data::ASCII);
-            it.setData (data);
+            Data data (Data::ASCII);
+            data.set ((char*)seq, strlen(seq));
 
+            /** We feed the iterator with the sequence data content. */
+            it.setData (data);
             /** We iterate the kmers. */
             size_t idx=0;
             for (it.first(); !it.isDone(); it.next())
@@ -139,7 +133,6 @@ public:
                 /** We check that the iterated kmer is the good one. */
                 CPPUNIT_ASSERT (*it == kmersTable[idx++]);
             }
-
             /** We check we found the correct number of kmers. */
             CPPUNIT_ASSERT (idx == lenTable);
         }
@@ -152,11 +145,11 @@ public:
 
             const char* seq = "CATTGATAGTGG";
 
-            long checkDirect []  = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
-            kmer_checkIterator_aux (model, seq, KMER_DIRECT, checkDirect, ARRAY_SIZE(checkDirect));
-
-            long checkReverse [] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
-            kmer_checkIterator_aux (model, seq, KMER_REVCOMP, checkReverse, ARRAY_SIZE(checkReverse));
+            // long checkDirect []  = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
+            // kmer_checkIterator_aux (model, seq, KMER_DIRECT, checkDirect, ARRAY_SIZE(checkDirect));
+            //
+            // long checkReverse [] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
+            // kmer_checkIterator_aux (model, seq, KMER_REVCOMP, checkReverse, ARRAY_SIZE(checkReverse));
 
             long checkBoth []    = {11,  2, 16, 36,  9,  8, 24,  6, 17, 20};
             kmer_checkIterator_aux (model, seq, KMER_MINIMUM, checkBoth, ARRAY_SIZE(checkBoth));
@@ -166,37 +159,49 @@ public:
     /********************************************************************************/
     void kmer_checkInfo ()
     {
-        Check <u_int64_t>::kmer_checkInfo();
+        /** We check with the native 64 bits type. */
+        Check <NativeInt64>::kmer_checkInfo();
 
-//        /** We check with the ttmath type (with different values). */
-//        Check < ttmath::UInt<KMER_PRECISION> >::kmer_checkInfo();
-//
-//        /** We check with the LargeInt type (with different values). */
-//        Check < LargeInt<KMER_PRECISION> >::kmer_checkInfo();
+        /** We check with the native 128 bits type. */
+        Check <NativeInt128>::kmer_checkInfo();
+
+        /** We check with the LargeInt type. */
+        Check < LargeInt<KMER_PRECISION> >::kmer_checkInfo();
+
+        /** We check with the default integer type */
+        Check <Integer>::kmer_checkInfo();
     }
 
     /********************************************************************************/
     void kmer_checkCompute ()
     {
-        Check <u_int64_t>::kmer_checkCompute();
+        /** We check with the native 64 bits type. */
+        Check <NativeInt64>::kmer_checkCompute();
 
-//        /** We check with the ttmath type (with different values). */
-//        Check < ttmath::UInt<KMER_PRECISION> >::kmer_checkCompute();
-//
-//        /** We check with the LargeInt type (with different values). */
-//        Check < LargeInt<KMER_PRECISION> >::kmer_checkCompute();
+        /** We check with the native 128 bits type. */
+        Check <NativeInt128>::kmer_checkCompute();
+
+        /** We check with the LargeInt type. */
+        Check < LargeInt<KMER_PRECISION> >::kmer_checkCompute();
+
+        /** We check with the default integer type */
+        Check <Integer>::kmer_checkCompute();
     }
 
     /********************************************************************************/
     void kmer_checkIterator ()
     {
-        Check<u_int64_t>::kmer_checkIterator();
+        /** We check with the native 64 bits type. */
+        Check<NativeInt64>::kmer_checkIterator();
 
-//        /** We check with the ttmath type (with different values). */
-//        Check < ttmath::UInt<KMER_PRECISION> >::kmer_checkIterator();
-//
-//        /** We check with the LargeInt type (with different values). */
-//        Check < LargeInt<KMER_PRECISION> >::kmer_checkIterator();
+        /** We check with the native 128 bits type. */
+        Check <NativeInt128>::kmer_checkIterator();
+
+        /** We check with the LargeInt type. */
+        Check < LargeInt<KMER_PRECISION> >::kmer_checkIterator();
+
+        /** We check with the default integer type */
+        Check <Integer>::kmer_checkIterator();
     }
 };
 
