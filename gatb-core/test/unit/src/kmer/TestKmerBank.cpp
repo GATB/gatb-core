@@ -31,6 +31,8 @@ using namespace gatb::core::system::impl;
 
 using namespace gatb::core::tools::dp::impl;
 
+using namespace gatb::core::tools::math;
+
 using namespace gatb::core::bank;
 using namespace gatb::core::bank::impl;
 
@@ -70,7 +72,7 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a kmer model with a given span size. */
-        Model<u_int64_t> model (span);
+        KmerModel model (span);
 
         /** We declare the two banks. */
         Bank       bank1 (filename);
@@ -81,9 +83,9 @@ public:
         for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         /** We declare two kmer iterators for the two banks and a paired one that links them. */
-        Model<u_int64_t>::Iterator itKmer1 (model, mode);
-        Model<u_int64_t>::Iterator itKmer2 (model, mode);
-        PairedIterator<u_int64_t,u_int64_t> itKmer (itKmer1, itKmer2);
+        KmerModel::Iterator itKmer1 (model);
+        KmerModel::Iterator itKmer2 (model);
+        PairedIterator<Integer,Integer> itKmer (itKmer1, itKmer2);
 
         /** We loop the two banks with a paired iterator. */
         BankBinary::Iterator itSeq2 (bank2);
