@@ -39,15 +39,22 @@
 
 #if INTEGER_KIND==1
     #include <gatb/tools/math/NativeInt64.hpp>
-    typedef gatb::core::tools::math::NativeInt64 Integer;
+    namespace gatb  {  namespace core  { namespace tools {  namespace math  {
+        typedef gatb::core::tools::math::NativeInt64 Integer;
+    }}}};
+}
 
 #elif INTEGER_KIND==2
     #include <gatb/tools/math/NativeInt128.hpp>
-    typedef gatb::core::tools::math::NativeInt128 Integer;
+    namespace gatb  {  namespace core  { namespace tools {  namespace math  {
+        typedef gatb::core::tools::math::NativeInt128 Integer;
+    }}}};
 
 #else
     #include <gatb/tools/math/LargeInt.hpp>
-    typedef gatb::core::tools::math::LargeInt<KMER_PRECISION> Integer;
+    namespace gatb  {  namespace core  { namespace tools {  namespace math  {
+        typedef gatb::core::tools::math::LargeInt<KMER_PRECISION> Integer;
+    }}}};
 #endif
 
 /********************************************************************************/
