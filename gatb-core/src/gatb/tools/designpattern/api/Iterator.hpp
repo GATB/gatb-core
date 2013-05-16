@@ -137,10 +137,13 @@ public:
     /** Another way to iterate: push model, ie a functor is called for each item. */
     template <typename Functor> void iterate (Functor& f)   {  for (first(); !isDone(); next())  { f (item()); }  }
 
-    /** */
+    /** Get a reference on the object to be configured as the currently iterated item.
+     * \param[in] i : object to be referred. */
     virtual void setItem (Item& i)  {  _item = &i;  }
 
-    /** */
+    /** Retrieve some iterated items in a vector.
+     * \param[in] current : vector to be filled with iterated items. May be resized if not enough items available
+     * \return true if the iteration is not finished, false otherwise. */
     bool get (std::vector<Item>& current)
     {
         size_t i=0;
@@ -160,6 +163,7 @@ public:
         return true;
     }
 
+    /** Reset the iterator. */
     void reset ()  { _isRunning = false; }
 
 protected:

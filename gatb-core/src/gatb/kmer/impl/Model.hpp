@@ -69,9 +69,9 @@ public:
     }
 
     /** \copydoc IModel::codeSeedRight */
-    kmer_type codeSeedRight (const kmer_type& seed, char nucl, tools::misc::Data::Encoding_e encoding)
+    kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, tools::misc::Data::Encoding_e encoding)
     {
-        return ModelAbstract<kmer_type>::codeSeedRight (seed, nucl, encoding, KMER_MINIMUM);
+        return ModelAbstract<kmer_type>::codeSeedRight (val_seed, nucleotide, encoding, KMER_MINIMUM);
     }
 
     /** */

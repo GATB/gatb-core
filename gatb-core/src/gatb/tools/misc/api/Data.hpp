@@ -69,8 +69,8 @@ public:
     /** Constructor. */
     Data (size_t len)  : Vector<char>(len), encoding(BINARY)  {}
 
-    /** \copydoc Vector<char>::setDataRef */
-    void setDataRef (Data* ref, size_t offset, size_t length)
+    /** \copydoc Vector<char>::setRef */
+    void setRef (Data* ref, size_t offset, size_t length)
     {
         /** We call the parent method. */
         Vector<char>::setRef (ref, offset, length);

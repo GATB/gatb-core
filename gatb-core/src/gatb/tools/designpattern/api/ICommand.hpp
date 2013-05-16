@@ -188,6 +188,7 @@ protected:
     public:
         /** Constructor.
          * \param[in] it : iterator to be used (shared by several IteratorCommand instances)
+         * \param[in] fct : functor fed with the iterated items
          * \param[in] synchro : shared synchronizer for accessing several items
          * \param[in] groupSize : number of items got from the iterator in one synchronized block.
          */
@@ -209,7 +210,6 @@ protected:
                  /** We retrieve some items from the iterator. */
                  isRunning = _it.get (items);
 
-//std::cout << "execute:  got " << items.size() << std::endl;
                  /** We unlock the shared synchronizer after accessing the iterator. */
                  _synchro.unlock ();
 

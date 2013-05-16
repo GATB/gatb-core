@@ -70,14 +70,14 @@ public:
     /** Compute the kmer given some nucleotide data.
      *  Note that we don't check if we have enough nucleotides in the provided data.
      * \param[in] seq : the sequence
-     * \param[in] mode : mode telling how the kmer is computed
+     * \param[in] encoding : encoding mode of the sequence
      * \return the kmer for the given nucleotides. */
     virtual kmer_type codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding) = 0;
 
     /** Compute the next right kmer given a current kmer and a nucleotide.
      * \param[in] val_seed : the current kmer as a starting point
      * \param[in] nucleotide : the next nucleotide
-     * \param[in] mode : mode telling how the kmer is computed
+     * \param[in] encoding : encoding mode of the sequence
      * \return the kmer on the right of the given kmer. */
     virtual kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, tools::misc::Data::Encoding_e encoding) = 0;
 

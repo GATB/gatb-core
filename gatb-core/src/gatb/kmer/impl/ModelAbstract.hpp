@@ -99,7 +99,7 @@ public:
         Iterator (ModelAbstract& ref)  : _ref(ref)   {}
 
         /** Set the data to be iterated.
-         * \param[in] data : the data as information source for the iterator
+         * \param[in] d : the data as information source for the iterator
          */
         void setData (tools::misc::Data& d)
         {

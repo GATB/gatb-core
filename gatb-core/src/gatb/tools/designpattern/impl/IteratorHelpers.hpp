@@ -477,7 +477,7 @@ public:
     Item& item ()  { return _ref.item(); }
 
     /** \copydoc  Iterator::setItem */
-    void setItem (Item& current)  { _ref.setItem(current); }
+    void setItem (Item& i)  { _ref.setItem(i); }
 
 private:
 
@@ -514,7 +514,7 @@ public:
     Item& item ()  { return _ref.item(); }
 
     /** \copydoc  Iterator::setItem */
-    void setItem (Item& current)  { _ref.setItem(current); }
+    void setItem (Item& i)  { _ref.setItem(i); }
 
 private:
 

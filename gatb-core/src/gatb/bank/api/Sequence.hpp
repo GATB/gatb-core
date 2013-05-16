@@ -61,7 +61,7 @@ struct Sequence
 
     void setDataRef (tools::misc::Data* ref, int offset, int length)
     {
-        _data.setDataRef (ref, offset, length);
+        _data.setRef (ref, offset, length);
     }
 
 private:

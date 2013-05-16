@@ -47,7 +47,7 @@ public:
     virtual ~SerialCommandDispatcher() {}
 
     /** \copydoc ICommandDispatcher::dispatchCommands */
-    void dispatchCommands (std::vector<ICommand*>& commands, ICommand* post=0);
+    void dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
 
     /** \copydoc ICommandDispatcher::getExecutionUnitsNumber */
     size_t getExecutionUnitsNumber () { return 1; }

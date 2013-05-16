@@ -46,7 +46,6 @@ public:
     /** Constructor.
      * \param[in] bank : the bank whose sequences are to be iterated.
      * \param[in] model : kmer model
-     * \param[in] mode  : give the way kmers are computed
      */
     BankKmerIterator (bank::IBank& bank, KmerModel& model)
         : _itSeq(0), _itKmer(model), _isDone(true),  _moduloMask(1), _current(0)
@@ -172,7 +171,6 @@ public:
     /** Constructor.
      * \param[in] bank : the bank whose sequences are to be iterated.
      * \param[in] model : kmer model
-     * \param[in] mode  : give the way kmers are computed
      */
     BankVectorKmerIterator (bank::IBank& bank, Model<kmer_type>& model)
         : _model(model), _itSeq(0), _isDone(true),  _moduloMask(1), _idx(0)
