@@ -28,10 +28,11 @@ using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
+using namespace gatb::core::tools::misc;
 
 #define DEBUG(a)  //printf a
 
-#define BUFFER_SIZE     (16*1024)
+#define BUFFER_SIZE     (256*1024)
 
 #define nearest_power_of_2(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
 
@@ -268,7 +269,7 @@ Bank::Iterator::Iterator (Bank& ref, CommentMode_e commentMode)
     init  ();
 
     /** We go to the first item (if any). */
-    first ();
+	// first ();
 }
 
 /*********************************************************************
@@ -317,13 +318,12 @@ void Bank::Iterator::next()
 {
     if (_commentsMode == NONE)
     {
-        _isDone = get_next_seq (&_sequence.data.buffer, &_sequence.data.size) == false;
+        _isDone = get_next_seq (_item->getData()) == false;
     }
     else
     {
-        _isDone = get_next_seq (&_sequence.data.buffer, &_sequence.comment, &_sequence.data.size, &_sequence.commentSize, _commentsMode) == false;
+        _isDone = get_next_seq (_item->getData(), &_item->comment, &_item->commentSize, _commentsMode) == false;
     }
-
     DEBUG (("Bank::Iterator::next  _isDone=%d\n", _isDone));
 }
 
@@ -428,7 +428,7 @@ inline signed int buffered_gets (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq_from_file (char **nseq, char **cheader, int *len, int *hlen, int file_id, CommentMode_e mode)
+bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, char **cheader, int *hlen, int file_id, CommentMode_e mode)
 {
     buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
 
@@ -496,8 +496,10 @@ bool Bank::Iterator::get_next_seq_from_file (char **nseq, char **cheader, int *l
             ; // read rest of quality
         bf->last_char = 0;
     }
-    *len  = bs->read->length;
-    *nseq = bs->read->string;
+
+    /** We update the data of the sequence. */
+    data.set (bs->read->string, bs->read->length);
+
     if (cheader && hlen)
     {
         *cheader = bs->header->string;
@@ -515,9 +517,9 @@ bool Bank::Iterator::get_next_seq_from_file (char **nseq, char **cheader, int *l
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq_from_file (char **nseq, int *len, int file_id)
+bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, int file_id)
 {
-    return get_next_seq_from_file (nseq, NULL, len, NULL, file_id, NONE);
+    return get_next_seq_from_file (data, NULL, NULL, file_id, NONE);
 }
 
 /*********************************************************************
@@ -528,16 +530,17 @@ bool Bank::Iterator::get_next_seq_from_file (char **nseq, int *len, int file_id)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq (char **nseq, char **cheader, int *len, int *hlen, CommentMode_e mode)
+bool Bank::Iterator::get_next_seq (Vector<char>& data, char **cheader, int *hlen, CommentMode_e mode
+)
 {
-    bool success = get_next_seq_from_file (nseq, cheader, len, hlen, index_file, mode);
+    bool success = get_next_seq_from_file (data, cheader, hlen, index_file, mode);
     if (success) return true;
 
     // cycle to next file if possible
     if (index_file < _ref.nb_files - 1)
     {
         index_file++;
-        return get_next_seq (nseq, cheader, len, hlen, mode);
+        return get_next_seq (data, cheader, hlen, mode);
     }
     return false;
 }
@@ -550,9 +553,9 @@ bool Bank::Iterator::get_next_seq (char **nseq, char **cheader, int *len, int *h
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq (char **nseq, int *len)
+bool Bank::Iterator::get_next_seq (Vector<char>& data)
 {
-    return get_next_seq (nseq, NULL, len, NULL, NONE);
+    return get_next_seq (data, NULL, NULL, NONE);
 }
 
 /*********************************************************************
@@ -645,15 +648,14 @@ void Bank::Iterator::finalize ()
 *********************************************************************/
 u_int64_t Bank::Iterator::estimateNbSequences ()
 {
-    char * rseq;
-    int readlen;
+    Vector<char> data;
 
     /** We initialize the iterator (and so points to the first item if any). */
     first ();
 
     /** We count at least one sequence.*/
     u_int64_t volume = 1;
-    while (get_next_seq (&rseq, &readlen))
+    while (get_next_seq (data))
     {
         if (++volume == 1000) break;
     }
