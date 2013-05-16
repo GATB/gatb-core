@@ -23,11 +23,10 @@
 
 /********************************************************************************/
 
-#include <gatb/kmer/api/IModel.hpp>
+#include <gatb/kmer/impl/Model.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/bank/api/IBank.hpp>
-
 
 /********************************************************************************/
 namespace gatb      {
@@ -38,9 +37,9 @@ namespace impl      {
 
 /** \brief Kmer iterator on data sequences from some bank.
  */
-template <typename kmer_type> class BankKmerIterator :
-        public tools::dp::Iterator<kmer_type>,
-        public tools::dp::impl::AbstractSubjectIterator
+class BankKmerIterator :
+    public tools::dp::Iterator<kmer_type>,
+    public tools::dp::impl::AbstractSubjectIterator
 {
 public:
 
@@ -49,8 +48,8 @@ public:
      * \param[in] model : kmer model
      * \param[in] mode  : give the way kmers are computed
      */
-    BankKmerIterator (bank::IBank& bank, Model<kmer_type>& model, KmerMode mode)
-        : _itSeq(0), _itKmer(model, mode), _isDone(true),  _moduloMask(1), _current(0)
+    BankKmerIterator (bank::IBank& bank, KmerModel& model)
+        : _itSeq(0), _itKmer(model), _isDone(true),  _moduloMask(1), _current(0)
     {
         /** We create an iterator over the sequences of the provided bank.
          * Note that this is a dynamic allocation, so we will have to get rid of the instance
@@ -151,12 +150,124 @@ private:
     void setItSeq (tools::dp::Iterator<bank::Sequence>* itSeq)  { SP_SETATTR(itSeq); }
 
     /** Inner loop iterator on kmer. */
-    typename Model<kmer_type>::Iterator _itKmer;
+    KmerModel::Iterator _itKmer;
 
     /** Shortcut (for performance). */
     bool _isDone;
 
     u_int32_t _current;
+    u_int32_t _moduloMask;
+};
+
+/********************************************************************************/
+
+/** \brief Kmer iterator on data sequences from some bank.
+ */
+template <typename kmer_type> class BankVectorKmerIterator :
+        public tools::dp::Iterator<std::vector<kmer_type> >,
+        public tools::dp::impl::AbstractSubjectIterator
+{
+public:
+
+    /** Constructor.
+     * \param[in] bank : the bank whose sequences are to be iterated.
+     * \param[in] model : kmer model
+     * \param[in] mode  : give the way kmers are computed
+     */
+    BankVectorKmerIterator (bank::IBank& bank, Model<kmer_type>& model)
+        : _model(model), _itSeq(0), _isDone(true),  _moduloMask(1), _idx(0)
+    {
+        /** We create an iterator over the sequences of the provided bank.
+         * Note that this is a dynamic allocation, so we will have to get rid of the instance
+         * in the destructor. */
+        setItSeq (bank.iterator());
+
+        /** We set the modulo mask for which we will send notification to potential listeners.
+         * Such notification is done on outer loop over Sequence objects. */
+        _moduloMask = (1<<10) - 1;
+    }
+
+    /** Destructor. */
+    ~BankVectorKmerIterator ()
+    {
+        /** We get rid of the dynamically allocated Sequence iterator. */
+        setItSeq(0);
+    }
+
+    /** \copydoc tools::dp::Iterator::first */
+    void first()
+    {
+        /** We begin by notifying potential listeners that the iteration is beginning. */
+        notifyInit ();
+
+        /** We reset the iteration counter. We will check when this counter is equal to our modulo;
+         * in such a case, we will notify our potential listeners.  */
+        _idx = 0;
+
+        /** We go to the first item of the Sequence iteration. */
+        _itSeq->first ();
+
+        /** We use a shortcut variable in order to avoid some calls to the isDone method for the Sequence iteration.
+         * This is important for performance concerns since the 'isDone' kmer iterator relies on it and that we use
+         * a generic Iterator<Sequence>; in other words, we have here polymorphism on Sequence iterator and we have
+         * to limit such polymorphic calls when the number of calls is huge (overhead due to polymorphism).
+         */
+        _isDone = _itSeq->isDone();
+
+        /** We check that we have at least one sequence to iterate. */
+        if (!_isDone)
+        {
+            _model.build ((*_itSeq)->getData(), *(this->_item));
+        }
+    }
+
+    /** \copydoc tools::dp::Iterator::next */
+    void next()
+    {
+		/** We have no more kmer for the current sequence, therefore we go for the next sequence. */
+		_itSeq->next();
+
+		/** We check whether we have another sequence or not. */
+		_isDone = _itSeq->isDone();
+
+		if (!_isDone)
+		{
+			/** We configure the kmer iterator with the current sequence data. */
+		    _model.build ((*_itSeq)->getData(), *(this->_item));
+
+			/** We may have to notify potential listeners if we looped enough items. */
+			if ((_idx & _moduloMask) == 0)  { notifyInc (_idx);  _idx=0; }
+
+			/** We increase the iterated kmers number. */
+			_idx++;
+		}
+    }
+
+    /** \copydoc tools::dp::Iterator::isDone */
+    bool isDone()
+    {
+        /** If we are done, we notify potential listeners. */
+        if (_isDone) { notifyFinish(); }
+
+        /** We return the outer loop isDone status. */
+        return _isDone;
+    }
+
+    /** \copydoc tools::dp::Iterator::item */
+    std::vector<kmer_type>& item ()  { return *(this->_item); }
+
+private:
+
+    Model<kmer_type>& _model;
+
+    /** Outer loop iterator on Sequence. */
+    tools::dp::Iterator<bank::Sequence>* _itSeq;
+    void setItSeq (tools::dp::Iterator<bank::Sequence>* itSeq)  { SP_SETATTR(itSeq); }
+
+    /** Shortcut (for performance). */
+    bool _isDone;
+
+    u_int32_t _idx;
     u_int32_t _moduloMask;
 };
 
