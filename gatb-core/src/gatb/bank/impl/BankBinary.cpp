@@ -22,10 +22,11 @@
 using namespace std;
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
+using namespace gatb::core::tools::misc;
 
 #define DEBUG(a)  //printf a
 
-#define BINREADS_BUFFER 100000
+#define BINREADS_BUFFER 128*1024
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace bank {  namespace impl {
@@ -251,14 +252,10 @@ u_int64_t BankBinary::estimateNbSequences ()
 ** REMARKS :
 *********************************************************************/
 BankBinary::Iterator::Iterator (BankBinary& ref)
-    : _ref(ref), _isDone(true), buffer(0), cpt_buffer(0), blocksize_toread(0), nseq_lues(0),
-      read_write_buffer_size(BINREADS_BUFFER), binary_read_file(0)
+    : _ref(ref), _isDone(true), cpt_buffer(0), blocksize_toread(0), nseq_lues(0),
+      read_write_buffer_size(BINREADS_BUFFER), binary_read_file(0),
+      _bufferData (0)
 {
-    /** We allocate the cache buffer with a default initial size. */
-    buffer = ( char *) malloc(read_write_buffer_size*sizeof( char));
-
-    /** We set the encoding scheme of the sequence. */
-    _sequence.data.encoding = tools::misc::Data::BINARY;
 }
 
 /*********************************************************************
@@ -271,8 +268,9 @@ BankBinary::Iterator::Iterator (BankBinary& ref)
 *********************************************************************/
 BankBinary::Iterator::~Iterator ()
 {
-    if (buffer           != 0)  {  free   (buffer);            }
     if (binary_read_file != 0)  {  fclose (binary_read_file);  }
+
+    setBufferData(0);
 }
 
 /*********************************************************************
@@ -293,6 +291,8 @@ void BankBinary::Iterator::first()
         /** We check that the file is opened => send an exception otherwise. */
         if (binary_read_file == 0)  {  throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, _ref._filename.c_str());  }
     }
+
+    if (binary_read_file != 0)  {  rewind (binary_read_file); }
 
     /** We reinitialize some attributes. */
     _isDone          = false;
@@ -329,15 +329,10 @@ void BankBinary::Iterator::next ()
             return;
         }
 
-        /** We may have to reallocate the cache buffer if it is too small. */
-        if (block_size >= read_write_buffer_size)
-        {
-            read_write_buffer_size = 2*block_size;
-            buffer =  ( char *) realloc(buffer,sizeof( char) * read_write_buffer_size);
-        }
+        /** We are about to read another chunk of data from the disk. We need */
+        setBufferData (new Data (block_size));
 
-        /** We read the cache buffer from the file. */
-        fread(buffer,sizeof( char),block_size, binary_read_file); // read a block of reads into the buffer
+        fread (_bufferData->getBuffer(), sizeof( char),block_size, binary_read_file); // read a block of reads into the buffer
 
         cpt_buffer       = 0;
         blocksize_toread = block_size;
@@ -351,8 +346,7 @@ void BankBinary::Iterator::next ()
         /** We increase the number of read sequences so far. */
         nseq_lues ++;
 
-        /** We read the size of the current sequence. */
-        memcpy (&len, buffer+cpt_buffer, sizeof(int)); // read len
+        memcpy (&len, _bufferData->getBuffer() + cpt_buffer, sizeof(int)); // read len
 
         /** We go ahead in the file parsing. */
         cpt_buffer += sizeof(int);
@@ -361,9 +355,7 @@ void BankBinary::Iterator::next ()
 
         /** We update the information of the current sequence.
          * NOTE: we keep the original size of the data, not the compressed one. */
-        _sequence.data.size   = len;
-        _sequence.data.buffer = buffer + cpt_buffer;
-        _sequence._idx        = nseq_lues;
+        _item->setDataRef (_bufferData, cpt_buffer, len);
 
         /** We go ahead in the file parsing. */
         cpt_buffer += nchar;
