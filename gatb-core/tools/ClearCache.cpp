@@ -13,13 +13,15 @@ using namespace gatb::core::tools::misc::impl;
 using namespace gatb::core::tools::dp::impl;
 
 /********************************************************************************/
-void clear ()
+void clear (u_int64_t toErase)
 {
-    u_int64_t toEraseMem = System::info().getMemoryPhysicalTotal();
+    u_int64_t totalPhysical = System::info().getMemoryPhysicalTotal();
+
+    if (toErase == 0)  {  toErase = totalPhysical; }
 
     size_t blockSize = 32*1024;
 
-    u_int32_t nbIter = toEraseMem/blockSize;
+    u_int32_t nbIter = toErase/blockSize;
 
     vector<void*> buffers (nbIter, 0);
 
@@ -55,7 +57,10 @@ int main (int argc, char* argv[])
     cout << "physMemUsed  = " << System::info().getMemoryPhysicalUsed()  << endl;
     cout << "buffersMem   = " << System::info().getMemoryBuffers()       << endl;
 
-    clear ();
+    /** Provided in MBytes */
+    u_int64_t toErase = 1024 * 1024 * (argc >= 2 ? atol (argv[1]) : 0);
+
+    clear (toErase);
 
     return EXIT_SUCCESS;
 }
