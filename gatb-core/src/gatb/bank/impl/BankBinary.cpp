@@ -234,13 +234,13 @@ u_int64_t BankBinary::getSize ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-u_int64_t BankBinary::estimateNbSequences ()
+void BankBinary::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
     /** We create an iterator for the bank. */
     BankBinary::Iterator it (*this);
 
-    /** We return the estimation of sequences number. */
-    return it.estimateNbSequences();
+    /** We return the estimation of sequences information. */
+    it.estimate (number, totalSize, maxSize);
 }
 
 /*********************************************************************
@@ -370,9 +370,12 @@ void BankBinary::Iterator::next ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-u_int64_t BankBinary::Iterator::estimateNbSequences ()
+void  BankBinary::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
-    u_int64_t res = 0;
+    /** We initialize the provided arguments. */
+    number    = 0;
+    totalSize = 0;
+    maxSize   = 0;
 
     /** We open the binary file at first call. */
     IFile* file = System::file().newFile (_ref._filename, "rb");
@@ -401,11 +404,14 @@ u_int64_t BankBinary::Iterator::estimateNbSequences ()
                 memcpy (&readlen, loop, sizeof(int));
 
                 loop += sizeof(int) + (readlen+3)/4;
-                res ++;
+
+                number ++;
+                if (readlen > maxSize)  { maxSize = readlen; }
+                totalSize += readlen;
             }
 
             // we may count only a part of the file
-            if (res >= 1000)  { break; }
+            if (number >= _ref.getEstimateThreshold())  { break; }
         }
 
         // we extrapolate the result according to the current location in the file
@@ -421,14 +427,14 @@ u_int64_t BankBinary::Iterator::estimateNbSequences ()
             u_int64_t end = file->tell ();
 
             // we extrapolate the result
-            res = (res*end) / current;
+            number    = (number    * end) / current;
+            maxSize   = (maxSize   * end) / current;
+            totalSize = (totalSize * end) / current;
         }
 
         // we clean up resources
         delete file;
     }
-
-    return res;
 }
 
 /********************************************************************************/

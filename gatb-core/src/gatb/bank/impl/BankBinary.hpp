@@ -23,7 +23,7 @@
 
 /********************************************************************************/
 
-#include <gatb/bank/api/IBank.hpp>
+#include <gatb/bank/impl/AbstractBank.hpp>
 
 #include <vector>
 #include <string>
@@ -47,7 +47,7 @@ namespace impl      {
  *             - the nucleotides of the sequences (4 nucleotides encoded in 1 byte)
  * - number of sequences (on 4 bytes)
  */
-class BankBinary : public IBank
+class BankBinary : public AbstractBank
 {
 public:
 
@@ -70,11 +70,8 @@ public:
     /** \copydoc IBank::getSize */
     u_int64_t getSize ();
 
-    /** \copydoc IBank::estimateNbSequences */
-    u_int64_t estimateNbSequences ();
-
-    /** \copydoc IBank::estimateNbSequences */
-    size_t estimateMaxSequenceLength ()  { return 0; }
+    /** \copydoc IBank::estimate */
+    void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
 
     /************************************************************/
 
@@ -103,10 +100,8 @@ public:
         /** \copydoc tools::dp::Iterator::item */
         Sequence& item ()     { return *_item; }
 
-
-        /** Estimation of the number of sequences. Used (by delegation) by the Bank class.
-         * \return the sequences number estimation. */
-        u_int64_t estimateNbSequences ();
+        /** Estimation of the sequences information. */
+        void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
 
     private:
 
