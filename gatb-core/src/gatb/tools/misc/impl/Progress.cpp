@@ -15,6 +15,9 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/system/impl/System.hpp>
 
+#include <stdarg.h>
+#include <stdio.h>
+
 #define DEBUG(a)  //printf a
 
 using namespace std;
@@ -120,6 +123,26 @@ void Progress::set (u_int64_t ntasks_done)
     {
         inc (ntasks_done-done);
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Progress::setMessage (const char* format, ...)
+{
+    char buffer[256];
+
+    va_list args;
+    va_start(args, format);
+    vsprintf (buffer, format, args);
+    va_end(args);
+
+    message.assign (buffer);
 }
 
 /*********************************************************************

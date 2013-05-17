@@ -82,6 +82,9 @@ public:
      * \param[in] ntasks_done :  sets the current number of job done. */
     void set (u_int64_t ntasks_done);
 
+    /** \copydoc dp::impl::IteratorListener::setMessage*/
+    void setMessage (const char* format, ...);
+
 protected:
 
     virtual void update     ();

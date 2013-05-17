@@ -248,6 +248,9 @@ public:
 
     /** Increase the number of currently done tasks. */
     virtual void inc (u_int64_t ntasks_done) {}
+
+    /** Associate a message to the listener. */
+    virtual void setMessage (const char* format, ...)  {}
 };
 
 /********************************************************************************/
