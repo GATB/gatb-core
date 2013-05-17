@@ -37,6 +37,15 @@ namespace impl      {
 /********************************************************************************/
 
 /** \brief Implementation of IBank for compressed format
+ *
+ * - a binary file is a list of blocks
+ *    - a block is:
+ *       - one block size (on 4 bytes)
+ *       - a list of sequences
+ *          - a sequence is:
+ *             - a sequence length (on 4 bytes)
+ *             - the nucleotides of the sequences (4 nucleotides encoded in 1 byte)
+ * - number of sequences (on 4 bytes)
  */
 class BankBinary : public IBank
 {
