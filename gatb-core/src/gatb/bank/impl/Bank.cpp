@@ -263,7 +263,7 @@ void Bank::insert (const Sequence& item)
 ** REMARKS :
 *********************************************************************/
 Bank::Iterator::Iterator (Bank& ref, CommentMode_e commentMode)
-    : _ref(ref), _commentsMode(commentMode), index_file(0), buffered_file(0), buffered_strings(0)
+    : _ref(ref), _commentsMode(commentMode), _isDone(true), index_file(0), buffered_file(0), buffered_strings(0)
 {
     /** We initialize the iterator. */
     init  ();
