@@ -53,135 +53,232 @@ struct Hash  {   kmer_type operator () (kmer_type& lkmer)
     return kmer_hash;
 }};
 
+
 /********************************************************************************/
 
-struct FunctorIter1
+class DSK
 {
-    void operator() (Sequence& sequence)
+public:
+
+    /** */
+    struct Info
     {
-        Hash hash;
+        Info() : nbSeq(0), dataSeq(0), nbKmers(0), checksumKmers(0) {}
 
-        nbSeq++;
-        dataSeq += sequence.getData().size();
-
-        /** We build the kmers from the current sequence. */
-        model->build (sequence.getData(), kmers);
-
-        /** We loop over the kmers. */
-        for (size_t i=0; i<kmers.size(); i++)
+        Info& operator+=  (const Info& other)
         {
-            /** We hash the current kmer. */
-            kmer_type h = hash (kmers[i]);
+            nbSeq         += other.nbSeq;
+            dataSeq       += other.dataSeq;
+            nbKmers       += other.nbKmers;
+            checksumKmers += other.checksumKmers;
+            return *this;
+        }
 
-            /** We check whether this kmer has to be processed during the current pass. */
-            if ((h % nbPass) != pass)  { continue; }
+        u_int64_t nbSeq;
+        u_int64_t dataSeq;
+        u_int64_t nbKmers;
+        kmer_type checksumKmers;
+    };
 
-            nbKmers ++;
-            checksumKmers = checksumKmers + h;
+    /********************************************************************************/
+    DSK (const string& filename, size_t kmerSize, size_t nbCores)
+        : _bank (filename), _filename(filename),
+          _model(kmerSize), _kmerSize(kmerSize),
+          _dispatcher(nbCores),
+          _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
+          _max_disk_space(0), _max_memory(9800), _volume(0), _nb_passes(0), _nb_partitions(0)
+    {}
+
+    /********************************************************************************/
+    void configure ()
+    {
+        // We get some estimations about the bank
+        _bank.estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
+
+        // We may have to build the binary bank if not already existing.
+        buildBankBinary ();
+
+        // We get the available space (in MBytes) of the current directory.
+        u_int64_t available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
+        cout << "AVALAIBLE SPACE in current directory '" << System::file().getCurrentDirectory() << "' is " << available_space << " MBytes" << endl;
+
+        _max_disk_space = std::min (available_space/2, _bank.getSize() / 1024 / 1024);
+        cout << "MAX DISK SPACE is " << _max_disk_space << " KBytes" << endl;
+
+        if (_max_disk_space == 0)  { _max_disk_space = 10000; }
+
+        // We estimate the number of iterations
+        _volume    = (_estimateSeqTotalSize - _estimateSeqNb * (_kmerSize-1)) * sizeof(kmer_type) / 1024 / 1024;  // in MBytes
+        _nb_passes = ( _volume / _max_disk_space ) + 1;
+
+        cout << "NB PASSES is " << _nb_passes << endl;
+
+        size_t max_open_files = System::file().getMaxFilesNumber() / 2;
+        u_int64_t volume_per_pass;
+
+        do
+        {
+            volume_per_pass = _volume / _nb_passes;
+            _nb_partitions  = ( volume_per_pass / _max_memory ) + 1;
+
+            if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
+            else                                    { break;         }
+
+        } while (1);
+    }
+
+    /********************************************************************************/
+    void execute ()
+    {
+        // We use the provided listener if any
+        IteratorListener* progress = new Progress (_estimateSeqNb, "DSK");
+        LOCAL (progress);
+
+        // We need an iterator on the FASTA bank.
+        Iterator<Sequence>* itBank = _bank.iterator();
+        LOCAL (itBank);
+
+        // We declare two kmer iterators for the two banks and a paired one that links them.
+        KmerModel::Iterator itKmer (_model);
+
+        // We create an iterator over the paired iterator on sequences
+        SubjectIterator<Sequence> itSeq (*itBank, 5*1000);
+
+        // We add a listener to the sequences iterator.
+        itSeq.addObserver (*progress);
+
+        u_int64_t total_nbKmers       = 0;
+        kmer_type total_checksumKmers = 0;
+
+        // We get some information about the kmers.
+        Info infos[_nb_passes];
+
+        /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
+        for (size_t p=0; p<_nb_passes; p++)
+        {
+            /** We update the iterator listener with some information message. */
+            progress->setMessage ("DSK %d/%d", p+1, _nb_passes);
+
+            /** We create some functors that will do the actual job. */
+            vector<ProcessSequence> functors (_dispatcher.getExecutionUnitsNumber());
+            for (size_t i=0; i<functors.size(); i++)   {  functors[i] = ProcessSequence (&_model, _nb_passes, p);  }
+
+            // We get current time stamp
+            ITime::Value t0 = System::time().getTimeStamp();
+
+            /** We launch the iteration of the sequences iterator with the created functors. */
+            _dispatcher.iterate (itSeq, functors);
+
+            // We get current time stamp
+            ITime::Value t1 = System::time().getTimeStamp();
+
+            /** We update the information got during the functors execution. */
+            for (size_t i=0; i<functors.size(); i++)   {  infos[p] += functors[i].info;   }
+
+            // We dump some information about the iterated kmers;
+            cout << "FOUND " << infos[p].nbKmers << " kmers  for " << infos[p].nbSeq << " sequences  (" << infos[p].dataSeq << " bytes)  "
+                << "in " << (t1-t0) << " msec (rate " << (double)infos[p].nbKmers / (double) (t1>t0 ? t1-t0 : 1) << " kmers/msec),  "
+                << "checksum is " << infos[p].checksumKmers << " (" << Integer::getName()  << ")"
+                << endl;
+        }
+
+        /** We get the total number of kmers and the global checksum. */
+        for (size_t i=0; i<_nb_passes; i++)
+        {
+            total_nbKmers       += infos[i].nbKmers;
+            total_checksumKmers += infos[i].checksumKmers;
+        }
+
+        cout << endl;
+        cout << "TOTAL KMERS " << total_nbKmers << "  WITH CHECKSUM " << hex << total_checksumKmers << "  WITH " << Integer::getName()  <<  endl;
+
+        for (size_t p=0; p<_nb_passes; p++)
+        {
+            cout << "   [" << p << "]  " << 100.0 * (double)infos[p].nbKmers / (double) total_nbKmers << endl;
         }
     }
 
-    FunctorIter1 () : nbSeq(0), dataSeq(0), nbKmers(0), checksumKmers(0), pass(0), nbPass(0), model(0) {}
+    /********************************************************************************/
+    struct ProcessSequence
+    {
+        void operator() (Sequence& sequence)
+        {
+            Hash hash;
 
-    vector<kmer_type> kmers;
+            info.nbSeq++;
+            info.dataSeq += sequence.getData().size();
 
-    u_int64_t nbSeq;
-    u_int64_t dataSeq;
-    u_int64_t nbKmers;
-    kmer_type checksumKmers;
+            /** We build the kmers from the current sequence. */
+            model->build (sequence.getData(), kmers);
 
-    size_t pass;
-    size_t nbPass;
-    KmerModel* model;
+            /** We loop over the kmers. */
+            for (size_t i=0; i<kmers.size(); i++)
+            {
+                /** We hash the current kmer. */
+                kmer_type h = hash (kmers[i]);
+
+                /** We check whether this kmer has to be processed during the current pass. */
+                if ((h % nbPass) != pass)  { continue; }
+
+                info.nbKmers ++;
+                info.checksumKmers += h;
+            }
+        }
+
+        ProcessSequence (KmerModel* model, size_t nbPasses, size_t currentPass)
+            : pass(currentPass), nbPass(nbPasses), model(model) {}
+
+        ProcessSequence () : pass(0), nbPass(0), model(0) {}
+
+        vector<kmer_type> kmers;
+
+        Info info;
+
+        size_t pass;
+        size_t nbPass;
+        KmerModel* model;
+    };
+
+
+private:
+
+    Bank      _bank;
+    string    _filename;
+    KmerModel _model;
+    size_t    _kmerSize;
+
+    ParallelCommandDispatcher _dispatcher;
+
+    u_int64_t _estimateSeqNb;
+    u_int64_t _estimateSeqTotalSize;
+    u_int64_t _estimateSeqMaxSize;
+
+    u_int64_t _max_disk_space;
+    u_int32_t _max_memory;
+    u_int64_t _volume;
+    u_int32_t _nb_passes;
+    u_int32_t _nb_partitions;
+
+    /** */
+    void buildBankBinary ()
+    {
+        string filenameBin = _filename + ".bin";
+
+        if (System::file().doesExist(filenameBin) == false)
+        {
+            // We declare a binary bank
+            BankBinary bankBin (filenameBin);
+
+            // We declare some job listener.
+            Progress progress (_estimateSeqNb, "FASTA to binary conversion");
+
+            // We convert the FASTA bank in binary format
+            IProperties* props = BankHelper::singleton().convert (_bank, bankBin, &progress);
+            LOCAL (props);
+        }
+    }
 };
 
-/********************************************************************************/
-
-void iter1 (
-    IBank& bank,
-    KmerModel& model,
-    ICommandDispatcher& dispatcher,
-    size_t nbPasses
-)
-{
-    // We use the provided listener if any
-    IteratorListener* progress = new Progress (bank.estimateNbSequences(), "Iterating 1");
-    LOCAL (progress);
-
-    // We need an iterator on the FASTA bank.
-    Iterator<Sequence>* itBank = bank.iterator();
-    LOCAL (itBank);
-
-    // We declare two kmer iterators for the two banks and a paired one that links them.
-    KmerModel::Iterator itKmer (model);
-
-    // We create an iterator over the paired iterator on sequences
-    SubjectIterator<Sequence> itSeq (*itBank, 5*1000);
-
-    if (progress)  {  itSeq.addObserver (*progress);  }
-
-    u_int64_t total_nbKmers       = 0;
-    kmer_type total_checksumKmers = 0;
-
-    // We get some information about the kmers.
-    u_int64_t nbSeq[nbPasses];
-    u_int64_t dataSeq[nbPasses];
-    u_int64_t nbKmers[nbPasses];
-    kmer_type checksumKmers[nbPasses];
-
-    for (size_t p=0; p<nbPasses; p++)
-    {
-        /** We update the iterator listener with some information message. */
-        progress->setMessage ("DSK %d/%d", p+1, nbPasses);
-
-        // We get current time stamp
-        ITime::Value t0 = System::time().getTimeStamp();
-
-        vector<FunctorIter1> functors (dispatcher.getExecutionUnitsNumber());
-
-        for (size_t i=0; i<functors.size(); i++)
-        {
-            functors[i].pass   = p;
-            functors[i].nbPass = nbPasses;
-            functors[i].model  = &model;
-        }
-
-        nbSeq[p]         = 0;
-        dataSeq[p]       = 0;
-        nbKmers[p]       = 0;
-        checksumKmers[p] = 0;
-
-        /** We launch the iteration. */
-        dispatcher.iterate (itSeq, functors);
-
-        for (size_t i=0; i<functors.size(); i++)
-        {
-            nbSeq[p]         += functors[i].nbSeq;
-            dataSeq[p]       += functors[i].dataSeq;
-            nbKmers[p]       += functors[i].nbKmers;
-            checksumKmers[p] = checksumKmers[p] + functors[i].checksumKmers;
-
-            total_nbKmers       += functors[i].nbKmers;
-            total_checksumKmers = total_checksumKmers + functors[i].checksumKmers;
-        }
-
-        // We get current time stamp
-        ITime::Value t1 = System::time().getTimeStamp();
-
-        // We dump some information about the iterated kmers;
-        cout << "FOUND " << nbKmers[p] << " kmers  for " << nbSeq[p] << " sequences  (" << dataSeq[p] << " bytes)  "
-            << "in " << (t1-t0) << " msec (rate " << (double)nbKmers[p] / (double) (t1>t0 ? t1-t0 : 1) << " kmers/msec),  "
-            << "checksum is " << checksumKmers[p] << " (" << Integer::getName()  << ")"
-            << endl;
-    }
-    cout << endl;
-    cout << "TOTAL KMERS " << total_nbKmers << "  WITH CHECKSUM " << hex << total_checksumKmers << "  WITH " << Integer::getName()  <<  endl;
-
-    for (size_t p=0; p<nbPasses; p++)
-    {
-        cout << "   [" << p << "]  " << 100.0 * (double)nbKmers[p] / (double) total_nbKmers << endl;
-    }
-}
 
 /********************************************************************************/
 
@@ -192,7 +289,7 @@ int main (int argc, char* argv[])
         cerr << "you must provide at least 2 arguments. Arguments are:" << endl;
         cerr << "   1) kmer size"  << endl;
         cerr << "   2) FASTA  bank" << endl;
-        cerr << "   3) binary bank" << endl;
+        cerr << "   3) number of cores" << endl;
         return EXIT_FAILURE;
     }
 
@@ -201,75 +298,21 @@ int main (int argc, char* argv[])
 
     // We get the URI of the FASTA bank
     string filename (argv[2]);
-    string filenameBin = argc <=3 ? (filename + ".bin") : argv[3];
+
+    // We get the number of cores to be used (0 means all cores)
+    size_t nbCores = argc >=4 ? atoi(argv[3]) : 0;
+
+    /** We create an instance of DSK class. */
+    DSK dsk (filename, kmerSize, nbCores);
 
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
-        ParallelCommandDispatcher dispatcher;
+        /** We configure dsk. */
+        dsk.configure ();
 
-        // We declare a kmer model with a given span size.
-        KmerModel model (kmerSize);
-
-        // We declare the FASTA bank
-        Bank bank (filename);
-
-        // We declare a binary bank
-        BankBinary bankBin (filenameBin);
-
-        // We get some estimation about the bank
-        u_int64_t seqNb, seqTotalSize, seqMaxSize;      bank.estimate (seqNb, seqTotalSize, seqMaxSize);
-
-        if (System::file().doesExist(filenameBin) == false)
-        {
-            // We declare some job listener.
-            Progress progress (seqNb, "FASTA to binary conversion");
-
-            // We convert the FASTA bank in binary format
-            IProperties* props = BankHelper::singleton().convert (bank, bankBin, &progress);
-            LOCAL (props);
-        }
-
-        // We get the available space (in MBytes) of the current directory.
-        u_int64_t available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
-        cout << "AVALAIBLE SPACE in current directory '" << System::file().getCurrentDirectory() << "' is " << available_space << " MBytes" << endl;
-
-        u_int64_t max_disk_space = std::min (available_space/2, bank.getSize() / 1024 / 1024);
-        cout << "MAX DISK SPACE is " << max_disk_space << " KBytes" << endl;
-
-        if (max_disk_space == 0)  { max_disk_space = 10000; }
-
-        // We estimate the number of iterations
-        u_int64_t volume    = (seqTotalSize - seqNb * (kmerSize-1)) * sizeof(kmer_type) / 1024 / 1024;  // in MBytes
-        u_int32_t nb_passes = ( volume / max_disk_space ) + 1;
-        cout << "NB PASSES is " << nb_passes << endl;
-
-cout << "-----> volume=" << volume << "  nb_passes=" << nb_passes << "  max_disk_space=" << max_disk_space << endl;
-
-        u_int64_t volume_per_pass;
-        u_int32_t nb_partitions;
-
-        size_t max_open_files = System::file().getMaxFilesNumber() / 2;
-        size_t max_memory = 9800;  // in MBytes
-
-        do
-        {
-            volume_per_pass = volume / nb_passes;
-            nb_partitions   = ( volume_per_pass / max_memory ) + 1;
-
-            cout << "volume_per_pass=" << volume_per_pass << "  nb_partitions=" << nb_partitions << endl;
-
-            if (nb_partitions >= max_open_files)    { nb_passes++;  }
-            else                                    { break;        }
-
-        } while (1);
-
-        cout << "-----> nb_partitions=" << nb_partitions <<  endl;
-
-        Hash hash;
-
-        // TEST 1
-        iter1 (bankBin, model, dispatcher, nb_passes);
+        /** We execute dsk. */
+        dsk.execute ();
     }
 
     catch (gatb::core::system::Exception& e)
