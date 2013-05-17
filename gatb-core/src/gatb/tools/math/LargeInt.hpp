@@ -31,6 +31,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include <gatb/system/api/Exception.hpp>
+
 #ifndef ASSERTS
 #define NDEBUG // disable asserts; those asserts make sure that with PRECISION == [1 or 2], all is correct
 #endif
@@ -316,6 +318,21 @@ public:
     }
 
     /********************************************************************************/
+    LargeInt& operator+=  (const LargeInt& other)
+    {
+        // NOT so easy to optimize because of the carry
+        *this = *this + other;
+        return *this;
+    }
+
+    /********************************************************************************/
+    LargeInt& operator^=  (const LargeInt& other)
+    {
+        for (int i=0 ; i < precision ; i++)  {  array[i] ^= other.array[i];  }
+        return *this;
+    }
+
+    /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const LargeInt<precision> & l)
     {
         int i=0;
@@ -335,14 +352,6 @@ public:
         /** We return the output stream. */
         return s;
     }
-
-#ifdef _LP64
-__uint128_t toInt128() const
-{
-    return ((__uint128_t)array[0]) + (((__uint128_t)array[1]) << ((__uint128_t)64));
-}
-
-#endif
 
 private:
     uint64_t array[precision];

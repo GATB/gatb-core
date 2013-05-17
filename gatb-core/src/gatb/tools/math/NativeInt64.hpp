@@ -65,6 +65,9 @@ public:
     bool        operator<  (const NativeInt64& c)       const   {  return value < c.value;      }
     bool        operator<= (const NativeInt64& c)       const   {  return value <= c.value;     }
 
+    NativeInt64& operator+=  (const NativeInt64& other)    {  value += other.value; return *this; }
+    NativeInt64& operator^=  (const NativeInt64& other)    {  value ^= other.value; return *this; }
+
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const NativeInt64 & l)
     {

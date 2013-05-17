@@ -66,6 +66,9 @@ public:
     bool         operator<  (const NativeInt128& c)         const   {  return value < c.value;      }
     bool         operator<= (const NativeInt128& c)         const   {  return value <= c.value;     }
 
+    NativeInt128& operator+=  (const NativeInt128& other)    {  value += other.value; return *this; }
+    NativeInt128& operator^=  (const NativeInt128& other)    {  value ^= other.value; return *this; }
+
     /** Output stream overload. NOTE: for easier process, dump the value in hexadecimal.
      * \param[in] os : the output stream
      * \param[in] in : the integer value to be output.
