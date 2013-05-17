@@ -373,9 +373,61 @@ void BankBinary::Iterator::next ()
 u_int64_t BankBinary::Iterator::estimateNbSequences ()
 {
     u_int64_t res = 0;
-    
-    throw ExceptionNotImplemented ();
-    
+
+    /** We open the binary file at first call. */
+    IFile* file = System::file().newFile (_ref._filename, "rb");
+    if (file != 0)
+    {
+        vector<char> buffer;
+
+        while (file->isEOF() == false)
+        {
+            unsigned int block_size = 0;
+
+            // we read the block header
+            if (! file->fread (&block_size,sizeof(unsigned int), 1))  { break; }
+
+            // we resize the buffer
+            buffer.resize (block_size);
+
+            // read a block of reads into the buffer
+            if (! file->fread (buffer.data(), sizeof(char), block_size))  { break; }
+
+            // we loop the sequences
+            char* loop = buffer.data();
+            while (loop < buffer.data() + block_size)
+            {
+                int readlen = 0;
+                memcpy (&readlen, loop, sizeof(int));
+
+                loop += sizeof(int) + (readlen+3)/4;
+                res ++;
+            }
+
+            // we may count only a part of the file
+            if (res >= 1000)  { break; }
+        }
+
+        // we extrapolate the result according to the current location in the file
+        if (file->isEOF() == false)
+        {
+            // we keep the current location in the file
+            u_int64_t current = file->tell ();
+
+            // we go to the end of the file
+            file->seeko (0, SEEK_END);
+
+            // we keep the current location in the file
+            u_int64_t end = file->tell ();
+
+            // we extrapolate the result
+            res = (res*end) / current;
+        }
+
+        // we clean up resources
+        delete file;
+    }
+
     return res;
 }
 
