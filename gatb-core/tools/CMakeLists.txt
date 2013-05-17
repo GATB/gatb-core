@@ -4,7 +4,7 @@
 
 set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
 
-list (APPEND PROGRAMS BankConverter ClearCache)
+list (APPEND PROGRAMS BankConverter ClearCache DSK)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
