@@ -120,7 +120,7 @@ template <typename Functor> void iter1 (
     u_int64_t total_nbKmers       = 0;
     kmer_type total_checksumKmers = 0;
 
-    size_t nbPasses = 1;
+    size_t nbPasses = 10;
 
     // We get some information about the kmers.
     u_int64_t nbSeq[nbPasses];
@@ -325,10 +325,10 @@ int main (int argc, char* argv[])
         iter1 (dispatcher, bankBin, model, hash, new Progress (bank.estimateNbSequences(), "Iterating 1"));
 
         // TEST 2
-        iter2 (bankBin, model, hash, new Progress (bank.estimateNbSequences(), "Iterating 2"));
+        //iter2 (bankBin, model, hash, new Progress (bank.estimateNbSequences(), "Iterating 2"));
 
         // TEST 3
-        iter3 (bankBin, model, hash, new Progress (bank.estimateNbSequences(), "Iterating 3"));
+        //iter3 (bankBin, model, hash, new Progress (bank.estimateNbSequences(), "Iterating 3"));
 
         // We remove the binary bank
         //System::file().remove (filename + ".bin");
