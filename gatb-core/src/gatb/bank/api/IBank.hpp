@@ -66,13 +66,27 @@ public:
      * \return the bank size.*/
     virtual u_int64_t getSize () = 0;
 
-    /** Give an estimation of the sequences number in the bank.
+    /** Give an estimation of sequences information in the bank:
+     *      - sequences number
+     *      - sequences size (in bytes)
+     *      - max size size (in bytes)
      * \return the sequences number estimation. */
+    virtual void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize) = 0;
+
+    /** Shortcut to 'estimate' method.
+     * \return estimation of the number of sequences */
     virtual u_int64_t estimateNbSequences () = 0;
 
-    /** Give an estimation of the maximal length of the sequences in the bank.
-     * \return the maximum length estimation */
-    virtual size_t estimateMaxSequenceLength () = 0;
+    /** Shortcut to 'estimate' method.
+     * \return estimation of the size of sequences */
+    virtual u_int64_t estimateSequencesSize () = 0;
+
+    /** \return the number of sequences read from the bank for computing estimated information */
+    virtual u_int64_t getEstimateThreshold () = 0;
+
+    /** Set the number of sequences read from the bank for computing estimated information
+     * \param[in] nbSeq : the number of sequences to be read.*/
+    virtual void setEstimateThreshold (u_int64_t nbSeq) = 0;
 };
 
 /********************************************************************************/
