@@ -42,13 +42,13 @@ struct Hash  {   kmer_type operator () (kmer_type& lkmer)
 {
     kmer_type kmer_hash;
 
-    kmer_hash = lkmer ^ (lkmer >> 14);
-    kmer_hash = (~kmer_hash) + (kmer_hash << 18);
-    kmer_hash = kmer_hash ^ (kmer_hash >> 31);
-    kmer_hash = kmer_hash * 21;
-    kmer_hash = kmer_hash ^ (kmer_hash >> 11);
-    kmer_hash = kmer_hash + (kmer_hash << 6);
-    kmer_hash = kmer_hash ^ (kmer_hash >> 22);
+    kmer_hash  = lkmer ^ (lkmer >> 14);
+    kmer_hash  = (~kmer_hash) + (kmer_hash << 18);
+    kmer_hash ^= (kmer_hash >> 31);
+    kmer_hash  = kmer_hash * 21;
+    kmer_hash ^= (kmer_hash >> 11);
+    kmer_hash += (kmer_hash << 6);
+    kmer_hash ^= (kmer_hash >> 22);
 
     return kmer_hash;
 }};
@@ -64,14 +64,16 @@ struct FunctorIter1
         nbSeq++;
         dataSeq += sequence.getData().size();
 
+        /** We build the kmers from the current sequence. */
         model->build (sequence.getData(), kmers);
 
-        size_t size = kmers.size();
-
-        for (size_t i=0; i<size; i++)
+        /** We loop over the kmers. */
+        for (size_t i=0; i<kmers.size(); i++)
         {
+            /** We hash the current kmer. */
             kmer_type h = hash (kmers[i]);
 
+            /** We check whether this kmer has to be processed during the current pass. */
             if ((h % nbPass) != pass)  { continue; }
 
             nbKmers ++;
@@ -96,9 +98,9 @@ struct FunctorIter1
 /********************************************************************************/
 
 void iter1 (
-    ICommandDispatcher& dispatcher,
     IBank& bank,
     KmerModel& model,
+    ICommandDispatcher& dispatcher,
     size_t nbPasses
 )
 {
@@ -267,7 +269,7 @@ cout << "-----> volume=" << volume << "  nb_passes=" << nb_passes << "  max_disk
         Hash hash;
 
         // TEST 1
-        iter1 (dispatcher, bankBin, model, nb_passes);
+        iter1 (bankBin, model, dispatcher, nb_passes);
     }
 
     catch (gatb::core::system::Exception& e)
