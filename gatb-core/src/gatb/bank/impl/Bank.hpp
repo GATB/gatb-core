@@ -23,7 +23,7 @@
 
 /********************************************************************************/
 
-#include <gatb/bank/api/IBank.hpp>
+#include <gatb/bank/impl/AbstractBank.hpp>
 
 #include <vector>
 #include <string>
@@ -50,7 +50,7 @@ namespace impl      {
  * Sample of use:
  * \snippet bank1.cpp  snippet1_bank
  */
-class Bank : public IBank
+class Bank : public AbstractBank
 {
 public:
 
@@ -83,14 +83,10 @@ public:
     /** \copydoc IBank::getSize */
     u_int64_t getSize ()  { return filesizes; }
 
-    /** \copydoc IBank::estimateNbSequences */
-    u_int64_t estimateNbSequences ();
+    /** \copydoc IBank::estimate */
+    void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
 
-    /** \copydoc IBank::estimateNbSequences */
-    size_t estimateMaxSequenceLength ();
-
-    /**
-     * \return maximum number of files. */
+    /** \return maximum number of files. */
     static const size_t getMaxNbFiles ()  { return 30; }
 
     /************************************************************/
@@ -153,9 +149,8 @@ public:
         /** \copydoc tools::dp::Iterator::item */
         Sequence& item ()     { return *_item; }
 
-        /** Estimation of the number of sequences. Used (by delegation) by the Bank class.
-         * \return the sequences number estimation. */
-        u_int64_t estimateNbSequences ();
+        /** Estimation of the sequences information */
+        void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
 
     private:
 

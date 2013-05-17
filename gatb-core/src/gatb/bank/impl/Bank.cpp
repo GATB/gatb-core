@@ -192,43 +192,14 @@ void Bank::init ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-u_int64_t Bank::estimateNbSequences ()
+void Bank::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
     /** We create an iterator for the bank. */
     Bank::Iterator it (*this, Iterator::NONE);
 
-    /** We return the estimation of sequences number. */
-    return it.estimateNbSequences();
+    /** We delegate the computation to the iterator. */
+    return it.estimate (number, totalSize, maxSize);
 }
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-size_t Bank::estimateMaxSequenceLength ()
-{
-    size_t max_readlen = 0;
-
-    /** We need an iterator on the bank. */
-    Bank::Iterator it (*this);
-
-    /** We truncate the iterator. */
-    TruncateIterator<Sequence> itTrunc (it, 10000);
-
-    /** We loop the sequences and compute the maximum length. */
-    for (it.first(); !it.isDone(); it.next())
-    {
-        max_readlen = max (it->getDataSize(), max_readlen);
-    }
-
-    /** We return the result. */
-    return max_readlen;
-}
-
 
 /*********************************************************************
 ** METHOD  :
@@ -646,18 +617,25 @@ void Bank::Iterator::finalize ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-u_int64_t Bank::Iterator::estimateNbSequences ()
+void Bank::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
     Vector<char> data;
 
     /** We initialize the iterator (and so points to the first item if any). */
     first ();
 
+    /** We initialize the provided arguments. */
+    number    = 0;
+    totalSize = 0;
+    maxSize   = 0;
+
     /** We count at least one sequence.*/
-    u_int64_t volume = 1;
-    while (get_next_seq (data))
+    number = 1;
+    while (get_next_seq (data)  &&  number <= _ref.getEstimateThreshold())
     {
-        if (++volume == 1000) break;
+        number ++;
+        if (data.size() > maxSize)  { maxSize = data.size(); }
+        totalSize += data.size ();
     }
 
     u_int64_t actualPosition = 0;
@@ -673,11 +651,11 @@ u_int64_t Bank::Iterator::estimateNbSequences ()
 
     if (actualPosition > 0)
     {
-        volume = (volume * _ref.getSize()) / actualPosition; // linear extrapolation from the first 1k reads
+        // linear extrapolation
+        number    = (number    * _ref.getSize()) / actualPosition;
+        maxSize   = (maxSize   * _ref.getSize()) / actualPosition;
+        totalSize = (totalSize * _ref.getSize()) / actualPosition;
     }
-
-    /** We return the estimation. */
-    return volume;
 }
 
 /********************************************************************************/
