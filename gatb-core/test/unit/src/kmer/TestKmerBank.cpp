@@ -114,7 +114,7 @@ public:
     void kmerbank_checkKmersFromBankAndBankBinary ()
     {
         const char* files[] = { "reads1.fa", "reads1.fa.gz", "reads2.fa" };
-        size_t      spans[] = { 2, 3, 5, 8, 13, 21, 34, 55 };
+        size_t      spans[] = { 2, 3, 5, 8, 13, 21 };
         KmerMode    modes[] = { KMER_DIRECT, KMER_REVCOMP, KMER_MINIMUM};
 
         for (size_t i=0; i<ARRAY_SIZE(files); i++)
