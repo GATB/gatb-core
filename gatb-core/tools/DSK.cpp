@@ -65,6 +65,11 @@ public:
     {
         Info() : nbSeq(0), dataSeq(0), nbKmers(0), checksumKmers(0) {}
 
+        Info (vector<Info>& infos) : nbSeq(0), dataSeq(0), nbKmers(0), checksumKmers(0)
+        {
+        	for (size_t i=0; i<infos.size(); i++)  {  *this += infos[i];   }
+        }
+
         Info& operator+=  (const Info& other)
         {
             nbSeq         += other.nbSeq;
@@ -98,17 +103,28 @@ public:
         // We may have to build the binary bank if not already existing.
         buildBankBinary ();
 
+        cout << "CURRENT DIRECTORY '" << System::file().getCurrentDirectory() << "'" << endl;
+
         // We get the available space (in MBytes) of the current directory.
         u_int64_t available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
-        cout << "AVALAIBLE SPACE in current directory '" << System::file().getCurrentDirectory() << "' is " << available_space << " MBytes" << endl;
+        cout << "AVALAIBLE SPACE     : " << available_space << " MBytes" << endl;
 
-        _max_disk_space = std::min (available_space/2, _bank.getSize() / 1024 / 1024);
-        cout << "MAX DISK SPACE is " << _max_disk_space << " KBytes" << endl;
+        u_int64_t bankSize = _bank.getSize() / MBYTE;
+        u_int64_t kmersNb  = (_estimateSeqTotalSize - _estimateSeqNb * (_kmerSize-1));
+
+        _volume = kmersNb * sizeof(kmer_type) / MBYTE;  // in MBytes
+
+        cout << "BANK SIZE           : " << bankSize << " MBytes" << endl;
+        cout << "SEQUENCE NUMBER     : " << _estimateSeqNb << endl;
+        cout << "SEQUENCE VOLUME     : " << _estimateSeqTotalSize << " Bytes" << endl;
+        cout << "KMER NUMBER         : " << kmersNb << endl;
+        cout << "KMERS VOLUME        : " << _volume << " MBytes" << endl;
+
+        _max_disk_space = std::min (available_space/2, bankSize);
+        cout << "MAX DISK SPACE      : " << _max_disk_space << " MBytes" << endl;
 
         if (_max_disk_space == 0)  { _max_disk_space = 10000; }
 
-        // We estimate the number of iterations
-        _volume    = (_estimateSeqTotalSize - _estimateSeqNb * (_kmerSize-1)) * sizeof(kmer_type) / 1024 / 1024;  // in MBytes
         _nb_passes = ( _volume / _max_disk_space ) + 1;
 
         cout << "NB PASSES is " << _nb_passes << endl;
@@ -151,7 +167,7 @@ public:
         kmer_type total_checksumKmers = 0;
 
         // We get some information about the kmers.
-        Info infos[_nb_passes];
+        vector<Info> infos(_nb_passes);
 
         /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
         for (size_t p=0; p<_nb_passes; p++)
@@ -182,19 +198,14 @@ public:
                 << endl;
         }
 
-        /** We get the total number of kmers and the global checksum. */
-        for (size_t i=0; i<_nb_passes; i++)
-        {
-            total_nbKmers       += infos[i].nbKmers;
-            total_checksumKmers += infos[i].checksumKmers;
-        }
+        Info globalInfo (infos);
 
         cout << endl;
-        cout << "TOTAL KMERS " << total_nbKmers << "  WITH CHECKSUM " << hex << total_checksumKmers << "  WITH " << Integer::getName()  <<  endl;
+        cout << "TOTAL KMERS " << globalInfo.nbKmers << "  WITH CHECKSUM " << hex << globalInfo.checksumKmers << "  WITH " << Integer::getName()  <<  endl;
 
         for (size_t p=0; p<_nb_passes; p++)
         {
-            cout << "   [" << p << "]  " << 100.0 * (double)infos[p].nbKmers / (double) total_nbKmers << endl;
+            cout << "   [" << p << "]  " << 100.0 * (double)infos[p].nbKmers / (double) globalInfo.nbKmers << endl;
         }
     }
 
@@ -302,12 +313,12 @@ int main (int argc, char* argv[])
     // We get the number of cores to be used (0 means all cores)
     size_t nbCores = argc >=4 ? atoi(argv[3]) : 0;
 
-    /** We create an instance of DSK class. */
-    DSK dsk (filename, kmerSize, nbCores);
-
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
+    	/** We create an instance of DSK class. */
+    	DSK dsk (filename, kmerSize, nbCores);
+
         /** We configure dsk. */
         dsk.configure ();
 
