@@ -68,6 +68,14 @@ public:
      */
     ModelAbstract (size_t span, bank::IAlphabet& alphabet) : _sizeKmer(span), _alphabet(alphabet)
     {
+    	/** We check that the kmer_type precision is enough for the required kmers span. */
+    	if (span >= sizeof(kmer_type)*4)
+    	{
+    		throw system::Exception ("kmer_type '%s' has too low precision (%d bits) for the required %d kmer size",
+				kmer_type::getName(), sizeof(kmer_type)*8, span
+			);
+    	}
+
         /** We compute the mask of the kmer. Useful for computing kmers in a recursive way. */
         _kmerMask = (((kmer_type)1) << (_sizeKmer*2))-1;
 
