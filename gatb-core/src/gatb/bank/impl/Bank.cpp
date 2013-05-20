@@ -621,16 +621,19 @@ void Bank::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_
 {
     Vector<char> data;
 
-    /** We initialize the iterator (and so points to the first item if any). */
-    first ();
+    /** We rewind the files. */
+    for (int i = 0; i < _ref.nb_files; i++)
+    {
+        buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
+        if (bf != 0)  { bf->rewind(); }
+    }
 
     /** We initialize the provided arguments. */
     number    = 0;
     totalSize = 0;
     maxSize   = 0;
 
-    /** We count at least one sequence.*/
-    number = 1;
+    number = 0;
     while (get_next_seq (data)  &&  number <= _ref.getEstimateThreshold())
     {
         number ++;
