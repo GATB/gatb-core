@@ -14,7 +14,6 @@
 
 #include <CppunitCommon.hpp>
 
-#include <gatb/tools/math/ttmath/ttmath.h>
 #include <gatb/tools/math/LargeInt.hpp>
 
 using namespace std;
@@ -105,7 +104,6 @@ public:
     void math_checkBasic ()
     {
         math_checkBasicTemplate < u_int64_t >                    ();
-        math_checkBasicTemplate < ttmath::UInt<KMER_PRECISION> > ();
         math_checkBasicTemplate < LargeInt<KMER_PRECISION> >     ();
     }
 
@@ -113,7 +111,6 @@ public:
     void math_checkFibo ()
     {
         math_checkFiboTemplate < u_int64_t >                    ();
-        math_checkFiboTemplate < ttmath::UInt<KMER_PRECISION> > ();
         math_checkFiboTemplate < LargeInt<KMER_PRECISION> >     ();
     }
 };

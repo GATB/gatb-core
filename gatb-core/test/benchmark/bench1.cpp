@@ -18,7 +18,6 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/math/Integer.hpp>
-#include <gatb/tools/math/ttmath/ttmath.h>
 #include <iostream>
 #include <string.h>
 

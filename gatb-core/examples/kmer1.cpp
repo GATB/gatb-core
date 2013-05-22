@@ -1,7 +1,6 @@
 //! [snippet1]
 // We include what we need for the test
 #include <gatb/kmer/impl/Model.hpp>
-#include <gatb/tools/math/ttmath/ttmath.h>
 #include <iostream>
 
 // We use the required packages
