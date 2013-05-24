@@ -48,7 +48,7 @@ public:
 
     /** Constructor. */
     IteratorFile (const std::string& filename, size_t cacheItemsNb=10000) :
-        _filename(filename), _file(0),  _buffer(0), _cpt_buffer(0), _cacheItemsNb(cacheItemsNb), _isDone(true)
+        _filename(filename), _file(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(cacheItemsNb), _isDone(true)
 
     {
         _file    = system::impl::System::file().newFile (filename, "rb");
@@ -65,7 +65,9 @@ public:
     /** \copydoc Iterator::first */
     void first()
     {
-        _isDone = false;
+        _cpt_buffer = 0;
+        _idx        = 0;
+        _isDone     = false;
         next ();
     }
 
@@ -74,12 +76,14 @@ public:
     {
         if (_cpt_buffer==0)
         {
+            _idx = 0;
             _cpt_buffer = _file->fread (_buffer, sizeof(Item), _cacheItemsNb);
             if (_cpt_buffer==0)  { _isDone = true; }
         }
 
-        this->_item =  ((Item*)_buffer) + (_cpt_buffer-1);
+        this->_item =  ((Item*)_buffer) + _idx;
         _cpt_buffer --;
+        _idx ++;
     }
 
     /** \copydoc Iterator::isDone */
@@ -101,6 +105,7 @@ private:
     system::IFile*  _file;
     void*           _buffer;
     int             _cpt_buffer;
+    int             _idx;
     size_t          _cacheItemsNb;
     bool            _isDone;
 };
