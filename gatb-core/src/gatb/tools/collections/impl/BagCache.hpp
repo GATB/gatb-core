@@ -26,6 +26,7 @@
 #include <gatb/tools/collections/api/Bag.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <vector>
+#include <algorithm>
 
 /********************************************************************************/
 namespace gatb          {
