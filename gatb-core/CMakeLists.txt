@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
-add_definitions (-O3 -funroll-loops  -fomit-frame-pointer  -msse3  -DINTEGER_KIND=1  -DKMER_PRECISION=3 -fopenmp -I/local/users/edrezen/software)
+add_definitions (-O3 -funroll-loops  -fomit-frame-pointer  -msse3  -DINTEGER_KIND=1  -DKMER_PRECISION=3 -fopenmp)
 #add_definitions (-g -p -pg  -DKMER_PRECISION=2)
 
 
@@ -30,7 +30,7 @@ set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
 
 file (GLOB_RECURSE  ComponentFiles  src/*)
 
-include_directories (src)
+include_directories (src  src/gatb/tools)
 
 add_library    (GatbTools-static  STATIC  ${ComponentFiles} )
 #add_library    (GatbTools-dynamic SHARED  ${ComponentFiles} )
