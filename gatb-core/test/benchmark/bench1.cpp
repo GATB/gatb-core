@@ -146,7 +146,9 @@ template <typename Functor> void iter1 (
         nbKmers[p]       = 0;
         checksumKmers[p] = 0;
 
+#if 0
         dispatcher.iterate (itSeq, functors);
+#endif
 
         for (size_t i=0; i<functors.size(); i++)
         {
@@ -254,7 +256,9 @@ template <typename Functor> void iter3 (IBank& bank, KmerModel& model, Functor& 
 
     vector<FunctorIter3> functors (dispatcher.getExecutionUnitsNumber());
 
+#if 0
     dispatcher.iterate (itKmerBank, functors, 1);
+#endif
 
     for (size_t i=0; i<functors.size(); i++)
     {
