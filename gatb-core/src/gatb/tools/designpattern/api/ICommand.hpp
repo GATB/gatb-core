@@ -155,14 +155,14 @@ public:
      *  \param[in] functors : vector of functors that are fed with iterated items
      *  \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
      */
-    template <typename Item, typename Functor> void iterate (Iterator<Item>& iterator, std::vector<Functor>& functors, size_t groupSize = 1000)
+    template <typename Item, typename Functor> void iterate (Iterator<Item>& iterator, std::vector<Functor*>& functors, size_t groupSize = 1000)
     {
         /** We create a common synchronizer. */
         system::ISynchronizer* synchro = newSynchro();
 
         /** We create N IteratorCommand instances. */
         std::vector<ICommand*> commands;
-        for (typename std::vector<Functor>::iterator it = functors.begin(); it != functors.end(); it++)
+        for (typename std::vector<Functor*>::iterator it = functors.begin(); it != functors.end(); it++)
         {
             commands.push_back (new IteratorCommand<Item,Functor> (iterator, *it, *synchro, groupSize));
         }
@@ -192,7 +192,7 @@ protected:
          * \param[in] synchro : shared synchronizer for accessing several items
          * \param[in] groupSize : number of items got from the iterator in one synchronized block.
          */
-        IteratorCommand (Iterator<Item>& it, Functor& fct, system::ISynchronizer& synchro, size_t groupSize)
+        IteratorCommand (Iterator<Item>& it, Functor*& fct, system::ISynchronizer& synchro, size_t groupSize)
             : _it(it), _fct(fct), _synchro(synchro), _groupSize(groupSize)  {}
 
         /** Implementation of the ICommand interface.*/
@@ -216,13 +216,13 @@ protected:
                  /** We have retrieved some items from the iterator.
                   * Now, we don't need any more to be synchronized, so we can call the current functor
                   * with the retrieved items. */
-                 for (size_t i=0; i<items.size(); i++)  {   _fct (items[i]); }
+                 for (size_t i=0; i<items.size(); i++)  {   (*_fct) (items[i]); }
             }
         }
 
     private:
         Iterator<Item>&        _it;
-        Functor&               _fct;
+        Functor*&              _fct;
         system::ISynchronizer& _synchro;
         size_t                 _groupSize;
     };
