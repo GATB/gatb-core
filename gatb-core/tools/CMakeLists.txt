@@ -4,9 +4,9 @@
 
 set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
 
-list (APPEND PROGRAMS BankConverter ClearCache DSK)
+list (APPEND PROGRAMS BankConverter ClearCache DSK KmerChecksum)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
-  target_link_libraries(${program} GatbTools-static   dl pthread z)
+  target_link_libraries(${program} GatbTools-static   dl pthread z -fopenmp)
 ENDFOREACH (program)
