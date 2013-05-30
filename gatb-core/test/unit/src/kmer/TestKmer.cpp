@@ -163,7 +163,9 @@ public:
         Check <NativeInt64>::kmer_checkInfo();
 
         /** We check with the native 128 bits type. */
+#ifdef INT128_FOUND
         Check <NativeInt128>::kmer_checkInfo();
+#endif
 
         /** We check with the LargeInt type. */
         Check < LargeInt<KMER_PRECISION> >::kmer_checkInfo();
@@ -179,7 +181,9 @@ public:
         Check <NativeInt64>::kmer_checkCompute();
 
         /** We check with the native 128 bits type. */
+#ifdef INT128_FOUND
         Check <NativeInt128>::kmer_checkCompute();
+#endif
 
         /** We check with the LargeInt type. */
         Check < LargeInt<KMER_PRECISION> >::kmer_checkCompute();
@@ -195,8 +199,9 @@ public:
         Check<NativeInt64>::kmer_checkIterator();
 
         /** We check with the native 128 bits type. */
+#ifdef INT128_FOUND
         Check <NativeInt128>::kmer_checkIterator();
-
+#endif
         /** We check with the LargeInt type. */
         Check < LargeInt<KMER_PRECISION> >::kmer_checkIterator();
 
