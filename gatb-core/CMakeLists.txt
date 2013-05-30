@@ -2,12 +2,23 @@ project(org.inria.gatb.tools)
 
 cmake_minimum_required (VERSION 2.6)
 
+################################################################################
+# Define cmake modules directory
+################################################################################
+set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+
+################################################################################
+# DEFINE INTEGER CLASS TO BE USED
+################################################################################
+include (DefineInteger)
+DefineInteger (k)
 
 ################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
-add_definitions (-O3 -funroll-loops  -fomit-frame-pointer  -msse3  -DINTEGER_KIND=1  -DKMER_PRECISION=3 -fopenmp)
-#add_definitions (-g -p -pg  -DKMER_PRECISION=2)
+add_definitions (-O3 -funroll-loops  -fomit-frame-pointer  -msse3 -fopenmp  -DINTEGER_KIND=${INTEGER_KIND}  -DKMER_PRECISION=${KMER_PRECISION})
+#add_definitions (-g -p -pg  -fopen)
 
 
 ################################################################################
