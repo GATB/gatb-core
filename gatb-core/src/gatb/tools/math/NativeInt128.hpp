@@ -22,6 +22,8 @@
 #define _GATB_CORE_TOOLS_MATH_INTEGER_NATIVE_128_HPP_
 
 /********************************************************************************/
+#ifdef INT128_FOUND
+/********************************************************************************/
 
 #include <iostream>
 #include <gatb/system/api/types.hpp>
@@ -46,7 +48,7 @@ public:
 
     /** Constructor.
      * \param[in] c : initial value of the large integer. */
-    NativeInt128 (const u_int128_t& c=0)  {  value = c;  }
+    NativeInt128 (const __uint128_t& c=0)  {  value = c;  }
 
     static const char* getName ()  { return "NativeInt128"; }
 
@@ -76,10 +78,10 @@ public:
      */
     friend std::ostream & operator<<(std::ostream & os, const NativeInt128 & in)
     {
-        u_int128_t x = in.value;
+        __uint128_t x = in.value;
 
         u_int64_t high_nucl = (u_int64_t) (x>>64);
-        u_int64_t low_nucl  = (u_int64_t)(x&((((u_int128_t)1)<<64)-1));
+        u_int64_t low_nucl  = (u_int64_t)(x&((((__uint128_t)1)<<64)-1));
 
         if (high_nucl == 0) {   os << std::hex <<                     low_nucl << std::dec;  }
         else                {   os << std::hex << high_nucl << "." << low_nucl << std::dec;  }
@@ -87,7 +89,7 @@ public:
     }
 
 private:
-    u_int128_t value;
+    __uint128_t value;
 
     friend NativeInt128 revcomp (NativeInt128& i, size_t sizeKmer);
 };
@@ -103,25 +105,29 @@ inline NativeInt128 revcomp (NativeInt128& in, size_t sizeKmer)
     //revcomp:        [         CA  | .......GT   ]
     //                 \_low_nucl__/\high_nucl/
 
-    u_int128_t& x = in.value;
+    __uint128_t& x = in.value;
 
     u_int64_t high_nucl = (u_int64_t)(x>>64);
     int nb_high_nucl = sizeKmer>32?sizeKmer - 32:0;
 
-    u_int128_t revcomp_high_nucl = NativeInt64::revcomp64 (high_nucl, nb_high_nucl);
+    __uint128_t revcomp_high_nucl = NativeInt64::revcomp64 (high_nucl, nb_high_nucl);
 
     if (sizeKmer<=32) revcomp_high_nucl = 0; // srsly dunno why this is needed. gcc bug? u_int64_t x ---> (x>>64) != 0
 
-    u_int64_t low_nucl = (u_int64_t)(x&((((u_int128_t)1)<<64)-1));
+    u_int64_t low_nucl = (u_int64_t)(x&((((__uint128_t)1)<<64)-1));
     int nb_low_nucl = sizeKmer>32?32:sizeKmer;
 
-    u_int128_t revcomp_low_nucl = NativeInt64::revcomp64 (low_nucl, nb_low_nucl);
+    __uint128_t revcomp_low_nucl = NativeInt64::revcomp64 (low_nucl, nb_low_nucl);
 
     return (revcomp_low_nucl<<(2*nb_high_nucl)) + revcomp_high_nucl;
 }
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
+/********************************************************************************/
+
+/********************************************************************************/
+#endif //INT128_FOUND
 /********************************************************************************/
 
 #endif /* _GATB_CORE_TOOLS_MATH_INTEGER_NATIVE_128_HPP_ */
