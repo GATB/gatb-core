@@ -14,6 +14,8 @@
 
 #include <CppunitCommon.hpp>
 
+#include <gatb/tools/math/NativeInt64.hpp>
+#include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 
 using namespace std;
@@ -103,14 +105,20 @@ public:
     /********************************************************************************/
     void math_checkBasic ()
     {
-        math_checkBasicTemplate < u_int64_t >                    ();
+        math_checkBasicTemplate < NativeInt64 >                  ();
+#ifdef INT128_FOUND
+        math_checkBasicTemplate < NativeInt128 >                 ();
+#endif
         math_checkBasicTemplate < LargeInt<KMER_PRECISION> >     ();
     }
 
     /********************************************************************************/
     void math_checkFibo ()
     {
-        math_checkFiboTemplate < u_int64_t >                    ();
+        math_checkFiboTemplate < NativeInt64 >                  ();
+#ifdef INT128_FOUND
+        math_checkFiboTemplate < NativeInt128 >                 ();
+#endif
         math_checkFiboTemplate < LargeInt<KMER_PRECISION> >     ();
     }
 };
