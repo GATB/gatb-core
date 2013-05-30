@@ -35,6 +35,4 @@
 
 #include <sys/types.h>
 
-typedef __uint128_t u_int128_t;
-
 #endif /* _GATB_CORE_SYSTEM_TYPES_HPP_ */
