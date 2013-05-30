@@ -27,6 +27,9 @@ endmacro()
 
 MACRO(DefineInteger K)
 
+    Check_Int128 ("__uint128"    128_DEF "USE__uint128")
+    Check_Int128 ("__uint128_t"  128_DEF "USE__uint128_t")
+
     # We may have undefined parameter => we use a default value
     if (NOT k)
         set (k "0")
@@ -36,9 +39,6 @@ MACRO(DefineInteger K)
         set (INTEGER_KIND "1")
 
     elseif (${k} LESS 65)
-
-        Check_Int128 ("__uint128"    128_DEF "USE__uint128")
-        Check_Int128 ("__uint128_t"  128_DEF "USE__uint128_t")
 
         if (INT128_FOUND)
             set (INTEGER_KIND "2")
