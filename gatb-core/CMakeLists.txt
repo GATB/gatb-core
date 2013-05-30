@@ -17,9 +17,14 @@ DefineInteger (k)
 ################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
-add_definitions (-O3 -funroll-loops  -fomit-frame-pointer  -msse3 -fopenmp  -DINTEGER_KIND=${INTEGER_KIND}  -DKMER_PRECISION=${KMER_PRECISION})
-#add_definitions (-g -p -pg  -fopen)
+add_definitions (${add_definitions}  -O3 -funroll-loops  -fomit-frame-pointer)
+#add_definitions (${add_definitions}  -g -p -pg)
 
+add_definitions (${add_definitions}  -DINTEGER_KIND=${INTEGER_KIND}  -DKMER_PRECISION=${KMER_PRECISION})
+
+if (INT128_FOUND)
+    add_definitions (${add_definitions}  -DINT128_FOUND)
+endif()
 
 ################################################################################
 # OPERATING SYSTEM SPECIFIC
