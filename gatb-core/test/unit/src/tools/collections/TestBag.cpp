@@ -128,7 +128,7 @@ public:
         string filename = System::file().getTemporaryDirectory() + string("/bagfile");
 
         /** We set the number of iterations to be done in each thread. */
-        size_t nbItersPerThread = nbItersTotal / nbCores;
+        u_int64_t nbItersPerThread = nbItersTotal / nbCores;
 
         /** We instantiate a bag. */
         BagFile<u_int32_t> bag (filename);
