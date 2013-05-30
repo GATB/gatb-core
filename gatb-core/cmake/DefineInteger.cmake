@@ -54,7 +54,7 @@ MACRO(DefineInteger K)
     if (${INTEGER_KIND} EQUAL "3")
         MATH(EXPR KMER_PRECISION "(${k}+31)/32")
     else()
-        set (KMER_PRECISION "0")
+        set (KMER_PRECISION "1")
     endif()
 
     message("-- Parameter k=${k} => INTEGER_KIND=${INTEGER_KIND} and KMER_PRECISION=${KMER_PRECISION}")
