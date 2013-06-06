@@ -65,6 +65,7 @@ public:
     /** \copydoc Iterator::first */
     void first()
     {
+        _file->seeko (0, SEEK_SET);
         _cpt_buffer = 0;
         _idx        = 0;
         _isDone     = false;
@@ -78,10 +79,10 @@ public:
         {
             _idx = 0;
             _cpt_buffer = _file->fread (_buffer, sizeof(Item), _cacheItemsNb);
-            if (_cpt_buffer==0)  { _isDone = true; }
+            if (_cpt_buffer==0)  { _isDone = true;  return; }
         }
 
-        this->_item =  ((Item*)_buffer) + _idx;
+        *(this->_item) =  * (((Item*)_buffer) + _idx);
         _cpt_buffer --;
         _idx ++;
     }
