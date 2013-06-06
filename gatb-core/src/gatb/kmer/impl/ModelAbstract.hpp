@@ -47,6 +47,8 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+/********************************************************************************/
+
 /** \brief Partial implementation of the IModel interface.
  *
  * This implementation factorizes some code for its children classes.
@@ -93,6 +95,9 @@ public:
     /** \copydoc IModel::getSpan */
     size_t getSpan () { return _sizeKmer; }
 
+    /** \return the kmer mask for the model, ie for the model kmer size. */
+    kmer_type getMask () { return _kmerMask; }
+
     /** \copydoc IModel::getMemorySize */
     size_t getMemorySize ()  { return sizeof (kmer_type); }
 
@@ -123,6 +128,45 @@ public:
         ModelAbstract& _ref;
     };
 
+    /************************************************************/
+    class KmerNeighborIterator : public tools::dp::impl::VectorIterator<kmer_type>
+    {
+    public:
+
+        /** */
+        KmerNeighborIterator (ModelAbstract& ref)  : _ref(ref) {  this->_items.resize(8);   this->_nb = 8; }
+
+        /** */
+        virtual ~KmerNeighborIterator() {}
+
+        /** */
+        void setSource (const kmer_type& source)
+        {
+            size_t idx = 0;
+
+            kmer_type rev = core::tools::math::revcomp (source, _ref.getSpan());
+
+            /** We compute the 8 possible neighbors. */
+            for (size_t nt=0; nt<4; nt++)
+            {
+                {
+                    kmer_type next1 = (((source) * 4 )  + nt) & _ref.getMask();
+                    kmer_type next2 = core::tools::math::revcomp (next1, _ref.getSpan());
+                    this->_items[idx++] = min (next1, next2);
+                }
+                {
+                    kmer_type next1 = (((rev) * 4 )  + nt) & _ref.getMask();
+                    kmer_type next2 = core::tools::math::revcomp (next1, _ref.getSpan());
+                    this->_items[idx++] = min (next1, next2);
+                }
+            }
+        }
+
+    private:
+        /** Reference on the underlying model; called for its 'build' method. */
+        ModelAbstract& _ref;
+    };
+
 protected:
 
     /** Size of a kmer for this model. */
@@ -135,9 +179,6 @@ protected:
 
     /** Mask for the kmer. Used for computing recursively kmers. */
     kmer_type  _kmerMask;
-
-    /** \return the kmer mask for the model, ie for the model kmer size. */
-    kmer_type getMask () { return _kmerMask; }
 
     /** Shortcut for easing/speeding up the recursive revcomp computation. */
     kmer_type _revcompTable[4];
