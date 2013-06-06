@@ -176,6 +176,38 @@ public:
         delete synchro;
     }
 
+    /** */
+    template <typename Item, typename Functor>
+    void iterate (Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
+    {
+        /** We create a common synchronizer. */
+        system::ISynchronizer* synchro = newSynchro();
+
+        /** We create N functors that are copies of the provided one. */
+        std::vector<Functor*> functors (getExecutionUnitsNumber());
+        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
+
+        /** We create N IteratorCommand instances. */
+        std::vector<ICommand*> commands;
+        for (typename std::vector<Functor*>::iterator it = functors.begin(); it != functors.end(); it++)
+        {
+            commands.push_back (new IteratorCommand<Item,Functor> (iterator, *it, *synchro, groupSize));
+        }
+
+        iterator.reset();
+
+        /** We dispatch the commands. */
+        dispatchCommands (commands);
+
+        /** We get rid of the functors. */
+        for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
+
+        /** We get rid of the synchronizer. */
+        delete synchro;
+    }
+
+
+
 protected:
 
     /** Factory method for synchronizer instanciation.
