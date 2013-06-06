@@ -15,6 +15,11 @@ include (DefineInteger)
 DefineInteger (k)
 
 ################################################################################
+# USE OF OPENMP
+################################################################################
+set (OMP "-fopenmp")
+
+################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
 add_definitions (${add_definitions}  -O3 -funroll-loops  -fomit-frame-pointer)
@@ -25,6 +30,8 @@ add_definitions (${add_definitions}  -DINTEGER_KIND=${INTEGER_KIND}  -DKMER_PREC
 if (INT128_FOUND)
     add_definitions (${add_definitions}  -DINT128_FOUND)
 endif()
+
+add_definitions (${add_definitions}  ${OMP})
 
 ################################################################################
 # OPERATING SYSTEM SPECIFIC
