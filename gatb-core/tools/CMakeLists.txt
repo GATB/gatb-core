@@ -8,5 +8,5 @@ list (APPEND PROGRAMS BankConverter ClearCache DSK KmerChecksum)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
-  target_link_libraries(${program} GatbTools-static   dl pthread z -fopenmp)
+  target_link_libraries(${program} GatbTools-static   dl  pthread  z  ${OMP})
 ENDFOREACH (program)
