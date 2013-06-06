@@ -32,6 +32,7 @@
 #include <iostream>
 
 #include <gatb/system/api/Exception.hpp>
+#include <gatb/tools/math/NativeInt64.hpp>
 
 #ifndef ASSERTS
 #define NDEBUG // disable asserts; those asserts make sure that with PRECISION == [1 or 2], all is correct
@@ -356,16 +357,17 @@ public:
 private:
     uint64_t array[precision];
 
-    template<int T>  friend LargeInt<T> revcomp (LargeInt<T>& i, size_t sizeKmer);
+    template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
+    template<int T>  friend u_int64_t   hash    (const LargeInt<T>& key, u_int64_t  seed);
 
     // c++ fun fact:
     // "const" will ban the function from being anything which can attempt to alter any member variables in the object.
 };
 
 /********************************************************************************/
-template<int precision>  inline LargeInt<precision> revcomp (LargeInt<precision>& x, size_t sizeKmer)
+template<int precision>  inline LargeInt<precision> revcomp (const LargeInt<precision>& x, size_t sizeKmer)
 {
-    LargeInt<precision> res = x;
+    const LargeInt<precision> res = x;
 
     unsigned char* kmerrev  = (unsigned char *) (&(res.array[0]));
     unsigned char* kmer     = (unsigned char *) (&(x.array[0]));
@@ -376,6 +378,23 @@ template<int precision>  inline LargeInt<precision> revcomp (LargeInt<precision>
     }
 
     return (res >> (2*( 32*precision - sizeKmer))  ) ;
+}
+
+/********************************************************************************/
+template<int precision>  inline u_int64_t hash (const LargeInt<precision>& elem, u_int64_t seed)
+{
+    // hash = XOR_of_series[hash(i-th chunk iof 64 bits)]
+    u_int64_t result = 0, chunk, mask = ~0;
+
+    LargeInt<precision> intermediate = elem;
+    for (size_t i=0;i<precision;i++)
+    {
+        chunk = (intermediate & mask).array[0];
+        intermediate = intermediate >> 64;
+
+        result ^= NativeInt64::hash64 (chunk,seed);
+    }
+    return result;
 }
 
 /********************************************************************************/

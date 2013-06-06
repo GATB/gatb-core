@@ -91,11 +91,12 @@ public:
 private:
     __uint128_t value;
 
-    friend NativeInt128 revcomp (NativeInt128& i, size_t sizeKmer);
+    friend NativeInt128 revcomp (const NativeInt128& i,   size_t sizeKmer);
+    friend u_int64_t    hash    (const NativeInt128& key, u_int64_t  seed);
 };
 
 /********************************************************************************/
-inline NativeInt128 revcomp (NativeInt128& in, size_t sizeKmer)
+inline NativeInt128 revcomp (const NativeInt128& in, size_t sizeKmer)
 {
     //                  ---64bits--   ---64bits--
     // original kmer: [__high_nucl__|__low_nucl___]
@@ -105,7 +106,7 @@ inline NativeInt128 revcomp (NativeInt128& in, size_t sizeKmer)
     //revcomp:        [         CA  | .......GT   ]
     //                 \_low_nucl__/\high_nucl/
 
-    __uint128_t& x = in.value;
+    const __uint128_t& x = in.value;
 
     u_int64_t high_nucl = (u_int64_t)(x>>64);
     int nb_high_nucl = sizeKmer>32?sizeKmer - 32:0;
@@ -120,6 +121,15 @@ inline NativeInt128 revcomp (NativeInt128& in, size_t sizeKmer)
     __uint128_t revcomp_low_nucl = NativeInt64::revcomp64 (low_nucl, nb_low_nucl);
 
     return (revcomp_low_nucl<<(2*nb_high_nucl)) + revcomp_high_nucl;
+}
+
+/********************************************************************************/
+inline u_int64_t hash (const NativeInt128& item, u_int64_t seed)
+{
+    const __uint128_t& elem = item.value;
+
+    return NativeInt64::hash64 ((u_int64_t)(elem>>64),seed) ^
+           NativeInt64::hash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)),seed);
 }
 
 /********************************************************************************/
