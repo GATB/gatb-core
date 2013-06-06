@@ -81,7 +81,7 @@ private:
 
     void flushCache ()
     {
-        _ref.insert (_items, _idx);
+        if (_idx > 0)  { _ref.insert (_items, _idx);  }
         _idx = 0;
     }
 };
