@@ -32,7 +32,7 @@
 								<option id="gnu.cpp.compiler.option.include.paths.25413700" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/local/users/edrezen/local/include"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.preprocessor.def.1525536067" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1525536067" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="KMER_PRECISION=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1744611571" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -83,7 +83,7 @@
 								<option id="gnu.cpp.compiler.option.include.paths.122639367" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/local/users/edrezen/local/include"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.preprocessor.def.700298474" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+								<option id="gnu.cpp.compiler.option.preprocessor.def.700298474" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="KMER_PRECISION=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.335162777" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
