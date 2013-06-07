@@ -25,12 +25,9 @@ void clear (u_int64_t toErase)
 
     vector<void*> buffers (nbIter, 0);
 
-    Range<u_int32_t>::Iterator itRange (1, nbIter);
+    SubjectIterator<u_int32_t> it (new Range<u_int32_t>::Iterator (1, nbIter), nbIter/100);
 
-    SubjectIterator<u_int32_t> it (itRange, nbIter/100);
-
-    Progress progress (nbIter, "Allocating blocks");
-    it.addObserver (progress);
+    it.addObserver (new Progress (nbIter, "Allocating blocks"));
 
     size_t i=0;
     for (it.first(); !it.isDone(); it.next())
