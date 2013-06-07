@@ -81,6 +81,31 @@ public:
         return os;
     }
 
+    /********************************************************************************/
+    
+    /** Print corresponding kmer in ASCII
+     * \param[sizeKmer] in : kmer size (def=64).
+     */
+    inline void printASCII ( size_t sizeKmer = 64)
+    {
+        int i;
+        u_int64_t temp = value;
+        
+        
+        char seq[65];
+        char bin2NT[4] = {'A','C','T','G'};
+        
+        for (i=sizeKmer-1; i>=0; i--)
+        {
+            seq[i] = bin2NT[ temp&3 ];
+            temp = temp>>2;
+        }
+        seq[sizeKmer]='\0';
+        
+        std::cout << seq << std::endl;
+    }
+    
+    
 private:
     __uint128_t value;
 

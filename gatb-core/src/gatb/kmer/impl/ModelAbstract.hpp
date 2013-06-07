@@ -107,10 +107,13 @@ public:
         /** Set the data to be iterated.
          * \param[in] d : the data as information source for the iterator
          */
-        void setData (tools::misc::Data& d)
+        void setData (tools::misc::Data& d,KmerMode mode = KMER_MINIMUM)
         {
             /** We fill the vector with the items to be iterated. */
-            _ref.build (d, this->_items);
+            if(mode == KMER_MINIMUM)
+                _ref.build (d, this->_items);
+            else
+                _ref.build (d, this->_items,mode);
 
             /** We set the vector size. */
             this->_nb = this->_items.size();
@@ -231,6 +234,8 @@ protected:
 
         if (mode == KMER_REVCOMP)  { return rev; }
 
+        if (mode == KMER_MINIMUM)  { return std::min(direct,rev); }
+        
         throw system::Exception ("BAD MODE for computing kmer successor");
     }
 };

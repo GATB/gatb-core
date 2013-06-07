@@ -68,7 +68,7 @@ public:
     }
 
     /** */
-    void build (tools::misc::Data& d, std::vector<kmer_type>& kmersBuffer)
+    void build (tools::misc::Data& d, std::vector<kmer_type>& kmersBuffer,KmerMode mode = KMER_MINIMUM)
     {
         tools::misc::Data  binaryData;
 
@@ -108,7 +108,7 @@ public:
          *  BUT, using function pointer would lead to many function calls with bad performance. We prefer therefore
          *  duplicate code and let inline work when needed.
          */
-        if (data->getEncoding() == tools::misc::Data::ASCII)
+        if (data->getEncoding() == tools::misc::Data::ASCII && mode == KMER_MINIMUM)
         {
             /** We compute the next kmers in a recursive way. */
             for (size_t i=1; i<nbKmers; i++)
@@ -119,7 +119,7 @@ public:
                 kmersBuffer[i] = std::min (graine, revcomp);
             }
         }
-        else if (data->getEncoding() == tools::misc::Data::INTEGER)
+        else if (data->getEncoding() == tools::misc::Data::INTEGER && mode == KMER_MINIMUM)
         {
             /** We compute the next kmers in a recursive way. */
             for (size_t i=1; i<nbKmers; i++)
@@ -128,6 +128,26 @@ public:
                 graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
                 revcomp = ( (revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
                 kmersBuffer[i] = std::min (graine, revcomp);
+            }
+        }
+        else if (data->getEncoding() == tools::misc::Data::ASCII && mode == KMER_DIRECT) //GR modif, check this with erwan
+        {
+            /** We compute the next kmers in a recursive way. */
+            for (size_t i=1; i<nbKmers; i++)
+            {
+                char c = ModelAbstract<kmer_type>::NT2int(buffer[i]);
+                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
+                kmersBuffer[i] = graine;
+            }
+        }
+        else if (data->getEncoding() == tools::misc::Data::INTEGER && mode == KMER_DIRECT)
+        {
+            /** We compute the next kmers in a recursive way. */
+            for (size_t i=1; i<nbKmers; i++)
+            {
+                char c = ModelAbstract<kmer_type>::NTidentity(buffer[i]);
+                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
+                kmersBuffer[i] = graine;
             }
         }
         else  {  throw system::Exception ("BAD DATA FORMAT TO BE CONVERTED IN KMERS...");  }
