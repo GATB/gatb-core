@@ -39,9 +39,9 @@ IProperties* BankHelper::convert (IBank& in, IBank& out, tools::dp::impl::Iterat
     Iterator<Sequence>* itBank = in.iterator();
     LOCAL (itBank);
 
-    SubjectIterator<Sequence> itSeq (*itBank, 100*1000);
+    SubjectIterator<Sequence> itSeq (itBank, 100*1000);
 
-    if (progress != 0)  {  itSeq.addObserver (*progress);  }
+    if (progress != 0)  {  itSeq.addObserver (progress);  }
 
     u_int64_t   nbSeq = 0;
     u_int64_t sizeSeq = 0;
