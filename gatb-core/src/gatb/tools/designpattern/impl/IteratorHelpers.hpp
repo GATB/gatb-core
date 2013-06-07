@@ -257,10 +257,28 @@ public:
     /** Constructor. */
     AbstractSubjectIterator () : _hasListeners(false), _isStarted(false) {}
 
+    /** Destructor. */
+    ~AbstractSubjectIterator ()
+    {
+        /** We remove all observers. */
+        for (std::set<IteratorListener*>::iterator it = _listeners.begin(); it != _listeners.end(); it++)
+        {
+            (*it)->forget();
+        }
+    }
+
     /** Add an observer to the iterator. Such an observer is provided as a functor.
      * \param[in] f : functor to be subscribed to the iterator notifications.
      */
-    void addObserver    (IteratorListener& f)  { _listeners.insert (&f);  _hasListeners=true; }
+    void addObserver    (IteratorListener* f)
+    {
+        if (f != 0)
+        {
+            f->use ();
+            _listeners.insert (f);
+            _hasListeners=true;
+        }
+    }
 
     /** Remove an observer from the iterator. Such an observer is provided as a functor.
      * \param[in] f : functor to be unsubscribed from the iterator notifications.
@@ -271,6 +289,7 @@ public:
         std::set<IteratorListener*>::iterator lookup = _listeners.find (&f);
         if (lookup != _listeners.end())
         {
+            (*lookup)->forget();
             _listeners.erase (lookup);
             _hasListeners = _listeners.empty() == false;
         }
@@ -349,42 +368,53 @@ public:
     /** Constructor
      * \param[in] ref : the referred iterator
      * \param[in] modulo : notifies every 'modulo' time */
-    SubjectIterator (Iterator<Item>& ref, u_int32_t modulo)  : _ref(ref), _modulo(modulo==0 ? 1 : modulo), _current(0)  { }
+    SubjectIterator (Iterator<Item>* ref, u_int32_t modulo)  : _ref(0), _modulo(modulo==0 ? 1 : modulo), _current(0)
+    {
+        /** We set the reference. */
+        setRef (ref);
+    }
+
+    /** Destructor. */
+    ~SubjectIterator ()
+    {
+        /** We release the reference. */
+        setRef (0);
+    }
 
     /** \copydoc Iterator::first */
     void first ()
     {
         notifyInit ();
         _current = 0;
-        _ref.first ();
+        _ref->first ();
     }
 
     /** \copydoc Iterator::isDone */
     bool isDone ()
     {
-        bool res = _ref.isDone();  if (res)  { notifyFinish(); }  return res;
+        bool res = _ref->isDone();  if (res)  { notifyFinish(); }  return res;
     }
 
     /** \copydoc Iterator::next */
     void next ()
     {
-        _ref.next ();
+        _ref->next ();
         if ((_current % _modulo) == 0)  { notifyInc (_current);  _current=0; }
         _current++;
     }
 
     /** \copydoc Iterator::item */
-    Item& item ()  { return _ref.item(); }
+    Item& item ()  { return _ref->item(); }
 
     /** */
-    void setItem (Item& current)  { _ref.setItem(current); }
+    void setItem (Item& current)  { _ref->setItem(current); }
 
     /** */
-    void reset ()  { _ref.reset(); }
+    void reset ()  { _ref->reset(); }
 
 private:
 
-    Iterator<Item>& _ref;
+    Iterator<Item>* _ref;
     void setRef (Iterator<Item>* ref)  { SP_SETATTR(ref); }
 
     u_int64_t _current;
