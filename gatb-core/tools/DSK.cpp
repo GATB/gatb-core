@@ -13,10 +13,12 @@
 #include <gatb/tools/collections/impl/BagCache.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/Bloom.hpp>
+#include <gatb/tools/collections/impl/BagPartition.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
+#include <gatb/tools/misc/impl/OptionsParser.hpp>
 
 #include <iostream>
 #include <map>
@@ -54,6 +56,15 @@ using namespace gatb::core::tools::math;
 
 /********************************************************************************/
 
+const char* PROP_KMER_SIZE  = "-kmer-size";
+const char* PROP_DB         = "-db";
+const char* PROP_NB_CORES   = "-nb-cores";
+const char* PROP_MAX_MEMORY = "-max-memory";
+const char* PROP_NKS        = "-nks";
+const char* PROP_PREFIX     = "-prefix";
+
+/********************************************************************************/
+
 struct Hash  {   kmer_type operator () (kmer_type& lkmer)
 {
     kmer_type kmer_hash;
@@ -69,128 +80,89 @@ struct Hash  {   kmer_type operator () (kmer_type& lkmer)
     return kmer_hash;
 }};
 
-
-/********************************************************************************/
-
-struct Partition
-{
-    Partition (size_t nbPartitions) : partitions(nbPartitions), _nbPartitions(nbPartitions)
-    {
-        /** We delete physically the partition files. */
-        for (size_t i=0; i<_nbPartitions; i++)  {  System::file().remove (getFilename(i));  }
-
-        /** We create the partition files. */
-        for (size_t i=0; i<_nbPartitions; i++)  {  partitions[i] = new BagFile<kmer_type> (getFilename(i));  }
-    }
-
-    /** */
-    ~Partition ()
-    {
-        /** We logically delete the partition files. */
-        for (size_t i=0; i<_nbPartitions; i++)  {  delete partitions[i];  }
-    }
-
-    /** */
-    Bag<kmer_type>*& operator[] (size_t idx)  { return partitions[idx]; }
-
-    /** */
-    size_t size () const  { return partitions.size(); }
-
-private:
-
-    std::string getFilename (size_t idx)
-    {
-        char filename[128];  snprintf (filename, sizeof(filename), "foo_partition%d.out", idx);
-        return string(filename);
-    }
-
-    vector <Bag<kmer_type>*> partitions;
-    size_t _nbPartitions;
-};
-
-/********************************************************************************/
-
-struct PartitionCache
-{
-    PartitionCache (Partition& partition, ISynchronizer* synchro) : _ref(partition), cache(partition.size()), _synchro(synchro)
-    {
-        /** We create the partition files. */
-        for (size_t i=0; i<cache.size(); i++)
-        {
-            cache[i] = new BagCache<kmer_type> (*(partition[i]), 5*1000, synchro);
-        }
-    }
-
-    PartitionCache (const PartitionCache& p) : _ref(p._ref), cache(p.cache.size()), _synchro(p._synchro)
-    {
-        /** We create the partition files. */
-        for (size_t i=0; i<cache.size(); i++)
-        {
-            cache[i] = new BagCache<kmer_type> (*(p._ref[i]), 5*1000, _synchro);
-        }
-    }
-
-    ~PartitionCache ()
-    {
-        for (size_t i=0; i<cache.size(); i++)
-        {
-            cache[i]->flush();
-            delete cache[i];
-        }
-    }
-
-    /** */
-    Bag<kmer_type>*& operator[] (size_t idx)  { return cache[idx]; }
-
-    /** */
-    size_t size () const  { return cache.size(); }
-
-private:
-
-    Partition& _ref;
-    vector <Bag<kmer_type>*> cache;
-    ISynchronizer* _synchro;
-};
-
 /********************************************************************************/
 
 class DSK
 {
 public:
 
-    /** */
-    struct Info
+    /********************************************************************************/
+    DSK (IProperties* params)
+        : _params(0), _stats(0), _bankBinary(0),
+          _nks (3), _prefix("dsk"),
+          _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
+          _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0)
     {
-        Info() : nbSeq(0), dataSeq(0), nbKmers(0), checksumKmers(0) {}
+        setParams (params);
 
-        Info (vector<Info>& infos) : nbSeq(0), dataSeq(0), nbKmers(0), checksumKmers(0)
-        {
-        	for (size_t i=0; i<infos.size(); i++)  {  *this += infos[i];   }
-        }
+        IProperty* prop;
 
-        Info& operator+=  (const Info& other)
-        {
-            nbSeq         += other.nbSeq;
-            dataSeq       += other.dataSeq;
-            nbKmers       += other.nbKmers;
-            checksumKmers += other.checksumKmers;
-            return *this;
-        }
+        if ( (prop = (*params)[PROP_KMER_SIZE])  != 0)  {  _kmerSize   = prop->getInt();     }
+        if ( (prop = (*params)[PROP_DB])         != 0)  {  _filename   = prop->getValue();   }
+        if ( (prop = (*params)[PROP_MAX_MEMORY]) != 0)  {  _max_memory = prop->getInt();     }
+        if ( (prop = (*params)[PROP_NKS])        != 0)  {  _nks        = prop->getInt();     }
+        if ( (prop = (*params)[PROP_PREFIX])     != 0)  {  _prefix     = prop->getValue();   }
 
-        u_int64_t nbSeq;
-        u_int64_t dataSeq;
-        u_int64_t nbKmers;
-        kmer_type checksumKmers;
-    };
+        /** We create the binary bank holding the reads in binary format. */
+        _bankBinary = new BankBinary (_filename + ".bin");
+
+        /** We create our dispatcher. */
+        prop = (*params)[PROP_NB_CORES];
+        _dispatcher = new ParallelCommandDispatcher (prop ? prop->getInt() : 0);
+
+        /** We create a properties object for gathering statistics. */
+        setStats (new Properties());
+        _stats->add (0, "dsk");
+
+        /** We add the user parameters to the global stats. */
+        _stats->add (1, params);
+    }
 
     /********************************************************************************/
-    DSK (const string& filename, size_t kmerSize, ICommandDispatcher& dispatcher, size_t maxMemory)
-        : _bankBinary(filename + ".bin"), _filename(filename),
-          _model(kmerSize), _kmerSize(kmerSize),
-          _dispatcher(dispatcher),
-          _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
-          _max_disk_space(0), _max_memory(maxMemory), _volume(0), _nb_passes(0), _nb_partitions(0)
-    {}
+    virtual ~DSK ()
+    {
+        setParams (0);
+        setStats  (0);
+
+        delete _bankBinary;
+        delete _dispatcher;
+    }
+
+    /********************************************************************************/
+    void execute ()
+    {
+        /** We configure dsk. */
+        configure ();
+
+        // We create the sequences iterator.
+        Iterator<Sequence>* itSeq = createSequenceIterator (new Progress (_estimateSeqNb, "DSK"));
+        LOCAL (itSeq);
+
+        // We create the solid kmers bag
+        Bag<kmer_type>* solidKmers = createSolidKmersBag ();
+        LOCAL (solidKmers);
+
+        /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
+        for (size_t pass=0; pass<_nb_passes; pass++)
+        {
+            /** 1) We fill the partition files. */
+            fillPartitions (pass, itSeq);
+
+            /** 2) We fill the kmers solid file from the partition files. */
+            fillSolidKmers (solidKmers);
+        }
+
+        /** We flush the solid kmers file. */
+        solidKmers->flush();
+
+        /** We add the exec time stats to the global statistics. */
+        _stats->add (1, _timeInfo.getProperties("time"));
+    }
+
+    /********************************************************************************/
+    IProperties& getStats ()  const  { return *_stats; }
+
+private:
 
     /********************************************************************************/
     void configure ()
@@ -230,114 +202,65 @@ public:
 
         } while (1);
 
-//_nb_passes     = 4;
-//_nb_partitions = 26;
-
-        cout << "CURRENT DIRECTORY '"    << System::file().getCurrentDirectory() << "'" << endl;
-        cout << "AVALAIBLE SPACE     : " << available_space << " MBytes" << endl;
-        cout << "BANK SIZE           : " << bankSize << " MBytes" << endl;
-        cout << "SEQUENCE NUMBER     : " << _estimateSeqNb << endl;
-        cout << "SEQUENCE VOLUME     : " << _estimateSeqTotalSize / MBYTE << " MBytes" << endl;
-        cout << "KMER NUMBER         : " << kmersNb << endl;
-        cout << "KMERS VOLUME        : " << _volume << " MBytes" << endl;
-        cout << "MAX DISK SPACE      : " << _max_disk_space << " MBytes" << endl;
-        cout << "MAX MEMORY          : " << _max_memory     << " MBytes" << endl;
-        cout << "NB PASSES           : " << _nb_passes << endl;
-        cout << "NB PARTITIONS       : " << _nb_partitions << endl;
+        /** We gather some statistics. */
+        _stats->add (1, "config");
+        _stats->add (2, "current directory", System::file().getCurrentDirectory());
+        _stats->add (2, "available space",   "%ld", available_space);
+        _stats->add (2, "bank size",         "%ld", bankSize);
+        _stats->add (2, "sequence number",   "%ld", _estimateSeqNb);
+        _stats->add (2, "sequence volume",   "%ld", _estimateSeqTotalSize / MBYTE);
+        _stats->add (2, "kmers number",      "%ld", kmersNb);
+        _stats->add (2, "kmers volume",      "%ld", _volume);
+        _stats->add (2, "max disk space",    "%ld", _max_disk_space);
+        _stats->add (2, "nb passes",         "%d",  _nb_passes);
+        _stats->add (2, "nb partitions",     "%d",  _nb_partitions);
     }
 
     /********************************************************************************/
-    void execute ()
+    void fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
     {
-        /** We configure dsk. */
-        configure ();
+        TIME_INFO (_timeInfo, "fill partitions");
 
-        /** We delete the solid kmers file. */
-        System::file().remove ("solids.bin");
+        /** We create a kmer model. */
+        KmerModel model (_kmerSize);
 
-        // We use the provided listener if any
-        IteratorListener* progress = new Progress (_estimateSeqNb, "DSK");
-        LOCAL (progress);
-
-        // We need an iterator on the FASTA bank.
-        Iterator<Sequence>* itBank = _bankBinary.iterator();
-        LOCAL (itBank);
-
-        // We create an iterator over the paired iterator on sequences
-        SubjectIterator<Sequence> itSeq (*itBank, 5*1000);
-
-        // We add a listener to the sequences iterator.
-        itSeq.addObserver (*progress);
-
-        BagFile<kmer_type> solidKmersFile ("solids.bin");
-        BagCache<kmer_type> solidKmers (solidKmersFile, 5*1000);
-
-        /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
-        for (size_t pass=0; pass<_nb_passes; pass++)
-        {
-            /** We update the iterator listener with some information message. */
-            progress->setMessage ("DSK %d/%d", pass+1, _nb_passes);
-
-            /** 1) We fill the partition files. */
-            fillPartitions (pass, itSeq);
-
-            /** 2) We fill the kmers solid file from the partition files. */
-            fillSolidKmers (solidKmers);
-        }
-
-        /** We flush the solid kmers file. */
-        solidKmers.flush();
-    }
-
-    /********************************************************************************/
-    void fillPartitions (size_t pass, Iterator<Sequence>& itSeq)
-    {
         /** We create the partition files for the current pass. */
-        Partition  partitions (_nb_partitions);
+        BagFilePartition<kmer_type> partitions (_nb_partitions, getPartitionUri().c_str());
 
         /** We create a shared synchronizer for the partitions building. */
         ISynchronizer* synchro = System::thread().newSynchronizer();
 
         /** We launch the iteration of the sequences iterator with the created functors. */
-        _dispatcher.iterate (itSeq, FillPartitions (&_model, _nb_passes, pass, partitions, synchro));
+        _dispatcher->iterate (*itSeq, FillPartitions (model, _nb_passes, pass, partitions, synchro));
 
         /** We cleanup resources. */
         delete synchro;
     }
 
     /********************************************************************************/
-    void fillSolidKmers (Bag<kmer_type>&  solidKmers)
+    void fillSolidKmers (Bag<kmer_type>*  solidKmers)
     {
-        TimeInfo ti;
+        TIME_INFO (_timeInfo, "fill solid kmers");
 
         /** We parse each partition file. */
         for (size_t i=0; i<_nb_partitions; i++)
         {
-            char filename[128];  snprintf (filename, sizeof(filename), "foo_partition%d.out", i);
+            char filename[128];  snprintf (filename, sizeof(filename), getPartitionUri().c_str(), i);
 
             IteratorFile<kmer_type> it (filename);
+            vector<kmer_type> kmers;
 
-            ti.start ("read");
+            it.fill (kmers);
 
-            u_int64_t len = System::file().getSize(filename) / sizeof (kmer_type);
-            vector<kmer_type> kmers (len);
-
-            size_t k=0;  for (it.first(); !it.isDone(); it.next())  {  kmers[k++] = *it;  }
-
-            ti.stop ("read");
-
-            ti.start ("sort");
-
+#ifdef OMP
             omptl::sort (kmers.begin (), kmers.end ());
+#else
+            std::sort (kmers.begin (), kmers.end ());
+#endif
 
-            ti.stop ("sort");
-
-            u_int32_t nks = 3;
             u_int32_t max_couv  = 2147483646;
             u_int32_t abundance = 0;
             kmer_type previous_kmer = kmers.front();
-
-            ti.start ("solid");
 
             for (vector<kmer_type>::iterator itKmers = kmers.begin(); itKmers != kmers.end(); ++itKmers)
             {
@@ -346,30 +269,59 @@ public:
                 if (current_kmer == previous_kmer)  {   abundance++;  }
                 else
                 {
-                    if (abundance >= nks  && abundance <= max_couv)
+                    if (abundance >= _nks  && abundance <= max_couv)
                     {
-                        solidKmers.insert (previous_kmer);
+                        solidKmers->insert (previous_kmer);
                     }
                     abundance = 1;
                 }
                 previous_kmer = current_kmer;
             }
 
-            if (abundance >= nks && abundance <= max_couv)
+            if (abundance >= _nks && abundance <= max_couv)
             {
-                solidKmers.insert (previous_kmer);
+                solidKmers->insert (previous_kmer);
             }
-            ti.stop ("solid");
-
-cout << "-> kmersNb: "  << len << "  "
-     << "read: "  << ti.getEntryByKey("read")  << "  "
-     << "sort: "  << ti.getEntryByKey("sort")  << "  "
-     << "solid: " << ti.getEntryByKey("solid") << "  "
-     << endl;
-
         }
-
     }
+
+    /********************************************************************************/
+    virtual Iterator<Sequence>* createSequenceIterator (IteratorListener* progress)
+    {
+        // We need an iterator on the FASTA bank.
+        Iterator<Sequence>* itBank = _bankBinary->iterator();
+
+        // We create an iterator over the paired iterator on sequences
+        SubjectIterator<Sequence>* itSeq = new SubjectIterator<Sequence> (itBank, 5*1000);
+
+        // We add a listener to the sequences iterator.
+        itSeq->addObserver (progress);
+
+        // We return the created sequence iterator.
+        return itSeq;
+    }
+
+    /********************************************************************************/
+    virtual Bag<kmer_type>* createSolidKmersBag ()
+    {
+        /** We delete the solid kmers file. */
+        System::file().remove ("solids.bin");
+
+        return new BagCache<kmer_type> (new  BagFile<kmer_type> ("solids.bin"), 5*1000);
+    }
+
+    /********************************************************************************/
+    void buildBankBinary (Bank& bank)
+    {
+        TIME_INFO (_timeInfo, "bank conversion");
+
+        // We convert the FASTA bank in binary format
+        IProperties* props = BankHelper::singleton().convert (bank, *_bankBinary, new Progress (_estimateSeqNb, "FASTA to binary conversion"));
+        LOCAL (props);
+    }
+
+    /********************************************************************************/
+    string getPartitionUri ()  {  return _prefix + "%d";  }
 
     /********************************************************************************/
     class FillPartitions
@@ -383,7 +335,7 @@ cout << "-> kmersNb: "  << len << "  "
             Hash hash;
 
             /** We build the kmers from the current sequence. */
-            model->build (sequence.getData(), kmers);
+            model.build (sequence.getData(), kmers);
 
             /** We loop over the kmers. */
             for (size_t i=0; i<kmers.size(); i++)
@@ -404,7 +356,7 @@ cout << "-> kmersNb: "  << len << "  "
             }
         }
 
-        FillPartitions (KmerModel* model, size_t nbPasses, size_t currentPass, Partition& partition, ISynchronizer* synchro)
+        FillPartitions (KmerModel& model, size_t nbPasses, size_t currentPass, BagFilePartition<kmer_type>& partition, ISynchronizer* synchro)
             : pass(currentPass), nbPass(nbPasses), _cache(partition,synchro), model(model)
         {
         }
@@ -412,49 +364,36 @@ cout << "-> kmersNb: "  << len << "  "
     private:
         size_t pass;
         size_t nbPass;
-        PartitionCache _cache;
-        KmerModel* model;
+        BagCachePartition<kmer_type> _cache;
+        KmerModel& model;
     };
 
 
-private:
+    IProperties* _params;
+    void setParams (IProperties* params)  { SP_SETATTR(params); }
 
-    BankBinary _bankBinary;
+    IProperties* _stats;
+    void setStats (IProperties* stats)  { SP_SETATTR(stats); }
 
-    string    _filename;
-    KmerModel _model;
-    size_t    _kmerSize;
+    BankBinary* _bankBinary;
 
-    ICommandDispatcher& _dispatcher;
+    TimeInfo _timeInfo;
+
+    string   _filename;
+    size_t   _kmerSize;
+    size_t   _nks;
+    string   _prefix;
+
+    ICommandDispatcher* _dispatcher;
 
     u_int64_t _estimateSeqNb;
     u_int64_t _estimateSeqTotalSize;
     u_int64_t _estimateSeqMaxSize;
-
     u_int64_t _max_disk_space;
     u_int32_t _max_memory;
     u_int64_t _volume;
     u_int32_t _nb_passes;
     u_int32_t _nb_partitions;
-
-    /** */
-    void buildBankBinary (Bank& bank)
-    {
-        string filenameBin = _filename + ".bin";
-
-        if (System::file().doesExist(filenameBin) == false)
-        {
-            // We declare a binary bank
-            BankBinary bankBin (filenameBin);
-
-            // We declare some job listener.
-            Progress progress (_estimateSeqNb, "FASTA to binary conversion");
-
-            // We convert the FASTA bank in binary format
-            IProperties* props = BankHelper::singleton().convert (bank, bankBin, &progress);
-            LOCAL (props);
-        }
-    }
 };
 
 /********************************************************************************/
@@ -469,24 +408,30 @@ private:
     IProperties*        _props;
     ICommandDispatcher* _dispatcher;
     TimeInfo            _timeInfo;
+
     IteratorListener*   _progress;
+    void setProgress (IteratorListener* progress)  { SP_SETATTR(progress); }
 
 public:
 
     /** */
-    Debloom (IProperties* props) : _props(props), _progress(0)
+    Debloom (IProperties* props) : _props(props), _progress(0), _stats(0)
     {
-        _kmerSize = props->getProperty ("kmer_size")->getInt();
+        _kmerSize = (*props)[PROP_KMER_SIZE]->getInt();
 
-        size_t nbCores = (props->getProperty ("nb_cores") ?  props->getProperty ("nb_cores")->getInt() : 0);
+        size_t nbCores = ((*props)[PROP_NB_CORES] ?  (*props)[PROP_NB_CORES]->getInt() : 0);
         _dispatcher = new ParallelCommandDispatcher (nbCores);
+
+        setStats (new Properties());
+        _stats->add (0, "stats");
     }
 
     /** */
     ~Debloom ()
     {
         delete _dispatcher;
-        delete _progress;
+        setProgress (0);
+        setStats    (0);
     }
 
     /** */
@@ -495,39 +440,35 @@ public:
         /** We delete the extension file. */
         System::file().remove ("extension.bin");
 
-        double lg2 = log(2);
-        float NBITS_PER_KMER = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
-
         u_int64_t solidFileSize = (System::file().getSize("solids.bin") / sizeof (kmer_type));
 
-        u_int64_t estimatedBloomSize = solidFileSize * NBITS_PER_KMER;
-        cout << "estimatedBloomSize=" << estimatedBloomSize << endl;
+        SubjectIterator<kmer_type> itKmers (new IteratorFile<kmer_type> ("solids.bin"), 5*1000);
 
-        IteratorFile<kmer_type> itSolid ("solids.bin");
-        SubjectIterator<kmer_type> itKmers (itSolid, 5*1000);
+        setProgress (new Progress (solidFileSize, "iterate solid kmers"));
 
-        _progress = new Progress (solidFileSize, "iterate solid kmers");
-        itKmers.addObserver (*_progress);
+        itKmers.addObserver (_progress);
 
         /** We create a bloom with inserted solid kmers. */
-        Bloom<kmer_type>* bloom = createBloom (itKmers);
+        Bloom<kmer_type>* bloom = createBloom (itKmers, solidFileSize);
 
-        BagFile<kmer_type>  extensionFile ("extension.bin");
+        BagFile<kmer_type>* extensionFile = new BagFile<kmer_type>("extension.bin");
+        LOCAL (extensionFile);
 
         executeBuildKmerExtension (itKmers, *bloom, extensionFile);
 
         /** We make sure everything is put into the extension file. */
-        extensionFile.flush();
+        extensionFile->flush();
 
         /** We clean up resources. */
         delete bloom;
     }
 
-    Properties getProperties ()
+    Properties getStats ()
     {
         Properties res;
 
-        res.add (0, "debloom", "");
+        res.add (0, "debloom");
+        res.add (1, _stats);
         res.add (1, _timeInfo.getProperties("time"));
 
         return res;
@@ -535,13 +476,16 @@ public:
 
 private:
 
+    IProperties* _stats;
+    void setStats (IProperties* stats)  { SP_SETATTR(stats); }
+
     /********************************************************************************/
-    Bloom<kmer_type>* createBloom (Iterator<kmer_type>& itKmers)
+    Bloom<kmer_type>* createBloom (Iterator<kmer_type>& itKmers, u_int64_t solidFileSize)
     {
+        TIME_INFO (_timeInfo, "build kmers bloom");
+
         double lg2 = log(2);
         float NBITS_PER_KMER = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
-
-        u_int64_t solidFileSize = (System::file().getSize("solids.bin") / sizeof (kmer_type));
 
         u_int64_t estimatedBloomSize = solidFileSize * NBITS_PER_KMER;
 
@@ -550,27 +494,34 @@ private:
 
         _progress->setMessage ("build bloom from solid kmers");
 
-        _timeInfo.start ("BuildKmerBloom");
         _dispatcher->iterate (itKmers,  BuildKmerBloom (*bloom));
-        _timeInfo.stop ("BuildKmerBloom");
+
+        /** We gather some statistics. */
+        _stats->add (1, "bloom");
+        _stats->add (2, "nb solid kmers",   "%d",   solidFileSize);
+        _stats->add (2, "nb bits per kmer", "%.3f", NBITS_PER_KMER);
+        _stats->add (2, "bloom size",       "%d",   estimatedBloomSize / 8LL);
 
         return bloom;
     }
 
     /********************************************************************************/
-    void executeBuildKmerExtension (Iterator<kmer_type>& itKmers, Bloom<kmer_type>& bloom, Bag<kmer_type>& extensionBag)
+    void executeBuildKmerExtension (Iterator<kmer_type>& itKmers, Bloom<kmer_type>& bloom, Bag<kmer_type>* extensionBag)
     {
+        TIME_INFO (_timeInfo, "build kmers extension");
+
         KmerModel model (_kmerSize);
 
         ISynchronizer* synchro = System::thread().newSynchronizer();
 
         _progress->setMessage ("build extension from solid kmers");
 
-        _timeInfo.start ("BuildKmerExtension");
         _dispatcher->iterate (itKmers, BuildKmerExtension (model, bloom, extensionBag, synchro));
-        _timeInfo.stop ("BuildKmerExtension");
 
         delete synchro;
+
+        /** We gather some statistics. */
+        //_stats->add (1, "extension");
     }
 
     /********************************************************************************/
@@ -590,15 +541,19 @@ private:
 
             for (_itNeighbors.first(); !_itNeighbors.isDone(); _itNeighbors.next())
             {
-                if (_bloom.contains (*_itNeighbors))  {  _extendBag.insert (*_itNeighbors);  }
+                if (_bloom.contains (*_itNeighbors))
+                {
+                    _extendBag.insert (*_itNeighbors);
+                }
             }
         }
 
-        BuildKmerExtension (KmerModel& model, Bloom<kmer_type>& bloom, Bag<kmer_type>& extendBag, ISynchronizer* synchro)
-            : _bloom(bloom), _extendBag(extendBag, 5*1000, synchro), _itNeighbors(model) {}
+        BuildKmerExtension (KmerModel& model, Bloom<kmer_type>& bloom, Bag<kmer_type>* extendBag, ISynchronizer* synchro)
+            : _model(model), _bloom(bloom), _extendBag(extendBag, 5*1000, synchro), _itNeighbors(model)  { }
 
         ~BuildKmerExtension ()  {  _extendBag.flush();  }
 
+        KmerModel&          _model;
         Bloom<kmer_type>&   _bloom;
         BagCache<kmer_type> _extendBag;
         ModelAbstract<kmer_type>::KmerNeighborIterator _itNeighbors;
@@ -611,71 +566,51 @@ private:
 
 int main (int argc, char* argv[])
 {
-    if (argc < 3)
-    {
-        cerr << "you must provide at least 2 arguments. Arguments are:" << endl;
-        cerr << "   1) kmer size"  << endl;
-        cerr << "   2) FASTA  bank" << endl;
-        cerr << "   3) number of cores" << endl;
-        cerr << "   4) memory (in MBytes)" << endl;
-        return EXIT_FAILURE;
-    }
+    OptionsParser parser;
 
-    // We define the max size of a data line in the FASTA output file
-    size_t kmerSize = atoi(argv[1]);
-
-    // We get the URI of the FASTA bank
-    string filename (argv[2]);
-
-    // We get the number of cores to be used (0 means all cores)
-    size_t nbCores = argc >=4 ? atoi(argv[3]) : 0;
-
-    // We get the memory to use (in MBytes)
-    size_t maxMemory = argc >=5 ? atoi(argv[4]) : 0;
+    parser.add (new OptionOneParam (PROP_KMER_SIZE,   "size of a kmer",                       true));
+    parser.add (new OptionOneParam (PROP_DB,          "URI of the bank",                      true));
+    parser.add (new OptionOneParam (PROP_NB_CORES,    "number of cores",                      false));
+    parser.add (new OptionOneParam (PROP_MAX_MEMORY,  "max memory",                           false));
+    parser.add (new OptionOneParam (PROP_NKS,         "abundance threshold for solid kmers",  false));
+    parser.add (new OptionOneParam (PROP_PREFIX,      "prefix URI for temporary files",       false));
 
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
-        TimeInfo ti;
+        /** We parse the command line arguments. */
+        parser.parse (argc, argv);
 
-        /** We create a command dispatcher. */
-        ICommandDispatcher* dispatcher = 0;
-        if (nbCores==1)  { dispatcher =  new SerialCommandDispatcher   ();         }
-        else             { dispatcher =  new ParallelCommandDispatcher (nbCores);  }
-        LOCAL (dispatcher);
+        /** We create an instance of DSK class. */
+        DSK dsk (parser.getProperties());
 
-        {
-            /** We create an instance of DSK class. */
-            DSK dsk (filename, kmerSize, *dispatcher, maxMemory);
+        /** We execute dsk. */
+        dsk.execute ();
 
-            /** We execute dsk. */
-            dsk.execute ();
-        }
+        /** We create an instance of Debloom class. */
+        Debloom debloom (parser.getProperties());
 
-        IProperties* props = new Properties();
-        LOCAL (props);
-
-        props->add (0, "kmer_size", argv[1]);
-        props->add (0, "nb_cores",  argc >=4 ? argv[3] : "0");
-
-        props->add (0, "solid_kmers_uri",  "solid.bin");
-        props->add (0, "extend_kmers_uri", "extension.bin");
-
-        Debloom debloom (props);
+        /** We execute the debloom. */
         debloom.execute ();
 
         /** We dump some execution information. */
         RawDumpPropertiesVisitor visit;
-        Properties res = debloom.getProperties();
-        debloom.getProperties().accept (&visit);
+        dsk.getStats().accept     (&visit);
+        debloom.getStats().accept (&visit);
+    }
+
+    catch (OptionFailure& e)
+    {
+        if (parser.saw("-h"))    {   parser.displayHelp   (stdout);   }
+        else                     {   parser.displayErrors (stdout);   }
+        return EXIT_FAILURE;
     }
 
     catch (gatb::core::system::Exception& e)
     {
         cerr << "EXCEPTION: " << e.getMessage() << endl;
+        return EXIT_FAILURE;
     }
-
-    cout << "finished..." << endl;
 
     return EXIT_SUCCESS;
 }
