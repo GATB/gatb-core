@@ -26,14 +26,14 @@ int main (int argc, char* argv[])
     list<int> l (values, values + valuesLen);
 
     // We create an iterator on the list.
-    ListIterator<int> itList (l);
+    ListIterator<int>* itList = new ListIterator<int> (l);
 
     // We declare an iterator that will send progress status every 3 iterations.
     // Note that it refers a ListIterator instance given as constructor parameter.
     SubjectIterator<int> itNotif (itList, 3);
 
     //  We create some listener to be notified about progress and attach it to the iterator.
-    ProgressFunctor fct;    itNotif.addObserver (fct);
+    itNotif.addObserver (new ProgressFunctor ());
 
     // We iterate the truncated list
     for (itNotif.first(); !itNotif.isDone(); itNotif.next())

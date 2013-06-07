@@ -48,13 +48,13 @@ int main (int argc, char* argv[])
         KmerModel model (27);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator itBank (bank);
+        Bank::Iterator* itBank = new Bank::Iterator (bank);
 
         // We create a sequences iterator and makes it launch progression notif every N iterations.
         SubjectIterator<Sequence> itSeq (itBank, 100);
 
         // We create some listener to be notified every N iterations and attach it to the iterator.
-        ProgressFunctor fct (bank.estimateNbSequences());    itSeq.addObserver (fct);
+        itSeq.addObserver (new ProgressFunctor (bank.estimateNbSequences()));
 
         // We declare a kmer iterator for the model
         KmerModel::Iterator itKmer (model);

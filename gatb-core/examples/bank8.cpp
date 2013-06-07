@@ -36,15 +36,13 @@ int main (int argc, char* argv[])
         BankBinary outputBank (argv[2]);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator itInput (inputBank);
+        Bank::Iterator* itInput = new Bank::Iterator (inputBank);
 
         // We create an iterator over the input bank and encapsulate it with progress notification.
         SubjectIterator<Sequence> itSeq (itInput, 100000);
 
         // We create some listener to be notified every N iterations and attach it to the iterator.
-        ProgressTimer progress (inputBank.estimateNbSequences(), "Converting input file into binary format");
-
-        itSeq.addObserver (progress);
+        itSeq.addObserver (new ProgressTimer (inputBank.estimateNbSequences(), "Converting input file into binary format"));
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())

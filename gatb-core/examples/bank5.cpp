@@ -22,7 +22,7 @@ int main (int argc, char* argv[])
         Bank b (argc-1, argv+1);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator itSeq (b);
+        Bank::Iterator* itSeq = new Bank::Iterator (b);
 
         //  We create a sequence iterator that notifies listeners every N sequences
         SubjectIterator<Sequence> iter (itSeq, 1000);
@@ -32,7 +32,7 @@ int main (int argc, char* argv[])
         // Note that we get an estimation of the number of sequences in the bank and give it to the
         // functor in order to compute a percentage. Since this is a crude estimation, it is likely
         // that the final percentage will not be exactly 100%
-        Progress fct (b.estimateNbSequences(), "Iterating sequences");    iter.addObserver (fct);
+        iter.addObserver (new Progress (b.estimateNbSequences(), "Iterating sequences"));
 
         // We loop over sequences.
         for (iter.first(); !iter.isDone(); iter.next())

@@ -23,7 +23,7 @@ int main (int argc, char* argv[])
         Bank b (argc-1, argv+1);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator itSeq (b);
+        Bank::Iterator* itSeq = new Bank::Iterator (b);
 
         // Note how we create a Sequence iterator with b.iterator() and give it to the
         // SubjectIterator that will add a notification feature to the Sequence iterator.
@@ -33,7 +33,7 @@ int main (int argc, char* argv[])
         SubjectIterator<Sequence> iter (itSeq, 10);
 
         //  We create some listener to be notified every 10 iterations and attach it to the iterator.
-        ProgressFunctor fct;    iter.addObserver (fct);
+        iter.addObserver (new ProgressFunctor());
 
         // We loop over sequences.
         for (iter.first(); !iter.isDone(); iter.next())

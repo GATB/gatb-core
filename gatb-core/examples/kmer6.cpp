@@ -19,6 +19,7 @@ using namespace gatb::core::bank;
 using namespace gatb::core::bank::impl;
 using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
+using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
 using namespace gatb::core::tools::misc::impl;
 using namespace gatb::core::tools::math;
@@ -52,16 +53,15 @@ int main (int argc, char* argv[])
         BankBinary bank2 (filename + ".bin");
 
         // We need an iterator on the FASTA bank.
-        Bank::Iterator itSeq1 (bank1);
+        Iterator<Sequence>* itSeq1 = bank1.iterator();
 
         // We create an iterator over the paired iterator on sequences
         SubjectIterator<Sequence> itSeq1Notif (itSeq1, 1000);
 
         // We create some listener to be notified every N iterations and attach it to the iterator.
-        ProgressTimer progressConvert (bank1.estimateNbSequences(), "Iterating sequences during binary conversion");
-        itSeq1Notif.addObserver (progressConvert);
+        itSeq1Notif.addObserver (new ProgressTimer (bank1.estimateNbSequences(), "Iterating sequences during binary conversion"));
 
-        for (itSeq1Notif.first(); !itSeq1Notif.isDone(); itSeq1Notif.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
+        for (itSeq1Notif.first(); !itSeq1Notif.isDone(); itSeq1Notif.next())   {  bank2.insert (itSeq1->item());  }   bank2.flush ();
 
         // We declare two kmer iterators for the two banks and a paired one that links them.
         Model<kmer_type>::Iterator itKmer1 (model);
@@ -69,15 +69,17 @@ int main (int argc, char* argv[])
         PairedIterator<kmer_type,kmer_type> itKmer (itKmer1, itKmer2);
 
         // We loop the two banks with a paired iterator.
-        BankBinary::Iterator itSeq2 (bank2);
-        PairedIterator<Sequence,Sequence> itSeqPair (itSeq1, itSeq2);
+        Iterator<Sequence>* itSeq2 = bank2.iterator();
+        LOCAL (itSeq2);
+
+        PairedIterator<Sequence,Sequence>* itSeqPair = new PairedIterator<Sequence,Sequence> (*itSeq1, *itSeq2);
+        LOCAL (itSeqPair);
 
         // We create an iterator over the paired iterator on sequences
         SubjectIterator<pair<Sequence,Sequence> > itSeq (itSeqPair, 1000);
 
         // We create some listener to be notified every N iterations and attach it to the iterator.
-        ProgressTimer progressKmers (bank1.estimateNbSequences(), "Iterating sequences during kmers check");
-        itSeq.addObserver (progressKmers);
+        itSeq.addObserver (new ProgressTimer (bank1.estimateNbSequences(), "Iterating sequences during kmers check"));
 
         // We get some information about the kmers.
         u_int64_t nbKmers       = 0;
@@ -90,8 +92,8 @@ int main (int argc, char* argv[])
         for (itSeq.first(); !itSeq.isDone();  itSeq.next())
         {
             // We set the data from which we want to extract kmers.
-            itKmer1.setData (itSeq1->getData());
-            itKmer2.setData (itSeq2->getData());
+            itKmer1.setData ((*itSeq1)->getData());
+            itKmer2.setData ((*itSeq2)->getData());
 
             // We loop the kmers for the two datas.
             for (itKmer.first(); !itKmer.isDone();  itKmer.next())
