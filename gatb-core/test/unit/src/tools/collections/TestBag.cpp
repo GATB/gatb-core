@@ -105,7 +105,7 @@ public:
     template <typename Item> class BagInsertCommand : public ICommand
     {
     public:
-        BagInsertCommand (Bag<Item>& ref, size_t cacheSize, ISynchronizer* synchro, size_t nbIters)
+        BagInsertCommand (Bag<Item>* ref, size_t cacheSize, ISynchronizer* synchro, size_t nbIters)
             : _ref(ref), _cache(_ref, cacheSize, synchro), _nbIters(nbIters) {}
 
         void execute ()
@@ -116,7 +116,7 @@ public:
         }
 
     private:
-        Bag<Item>&     _ref;
+        Bag<Item>*     _ref;
         BagCache<Item> _cache;
         size_t         _nbIters;
     };
@@ -131,7 +131,8 @@ public:
         u_int64_t nbItersPerThread = nbItersTotal / nbCores;
 
         /** We instantiate a bag. */
-        BagFile<u_int32_t> bag (filename);
+        BagFile<u_int32_t>* bag = new BagFile<u_int32_t>(filename);
+        LOCAL (bag);
 
         /** We create a synchronizer to be shared between different threads. */
         ISynchronizer* synchro = System::thread().newSynchronizer();

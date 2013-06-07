@@ -112,9 +112,9 @@ template <typename Functor> void iter1 (
     KmerModel::Iterator itKmer (model);
 
     // We create an iterator over the paired iterator on sequences
-    SubjectIterator<Sequence> itSeq (*itBank, 5*1000);
+    SubjectIterator<Sequence> itSeq (itBank, 5*1000);
 
-    if (progress)  {  itSeq.addObserver (*progress);  }
+    if (progress)  {  itSeq.addObserver (progress);  }
 
     u_int64_t total_nbKmers       = 0;
     kmer_type total_checksumKmers = 0;
@@ -196,7 +196,7 @@ template <typename Functor> void iter2 (IBank& bank, KmerModel& model, Functor& 
     // We get current time stamp
     ITime::Value t0 = System::time().getTimeStamp();
 
-    if (progress)  {  itKmerBank.addObserver (*progress);  }
+    if (progress)  {  itKmerBank.addObserver (progress);  }
 
     for (itKmerBank.first(); !itKmerBank.isDone();  itKmerBank.next())
     {
@@ -250,7 +250,7 @@ template <typename Functor> void iter3 (IBank& bank, KmerModel& model, Functor& 
     // We get current time stamp
     ITime::Value t0 = System::time().getTimeStamp();
 
-    if (progress)  {  itKmerBank.addObserver (*progress);  }
+    if (progress)  {  itKmerBank.addObserver (progress);  }
 
     ParallelCommandDispatcher dispatcher (8);
 

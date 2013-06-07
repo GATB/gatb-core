@@ -372,10 +372,12 @@ public:
         LOCAL (itSeq);
 
         /** We create a progress iterator from a Sequence iterator provided by the bank. */
-        SubjectIterator<Sequence> it (*itSeq, modulo);
+        SubjectIterator<Sequence> it (itSeq, modulo);
 
         /** We create some functor to be notified every N iteration and attach it to the iterator. */
-        ProgressFunctor fct(modulo);        it.addObserver (fct);
+        ProgressFunctor* fct = new ProgressFunctor (modulo);
+        LOCAL (fct);
+        it.addObserver (fct);
 
         /** We loop over the sequences; the functor should be called every N iterations. */
         for (it.first(); !it.isDone(); it.next())
@@ -388,13 +390,13 @@ public:
          *  a known sample
          */
         CPPUNIT_ASSERT (modulo > 0);
-        CPPUNIT_ASSERT (fct.nbCalls > 0);
+        CPPUNIT_ASSERT (fct->nbCalls > 0);
 
         /** We have to check if we got the correct number of notifications. */
-        CPPUNIT_ASSERT (fct.nbCalls == (b.estimateNbSequences() + modulo - 1) / modulo);
+        CPPUNIT_ASSERT (fct->nbCalls == (b.estimateNbSequences() + modulo - 1) / modulo);
 
         /** We keep the number of functor calls. */
-        size_t keepNbCalls = fct.nbCalls;
+        size_t keepNbCalls = fct->nbCalls;
 
         /** We unsubscribe the functor from the iterator. */
         it.removeObserver (fct);
@@ -405,7 +407,7 @@ public:
         }
 
         /** We check that the functor has not been called. */
-        CPPUNIT_ASSERT (fct.nbCalls == keepNbCalls);
+        CPPUNIT_ASSERT (fct->nbCalls == keepNbCalls);
     }
 
     /** \brief Test the bank iterator with progression facilities
