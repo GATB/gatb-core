@@ -14,16 +14,16 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include (DefineInteger)
 DefineInteger (k)
 
-################################################################################
-# USE OF OPENMP
-################################################################################
-set (OMP "-fopenmp")
 
 ################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
-add_definitions (${add_definitions}  -O3 -funroll-loops  -fomit-frame-pointer)
-#add_definitions (${add_definitions}  -g -p -pg)
+if (debug)
+    add_definitions (${add_definitions}  -g -p -pg)
+    message("-- COMPILATION IN DEBUG MODE")
+else()
+    add_definitions (${add_definitions}  -O3 -funroll-loops  -fomit-frame-pointer)
+endif()
 
 add_definitions (${add_definitions}  -DINTEGER_KIND=${INTEGER_KIND}  -DKMER_PRECISION=${KMER_PRECISION})
 
@@ -31,7 +31,13 @@ if (INT128_FOUND)
     add_definitions (${add_definitions}  -DINT128_FOUND)
 endif()
 
-add_definitions (${add_definitions}  ${OMP})
+if (omp)
+    set (OMP "-fopenmp")
+    add_definitions (${add_definitions} -DOMP ${OMP})
+    message("-- OpenMP USED")
+else()
+    message("-- OpenMP NOT USED")
+endif()
 
 ################################################################################
 # OPERATING SYSTEM SPECIFIC
