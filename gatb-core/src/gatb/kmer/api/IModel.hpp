@@ -79,7 +79,7 @@ public:
      * \param[in] d : source data from which the kmers are built
      * \param[in] kmersBuffer : vector where to put the built kmers into.
      */
-    virtual void build (tools::misc::Data& d, std::vector<kmer_type>& kmersBuffer) = 0;
+    virtual void build (tools::misc::Data& d, std::vector<kmer_type>& kmersBuffer, KmerMode mode = KMER_MINIMUM) = 0;
 
     /** Destructor. */
     virtual ~IModel () {}
