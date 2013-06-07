@@ -108,14 +108,19 @@ u_int32_t TimeInfo::getEntryByKey (const std::string& key)
 *********************************************************************/
 tools::misc::IProperties* TimeInfo::getProperties (const std::string& root)
 {
+    u_int32_t total = 0;
+
+    /** We first compute the aggregated time. */
+    std::map <std::string, u_int32_t>::const_iterator  it;
+    for (it = getEntries().begin(); it != getEntries().end();  it++)   {  total += it->second;  }
+
     tools::misc::IProperties* props = new tools::misc::impl::Properties();
 
-    props->add (0, root,   "");
+    props->add (0, root, "%.3f", (double)total/1000.0);
 
-    std::map <std::string, u_int32_t>::const_iterator  it;
     for (it = getEntries().begin(); it != getEntries().end();  it++)
     {
-        props->add (1, it->first.c_str(), "%ld", it->second);
+        props->add (1, it->first.c_str(), "%.3f", (double)(it->second) / 1000.0);
     }
 
     return props;
