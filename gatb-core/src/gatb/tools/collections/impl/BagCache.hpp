@@ -37,11 +37,25 @@ template <typename Item> class BagCache : public Bag<Item>
 public:
 
     /** Constructor. */
-    BagCache (Bag<Item>& ref, size_t cacheSize, system::ISynchronizer* synchro=0)
-        : _ref(ref), _nbMax(cacheSize), _synchro(synchro), _items (cacheSize), _idx(0)  {}
+    BagCache (Bag<Item>* ref, size_t cacheSize, system::ISynchronizer* synchro=0)
+        : _ref(0), _nbMax(cacheSize), _synchro(synchro), _items (cacheSize), _idx(0)
+    {
+        setRef(ref);
+    }
+
+    BagCache (const BagCache<Item>& b)
+        : _ref(0), _nbMax(b._nbMax), _synchro(b._synchro), _items (b._nbMax), _idx(0)
+
+    {
+        setRef (b._ref);
+    }
+
 
     /** Destructor. */
-    ~BagCache ()  {}
+    ~BagCache ()
+    {
+        setRef(0);
+    }
 
     /**  \copydoc Bag::insert */
     void insert (const Item& item)
@@ -61,12 +75,15 @@ public:
     {
         if (_synchro)  {  _synchro->lock();    }
         flushCache ();
-        _ref.flush();
+        _ref->flush();
         if (_synchro)  {  _synchro->unlock();  }
     }
 
-private:
-    Bag<Item>&             _ref;
+protected:
+
+    Bag<Item>*             _ref;
+    void setRef (Bag<Item>* ref)  { SP_SETATTR(ref); }
+
     system::ISynchronizer* _synchro;
     std::vector<Item>      _items;
     size_t                 _nbMax;
@@ -74,7 +91,7 @@ private:
 
     void flushCache ()
     {
-        if (_idx > 0)  { _ref.insert (_items, _idx);  }
+        if (_idx > 0)  { _ref->insert (_items, _idx);  }
         _idx = 0;
     }
 };
@@ -85,55 +102,39 @@ private:
  *
  * The cache is sorted before sent to the reference
  */
-template <typename Item> class BagCacheSorted : public Bag<Item>
+template <typename Item> class BagCacheSorted : public BagCache<Item>
 {
 public:
 
     /** Constructor. */
-    BagCacheSorted (Bag<Item>& ref, size_t cacheSize, system::ISynchronizer* synchro=0)
-: _ref(ref), _nbMax(cacheSize), _synchro(synchro), _items (cacheSize), _idx(0)  {}
-
-    /** Destructor. */
-    ~BagCacheSorted ()  {}
+    BagCacheSorted (Bag<Item>* ref, size_t cacheSize, system::ISynchronizer* synchro=0)
+        : BagCache<Item>(ref, cacheSize, synchro)  { }
 
     /**  \copydoc Bag::insert */
     void insert (const Item& item)
     {
-        if (_idx+1 > _nbMax)
+        if (this->_idx+1 > this->_nbMax)
         {
-            std::sort (_items.begin (), _items.end ());
+            std::sort (this->_items.begin (), this->_items.end ());
 
-            if (_synchro)  {  _synchro->lock();      }
-            flushCache ();
-            if (_synchro)  {  _synchro->unlock();    }
+            if (this->_synchro)  {  this->_synchro->lock();      }
+            this->flushCache ();
+            if (this->_synchro)  {  this->_synchro->unlock();    }
         }
 
-        _items[_idx++] = item;
+        this->_items[this->_idx++] = item;
     }
 
     /**  \copydoc Bag::flush */
     void flush ()
     {
-        _items.resize (_idx);
-        std::sort (_items.begin (), _items.end ());
+        this->_items.resize (this->_idx);
+        std::sort (this->_items.begin (), this->_items.end ());
 
-        if (_synchro)  {  _synchro->lock();    }
-        flushCache ();
-        _ref.flush();
-        if (_synchro)  {  _synchro->unlock();  }
-    }
-
-private:
-    Bag<Item>&             _ref;
-    system::ISynchronizer* _synchro;
-    std::vector<Item>      _items;
-    size_t                 _nbMax;
-    size_t                 _idx;
-
-    void flushCache ()
-    {
-        _ref.insert (_items, _idx);
-        _idx = 0;
+        if (this->_synchro)  {  this->_synchro->lock();    }
+        this->flushCache ();
+        this->_ref->flush();
+        if (this->_synchro)  {  this->_synchro->unlock();  }
     }
 };
 
