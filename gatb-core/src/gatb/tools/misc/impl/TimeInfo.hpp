@@ -103,6 +103,24 @@ private:
 };
 
 /********************************************************************************/
+
+/** */
+class LocalTimeInfo
+{
+public:
+
+    LocalTimeInfo (TimeInfo& ti, const char* txt) : _ti(ti), _txt(txt)  {  _ti.start (_txt.c_str());  }
+
+    ~LocalTimeInfo ()   {  _ti.stop (_txt.c_str());   }
+
+private:
+    TimeInfo&   _ti;
+    std::string _txt;
+};
+
+#define  TIME_INFO(ti,txt)  LocalTimeInfo __##ti(ti,txt)
+
+/********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
