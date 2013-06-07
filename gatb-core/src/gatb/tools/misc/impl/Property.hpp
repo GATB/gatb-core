@@ -84,7 +84,7 @@ public:
     void  merge (IProperties* prop);
 
     /** \copydoc IProperties::getProperty  */
-    IProperty* getProperty (const std::string& key);
+    IProperty* operator[] (const std::string& key);
 
     /** \copydoc IProperties::clone  */
     IProperties* clone ();

@@ -212,7 +212,7 @@ void Properties::merge (IProperties* properties)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IProperty* Properties::getProperty (const std::string& key)
+IProperty* Properties::operator[] (const std::string& key)
 {
     IProperty* result = 0;
 
