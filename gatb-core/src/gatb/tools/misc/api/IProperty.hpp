@@ -163,7 +163,7 @@ public:
      * \param[in] key : the key
      * \return the IProperty instance if found, 0 otherwise.
      */
-    virtual IProperty* getProperty (const std::string& key) = 0;
+    virtual IProperty* operator[] (const std::string& key) = 0;
 
     /** Clone the instance
      * \return the cloned instance.
