@@ -283,10 +283,10 @@ public:
     /** Remove an observer from the iterator. Such an observer is provided as a functor.
      * \param[in] f : functor to be unsubscribed from the iterator notifications.
      */
-    void removeObserver (IteratorListener& f)
+    void removeObserver (IteratorListener* f)
     {
         /** We look whether the given functor is already known. */
-        std::set<IteratorListener*>::iterator lookup = _listeners.find (&f);
+        std::set<IteratorListener*>::iterator lookup = _listeners.find (f);
         if (lookup != _listeners.end())
         {
             (*lookup)->forget();
