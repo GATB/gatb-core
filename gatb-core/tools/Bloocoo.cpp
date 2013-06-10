@@ -536,7 +536,10 @@ public:
         SubjectIterator<Sequence> iter (itSeq, 10000);
         Progress fct (b.estimateNbSequences(), "Iterating and correcting sequences");    iter.addObserver (fct);
         
-        Bank outbank ("corrected.fasta");
+        char fileName[1024];
+        sprintf(fileName,"corrected_%s",_props->getProperty ("input_file")->getString());
+
+        Bank outbank (fileName);
         
         //try with a bag cahce to allow parallelization ?
         //BagCache<Sequence> outb_sync (outbank, 1000);
@@ -633,7 +636,10 @@ private:
         void operator() ( Sequence& s) //no const otherwise error with tKmer.setData
         {
             
-            char bin2NT[4] = {'A','C','T','G'}; //should be defined somewhere global
+            // _bloom   is the bloom filter containing the solid kmers
+            // _bloom.contains(kmer)  to ask if it contains a kmer
+            
+            char bin2NT[4] = {'A','C','T','G'}; 
             char bin2NTrev[4] = {'T','G','A','C'};
             char binrev[4]    = {2,3,0,1};
             
@@ -663,7 +669,7 @@ private:
                 
                 //for each kmer in this Sequence
                 
-                // We set the data from which we want to extract kmers.
+                // sets itKmer to iterate over all the kmers of the read s
                 itKmer.setData (s.getData(),KMER_DIRECT);
                 
                 uint64_t tai_not_indexed =0;
