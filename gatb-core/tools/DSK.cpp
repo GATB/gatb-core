@@ -62,6 +62,8 @@ const char* PROP_NB_CORES   = "-nb-cores";
 const char* PROP_MAX_MEMORY = "-max-memory";
 const char* PROP_NKS        = "-nks";
 const char* PROP_PREFIX     = "-prefix";
+const char* PROP_VERBOSE    = "-verbose";
+const char* PROP_STATS_XML  = "-stats-xml";
 
 /********************************************************************************/
 
@@ -574,6 +576,8 @@ int main (int argc, char* argv[])
     parser.add (new OptionOneParam (PROP_MAX_MEMORY,  "max memory",                           false));
     parser.add (new OptionOneParam (PROP_NKS,         "abundance threshold for solid kmers",  false));
     parser.add (new OptionOneParam (PROP_PREFIX,      "prefix URI for temporary files",       false));
+    parser.add (new OptionNoParam  (PROP_VERBOSE,     "dump exec info to stdout",             false));
+    parser.add (new OptionOneParam (PROP_STATS_XML,   "dump exec info into a XML file",       false));
 
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
@@ -581,22 +585,39 @@ int main (int argc, char* argv[])
         /** We parse the command line arguments. */
         parser.parse (argc, argv);
 
+        /** We get the options as a Properties object. */
+        IProperties& props = parser.getProperties();
+
+        /** We read properties from the init file (if any). */
+        props.add (0, new Properties (System::info().getHomeDirectory() + string ("/.dskrc")));
+
         /** We create an instance of DSK class. */
-        DSK dsk (parser.getProperties());
+        DSK dsk (&props);
 
         /** We execute dsk. */
         dsk.execute ();
 
         /** We create an instance of Debloom class. */
-        Debloom debloom (parser.getProperties());
+        Debloom debloom (&props);
 
         /** We execute the debloom. */
         debloom.execute ();
 
-        /** We dump some execution information. */
-        RawDumpPropertiesVisitor visit;
-        dsk.getStats().accept     (&visit);
-        debloom.getStats().accept (&visit);
+        /** We may have to dump execution information to stdout. */
+        if (props[PROP_VERBOSE] != 0)
+        {
+            RawDumpPropertiesVisitor visit;
+            dsk.getStats().accept     (&visit);
+            debloom.getStats().accept (&visit);
+        }
+
+        /** We may have to dump execution information to stdout. */
+        if (props[PROP_STATS_XML] != 0)
+        {
+            XmlDumpPropertiesVisitor visit (props[PROP_STATS_XML]->getValue());
+            dsk.getStats().accept     (&visit);
+            debloom.getStats().accept (&visit);
+        }
     }
 
     catch (OptionFailure& e)
