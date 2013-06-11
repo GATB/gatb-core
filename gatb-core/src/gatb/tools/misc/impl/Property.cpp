@@ -54,9 +54,9 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Properties::Properties (const char* initfile)
+Properties::Properties (const string& initfile)
 {
-    if (initfile != 0)  {   readFile (initfile);  }
+    if (!initfile.empty())  {   readFile (initfile);  }
 }
 
 /*********************************************************************
@@ -232,30 +232,32 @@ IProperty* Properties::operator[] (const std::string& key)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Properties::readFile (const char* filename)
+void Properties::readFile (const string& filename)
 {
-#if 0
-    FileLineIterator it (filename);
-
-    for (it.first(); !it.isDone(); it.next())
+    /** We first check that the file exists. */
+    if (System::file().doesExist(filename) == true)
     {
-        char* buffer = it.currentItem();
-
-        if (buffer && *buffer)
+        IFile* file = System::file().newFile (filename, "r");
+        if (file != 0)
         {
-            char* key   = strtok (buffer, " \t");
+            char buffer[256];
 
-            if (key != 0)
+            while (file->gets (buffer, sizeof(buffer) ) != 0)
             {
-                char* value = key + strlen (key) + 1;
+                char* key = strtok (buffer, " \t\n");
+                if (key != 0  &&  isalpha(key[0]))
+                {
+                    char* value = key + strlen (key) + 1;
 
-                for ( ;  value; ++value)  {  if (*value != ' '  &&  *value != '\t')  { break; }  }
+                    for ( ;  value; ++value)  {  if (*value != ' '  &&  *value != '\t')  { break; }  }
 
-                add (0, key, (value ? value : ""));
+                    add (0, key, (value ? value : ""));
+                }
             }
+
+            delete file;
         }
     }
-#endif
 }
 
 /*********************************************************************
