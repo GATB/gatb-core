@@ -299,7 +299,7 @@ public:
     /** Return a IProperties instance holding parsed options information.
      * \return the IProperties instance.
      */
-    misc::IProperties* getProperties ()  { return _properties; }
+    misc::IProperties& getProperties ()  { return *_properties; }
 
 private:
 
