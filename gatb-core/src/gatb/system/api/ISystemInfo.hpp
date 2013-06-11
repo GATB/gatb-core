@@ -35,6 +35,10 @@ public:
      * \return the host name. */
     virtual std::string getHostName () = 0;
 
+    /** Returns home directory.
+     * \return the home directory uri. */
+    virtual std::string getHomeDirectory () = 0;
+
     /** Get the size (in bytes) of the physical memory
      * \return the physical memory size */
     virtual u_int64_t getMemoryPhysicalTotal () = 0;

@@ -33,6 +33,9 @@ public:
 
     /** \copydoc ISystemInfo::version */
     std::string version ()  { return std::string(__DATE__); }
+
+    /** \copydoc ISystemInfo::getHomeDirectory */
+    std::string getHomeDirectory ()  {  return getenv("HOME") ? getenv("HOME") : ".";  }
 };
 
 /********************************************************************************/
