@@ -45,6 +45,8 @@ public:
 
     static const char* getName ()  { return "NativeInt128"; }
 
+    static const size_t getSize ()  { return 8*sizeof(value); }
+
     NativeInt128 operator+  (const NativeInt128& other)     const   {  return value + other.value;  }
     NativeInt128 operator-  (const NativeInt128& other)     const   {  return value - other.value;  }
     NativeInt128 operator*  (const int& coeff)              const   {  return value * coeff;        }

@@ -65,6 +65,8 @@ public:
         return buffer;
     }
 
+    static const size_t getSize ()  { return 8*sizeof(array); }
+
     /********************************************************************************/
     /** Constructor.
      * \param[in] val : initial value of the large integer. */
