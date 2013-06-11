@@ -269,7 +269,7 @@ public:
         SubjectIterator<Sequence> itSeq (*itBank, 5*1000);
 
         // We add a listener to the sequences iterator.
-        itSeq.addObserver (*progress);
+        itSeq.addObserver (progress);
 
         BagFile<kmer_type> solidKmersFile ("solids.bin");
         BagCache<kmer_type> solidKmers (solidKmersFile, 5*1000);
@@ -482,9 +482,9 @@ public:
     /** */
     Bloocoo (IProperties* props) : _props(props), _progress(0)
     {
-        _kmerSize = props->getProperty ("kmer_size")->getInt();
+        _kmerSize = props["kmer_size"]->getInt();
 
-        size_t nbCores = (props->getProperty ("nb_cores") ?  props->getProperty ("nb_cores")->getInt() : 0);
+        size_t nbCores = (props["nb_cores"] ?  props["nb_cores"]->getInt() : 0);
         _dispatcher = new ParallelCommandDispatcher (nbCores);
         _nb_errors_corrected = 0;
         _seq_num = 0;
@@ -518,7 +518,7 @@ public:
         SubjectIterator<kmer_type> itKmers (itSolid, 5*1000);
 
         _progress = new Progress (solidFileSize, "iterate solid kmers");
-        itKmers.addObserver (*_progress);
+        itKmers.addObserver (_progress);
 
         /** We create a bloom with inserted solid kmers. */
         Bloom<kmer_type>* bloom = createBloom (itKmers);
@@ -527,14 +527,14 @@ public:
         
         //iterate over initial file
         
-        Bank b (_props->getProperty ("input_file")->getString());
+        Bank b (_props["input_file"]->getString());
         
         // We create a sequence iterator for the bank
         Bank::Iterator itSeq (b);
         
         //  We create some listener to be notified every 1000 iterations and attach it to the iterator.
         SubjectIterator<Sequence> iter (itSeq, 10000);
-        Progress fct (b.estimateNbSequences(), "Iterating and correcting sequences");    iter.addObserver (fct);
+        iter.addObserver (new Progress (b.estimateNbSequences(), "Iterating and correcting sequences"));
         
         Bank outbank ("corrected.fasta");
         
