@@ -236,7 +236,7 @@ public:
  * }
  * \endcode
  */
-class OptionsParser
+class OptionsParser : public tools::dp::SmartPointer
 {
 public:
 
@@ -257,13 +257,13 @@ public:
      * \param[in] argv : table of arguments
      * \return number of parsing errors.
      */
-    int parse (int argc, char* argv[]);
+    misc::IProperties* parse (int argc, char* argv[]);
 
     /** Perform the analyze of the arguments.
      * \param[in] s : string containing the options to be parsed
      * \return number of parsing errors.
      */
-    int parse (const std::string& s);
+    misc::IProperties*  parse (const std::string& s);
 
     /** Display errors (if there are some).
      * \param[in] fp : the file descriptor where to dump the errors
@@ -299,7 +299,7 @@ public:
     /** Return a IProperties instance holding parsed options information.
      * \return the IProperties instance.
      */
-    misc::IProperties& getProperties ()  { return *_properties; }
+    misc::IProperties* getProperties ()  { return _properties; }
 
 private:
 

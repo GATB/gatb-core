@@ -109,7 +109,7 @@ class LocalTimeInfo
 {
 public:
 
-    LocalTimeInfo (TimeInfo& ti, const char* txt) : _ti(ti), _txt(txt)  {  _ti.start (_txt.c_str());  }
+    LocalTimeInfo (TimeInfo& ti, const std::string& txt) : _ti(ti), _txt(txt)  {  _ti.start (_txt.c_str());  }
 
     ~LocalTimeInfo ()   {  _ti.stop (_txt.c_str());   }
 

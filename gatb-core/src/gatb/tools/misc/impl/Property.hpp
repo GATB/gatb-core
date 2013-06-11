@@ -86,6 +86,12 @@ public:
     /** \copydoc IProperties::getProperty  */
     IProperty* operator[] (const std::string& key);
 
+    /** \copydoc IProperties::get */
+    IProperty* get (const std::string& key);
+
+    std::string getStr (const std::string& key, const std::string& defaultValue = "");
+    int64_t     getInt (const std::string& key, const int64_t& defaultValue = 0);
+
     /** \copydoc IProperties::clone  */
     IProperties* clone ();
 
@@ -101,6 +107,9 @@ public:
     /** Fill a Properties instance from an XML stream.
      * \param[in] stream: the stream to be read (file, string...) */
     void readXML (std::istream& stream);
+
+    /** */
+    void dump ();
 
 private:
 

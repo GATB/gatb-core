@@ -1,3 +1,4 @@
+#if 0
 #include <gatb/system/impl/System.hpp>
 
 #include <gatb/bank/impl/Bank.hpp>
@@ -995,3 +996,4 @@ int main (int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
+#endif

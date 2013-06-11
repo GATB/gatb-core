@@ -207,7 +207,7 @@ void Bank::insert (const Sequence& item)
     /** We open the last file if needed. */
     if (_insertHandle == 0  &&  _filenames.empty()==false)
     {
-        _insertHandle = fopen (_filenames[_filenames.size()-1].c_str(), "w0h");
+        _insertHandle = fopen (_filenames[_filenames.size()-1].c_str(), "w");
     }
 
     if (_insertHandle != 0)

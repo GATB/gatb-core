@@ -42,7 +42,7 @@ public:
      * \param[in] out : the converted bank
      * \param[in] progress : listener getting conversion progression information
      * */
-    tools::misc::IProperties* convert (IBank& in, IBank& out, tools::dp::impl::IteratorListener* progress=0);
+    tools::misc::IProperties* convert (IBank& in, IBank& out, tools::dp::IteratorListener* progress=0);
 };
 
 /********************************************************************************/

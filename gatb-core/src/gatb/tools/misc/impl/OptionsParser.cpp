@@ -87,7 +87,7 @@ int OptionsParser::add (Option* option)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-int OptionsParser::parse (int argc, char* argv[])
+misc::IProperties* OptionsParser::parse (int argc, char* argv[])
 {
     /* Some initializations. */
     _argc=argc; _argv=argv; _currentArg=1;
@@ -173,7 +173,7 @@ int OptionsParser::parse (int argc, char* argv[])
     buildProperties ();
 
     /* And we return the errors number. */
-    return _errors.size();
+    return _properties;
 }
 
 /*********************************************************************
@@ -184,9 +184,9 @@ int OptionsParser::parse (int argc, char* argv[])
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-int OptionsParser::parse (const std::string& s)
+misc::IProperties* OptionsParser::parse (const std::string& s)
 {
-    int    result = 0;
+    IProperties* result = 0;
     int    argc   = 0;
     size_t idx    = 0;
 
@@ -220,7 +220,7 @@ int OptionsParser::parse (const std::string& s)
     free (argv);
 
     /** We return the result. */
-    return result;
+    return _properties;
 }
 
 /*********************************************************************

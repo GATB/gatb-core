@@ -33,7 +33,7 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IProperties* BankHelper::convert (IBank& in, IBank& out, tools::dp::impl::IteratorListener* progress)
+IProperties* BankHelper::convert (IBank& in, IBank& out, tools::dp::IteratorListener* progress)
 {
     // We need an iterator on the input bank.
     Iterator<Sequence>* itBank = in.iterator();

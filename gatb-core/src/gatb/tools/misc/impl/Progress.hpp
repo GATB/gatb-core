@@ -47,7 +47,7 @@ namespace impl      {
  *
  * \see gatb::tools::dp::impl::SubjectIterator
  */
-class Progress : public dp::impl::IteratorListener
+class Progress : public dp::IteratorListener
 {
 public:
 

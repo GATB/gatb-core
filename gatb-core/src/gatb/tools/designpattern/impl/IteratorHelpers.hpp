@@ -208,46 +208,6 @@ private:
 
 /********************************************************************************/
 
-/** \brief Interface for listening to iteration progress.
- *
- * This interface is intended to be notified by some progress job, and in particular
- * to the progression of an iteration with an Iterator instance.
- *
- * It defines 3 methods:
- *      - init   : method called just before the beginning of the iteration
- *      - finish : method called just after the end of the iteration
- *      - inc    : method called during the iteration; the provided arguments
- *                 represents the number of iterations before the previous call
- *
- * Actually, this is a little more than just an interface since it provides empty
- * implementations for the 3 methods; this will ease the development to clients who
- * wants only to get 'inc' notifications but are not interested to do specific actions
- * at the beginning and the end of the iteration.
- *
- * \see SubjectIterator
- */
-class IteratorListener : public SmartPointer
-{
-public:
-
-    /** Destructor. */
-    virtual ~IteratorListener ()  {}
-
-    /** Initialization of the object. */
-    virtual void init () {}
-
-    /** Finish the progress information. */
-    virtual void finish () {}
-
-    /** Increase the number of currently done tasks. */
-    virtual void inc (u_int64_t ntasks_done) {}
-
-    /** Associate a message to the listener. */
-    virtual void setMessage (const char* format, ...)  {}
-};
-
-/********************************************************************************/
-
 /** \brief Factorization of code for the subject part of the Observer pattern.
  */
 class AbstractSubjectIterator

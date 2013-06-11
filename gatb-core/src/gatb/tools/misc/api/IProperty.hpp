@@ -165,6 +165,16 @@ public:
      */
     virtual IProperty* operator[] (const std::string& key) = 0;
 
+    /** Returns the IProperty instance given a key.
+     * \param[in] key : the key
+     * \return the IProperty instance if found, 0 otherwise.
+     */
+    virtual IProperty* get (const std::string& key) = 0;
+
+    /** */
+    virtual std::string getStr (const std::string& key, const std::string& defaultValue = "") = 0;
+    virtual int64_t     getInt (const std::string& key, const int64_t& defaultValue = 0) = 0;
+
     /** Clone the instance
      * \return the cloned instance.
      */
@@ -184,6 +194,9 @@ public:
      * \param[in] key : the key of the item to be moved.
      */
     virtual void setToFront (const std::string& key) = 0;
+
+    /** */
+    virtual void dump () = 0;
 };
 
 /********************************************************************************/

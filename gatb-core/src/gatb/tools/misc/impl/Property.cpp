@@ -214,6 +214,19 @@ void Properties::merge (IProperties* properties)
 *********************************************************************/
 IProperty* Properties::operator[] (const std::string& key)
 {
+    return get (key);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IProperty* Properties::get (const std::string& key)
+{
     IProperty* result = 0;
 
     for (list<IProperty*>::iterator it = _properties.begin(); !result  &&  it != _properties.end(); it++)
@@ -222,6 +235,40 @@ IProperty* Properties::operator[] (const std::string& key)
     }
 
     return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+std::string Properties::getStr (const std::string& key, const std::string& defaultValue)
+{
+    IProperty* prop = get (key);
+
+    if (prop == 0)  {  prop = this->add (0, key, defaultValue);   }
+
+    return prop->getValue();
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+int64_t Properties::getInt (const std::string& key, const int64_t& defaultValue)
+{
+    IProperty* prop = get (key);
+
+    if (prop == 0)  {  prop = this->add (0, key, "%ld", defaultValue);   }
+
+    return prop->getInt();
 }
 
 /*********************************************************************
@@ -258,6 +305,21 @@ void Properties::readFile (const string& filename)
             delete file;
         }
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Properties::dump ()
+{
+    /** We dump some execution information. */
+    RawDumpPropertiesVisitor visit;
+    this->accept (&visit);
 }
 
 /*********************************************************************
