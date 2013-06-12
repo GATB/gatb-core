@@ -17,6 +17,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/misc/api/Data.hpp>
+#include <string>
 
 /********************************************************************************/
 namespace gatb      {
@@ -29,13 +30,13 @@ namespace bank      {
 struct Sequence
 {
     /** Constructor. */
-    Sequence (tools::misc::Data::Encoding_e encoding = tools::misc::Data::ASCII) : comment(0), commentSize(0), _data(encoding)  {}
+    Sequence (tools::misc::Data::Encoding_e encoding = tools::misc::Data::ASCII) : _data(encoding)  {}
 
     /** Destructor. */
     virtual ~Sequence ()  { }
 
     /** \return description of the sequence */
-    virtual const char* getComment ()  const  { return comment; }
+    virtual const std::string& getComment ()  const  { return _comment; }
 
     /** \return the data as a Data structure. */
     virtual tools::misc::Data& getData () { return _data; }
@@ -49,13 +50,12 @@ struct Sequence
     /** \return format of the data. */
     virtual tools::misc::Data::Encoding_e getDataEncoding () const  { return _data.getEncoding(); }
 
-    char*  comment;
-    int    commentSize;
-
     void setDataRef (tools::misc::Data* ref, int offset, int length)
     {
         _data.setRef (ref, offset, length);
     }
+
+    std::string _comment;
 
 private:
     tools::misc::Data _data;
