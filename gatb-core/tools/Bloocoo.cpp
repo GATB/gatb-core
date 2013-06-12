@@ -476,7 +476,7 @@ private:
     IteratorListener*   _progress;
     uint64_t            _nb_errors_corrected;
     uint64_t            _seq_num;
-
+    IFile*      _errfile;
 public:
 
     /** */
@@ -502,6 +502,8 @@ public:
     {
         /** We delete the extension file. */
         System::file().remove ("extension.bin");
+
+        
 
         double lg2 = log(2);
         float NBITS_PER_KMER = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
@@ -541,6 +543,11 @@ public:
 
         Bank outbank (fileName);
         
+        
+        sprintf(fileName,"errtab_%s",_props->getProperty ("input_file")->getString());
+        _errfile = System::file().newFile (fileName, "wb");
+
+        
         //try with a bag cahce to allow parallelization ?
         //BagCache<Sequence> outb_sync (outbank, 1000);
 
@@ -566,6 +573,7 @@ public:
 
         /** We clean up resources. */
         delete bloom;
+        delete _errfile;
     }
 
     Properties getProperties ()
@@ -643,13 +651,12 @@ private:
             char bin2NTrev[4] = {'T','G','A','C'};
             char binrev[4]    = {2,3,0,1};
             
-            _bloocoo._seq_num++; //counter 1 based, not thread-safe
             //printf("---- new read ----\n");
             
             char * readseq = s.getDataBuffer (); // the nucleotide sequence of the read
             size_t   sizeKmer = _bloocoo._kmerSize;
-            
-            
+            IFile*  errfile = _bloocoo._errfile;
+
             
             KmerModel model (sizeKmer);
             KmerModel::Iterator itKmer (model);
@@ -727,9 +734,13 @@ private:
                                 
                                 if(check)
                                 {
+                                    errfile->print("%i\t%i\t%c\t%c\n",_bloocoo._seq_num,ii-1,bin2NT[nt],readseq[ii-1]);
+
                                     readseq[ii-1]=bin2NT[nt]; //correc sequence in ram
                                     // printf("error found pos %i  read %i\n",ii, _bloocoo._seq_num);
                                     _bloocoo._nb_errors_corrected ++; //not thread safe
+                                    
+
                                 }
                                 
                             }
@@ -765,6 +776,8 @@ private:
                                     //printf("error found pos %i  read %i\n",tai_not_indexed-1, _bloocoo._seq_num);
                                     //printf("%c \n",readseq[tai_not_indexed-1]);
                                     
+                                    errfile->print("%i\t%i\t%c\t%c\n",_bloocoo._seq_num,tai_not_indexed-1,bin2NTrev[nt2],readseq[tai_not_indexed-1]);
+
                                     readseq[tai_not_indexed-1]=bin2NTrev[nt2]; //correc in ram
                                     _bloocoo._nb_errors_corrected ++; //not thread safe
                                     //printf("%c \n",readseq[tai_not_indexed-1]);
@@ -830,7 +843,8 @@ private:
                                 
                                 //correc error
                                 //printf("%c \n",readseq[readlen-1 - tai_not_indexed +1]);
-                                
+                                errfile->print("%i\t%i\t%c\t%c\n",_bloocoo._seq_num,readlen - tai_not_indexed ,bin2NT[nt],readseq[readlen - tai_not_indexed ]);
+
                                 readseq[readlen - tai_not_indexed ]=bin2NT[nt]; //correc sequence in ram
                                 //printf("%c \n",readseq[readlen-1 - tai_not_indexed +1]);
                                 
@@ -861,6 +875,8 @@ private:
             //    printf("%s\n",s.getDataBuffer());
             //    printf("%s\n",readseq);
             
+            _bloocoo._seq_num++; //counter 0 based, not thread-safe
+
         }
         
         CorrectReads (Bloom<kmer_type>& bloom, Bag<Sequence> & outbank, Bloocoo & bloocoo)  : _bloom(bloom), _outbank(outbank), _bloocoo(bloocoo) {}

@@ -65,12 +65,12 @@ set_target_properties (GatbTools-static   PROPERTIES OUTPUT_NAME  GatbTools  cle
 ################################################################################
 #  UNIT TESTS GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(test)
+#ADD_SUBDIRECTORY(test)
 
 ################################################################################
 #  DOCUMENTATION GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(doc)
+#ADD_SUBDIRECTORY(doc)
 
 ################################################################################
 #  EXAMPLES GENERATION 
