@@ -56,12 +56,13 @@ public:
         const std::string& name,
         int nbArgs,
         bool mandatory,
+        const std::string& defaultValue,
         const std::string& help,
         int multiple,
         const std::string& include,
         const std::string& exclude
     )
-        : _name(name), _nbArgs(nbArgs), _mandatory(mandatory), _help(help), _multiple(multiple), _include(include), _exclude(exclude)
+        : _name(name), _nbArgs(nbArgs), _mandatory(mandatory), _help(help), _multiple(multiple), _include(include), _exclude(exclude), _param(defaultValue)
     {
     }
 
@@ -160,7 +161,7 @@ public:
         const char* include = "",
         const char* exclude = ""
     )
-        : Option (name, 0, mandatory, help, multiple, include, exclude)
+        : Option (name, 0, mandatory, "", help, multiple, include, exclude)
     {
     }
 
@@ -190,11 +191,12 @@ public:
         const std::string& name,
         const std::string& help,
         bool mandatory = false,
+        const std::string& defaultValue = "",
         int multiple = 0,
         const char* include = "",
         const char* exclude = ""
     )
-        : Option (name, 1, mandatory, help, multiple, include, exclude)
+        : Option (name, 1, mandatory, defaultValue, help, multiple, include, exclude)
     {
     }
 
@@ -301,6 +303,11 @@ public:
      */
     misc::IProperties* getProperties ()  { return _properties; }
 
+    /** Return the list of options that define the parser.
+     * \return the list of options.
+     */
+    const std::list<Option*>& getOptions ()  { return _options; }
+
 private:
 
     /** */
@@ -365,15 +372,25 @@ public:
     /** Constructor.
      * \param[in] parser : the parser that threw the exception.
      */
-    OptionFailure (OptionsParser& parser) : _parser(parser) {}
+    OptionFailure (OptionsParser* parser) : _parser(0)
+    {
+        setParser (parser);
+    }
+
+    /** Destructor */
+    ~OptionFailure ()
+    {
+        setParser (0);
+    }
 
     /** Getter on the parser.
      * \return the parser.
      */
-    OptionsParser& getParser ()  { return _parser; }
+    OptionsParser& getParser ()  { return *_parser; }
 
 private:
-    OptionsParser& _parser;
+    OptionsParser* _parser;
+    void setParser (OptionsParser* parser)  { SP_SETATTR(parser); }
 };
 
 /********************************************************************************/

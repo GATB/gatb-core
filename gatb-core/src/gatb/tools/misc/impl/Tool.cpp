@@ -8,6 +8,7 @@
 #include <gatb/tools/misc/impl/Tool.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
+#include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
 #define DEBUG(a)  //printf a
@@ -23,6 +24,7 @@ using namespace gatb::core::tools::dp::impl;
 namespace gatb {  namespace core { namespace tools {  namespace misc {  namespace impl {
 /********************************************************************************/
 
+const char* Tool::STR_HELP       = "-help";
 const char* Tool::STR_NB_CORES   = "-nb-cores";
 const char* Tool::STR_QUIET      = "-quiet";
 const char* Tool::STR_STATS_XML  = "-stats";
@@ -35,15 +37,18 @@ const char* Tool::STR_STATS_XML  = "-stats";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _parser(0), _dispatcher(0)
+Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info(0), _parser(0), _dispatcher(0)
 {
     setOutput (new Properties());
-    _output->add (0, _name.c_str());
+
+    setInfo  (new Properties());
+    _info->add (0, _name);
 
     setParser (new OptionsParser ());
-    _parser->add (new OptionOneParam (Tool::STR_NB_CORES,   "number of cores",                      false));
-    _parser->add (new OptionNoParam  (Tool::STR_QUIET,      "quiet execution",                      false));
-    _parser->add (new OptionOneParam (Tool::STR_STATS_XML,  "dump exec info into a XML file",       false));
+    _parser->add (new OptionOneParam (Tool::STR_NB_CORES,   "number of cores",                      false, "0"  ));
+    _parser->add (new OptionOneParam (Tool::STR_STATS_XML,  "dump exec info into a XML file",       false       ));
+    _parser->add (new OptionNoParam  (Tool::STR_QUIET,      "quiet execution",                      false       ));
+    _parser->add (new OptionNoParam  (Tool::STR_HELP,       "display help about possible options",  false       ));
 }
 
 /*********************************************************************
@@ -58,6 +63,7 @@ Tool::~Tool ()
 {
     setInput      (0);
     setOutput     (0);
+    setInfo       (0);
     setParser     (0);
     setDispatcher (0);
 }
@@ -88,23 +94,19 @@ IProperties* Tool::run (IProperties* input)
     /** We keep the input parameters. */
     setInput (input);
 
-    /** We add a potential config file to the input properties. */
-    _input->add (1, new Properties (System::info().getHomeDirectory() + "/." + getName() ));
-
-    /** We add the input properties to the output result. */
-    _output->add (1, input);
-
     /** We define one dispatcher. */
-    setDispatcher (new ParallelCommandDispatcher (input->getInt(STR_NB_CORES)));
+    if (_input->getInt(STR_NB_CORES) == 0)  { _input->setInt (STR_NB_CORES, System::info().getNbCores()); }
+
+    setDispatcher (new ParallelCommandDispatcher (_input->getInt(STR_NB_CORES)) );
+
+    /** We may have some pre processing. */
+    preExecute ();
 
     /** We execute the actual job. */
     {
         //TIME_INFO (_timeInfo, _name);
         execute ();
     }
-
-    /** We add the time properties to the output result. */
-    _output->add (1, _timeInfo.getProperties ("time"));
 
     /** We may have some post processing. */
     postExecute ();
@@ -121,20 +123,175 @@ IProperties* Tool::run (IProperties* input)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+void Tool::preExecute ()
+{
+    /** We add a potential config file to the input properties. */
+    _input->add (1, new Properties (System::info().getHomeDirectory() + "/." + getName() ));
+
+    /** We add the input properties to the statistics result. */
+    _info->add (1, _input);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void Tool::postExecute ()
 {
+    /** We add the time properties to the output result. */
+    _info->add (1, _timeInfo.getProperties ("time"));
+
+    /** We add the output properties to the output result. */
+    _info->add (1, "output");
+    _info->add (2, _output);
+
     /** We may have to dump execution information into a stats file. */
     if (_input->get(Tool::STR_STATS_XML) != 0)
     {
-        XmlDumpPropertiesVisitor visit (_output->getStr (Tool::STR_STATS_XML));
-        _output->accept (&visit);
+        XmlDumpPropertiesVisitor visit (_info->getStr (Tool::STR_STATS_XML));
+        _info->accept (&visit);
     }
 
     /** We may have to dump execution information to stdout. */
     if (_input->get(Tool::STR_QUIET) == 0)
     {
         RawDumpPropertiesVisitor visit;
-        _output->accept (&visit);
+        _info->accept (&visit);
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+dp::IteratorListener* Tool::createIteratorListener (size_t nbIterations, const char* message)
+{
+    return new Progress (nbIterations, message);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ToolComposite::ToolComposite (const std::string& name) : Tool(name)
+{
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ToolComposite::~ToolComposite ()
+{
+    for (list<Tool*>::iterator it = _tools.begin(); it != _tools.end(); it++)
+    {
+        (*it)->forget ();
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IProperties* ToolComposite::run (int argc, char* argv[])
+{
+    IProperties* output = 0;
+
+    for (list<Tool*>::iterator it = _tools.begin(); it != _tools.end(); it++)
+    {
+        /** We get the parameters from the current parser. */
+        IProperties* input = (*it)->getOptionsParser()->parse (argc, argv);
+
+        /** We may have to add the output of the previous tool to the input of the current tool. */
+        if (output != 0)  {  input->add (1, output); }
+
+        /** We run the tool and get a reference on its output. */
+        output = (*it)->run (input);
+
+        /** We add the current tool info to the global properties. */
+        _info->add (1, (*it)->getInfo());
+    }
+
+    /** We return the output properties. */
+    return _output;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void ToolComposite::add (Tool* tool)
+{
+    if (tool)
+    {
+        tool->use ();
+        _tools.push_back(tool);
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void ToolComposite::execute ()
+{
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void ToolComposite::preExecute ()
+{
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void ToolComposite::postExecute ()
+{
+    /** We may have to dump execution information into a stats file. */
+    if (_input->get(Tool::STR_STATS_XML) != 0)
+    {
+        XmlDumpPropertiesVisitor visit (_info->getStr (Tool::STR_STATS_XML), false);
+        _info->accept (&visit);
     }
 }
 

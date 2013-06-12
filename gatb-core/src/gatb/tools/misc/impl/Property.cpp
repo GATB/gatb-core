@@ -245,11 +245,11 @@ IProperty* Properties::get (const std::string& key)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-std::string Properties::getStr (const std::string& key, const std::string& defaultValue)
+std::string Properties::getStr (const std::string& key)
 {
     IProperty* prop = get (key);
 
-    if (prop == 0)  {  prop = this->add (0, key, defaultValue);   }
+    if (prop == 0)  {  throw Exception ("Empty property '%s'", key.c_str());  }
 
     return prop->getValue();
 }
@@ -262,13 +262,50 @@ std::string Properties::getStr (const std::string& key, const std::string& defau
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-int64_t Properties::getInt (const std::string& key, const int64_t& defaultValue)
+int64_t Properties::getInt (const std::string& key)
 {
     IProperty* prop = get (key);
 
-    if (prop == 0)  {  prop = this->add (0, key, "%ld", defaultValue);   }
+    if (prop == 0)  {  throw Exception ("Empty property '%s'", key.c_str());  }
 
     return prop->getInt();
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Properties::setStr (const std::string& key, const std::string& value)
+{
+    IProperty* prop = get (key);
+
+    if (prop == 0)  {  throw Exception ("Empty property '%s'", key.c_str());  }
+
+    prop->value = value;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Properties::setInt (const std::string& key, const int64_t& value)
+{
+    IProperty* prop = get (key);
+
+    if (prop == 0)  {  throw Exception ("Empty property '%s'", key.c_str());  }
+
+    char buffer[64];
+    snprintf (buffer, sizeof(buffer), "%ld", value);
+
+    prop->value = buffer;
 }
 
 /*********************************************************************

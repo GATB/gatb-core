@@ -35,9 +35,6 @@ OptionsParser::OptionsParser ()  : _properties(0)
 {
     _proceed=0;
     setProperties (new Properties());
-
-    /** We add a default parameter for getting help. */
-    this->add (new OptionNoParam ("-h", "help", false));
 }
 
 /*********************************************************************
@@ -167,7 +164,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
     checkIncludingOptions ();
 
     /** We may launch an exception if needed. */
-    if (!_errors.empty())   {  throw OptionFailure (*this);  }
+    if (!_errors.empty())   {  throw OptionFailure (this);  }
 
     /** We fill the properties. */
     buildProperties ();
@@ -233,11 +230,17 @@ misc::IProperties* OptionsParser::parse (const std::string& s)
  *********************************************************************/
 void OptionsParser::buildProperties ()
 {
-    _properties->add (0, "options");
+    _properties->add (0, "input");
 
-    for (std::list<Option*>::iterator it = _seenOptions.begin();  it != _seenOptions.end();  it++)
+    for (std::list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
     {
-        _properties->add (1, (*it)->getLabel(), (*it)->getParam());
+        /** Shortcut. */
+        Option* opt = *it;
+
+        if (saw(opt->getLabel()) || opt->getParam().empty()==false)
+        {
+            _properties->add (1, (*it)->getLabel(), (*it)->getParam());
+        }
     }
 }
 
