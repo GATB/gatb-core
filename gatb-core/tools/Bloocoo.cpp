@@ -186,12 +186,12 @@ public:
     };
 
     /********************************************************************************/
-    DSK (const string& filename, size_t kmerSize, ICommandDispatcher& dispatcher, size_t maxMemory)
+    DSK (const string& filename, size_t kmerSize, ICommandDispatcher& dispatcher, size_t maxMemory, int mincov)
         : _bankBinary(filename + ".bin"), _filename(filename),
           _model(kmerSize), _kmerSize(kmerSize),
           _dispatcher(dispatcher),
           _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
-          _max_disk_space(0), _max_memory(maxMemory), _volume(0), _nb_passes(0), _nb_partitions(0)
+          _max_disk_space(0), _max_memory(maxMemory), _volume(0), _nb_passes(0), _nb_partitions(0), _mincov (mincov)
     {}
 
     /********************************************************************************/
@@ -334,7 +334,7 @@ public:
 
             ti.stop ("sort");
 
-            u_int32_t nks = 3;
+            u_int32_t nks = _mincov;
             u_int32_t max_couv  = 2147483646;
             u_int32_t abundance = 0;
             kmer_type previous_kmer = kmers.front();
@@ -426,7 +426,8 @@ private:
     string    _filename;
     KmerModel _model;
     size_t    _kmerSize;
-
+    int _mincov;
+    
     ICommandDispatcher& _dispatcher;
 
     u_int64_t _estimateSeqNb;
@@ -961,7 +962,7 @@ int main (int argc, char* argv[])
 
         {
             /** We create an instance of DSK class. */
-            DSK dsk (filename, kmerSize, *dispatcher, maxMemory);
+            DSK dsk (filename, kmerSize, *dispatcher, maxMemory, min_coverage);
 
             /** We execute dsk. */
             dsk.execute ();
