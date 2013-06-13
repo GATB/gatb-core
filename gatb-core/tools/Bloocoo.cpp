@@ -24,11 +24,12 @@
 
 #include <gatb/tools/math/Integer.hpp>
 
+#ifdef OMP
 #include <omptl/omptl_numeric>
 #include <omptl/omptl_algorithm>
 
 #include <omp.h>
-
+#endif
 // We use the required packages
 using namespace std;
 
@@ -330,8 +331,11 @@ public:
 
             ti.start ("sort");
 
+#ifdef OMP
             omptl::sort (kmers.begin (), kmers.end ());
-
+#else
+            std::sort (kmers.begin (), kmers.end ());
+#endif
             ti.stop ("sort");
 
             u_int32_t nks = _mincov;
