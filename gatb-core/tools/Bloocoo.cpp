@@ -21,6 +21,7 @@
 #include <iostream>
 #include <map>
 #include <math.h>
+#include <libgen.h> 
 
 #include <gatb/tools/math/Integer.hpp>
 
@@ -534,6 +535,16 @@ public:
         
         //iterate over initial file
         
+        // default prefix is the reads file basename
+        char prefix[1024];
+        char *reads_path=strdup(_props->getProperty ("input_file")->getString());
+        std::string reads_name(basename(reads_path)); // posix basename() may alter reads_path
+        free(reads_path);
+        int lastindex = reads_name.find_last_of(".");
+        strcpy(prefix,reads_name.substr(0, lastindex).c_str());
+        
+        
+        
         Bank b (_props->getProperty ("input_file")->getString());
         
         // We create a sequence iterator for the bank
@@ -544,12 +555,13 @@ public:
         Progress fct (b.estimateNbSequences(), "Iterating and correcting sequences");    iter.addObserver (fct);
         
         char fileName[1024];
-        sprintf(fileName,"corrected_%s",_props->getProperty ("input_file")->getString());
+        sprintf(fileName,"%s_corrected.fasta",prefix);
 
         Bank outbank (fileName);
         
         
-        sprintf(fileName,"errtab_%s",_props->getProperty ("input_file")->getString());
+
+        sprintf(fileName,"%s%s",prefix,"_bloocoo_corr_errs.tab");
         _errfile = System::file().newFile (fileName, "wb");
 
         
