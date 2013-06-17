@@ -96,8 +96,8 @@ public:
 
             /** We check that we got a comment and that it is like 'seqX' where X is the
              * index from 1 to 20. */
-            CPPUNIT_ASSERT (it->getComment() != 0);
-            CPPUNIT_ASSERT (strcmp (it->getComment(), buffer) == 0);
+            CPPUNIT_ASSERT (it->getComment().empty() == false);
+            CPPUNIT_ASSERT (it->getComment().compare(buffer) == 0);
 
             /** We check that the data size is 20. */
             CPPUNIT_ASSERT (it->getDataSize() == 20);
@@ -165,8 +165,8 @@ public:
 
             /** We check that we got a comment and that it is like 'seqX' where X is the
              * index from 1 to 20. */
-            CPPUNIT_ASSERT (it->getComment() != 0);
-            CPPUNIT_ASSERT (strcmp (it->getComment(), buffer) == 0);
+            CPPUNIT_ASSERT (it->getComment().empty() == false);
+            CPPUNIT_ASSERT (it->getComment().compare (buffer) == 0);
 
             /** We check that the data size is 0. */
             CPPUNIT_ASSERT (it->getDataSize() == 0);
@@ -203,28 +203,28 @@ public:
         /** We iterate without comments. */
         for (Bank::Iterator it (b1, Bank::Iterator::NONE); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment() == 0);
+            CPPUNIT_ASSERT (it->getComment().empty());
         }
 
         /** We iterate with only id comments. */
         for (Bank::Iterator it (b1, Bank::Iterator::IDONLY); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment() != 0);
-            CPPUNIT_ASSERT (strstr (it->getComment(), " ") == 0);
+            CPPUNIT_ASSERT (it->getComment().empty() == false);
+            CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") == 0);
         }
 
         /** We iterate with only full comments. */
         for (Bank::Iterator it (b1, Bank::Iterator::FULL); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment() != 0);
-            CPPUNIT_ASSERT (strstr (it->getComment(), " ") != 0);
+            CPPUNIT_ASSERT (it->getComment().empty() == false);
+            CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
         }
 
         /** We iterate with default value (should be FULL). */
         for (Bank::Iterator it (b1); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment() != 0);
-            CPPUNIT_ASSERT (strstr (it->getComment(), " ") != 0);
+            CPPUNIT_ASSERT (it->getComment().empty()==false);
+            CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
         }
     }
 
