@@ -72,7 +72,7 @@ public:
      * \param[in] nucleotide : the next nucleotide
      * \param[in] encoding : encoding mode of the sequence
      * \return the kmer on the right of the given kmer. */
-    virtual kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, tools::misc::Data::Encoding_e encoding) = 0;
+    virtual kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, tools::misc::Data::Encoding_e encoding, KmerMode mode = KMER_MINIMUM) = 0;
 
     /** Build a vector of kmers from some source data (as a Data instance).
      * According to the implementation of the IModel interface, the kmers can be different (direct, revcomp, minimum)

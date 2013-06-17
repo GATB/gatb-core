@@ -74,6 +74,203 @@ struct Hash  {   kmer_type operator () (kmer_type& lkmer)
 
 
 
+// fonctions for correction
+  //ii  readseq  errfile  kmer_begin   kmer_end
+int twoSidedCorrection(Bloom<kmer_type> * _bloom , int pos, char *readseq, IFile* errfile, kmer_type kmer_begin,kmer_type kmer_end, size_t  sizeKmer, int numseq)
+{
+    
+    //ii  readseq  errfile  kmer_begin   kmer_end
+    
+    char bin2NT[4] = {'A','C','T','G'};
+    char bin2NTrev[4] = {'T','G','A','C'};
+    char binrev[4]    = {2,3,0,1};
+    
+    KmerModel model (sizeKmer);
+
+    
+    //kmer_begin is the last indexed kmer, test its right extension to get the snp
+    char nt;
+    char good_nt;
+    
+   // kmer_begin.printASCII(sizeKmer);
+    //kmer_end.printASCII(sizeKmer);
+    kmer_type temp_kmer, kmer_end_rev;
+    
+    int nb_alternatives_found = 0;
+    for(nt=0; nt<4; nt++)
+    {
+        temp_kmer = model.codeSeedRight (kmer_begin, nt, Data::INTEGER);
+        
+        //  temp_kmer.printASCII(sizeKmer);
+        
+        if(_bloom->contains(temp_kmer)) //kmer is indexed
+        {
+            //ref is the last nt of the first non indexed kmer on the reference genome
+            //contig, pos , ref , snp
+            //  fprintf(snp_file,"%i  %i  %c %c  \n",j,i-1,bin2NT[first_unindexed & 3],bin2NT[nt]);
+            
+            //rightmost kmer check
+            kmer_end_rev =revcomp(kmer_end, sizeKmer);
+            temp_kmer = model.codeSeedRight (kmer_end_rev, binrev[nt], Data::INTEGER);
+            
+            if( _bloom->contains(temp_kmer))
+            {
+                
+                nb_alternatives_found++;
+                good_nt = nt;
+            }
+        }
+    }
+    //check other kmers ?  check =false if problem
+    //for higher confidence it would also be possible to test other overlapping kmers
+    
+    
+    
+    if(nb_alternatives_found == 1)
+    {
+        errfile->print("%i\t%i\t%c\t%c\n",numseq,pos-1,bin2NT[good_nt],readseq[pos-1]);
+        
+        readseq[pos-1]=bin2NT[good_nt]; //correc sequence in ram
+        // printf("error found pos %i  read %i\n",ii, _bloocoo._seq_num);
+        return 1;
+    }
+    
+    return 0;
+    
+}
+
+
+
+typedef enum direction
+{
+    LEFT,
+    RIGHT
+} direction_t;
+
+
+
+///aggressive correction
+// nb_kmer_check the number of additional kmers checked
+
+// pos = position of the solid kmer next to the untrusted zone
+// kmer_begin  = solid kmer at pos
+int aggressiveCorrection(Bloom<kmer_type> * _bloom , int pos, char *readseq, IFile* errfile, kmer_type kmer_begin, size_t  sizeKmer, int numseq,int nb_kmer_check,direction_t orientation )
+{
+    
+    bool check = false;
+    char nt,good_nt;;
+    
+    char bin2NT[4] = {'A','C','T','G'};
+    char bin2NTrev[4] = {'T','G','A','C'};
+    char binrev[4]    = {2,3,0,1};
+    
+    char revASCII [256];
+    revASCII['A']= 'T';
+    revASCII['T']= 'A';
+    revASCII['C']= 'G';
+    revASCII['G']= 'C';
+
+    KmerModel model (sizeKmer);
+
+    
+    kmer_type temp_kmer,kmer_end_rev, kmer_query;
+    
+    for(nt=0; nt<4; nt++)
+    {
+        
+        if(orientation == RIGHT)
+        {
+            temp_kmer = model.codeSeedRight (kmer_begin, nt, Data::INTEGER,KMER_DIRECT);
+        }
+        else
+        {
+            kmer_end_rev =revcomp(kmer_begin, sizeKmer);
+            temp_kmer = model.codeSeedRight (kmer_end_rev, binrev[nt], Data::INTEGER,KMER_DIRECT);
+            temp_kmer =revcomp(temp_kmer, sizeKmer);
+        }
+        
+        kmer_query = min(temp_kmer, revcomp(temp_kmer, sizeKmer));
+        
+        if(_bloom->contains(kmer_query)) //kmer is indexed
+        {
+            check = true;
+            good_nt= nt;
+            break;
+        }
+    }
+    
+    //verif other kmers :
+  //  printf("kmer begin :");
+  //  kmer_begin.printASCII(sizeKmer);
+
+    for (int ii=0; ii<nb_kmer_check; ii++)
+    {
+        
+     //   printf("checking kmer %i \n",ii);
+        kmer_begin = temp_kmer;
+        
+       // kmer_begin.printASCII(sizeKmer);
+        
+        if(orientation == RIGHT)
+        {
+            nt = readseq[pos+sizeKmer+1+ii];
+        }
+        else
+        {
+            nt = readseq[pos-2-ii];
+        }
+        
+        if(orientation == RIGHT)
+        {
+            temp_kmer = model.codeSeedRight (kmer_begin, nt, Data::ASCII,KMER_DIRECT);
+        }
+        else
+        {
+            kmer_end_rev =revcomp(kmer_begin, sizeKmer);
+            temp_kmer = model.codeSeedRight (kmer_end_rev, revASCII[nt], Data::ASCII,KMER_DIRECT);
+
+            temp_kmer =revcomp(temp_kmer, sizeKmer);
+
+        }
+      //   temp_kmer.printASCII(sizeKmer);
+        
+        kmer_query = min(temp_kmer, revcomp(temp_kmer, sizeKmer));
+        if( ! _bloom->contains(kmer_query)) //kmer is indexed
+        {
+            check = false;
+            break;
+        }
+        
+    }
+    
+    if(check)
+    {
+        
+        //correc error
+        //printf("%c \n",readseq[readlen-1 - tai_not_indexed +1]);
+        int pos_corrigee  ;
+        
+        if(orientation ==RIGHT)
+        {
+            pos_corrigee= pos+sizeKmer;
+        }
+        else
+        {
+            pos_corrigee = pos-1;
+            
+        }
+        
+        errfile->print("%i\t%i\t%c\t%c\n",numseq,pos_corrigee  ,bin2NT[good_nt], readseq[pos_corrigee]);
+        
+        readseq[pos_corrigee ]=bin2NT[good_nt]; //correc sequence in ram
+        return 1;
+    }
+    
+    return 0;
+
+}
+
+
 /********************************************************************************/
 
 struct Partition
@@ -680,9 +877,11 @@ private:
             
             int pass;
             //multiple passes per read
-            for (pass=0; pass<2; pass++)
+            for (pass=0; pass<1; pass++)
             {
                 
+                kmer_type kmer_end_rev,temp_kmer;
+
                 kmer_type graine, graine_revcomp;
                 kmer_type current_kmer ;
                 kmer_type previous_kmer = 0;
@@ -690,6 +889,7 @@ private:
                 kmer_type first_unindexed = 0;
                 kmer_type kmer_end = 0;
                 bool first_gap = true;
+                int nb_alternatives_found = 0;
                 
                 //for each kmer in this Sequence
                 
@@ -721,85 +921,28 @@ private:
                         {
                             kmer_end = graine; // kmer_end should be first kmer indexed after a hole
                             
+                            
+                            //two-sided conservative correction
                             if(tai_not_indexed == (sizeKmer))  // this should be an isolated error, middle of the read
                             {
                                 
-                                //kmer_begin is the last indexed kmer, test its right extension to get the snp
-                                char nt;
-                                check = false;
-                                
-                                kmer_type temp_kmer;
-                                // kmer_begin.printASCII(sizeKmer);
-                                
-                                for(nt=0; nt<4; nt++)
-                                {
-                                    temp_kmer = model.codeSeedRight (kmer_begin, nt, Data::INTEGER);
-                                    
-                                    //  temp_kmer.printASCII(sizeKmer);
-                                    
-                                    if(_bloom.contains(temp_kmer)) //kmer is indexed
-                                    {
-                                        //ref is the last nt of the first non indexed kmer on the reference genome
-                                        //contig, pos , ref , snp
-                                        //  fprintf(snp_file,"%i  %i  %c %c  \n",j,i-1,bin2NT[first_unindexed & 3],bin2NT[nt]);
-                                        check = true;
-                                        break;
-                                    }
-                                }
-                                //check other kmers ?  check =false if problem
-                                //for higher confidence it would also be possible to test other overlapping kmers
-                                
-                                if(check)
-                                {
-                                    errfile->print("%i\t%i\t%c\t%c\n",_bloocoo._seq_num,ii-1,bin2NT[nt],readseq[ii-1]);
+                               _bloocoo._nb_errors_corrected += twoSidedCorrection(& _bloom , ii, readseq,errfile,  kmer_begin, kmer_end,   sizeKmer,  _bloocoo._seq_num);
 
-                                    readseq[ii-1]=bin2NT[nt]; //correc sequence in ram
-                                    // printf("error found pos %i  read %i\n",ii, _bloocoo._seq_num);
-                                    _bloocoo._nb_errors_corrected ++; //not thread safe
-                                    
-
-                                }
-                                
                             }
                             else if ((tai_not_indexed < sizeKmer) && first_gap && tai_not_indexed>0)
                                 // an error at the beginning of the read : tai_not_indexed is smaller even for a single snp
                                 //and correct it from the right
                             {
-                                check = false;
                                 
-                                kmer_type kmer_end_rev, tempkmer;
-                                kmer_end_rev =revcomp(kmer_end, sizeKmer);
-                                //kmer_end.printASCII(sizeKmer);
-                                //kmer_end_rev.printASCII(sizeKmer);
+                                _bloocoo._nb_errors_corrected += aggressiveCorrection(& _bloom , ii , readseq, errfile,  kmer_end, sizeKmer, _bloocoo._seq_num, 2 ,LEFT);
                                 
-                                int strand =1;
-                                int nt2;
-                                for(nt2=0; nt2<4; nt2++)
-                                {
-                                    tempkmer = model.codeSeedRight (kmer_end_rev, nt2, Data::INTEGER); //to go left : go right with reverse of kmer_end
-                                    if(_bloom.contains(tempkmer)) //kmer is indexed
-                                    {
-                                        //tempkmer.printASCII(sizeKmer);
-                                        check = true;
-                                        
-                                        break;
-                                    }
-                                }
-                                
-                                
-                                //correc error
-                                if(check)
-                                {
-                                    //printf("error found pos %i  read %i\n",tai_not_indexed-1, _bloocoo._seq_num);
-                                    //printf("%c \n",readseq[tai_not_indexed-1]);
-                                    
-                                    errfile->print("%i\t%i\t%c\t%c\n",_bloocoo._seq_num,tai_not_indexed-1,bin2NTrev[nt2],readseq[tai_not_indexed-1]);
+                            }
+                            else if (tai_not_indexed > sizeKmer)
+                            {
+                                _bloocoo._nb_errors_corrected += aggressiveCorrection(& _bloom , ii- tai_not_indexed -1 , readseq, errfile,  kmer_begin, sizeKmer, _bloocoo._seq_num, 2 ,RIGHT);
 
-                                    readseq[tai_not_indexed-1]=bin2NTrev[nt2]; //correc in ram
-                                    _bloocoo._nb_errors_corrected ++; //not thread safe
-                                    //printf("%c \n",readseq[tai_not_indexed-1]);
-                                    
-                                }
+                                _bloocoo._nb_errors_corrected += aggressiveCorrection(& _bloom , ii , readseq, errfile,  kmer_end, sizeKmer, _bloocoo._seq_num, 2 ,LEFT);
+
                             }
                             
                         }
@@ -807,6 +950,7 @@ private:
                         
                         first_gap = false;
                         
+                       ////////////traitement d'un faux positif du bloom isolé
                         //   if(tai_indexed==1) tai_previous_break = tai_not_indexed; // begin of indexed zone    ( if tai_not_indexed ?)
                         if (tai_indexed > 1) // do not reset  tai_not_indexed if a single positive (might be a FP)
                             tai_not_indexed = 0; //reset previous hole size
@@ -815,6 +959,12 @@ private:
                             //printf("not indexed %lli\n",tai_not_indexed);
                             tai_not_indexed++; //  treat a single solidkmer  as an erroneous kmer
                         }
+                        //////////
+                        
+                        //version sans traitement du FP du bloom
+                       // if(tai_indexed==1)
+                       //      tai_not_indexed = 0;
+                        
                     }
                     else //kmer contains an error
                     {
@@ -838,39 +988,9 @@ private:
                         if(ii == (readlen-sizeKmer)) //end of the read, we should treat this  gap here
                             //correc snp with trad method
                         {
-                            int nt;
-                            check = false;
                             
-                            kmer_type temp_kmer;
-                            
-                            for(nt=0; nt<4; nt++)
-                            {
-                                temp_kmer = model.codeSeedRight (kmer_begin, nt, Data::INTEGER);
-                                if(_bloom.contains(temp_kmer)) //kmer is indexed
-                                {
-                                    check = true;
-                                    break;
-                                }
-                            }
-                            //verif other kmers :
-                            //todo
-                            
-                            if(check)
-                            {
-                                
-                                //correc error
-                                //printf("%c \n",readseq[readlen-1 - tai_not_indexed +1]);
-                                errfile->print("%i\t%i\t%c\t%c\n",_bloocoo._seq_num,readlen - tai_not_indexed ,bin2NT[nt],readseq[readlen - tai_not_indexed ]);
+                            _bloocoo._nb_errors_corrected += aggressiveCorrection(& _bloom , readlen - tai_not_indexed  - sizeKmer , readseq, errfile,  kmer_begin, sizeKmer, _bloocoo._seq_num, 2 ,RIGHT);
 
-                                readseq[readlen - tai_not_indexed ]=bin2NT[nt]; //correc sequence in ram
-                                //printf("%c \n",readseq[readlen-1 - tai_not_indexed +1]);
-                                
-                                //printf("error found pos %i  read %i\n",readlen-1 - tai_not_indexed +1, _bloocoo._seq_num);
-                                _bloocoo._nb_errors_corrected ++; //not thread safe
-                            }
-                            
-                            
-                            
                         }
                         
                     }
