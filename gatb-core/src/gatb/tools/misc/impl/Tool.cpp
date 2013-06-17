@@ -24,10 +24,14 @@ using namespace gatb::core::tools::dp::impl;
 namespace gatb {  namespace core { namespace tools {  namespace misc {  namespace impl {
 /********************************************************************************/
 
-const char* Tool::STR_HELP       = "-help";
-const char* Tool::STR_NB_CORES   = "-nb-cores";
-const char* Tool::STR_QUIET      = "-quiet";
-const char* Tool::STR_STATS_XML  = "-stats";
+const char* Tool::STR_NB_CORES      = "-nb-cores";
+const char* Tool::STR_STATS_XML     = "-stats";
+const char* Tool::STR_QUIET         = "-quiet";
+const char* Tool::STR_NO_PROG_BAR   = "-no-progress-bar";
+const char* Tool::STR_URI_PREFIX    = "-prefix";
+const char* Tool::STR_URI_DATABASE  = "-db";
+const char* Tool::STR_URI_OUTPUT    = "-out";
+const char* Tool::STR_HELP          = "-help";
 
 /*********************************************************************
 ** METHOD  :
@@ -45,10 +49,14 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     _info->add (0, _name);
 
     setParser (new OptionsParser ());
-    _parser->add (new OptionOneParam (Tool::STR_NB_CORES,   "number of cores",                      false, "0"  ));
-    _parser->add (new OptionOneParam (Tool::STR_STATS_XML,  "dump exec info into a XML file",       false       ));
-    _parser->add (new OptionNoParam  (Tool::STR_QUIET,      "quiet execution",                      false       ));
-    _parser->add (new OptionNoParam  (Tool::STR_HELP,       "display help about possible options",  false       ));
+    _parser->add (new OptionOneParam (Tool::STR_NB_CORES,       "number of cores",                      false, "0"  ));
+    _parser->add (new OptionOneParam (Tool::STR_STATS_XML,      "dump exec info into a XML file",       false       ));
+    _parser->add (new OptionNoParam  (Tool::STR_QUIET,          "quiet execution",                      false       ));
+    _parser->add (new OptionNoParam  (Tool::STR_NO_PROG_BAR,    "no progress bar",                      false       ));
+    _parser->add (new OptionOneParam (Tool::STR_URI_PREFIX,     "prefix to be appended to temp files",  false, ""   ));
+    _parser->add (new OptionOneParam (Tool::STR_URI_DATABASE,   "databank uri",                         false, ""   ));
+    _parser->add (new OptionOneParam (Tool::STR_URI_OUTPUT,     "output",                               false, ""   ));
+    _parser->add (new OptionNoParam  (Tool::STR_HELP,           "display help about possible options",  false       ));
 }
 
 /*********************************************************************
@@ -95,8 +103,6 @@ IProperties* Tool::run (IProperties* input)
     setInput (input);
 
     /** We define one dispatcher. */
-    if (_input->getInt(STR_NB_CORES) == 0)  { _input->setInt (STR_NB_CORES, System::info().getNbCores()); }
-
     setDispatcher (new ParallelCommandDispatcher (_input->getInt(STR_NB_CORES)) );
 
     /** We may have some pre processing. */
@@ -127,6 +133,12 @@ void Tool::preExecute ()
 {
     /** We add a potential config file to the input properties. */
     _input->add (1, new Properties (System::info().getHomeDirectory() + "/." + getName() ));
+
+    /** We may have to add a default prefix for temporary files. */
+    if (_input->get(STR_URI_PREFIX)==0)  { _input->add (1, STR_URI_PREFIX, "tmp.");  }
+
+    /** We may have to add a default prefix for temporary files. */
+    if (_input->getInt(STR_NB_CORES)<=0)  { _input->setInt (STR_NB_CORES, System::info().getNbCores());  }
 
     /** We add the input properties to the statistics result. */
     _info->add (1, _input);
@@ -222,11 +234,24 @@ IProperties* ToolComposite::run (int argc, char* argv[])
         /** We get the parameters from the current parser. */
         IProperties* input = (*it)->getOptionsParser()->parse (argc, argv);
 
-        /** We may have to add the output of the previous tool to the input of the current tool. */
-        if (output != 0)  {  input->add (1, output); }
+        /** We may have to add the output of the previous tool to the input of the current tool.
+         *  WARNING! The output of the previous tool should have a bigger priority than the
+         *  user parameters of the current tool.
+         */
+        IProperties* actualInput = 0;
+        if (output != 0)
+        {
+            actualInput = new Properties();
+            actualInput->add (1, output);   // output of the previous tool
+            actualInput->add (1, input);    // input  of the previous tool
+        }
+        else
+        {
+            actualInput = input;
+        }
 
         /** We run the tool and get a reference on its output. */
-        output = (*it)->run (input);
+        output = (*it)->run (actualInput);
 
         /** We add the current tool info to the global properties. */
         _info->add (1, (*it)->getInfo());
