@@ -996,4 +996,11 @@ int main (int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
+#else
+
+int main (int argc, char* argv[])
+{
+}
 #endif
+
+
