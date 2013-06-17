@@ -61,8 +61,8 @@ int main (int argc, char* argv[])
         for (it.first(); !it.isDone(); it.next(), idxSeq++)
         {
             // We dump the comment into the file according to the user mode
-            if (it->getComment() != 0)   {  cout << ">" << it->getComment() << endl;  }
-            else                         {  cout << ">generic" << idxSeq    << endl;  }
+            if (!it->getComment().empty())   {  cout << ">" << it->getComment() << endl;  }
+            else                             {  cout << ">generic" << idxSeq    << endl;  }
 
             // shortcut
             size_t len = it->getDataSize();
