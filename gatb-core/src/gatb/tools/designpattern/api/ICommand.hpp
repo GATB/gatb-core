@@ -148,7 +148,7 @@ public:
      *  \param[in] functors : vector of functors that are fed with iterated items
      *  \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
      */
-    template <typename Item, typename Functor> void iterate (Iterator<Item>& iterator, std::vector<Functor*>& functors, size_t groupSize = 1000)
+    template <typename Item, typename Functor> void iterate (Iterator<Item>* iterator, std::vector<Functor*>& functors, size_t groupSize = 1000)
     {
         /** We create a common synchronizer. */
         system::ISynchronizer* synchro = newSynchro();
@@ -160,7 +160,7 @@ public:
             commands.push_back (new IteratorCommand<Item,Functor> (iterator, *it, *synchro, groupSize));
         }
 
-        iterator.reset();
+        iterator->reset();
 
         /** We dispatch the commands. */
         dispatchCommands (commands);
@@ -171,39 +171,31 @@ public:
 
     /** */
     template <typename Item, typename Functor>
-    void iterate (Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
+    void iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000)
     {
-        /** We create a common synchronizer. */
+        /** We create a common synchronizer (to be used for synchronizing shared resources). */
         system::ISynchronizer* synchro = newSynchro();
+
+        Functor& fct = (Functor&) functor;
+        fct.setSynchro (synchro);
 
         /** We create N functors that are copies of the provided one. */
         std::vector<Functor*> functors (getExecutionUnitsNumber());
         for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
 
-        /** We create N IteratorCommand instances. */
-        std::vector<ICommand*> commands;
-        for (typename std::vector<Functor*>::iterator it = functors.begin(); it != functors.end(); it++)
-        {
-            commands.push_back (new IteratorCommand<Item,Functor> (iterator, *it, *synchro, groupSize));
-        }
-
-        iterator.reset();
-
-        /** We dispatch the commands. */
-        dispatchCommands (commands);
+        /** We iterate the iterator. */
+        iterate (iterator, functors, groupSize);
 
         /** We get rid of the functors. */
         for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
 
-        /** We get rid of the synchronizer. */
+        /** We delete the shared synchronizer. */
         delete synchro;
     }
 
-
-
 protected:
 
-    /** Factory method for synchronizer instanciation.
+    /** Factory method for synchronizer instantiation.
      * \return the created synchronizer. */
     virtual system::ISynchronizer* newSynchro () = 0;
 
@@ -217,7 +209,7 @@ protected:
          * \param[in] synchro : shared synchronizer for accessing several items
          * \param[in] groupSize : number of items got from the iterator in one synchronized block.
          */
-        IteratorCommand (Iterator<Item>& it, Functor*& fct, system::ISynchronizer& synchro, size_t groupSize)
+        IteratorCommand (Iterator<Item>* it, Functor*& fct, system::ISynchronizer& synchro, size_t groupSize)
             : _it(it), _fct(fct), _synchro(synchro), _groupSize(groupSize)  {}
 
         /** Implementation of the ICommand interface.*/
@@ -233,7 +225,7 @@ protected:
                  _synchro.lock ();
 
                  /** We retrieve some items from the iterator. */
-                 isRunning = _it.get (items);
+                 isRunning = _it->get (items);
 
                  /** We unlock the shared synchronizer after accessing the iterator. */
                  _synchro.unlock ();
@@ -246,11 +238,32 @@ protected:
         }
 
     private:
-        Iterator<Item>&        _it;
+        Iterator<Item>*        _it;
         Functor*&              _fct;
         system::ISynchronizer& _synchro;
         size_t                 _groupSize;
     };
+};
+
+/********************************************************************************/
+
+class IteratorFunctor
+{
+public:
+
+    IteratorFunctor () : _synchro(0)  { }
+
+    ~IteratorFunctor ()  { }
+
+    void setSynchro (system::ISynchronizer* synchro)  {  _synchro = synchro;  }
+
+protected:
+
+    system::ISynchronizer* getSynchro() { return _synchro; }
+
+private:
+
+    system::ISynchronizer* _synchro;
 };
 
 /********************************************************************************/

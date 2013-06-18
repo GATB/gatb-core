@@ -34,7 +34,7 @@ namespace impl          {
 template<typename Item> class BagFilePartition
 {
 public:
-    BagFilePartition (size_t nbPartitions, const char* format) : _partitions(nbPartitions), _uriFormat(format)
+    BagFilePartition (size_t nbPartitions, const std::string& format) : _partitions(nbPartitions), _uriFormat(format)
     {
         /** We delete physically the partition files. */
         for (size_t i=0; i<_partitions.size(); i++)  {  system::impl::System::file().remove (getFilename(i));  }

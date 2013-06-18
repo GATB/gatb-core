@@ -29,8 +29,9 @@ namespace gatb  { namespace core  {  namespace kmer  {  namespace impl {
 /********************************************************************************/
 
 /********************************************************************************/
-struct BuildKmerBloom
+class BuildKmerBloom : public tools::dp::IteratorFunctor
 {
+public:
     void operator() (const kmer_type& kmer)  {  _bloom.insert(kmer); }
     BuildKmerBloom (Bloom<kmer_type>& bloom)  : _bloom(bloom) {}
     Bloom<kmer_type>& _bloom;
@@ -80,7 +81,7 @@ Bloom<kmer_type>* BloomBuilder::build (IProperties* stats)
     Bloom<kmer_type>* bloom = new BloomSynchronized<kmer_type> (_bloomSize, _nbHash);
 
     /** We launch the bloom fill. */
-    ParallelCommandDispatcher(_nbCores).iterate (*_itKmers,  BuildKmerBloom (*bloom));
+    ParallelCommandDispatcher(_nbCores).iterate (_itKmers,  BuildKmerBloom (*bloom));
 
     /** We gather some statistics. */
     if (stats != 0)

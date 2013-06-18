@@ -89,8 +89,13 @@ public:
     /** \copydoc IProperties::get */
     IProperty* get (const std::string& key);
 
-    std::string getStr (const std::string& key, const std::string& defaultValue = "");
-    int64_t     getInt (const std::string& key, const int64_t& defaultValue = 0);
+    /** */
+    std::string getStr (const std::string& key);
+    int64_t     getInt (const std::string& key);
+
+    /** */
+    void setStr (const std::string& key, const std::string& value);
+    void setInt (const std::string& key, const int64_t& value);
 
     /** \copydoc IProperties::clone  */
     IProperties* clone ();

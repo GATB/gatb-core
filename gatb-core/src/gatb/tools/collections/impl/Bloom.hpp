@@ -69,8 +69,8 @@ private:
     u_int64_t user_seed;
 };
 
-
 /********************************************************************************/
+
 /** \brief Bloom filter implementation
  */
 template <typename Item> class BloomContainer : public Container<Item>
@@ -81,11 +81,20 @@ public:
      * \param[in] tai_bloom : size (in bits) of the bloom filter.
      * \param[in] nbHash : number of hash functions to use */
     BloomContainer (u_int64_t tai_bloom, size_t nbHash = 4)
-        : _hash(nbHash), n_hash_func(nbHash), blooma(0), tai(tai_bloom), nchar(0)
+        : _hash(nbHash), n_hash_func(nbHash), blooma(0), tai(tai_bloom), nchar(0), isSizePowOf2(false)
     {
         nchar  = (1+tai/8LL);
         blooma = (unsigned char *) system::impl::System::memory().malloc (nchar*sizeof(unsigned char)); // 1 bit per elem
         system::impl::System::memory().memset (blooma, 0, nchar*sizeof(unsigned char));
+
+        /** We look whether the provided size is a power of 2 or not.
+         *   => if we have a power of two, we can optimize the modulo operations. */
+        isSizePowOf2 = (tai && !(tai & (tai - 1)));
+
+        /** In case we have a power of 2^N, we set the size to 2^N-1 and use the classical trick:
+         *     a % 2^N  <=>  a & (2^N-1)
+         * */
+        if (isSizePowOf2)  {  tai --;  }
     }
 
     /** Destructor. */
@@ -97,12 +106,21 @@ public:
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
-        for (size_t i=0; i<n_hash_func; i++)
+        if (isSizePowOf2)
         {
-            u_int64_t h1 = _hash (item,i) % tai;
-
-            if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])
-                return false;
+            for (size_t i=0; i<n_hash_func; i++)
+            {
+                u_int64_t h1 = _hash (item,i) & tai;
+                if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+            }
+        }
+        else
+        {
+            for (size_t i=0; i<n_hash_func; i++)
+            {
+                u_int64_t h1 = _hash (item,i) % tai;
+                if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+            }
         }
         return true;
     }
@@ -115,6 +133,7 @@ protected:
     u_int8_t* blooma;
     u_int64_t tai;
     u_int64_t nchar;
+    bool      isSizePowOf2;
 };
 
 /********************************************************************************/
@@ -130,10 +149,21 @@ public:
     /** \copydoc Bag::insert. */
     void insert (const Item& item)
     {
-        for (size_t i=0; i<this->n_hash_func; i++)
+        if (this->isSizePowOf2)
         {
-            u_int64_t h1 = this->_hash (item,i) % this->tai;
-            this->blooma [h1 >> 3] |= bit_mask[h1 & 7];
+            for (size_t i=0; i<this->n_hash_func; i++)
+            {
+                u_int64_t h1 = this->_hash (item,i) & this->tai;
+                this->blooma [h1 >> 3] |= bit_mask[h1 & 7];
+            }
+        }
+        else
+        {
+            for (size_t i=0; i<this->n_hash_func; i++)
+            {
+                u_int64_t h1 = this->_hash (item,i) % this->tai;
+                this->blooma [h1 >> 3] |= bit_mask[h1 & 7];
+            }
         }
     }
 
@@ -162,10 +192,21 @@ public:
     /** \copydoc Bag::insert. */
     void insert (const Item& item)
     {
-        for (size_t i=0; i<this->n_hash_func; i++)
+        if (this->isSizePowOf2)
         {
-            u_int64_t h1 = this->_hash (item,i) % this->tai;
-            __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+            for (size_t i=0; i<this->n_hash_func; i++)
+            {
+                u_int64_t h1 = this->_hash (item,i) & this->tai;
+                __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+            }
+        }
+        else
+        {
+            for (size_t i=0; i<this->n_hash_func; i++)
+            {
+                u_int64_t h1 = this->_hash (item,i) % this->tai;
+                __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+            }
         }
     }
 };

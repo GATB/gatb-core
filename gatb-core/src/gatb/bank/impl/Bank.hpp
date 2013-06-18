@@ -168,10 +168,10 @@ public:
         void*  buffered_strings;   // variable_string_t *read, *dummy, *header;
 
         bool get_next_seq           (tools::misc::Vector<char>& data);
-        bool get_next_seq           (tools::misc::Vector<char>& data, char **cheader, int *hlen, CommentMode_e mode);
+        bool get_next_seq           (tools::misc::Vector<char>& data, std::string& comment, CommentMode_e mode);
 
         bool get_next_seq_from_file (tools::misc::Vector<char>& data, int file_id);
-        bool get_next_seq_from_file (tools::misc::Vector<char>& data, char **cheader, int *hlen, int file_id, CommentMode_e mode);
+        bool get_next_seq_from_file (tools::misc::Vector<char>& data, std::string& comment, int file_id, CommentMode_e mode);
     };
 
 protected:

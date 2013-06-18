@@ -213,8 +213,29 @@ void Bank::insert (const Sequence& item)
     if (_insertHandle != 0)
     {
         /** We add the sequence into the bag. */
-        fprintf (_insertHandle, ">%s\n", item.getComment());
-        fprintf (_insertHandle, "%s\n", item.getDataBuffer());
+        fprintf (_insertHandle, ">%s\n", item.getComment().c_str());
+
+#if 0
+        fprintf (_insertHandle, "%s\n",  item.getDataBuffer());
+#else
+        // We dump the data with fixed sized columns
+        size_t dataLineSize = 70;
+        char line[dataLineSize+1];
+
+        size_t      len    = item.getDataSize();
+        const char* buffer = item.getDataBuffer();
+
+        for (size_t i=0; i<len; )
+        {
+            size_t j=0;
+            for (j=0; j<dataLineSize && i<len; j++, i++)
+            {
+                line[j] = item.getDataBuffer() [i];
+            }
+            line[j] = 0;
+            fprintf (_insertHandle, "%s\n", line);
+        }
+#endif
     }
 }
 
@@ -229,6 +250,8 @@ void Bank::insert (const Sequence& item)
 Bank::Iterator::Iterator (Bank& ref, CommentMode_e commentMode)
     : _ref(ref), _commentsMode(commentMode), _isDone(true), index_file(0), buffered_file(0), buffered_strings(0)
 {
+    DEBUG (("Bank::Iterator::Iterator\n"));
+
     /** We initialize the iterator. */
     init  ();
 
@@ -246,6 +269,7 @@ Bank::Iterator::Iterator (Bank& ref, CommentMode_e commentMode)
 *********************************************************************/
 Bank::Iterator::~Iterator ()
 {
+    DEBUG (("Bank::Iterator::~Iterator\n"));
     finalize ();
 }
 
@@ -266,7 +290,7 @@ void Bank::Iterator::first()
     }
 
     index_file = 0;
-
+    _isDone = false;
     next();
 }
 
@@ -280,13 +304,15 @@ void Bank::Iterator::first()
 *********************************************************************/
 void Bank::Iterator::next()
 {
+    if (_isDone)  { return; }
+
     if (_commentsMode == NONE)
     {
         _isDone = get_next_seq (_item->getData()) == false;
     }
     else
     {
-        _isDone = get_next_seq (_item->getData(), &_item->comment, &_item->commentSize, _commentsMode) == false;
+        _isDone = get_next_seq (_item->getData(), _item->_comment, _commentsMode) == false;
     }
     DEBUG (("Bank::Iterator::next  _isDone=%d\n", _isDone));
 }
@@ -392,7 +418,7 @@ inline signed int buffered_gets (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, char **cheader, int *hlen, int file_id, CommentMode_e mode)
+bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, string& comment, int file_id, CommentMode_e mode)
 {
     buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
 
@@ -464,10 +490,9 @@ bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, char **cheader,
     /** We update the data of the sequence. */
     data.set (bs->read->string, bs->read->length);
 
-    if (cheader && hlen)
+    //if (comment.empty() == false)
     {
-        *cheader = bs->header->string;
-        *hlen    = bs->header->length;
+        comment.assign (bs->header->string, bs->header->length);
     }
 
     return true;
@@ -483,7 +508,8 @@ bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, char **cheader,
 *********************************************************************/
 bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, int file_id)
 {
-    return get_next_seq_from_file (data, NULL, NULL, file_id, NONE);
+    string dummy;
+    return get_next_seq_from_file (data, dummy, file_id, NONE);
 }
 
 /*********************************************************************
@@ -494,17 +520,16 @@ bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, int file_id)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq (Vector<char>& data, char **cheader, int *hlen, CommentMode_e mode
-)
+bool Bank::Iterator::get_next_seq (Vector<char>& data, string& comment, CommentMode_e mode)
 {
-    bool success = get_next_seq_from_file (data, cheader, hlen, index_file, mode);
+    bool success = get_next_seq_from_file (data, comment, index_file, mode);
     if (success) return true;
 
     // cycle to next file if possible
     if (index_file < _ref.nb_files - 1)
     {
         index_file++;
-        return get_next_seq (data, cheader, hlen, mode);
+        return get_next_seq (data, comment, mode);
     }
     return false;
 }
@@ -519,7 +544,8 @@ bool Bank::Iterator::get_next_seq (Vector<char>& data, char **cheader, int *hlen
 *********************************************************************/
 bool Bank::Iterator::get_next_seq (Vector<char>& data)
 {
-    return get_next_seq (data, NULL, NULL, NONE);
+    string  dummy;
+    return get_next_seq (data, dummy, NONE);
 }
 
 /*********************************************************************
