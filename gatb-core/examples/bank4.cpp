@@ -9,6 +9,7 @@
 using namespace std;
 using namespace gatb::core::bank;
 using namespace gatb::core::bank::impl;
+using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
 
 // We a define a functor that will be called during bank parsing

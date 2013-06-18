@@ -65,7 +65,7 @@ public:
         return buffer;
     }
 
-    static const size_t getSize ()  { return 8*sizeof(array); }
+    static const size_t getSize ()  { return 8*sizeof(uint64_t)*precision; }
 
     /********************************************************************************/
     /** Constructor.

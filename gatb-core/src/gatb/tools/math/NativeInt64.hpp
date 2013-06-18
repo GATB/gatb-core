@@ -42,7 +42,7 @@ public:
 
     static const char* getName ()  { return "NativeInt64"; }
 
-    static const size_t getSize ()  { return 8*sizeof(value); }
+    static const size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
     NativeInt64 operator+  (const NativeInt64& other)   const   {  return value + other.value;  }
     NativeInt64 operator-  (const NativeInt64& other)   const   {  return value - other.value;  }
