@@ -31,14 +31,14 @@ static string dbprefix;
 /********************************************************************************/
 std::string DBPATH (const string& a)
 {
-    return dbprefix +  a;
+    return dbprefix + string("/") +  a;
 }
 
 /********************************************************************************/
 int main (int argc, char **argv)
 {
     /** We set the directory where the db are. */
-    dbprefix    = (argc >=2 ? argv[1] : "../test/db/");
+    dbprefix = (argc >=2 ? argv[1] : "../test/db");
 
     /** We may have an ouput xml file. */
     char* xmloutput = (argc >=3 ? argv[2] : 0);
