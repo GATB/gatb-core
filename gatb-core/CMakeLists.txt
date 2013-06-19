@@ -20,7 +20,7 @@ DefineInteger (k)
 find_package(OpenMP)
 
 if (OPENMP_FOUND)
-    set (COMPILE_DEFINITIONS   "${COMPILE_DEFINITIONS} ${OpenMP_C_FLAGS}")
+    set (COMPILE_DEFINITIONS    "${COMPILE_DEFINITIONS}    ${OpenMP_C_FLAGS} -DOMP")
 endif()
 
 ################################################################################
@@ -83,7 +83,7 @@ set (gatb-core-flags ${COMPILE_DEFINITIONS} PARENT_SCOPE)
 set (gatb-core-includes   ${CMAKE_CURRENT_SOURCE_DIR}/src  ${CMAKE_CURRENT_SOURCE_DIR}/src/gatb/tools  PARENT_SCOPE)
 
 # We define the libraries used for linking binary based on gatb core
-set (gatb-core-libraries   GatbTools-static  dl  pthread  z  ${OMP}  PARENT_SCOPE)
+set (gatb-core-libraries   GatbTools-static  dl  pthread  z  ${OpenMP_C_FLAGS}  PARENT_SCOPE)
 
 ################################################################################
 #  UNIT TESTS GENERATION 
