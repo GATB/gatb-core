@@ -30,3 +30,9 @@ include_directories (${org.inria.gatb.tools_SOURCE_DIR}/src  ${org.inria.gatb.to
 add_executable        (GatbToolsTest    ${GatbToolsTestFiles})
 target_link_libraries (GatbToolsTest     GatbTools-static  ${CPPUNIT_LIBRARY}  dl pthread z)
 
+################################################################################
+#  LAUNCH 
+################################################################################
+
+# We add an optional target for launching unit tests
+add_custom_target (test GatbToolsTest ${org.inria.gatb.tools_SOURCE_DIR}/test/db  unittests.xml)

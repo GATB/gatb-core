@@ -26,10 +26,22 @@ namespace tests   {
 } }
 /********************************************************************************/
 
+static string dbprefix;
+
+/********************************************************************************/
+std::string DBPATH (const string& a)
+{
+    return dbprefix + string("/") +  a;
+}
+
 /********************************************************************************/
 int main (int argc, char **argv)
 {
-    char* xmloutput = (argc >=2 ? argv[1] : 0);
+    /** We set the directory where the db are. */
+    dbprefix = (argc >=2 ? argv[1] : "../test/db");
+
+    /** We may have an ouput xml file. */
+    char* xmloutput = (argc >=3 ? argv[2] : 0);
 
     // informs test-listener about testresults
     TestResult testresult;

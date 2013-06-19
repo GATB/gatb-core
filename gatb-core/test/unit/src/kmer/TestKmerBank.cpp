@@ -39,7 +39,7 @@ using namespace gatb::core::bank::impl;
 using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 
-#define DBPATH(a)  (string("../test/db/") + string(a))
+extern std::string DBPATH (const string& a);
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {

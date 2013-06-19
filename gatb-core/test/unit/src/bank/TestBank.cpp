@@ -37,12 +37,10 @@ using namespace gatb::core::tools::dp::impl;
 
 #define ABS(a)  ((a)<0 ? -(a) : (a))
 
+extern std::string DBPATH (const string& a);
+
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
-/********************************************************************************/
-
-#define DBPATH(a)  "../test/db/" a
-
 /********************************************************************************/
 
 /** \brief Test class for genomic databases management
@@ -72,7 +70,7 @@ public:
     void tearDown ()  {}
 
     /********************************************************************************/
-    void bank_checkSample1_aux (const char* filename, Bank::Iterator::CommentMode_e mode)
+    void bank_checkSample1_aux (const string& filename, Bank::Iterator::CommentMode_e mode)
     {
         const char* text = "ARNDCQEGHILKMFPSTWYV";
 
@@ -144,7 +142,7 @@ public:
     }
 
     /********************************************************************************/
-    void bank_checkSample2_aux (const char* filename)
+    void bank_checkSample2_aux (const string& filename)
     {
         /** We check that the bank exists. */
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
@@ -192,7 +190,7 @@ public:
     }
 
     /********************************************************************************/
-    void bank_checkComments_aux (const char* filename)
+    void bank_checkComments_aux (const string& filename)
     {
         /** We check that the bank exists. */
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
@@ -423,7 +421,7 @@ public:
      */
     void bank_checkProgress ()
     {
-        const char* filename = DBPATH("sample1.fa");
+        string filename = DBPATH("sample1.fa");
 
         vector<string> filenames;
 
@@ -451,7 +449,7 @@ public:
     }
 
     /********************************************************************************/
-    void bank_checkMultipleFiles_aux (const char* filename)
+    void bank_checkMultipleFiles_aux (const string& filename)
     {
         vector<string> filenames;
 
