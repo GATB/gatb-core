@@ -51,7 +51,9 @@ u_int64_t  FileSystemCommon::getAvailableSpace (const Path& path)
 IFileSystem::Path FileSystemCommon::getCurrentDirectory ()
 {
     char path[1000];
-    getcwd (path, sizeof(path));
+    char* buffer = getcwd (path, sizeof(path));
+
+    if (buffer == 0)  {  throw ExceptionErrno ("unable to get current directory");  }
 
     return path;
 }
