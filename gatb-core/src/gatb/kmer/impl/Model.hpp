@@ -88,8 +88,10 @@ public:
             data = &binaryData;
         }
 
-        /** We compute tnbKmershe number of kmers for the provided data. */
-        u_int32_t nbKmers = data->size() - this->getSpan() + 1;
+        /** We compute the number of kmers for the provided data. Note that we have to check that we have
+         * enough nucleotides according to the current kmer size. */
+        int32_t nbKmers = data->size() - this->getSpan() + 1;
+        if (nbKmers <= 0)  { return; }
 
         /** We resize the resulting kmers vector. */
         kmersBuffer.resize (nbKmers);
