@@ -325,7 +325,7 @@ void BankBinary::Iterator::next ()
         /** We are about to read another chunk of data from the disk. We need */
         setBufferData (new Data (block_size));
 
-        fread (_bufferData->getBuffer(), sizeof( char),block_size, binary_read_file); // read a block of reads into the buffer
+        size_t nbRead = fread (_bufferData->getBuffer(), sizeof( char),block_size, binary_read_file); // read a block of reads into the buffer
 
         cpt_buffer       = 0;
         blocksize_toread = block_size;
