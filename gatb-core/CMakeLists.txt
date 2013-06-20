@@ -93,14 +93,14 @@ ADD_SUBDIRECTORY(test)
 ################################################################################
 #  DOCUMENTATION GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(doc)
+ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
 
 ################################################################################
 #  EXAMPLES GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(examples)
+ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
 
 ################################################################################
 #  TOOLS GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(tools)
+ADD_SUBDIRECTORY(tools EXCLUDE_FROM_ALL)
