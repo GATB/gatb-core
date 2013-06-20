@@ -4,7 +4,7 @@
 
 set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
 
-list (APPEND PROGRAMS BankConverter ClearCache DSK KmerChecksum Bloocoo)
+list (APPEND PROGRAMS ClearCache KmerChecksum)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
