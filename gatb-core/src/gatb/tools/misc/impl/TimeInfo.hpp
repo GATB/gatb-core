@@ -118,7 +118,7 @@ private:
     std::string _txt;
 };
 
-#define  TIME_INFO(ti,txt)  LocalTimeInfo __##ti(ti,txt)
+#define  TIME_INFO(ti,txt)  LocalTimeInfo TimeInfoTmp##__LINE__(ti,txt)
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */
