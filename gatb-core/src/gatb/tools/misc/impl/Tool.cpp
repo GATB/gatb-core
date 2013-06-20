@@ -11,7 +11,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
-#define DEBUG(a)  //printf a
+#define DEBUG(a)  printf a
 
 using namespace std;
 using namespace gatb::core::system;
@@ -48,14 +48,16 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     setInfo  (new Properties());
     _info->add (0, _name);
 
+    /** We create an options parser. */
     setParser (new OptionsParser ());
+
+    /** We configure this parser with some options useful for each tool. */
     _parser->add (new OptionOneParam (Tool::STR_NB_CORES,       "number of cores",                      false, "0"  ));
     _parser->add (new OptionOneParam (Tool::STR_STATS_XML,      "dump exec info into a XML file",       false       ));
     _parser->add (new OptionNoParam  (Tool::STR_QUIET,          "quiet execution",                      false       ));
     _parser->add (new OptionNoParam  (Tool::STR_NO_PROG_BAR,    "no progress bar",                      false       ));
     _parser->add (new OptionOneParam (Tool::STR_URI_PREFIX,     "prefix to be appended to temp files",  false, ""   ));
-    _parser->add (new OptionOneParam (Tool::STR_URI_DATABASE,   "databank uri",                         false, ""   ));
-    _parser->add (new OptionOneParam (Tool::STR_URI_OUTPUT,     "output",                               false, ""   ));
+//    _parser->add (new OptionOneParam (Tool::STR_URI_OUTPUT,     "output",                               false, ""   ));
     _parser->add (new OptionNoParam  (Tool::STR_HELP,           "display help about possible options",  false       ));
 }
 
@@ -86,7 +88,9 @@ Tool::~Tool ()
 *********************************************************************/
 IProperties* Tool::run (int argc, char* argv[])
 {
-    return run (getOptionsParser()->parse (argc, argv));
+    DEBUG (("Tool::run(argc,argv) => tool='%s'  \n", getName().c_str() ));
+
+    return run (getParser()->parse (argc, argv));
 }
 
 /*********************************************************************
@@ -227,12 +231,24 @@ ToolComposite::~ToolComposite ()
 *********************************************************************/
 IProperties* ToolComposite::run (int argc, char* argv[])
 {
-    IProperties* output = 0;
+    vector<IProperties*> inputs;
 
+    /** We first parse the options for all tools. */
     for (list<Tool*>::iterator it = _tools.begin(); it != _tools.end(); it++)
     {
         /** We get the parameters from the current parser. */
-        IProperties* input = (*it)->getOptionsParser()->parse (argc, argv);
+        IProperties* input = (*it)->getParser()->parse (argc, argv);
+
+        /** We add the input into the vector that gather the tools inputs. */
+        inputs.push_back (input);
+    }
+
+    IProperties* output = 0;
+    size_t idx = 0;
+    for (list<Tool*>::iterator it = _tools.begin(); it != _tools.end(); it++, idx++)
+    {
+        /** We get the parameters from the current inputs entry. */
+        IProperties* input = inputs[idx];
 
         /** We may have to add the output of the previous tool to the input of the current tool.
          *  WARNING! The output of the previous tool should have a bigger priority than the
