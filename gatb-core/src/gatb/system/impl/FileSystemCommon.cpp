@@ -11,6 +11,7 @@
 #include <sys/statvfs.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <libgen.h>
 
 #include <string>
 #include <sstream>
