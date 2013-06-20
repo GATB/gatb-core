@@ -65,6 +65,8 @@ OptionsParser::~OptionsParser ()
  *********************************************************************/
 int OptionsParser::add (Option* option)
 {
+    DEBUG (("OptionsParser::add  this=%p  option=%s\n", this, option->getLabel().c_str()));
+
     if (option != 0)
     {
         option->use ();
@@ -86,6 +88,8 @@ int OptionsParser::add (Option* option)
  *********************************************************************/
 misc::IProperties* OptionsParser::parse (int argc, char* argv[])
 {
+    DEBUG (("OptionsParser::parse  this=%p  argc=%d\n", this, argc));
+
     /* Some initializations. */
     _argc=argc; _argv=argv; _currentArg=1;
     _proceed=1;
@@ -97,11 +101,11 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
     char* txt=0;
     while ( (txt = nextArg ()) != 0)
     {
-        DEBUG (("CheckOption::proceed:  _currentArg=%d  txt=%p \n", _currentArg, txt));
+        DEBUG (("OptionsParser::parse:  _currentArg=%d  txt=%p \n", _currentArg, txt));
 
         /* We look if is matches one of the recognized options. */
         Option* optionMatch = lookForOption (txt);
-        DEBUG (("CheckOption::proceed:  txt='%s'  optionMatch=%p \n", txt, optionMatch));
+        DEBUG (("OptionsParser::parse:  txt='%s'  optionMatch=%p \n", txt, optionMatch));
 
         if (optionMatch != 0)
         {
@@ -109,7 +113,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
             std::list<std::string> optionArgs;
             getOptionArgs (optionMatch, optionArgs);
 
-            DEBUG (("CheckOption::proceed:  optionMatch.size=%ld  optionArgs.size=%ld\n",
+            DEBUG (("OptionsParser::parse:  optionMatch.size=%ld  optionArgs.size=%ld\n",
                 optionMatch->getNbArgs(),
                 optionArgs.size()
             ));
@@ -137,7 +141,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
                     int res = optionMatch->proceed (optionArgs);
                     _seenOptions.push_back (optionMatch);
 
-                    DEBUG (("CheckOption::proceed:  proceed the option => res=%ld  seenOptions=%ld  _currentArg=%d\n",
+                    DEBUG (("OptionsParser::parse:  proceed the option => res=%ld  seenOptions=%ld  _currentArg=%d\n",
                         res, _seenOptions.size(), _currentArg
                     ));
 
@@ -162,6 +166,8 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
 
     /* Now, we check that the accepted options are used with with include options. */
     checkIncludingOptions ();
+
+    DEBUG (("OptionsParser::parse  errorsNb=%d  warningsNb=%d \n", _errors.size(), _warnings.size()));
 
     /** We may launch an exception if needed. */
     if (!_errors.empty())   {  throw OptionFailure (this);  }
@@ -496,6 +502,12 @@ void OptionsParser::checkMandatoryOptions ()
         {
             found = (*it)->getLabel() == (*itInner)->getLabel();
         }
+
+        DEBUG (("OptionsParser::checkMandatoryOptions : label=%s  mandatory=%d  found=%d\n",
+            (*it)->getLabel().c_str(),
+            (*it)->isMandatory(),
+            found
+        ));
 
         if ((*it)->isMandatory() && !found)
         {
