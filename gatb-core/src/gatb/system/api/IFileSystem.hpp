@@ -152,6 +152,12 @@ public:
       */
      virtual Path getTemporaryDirectory () = 0;
 
+     /** Return the base of the URI
+      * \param[in] path : uri from which we want to extract the base name.
+      * \return the base name of the uri
+      */
+     virtual Path getBaseName (const Path& path) = 0;
+
      /** Tells whether a path exists or not.
       * \return true if path exists, false otherwise
       */

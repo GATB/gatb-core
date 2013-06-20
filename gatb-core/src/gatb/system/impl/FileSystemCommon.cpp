@@ -84,6 +84,35 @@ IFileSystem::Path FileSystemCommon::getTemporaryDirectory ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
+{
+    /** We duplicate the provided path. */
+    char* reads_path = strdup (path.c_str());
+
+    /** We build the basename; it still may have a suffix. */
+    std::string reads_name (basename(reads_path)); // posix basename() may alter reads_path
+
+    /** We release the duplicated path. */
+    free (reads_path);
+
+    /** We look for the beginnin of the suffix. */
+    int lastindex = reads_name.find_last_of (".");
+
+    /** We build the result. */
+    Path result = reads_name.substr(0, lastindex);
+
+    /** We return the base name, without suffix. */
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 bool FileSystemCommon::doesExist (const Path& path)
 {
     FILE* fp = fopen (path.c_str(), "rb");

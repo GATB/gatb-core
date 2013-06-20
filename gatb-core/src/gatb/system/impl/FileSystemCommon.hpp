@@ -154,6 +154,9 @@ public:
     /** \copydoc IFileSystem::getTemporaryDirectory */
     Path getTemporaryDirectory ();
 
+    /** \copydoc IFileSystem::getBaseName */
+    Path getBaseName (const Path& path);
+
     /** \copydoc IFileSystem::doesExist */
     bool doesExist (const Path& path);
 
