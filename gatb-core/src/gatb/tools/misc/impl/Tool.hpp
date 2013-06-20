@@ -60,47 +60,14 @@ public:
     virtual IProperties* run (int argc, char* argv[]);
 
     /** */
-    virtual OptionsParser* getOptionsParser ()  {  return _parser;  }
+    virtual IProperties*            getInput      ()  { return _input;      }
+    virtual IProperties*            getOutput     ()  { return _output;     }
+    virtual IProperties*            getInfo       ()  { return _info;       }
+    virtual OptionsParser*          getParser     ()  { return _parser;     }
+    virtual dp::ICommandDispatcher* getDispatcher ()  { return _dispatcher; }
+    virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
 
     /** */
-    IProperties* getInfo ()  { return _info; }
-
-    /** */
-    static const char* STR_NB_CORES;
-    static const char* STR_STATS_XML;
-    static const char* STR_QUIET;
-    static const char* STR_NO_PROG_BAR;
-    static const char* STR_URI_PREFIX;
-    static const char* STR_URI_DATABASE;
-    static const char* STR_URI_OUTPUT;
-    static const char* STR_HELP;
-
-protected:
-
-    /** */
-    virtual void execute () = 0;
-
-    /** */
-    virtual void preExecute  ();
-    virtual void postExecute ();
-
-    std::string _name;
-
-    IProperties* _input;
-    void setInput (IProperties* input)  { SP_SETATTR(input); }
-
-    IProperties* _output;
-    void setOutput (IProperties* output)  { SP_SETATTR(output); }
-
-    IProperties* _info;
-    void setInfo (IProperties* info)  { SP_SETATTR(info); }
-
-    OptionsParser* _parser;
-    void setParser (OptionsParser* parser)  { SP_SETATTR(parser); }
-
-    dp::ICommandDispatcher* _dispatcher;
-    void setDispatcher (dp::ICommandDispatcher* dispatcher)  { SP_SETATTR(dispatcher); }
-
     template<typename Item> dp::Iterator<Item>* createIterator (dp::Iterator<Item>* iter, size_t nbIterations=0, const char* message=0)
     {
         if (_input->get(STR_QUIET) == 0 && _input->get(STR_NO_PROG_BAR) == 0)
@@ -121,7 +88,23 @@ protected:
     }
 
     /** */
-    virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
+    static const char* STR_NB_CORES;
+    static const char* STR_STATS_XML;
+    static const char* STR_QUIET;
+    static const char* STR_NO_PROG_BAR;
+    static const char* STR_URI_PREFIX;
+    static const char* STR_URI_DATABASE;
+    static const char* STR_URI_OUTPUT;
+    static const char* STR_HELP;
+
+protected:
+
+    /** */
+    virtual void execute () = 0;
+
+    /** */
+    virtual void preExecute  ();
+    virtual void postExecute ();
 
     /** Computes the uri from an uri (ie add a prefix if any). */
     std::string getUriByKey (const std::string& key)  { return getUri (_input->getStr(key)); }
@@ -129,7 +112,33 @@ protected:
     /** Computes the uri from an uri (ie add a prefix if any). */
     std::string getUri (const std::string& str)  { return _input->getStr(STR_URI_PREFIX) + str; }
 
+    /** Setters. */
+    void setInput      (IProperties*            input)       { SP_SETATTR (input);      }
+    void setOutput     (IProperties*            output)      { SP_SETATTR (output);     }
+    void setInfo       (IProperties*            info)        { SP_SETATTR (info);       }
+    void setParser     (OptionsParser*          parser)      { SP_SETATTR (parser);     }
+    void setDispatcher (dp::ICommandDispatcher* dispatcher)  { SP_SETATTR (dispatcher); }
+
+private:
+
+    /** Name of the tool (set at construction). */
+    std::string _name;
+
+    IProperties* _input;
+
+    IProperties* _output;
+
+    IProperties* _info;
+
+    OptionsParser* _parser;
+
+    dp::ICommandDispatcher* _dispatcher;
+
+    /** */
     TimeInfo _timeInfo;
+
+    /** */
+    virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
 
     friend class ToolComposite;
 };
@@ -161,6 +170,37 @@ private:
     void execute ();
     void preExecute  ();
     void postExecute ();
+};
+
+/********************************************************************************/
+
+/** */
+class ToolProxy : public Tool
+{
+public:
+
+    /** */
+    ToolProxy (Tool* ref) : Tool("proxy"), _ref (ref)  {}
+
+    /** */
+    virtual OptionsParser* getParser ()  {  return _ref->getParser();  }
+
+    /** */
+    virtual IProperties* getInput  ()  { return _ref->getInput();     }
+    virtual IProperties* getOutput ()  { return _ref->getOutput();    }
+    virtual IProperties* getInfo   ()  { return _ref->getInfo();      }
+
+    /** */
+    virtual dp::ICommandDispatcher*    getDispatcher ()   { return _ref->getDispatcher(); }
+
+    /** */
+    virtual TimeInfo&    getTimeInfo ()   { return _ref->getTimeInfo (); }
+
+    /** */
+    Tool* getRef ()  { return _ref; }
+
+private:
+    Tool* _ref;
 };
 
 /********************************************************************************/
