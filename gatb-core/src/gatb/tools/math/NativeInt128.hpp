@@ -144,7 +144,7 @@ inline NativeInt128 revcomp (const NativeInt128& in, size_t sizeKmer)
 }
 
 /********************************************************************************/
-inline u_int64_t hash (const NativeInt128& item, u_int64_t seed)
+inline u_int64_t hash (const NativeInt128& item, u_int64_t seed=0)
 {
     const __uint128_t& elem = item.value;
 
