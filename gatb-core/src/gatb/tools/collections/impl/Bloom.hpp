@@ -87,7 +87,6 @@ public:
         blooma = (unsigned char *) system::impl::System::memory().malloc (nchar*sizeof(unsigned char)); // 1 bit per elem
         system::impl::System::memory().memset (blooma, 0, nchar*sizeof(unsigned char));
 
-std::cout << "BloomContainer: size=" << tai_bloom << "  nbHash=" << nbHash << std::endl;
         /** We look whether the provided size is a power of 2 or not.
          *   => if we have a power of two, we can optimize the modulo operations. */
         isSizePowOf2 = (tai && !(tai & (tai - 1)));
@@ -188,11 +187,7 @@ template <typename Item> class BloomSynchronized : public Bloom<Item>
 public:
 
     /** \copydoc BloomContainer::BloomContainer */
-    BloomSynchronized (u_int64_t tai_bloom, size_t nbHash = 4)  : Bloom<Item> (tai_bloom, nbHash)
-    {
-        std::cout << "BloomSynchronized: size=" << tai_bloom << "  nbHash=" << nbHash << std::endl;
-
-    }
+    BloomSynchronized (u_int64_t tai_bloom, size_t nbHash = 4)  : Bloom<Item> (tai_bloom, nbHash)  {}
 
     /** \copydoc Bag::insert. */
     void insert (const Item& item)
