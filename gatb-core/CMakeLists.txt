@@ -19,7 +19,7 @@ DefineInteger (k)
 ################################################################################
 find_package(OpenMP)
 
-if (OPENMP_FOUND)
+if (OPENMP_FOUND AND NOT (omp EQUAL 0))
     set (COMPILE_DEFINITIONS    "${COMPILE_DEFINITIONS}    ${OpenMP_C_FLAGS} -DOMP")
 endif()
 
@@ -30,7 +30,7 @@ if (debug)
     set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS} -g -p -pg")
     message("-- COMPILATION IN DEBUG MODE")
 else()
-    set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS} -O3 -funroll-loops  -fomit-frame-pointer")
+    set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS} -O3")
 endif()
 
 set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -DINTEGER_KIND=${INTEGER_KIND}  -DKMER_PRECISION=${KMER_PRECISION}")

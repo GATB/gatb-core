@@ -26,11 +26,11 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 
 const char* Tool::STR_NB_CORES      = "-nb-cores";
 const char* Tool::STR_STATS_XML     = "-stats";
-const char* Tool::STR_QUIET         = "-quiet";
-const char* Tool::STR_NO_PROG_BAR   = "-no-progress-bar";
+const char* Tool::STR_VERBOSE       = "-verbose";
 const char* Tool::STR_URI_PREFIX    = "-prefix";
 const char* Tool::STR_URI_DATABASE  = "-db";
 const char* Tool::STR_URI_OUTPUT    = "-out";
+const char* Tool::STR_PROGRESS_BAR  = "-bargraph";
 const char* Tool::STR_HELP          = "-help";
 
 /*********************************************************************
@@ -54,11 +54,10 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     /** We configure this parser with some options useful for each tool. */
     _parser->add (new OptionOneParam (Tool::STR_NB_CORES,       "number of cores",                      false, "0"  ));
     _parser->add (new OptionOneParam (Tool::STR_STATS_XML,      "dump exec info into a XML file",       false       ));
-    _parser->add (new OptionNoParam  (Tool::STR_QUIET,          "quiet execution",                      false       ));
-    _parser->add (new OptionNoParam  (Tool::STR_NO_PROG_BAR,    "no progress bar",                      false       ));
+    _parser->add (new OptionNoParam  (Tool::STR_VERBOSE,        "dump execution information",           false       ));
     _parser->add (new OptionOneParam (Tool::STR_URI_PREFIX,     "prefix to be appended to temp files",  false, ""   ));
-//    _parser->add (new OptionOneParam (Tool::STR_URI_OUTPUT,     "output",                               false, ""   ));
     _parser->add (new OptionNoParam  (Tool::STR_HELP,           "display help about possible options",  false       ));
+    _parser->add (new OptionOneParam (Tool::STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
 }
 
 /*********************************************************************
@@ -173,7 +172,7 @@ void Tool::postExecute ()
     }
 
     /** We may have to dump execution information to stdout. */
-    if (_input->get(Tool::STR_QUIET) == 0)
+    if (_input->get(Tool::STR_VERBOSE))
     {
         RawDumpPropertiesVisitor visit;
         _info->accept (&visit);
@@ -190,7 +189,12 @@ void Tool::postExecute ()
 *********************************************************************/
 dp::IteratorListener* Tool::createIteratorListener (size_t nbIterations, const char* message)
 {
-    return new Progress (nbIterations, message);
+    switch (getInput()->getInt(STR_PROGRESS_BAR))
+    {
+        case 0: default:    return new IteratorListener ();
+        case 1:             return new Progress      (nbIterations, message);
+        case 2:             return new ProgressTimer (nbIterations, message);
+    }
 }
 
 /*********************************************************************

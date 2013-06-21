@@ -60,6 +60,9 @@ public:
     virtual IProperties* run (int argc, char* argv[]);
 
     /** */
+    virtual void execute () = 0;
+
+    /** */
     virtual IProperties*            getInput      ()  { return _input;      }
     virtual IProperties*            getOutput     ()  { return _output;     }
     virtual IProperties*            getInfo       ()  { return _info;       }
@@ -70,17 +73,14 @@ public:
     /** */
     template<typename Item> dp::Iterator<Item>* createIterator (dp::Iterator<Item>* iter, size_t nbIterations=0, const char* message=0)
     {
-        if (_input->get(STR_QUIET) == 0 && _input->get(STR_NO_PROG_BAR) == 0)
+        if (nbIterations > 0 && message != 0)
         {
-            if (nbIterations > 0 && message != 0)
-            {
-                //  We create some listener to be notified every 1000 iterations and attach it to the iterator.
-                dp::impl::SubjectIterator<Item>* iterSubject = new dp::impl::SubjectIterator<Item> (iter, nbIterations/100);
-                iterSubject->addObserver (createIteratorListener (nbIterations, message));
+            //  We create some listener to be notified every 1000 iterations and attach it to the iterator.
+            dp::impl::SubjectIterator<Item>* iterSubject = new dp::impl::SubjectIterator<Item> (iter, nbIterations/100);
+            iterSubject->addObserver (createIteratorListener (nbIterations, message));
 
-                /** We assign the used iterator to be the subject iterator. */
-                iter = iterSubject;
-            }
+            /** We assign the used iterator to be the subject iterator. */
+            iter = iterSubject;
         }
 
         /** We return the result. */
@@ -88,29 +88,29 @@ public:
     }
 
     /** */
+    virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
+
+    /** */
     static const char* STR_NB_CORES;
     static const char* STR_STATS_XML;
-    static const char* STR_QUIET;
-    static const char* STR_NO_PROG_BAR;
+    static const char* STR_VERBOSE;
     static const char* STR_URI_PREFIX;
     static const char* STR_URI_DATABASE;
     static const char* STR_URI_OUTPUT;
+    static const char* STR_PROGRESS_BAR;
     static const char* STR_HELP;
 
 protected:
-
-    /** */
-    virtual void execute () = 0;
 
     /** */
     virtual void preExecute  ();
     virtual void postExecute ();
 
     /** Computes the uri from an uri (ie add a prefix if any). */
-    std::string getUriByKey (const std::string& key)  { return getUri (_input->getStr(key)); }
+    std::string getUriByKey (const std::string& key)  { return getUri (getInput()->getStr(key)); }
 
     /** Computes the uri from an uri (ie add a prefix if any). */
-    std::string getUri (const std::string& str)  { return _input->getStr(STR_URI_PREFIX) + str; }
+    std::string getUri (const std::string& str)  { return getInput()->getStr(STR_URI_PREFIX) + str; }
 
     /** Setters. */
     void setInput      (IProperties*            input)       { SP_SETATTR (input);      }
@@ -136,9 +136,6 @@ private:
 
     /** */
     TimeInfo _timeInfo;
-
-    /** */
-    virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
 
     friend class ToolComposite;
 };

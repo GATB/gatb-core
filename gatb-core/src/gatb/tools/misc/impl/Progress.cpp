@@ -203,6 +203,8 @@ ProgressTimer::ProgressTimer (u_int64_t ntasks, const char* msg, std::ostream& o
 *********************************************************************/
 void ProgressTimer::postInit ()
 {
+    os << endl;
+
     /** We get the current hour (in msec) */
     heure_debut = System::time().getTimeStamp();
 }
@@ -250,8 +252,11 @@ void ProgressTimer::update ()
         rem -= min_r*60;
 
         /** We format the string to be displayed. */
-        snprintf (buffer, sizeof(buffer), "%c%-5.3g  %%     elapsed: %6i min %-4.0f  sec      estimated remaining: %6i min %-4.0f  sec ",
-            13,100*(double)done/todo,min_e,elapsed,min_r,rem
+        snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g  %%     elapsed: %6i min %-4.0f  sec      estimated remaining: %6i min %-4.0f  sec ",
+            13,
+            message.c_str(),
+            100*(double)done/todo,
+            min_e,elapsed,min_r,rem
         );
 
         /** We dump the string. */

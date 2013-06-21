@@ -14,7 +14,11 @@
 #ifndef _GATB_CORE_DP_ITERATOR_IMPL_COMMAND_HPP_
 #define _GATB_CORE_DP_ITERATOR_IMPL_COMMAND_HPP_
 
+#include <gatb/system/impl/System.hpp>
 #include <gatb/tools/designpattern/api/ICommand.hpp>
+#include <gatb/tools/misc/api/Macros.hpp>
+
+#include <list>
 
 /********************************************************************************/
 namespace gatb  {
@@ -99,6 +103,37 @@ private:
 
     /** Number of execution units to be used for command dispatching. */
     size_t _nbUnits;
+};
+
+/********************************************************************************/
+
+class IteratorFunctor
+{
+public:
+
+    IteratorFunctor ()  {}
+
+    ~IteratorFunctor ()
+    {
+        /** We delete only synchronizers that have been deleted by the current instance. */
+        for (std::list<Item>::iterator it = _synchros.begin(); it != _synchros.end(); it++)
+        {
+            if (this == it->first &&  it->second != 0)  { delete it->second; }
+        }
+    }
+
+    system::ISynchronizer* newSynchro ()
+    {
+        system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer ();
+        _synchros.push_back (Item(this,synchro));
+        return synchro;
+    }
+
+private:
+
+    typedef std::pair <IteratorFunctor*, system::ISynchronizer*> Item;
+
+    std::list <Item>_synchros;
 };
 
 /********************************************************************************/

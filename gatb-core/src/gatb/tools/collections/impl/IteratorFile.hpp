@@ -87,10 +87,9 @@ public:
     Item& item ()  { return *(this->_item); }
 
     /** */
-    size_t fill (std::vector<Item>& vec)
+    size_t fill (std::vector<Item>& vec, size_t len=0)
     {
-        u_int64_t len = _file->getSize() / sizeof (Item);
-        vec.resize(len);
+        if (len==0)  { len = vec.size(); }
         return _file->fread (vec.data(), sizeof(Item), len);
     }
 

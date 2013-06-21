@@ -205,6 +205,10 @@ public:
 
     /** Associate a message to the listener. */
     virtual void setMessage (const char* format, ...)  {}
+
+    /** Set the current number of tasks done.
+     * \param[in] ntasks_done :  sets the current number of job done. */
+    virtual void set (u_int64_t ntasks_done) {}
 };
 
 /********************************************************************************/

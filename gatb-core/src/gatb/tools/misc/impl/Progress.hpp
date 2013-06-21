@@ -92,6 +92,8 @@ protected:
     double        steps ; //steps = _todo/subidv
     std::ostream& os;
     char          buffer[256];
+
+    friend class ProgressProxy;
 };
 
 /********************************************************************************/
@@ -112,6 +114,9 @@ public:
      */
     ProgressTimer (u_int64_t ntasks, const char* msg, std::ostream& os=std::cerr);
 
+    /** Initialization of the object. */
+    void init ()  { postInit (); }
+
 protected:
 
     void update ();
@@ -120,6 +125,58 @@ protected:
 
     system::ITime::Value  heure_debut;
     system::ITime::Value  heure_actuelle;
+};
+
+/********************************************************************************/
+
+/** \brief Proxy for Progress class  */
+class ProgressProxy : public dp::IteratorListener
+{
+public:
+
+    ProgressProxy (dp::IteratorListener* ref)  : _ref(ref) {}
+
+    /** Initialization of the object. */
+    void init ()  { _ref->init(); }
+
+    /** Finish the progress information. */
+    void finish () { _ref->finish (); }
+
+    /** Increase the number of currently done tasks.
+     * \param[in] ntasks_done : amount of job done before previous call. */
+    void inc (u_int64_t ntasks_done)  { _ref->inc (ntasks_done); }
+
+    /** Set the current number of tasks done.
+     * \param[in] ntasks_done :  sets the current number of job done. */
+    void set (u_int64_t ntasks_done)  { _ref->set (ntasks_done); }
+
+    /** \copydoc dp::impl::IteratorListener::setMessage*/
+    void setMessage (const char* format, ...)  { _ref->setMessage (format); }
+
+private:
+    dp::IteratorListener* _ref;
+};
+
+/********************************************************************************/
+
+/** \brief Synchro for Progress class  */
+class ProgressSynchro : public ProgressProxy
+{
+public:
+
+    ProgressSynchro (dp::IteratorListener* ref, system::ISynchronizer* synchro)
+        : ProgressProxy (ref), _synchro(synchro){}
+
+    void inc (u_int64_t ntasks_done)
+    {
+        _synchro->lock ();
+        ProgressProxy::inc (ntasks_done);
+        _synchro->unlock ();
+    }
+
+private:
+
+    system::ISynchronizer* _synchro;
 };
 
 /********************************************************************************/

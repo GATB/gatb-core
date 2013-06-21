@@ -29,7 +29,7 @@ namespace gatb  { namespace core  {  namespace kmer  {  namespace impl {
 /********************************************************************************/
 
 /********************************************************************************/
-class BuildKmerBloom : public tools::dp::IteratorFunctor
+class BuildKmerBloom : public tools::dp::impl::IteratorFunctor
 {
 public:
     void operator() (const kmer_type& kmer)  {  _bloom.insert(kmer); }
