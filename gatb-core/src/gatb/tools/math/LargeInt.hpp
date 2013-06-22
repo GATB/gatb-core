@@ -354,6 +354,7 @@ private:
 
     template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
     template<int T>  friend u_int64_t   hash    (const LargeInt<T>& key, u_int64_t  seed);
+    template<int T>  friend u_int64_t   simplehash16    (const LargeInt<T>& key, int  shift);
 
     // c++ fun fact:
     // "const" will ban the function from being anything which can attempt to alter any member variables in the object.
@@ -392,6 +393,19 @@ template<int precision>  inline u_int64_t hash (const LargeInt<precision>& elem,
     return result;
 }
 
+/********************************************************************************/
+template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision>& elem, int  shift)
+{
+    u_int64_t result = 0, chunk, mask = ~0;
+    LargeInt<precision> intermediate = elem;
+    
+    chunk = (intermediate & mask).array[0];
+    result ^= NativeInt64::simplehash16_64 (chunk,shift);
+
+    return result;
+}
+
+    
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

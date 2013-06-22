@@ -210,6 +210,62 @@ public:
         }
     }
 };
+    
+
+/********************************************************************************/
+/** \brief Bloom filter implementation
+ */
+template <typename Item> class BloomCacheCoherent : public Bloom<Item>
+{
+public:
+    
+    /** \copydoc BloomContainer::BloomContainer */
+    BloomCacheCoherent (u_int64_t tai_bloom, size_t nbHash = 4,size_t block_nbits = 12)  : Bloom<Item> (tai_bloom + (1<<block_nbits), nbHash),_nbits_BlockSize(block_nbits)
+    {
+        _mask_block = (1<<_nbits_BlockSize) - 1;
+        _reduced_tai = this->tai -  (1<<_nbits_BlockSize) ;
+    }
+    
+    /** \copydoc Bag::insert. */
+    void insert (const Item& item)
+    {
+        
+        _hash0 = this->_hash (item,0) % _reduced_tai;
+        this->blooma [_hash0 >> 3] |= bit_mask[_hash0 & 7];
+        
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+           //  u_int64_t h1 =  _hash0  + ( this->_hash (item,i) & _mask_block);
+            u_int64_t h1 =  _hash0  + (simplehash16( item, i) & _mask_block ); // with simplest hash
+            this->blooma [h1 >> 3] |= bit_mask[h1 & 7];
+        }
+    }
+    
+    
+    /** \copydoc Container::contains. */
+    bool contains (const Item& item)
+    {
+        _hash0 = _hash (item,0) % _reduced_tai;
+        if ((this->blooma[_hash0 >> 3 ] & bit_mask[_hash0 & 7]) != bit_mask[_hash0 & 7])  {  return false;  }
+        
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+          //  u_int64_t h1 =  _hash0  + ( this->_hash (item,i) & _mask_block);
+            u_int64_t h1 =  _hash0  + (simplehash16( item, i) & _mask_block );// with simplest hash
+
+            if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+        }
+        return true;
+    }
+    
+    
+private:
+    u_int64_t _hash0;
+    u_int64_t _mask_block;
+    size_t _nbits_BlockSize;
+    u_int64_t _reduced_tai;
+
+};
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */

@@ -21,6 +21,7 @@
 
 extern const unsigned char revcomp_4NT[];
 extern const unsigned char comp_NT    [];
+extern const u_int64_t random_values    [256];
 
 /********************************************************************************/
 namespace gatb  {
@@ -118,12 +119,30 @@ public:
         hash = hash + (hash << 31);
         return hash;
     }
+    /********************************************************************************/
+    /** computes a simple, naive hash using only 16 bits from input key
+     * \param[shift] in : selects which of the input byte will be used for hash computation
+     */
+    inline static  u_int64_t    simplehash16_64   (u_int64_t key, int  shift)
+    {
+        u_int64_t input = key >> shift;
+        u_int64_t res = random_values[input & 255]   ;
+        
+        input = input  >> 8;
+        res  ^= random_values[input & 255] ;
+        
+        return res;
+        //could be improved by xor'ing result of multiple bytes
+    }
 
+    
 private:
     u_int64_t value;
 
     friend NativeInt64 revcomp (const NativeInt64& i,   size_t sizeKmer);
     friend u_int64_t    hash    (const NativeInt64& key, u_int64_t  seed);
+    friend u_int64_t    simplehash16    (const NativeInt64& key, int  shift);
+
 };
 
 /********************************************************************************/
@@ -136,6 +155,13 @@ inline NativeInt64 revcomp (const NativeInt64& x, size_t sizeKmer)
 inline u_int64_t hash (const NativeInt64& key, u_int64_t seed)
 {
     return NativeInt64::hash64 (key.value, seed);
+}
+    
+    
+/********************************************************************************/
+inline u_int64_t simplehash16 (const NativeInt64& key, int  shift)
+{
+    return NativeInt64::simplehash16_64 (key.value, shift);
 }
 
 /********************************************************************************/
