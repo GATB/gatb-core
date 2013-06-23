@@ -99,6 +99,10 @@ int main (int argc, char* argv[])
     double  expected_FP  = pow(0.6185,ratio);
     double  measured_FP  = 0;
 
+    
+    double  expected_F_k  =  pow (1.0 - exp(- (double )(nhash *nelems) / (double)bloomsize),nhash);
+
+    
     int ideal_nb_hash =   (int)floorf (0.7*ratio);
     
      srandomdev(); 
@@ -147,17 +151,22 @@ int main (int argc, char* argv[])
         //////////////////////// testing fp rate with random elements
         
         delete bloom;
-       // bloom =  new Bloom<kmer_type> (bloomsize,nhash);
-        bloom =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash,12);
+      //  bloom =  new Bloom<kmer_type> (bloomsize,nhash);
+        bloom =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash);
+
+        BloomCacheCoherent<kmer_type>* bloomcc =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash,12);
 
         //insert n randoms
         for(int ii = 0; ii<nelems; ii++)
         {
             kmer_random = random64();
             bloom->insert(kmer_random);
+            bloomcc->insert(kmer_random);
         }
         
         uint64_t ntrue = 0;
+        uint64_t ntruecc = 0;
+
         uint64_t ntested = 10000000;
 
         for(int ii = 0; ii<ntested; ii++)
@@ -168,12 +177,19 @@ int main (int argc, char* argv[])
             {
                 ntrue++;
             }
+            
+            if (bloomcc->contains(kmer_random)) 
+            {
+                ntruecc++;
+            }
         }
         
         measured_FP =  ntrue / (double) ntested ;
         
         //printf("expected FP rate : %g \n",expected_FP);
         //printf("measured FP rate : %g \n",measured_FP);
+        
+        char temp[250];
         
         res.add (0, "Bloom tested", "");
         res.add (1, "Size T in bits ", "%lli",bloomsize);
@@ -189,8 +205,15 @@ int main (int argc, char* argv[])
         
         res.add (0, "False positive rate", "");
         res.add (1, "ideal nb hash func would be ", "%i", ideal_nb_hash);
-        res.add (1, "expected ideal FP rate ", "%g", expected_FP);
-        res.add (1, "measured FP with T,N,nb", "%g", measured_FP);
+        
+        sprintf(temp,"expected theoretical with %i hash",ideal_nb_hash);
+        res.add (1, temp, "%g", expected_FP);
+        
+        sprintf(temp,"expected theoretical with %lli hash",nhash);
+        res.add (1, temp, "%g", expected_F_k);
+
+        res.add (1, "measured FP, standard bloom", "%g", measured_FP);
+        res.add (1, "measured FP, bloomCacheCoherent", "%g",  ntruecc / (double) ntested);
 
         
         RawDumpPropertiesVisitor visit;
