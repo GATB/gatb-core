@@ -107,6 +107,8 @@ public:
         return result;
     }
 
+    
+    
     /********************************************************************************/
     LargeInt operator*(const int& coeff) const
     {
@@ -190,6 +192,18 @@ public:
         return result;
     }
 
+    /********************************************************************************/
+    LargeInt operator|(const LargeInt& other) const
+    {
+        LargeInt result;
+        for (int i=0 ; i < precision ; i++)
+            result.array[i] = array[i] | other.array[i];
+        
+        assert(precision != 1 || (result == (array[0] | other.array[0])));
+        assert128(result.toInt128() == (toInt128() | other.toInt128()));
+        return result;
+    }
+    
     /********************************************************************************/
     LargeInt operator&(const LargeInt& other) const
     {

@@ -49,6 +49,7 @@ public:
 
     NativeInt128 operator+  (const NativeInt128& other)     const   {  return value + other.value;  }
     NativeInt128 operator-  (const NativeInt128& other)     const   {  return value - other.value;  }
+    NativeInt128 operator|  (const NativeInt128& other)     const   {  return value | other.value;  }
     NativeInt128 operator*  (const int& coeff)              const   {  return value * coeff;        }
     NativeInt128 operator/  (const u_int32_t& divisor)      const   {  return value / divisor;      }
     u_int32_t    operator%  (const u_int32_t& divisor)      const   {  return value % divisor;      }
