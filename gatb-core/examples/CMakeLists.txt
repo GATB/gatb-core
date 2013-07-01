@@ -10,5 +10,5 @@ list (APPEND PROGRAMS kmer1 kmer2 kmer3 kmer4 kmer5 kmer6)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
-  target_link_libraries(${program} GatbTools-static   dl pthread z)
+  target_link_libraries(${program} ${gatb-core-libraries})
 ENDFOREACH (program)

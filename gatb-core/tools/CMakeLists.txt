@@ -8,5 +8,5 @@ list (APPEND PROGRAMS ClearCache KmerChecksum)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
-  target_link_libraries(${program} GatbTools-static   dl  pthread  z  ${OMP})
+  target_link_libraries(${program} ${gatb-core-libraries})
 ENDFOREACH (program)

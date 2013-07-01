@@ -9,9 +9,11 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 ################################################################################
-# DEFINE INTEGER CLASS TO BE USED
+# Include external cmake files
 ################################################################################
 include (DefineInteger)
+include (CppUnit)
+
 DefineInteger (k)
 
 ################################################################################
@@ -44,18 +46,6 @@ message("-- Options: ${COMPILE_DEFINITIONS}")
 add_definitions (${COMPILE_DEFINITIONS})
 
 ################################################################################
-# OPERATING SYSTEM SPECIFIC
-################################################################################
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    add_definitions(-D__WINDOWS__)
-    # IMPORTANT ! we have to add this flag for getting correct methods names in the library    
-    # otherwise the Java JVM won't find the native JNI methods.
-    set_target_properties (PlastLibrary PROPERTIES LINK_FLAGS -Wl,--kill-at)
-    set_target_properties (PlastLibrary PROPERTIES PREFIX "")
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-
-
-################################################################################
 #  LIBRARY GENERATION 
 ################################################################################
 
@@ -71,24 +61,30 @@ add_library    (GatbTools-static  STATIC  ${ComponentFiles} )
 set_target_properties (GatbTools-static   PROPERTIES OUTPUT_NAME  GatbTools  clean_direct_output 1)
 #set_target_properties (GatbTools-dynamic  PROPERTIES OUTPUT_NAME  GatbTools  clean_direct_output 1)
 
-
 ################################################################################
 #  EXPORT FOR THIRD PARTIES 
 ################################################################################
 
 # We define the compilation flags used for compiling binary based on gatb core
-set (gatb-core-flags ${COMPILE_DEFINITIONS} PARENT_SCOPE)
+set (gatb-core-flags ${COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
-set (gatb-core-includes   ${CMAKE_CURRENT_SOURCE_DIR}/src  ${CMAKE_CURRENT_SOURCE_DIR}/src/gatb/tools  PARENT_SCOPE)
+set (gatb-core-includes   ${CMAKE_CURRENT_SOURCE_DIR}/src  ${CMAKE_CURRENT_SOURCE_DIR}/src/gatb/tools)
 
 # We define the libraries used for linking binary based on gatb core
-set (gatb-core-libraries   GatbTools-static  dl  pthread  z  ${OpenMP_C_FLAGS}  PARENT_SCOPE)
+set (gatb-core-libraries   GatbTools-static  dl  pthread  z  ${OpenMP_C_FLAGS})
+
+# NOTE... we have to duplicate the variables for the other scopes (in particular for sub directories)
+set (gatb-core-flags     ${gatb-core-flags}     PARENT_SCOPE)
+set (gatb-core-includes  ${gatb-core-includes}  PARENT_SCOPE)
+set (gatb-core-libraries ${gatb-core-libraries} PARENT_SCOPE)
 
 ################################################################################
 #  UNIT TESTS GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(test)
+IF (DEFINED CPPUNIT_FOUND)
+    ADD_SUBDIRECTORY(test )
+ENDIF()
 
 ################################################################################
 #  DOCUMENTATION GENERATION 
