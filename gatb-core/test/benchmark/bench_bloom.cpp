@@ -120,60 +120,91 @@ int main (int argc, char* argv[])
         /** We create a bloom with inserted solid kmers. */
         kmer_type kmertemp;
       //  Bloom<kmer_type>* bloom =  new Bloom<kmer_type> (bloomsize,nhash);
-        BloomCacheCoherent<kmer_type>* bloom =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash,12);
+        BloomCacheCoherent<kmer_type>* bloomcc =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash,12);
+        Bloom<kmer_type>*    bloom_std =  new Bloom<kmer_type> (bloomsize,nhash);
 
-        _timeInfo.start ("Inserting N elements");
+        //testing bloom cache coherent
+        _timeInfo.start ("Inserting N elements cache_coherent");
 
         for(int ii =0; ii<nelems; ii++)
         {
-            bloom->insert(kmer_current);
+            bloomcc->insert(kmer_current);
             kmer_current = kmer_current +1;
         }
-        _timeInfo.stop ("Inserting N elements");
+        _timeInfo.stop ("Inserting N elements cache_coherent");
         
 
         
         
         //we query the elements just inserted, ie only positive elements
-        _timeInfo.start ("Query N elements");
+        _timeInfo.start ("Query N elements cache_coherent");
         kmer_current = start;
         for(int ii =0; ii<nelems; ii++)
         {
             
-            resu+=bloom->contains(kmer_current);
+            resu+=bloomcc->contains(kmer_current);
             kmer_current = kmer_current +1;
 
         }
-        _timeInfo.stop ("Query N elements");
+        _timeInfo.stop ("Query N elements cache_coherent");
+        
+        
+        //testing bloom std
+        _timeInfo.start ("Inserting N elements std");
+        kmer_current = start;
+        for(int ii =0; ii<nelems; ii++)
+        {
+            bloom_std->insert(kmer_current);
+            kmer_current = kmer_current +1;
+        }
+        _timeInfo.stop ("Inserting N elements std");
         
         
         
-        //////////////////////// testing fp rate with random elements
         
-        delete bloom;
-      //  bloom =  new Bloom<kmer_type> (bloomsize,nhash);
-        bloom =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash);
+        //we query the elements just inserted, ie only positive elements
+        _timeInfo.start ("Query N elements std");
+        kmer_current = start;
+        for(int ii =0; ii<nelems; ii++)
+        {
+            
+            resu+=bloom_std->contains(kmer_current);
+            kmer_current = kmer_current +1;
+            
+        }
+        _timeInfo.stop ("Query N elements std");
+        
+        
+        
+        
+        uint64_t ntrue = 0;
+        uint64_t ntruecc = 0;
+        uint64_t ntested = 10000000;
 
-        BloomCacheCoherent<kmer_type>* bloomcc =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash,12);
+        //////////////////////// testing fp rate with random elements
+      
+        delete bloom_std;
+       bloom_std =  new Bloom<kmer_type> (bloomsize,nhash);
+
+        delete bloomcc;
+        bloomcc =  new BloomCacheCoherent<kmer_type> (bloomsize,nhash,12);
 
         //insert n randoms
         for(int ii = 0; ii<nelems; ii++)
         {
             kmer_random = random64();
-            bloom->insert(kmer_random);
+            bloom_std->insert(kmer_random);
             bloomcc->insert(kmer_random);
         }
         
-        uint64_t ntrue = 0;
-        uint64_t ntruecc = 0;
 
-        uint64_t ntested = 10000000;
+
 
         for(int ii = 0; ii<ntested; ii++)
         {
             kmer_random = random64(); // we expect it not be in the bloom
             
-            if (bloom->contains(kmer_random)) // FP
+            if (bloom_std->contains(kmer_random)) // FP
             {
                 ntrue++;
             }

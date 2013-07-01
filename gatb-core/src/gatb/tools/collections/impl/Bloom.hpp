@@ -230,32 +230,56 @@ public:
     void insert (const Item& item)
     {
         
+        uint64_t tab_keys [20]; // todo put this val somewhere (max nb hash)
+        
         _hash0 = this->_hash (item,0) % _reduced_tai;
+        __builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 1, 3); //preparing for write
+
+        //compute hashes during prefetch
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+            tab_keys[i]=_hash0  + (simplehash16( item, i) & _mask_block ); 
+        }
+        //  u_int64_t h1 =  _hash0  + ( this->_hash (item,i) & _mask_block);
+
         this->blooma [_hash0 >> 3] |= bit_mask[_hash0 & 7];
         
         for (size_t i=1; i<this->n_hash_func; i++)
         {
-           //  u_int64_t h1 =  _hash0  + ( this->_hash (item,i) & _mask_block);
-            u_int64_t h1 =  _hash0  + (simplehash16( item, i) & _mask_block ); // with simplest hash
+            u_int64_t h1 =  tab_keys[i];
             this->blooma [h1 >> 3] |= bit_mask[h1 & 7];
         }
+        
+        
     }
     
     
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
+
+        uint64_t tab_keys [20];
+
         _hash0 = _hash (item,0) % _reduced_tai;
+        __builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 0, 3); //preparing for read
+
+        //compute all hashes during prefetch
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+           tab_keys[i] =  _hash0  + (simplehash16( item, i) & _mask_block );// with simplest hash
+            
+        }
+        
+        
         if ((this->blooma[_hash0 >> 3 ] & bit_mask[_hash0 & 7]) != bit_mask[_hash0 & 7])  {  return false;  }
         
         for (size_t i=1; i<this->n_hash_func; i++)
         {
-          //  u_int64_t h1 =  _hash0  + ( this->_hash (item,i) & _mask_block);
-            u_int64_t h1 =  _hash0  + (simplehash16( item, i) & _mask_block );// with simplest hash
-
+            u_int64_t h1 = tab_keys[i];
             if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
         }
         return true;
+        
     }
     
     
