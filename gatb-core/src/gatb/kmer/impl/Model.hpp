@@ -102,7 +102,15 @@ public:
         /** We compute the first kmer as a polynomial value. */
         kmer_type graine  = ModelAbstract<kmer_type>::codeSeed (data->getBuffer(), data->getEncoding(), KMER_DIRECT);
         kmer_type revcomp = ModelAbstract<kmer_type>::codeSeed (data->getBuffer(), data->getEncoding(), KMER_REVCOMP);
-        kmersBuffer[0]    = std::min (graine, revcomp);
+        if(mode == KMER_MINIMUM)
+        {
+            kmersBuffer[0]    = std::min (graine, revcomp);
+        }
+        else if (mode == KMER_DIRECT)
+        {
+            kmersBuffer[0]    = graine;
+        }
+        else  {  throw system::Exception ("BAD KMER MODE");  }
 
         /** NOTE: we have some kind of duplicated code here: the only difference is the way we retrieve the 'c'
          *  character according toe the encoding mode. We could have some function pointer for factorizing this.
