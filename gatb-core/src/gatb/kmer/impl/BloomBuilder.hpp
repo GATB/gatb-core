@@ -17,9 +17,14 @@
 /********************************************************************************/
 
 #include <gatb/kmer/impl/Model.hpp>
+
 #include <gatb/tools/collections/impl/Bloom.hpp>
+
 #include <gatb/tools/designpattern/api/Iterator.hpp>
+#include <gatb/tools/designpattern/impl/Command.hpp>
+
 #include <gatb/tools/misc/api/IProperty.hpp>
+#include <gatb/tools/misc/impl/TimeInfo.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -32,27 +37,61 @@ namespace impl      {
  *
  * This class is a builder of a bloom filter in which we insert kmers.
  */
-class BloomBuilder
+template<typename T> class BloomBuilder
 {
 public:
 
     /** */
-    BloomBuilder (tools::dp::Iterator<kmer_type>* itKmers, size_t bloomSize, size_t nbHash, size_t nbCores=0);
+    BloomBuilder (tools::dp::Iterator<T>* itKmers, size_t bloomSize, size_t nbHash, size_t nbCores=0)
+        : _itKmers (0), _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores)
+    {
+        setItKmers (itKmers);
+    }
 
     /** */
-    ~BloomBuilder ();
+    ~BloomBuilder ()  {  setItKmers (0);  }
 
     /** */
-    tools::collections::impl::Bloom<kmer_type>*  build (tools::misc::IProperties* stats = 0);
+    tools::collections::impl::Bloom<T>*  build (tools::misc::IProperties* stats = 0)
+    {
+        tools::misc::impl::TimeInfo ti;
+        TIME_INFO (ti, "build kmers bloom");
+
+        /** We instantiate the bloom object. */
+        tools::collections::impl::Bloom<T>* bloom = new tools::collections::impl::BloomSynchronized<T> (_bloomSize, _nbHash);
+
+        /** We launch the bloom fill. */
+        tools::dp::impl::ParallelCommandDispatcher(_nbCores).iterate (_itKmers,  BuildKmerBloom (*bloom));
+
+        /** We gather some statistics. */
+        if (stats != 0)
+        {
+            stats->add (0, "bloom");
+            stats->add (1, "filter size", "%d", _bloomSize);
+            stats->add (1, "nb hash fct", "%d", _nbHash);
+        }
+
+        /** We return the created bloom filter. */
+        return bloom;
+    }
 
 private:
 
-    tools::dp::Iterator<kmer_type>* _itKmers;
-    void setItKmers (tools::dp::Iterator<kmer_type>* itKmers)  { SP_SETATTR(itKmers); }
+    tools::dp::Iterator<T>* _itKmers;
+    void setItKmers (tools::dp::Iterator<T>* itKmers)  { SP_SETATTR(itKmers); }
 
     size_t _bloomSize;
     size_t _nbHash;
     size_t _nbCores;
+
+    /********************************************************************************/
+    class BuildKmerBloom : public tools::dp::impl::IteratorFunctor
+    {
+    public:
+        void operator() (const T& kmer)  {  _bloom.insert(kmer); }
+        BuildKmerBloom (tools::collections::impl::Bloom<T>& bloom)  : _bloom(bloom) {}
+        tools::collections::impl::Bloom<T>& _bloom;
+    };
 };
 
 /********************************************************************************/
