@@ -184,6 +184,11 @@ public:
       * \param[in] path : path of the file to be removed from the file system. */
      virtual int remove (const Path& path) = 0;
 
+     /** Rename the provided uri
+      * \param[in] from : initial name.
+      * \param[in] to : final name. */
+     virtual int rename (const Path& from, const Path& to) = 0;
+
      /** Iterates entries of a directory.
       * \param[in] path : path of the directory to be iterated
       * \param[in] callback : callback called for each found entry
