@@ -159,6 +159,10 @@ public:
         /** Tells whether the iteration is finished or not. */
         bool _isDone;
 
+        /* Number of time next has been called   */
+        
+        u_int64_t   _nIters;
+        
         /** Initialization method. */
         void init ();
 
