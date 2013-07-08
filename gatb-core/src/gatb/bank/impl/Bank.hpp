@@ -47,6 +47,9 @@ class Bank : public AbstractBank
 {
 public:
 
+    /** Returns the name of the bank format. */
+    static const char* name()  { return "fasta"; }
+
     /** Constructor.
      * \param[in] filenames : uri list of the banks. */
     Bank (const std::vector<std::string>& filenames);
@@ -172,6 +175,8 @@ public:
 
         bool get_next_seq_from_file (tools::misc::Vector<char>& data, int file_id);
         bool get_next_seq_from_file (tools::misc::Vector<char>& data, std::string& comment, int file_id, CommentMode_e mode);
+
+        size_t _index;
     };
 
 protected:
@@ -189,6 +194,16 @@ protected:
 
     /** Initialization method (compute the file sizes). */
     void init ();
+};
+
+/********************************************************************************/
+
+/** */
+class BankFactory : public IBankFactory
+{
+public:
+
+    IBank* createBank (const std::string& uri) { return new Bank (uri); }
 };
 
 /********************************************************************************/
