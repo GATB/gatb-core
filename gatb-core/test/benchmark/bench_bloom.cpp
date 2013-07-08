@@ -59,7 +59,7 @@ using namespace gatb::core::tools::collections::impl;
 using namespace gatb::core::tools::math;
 
 #define MAX_RANDOM 2147483648
-
+#define srandomdev() srand((unsigned) time(NULL))
 
 uint64_t random64 ()
 {
