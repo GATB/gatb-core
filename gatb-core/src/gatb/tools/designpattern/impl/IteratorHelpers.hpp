@@ -485,26 +485,31 @@ public:
     /** Constructor.
      * \param[in] ref : the referred iterator
      * \param[in] filter : the filter on items. Returns true if item is kept, false otherwise. */
-    FilterIterator (Iterator<Item>& ref, Filter& filter) : _ref(ref), _filter(filter)  {}
+    FilterIterator (Iterator<Item>* ref, Filter& filter) : _ref(0), _filter(filter)  { setRef(ref); }
+
+    /** Destructor. */
+    ~FilterIterator ()  { setRef(0); }
 
     /** \copydoc  Iterator::first */
-    void first() { _ref.first(); while (!isDone() && _filter(item())==false) { _ref.next(); }  }
+    void first() { _ref->first(); while (!isDone() && _filter(item())==false) { _ref->next(); }  }
 
     /** \copydoc  Iterator::next */
-    void next()  { _ref.next();  while (!isDone() && _filter(item())==false) { _ref.next(); }  }
+    void next()  { _ref->next();  while (!isDone() && _filter(item())==false) { _ref->next(); }  }
 
     /** \copydoc  Iterator::isDone */
-    bool isDone() { return _ref.isDone();  }
+    bool isDone() { return _ref->isDone();  }
 
     /** \copydoc  Iterator::item */
-    Item& item ()  { return _ref.item(); }
+    Item& item ()  { return _ref->item(); }
 
     /** \copydoc  Iterator::setItem */
-    void setItem (Item& i)  { _ref.setItem(i); }
+    void setItem (Item& i)  { _ref->setItem(i); }
 
 private:
 
-    Iterator<Item>& _ref;
+    Iterator<Item>* _ref;
+    void setRef (Iterator<Item>* ref)  { SP_SETATTR(ref); }
+
     Filter&         _filter;
 };
 
