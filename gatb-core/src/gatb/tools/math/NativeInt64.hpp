@@ -153,7 +153,7 @@ inline NativeInt64 revcomp (const NativeInt64& x, size_t sizeKmer)
 }
 
 /********************************************************************************/
-inline u_int64_t hash (const NativeInt64& key, u_int64_t seed)
+inline u_int64_t hash (const NativeInt64& key, u_int64_t seed=0)
 {
     return NativeInt64::hash64 (key.value, seed);
 }

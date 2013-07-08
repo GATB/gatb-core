@@ -116,7 +116,7 @@ public:
     ~IteratorFunctor ()
     {
         /** We delete only synchronizers that have been deleted by the current instance. */
-        for (std::list<Item>::iterator it = _synchros.begin(); it != _synchros.end(); it++)
+        for (std::list<IteratorFunctorItem>::iterator it = _synchros.begin(); it != _synchros.end(); it++)
         {
             if (this == it->first &&  it->second != 0)  { delete it->second; }
         }
@@ -125,15 +125,15 @@ public:
     system::ISynchronizer* newSynchro ()
     {
         system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer ();
-        _synchros.push_back (Item(this,synchro));
+        _synchros.push_back (IteratorFunctorItem(this,synchro));
         return synchro;
     }
 
+
 private:
 
-    typedef std::pair <IteratorFunctor*, system::ISynchronizer*> Item;
-
-    std::list <Item>_synchros;
+    typedef std::pair <IteratorFunctor*, system::ISynchronizer*> IteratorFunctorItem;
+    std::list <IteratorFunctorItem>_synchros;
 };
 
 /********************************************************************************/

@@ -19,6 +19,7 @@
 #include <gatb/tools/collections/api/Container.hpp>
 #include <gatb/tools/collections/api/Bag.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <gatb/system/api/types.hpp>
 
 /********************************************************************************/
 namespace gatb          {
