@@ -44,6 +44,9 @@ class BankBinary : public AbstractBank
 {
 public:
 
+    /** Returns the name of the bank format. */
+    static const char* name()  { return "binary"; }
+
     /** Constructor.
      * \param[in] filename : uri of the bank. */
     BankBinary (const std::string& filename);
@@ -115,6 +118,8 @@ public:
         unsigned int  read_write_buffer_size;
 
         FILE* binary_read_file;
+
+        size_t _index;
     };
 
 protected:
@@ -129,6 +134,16 @@ protected:
 
     void open  (bool write);
     void close ();
+};
+
+/********************************************************************************/
+
+/** */
+class BankBinaryFactory : public IBankFactory
+{
+public:
+
+    IBank* createBank (const std::string& uri) { return new BankBinary (uri); }
 };
 
 /********************************************************************************/

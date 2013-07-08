@@ -247,7 +247,7 @@ void BankBinary::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& m
 BankBinary::Iterator::Iterator (BankBinary& ref)
     : _ref(ref), _isDone(true), cpt_buffer(0), blocksize_toread(0), nseq_lues(0),
       read_write_buffer_size(BINREADS_BUFFER), binary_read_file(0),
-      _bufferData (0)
+      _bufferData (0), _index(0)
 {
 }
 
@@ -349,6 +349,9 @@ void BankBinary::Iterator::next ()
         /** We update the information of the current sequence.
          * NOTE: we keep the original size of the data, not the compressed one. */
         _item->setDataRef (_bufferData, cpt_buffer, len);
+
+        /** We set the sequence index. */
+        _item->setIndex (_index++);
 
         /** We go ahead in the file parsing. */
         cpt_buffer += nchar;
