@@ -17,6 +17,8 @@
 #include <gatb/system/impl/System.hpp>
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
+#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/BankHelpers.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
@@ -59,6 +61,8 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_checkEstimateNbSequences);
         CPPUNIT_TEST_GATB (bank_checkProgress);
         CPPUNIT_TEST_GATB (bank_checkConvertBinary);
+        CPPUNIT_TEST_GATB (bank_checkRegistery1);
+        CPPUNIT_TEST_GATB (bank_checkRegistery2);
         //CPPUNIT_TEST_GATB (bank_perf1);
 
     CPPUNIT_TEST_SUITE_GATB_END();
@@ -587,6 +591,50 @@ public:
             totalSize, t1-t0,
             (double)totalSize / (double) (t1-t0) / 1024 / 1024 * 1000
         );
+    }
+
+    /********************************************************************************/
+    void bank_checkRegistery_aux (const string& bankformat, const string& bankuri, size_t nbCheck)
+    {
+        /** We get the default factory. */
+        IBankFactory* factory = BankRegistery::singleton().getFactory (bankformat);
+
+        /** We create a bank handle. */
+        IBank* bank = factory->createBank (DBPATH(bankuri));
+        LOCAL (bank);
+
+        /** We create a bank iterator. */
+        Iterator<Sequence>* itSeq = bank->iterator();
+        LOCAL (itSeq);
+
+        u_int64_t nbSeq = 0;
+
+        /** We loop over sequences. */
+        for (itSeq->first(); !itSeq->isDone(); itSeq->next())  {  nbSeq++;  }
+
+        CPPUNIT_ASSERT (nbSeq == nbCheck);
+    }
+
+    /********************************************************************************/
+    void bank_checkRegistery1 ()
+    {
+        bank_checkRegistery_aux (Bank::name(), "sample1.fa", 20);
+    }
+
+    /********************************************************************************/
+    // We a define a functor that will be called during iteration for filtering some items.
+    struct FilterFunctor  {  bool operator ()  (Sequence& seq)   {  return seq.getIndex() % 2 == 0; } };
+
+    void bank_checkRegistery2 ()
+    {
+        /** We register our custom bank format. */
+        BankRegistery::singleton().registerFactory (
+            "customfasta",
+            new BankFilteredFactory<FilterFunctor> ("fasta", FilterFunctor())
+        );
+
+        /** We should have only half the number of sequences of the original database. */
+        bank_checkRegistery_aux ("customfasta", "sample1.fa", 10);
     }
 };
 
