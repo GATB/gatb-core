@@ -291,6 +291,9 @@ void Bank::Iterator::first()
 
     index_file = 0;
     _isDone = false;
+    
+    _nIters = 0;
+    
     next();
 }
 
@@ -314,6 +317,10 @@ void Bank::Iterator::next()
     {
         _isDone = get_next_seq (_item->getData(), _item->_comment, _commentsMode) == false;
     }
+    
+    _item->_seqNum = _nIters;
+    _nIters ++;
+    
     DEBUG (("Bank::Iterator::next  _isDone=%d\n", _isDone));
 }
 

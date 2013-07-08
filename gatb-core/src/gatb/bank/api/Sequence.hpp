@@ -41,6 +41,9 @@ struct Sequence
     /** \return the data as a Data structure. */
     virtual tools::misc::Data& getData () { return _data; }
 
+    /** \return the data as a Data structure. */
+    virtual u_int64_t getSeqNum () { return _seqNum; }
+    
     /** \return buffer holding the sequence residues. */
     virtual char* getDataBuffer ()  const { return _data.getBuffer(); }
 
@@ -57,8 +60,11 @@ struct Sequence
 
     std::string _comment;
 
+    u_int64_t _seqNum;
+
 private:
     tools::misc::Data _data;
+    
 };
 
 /********************************************************************************/
