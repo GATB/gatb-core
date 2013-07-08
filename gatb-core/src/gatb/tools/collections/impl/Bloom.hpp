@@ -19,6 +19,7 @@
 #include <gatb/tools/collections/api/Container.hpp>
 #include <gatb/tools/collections/api/Bag.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <gatb/system/api/types.hpp>
 
 /********************************************************************************/
 namespace gatb          {
@@ -230,7 +231,7 @@ public:
     void insert (const Item& item)
     {
         
-        uint64_t tab_keys [20]; // todo put this val somewhere (max nb hash)
+        u_int64_t tab_keys [20]; // todo put this val somewhere (max nb hash)
         
         _hash0 = this->_hash (item,0) % _reduced_tai;
         __builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 1, 3); //preparing for write
@@ -258,7 +259,7 @@ public:
     bool contains (const Item& item)
     {
 
-        uint64_t tab_keys [20];
+        u_int64_t tab_keys [20];
 
         _hash0 = _hash (item,0) % _reduced_tai;
         __builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 0, 3); //preparing for read

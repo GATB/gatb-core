@@ -172,6 +172,9 @@ public:
     /** \copydoc IFileSystem::remove */
     int remove (const Path& path)  { return ::remove (path.c_str()); }
 
+    /** \copydoc IFileSystem::rename */
+    int rename (const Path& from, const Path& to)  { return ::rename (from.c_str(), to.c_str()); }
+
     /** \copydoc IFileSystem::iterate */
     void iterate (const Path& path, void (*callback) (const Path& entry, void* data), void* data);
 };
