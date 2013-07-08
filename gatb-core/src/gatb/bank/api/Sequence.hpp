@@ -30,7 +30,7 @@ namespace bank      {
 struct Sequence
 {
     /** Constructor. */
-    Sequence (tools::misc::Data::Encoding_e encoding = tools::misc::Data::ASCII) : _data(encoding)  {}
+    Sequence (tools::misc::Data::Encoding_e encoding = tools::misc::Data::ASCII) : _data(encoding), _index(0)  {}
 
     /** Destructor. */
     virtual ~Sequence ()  { }
@@ -50,15 +50,23 @@ struct Sequence
     /** \return format of the data. */
     virtual tools::misc::Data::Encoding_e getDataEncoding () const  { return _data.getEncoding(); }
 
+    /** \return index of the sequence in its database. */
+    virtual size_t getIndex () const  { return _index; }
+
     void setDataRef (tools::misc::Data* ref, int offset, int length)
     {
         _data.setRef (ref, offset, length);
     }
 
+    /** Set the index of the sequence. Should be called by a IBank iterator. */
+    void setIndex (size_t index)  { _index = index; }
+
     std::string _comment;
 
 private:
     tools::misc::Data _data;
+
+    size_t _index;
 };
 
 /********************************************************************************/
