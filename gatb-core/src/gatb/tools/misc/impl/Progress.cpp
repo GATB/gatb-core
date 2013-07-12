@@ -136,6 +136,8 @@ void Progress::setMessage (const char* format, ...)
     va_end(args);
 
     message.assign (buffer);
+
+    update ();
 }
 
 /*********************************************************************
