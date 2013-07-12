@@ -82,22 +82,21 @@ public:
     {
     public:
 
-        Iterator (const T& x, const T& y) : _begin(x), _end(y), _idx(0) {}
+        Iterator (const T& x, const T& y) : _begin(x), _end(y) {}
 
-        Iterator (Range& ref) : _begin(ref.getBegin()), _end(ref.getEnd()), _idx(0) {}
+        Iterator (Range& ref) : _begin(ref.getBegin()), _end(ref.getEnd())  {}
 
-        void first()  { _idx = _begin; }
+        void first()  { *this->_item = _begin; }
 
-        void next()   { _idx ++; }
+        void next()   { (*this->_item) ++; }
 
-        bool isDone() { return _idx > _end; }
+        bool isDone() { return (*this->_item) > _end; }
 
-        T& item ()     { return _idx; }
+        T& item ()     { return (*this->_item); }
 
     private:
         T      _begin;
         T      _end;
-        T      _idx;
     };
 
     friend class Iterator;
