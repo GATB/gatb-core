@@ -173,12 +173,6 @@ public:
     template <typename Item, typename Functor>
     void iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000)
     {
-//        /** We create a common synchronizer (to be used for synchronizing shared resources). */
-//        system::ISynchronizer* synchro = newSynchro();
-//
-////        Functor& fct = (Functor&) functor;
-////        fct.setSynchro (synchro);
-
         /** We create N functors that are copies of the provided one. */
         std::vector<Functor*> functors (getExecutionUnitsNumber());
         for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
@@ -188,9 +182,6 @@ public:
 
         /** We get rid of the functors. */
         for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
-
-//        /** We delete the shared synchronizer. */
-//        delete synchro;
     }
 
 protected:
