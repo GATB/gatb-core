@@ -120,6 +120,21 @@ public:
         hash = hash + (hash << 31);
         return hash;
     }
+
+    /********************************************************************************/
+    inline static u_int64_t oahash (u_int64_t elem)
+    {
+        u_int64_t code = elem;
+        code = code ^ (code >> 14); //supp
+        code = (~code) + (code << 18);
+        code = code ^ (code >> 31);
+        code = code * 21;
+        code = code ^ (code >> 11);
+        code = code + (code << 6);
+        code = code ^ (code >> 22);
+        return code;
+    }
+
     /********************************************************************************/
     /** computes a simple, naive hash using only 16 bits from input key
      * \param[shift] in : selects which of the input byte will be used for hash computation
@@ -142,6 +157,7 @@ private:
 
     friend NativeInt64 revcomp (const NativeInt64& i,   size_t sizeKmer);
     friend u_int64_t    hash    (const NativeInt64& key, u_int64_t  seed);
+    friend u_int64_t    oahash  (const NativeInt64& key);
     friend u_int64_t    simplehash16    (const NativeInt64& key, int  shift);
 
 };
@@ -157,7 +173,12 @@ inline u_int64_t hash (const NativeInt64& key, u_int64_t seed=0)
 {
     return NativeInt64::hash64 (key.value, seed);
 }
-    
+
+/********************************************************************************/
+inline u_int64_t oahash (const NativeInt64& key)
+{
+    return NativeInt64::oahash (key.value);
+}
     
 /********************************************************************************/
 inline u_int64_t simplehash16 (const NativeInt64& key, int  shift)
