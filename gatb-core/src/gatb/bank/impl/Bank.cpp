@@ -492,7 +492,7 @@ bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, string& comment
     }
 
     /** We update the data of the sequence. */
-#if 0
+#if 1
     data.set (bs->read->string, bs->read->length);
 #else
     data.setRef (bs->read->string, bs->read->length);
