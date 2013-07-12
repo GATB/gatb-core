@@ -201,8 +201,14 @@ protected:
     {
         kmer_type direct = 0;
 
-        if (encoding == tools::misc::Data::ASCII)  { for (size_t i=0; i<this->_sizeKmer; ++i)  {  direct = direct*4 + NT2int(seq[i]);  }  }
-        else                                       { for (size_t i=0; i<this->_sizeKmer; ++i)  {  direct = direct*4 +       (seq[i]);  }  }
+              if (encoding == tools::misc::Data::ASCII)    { for (size_t i=0; i<this->_sizeKmer; ++i)  {  direct = direct*4 + NT2int(seq[i]);  }  }
+        else  if (encoding == tools::misc::Data::INTEGER)  { for (size_t i=0; i<this->_sizeKmer; ++i)  {  direct = direct*4 +       (seq[i]);  }  }
+        else  if (encoding == tools::misc::Data::BINARY)   { for (size_t i=0; i<this->_sizeKmer; ++i)  {
+                direct = direct*4 + (((seq[i>>2] >> ((3-(i&3))*2)) & 3));
+            }
+        }
+        else  { throw system::Exception ("BAD FORMAT IN codeSeed"); }
+
 
         if (mode == KMER_DIRECT)  { return direct; }
 
