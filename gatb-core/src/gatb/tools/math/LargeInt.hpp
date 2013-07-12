@@ -65,12 +65,12 @@ public:
         return buffer;
     }
 
-    static const size_t getSize ()  { return 8*sizeof(uint64_t)*precision; }
+    static const size_t getSize ()  { return 8*sizeof(u_int64_t)*precision; }
 
     /********************************************************************************/
     /** Constructor.
      * \param[in] val : initial value of the large integer. */
-    LargeInt(const uint64_t& val = 0)
+    LargeInt(const u_int64_t& val = 0)
     {
         array[0] = val;   for (int i = 1; i < precision; i++)  {  array[i] = 0;  }
     }
@@ -145,13 +145,13 @@ public:
 
         // inspired by Divide32() from http://subversion.assembla.com/svn/pxcode/RakNet/Source/BigInt.cpp
 
-        uint64_t r = 0;
+        u_int64_t r = 0;
         uint32_t mask32bits = ~0;
         for (int i = precision-1; i >= 0; --i)
         {
             for (int j = 1; j >= 0; --j) // [j=1: high-32 bits, j=0: low-32 bits] of array[i]
             {
-                uint64_t n = (r << 32) | ((array[i] >> (32*j)) & mask32bits );
+                u_int64_t n = (r << 32) | ((array[i] >> (32*j)) & mask32bits );
                 result.array[i] = result.array[i] | (((n / divisor) & mask32bits) << (32*j));
                 r = n % divisor;
             }
@@ -164,13 +164,13 @@ public:
     /********************************************************************************/
     uint32_t operator%(const uint32_t& divisor) const
     {
-        uint64_t r = 0;
+        u_int64_t r = 0;
         uint32_t mask32bits = ~0;
         for (int i = precision-1; i >= 0; --i)
         {
             for (int j = 1; j >= 0; --j) // [j=1: high-32 bits, j=0: low-32 bits] of array[i]
             {
-                uint64_t n = (r << 32) | ((array[i] >> (32*j)) & mask32bits );
+                u_int64_t n = (r << 32) | ((array[i] >> (32*j)) & mask32bits );
                 r = n % divisor;
             }
         }
@@ -248,7 +248,7 @@ public:
         {
             result.array[i] = result.array[i] | (array[i-large_shift] << small_shift);
 
-            if (small_shift == 0) // gcc "bug".. uint64_t x; x>>64 == 1<<63, x<<64 == 1
+            if (small_shift == 0) // gcc "bug".. u_int64_t x; x>>64 == 1<<63, x<<64 == 1
             {
                 result.array[i+1] = 0;
             }
@@ -278,7 +278,7 @@ public:
         for (int i = 1 ; i < precision - large_shift ; i++)
         {
             result.array[i] = (array[i+large_shift] >> small_shift);
-            if (small_shift == 0 && large_shift > 0) // gcc "bug".. uint64_t x; x>>64 == 1<<63, x<<64 == 1
+            if (small_shift == 0 && large_shift > 0) // gcc "bug".. u_int64_t x; x>>64 == 1<<63, x<<64 == 1
             {
                 result.array[i-1] =  result.array[i-1];
             }
@@ -364,10 +364,11 @@ public:
     }
 
 private:
-    uint64_t array[precision];
+    u_int64_t array[precision];
 
     template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
     template<int T>  friend u_int64_t   hash    (const LargeInt<T>& key, u_int64_t  seed);
+    template<int T>  friend u_int64_t   oahash  (const LargeInt<T>& key);
     template<int T>  friend u_int64_t   simplehash16    (const LargeInt<T>& key, int  shift);
 
     // c++ fun fact:
@@ -403,6 +404,22 @@ template<int precision>  inline u_int64_t hash (const LargeInt<precision>& elem,
         intermediate = intermediate >> 64;
 
         result ^= NativeInt64::hash64 (chunk,seed);
+    }
+    return result;
+}
+
+/********************************************************************************/
+template<int precision>  u_int64_t oahash (const LargeInt<precision>& elem)
+{
+    // hash = XOR_of_series[hash(i-th chunk iof 64 bits)]
+    u_int64_t result = 0, chunk, mask = ~0;
+
+    LargeInt<precision> intermediate = elem;
+    for (size_t i=0;i<precision;i++)
+    {
+        chunk = (intermediate & mask).array[0];
+        intermediate = intermediate >> 64;
+        result ^= NativeInt64::oahash (chunk);
     }
     return result;
 }
