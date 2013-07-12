@@ -121,8 +121,8 @@ private:
 
     virtual BagCache<Item>* createBag (Bag<Item>*& b, size_t cacheSize, system::ISynchronizer* synchro)
     {
-        //return new BagCache<Item> (b, cacheSize, synchro);
-        return new BagCacheSorted<Item> (b, cacheSize, synchro);
+        return new BagCache<Item> (b, cacheSize, synchro);
+        //return new BagCacheSorted<Item> (b, cacheSize, synchro);  // don't use when using OAHash for DSK solid kmers filling.
     }
 
     BagFilePartition<Item>&  _ref;
