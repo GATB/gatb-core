@@ -19,7 +19,7 @@ using namespace gatb::core::tools::misc;
 
 #define DEBUG(a)  //printf a
 
-#define BINREADS_BUFFER 128*1024
+#define BINREADS_BUFFER 100000
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace bank {  namespace impl {
