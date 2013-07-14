@@ -58,7 +58,8 @@ public:
         TIME_INFO (ti, "build kmers bloom");
 
         /** We instantiate the bloom object. */
-        tools::collections::impl::Bloom<T>* bloom = new tools::collections::impl::BloomSynchronized<T> (_bloomSize, _nbHash);
+        tools::collections::impl::Bloom<T>* bloom = new tools::collections::impl::BloomCacheCoherent<T> (_bloomSize, _nbHash);
+      //  tools::collections::impl::Bloom<T>* bloom = new tools::collections::impl::BloomSynchronized<T> (_bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
         tools::dp::impl::ParallelCommandDispatcher(_nbCores).iterate (_itKmers,  BuildKmerBloom (*bloom));

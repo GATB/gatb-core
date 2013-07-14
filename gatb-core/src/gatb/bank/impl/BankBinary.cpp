@@ -106,57 +106,98 @@ BankBinary::~BankBinary ()
 void BankBinary::insert (const Sequence& seq)
 {
     /** Shortcuts. */
-    int   readlen = seq.getDataSize();
-    char* pt      = seq.getDataBuffer();
+    int   whole_readlen = seq.getDataSize();
+    char* pt_start      = seq.getDataBuffer();
 
+    
+    int readlen;
     int tai = readlen;
     unsigned char rbin;
     unsigned int block_size = 0;
+    char *pt;
+    
+    char * pt_begin = pt_start;
+    int idx =0 ;
 
-    /** We may have to open the file at first call. */
-    if (binary_read_file == 0)  {  open (true); }
-
-    //todo : also flush to disk  sometimes (ie if very large buffer, to create smaller blocks..)
-    if(cpt_buffer >= (read_write_buffer_size-readlen) || cpt_buffer > 10000000 )  ////not enough space to store next read   true space is 4 + readlen/4 + rem
-        //flush buffer to disk
+    while (pt_begin < (pt_start+ whole_readlen))
     {
-        block_size = cpt_buffer;
-
-        if(block_size) fwrite(&block_size, sizeof(unsigned int), 1, binary_read_file); // block header
-        if (!fwrite(buffer, 1, cpt_buffer, binary_read_file)) // write a block, it ends at end of a read
+        idx=0; // start a new read
+        
+        //skips NN
+        while (*pt_begin =='N' && pt_begin < (pt_start+ whole_readlen))
         {
-            printf("error: can't fwrite (disk full?)\n");
-            exit(1);
+            pt_begin ++;
         }
-        cpt_buffer=0;
-    }
+        // goes to next N or end of seq
+        while ( (pt_begin[idx] !='N') &&  ((pt_begin +idx) < (pt_start+ whole_readlen))  )
+        {
+            idx++;
+        }
+        
+        //we have a seq beginning at  pt_begin of size idx  ,without any N, will be treated as a read: of size readlen, beginning at pt
+        readlen = tai = idx;
+        pt = pt_begin;
+        
+        
+        
+        
+        
+        /** We may have to open the file at first call. */
+        if (binary_read_file == 0)  {  open (true); }
+        
+        //todo : also flush to disk  sometimes (ie if very large buffer, to create smaller blocks..)
+        if(cpt_buffer >= (read_write_buffer_size-readlen) || cpt_buffer > 10000000 )  ////not enough space to store next read   true space is 4 + readlen/4 + rem
+            //flush buffer to disk
+        {
+            block_size = cpt_buffer;
+            
+            if(block_size) fwrite(&block_size, sizeof(unsigned int), 1, binary_read_file); // block header
+            if (!fwrite(buffer, 1, cpt_buffer, binary_read_file)) // write a block, it ends at end of a read
+            {
+                printf("error: can't fwrite (disk full?)\n");
+                exit(1);
+            }
+            cpt_buffer=0;
+        }
+        
+        //check if still not enough space in empty buffer : can happen if large read, then enlarge buffer
+        if(read_write_buffer_size < readlen)
+        {
+            read_write_buffer_size = 2*readlen; // too large but ok
+            buffer =  (unsigned char *) realloc(buffer,sizeof(unsigned char) * read_write_buffer_size);
+        }
+        
+        /** We write the length of the read. */
+        memcpy(buffer+cpt_buffer,&readlen,sizeof(int));
+        cpt_buffer+= sizeof(int);
+        
+        /** We write one byte for 4 nucleotides. */
+        for (tai=readlen; tai>=4  ; tai-=4)
+        {
+            rbin = code4NT(pt);
+            buffer[cpt_buffer]=rbin; cpt_buffer++;
+            pt +=4;
+        }
+        
+        /** We write the remaining part. */
+        if(tai)
+        {
+            rbin = code_n_NT(pt,tai);
+            buffer[cpt_buffer]=rbin; cpt_buffer++;
+        }
 
-    //check if still not enough space in empty buffer : can happen if large read, then enlarge buffer
-    if(read_write_buffer_size < readlen)
-    {
-        read_write_buffer_size = 2*readlen; // too large but ok
-        buffer =  (unsigned char *) realloc(buffer,sizeof(unsigned char) * read_write_buffer_size);
+        
+        //binread->write_read(pt_begin,idx);
+        pt_begin += idx;
     }
+    
+    
+    
+    
+    
 
-    /** We write the length of the read. */
-    memcpy(buffer+cpt_buffer,&readlen,sizeof(int));
-    cpt_buffer+= sizeof(int);
 
-    /** We write one byte for 4 nucleotides. */
-    for (tai=readlen; tai>=4  ; tai-=4)
-    {
-        rbin = code4NT(pt);
-        buffer[cpt_buffer]=rbin; cpt_buffer++;
-        pt +=4;
-    }
-
-    /** We write the remaining part. */
-    if(tai)
-    {
-        rbin = code_n_NT(pt,tai);
-        buffer[cpt_buffer]=rbin; cpt_buffer++;
-    }
-}
+ }
 
 /*********************************************************************
 ** METHOD  :
