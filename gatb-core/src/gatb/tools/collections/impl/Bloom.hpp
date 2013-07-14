@@ -234,7 +234,10 @@ public:
         u_int64_t tab_keys [20]; // todo put this val somewhere (max nb hash)
         
         _hash0 = this->_hash (item,0) % _reduced_tai;
-        __builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 1, 3); //preparing for write
+        
+        // combination of prefetch and atomic __sync_fetch_and_or leads to undefined random  behavior
+        // anyway perf of insert is not crucial, we remove preftech here
+        //__builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 1, 3); //preparing for write
 
         //compute hashes during prefetch
         for (size_t i=1; i<this->n_hash_func; i++)

@@ -138,7 +138,7 @@ int main (int argc, char* argv[])
         
         //we query the elements just inserted, ie only positive elements
         _timeInfo.start ("Query N elements cache_coherent");
-        kmer_current = start;
+        kmer_current = start ;
         for(int ii =0; ii<nelems; ii++)
         {
             
