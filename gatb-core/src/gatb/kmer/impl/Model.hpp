@@ -31,6 +31,9 @@
 
 #include <iostream>
 
+extern const char bin2NT[] ;
+extern const char binrev[] ;
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -43,6 +46,7 @@ namespace impl      {
 extern const unsigned char revcomp_4NT[];
 extern const unsigned char comp_NT    [];
 
+    
 /** \brief TO BE DONE
  */
 template <typename kmer_type> class Model : public ModelAbstract<kmer_type>

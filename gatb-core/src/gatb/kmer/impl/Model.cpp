@@ -12,6 +12,11 @@ const unsigned char comp_NT[4] = {
   2,3,0,1
 };
 
+const char bin2NT[4] = {'A','C','T','G'};
+
+const char binrev[4] = {2,3,0,1};
+
+
 //reverse complement of 4NT,  ie one byte
 const unsigned char revcomp_4NT[256] = {
  0xaa,
