@@ -72,12 +72,12 @@ public:
     }
 
     /** */
-    void build (tools::misc::Data& data, std::vector<kmer_type>& kmersBuffer,KmerMode mode = KMER_MINIMUM)
+    bool build (tools::misc::Data& data, std::vector<kmer_type>& kmersBuffer,KmerMode mode = KMER_MINIMUM)
     {
         /** We compute the number of kmers for the provided data. Note that we have to check that we have
          * enough nucleotides according to the current kmer size. */
         int32_t nbKmers = data.size() - this->getSpan() + 1;
-        if (nbKmers <= 0)  { return; }
+        if (nbKmers <= 0)  { return false; }
 
         /** We resize the resulting kmers vector. */
         kmersBuffer.resize (nbKmers);
@@ -174,6 +174,8 @@ public:
             }
         }
         else  {  throw system::Exception ("BAD DATA FORMAT TO BE CONVERTED IN KMERS...");  }
+
+        return true;
     }
 };
 

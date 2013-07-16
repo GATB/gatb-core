@@ -81,7 +81,7 @@ public:
      * \param[in] kmersBuffer : vector where to put the built kmers into.
      * \param[in] mode : mode of the kmer enumeration
      */
-    virtual void build (tools::misc::Data& d, std::vector<kmer_type>& kmersBuffer, KmerMode mode = KMER_MINIMUM) = 0;
+    virtual bool build (tools::misc::Data& d, std::vector<kmer_type>& kmersBuffer, KmerMode mode = KMER_MINIMUM) = 0;
 
     /** Destructor. */
     virtual ~IModel () {}
