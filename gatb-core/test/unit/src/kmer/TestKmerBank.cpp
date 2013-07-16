@@ -74,9 +74,11 @@ public:
         /** We declare a kmer model with a given span size. */
         KmerModel model (span);
 
-        /** We declare the two banks. */
+        /** We declare the two banks.
+         *  WARNING! we don't remove the bad characters (param 'false') in the binary bank,
+         *  otherwise the two bank won't be comparable anymore. */
         Bank       bank1 (filename);
-        BankBinary bank2 (filenameBin);
+        BankBinary bank2 (filenameBin, false);
 
         /** We convert the fasta bank in binary format. */
         Bank::Iterator itSeq1 (bank1);
