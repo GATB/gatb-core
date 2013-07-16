@@ -94,7 +94,7 @@ public:
         {
             /** We prepare the sequence string to be matched according to the provided mode. */
             char buffer[32];
-            snprintf (buffer, sizeof(buffer), "seq%ld%s", i+1,  (mode == Bank::Iterator::FULL ? " generic" : ""));
+            snprintf (buffer, sizeof(buffer), "seq%d%s", i+1,  (mode == Bank::Iterator::FULL ? " generic" : ""));
 
             /** We check that we got a comment and that it is like 'seqX' where X is the
              * index from 1 to 20. */
@@ -163,7 +163,7 @@ public:
         for (it.first(); !it.isDone(); it.next(), nbSeq++)
         {
             char buffer[32];
-            snprintf (buffer, sizeof(buffer), "seq%ld", nbSeq+1);
+            snprintf (buffer, sizeof(buffer), "seq%d", nbSeq+1);
 
             /** We check that we got a comment and that it is like 'seqX' where X is the
              * index from 1 to 20. */
