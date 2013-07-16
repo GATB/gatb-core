@@ -68,7 +68,8 @@ unsigned char  code_n_NT(const char *seq, int nb)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankBinary::BankBinary (const std::string& filename) : _filename(filename),binary_read_file(0)
+BankBinary::BankBinary (const std::string& filename, size_t nbValidLetters)
+    : _filename(filename), _nbValidLetters(nbValidLetters), binary_read_file(0)
 {
     read_write_buffer_size = BINREADS_BUFFER;
 
@@ -108,7 +109,6 @@ void BankBinary::insert (const Sequence& seq)
     /** Shortcuts. */
     int   whole_readlen = seq.getDataSize();
     char* pt_start      = seq.getDataBuffer();
-
     
     int readlen;
     int tai = readlen;
@@ -119,28 +119,33 @@ void BankBinary::insert (const Sequence& seq)
     char * pt_begin = pt_start;
     int idx =0 ;
 
-    while (pt_begin < (pt_start+ whole_readlen))
+    for ( ; pt_begin < (pt_start+ whole_readlen); pt_begin += idx)
     {
         idx=0; // start a new read
-        
-        //skips NN
-        while (*pt_begin =='N' && pt_begin < (pt_start+ whole_readlen))
+
+        if (_nbValidLetters > 0)
         {
-            pt_begin ++;
+            //skips NN
+            while (*pt_begin =='N' && pt_begin < (pt_start+ whole_readlen))
+            {
+                pt_begin ++;
+            }
+            // goes to next N or end of seq
+            while ( (pt_begin[idx] !='N') &&  ((pt_begin +idx) < (pt_start+ whole_readlen))  )
+            {
+                idx++;
+            }
         }
-        // goes to next N or end of seq
-        while ( (pt_begin[idx] !='N') &&  ((pt_begin +idx) < (pt_start+ whole_readlen))  )
+        else
         {
-            idx++;
+            idx = whole_readlen;
         }
-        
+
+        if (0<_nbValidLetters && idx<_nbValidLetters)  {  continue; }
+
         //we have a seq beginning at  pt_begin of size idx  ,without any N, will be treated as a read: of size readlen, beginning at pt
         readlen = tai = idx;
-        pt = pt_begin;
-        
-        
-        
-        
+        pt      = pt_begin;
         
         /** We may have to open the file at first call. */
         if (binary_read_file == 0)  {  open (true); }
@@ -185,18 +190,7 @@ void BankBinary::insert (const Sequence& seq)
             rbin = code_n_NT(pt,tai);
             buffer[cpt_buffer]=rbin; cpt_buffer++;
         }
-
-        
-        //binread->write_read(pt_begin,idx);
-        pt_begin += idx;
     }
-    
-    
-    
-    
-    
-
-
  }
 
 /*********************************************************************

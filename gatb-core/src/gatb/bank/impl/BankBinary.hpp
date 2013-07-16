@@ -47,9 +47,14 @@ public:
     /** Returns the name of the bank format. */
     static const char* name()  { return "binary"; }
 
-    /** Constructor.
-     * \param[in] filename : uri of the bank. */
-    BankBinary (const std::string& filename);
+    /** Constructor. During a sequence insertion (see method 'insert'), a sequence may be split
+     *  in sub sequences if invalid characters exist (like 'N'). A sub sequence is considered
+     *  as valid if the number of consecutive letters is above some threshold (given as parameter).
+     *  If this threshold is not provided, there is no split process during 'insert'
+     * \param[in] filename : uri of the bank.
+     * \param[in] nbValidLetters : threshold for sequence split in 'insert' method
+     */
+    BankBinary (const std::string& filename, size_t nbValidLetters=0);
 
     /** Destructor. */
     ~BankBinary ();
@@ -126,6 +131,8 @@ protected:
 
     /** URI of the bank. */
     std::string _filename;
+
+    size_t _nbValidLetters;
 
     unsigned char* buffer;
     int            cpt_buffer;
