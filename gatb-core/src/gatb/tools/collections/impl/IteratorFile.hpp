@@ -17,6 +17,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
+#include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/system/impl/System.hpp>
 
 #include <string>
@@ -101,6 +102,27 @@ private:
     int             _idx;
     size_t          _cacheItemsNb;
     bool            _isDone;
+};
+
+/********************************************************************************/
+
+template <class Item> class IterableFile : public tools::collections::Iterable<Item>
+{
+public:
+
+    /** */
+    IterableFile (const std::string& filename, size_t cacheItemsNb=10000)
+        :   _filename(filename), _cacheItemsNb (cacheItemsNb)  {}
+
+    /** */
+    ~IterableFile () {}
+
+    /** */
+    dp::Iterator<Item>* iterator ()  { return new IteratorFile<Item> (_filename, _cacheItemsNb); }
+
+private:
+    std::string     _filename;
+    size_t          _cacheItemsNb;
 };
 
 /********************************************************************************/
