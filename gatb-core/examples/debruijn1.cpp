@@ -58,9 +58,9 @@ int main (int argc, char* argv[])
     if (argc < 4)
     {
         cerr << "you must provide:" << endl;
-        cerr << "   1) kmer size"                    << endl;
-        cerr << "   2) solid kmers file"             << endl;
-        cerr << "   3) critical false positive file" << endl;
+        cerr << "   1) kmer size"           << endl;
+        cerr << "   2) solid kmers file"    << endl;
+        cerr << "   3) debloom file"        << endl;
         return EXIT_FAILURE;
     }
 
