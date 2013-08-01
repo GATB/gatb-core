@@ -35,6 +35,9 @@ template <class Item> class Container // : public dp::SmartPointer
 {
 public:
 
+    /** Destructor. */
+    virtual ~Container() {}
+
     /** Tells whether an item exists or not
      * \return true if the item exists, false otherwise */
     virtual bool contains (const Item& item) = 0;
