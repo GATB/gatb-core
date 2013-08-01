@@ -33,17 +33,23 @@ template<typename T>  T computeChecksum (Graph<T>& graph)
 
     NodeSet<T> nodes (graph);
 
+    size_t nbNodesTotal      = 0;
+    size_t nbSuccessorsTotal = 0;
+
     /** We iterate all the nodes of the graph. */
-    for (itNodes.first(); !itNodes.isDone(); itNodes.next())
+    for (itNodes.first(); !itNodes.isDone(); itNodes.next(), nbNodesTotal++)
     {
         /** We retrieve the successors. */
-        size_t nbNodes = graph.getSuccessors (*itNodes, nodes);
+        size_t nbSuccessors = graph.getSuccessors (*itNodes, nodes);
+
+        /** We update the number of found successors. */
+        nbSuccessorsTotal += nbSuccessors;
 
         /** We iterate all the successors. */
-        for (size_t i=0; i<nbNodes; i++)   {  checksum += nodes[i].kmer;  }
+        for (size_t i=0; i<nbSuccessors; i++)   {  checksum += nodes[i].kmer;  }
     }
 
-    return checksum;
+    cout << "nbNodes=" << nbNodesTotal << "  nbSuccessors=" << nbSuccessorsTotal << "  checksum=" << checksum <<  endl;
 }
 
 /********************************************************************************/
@@ -66,15 +72,7 @@ int main (int argc, char* argv[])
         PROP_END
     );
 
-    /** We want some time statistics. */
-    TimeInfo ti;
-    ti.start ("loop");
-
     /** We launch the test. */
-    NativeInt64 checksum = computeChecksum <NativeInt64> (graph);
-
-    ti.stop ("loop");
-
-    cout << "checksum=" << checksum <<  "  time=" << ti.getEntryByKey("loop") << endl;
+    computeChecksum <NativeInt64> (graph);
 }
 //! [snippet1]
