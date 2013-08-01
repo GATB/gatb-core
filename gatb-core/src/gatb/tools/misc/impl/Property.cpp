@@ -191,6 +191,29 @@ void Properties::add (size_t depth, IProperties* properties)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+void Properties::add (IProperty* prop, va_list args)
+{
+    if (prop != 0)
+    {
+        LOCAL (prop);
+        this->add (0, prop->key, prop->value);
+
+        for (IProperty* p = 0;  (p = va_arg(args, IProperty*)) != 0; )
+        {
+            LOCAL (p);
+            this->add (0, p->key, p->value);
+        }
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void Properties::merge (IProperties* properties)
 {
     if (properties)

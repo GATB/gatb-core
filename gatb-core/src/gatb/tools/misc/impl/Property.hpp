@@ -80,6 +80,9 @@ public:
     /** \copydoc IProperties::add(size_t,IProperties*)  */
     void add (size_t depth, IProperties* prop);
 
+    /**  */
+    void add (IProperty* p, va_list args);
+
     /** \copydoc IProperties::merge  */
     void  merge (IProperties* prop);
 
