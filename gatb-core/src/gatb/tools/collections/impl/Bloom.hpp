@@ -246,12 +246,20 @@ public:
         }
         //  u_int64_t h1 =  _hash0  + ( this->_hash (item,i) & _mask_block);
 
+#if 0
         this->blooma [_hash0 >> 3] |= bit_mask[_hash0 & 7];
+#else
+        __sync_fetch_and_or (this->blooma + (_hash0 >> 3), bit_mask[_hash0 & 7]);
+#endif
         
         for (size_t i=1; i<this->n_hash_func; i++)
         {
             u_int64_t h1 =  tab_keys[i];
+#if 0
             this->blooma [h1 >> 3] |= bit_mask[h1 & 7];
+#else
+            __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+#endif
         }
         
         
