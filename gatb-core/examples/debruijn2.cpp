@@ -72,7 +72,15 @@ int main (int argc, char* argv[])
         PROP_END
     );
 
-    /** We launch the test. */
-    computeChecksum <NativeInt64> (graph);
+    /** We want some time statistics. */
+    TimeInfo ti;
+    {
+        TIME_INFO (ti, "checksum");
+
+        /** We launch the test. */
+        computeChecksum <NativeInt64> (graph);
+    }
+
+    cout << "time=" << ti.getEntryByKey("checksum") << endl;
 }
 //! [snippet1]
