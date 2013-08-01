@@ -65,6 +65,8 @@ public:
     NativeInt64& operator+=  (const NativeInt64& other)    {  value += other.value; return *this; }
     NativeInt64& operator^=  (const NativeInt64& other)    {  value ^= other.value; return *this; }
 
+    u_int8_t  operator[]  (size_t idx)    {  return (value >> (2*idx)) & 3; }
+
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const NativeInt64 & l)
     {
@@ -92,6 +94,28 @@ public:
         
         std::cout << seq << std::endl;
     }
+
+    /********************************************************************************/
+    /** Print corresponding kmer in ASCII
+     * \param[sizeKmer] in : kmer size (def=32).
+     */
+    std::string toString (size_t sizeKmer) const
+    {
+        int i;
+        u_int64_t temp = value;
+
+        char seq[33];
+        char bin2NT[4] = {'A','C','T','G'};
+
+        for (i=sizeKmer-1; i>=0; i--)
+        {
+            seq[i] = bin2NT[ temp&3 ];
+            temp = temp>>2;
+        }
+        seq[sizeKmer]='\0';
+        return seq;
+    }
+
     
     /********************************************************************************/
     inline static u_int64_t revcomp64 (const u_int64_t& x, size_t sizeKmer)
