@@ -272,7 +272,7 @@ public:
 
         u_int64_t tab_keys [20];
 
-        _hash0 = _hash (item,0) % _reduced_tai;
+        _hash0 = this->_hash (item,0) % _reduced_tai;
         __builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 0, 3); //preparing for read
 
         //compute all hashes during prefetch
