@@ -177,7 +177,7 @@ private:
  *
  *  \see LocalObject
  */
-#define LOCAL(object)  LocalObject __##object (object)
+#define LOCAL(object)  gatb::core::tools::dp::LocalObject __##object (object)
 
 /** Macro that generates an instructions block that manages life cycle of a class attributes.
  *  It is dedicated to simply write clever setter methods.

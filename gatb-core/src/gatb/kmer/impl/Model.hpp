@@ -72,6 +72,12 @@ public:
     }
 
     /** */
+    kmer_type reverse (kmer_type& kmer)  { return revcomp (kmer, this->_sizeKmer); }
+
+    /** */
+    std::string toString (const kmer_type& kmer)  {  return kmer.toString (this->_sizeKmer);  }
+
+    /** */
     bool build (tools::misc::Data& data, std::vector<kmer_type>& kmersBuffer,KmerMode mode = KMER_MINIMUM)
     {
         /** We compute the number of kmers for the provided data. Note that we have to check that we have

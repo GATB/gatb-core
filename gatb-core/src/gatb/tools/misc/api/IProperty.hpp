@@ -16,6 +16,7 @@
 
 #include <gatb/tools/designpattern/api/SmartPointer.hpp>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <list>
 #include <set>
 
@@ -37,8 +38,9 @@ namespace misc      {
  *
  *  \see IProperties
  */
-struct IProperty
+class IProperty : public dp::SmartPointer
 {
+public:
     /** Constructor.
      * \param[in] aDepth : depth of the [key,value]
      * \param[in] aKey   : the key
@@ -46,6 +48,13 @@ struct IProperty
      */
     IProperty (size_t aDepth, const std::string& aKey, const std::string& aValue)
         : depth(aDepth), key(aKey), value(aValue)  {}
+
+    /** Constructor.
+     * \param[in] aKey   : the key
+     * \param[in] aValue : the value
+     */
+    IProperty (const std::string& aKey="", const std::string& aValue="")
+        : depth(0), key(aKey), value(aValue)  {}
 
     /** Depth of the property. 0 should mean root property. */
     size_t      depth;
@@ -71,6 +80,9 @@ struct IProperty
      */
     const char*         getString ()  { return value.c_str();        }
 };
+
+/** An alias here... In the future, we should replace IProperty by Property. */
+typedef IProperty  Property;
 
 /********************************************************************************/
 
@@ -154,6 +166,9 @@ public:
      */
     virtual void       add (size_t depth, IProperties* prop) = 0;
 
+    /** */
+    virtual void add (IProperty* prop, va_list args) = 0;
+
     /** Merge the IProperty instances contained in the provided IProperties instance.
      * \param[in] prop  : instance holding IProperty instances to be added
      */
@@ -202,6 +217,10 @@ public:
     /** */
     virtual void dump () = 0;
 };
+
+/********************************************************************************/
+
+#define PROP_END  ((IProperty*)0)
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

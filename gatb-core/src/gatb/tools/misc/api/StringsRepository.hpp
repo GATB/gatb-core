@@ -36,7 +36,7 @@ namespace misc      {
  * also (see below) define a macro definition that eases the use of such a facility.
  */
 
-class StringRepository
+class MessageRepository
 {
 public:
 
@@ -47,21 +47,50 @@ public:
      *
      * \return the singleton instance.
      */
-    static StringRepository& singleton()  { static StringRepository instance; return instance; }
+    static MessageRepository& singleton()  { static MessageRepository instance; return instance; }
 
     const char* BANK_bad_file_number    () { return "bank files number is %d but should be in [1..%d]"; }
     const char* BANK_bad_file_path      () { return "unable to find file '%s'"; }
     const char* BANK_unable_open_file   () { return "error opening file: %s"; }
     const char* BANK_unable_write_file  () { return "unable to write into file"; }
-
 };
 
 /********************************************************************************/
 
-#define STR_BANK_bad_file_number    gatb::core::tools::misc::StringRepository::singleton().BANK_bad_file_number ()
-#define STR_BANK_bad_file_path      gatb::core::tools::misc::StringRepository::singleton().BANK_bad_file_path ()
-#define STR_BANK_unable_open_file   gatb::core::tools::misc::StringRepository::singleton().BANK_unable_open_file ()
-#define STR_BANK_unable_write_file  gatb::core::tools::misc::StringRepository::singleton().BANK_unable_write_file ()
+/** \brief Pool of strings
+ */
+class StringRepository
+{
+public:
+    static StringRepository& singleton()  { static StringRepository instance; return instance; }
+
+    const char* db          ()  { return "-db";             }
+    const char* kmer_size   ()  { return "-kmer-size";      }
+    const char* nks         ()  { return "-nks";            }
+    const char* max_memory  ()  { return "-max-memory";     }
+    const char* max_disk    ()  { return "-max-disk";       }
+    const char* kmer_solid  ()  { return "-kmer-solid";     }
+    const char* kmer_cFP    ()  { return "-kmer-cFP";       }
+};
+
+/********************************************************************************/
+
+/** Shortcuts. */
+#define STR_DB                  gatb::core::tools::misc::StringRepository::singleton().db ()
+#define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
+#define STR_NKS                 gatb::core::tools::misc::StringRepository::singleton().nks ()
+#define STR_MAX_MEMORY          gatb::core::tools::misc::StringRepository::singleton().max_memory ()
+#define STR_MAX_DISK            gatb::core::tools::misc::StringRepository::singleton().max_disk ()
+#define STR_KMER_SOLID          gatb::core::tools::misc::StringRepository::singleton().kmer_solid ()
+#define STR_KMER_CFP            gatb::core::tools::misc::StringRepository::singleton().kmer_cFP ()
+
+/********************************************************************************/
+
+/** Shortcuts. */
+#define STR_BANK_bad_file_number    gatb::core::tools::misc::MessageRepository::singleton().BANK_bad_file_number ()
+#define STR_BANK_bad_file_path      gatb::core::tools::misc::MessageRepository::singleton().BANK_bad_file_path ()
+#define STR_BANK_unable_open_file   gatb::core::tools::misc::MessageRepository::singleton().BANK_unable_open_file ()
+#define STR_BANK_unable_write_file  gatb::core::tools::misc::MessageRepository::singleton().BANK_unable_write_file ()
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
