@@ -253,19 +253,20 @@ public:
     {
 
         u_int64_t tab_keys [20];
+        u_int64_t h0;
 
-        _hash0 = this->_hash (item,0) % _reduced_tai;
-        __builtin_prefetch(&(this->blooma [_hash0 >> 3] ), 0, 3); //preparing for read
+        h0 = this->_hash (item,0) % _reduced_tai;
+        __builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); //preparing for read
 
         //compute all hashes during prefetch
         for (size_t i=1; i<this->n_hash_func; i++)
         {
-           tab_keys[i] =  _hash0  + (simplehash16( item, i) & _mask_block );// with simplest hash
+           tab_keys[i] =  h0  + (simplehash16( item, i) & _mask_block );// with simplest hash
             
         }
         
         
-        if ((this->blooma[_hash0 >> 3 ] & bit_mask[_hash0 & 7]) != bit_mask[_hash0 & 7])  {  return false;  }
+        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) != bit_mask[h0 & 7])  {  return false;  }
         
         for (size_t i=1; i<this->n_hash_func; i++)
         {
@@ -278,7 +279,6 @@ public:
     
     
 private:
-    u_int64_t _hash0;
     u_int64_t _mask_block;
     size_t _nbits_BlockSize;
     u_int64_t _reduced_tai;
