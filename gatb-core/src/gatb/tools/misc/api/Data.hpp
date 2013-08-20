@@ -72,6 +72,13 @@ public:
         encoding = ref->getEncoding();
     }
 
+    /** \copydoc Vector<char>::setRef */
+    void setRef (char* buffer, size_t length)
+    {
+        /** We call the parent method. */
+        Vector<char>::setRef (buffer, length);
+    }
+
     /** \return format of the data. */
     Encoding_e getEncoding ()  const  { return encoding; }
 
