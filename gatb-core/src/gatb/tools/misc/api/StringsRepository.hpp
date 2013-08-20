@@ -64,25 +64,35 @@ class StringRepository
 public:
     static StringRepository& singleton()  { static StringRepository instance; return instance; }
 
-    const char* db          ()  { return "-db";             }
-    const char* kmer_size   ()  { return "-kmer-size";      }
-    const char* nks         ()  { return "-nks";            }
-    const char* max_memory  ()  { return "-max-memory";     }
-    const char* max_disk    ()  { return "-max-disk";       }
-    const char* kmer_solid  ()  { return "-kmer-solid";     }
-    const char* kmer_cFP    ()  { return "-kmer-cFP";       }
+    const char* db             ()  { return "-db";             }
+    const char* kmer_size      ()  { return "-kmer-size";      }
+    const char* nks            ()  { return "-nks";            }
+    const char* max_memory     ()  { return "-max-memory";     }
+    const char* max_disk       ()  { return "-max-disk";       }
+    const char* kmer_solid     ()  { return "-kmer-solid";     }
+    const char* kmer_cFP       ()  { return "-kmer-cFP";       }
+    const char* prefix         ()  { return "-prefix";         }
+    const char* progress_bar   ()  { return "-bargraph";       }
+    const char* nb_cores       ()  { return "-nb-cores";       }
+    const char* partition_type ()  { return "-partition-type"; }
+    const char* uri_histogram  ()  { return "-histo";          }
 };
 
 /********************************************************************************/
 
 /** Shortcuts. */
-#define STR_DB                  gatb::core::tools::misc::StringRepository::singleton().db ()
+#define STR_URI_DB              gatb::core::tools::misc::StringRepository::singleton().db ()
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
 #define STR_NKS                 gatb::core::tools::misc::StringRepository::singleton().nks ()
 #define STR_MAX_MEMORY          gatb::core::tools::misc::StringRepository::singleton().max_memory ()
 #define STR_MAX_DISK            gatb::core::tools::misc::StringRepository::singleton().max_disk ()
 #define STR_KMER_SOLID          gatb::core::tools::misc::StringRepository::singleton().kmer_solid ()
 #define STR_KMER_CFP            gatb::core::tools::misc::StringRepository::singleton().kmer_cFP ()
+#define STR_PREFIX              gatb::core::tools::misc::StringRepository::singleton().prefix ()
+#define STR_PROGRESS_BAR        gatb::core::tools::misc::StringRepository::singleton().progress_bar ()
+#define STR_NB_CORES            gatb::core::tools::misc::StringRepository::singleton().nb_cores ()
+#define STR_PARTITION_TYPE      gatb::core::tools::misc::StringRepository::singleton().partition_type ()
+#define STR_URI_HISTOGRAM       gatb::core::tools::misc::StringRepository::singleton().partition_type ()
 
 /********************************************************************************/
 
