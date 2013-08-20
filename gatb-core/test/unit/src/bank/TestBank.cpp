@@ -664,7 +664,9 @@ public:
         {
             CPPUNIT_ASSERT ((*it)->getIndex()    == idx);
             CPPUNIT_ASSERT ((*it)->getDataSize() == strlen(table[idx]) );
-            CPPUNIT_ASSERT (strcmp ((*it)->getDataBuffer(), table[idx]) == 0);
+
+            /** NOTE ! don't use strcmp since we consider buffers without ending '\0' */
+            CPPUNIT_ASSERT (memcmp ((*it)->getDataBuffer(), table[idx], (*it)->getDataSize()) == 0);
         }
 
         CPPUNIT_ASSERT (idx == actualNumber);
