@@ -543,6 +543,35 @@ protected:
 };
 
 /********************************************************************************/
+
+template <class Item> class VectorIterator2 : public Iterator<Item>
+{
+public:
+
+    VectorIterator2 (std::vector<Item>& items) : _items(items), _idx(0), _nb (items.size())  {}
+
+    /** */
+    virtual ~VectorIterator2 () {}
+
+    /** \copydoc  Iterator::first */
+    void first()  {  _idx = -1;  next ();  }
+
+    /** \copydoc  Iterator::next */
+    void next()  { ++_idx;  if (_idx < _nb ) { *(this->_item) = (_items[_idx]); }  }
+
+    /** \copydoc  Iterator::isDone */
+    bool isDone() {   return _idx >= _nb;  }
+
+    /** \copydoc  Iterator::item */
+    Item& item ()  { return *(this->_item); }
+
+protected:
+    std::vector<Item>& _items;
+    int32_t            _idx;
+    int32_t            _nb;
+};
+
+/********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
