@@ -207,7 +207,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestDebruijn);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestDebruijn);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestDebruijn);
 
 /********************************************************************************/
 } } /* end of namespaces. */

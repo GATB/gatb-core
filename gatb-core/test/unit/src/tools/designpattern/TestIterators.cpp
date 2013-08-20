@@ -264,7 +264,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestIterators);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestIterators);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestIterators);
 
 /********************************************************************************/
 } } /* end of namespaces. */

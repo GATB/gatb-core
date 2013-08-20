@@ -59,6 +59,10 @@
 
 #define CPPUNIT_TEST_SUITE_GATB_END  CPPUNIT_TEST_SUITE_END
 
+
+#define CPPUNIT_TEST_SUITE_REGISTRATION_GATB(suite)         \
+    CPPUNIT_TEST_SUITE_NAMED_REGISTRATION (suite,#suite)
+
 using namespace CppUnit;
 
 /********************************************************************************/

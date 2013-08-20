@@ -866,7 +866,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestSystem);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestSystem);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestSystem);
 
 /********************************************************************************/
 } } /* end of namespaces. */

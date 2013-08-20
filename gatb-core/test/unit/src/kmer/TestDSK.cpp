@@ -218,7 +218,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestDSK);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestDSK);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestDSK);
 
 /********************************************************************************/
 } } /* end of namespaces. */

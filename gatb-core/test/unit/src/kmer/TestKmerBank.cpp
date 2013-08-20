@@ -134,7 +134,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestKmerBank);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestKmerBank);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestKmerBank);
 
 /********************************************************************************/
 } } /* end of namespaces. */

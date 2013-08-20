@@ -37,11 +37,14 @@ std::string DBPATH (const string& a)
 /********************************************************************************/
 int main (int argc, char **argv)
 {
+    /** We may launch only one test. */
+    string testname = (argc >=2 ? argv[1] : "All Tests");
+
     /** We set the directory where the db are. */
-    dbprefix = (argc >=2 ? argv[1] : "../test/db");
+    dbprefix = (argc >=3 ? argv[2] : "../test/db");
 
     /** We may have an ouput xml file. */
-    char* xmloutput = (argc >=3 ? argv[2] : 0);
+    char* xmloutput = (argc >=4 ? argv[3] : 0);
 
     // informs test-listener about testresults
     TestResult testresult;
@@ -56,7 +59,7 @@ int main (int argc, char **argv)
 #endif
 
     TextTestRunner runner;
-    runner.addTest ( TestFactoryRegistry::getRegistry().makeTest ());
+    runner.addTest ( TestFactoryRegistry::getRegistry(testname).makeTest ());
     runner.run (testresult);
 
     // output results in compiler-format

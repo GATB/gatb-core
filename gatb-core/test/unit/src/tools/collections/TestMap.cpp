@@ -113,7 +113,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestMap);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestMap);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestMap);
 
 /********************************************************************************/
 } } /* end of namespaces. */

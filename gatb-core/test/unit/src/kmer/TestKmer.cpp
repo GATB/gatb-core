@@ -212,7 +212,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestKmer);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestKmer);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestKmer);
 
 /********************************************************************************/
 } } /* end of namespaces. */

@@ -47,7 +47,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestIterable);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestIterable);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestIterable);
 
 /********************************************************************************/
 } } /* end of namespaces. */

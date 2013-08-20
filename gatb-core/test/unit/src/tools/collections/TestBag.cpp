@@ -198,7 +198,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestBag);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestBag);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestBag);
 
 /********************************************************************************/
 } } /* end of namespaces. */

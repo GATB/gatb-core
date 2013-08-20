@@ -125,7 +125,8 @@ public:
 
 /********************************************************************************/
 
-CPPUNIT_TEST_SUITE_REGISTRATION (TestMath);
+CPPUNIT_TEST_SUITE_REGISTRATION      (TestMath);
+CPPUNIT_TEST_SUITE_REGISTRATION_GATB (TestMath);
 
 /********************************************************************************/
 } } /* end of namespaces. */
