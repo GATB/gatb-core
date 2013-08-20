@@ -42,6 +42,12 @@ public:
      * \param aSize : initial size of the vector. */
     Vector (size_t aSize) :  _buffer(0), _size(0), _isAllocated(false), _ref(0)   {  resize (aSize);  }
 
+    /** assign operator */
+    Vector& operator=(const Vector& vect)
+    {
+        this->set(vect._buffer,vect._size);
+    }
+    
     /** Destructor. */
     ~Vector ()
     {
