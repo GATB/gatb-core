@@ -15,12 +15,17 @@
 #include <CppunitCommon.hpp>
 
 #include <gatb/system/impl/System.hpp>
+
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
+#include <gatb/bank/impl/BankStrings.hpp>
+
 #include <gatb/bank/impl/BankRegistery.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+
+#include <gatb/tools/misc/api/Macros.hpp>
 
 #include <list>
 #include <stdlib.h>     /* srand, rand */
@@ -63,6 +68,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_checkConvertBinary);
         CPPUNIT_TEST_GATB (bank_checkRegistery1);
         CPPUNIT_TEST_GATB (bank_checkRegistery2);
+        CPPUNIT_TEST_GATB (bank_strings1);
         //CPPUNIT_TEST_GATB (bank_perf1);
 
     CPPUNIT_TEST_SUITE_GATB_END();
@@ -636,6 +642,59 @@ public:
         /** We should have only half the number of sequences of the original database. */
         bank_checkRegistery_aux ("customfasta", "sample1.fa", 10);
     }
+
+    /********************************************************************************/
+    void bank_strings1_aux (const char* table[], size_t actualNumber)
+    {
+        u_int64_t actualTotalSize=0, actualMaxSize=0;
+        for (size_t i=0; i<actualNumber; i++)
+        {
+            actualTotalSize += strlen (table[i]);
+            if (actualMaxSize < strlen(table[i]))  { actualMaxSize = strlen(table[i]); }
+        }
+
+        /** We create the bank. */
+        BankStrings bank (table, actualNumber);
+
+        Iterator<Sequence>* it = bank.iterator();
+        LOCAL (it);
+
+        size_t idx=0;
+        for (it->first(); !it->isDone(); it->next(), idx++)
+        {
+            CPPUNIT_ASSERT ((*it)->getIndex()    == idx);
+            CPPUNIT_ASSERT ((*it)->getDataSize() == strlen(table[idx]) );
+            CPPUNIT_ASSERT (strcmp ((*it)->getDataBuffer(), table[idx]) == 0);
+        }
+
+        CPPUNIT_ASSERT (idx == actualNumber);
+
+        u_int64_t number, totalSize, maxSize;
+        bank.estimate (number, totalSize, maxSize);
+        CPPUNIT_ASSERT (number    == actualNumber);
+        CPPUNIT_ASSERT (totalSize == actualTotalSize);
+        CPPUNIT_ASSERT (maxSize   == actualMaxSize);
+    }
+
+    /********************************************************************************/
+    void bank_strings1 ()
+    {
+        const char* table1[] =  {  "ACTACGATCGATGTA",  "TTAGAGCAGCGAG",  "AGGGGCCCATTTCATCTATC" };
+        bank_strings1_aux (table1, ARRAY_SIZE (table1));
+
+        const char* table2[] =  {  "ACTACGATCGATGTATTAGAGCAGCGAGAGGGGCCCATTTCATCTATC" };
+        bank_strings1_aux (table2, ARRAY_SIZE (table2));
+
+        const char* table3[] =  {
+            "GATCCTCCCCAGGCCCCTACACCCAATGTGGAACCGGGGTCCCGAATGAAAATGCTGCTGTTCCCTGGAGGTGTTTTCCT",
+            "GGACGCTCTGCTTTGTTACCAATGAGAAGGGCGCTGAATCCTCGAAAATCCTGACCCTTTTAATTCATGCTCCCTTACTC",
+            "ACGAGAGATGATGATCGTTGATATTTCCCTGGACTGTGTGGGGTCTCAGAGACCACTATGGGGCACTCTCGTCAGGCTTC",
+            "CGCGACCACGTTCCCTCATGTTTCCCTATTAACGAAGGGTGATGATAGTGCTAAGACGGTCCCTGTACGGTGTTGTTTCT",
+            "GACAGACGTGTTTTGGGCCTTTTCGTTCCATTGCCGCCAGCAGTTTTGACAGGATTTCCCCAGGGAGCAAACTTTTCGAT"
+        };
+        bank_strings1_aux (table3, ARRAY_SIZE (table3));
+    }
+
 };
 
 /********************************************************************************/
