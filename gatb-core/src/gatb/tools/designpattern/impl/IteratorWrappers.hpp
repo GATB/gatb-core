@@ -25,6 +25,42 @@ namespace dp    {
 namespace impl  {
 /********************************************************************************/
 
+/** \brief TO BE DONE...
+ */
+template <class Container, typename Type> class STLIterator : public Iterator<Type>
+{
+public:
+    /** Constructor.
+     * \param[in]  l : the list to be iterated
+     */
+    STLIterator (const Container& l)  : _l(l) {}
+
+    /** Destructor (here because of virtual methods). */
+    virtual ~STLIterator ()  {}
+
+    /** \copydoc Iterator<T1>::first */
+    void first()  {  _iter = _l.begin(); }
+
+    /** \copydoc Iterator<T1>::next */
+    void next()   { _iter++; }
+
+    /** \copydoc Iterator<T1>::isDone */
+    bool isDone() { return _iter == _l.end (); }
+
+    /** \copydoc Iterator<T1>::item */
+    Type& item()  { return *_iter; }
+
+private:
+
+    /** List to be iterated. */
+    Container _l;
+
+    /** STL iterator we are going to wrap. */
+    typename Container::iterator _iter;
+};
+
+/********************************************************************************/
+
 /** \brief Iterator that loops over std::list
  *
  *  This class is a wrapper between the STL list implementation and our own Iterator
@@ -45,36 +81,18 @@ namespace impl  {
  *  }
  *  \endcode
  */
-template <class T1> class ListIterator : public Iterator<T1>
+template <class Type> class ListIterator : public STLIterator<std::list<Type>, Type>
 {
 public:
-    /** Constructor.
-     * \param[in]  l : the list to be iterated
-     */
-    ListIterator (const std::list<T1>& l)  : _l(l) {}
+    ListIterator (const std::list<Type>& l)  :  STLIterator<std::list<Type>, Type> (l)  {}
+};
 
-    /** Destructor (here because of virtual methods). */
-    virtual ~ListIterator ()  {}
+/********************************************************************************/
 
-    /** \copydoc Iterator<T1>::first */
-    void first()  {  _iter = _l.begin(); }
-
-    /** \copydoc Iterator<T1>::next */
-    void next()   { _iter++; }
-
-    /** \copydoc Iterator<T1>::isDone */
-    bool isDone() { return _iter == _l.end (); }
-
-    /** \copydoc Iterator<T1>::item */
-    T1& item()  { return *_iter; }
-
-private:
-
-    /** List to be iterated. */
-    std::list<T1> _l;
-
-    /** STL iterator we are going to wrap. */
-    typename std::list<T1>::iterator _iter;
+template <class Type> class VecIterator : public STLIterator<std::vector<Type>, Type>
+{
+public:
+    VecIterator (const std::vector<Type>& l)  :  STLIterator<std::vector<Type>, Type> (l)  {}
 };
 
 /********************************************************************************/
