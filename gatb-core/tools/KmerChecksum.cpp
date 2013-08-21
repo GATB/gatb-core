@@ -25,10 +25,13 @@ int main (int argc, char* argv[])
     {
         cerr << "you must provide at least 1 arguments. Arguments are:" << endl;
         cerr << "   1) uri of the file"  << endl;
+        cerr << "   2) dump (0 default or 1)"  << endl;
         return EXIT_FAILURE;
     }
 
     string filename = argv[1];
+
+    bool dump = (argc >= 3);
 
     u_int64_t nbItems  = 0;
     kmer_type checksum = 0;
@@ -36,6 +39,7 @@ int main (int argc, char* argv[])
     IteratorFile<kmer_type> it (filename);
     for (it.first(); !it.isDone(); it.next())
     {
+        if (dump)  { cout << "0x" << *it << endl; }
         checksum = checksum + *it;
         nbItems ++;
     }
