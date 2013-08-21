@@ -78,16 +78,29 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
 ** REMARKS :
 *********************************************************************/
 template<typename T>
-DSKAlgorithm<T>::DSKAlgorithm (IBank* bank, size_t kmerSize, size_t nks, IProperties* options)
+DSKAlgorithm<T>::DSKAlgorithm (
+    gatb::core::bank::IBank* bank,
+    size_t      kmerSize,
+    size_t      nks,
+    u_int32_t   max_memory,
+    u_int64_t   max_disk_space,
+    size_t      partitionType,
+    size_t      nbCores,
+    const std::string& prefix,
+    const std::string& histogramUri,
+    gatb::core::tools::misc::IProperties* options
+)
   : Algorithm("dsk", options),
-    _bank(0), _kmerSize(kmerSize), _nks(nks),
-    _partitionType(0), _nbCores(0), _prefix("tmp."), _solidKmers("solid"),
+    _bank(0), _solidIterable(0),
+    _kmerSize(kmerSize), _nks(nks),
+    _partitionType(partitionType), _nbCores(nbCores), _prefix(prefix), _solidKmers(prefix + "solid"),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
-    _max_disk_space(1000), _max_memory(1000), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
-    _histogram (0)
+    _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
+    _histogram (0), _histogramUri(histogramUri)
 {
     setBank (bank);
+    setSolidIterable (new IterableFile<T> (_solidKmers, 1000));
 }
 
 /*********************************************************************
@@ -111,6 +124,7 @@ DSKAlgorithm<T>::~DSKAlgorithm ()
     if (_histogram)  {  delete _histogram; }
 
     setBank (0);
+    setSolidIterable (0);
 }
 
 /*********************************************************************
@@ -124,21 +138,6 @@ DSKAlgorithm<T>::~DSKAlgorithm ()
 template<typename T>
 std::string DSKAlgorithm<T>::getPartitionFormat () {  return _prefix + "partition.%d";  }
 
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<typename T>
-tools::dp::Iterator<T>* DSKAlgorithm<T>::createSolidIterator ()
-{
-    return new IteratorFile<T> (_solidKmers, 1000);
-}
-
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -150,28 +149,16 @@ tools::dp::Iterator<T>* DSKAlgorithm<T>::createSolidIterator ()
 template<typename T>
 void DSKAlgorithm<T>::execute ()
 {
-    /** We set the max memory according to the number of used cores. */
-//    getInput()->setInt (STR_MAX_MEMORY, getInput()->getInt (STR_MAX_MEMORY) / getInput()->getInt (STR_NB_CORES));
-
-    /** Shortcuts attributes. */
-    if (getInput()->get(STR_MAX_MEMORY))        { _max_memory      = getInput()->getInt (STR_MAX_MEMORY);       }
-    if (getInput()->get(STR_MAX_DISK))          { _max_disk_space  = getInput()->getInt (STR_MAX_DISK);         }
-    if (getInput()->get(STR_PARTITION_TYPE))    { _partitionType   = getInput()->getInt (STR_PARTITION_TYPE);   }
-    if (getInput()->get(STR_PREFIX))            { _prefix          = getInput()->getStr (STR_PREFIX);           }
-
+    /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
+    assert (_nbCores > 0);
+
+    /** We set the max memory according to the number of used cores. */
+    _max_memory /= _nbCores;
 
     /** We setup the histogram if needed. */
-    if (getInput()->get(STR_URI_HISTOGRAM) != 0)  {  _histogram = new Histogram     (10000, getUriByKey (STR_URI_HISTOGRAM));  }
-    else                                          {  _histogram = new HistogramNull (); }
-
-    /** We add the prefix to the solid kmers uri. */
-//    DSK* dsk = dynamic_cast<DSK*> (getRef());   if (!dsk)  { throw Exception ("dynamic cast failed"); }
-//    getInput()->setStr (DSK::STR_URI_SOLID_KMERS, dsk->getUriByKey (DSK::STR_URI_SOLID_KMERS) );
-
-//    /** We create the binary bank holding the reads in binary format. */
-//    IBank* bank = new BankBinary (getInput()->getStr (STR_URI_DB));
-//    LOCAL (bank);
+    if (_histogramUri.empty() == false)  {  _histogram = new Histogram     (10000, _histogramUri);  }
+    else                                 {  _histogram = new HistogramNull (); }
 
     /** We configure dsk by computing the number of passes and partitions we will have
      * according to the allowed disk and memory space. */
@@ -216,7 +203,6 @@ void DSKAlgorithm<T>::execute ()
 
     /** We set the result of the execution. */
     getOutput()->add (0, STR_KMER_SOLID,  _solidKmers);
-
 }
 
 /*********************************************************************
@@ -296,8 +282,6 @@ public:
     {
         /** By default, we will use the provided data with a ASCII encoding. */
         Data* data = & sequence.getData();
-
-//cout << "seq len=" << sequence.getDataSize()  << endl;
 
         /** We may have to expand the binary data to integer format. */
         if (sequence.getData().getEncoding() == Data::BINARY)
@@ -597,8 +581,6 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
         }
 
         getDispatcher()->dispatchCommands (cmds, 0);
-
-
     }
 
     /** Some cleanup. */

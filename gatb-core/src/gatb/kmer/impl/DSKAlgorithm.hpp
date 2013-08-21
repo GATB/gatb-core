@@ -15,6 +15,7 @@
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
+#include <gatb/tools/collections/api/Iterable.hpp>
 #include <string>
 
 /********************************************************************************/
@@ -30,8 +31,6 @@ namespace impl      {
  *
  * This class does the real job of counting the kmers from a reads database.
  *
- * Note that it is intended to be used as a delegate by the DSK class.
- *
  * This is a template class whose template argument is the kind of integer used for
  * kmers (integers on 64 bits, 128 bits, etc...)
  *
@@ -45,10 +44,32 @@ template<typename T> class DSKAlgorithm : public gatb::core::tools::misc::impl::
 public:
 
     /** Constructor.*/
-    DSKAlgorithm (gatb::core::bank::IBank* bank, size_t kmerSize, size_t nks, gatb::core::tools::misc::IProperties* otions=0);
+    DSKAlgorithm (
+        gatb::core::bank::IBank* bank,
+        size_t              kmerSize,
+        size_t              nks,
+        u_int32_t           max_memory     = 1000,
+        u_int64_t           max_disk_space = 0,
+        size_t              partitionType  = 0,
+        size_t              nbCores        = 0,
+        const std::string&  prefix         = "tmp.",
+        const std::string&  histogramUri   = "",
+        gatb::core::tools::misc::IProperties* options = 0
+    );
 
     /** Destructor */
     virtual ~DSKAlgorithm ();
+
+    /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
+     * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
+     */
+    void  execute ();
+
+    /** Get the iterable over the computed solid kmers.
+     * \return the solid kmers iterable. */
+    tools::collections::Iterable<T>* getSolidKmers ()  { return _solidIterable; }
+
+private:
 
     /** Compute several values, in particular the number of passes and partitions. */
     void configure (gatb::core::bank::IBank* bank);
@@ -86,24 +107,17 @@ public:
         return filename;
     }
 
-    /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
-     * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
-     */
-    void  execute ();
-
-    /** Get the iterator listener instance. */
-    gatb::core::tools::dp::IteratorListener* getProgress ()  { return _progress; }
-
     /** */
-    size_t getNks ()  { return _nks; }
-
-    /** */
-    tools::dp::Iterator<T>* createSolidIterator ();
-
-private:
-
     gatb::core::bank::IBank* _bank;
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
+
+    /** */
+    tools::collections::Iterable<T>* _solidIterable;
+    void setSolidIterable (tools::collections::Iterable<T>* solidIterable)
+    {
+        if (_solidIterable != 0)  { delete _solidIterable; }
+        _solidIterable = solidIterable;
+    }
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;
@@ -113,9 +127,14 @@ private:
 
     std::string _prefix;
     std::string _solidKmers;
+    std::string _histogramUri;
 
     gatb::core::tools::dp::IteratorListener* _progress;
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
+    gatb::core::tools::dp::IteratorListener* getProgress ()  { return _progress; }
+
+    /** */
+    size_t getNks ()  { return _nks; }
 
     /** Values computed for algorithm parameterization. In particular, we have one value for the number
      * of passes and one value for the number of partitions.
@@ -134,6 +153,8 @@ private:
     u_int32_t _current_pass;
 
     gatb::core::tools::misc::impl::Histogram* _histogram;
+
+    template<typename T1> friend class PartitionsCommand;
 };
 
 /********************************************************************************/
