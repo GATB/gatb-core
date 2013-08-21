@@ -160,10 +160,11 @@ public:
             commands.push_back (new IteratorCommand<Item,Functor> (iterator, *it, *synchro, groupSize));
         }
 
-        iterator->reset();
-
         /** We dispatch the commands. */
         dispatchCommands (commands);
+
+        /** We reset the iterator (in case it would be used again). */
+        iterator->reset();
 
         /** We get rid of the synchronizer. */
         delete synchro;

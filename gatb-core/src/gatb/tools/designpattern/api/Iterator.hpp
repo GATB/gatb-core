@@ -157,7 +157,11 @@ public:
     }
 
     /** Reset the iterator. */
-    void reset ()  { _isRunning = false; }
+    virtual void reset ()
+    {
+        _isRunning = false;
+        _item      = &_default;
+    }
 
 protected:
     Item* _item;
