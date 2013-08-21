@@ -76,6 +76,7 @@ public:
     const char* nb_cores       ()  { return "-nb-cores";       }
     const char* partition_type ()  { return "-partition-type"; }
     const char* uri_histogram  ()  { return "-histo";          }
+    const char* uri_debloom    ()  { return "-debloom";          }
 };
 
 /********************************************************************************/
@@ -92,7 +93,8 @@ public:
 #define STR_PROGRESS_BAR        gatb::core::tools::misc::StringRepository::singleton().progress_bar ()
 #define STR_NB_CORES            gatb::core::tools::misc::StringRepository::singleton().nb_cores ()
 #define STR_PARTITION_TYPE      gatb::core::tools::misc::StringRepository::singleton().partition_type ()
-#define STR_URI_HISTOGRAM       gatb::core::tools::misc::StringRepository::singleton().partition_type ()
+#define STR_URI_HISTOGRAM       gatb::core::tools::misc::StringRepository::singleton().uri_histogram ()
+#define STR_URI_DEBLOOM         gatb::core::tools::misc::StringRepository::singleton().uri_debloom ()
 
 /********************************************************************************/
 
