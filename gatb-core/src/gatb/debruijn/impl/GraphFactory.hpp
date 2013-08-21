@@ -53,6 +53,16 @@ public:
         return  Graph<T> (singleton().newGraph<T> (props));
     }
 
+    template<typename T>
+    static Graph<T>  createGraph (
+        tools::collections::Iterable<T>* solidKmers,
+        tools::collections::Iterable<T>* cFPKmers,
+        size_t kmerSize
+    )
+    {
+        return  Graph<T> (new GraphBasic<T> (solidKmers, cFPKmers, kmerSize));
+    }
+
 
 protected:
 
