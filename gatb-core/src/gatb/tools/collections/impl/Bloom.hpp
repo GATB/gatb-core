@@ -282,7 +282,37 @@ private:
     u_int64_t _mask_block;
     size_t _nbits_BlockSize;
     u_int64_t _reduced_tai;
+};
 
+/********************************************************************************/
+
+/** */
+class BloomFactory
+{
+public:
+
+    enum Kind
+    {
+        Synchronized,
+        CacheCoherent
+    };
+
+    /** */
+    static BloomFactory& singleton()  { static BloomFactory instance; return instance; }
+
+    /** */
+    template<typename T> Bloom<T>* createBloom (Kind kind, u_int64_t tai_bloom, size_t nbHash)
+    {
+        switch (kind)
+        {
+        case CacheCoherent:
+            return new BloomCacheCoherent<T> (tai_bloom, nbHash);
+
+        case Synchronized:
+        default:
+            return new BloomSynchronized<T> (tai_bloom, nbHash);
+        }
+    }
 };
 
 /********************************************************************************/

@@ -42,8 +42,14 @@ template<typename T> class BloomBuilder
 public:
 
     /** */
-    BloomBuilder (tools::dp::Iterator<T>* itKmers, size_t bloomSize, size_t nbHash, size_t nbCores=0)
-        : _itKmers (0), _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores)
+    BloomBuilder (
+        tools::dp::Iterator<T>* itKmers,
+        u_int64_t   bloomSize,
+        size_t      nbHash,
+        tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
+        size_t      nbCores = 0
+    )
+        : _itKmers (0), _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind)
     {
         setItKmers (itKmers);
     }
@@ -58,8 +64,8 @@ public:
         TIME_INFO (ti, "build kmers bloom");
 
         /** We instantiate the bloom object. */
-        tools::collections::impl::Bloom<T>* bloom = new tools::collections::impl::BloomCacheCoherent<T> (_bloomSize, _nbHash);
-      //  tools::collections::impl::Bloom<T>* bloom = new tools::collections::impl::BloomSynchronized<T> (_bloomSize, _nbHash);
+        tools::collections::impl::Bloom<T>* bloom =
+            tools::collections::impl::BloomFactory::singleton().createBloom<T> (_bloomKind, _bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
         tools::dp::impl::ParallelCommandDispatcher(_nbCores).iterate (_itKmers,  BuildKmerBloom (*bloom));
@@ -81,9 +87,10 @@ private:
     tools::dp::Iterator<T>* _itKmers;
     void setItKmers (tools::dp::Iterator<T>* itKmers)  { SP_SETATTR(itKmers); }
 
-    size_t _bloomSize;
-    size_t _nbHash;
-    size_t _nbCores;
+    u_int64_t _bloomSize;
+    size_t    _nbHash;
+    size_t    _nbCores;
+    tools::collections::impl::BloomFactory::Kind _bloomKind;
 
     /********************************************************************************/
     class BuildKmerBloom : public tools::dp::impl::IteratorFunctor
