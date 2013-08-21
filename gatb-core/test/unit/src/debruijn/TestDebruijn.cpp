@@ -32,6 +32,11 @@
 #include <gatb/debruijn/impl/GraphBasic.hpp>
 #include <gatb/debruijn/impl/GraphFactory.hpp>
 
+#include <gatb/kmer/impl/DSKAlgorithm.hpp>
+#include <gatb/kmer/impl/DebloomAlgorithm.hpp>
+
+#include <gatb/bank/impl/BankStrings.hpp>
+
 #include <iostream>
 #include <memory>
 
@@ -39,6 +44,9 @@ using namespace std;
 
 using namespace gatb::core::debruijn;
 using namespace gatb::core::debruijn::impl;
+
+using namespace gatb::core::bank;
+using namespace gatb::core::bank::impl;
 
 using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
@@ -68,6 +76,7 @@ class TestDebruijn : public Test
     CPPUNIT_TEST_SUITE_GATB (TestDebruijn);
 
         CPPUNIT_TEST_GATB (debruijn_test1);
+        CPPUNIT_TEST_GATB (debruijn_test2);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -202,6 +211,102 @@ public:
         //debruijn_test2_aux<NativeInt64> (graph);
         debruijn_test3_aux<NativeInt64> (graph);
 #endif
+    }
+
+    /********************************************************************************/
+    template<typename T>
+    pair <Node<T>,Node<T> > getBranchingRange (Graph<T>& graph, const Node<T>& node)
+    {
+        pair <Node<T>,Node<T> > result;
+        NodeSet<T> nodes (graph);
+
+        result.first  = node;
+        for (size_t nbNodes=1 ; (nbNodes = graph.getPredecessors (result.first,  nodes)) == 1; result.first  = nodes[0])  {}
+
+        result.second = node;
+        for (size_t nbNodes=1 ; (nbNodes = graph.getSuccessors   (result.second, nodes)) == 1; result.second = nodes[0])  {}
+
+        return result;
+    }
+
+    /********************************************************************************/
+    void debruijn_test2_aux (size_t kmerSize, const char* seq)
+    {
+        size_t seqLen   = strlen (seq);
+
+        CPPUNIT_ASSERT (seqLen >= kmerSize);
+
+        /** We create a bank with one sequence. */
+        IBank* bank = new BankStrings (seq, 0);
+
+        /** We create a DSK instance. */
+        DSKAlgorithm<NativeInt64> dsk (bank, kmerSize, 1);
+
+        /** We launch DSK. */
+        dsk.execute();
+
+        /** We check that the sequence has no duplicate kmers. */
+        CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == dsk.getSolidKmers()->getNbItems());
+
+        /** We create a debloom instance. */
+        DebloomAlgorithm<NativeInt64> debloom (dsk.getSolidKmers(), kmerSize);
+
+        /** We launch the debloom. */
+        debloom.execute();
+
+        /** We create the graph. */
+        Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (dsk.getSolidKmers(), debloom.getCriticalKmers(), kmerSize);
+
+        /** We retrieve one node of the graph. */
+        NodeIterator<NativeInt64> itNodes = graph.nodes();   itNodes.first();
+
+        /** We compute the branching range for the node. */
+        pair <Node<NativeInt64>,Node<NativeInt64> > range = getBranchingRange<NativeInt64> (graph, itNodes.item());
+
+        // cout << range.first.toString (STRAND_FORWARD) << "  " << range.second.toString(STRAND_FORWARD) << endl;
+        // cout << range.first.toString (STRAND_REVCOMP) << "  " << range.second.toString(STRAND_REVCOMP) << endl;
+
+        /** We check that the begin kmer matches the beginning of the sequence. */
+        bool check1 =
+            range.first.toString  (STRAND_FORWARD,1) == string (seq, kmerSize)  ||
+            range.second.toString (STRAND_REVCOMP,1) == string (seq, kmerSize);
+
+        /** We check that the end kmer matches the end of the sequence. */
+        bool check2 =
+            range.second.toString (STRAND_FORWARD,1) == string (seq + seqLen - kmerSize, kmerSize)  ||
+            range.first.toString  (STRAND_REVCOMP,1) == string (seq + seqLen - kmerSize, kmerSize);
+
+        if (!check1 || !check2)
+        {
+            cout << "kmerSize=" << kmerSize << endl;
+            cout << itNodes.item().toString (STRAND_FORWARD) << "  " << itNodes.item().toString (STRAND_REVCOMP) << endl;
+            cout << range.first.toString (STRAND_FORWARD) << "  " << range.second.toString(STRAND_FORWARD) << endl;
+            cout << range.first.toString (STRAND_REVCOMP) << "  " << range.second.toString(STRAND_REVCOMP) << endl;
+        }
+
+        CPPUNIT_ASSERT (check1 && check2);
+
+    }
+
+    /********************************************************************************/
+    void debruijn_test2 ()
+    {
+        const char* sequences [] =
+        {
+            "ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAAT",
+            "CGCTACAGCAGCTAGTTCATCATTGTTTATCAATGATAAAATATAATAAGCTAAAAGGAAACTATAAATA",
+            "CGCTATTCATCATTGTTTATCAATGAGCTAAAAGGAAACTATAAATAACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAG"
+        };
+
+        size_t kmerSizes[] = { 13, 15, 17, 19, 21, 23, 25, 27, 29, 31};
+
+        for (size_t i=0; i<ARRAY_SIZE(sequences); i++)
+        {
+            for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
+            {
+                debruijn_test2_aux (kmerSizes[j], sequences[i]);
+            }
+        }
     }
 };
 
