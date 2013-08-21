@@ -125,19 +125,29 @@ public:
     }
 
     /** For debug mainly. */
-    std::string toString (Strand strand = STRAND_ALL)
+    std::string toString (Strand strand = STRAND_ALL, int mode=0)
     {
         std::stringstream ss;
 
+        /** We set the strings for the kmer and the strand. */
+        std::string kmerStr;
+        std::string strandStr;
+
         if (strand == STRAND_ALL || this->strand == strand)
         {
-            ss << "[ " << this->_graph->getModel().toString (kmer) <<  "  strand=" << (this->strand==STRAND_FORWARD ? "FORWARD" : "REVCOMP") << "]";
+            kmerStr = this->_graph->getModel().toString (kmer);
+            strandStr = (this->strand==STRAND_FORWARD ? "FORWARD" : "REVCOMP");
         }
         else
         {
             T reverse = this->_graph->getModel().reverse (kmer);
-            ss << "[ " << this->_graph->getModel().toString (reverse) <<  "  strand=" << (this->strand==STRAND_FORWARD ? "REVCOMP" : "FORWARD") << "]";
+            kmerStr = this->_graph->getModel().toString (reverse);
+            strandStr = (this->strand==STRAND_FORWARD ? "REVCOMP" : "FORWARD");
         }
+
+        if (mode==0)    {  ss << "[ " << kmerStr <<  "  strand=" << strandStr << "]";  }
+        else            {  ss << kmerStr; }
+
         return ss.str();
     }
 
