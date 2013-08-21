@@ -182,37 +182,40 @@ public:
         size_t nks      = 1;
 
         const char* s1 = "GATCGATTCTTAGCACGTCCCCCCCTACACCCAAT" ;
-        const char* sequences[] =  { s1 };
 
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (new BankStrings (sequences, ARRAY_SIZE(sequences)), kmerSize, nks);
+        DSKAlgorithm<NativeInt64> dsk (new BankStrings (s1, 0), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
 
-        /** We iterate the kmers. */
-        Iterator<NativeInt64>* iter = dsk.createSolidIterator();
+        /** We iterate the solid kmers. */
+        Iterator<NativeInt64>* iter = dsk.getSolidKmers()->iterator();
         LOCAL (iter);
 
         /** The following values have been computed with the original DSK.
          *  Note: we use a set and check that the solid iterator items are in this trustful set.
          *  -> we have to do this because we are not sure about the order of the iterated items.
          */
-        set<NativeInt64> check;
-        check.insert (0x1CA68D1E55561150);
-        check.insert (0x09CA68D1E5556115);
-        check.insert (0x2729A34795558454);
-        check.insert (0x32729A3479555845);
-        check.insert (0x0AFEE3FFF1ED8309);
+        set<NativeInt64> okValues;
+        okValues.insert (0x1CA68D1E55561150);
+        okValues.insert (0x09CA68D1E5556115);
+        okValues.insert (0x2729A34795558454);
+        okValues.insert (0x32729A3479555845);
+        okValues.insert (0x0AFEE3FFF1ED8309);
+
+        set<NativeInt64> checkValues;
 
         size_t idx=0;
         for (iter->first(); !iter->isDone(); iter->next(), idx++)
         {
-            set<NativeInt64>::iterator lookup = check.find (iter->item());
-            CPPUNIT_ASSERT (lookup != check.end());
+            set<NativeInt64>::iterator lookup = okValues.find (iter->item());
+            CPPUNIT_ASSERT (lookup != okValues.end());
+
+            checkValues.insert (iter->item());
         }
 
-        CPPUNIT_ASSERT (idx==check.size());
+        CPPUNIT_ASSERT (checkValues.size() == okValues.size());
     }
 };
 
