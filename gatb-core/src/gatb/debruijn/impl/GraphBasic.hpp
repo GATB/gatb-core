@@ -72,6 +72,31 @@ public:
         _span = _model->getSpan ();
     }
 
+    /** Constructor. */
+    GraphBasic (
+        tools::collections::Iterable<T>* solidKmers,
+        tools::collections::Iterable<T>* cFPKmers,
+        size_t kmerSize
+    )
+        : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0)
+    {
+        setNodesIterable (solidKmers);
+
+        setModel (new kmer::impl::Model<T> (kmerSize));
+
+        /** We compute the bloom size. */
+        double lg2 = log(2);
+        float NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
+        u_int64_t bloomSize =  (u_int64_t) (solidKmers->getNbItems() * NBITS_PER_KMER);
+
+        setBloom (kmer::impl::BloomBuilder<T> (_nodesIterable->iterator(), bloomSize, 7).build ());
+
+        setcFPset (new tools::collections::impl::ContainerSet<T> (cFPKmers->iterator()));
+
+        _mask = _model->getMask ();
+        _span = _model->getSpan ();
+    }
+
     /** Destructor. */
     ~GraphBasic ()
     {
@@ -114,14 +139,14 @@ private:
     tools::collections::Iterable<T>* _nodesIterable;
     void setNodesIterable (tools::collections::Iterable<T>* nodesIterable)
     {
-        if (_nodesIterable != 0)  { delete _nodesIterable; }
+        //if (_nodesIterable != 0)  { delete _nodesIterable; }
         _nodesIterable = nodesIterable;
     }
 
     tools::collections::Container<T>* _cFPset;
     void setcFPset (tools::collections::Container<T>* cFPset)
     {
-        if (_cFPset != 0)  { delete _cFPset; }
+        //if (_cFPset != 0)  { delete _cFPset; }
         _cFPset = cFPset;
     }
 
@@ -152,7 +177,7 @@ private:
 
         if (direction == DIR_OUTCOMING)
         {
-            for (u_int8_t nt=0; nt<4; nt++)
+            for (u_int64_t nt=0; nt<4; nt++)
             {
                 T forward = ( (graine << 2 )  + nt) & _mask;
                 T reverse = revcomp (forward, _span);
@@ -175,7 +200,8 @@ private:
         }
         else if (direction == DIR_INCOMING)
         {
-            for (u_int8_t nt=0; nt<4; nt++)
+            /** IMPORTANT !!! Since we have hugely shift the nt value, we make sure to use a long enough integer. */
+            for (u_int64_t nt=0; nt<4; nt++)
             {
                 T forward = ((graine >> 2 )  + ( nt << ((_span-1)*2)) ) & _mask; // previous kmer
                 T reverse = revcomp (forward, _span);
@@ -216,7 +242,7 @@ private:
 
         if (direction == DIR_OUTCOMING)
         {
-            for (u_int8_t nt=0; nt<4; nt++)
+            for (u_int64_t nt=0; nt<4; nt++)
             {
                 T forward = ( (graine << 2 )  + nt) & _mask;    // next kmer
                 T reverse = revcomp (forward, _span);
@@ -227,10 +253,12 @@ private:
         }
         else if (direction == DIR_INCOMING)
         {
-            for (u_int8_t nt=0; nt<4; nt++)
+            for (u_int64_t nt=0; nt<4; nt++)
             {
-                T forward = ((graine >> 2 )  + ( nt << ((_span-1)*2)) ) & _mask; // previous kmer
+                T forward = ((graine >> 2 )  + ( nt <<  ((_span-1)*2)) ) & _mask; // previous kmer
                 T reverse = revcomp (forward, _span);
+
+                //std::cout << "span=" << _span << "  graine=" << graine << "  nt=" << (int)nt << "  forward=" << forward << "  reverse=" << reverse << std::endl;
 
                 if (forward < reverse)  {  if (this->contains (forward))  {  nodes[idx++].set (forward, STRAND_FORWARD);  }  }
                 else                    {  if (this->contains (reverse))  {  nodes[idx++].set (reverse, STRAND_REVCOMP);  }  }
