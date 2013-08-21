@@ -63,6 +63,9 @@ public:
     /** \copydoc tools::collections::Iterable::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return _ref->iterator(); }
 
+    /**  */
+    int64_t getNbItems () { return _ref->getNbItems(); }
+
     /** \copydoc tools::collections::Bag */
     void insert (const Sequence& item)   { _ref->insert (item); }
 

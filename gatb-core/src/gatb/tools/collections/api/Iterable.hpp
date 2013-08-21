@@ -40,9 +40,16 @@ template <class Item> class Iterable //: public dp::SmartPointer
 {
 public:
 
+    virtual ~Iterable() {}
+
     /** Create an iterator for the given Iterable instance.
      * \return the new iterator. */
     virtual dp::Iterator<Item>* iterator () = 0;
+
+    /** Return the number of items. If a specific implementation doesn't know the value,
+     * it should return -1 by convention.
+     * \return the number of items if known, -1 otherwise. */
+    virtual int64_t getNbItems () = 0;
 };
 
 /********************************************************************************/

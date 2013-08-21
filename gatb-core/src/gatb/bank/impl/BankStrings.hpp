@@ -63,6 +63,9 @@ public:
     /** \copydoc IBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return new tools::dp::impl::VectorIterator2<Sequence> (_sequences); }
 
+    /** \copydoc IBank::getNbItems */
+    int64_t getNbItems () { return _sequences.size(); }
+
     /** \copydoc IBank::insert */
     void insert (const Sequence& item)
     {

@@ -46,7 +46,7 @@ public:
 
     {
         _file    = system::impl::System::file().newFile (filename, "rb");
-        _buffer  = malloc (sizeof(Item) * _cacheItemsNb);
+        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
     }
 
     /** Destructor. */
@@ -76,7 +76,7 @@ public:
             if (_cpt_buffer==0)  { _isDone = true;  return; }
         }
 
-        *(this->_item) =  * (((Item*)_buffer) + _idx);
+        *(this->_item) =  _buffer[_idx];
         _cpt_buffer --;
         _idx ++;
     }
@@ -97,7 +97,7 @@ public:
 private:
     std::string     _filename;
     system::IFile*  _file;
-    void*           _buffer;
+    Item*           _buffer;
     int             _cpt_buffer;
     int             _idx;
     size_t          _cacheItemsNb;
@@ -119,6 +119,9 @@ public:
 
     /** */
     dp::Iterator<Item>* iterator ()  { return new IteratorFile<Item> (_filename, _cacheItemsNb); }
+
+    /** */
+    int64_t getNbItems ()   {  return system::impl::System::file().getSize(_filename) / sizeof(Item); }
 
 private:
     std::string     _filename;
