@@ -32,7 +32,7 @@ namespace impl          {
 
 /** \brief Bag implementation for file
  */
-template <typename Item> class BagFile : public Bag<Item>
+template <typename Item> class BagFile : public Bag<Item>, public dp::SmartPointer
 {
 public:
 

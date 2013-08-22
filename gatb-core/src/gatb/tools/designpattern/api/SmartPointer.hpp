@@ -60,6 +60,27 @@ namespace dp    {
  *  and destructors. Moreover, one can use the SP_SETATTR macro which eases this process.
  *  Note also the LOCAL macro that eases the local usage of an instance.
  *
+ *  \see SP_SETATTR
+ *  \see LOCAL
+ */
+class ISmartPointer
+{
+public:
+
+    /** Destructor. */
+    virtual ~ISmartPointer () {}
+
+    /** Use an instance by taking a token on it */
+    virtual void use () = 0;
+
+    /** Forget an instance by releasing a token on it */
+    virtual void forget () = 0;
+};
+
+/********************************************************************************/
+
+/** \brief Implementation of the ISmartPointer interface
+ *
  * This class implements also a security against concurrent access by several clients acting
  * from different threads. This is achieved by using intrinsics __sync_fetch_and_add and
  * __sync_fetch_and_sub in use and forget respectively.
@@ -69,18 +90,18 @@ namespace dp    {
  *  \see SP_SETATTR
  *  \see LOCAL
  */
-class SmartPointer
+class SmartPointer : public virtual ISmartPointer
 {
 public:
-    /** Use an instance by taking a token on it */
-    virtual void use    ()
+    /** \copydoc ISmartPointer::use */
+    void use    ()
     {
         __sync_fetch_and_add (&_counterRef, 1 );
         // DON'T DO _counterRef++  because possible real time issues...
     }
 
-    /** Forget an instance by releasing a token on it */
-    virtual void forget ()
+    /** \copydoc ISmartPointer::forget */
+    void forget ()
     {
         __sync_fetch_and_sub (&_counterRef, 1 );
         // DON'T DO _counterRef--  because possible real time issues...
@@ -140,18 +161,18 @@ public:
     /** Constructor.
      * \param[in] ptr : the instance we want locally manage.
      */
-    LocalObject (SmartPointer* ptr) : _ptr(ptr)  { if (_ptr)  {  _ptr->use();  } }
+    LocalObject (ISmartPointer* ptr) : _ptr(ptr)  { if (_ptr)  {  _ptr->use();  } }
 
     /** Destructor. */
     ~LocalObject () { if (_ptr)  {  _ptr->forget ();  } }
 
     /** Getter on the referenced instance.
      * \return the referenced SmartPointer instance. */
-    SmartPointer* getPtr ()  { return _ptr; }
+    ISmartPointer* getPtr ()  { return _ptr; }
 
 private:
     /** The SmartPointer instance we want local life cycle management. */
-    SmartPointer* _ptr;
+    ISmartPointer* _ptr;
 };
 
 /********************************************************************************/

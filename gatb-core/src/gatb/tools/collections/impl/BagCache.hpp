@@ -32,7 +32,7 @@ namespace impl          {
 
 /** \brief Bag implementation as a cache to a referred Bag instance
  */
-template <typename Item> class BagCache : public Bag<Item>
+template <typename Item> class BagCache : public Bag<Item>, public dp::SmartPointer
 {
 public:
 

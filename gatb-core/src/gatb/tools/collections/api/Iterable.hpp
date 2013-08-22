@@ -36,7 +36,7 @@ namespace collections   {
  *
  * Note that one Iterable instance can create several iterators.
  */
-template <class Item> class Iterable //: public dp::SmartPointer
+template <class Item> class Iterable : public virtual dp::ISmartPointer
 {
 public:
 

@@ -18,6 +18,7 @@
 
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/AbstractBank.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/IProperty.hpp>
 
@@ -48,7 +49,7 @@ public:
 
 /********************************************************************************/
 
-class BankDelegate : public IBank
+class BankDelegate : public AbstractBank
 {
 public:
 

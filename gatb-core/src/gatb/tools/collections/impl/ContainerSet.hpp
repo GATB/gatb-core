@@ -33,7 +33,7 @@ namespace impl          {
 /********************************************************************************/
 /** \brief Bloom filter implementation
  */
-template <typename Item> class ContainerSet : public Container<Item>
+template <typename Item> class ContainerSet : public Container<Item>, public dp::SmartPointer
 {
 public:
     

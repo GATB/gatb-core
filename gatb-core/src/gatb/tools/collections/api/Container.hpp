@@ -31,7 +31,7 @@ namespace collections   {
  *
  * The Container interface provides an operation that ask for a given item
  */
-template <class Item> class Container // : public dp::SmartPointer
+template <class Item> class Container : public virtual dp::ISmartPointer
 {
 public:
 

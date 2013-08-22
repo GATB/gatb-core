@@ -27,7 +27,7 @@ namespace impl      {
 
 /** \brief Abstract implementation of IBank for factorizing common behavior.
  */
-class AbstractBank : public IBank
+class AbstractBank : public IBank, public tools::dp::SmartPointer
 {
 public:
 

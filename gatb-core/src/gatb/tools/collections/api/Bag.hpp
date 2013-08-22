@@ -34,7 +34,7 @@ namespace collections   {
  *
  * Note that one Iterable instance can create several iterators.
  */
-template <class Item> class Bag : public dp::SmartPointer
+template <class Item> class Bag : public virtual  dp::ISmartPointer
 {
 public:
 
@@ -50,7 +50,6 @@ public:
         size_t n = length==0 ? items.size() : length;
         for (size_t i=0; i<length; i++)  {  insert (items[i]); }
     }
-
 
     /** Flush the current content. May be useful for implementation that uses a cache. */
     virtual void flush () = 0;

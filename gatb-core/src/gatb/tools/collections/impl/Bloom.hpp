@@ -74,7 +74,7 @@ private:
 
 /** \brief Bloom filter implementation
  */
-template <typename Item> class BloomContainer : public Container<Item>
+template <typename Item> class BloomContainer : public Container<Item>, public dp::SmartPointer
 {
 public:
 
