@@ -63,6 +63,16 @@ public:
         return  Graph<T> (new GraphBasic<T> (solidKmers, cFPKmers, kmerSize));
     }
 
+    template<typename T>
+    static Graph<T>  createGraph (
+        bank::IBank* bank,
+        size_t       kmerSize,
+        size_t       nks=1
+    )
+    {
+        return  Graph<T> (new GraphBasic<T> (bank, kmerSize, nks));
+    }
+
 
 protected:
 
