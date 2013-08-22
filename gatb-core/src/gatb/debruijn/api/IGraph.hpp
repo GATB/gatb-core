@@ -340,7 +340,17 @@ public:
 
     /** Creates an iterator over all nodes of the graph.
      * \return the all nodes iterator. */
-    NodeIterator<T> nodes () { return NodeIterator<T> (_ref->nodes ()); }
+    NodeIterator<T> nodes ()
+    {
+        /** We create a new NodeIterator instance. */
+        NodeIterator<T> result (_ref->nodes());
+
+        /** We force a call to 'first'. */
+        result.first();
+
+        /** We return the result. */
+        return result;
+    }
 
     /** */
     size_t getOutEdges (const Node<T>& node, EdgeSet<T>& edges)     { return _ref->getOutEdges (node, edges); }
@@ -356,6 +366,15 @@ public:
 
     /** */
     kmer::impl::Model<T>& getModel ()  { return _ref->getModel(); }
+
+    /** */
+    void getNearestBranchingRange (const Node<T>& node, Node<T>& begin, Node<T>& end)
+    {
+        NodeSet<T> nodes (*this);
+
+        begin = node;    for (size_t nbNodes=0 ; (nbNodes = getPredecessors (begin, nodes)) == 1;  begin = nodes[0])  {}
+        end   = node;    for (size_t nbNodes=0 ; (nbNodes = getSuccessors   (end,   nodes)) == 1;  end   = nodes[0])  {}
+    }
 
 //private:
 
