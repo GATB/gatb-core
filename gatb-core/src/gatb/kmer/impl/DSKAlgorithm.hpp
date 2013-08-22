@@ -113,11 +113,7 @@ private:
 
     /** */
     tools::collections::Iterable<T>* _solidIterable;
-    void setSolidIterable (tools::collections::Iterable<T>* solidIterable)
-    {
-        if (_solidIterable != 0)  { delete _solidIterable; }
-        _solidIterable = solidIterable;
-    }
+    void setSolidIterable (tools::collections::Iterable<T>* solidIterable)  { SP_SETATTR(solidIterable); }
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;

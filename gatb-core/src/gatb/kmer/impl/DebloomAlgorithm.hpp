@@ -68,15 +68,11 @@ private:
     std::string  _debloomUri;
 
     tools::collections::Iterable<T>* _solidIterable;
-    void setSolidIterable (tools::collections::Iterable<T>* solidIterable)  {  _solidIterable = solidIterable; }
+    void setSolidIterable (tools::collections::Iterable<T>* solidIterable)  {  SP_SETATTR(solidIterable); }
 
     /** */
     tools::collections::Iterable<T>* _criticalIterable;
-    void setCriticalIterable (tools::collections::Iterable<T>* criticalIterable)
-    {
-        if (_criticalIterable != 0)  { delete _criticalIterable; }
-        _criticalIterable = criticalIterable;
-    }
+    void setCriticalIterable (tools::collections::Iterable<T>* criticalIterable)  { SP_SETATTR(criticalIterable); }
 };
 
 /********************************************************************************/
