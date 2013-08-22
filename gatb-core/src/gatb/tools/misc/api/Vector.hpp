@@ -45,7 +45,11 @@ public:
     /** assign operator */
     Vector& operator=(const Vector& vect)
     {
-        this->set(vect._buffer,vect._size);
+        if (&vect != this)
+        {
+            this->set(vect._buffer,vect._size);
+        }
+        return *this;
     }
     
     /** Destructor. */

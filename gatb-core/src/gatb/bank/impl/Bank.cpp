@@ -216,7 +216,7 @@ void Bank::insert (const Sequence& item)
         fprintf (_insertHandle, ">%s\n", item.getComment().c_str());
 
 #if 0
-        fprintf (_insertHandle, "%s\n",  item.getDataBuffer());
+        fprintf (_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
 #else
         // We dump the data with fixed sized columns
         size_t dataLineSize = 70;
