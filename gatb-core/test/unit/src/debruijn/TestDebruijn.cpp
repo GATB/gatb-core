@@ -77,6 +77,7 @@ class TestDebruijn : public Test
 
         CPPUNIT_TEST_GATB (debruijn_test1);
         CPPUNIT_TEST_GATB (debruijn_test2);
+        CPPUNIT_TEST_GATB (debruijn_test3);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -215,18 +216,39 @@ public:
 
     /********************************************************************************/
     template<typename T>
-    pair <Node<T>,Node<T> > getBranchingRange (Graph<T>& graph, const Node<T>& node)
+    void debruijn_check_sequence (Graph<T>& graph, size_t kmerSize, const char* seq)
     {
-        pair <Node<T>,Node<T> > result;
-        NodeSet<T> nodes (graph);
+        size_t seqLen   = strlen (seq);
 
-        result.first  = node;
-        for (size_t nbNodes=1 ; (nbNodes = graph.getPredecessors (result.first,  nodes)) == 1; result.first  = nodes[0])  {}
+        /** We get the first node. */
+        Node<T> node = graph.nodes().item();
 
-        result.second = node;
-        for (size_t nbNodes=1 ; (nbNodes = graph.getSuccessors   (result.second, nodes)) == 1; result.second = nodes[0])  {}
+        /** We compute the branching range for the node. */
+        Node<NativeInt64> begin, end;
+        graph.getNearestBranchingRange (node, begin, end);
 
-        return result;
+        // cout << range.first.toString (STRAND_FORWARD) << "  " << range.second.toString(STRAND_FORWARD) << endl;
+        // cout << range.first.toString (STRAND_REVCOMP) << "  " << range.second.toString(STRAND_REVCOMP) << endl;
+
+        /** We check that the begin kmer matches the beginning of the sequence. */
+        bool check1 =
+            begin.toString (STRAND_FORWARD,1) == string (seq, kmerSize)  ||
+            end.toString   (STRAND_REVCOMP,1) == string (seq, kmerSize);
+
+        /** We check that the end kmer matches the end of the sequence. */
+        bool check2 =
+            end.toString   (STRAND_FORWARD,1) == string (seq + seqLen - kmerSize, kmerSize)  ||
+            begin.toString (STRAND_REVCOMP,1) == string (seq + seqLen - kmerSize, kmerSize);
+
+        if (!check1 || !check2)
+        {
+            cout << "kmerSize=" << kmerSize << endl;
+            cout << node.toString  (STRAND_FORWARD) << "  " << node.toString  (STRAND_REVCOMP) << endl;
+            cout << begin.toString (STRAND_FORWARD) << "  " << end.toString   (STRAND_FORWARD) << endl;
+            cout << end.toString   (STRAND_REVCOMP) << "  " << begin.toString (STRAND_REVCOMP) << endl;
+        }
+
+        CPPUNIT_ASSERT (check1 && check2);
     }
 
     /********************************************************************************/
@@ -257,35 +279,7 @@ public:
         /** We create the graph. */
         Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (dsk.getSolidKmers(), debloom.getCriticalKmers(), kmerSize);
 
-        /** We retrieve one node of the graph. */
-        NodeIterator<NativeInt64> itNodes = graph.nodes();   itNodes.first();
-
-        /** We compute the branching range for the node. */
-        pair <Node<NativeInt64>,Node<NativeInt64> > range = getBranchingRange<NativeInt64> (graph, itNodes.item());
-
-        // cout << range.first.toString (STRAND_FORWARD) << "  " << range.second.toString(STRAND_FORWARD) << endl;
-        // cout << range.first.toString (STRAND_REVCOMP) << "  " << range.second.toString(STRAND_REVCOMP) << endl;
-
-        /** We check that the begin kmer matches the beginning of the sequence. */
-        bool check1 =
-            range.first.toString  (STRAND_FORWARD,1) == string (seq, kmerSize)  ||
-            range.second.toString (STRAND_REVCOMP,1) == string (seq, kmerSize);
-
-        /** We check that the end kmer matches the end of the sequence. */
-        bool check2 =
-            range.second.toString (STRAND_FORWARD,1) == string (seq + seqLen - kmerSize, kmerSize)  ||
-            range.first.toString  (STRAND_REVCOMP,1) == string (seq + seqLen - kmerSize, kmerSize);
-
-        if (!check1 || !check2)
-        {
-            cout << "kmerSize=" << kmerSize << endl;
-            cout << itNodes.item().toString (STRAND_FORWARD) << "  " << itNodes.item().toString (STRAND_REVCOMP) << endl;
-            cout << range.first.toString (STRAND_FORWARD) << "  " << range.second.toString(STRAND_FORWARD) << endl;
-            cout << range.first.toString (STRAND_REVCOMP) << "  " << range.second.toString(STRAND_REVCOMP) << endl;
-        }
-
-        CPPUNIT_ASSERT (check1 && check2);
-
+        debruijn_check_sequence (graph, kmerSize, seq);
     }
 
     /********************************************************************************/
@@ -305,6 +299,34 @@ public:
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
                 debruijn_test2_aux (kmerSizes[j], sequences[i]);
+            }
+        }
+    }
+
+    /********************************************************************************/
+    void debruijn_test3 ()
+    {
+        const char* sequences [] =
+        {
+            "ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAAT",
+            "CGCTACAGCAGCTAGTTCATCATTGTTTATCAATGATAAAATATAATAAGCTAAAAGGAAACTATAAATA",
+            "CGCTATTCATCATTGTTTATCAATGAGCTAAAAGGAAACTATAAATAACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAG"
+        };
+
+        size_t kmerSizes[] = { 13, 15, 17, 19, 21, 23, 25, 27, 29, 31};
+
+        for (size_t i=0; i<ARRAY_SIZE(sequences); i++)
+        {
+            for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
+            {
+                /** We create the graph. */
+                Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new BankStrings (sequences[i], 0), kmerSizes[j]);
+
+                /** We compute the branching range for the node. */
+                Node<NativeInt64> begin, end;
+                graph.getNearestBranchingRange (graph.nodes().item(), begin, end);
+
+                debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
             }
         }
     }
