@@ -120,6 +120,10 @@ private:
 
 #define  TIME_INFO(ti,txt)  gatb::core::tools::misc::impl::LocalTimeInfo TimeInfoTmp##__LINE__(ti,txt)
 
+#define  TIME_START(ti,txt) gatb::core::tools::misc::impl::TimeInfo ti;  { ti.start (txt);
+#define  TIME_STOP(ti,txt)   ti.stop(txt); }
+
+
 /********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
