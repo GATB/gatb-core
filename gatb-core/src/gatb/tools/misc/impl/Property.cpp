@@ -375,7 +375,7 @@ void Properties::readFile (const string& filename)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Properties::dump ()
+void Properties::dump (std::ostream& s)
 {
     /** We dump some execution information. */
     RawDumpPropertiesVisitor visit;

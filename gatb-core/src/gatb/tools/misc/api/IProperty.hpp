@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <list>
 #include <set>
+#include <iostream>
 
 /********************************************************************************/
 namespace gatb      {
@@ -215,7 +216,12 @@ public:
     virtual void setToFront (const std::string& key) = 0;
 
     /** */
-    virtual void dump () = 0;
+    friend std::ostream & operator<<(std::ostream & s, IProperties& p)  {  p.dump(s);  return s;  }
+
+protected:
+
+    /** */
+    virtual void dump (std::ostream& s) = 0;
 };
 
 /********************************************************************************/

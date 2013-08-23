@@ -117,7 +117,7 @@ public:
     void readXML (std::istream& stream);
 
     /** */
-    void dump ();
+    void dump (std::ostream& s);
 
 private:
 
