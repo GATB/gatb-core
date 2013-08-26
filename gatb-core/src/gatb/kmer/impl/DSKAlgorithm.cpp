@@ -200,6 +200,7 @@ void DSKAlgorithm<T>::execute ()
     getInfo()->add (1, "stats");
     getInfo()->add (2, "solid kmers nb",   "%ld", (System::file().getSize(_solidKmers) / sizeof (T)) );
     getInfo()->add (2, "solid kmers uri",  _solidKmers);
+    getInfo()->add (1, getTimeInfo().getProperties("time"));
 
     /** We set the result of the execution. */
     getOutput()->add (0, STR_KMER_SOLID,  _solidKmers);
