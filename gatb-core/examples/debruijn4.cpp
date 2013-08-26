@@ -73,7 +73,7 @@ int main (int argc, char* argv[])
     TIME_START (ti, "compute");
 
         /** We iterate the nodes through a dispatcher. */
-        ParallelCommandDispatcher().iterate (&itNodes, Functor(graph, info));
+        ParallelCommandDispatcher().iterate (itNodes, Functor(graph, info));
 
     TIME_STOP (ti, "compute");
 
