@@ -70,7 +70,7 @@ public:
     bool contains (const Node<T>& item)  { return contains (item.kmer); }
 
     /** */
-    INodeIterator<T>* nodes ()  { return new NodeIteratorBasic (this, _nodesIterable->iterator()); }
+    INodeIterator<T>* nodes ()  { return new NodeIteratorBasic (this, _solidKmersIterable->iterator()); }
 
     /** */
     bool isEdge (const Node<T>& u, const Node<T>& v)  { return false; }
@@ -96,8 +96,8 @@ private:
     T      _mask;
     size_t _span;
 
-    tools::collections::Iterable<T>* _nodesIterable;
-    void setNodesIterable (tools::collections::Iterable<T>* nodesIterable)  { SP_SETATTR(nodesIterable); }
+    tools::collections::Iterable<T>* _solidKmersIterable;
+    void setSolidKmersIterable (tools::collections::Iterable<T>* solidKmersIterable)  { SP_SETATTR(solidKmersIterable); }
 
     tools::collections::Container<T>* _cFPset;
     void setcFPset (tools::collections::Container<T>* cFPset)  { SP_SETATTR(cFPset); }

@@ -44,7 +44,7 @@ static const double lg2 = 0.69314718055994530941723212145817656808;
 *********************************************************************/
 template<typename T>
 GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
+    : _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
 {
     setProps (props);
 
@@ -73,7 +73,7 @@ GraphBasic<T>::GraphBasic (
     tools::collections::Iterable<T>* cFPKmers,
     size_t kmerSize
 )
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
+    : _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
 {
 
     configure (kmerSize, solidKmers, cFPKmers);
@@ -89,7 +89,7 @@ GraphBasic<T>::GraphBasic (
 *********************************************************************/
 template<typename T>
 GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
+    : _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
 {
     string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
 
@@ -123,11 +123,11 @@ GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
 template<typename T>
 GraphBasic<T>::~GraphBasic ()
 {
-    setProps         (0);
-    setNodesIterable (0);
-    setcFPset        (0);
-    setModel         (0);
-    setBloom         (0);
+    setProps              (0);
+    setSolidKmersIterable (0);
+    setcFPset             (0);
+    setModel              (0);
+    setBloom              (0);
 }
 
 /*********************************************************************
@@ -149,7 +149,7 @@ void GraphBasic<T>::configure (
     setModel (new kmer::impl::Model<T> (kmerSize));
 
     /** We set the iterable for the solid kmers. */
-    setNodesIterable (solidIterable);
+    setSolidKmersIterable (solidIterable);
 
     /** We compute parameters for the Bloom filter. */
     double lg2 = log(2);
@@ -179,7 +179,7 @@ void GraphBasic<T>::configure (
 template<typename T>
 void GraphBasic<T>::executeAlgorithm (gatb::core::tools::misc::impl::Algorithm& algorithm)
 {
-    string bargraph = "2";
+    string bargraph = "0";
 
     algorithm.getInput()->add (0, STR_PROGRESS_BAR, bargraph);
 
