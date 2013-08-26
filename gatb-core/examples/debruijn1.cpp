@@ -1,24 +1,9 @@
 //! [snippet1]
 // We include what we need for the test
 
-#include <gatb/debruijn/impl/GraphFactory.hpp>
-
-#include <gatb/tools/misc/api/StringsRepository.hpp>
-#include <gatb/tools/misc/impl/Property.hpp>
-
-#include <gatb/tools/math/NativeInt64.hpp>
-
-// We use the required packages
+#include <gatb/gatb_core.hpp>
 
 using namespace std;
-
-using namespace gatb::core::debruijn;
-using namespace gatb::core::debruijn::impl;
-
-using namespace gatb::core::tools::math;
-
-using namespace gatb::core::tools::misc;
-using namespace gatb::core::tools::misc::impl;
 
 /********************************************************************************/
 
@@ -55,22 +40,22 @@ template<typename T>  void test (Graph<T>& graph)
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 4)
+    if (argc < 3)
     {
         cerr << "you must provide:" << endl;
-        cerr << "   1) kmer size"           << endl;
-        cerr << "   2) solid kmers file"    << endl;
-        cerr << "   3) debloom file"        << endl;
+        cerr << "   1) reads file"  << endl;
+        cerr << "   2) kmer size"   << endl;
+        cerr << "optional:" << endl;
+        cerr << "   3) nks"  << endl;
         return EXIT_FAILURE;
     }
 
-    /** We create the graph. */
-    Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (
-        new Property (STR_KMER_SIZE,   argv[1]),
-        new Property (STR_KMER_SOLID,  argv[2]),
-        new Property (STR_KMER_CFP,    argv[3]),
-        PROP_END
-    );
+    char*  bankUri  = argv[1];
+    size_t kmerSize = atoi (argv[2]);
+    size_t nks      = argc >=4 ? atoi (argv[3]) : 1;
+
+    /** We create the graph with  1) a FASTA bank   2) a kmer size */
+    Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new Bank (bankUri), kmerSize, nks);
 
     /** We launch the test. */
     test<NativeInt64> (graph);
