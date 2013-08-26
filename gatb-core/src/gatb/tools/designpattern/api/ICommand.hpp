@@ -185,6 +185,13 @@ public:
         for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
     }
 
+    /** Another way: use iterator object instead of pointer. */
+    template <typename Item, typename Functor>
+    void iterate (Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
+    {
+        iterate (&iterator, functor, groupSize);
+    }
+
 protected:
 
     /** Factory method for synchronizer instantiation.
