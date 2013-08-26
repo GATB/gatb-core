@@ -230,6 +230,9 @@ void DebloomAlgorithm<T>::execute ()
         /** We delete the temporary file. */
         System::file().remove (inputUri);
     }
+
+    /** We gather some statistics. */
+    getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
 
 /*********************************************************************/
@@ -319,7 +322,7 @@ void DebloomAlgorithm<T>::end_debloom_partition (Hash16<T>& partition, string& i
 template<typename T>
 Bloom<T>* DebloomAlgorithm<T>::createBloom ()
 {
-    TIME_INFO (getTimeInfo(), "fill bloom filter");
+    TIME_INFO (getTimeInfo(), "create bloom from kmers");
 
     double lg2 = log(2);
     float NBITS_PER_KMER = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
