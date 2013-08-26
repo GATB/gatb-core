@@ -20,6 +20,7 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <stdarg.h>
 
 /********************************************************************************/
