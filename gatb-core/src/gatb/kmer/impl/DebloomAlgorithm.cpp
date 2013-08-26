@@ -62,6 +62,12 @@ using namespace gatb::core::tools::math;
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
+static const char* progressFormat1 = "Debloom: read solid kmers            ";
+static const char* progressFormat2 = "Debloom: build extension             ";
+static const char* progressFormat3 = "Debloom: finalization                ";
+
+/********************************************************************************/
+
 template <typename Item>
 class BuildKmerExtension : public IteratorFunctor
 {
@@ -146,15 +152,11 @@ void DebloomAlgorithm<T>::execute ()
     /*************************************************/
     /** We create an iterator over the solid kmers.  */
     /*************************************************/
-#if 1
     Iterator<T>* itKmers = createIterator<T> (
         _solidIterable->iterator(),
         _solidIterable->getNbItems(),
-        "iterate solid kmers"
+        progressFormat2
     );
-#else
-    Iterator<T>* itKmers = _solidIterable->iterator();
-#endif
     LOCAL (itKmers);
 
     /*************************************************/
@@ -188,7 +190,7 @@ void DebloomAlgorithm<T>::execute ()
     /** We compute the final cFP file.               */
     /*************************************************/
 
-    size_t max_memory = 1000; //getInput()->getInt (DSK::STR_MAX_MEMORY);
+    size_t max_memory = 1000;
 
     Hash16<T> partition (max_memory);
 
@@ -197,6 +199,13 @@ void DebloomAlgorithm<T>::execute ()
 
     {
         TIME_INFO (getTimeInfo(), "finalize debloom file");
+
+        Iterator<T>* itKmers = createIterator<T> (
+            _solidIterable->iterator(),
+            _solidIterable->getNbItems(),
+            progressFormat3
+        );
+        LOCAL (itKmers);
 
         /** We iterate the solid kmers. */
         for (itKmers->first(); !itKmers->isDone(); itKmers->next())
@@ -336,7 +345,7 @@ Bloom<T>* DebloomAlgorithm<T>::createBloom ()
     Iterator<T>* itKmers = createIterator<T> (
         _solidIterable->iterator(),
         solidKmersNb,
-        "fill bloom filter  "
+        progressFormat1
     );
     LOCAL (itKmers);
 

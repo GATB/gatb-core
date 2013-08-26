@@ -205,7 +205,7 @@ ProgressTimer::ProgressTimer (u_int64_t ntasks, const char* msg, std::ostream& o
 *********************************************************************/
 void ProgressTimer::postInit ()
 {
-    os << endl;
+    // os << endl;
 
     /** We get the current hour (in msec) */
     heure_debut = System::time().getTimeStamp();

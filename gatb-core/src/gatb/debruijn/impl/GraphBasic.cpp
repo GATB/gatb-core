@@ -85,11 +85,13 @@ GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
 {
     /** We create a DSK instance and execute it. */
     DSKAlgorithm<T> dsk (bank, kmerSize, nks);
+    dsk.getInput()->add (0, STR_PROGRESS_BAR, "2");
     dsk.execute();
     getInfo()->add (1, dsk.getInfo());
 
     /** We create a debloom instance and execute it. */
     DebloomAlgorithm<T> debloom (dsk.getSolidKmers(), kmerSize);
+    debloom.getInput()->add (0, STR_PROGRESS_BAR, "2");
     debloom.execute();
     getInfo()->add (1, debloom.getInfo());
 
