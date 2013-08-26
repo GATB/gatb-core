@@ -109,6 +109,7 @@ void BankBinary::insert (const Sequence& seq)
     /** Shortcuts. */
     int   whole_readlen = seq.getDataSize();
     char* pt_start      = seq.getDataBuffer();
+    char* pt_end        = pt_start + whole_readlen;
     
     int readlen;
     int tai = readlen;
@@ -119,19 +120,19 @@ void BankBinary::insert (const Sequence& seq)
     char * pt_begin = pt_start;
     int idx =0 ;
 
-    for ( ; pt_begin < (pt_start+ whole_readlen); pt_begin += idx)
+    for ( ; pt_begin < pt_end; pt_begin += idx)
     {
         idx=0; // start a new read
 
         if (_nbValidLetters > 0)
         {
             //skips NN
-            while (*pt_begin =='N' && pt_begin < (pt_start+ whole_readlen))
+            while (pt_begin < pt_end && *pt_begin =='N')
             {
                 pt_begin ++;
             }
             // goes to next N or end of seq
-            while ( (pt_begin[idx] !='N') &&  ((pt_begin +idx) < (pt_start+ whole_readlen))  )
+            while ( ((pt_begin +idx) < pt_end) && (pt_begin[idx] !='N') )
             {
                 idx++;
             }
