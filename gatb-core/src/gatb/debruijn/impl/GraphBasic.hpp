@@ -88,13 +88,12 @@ public:
 
     kmer::impl::Model<T>& getModel ()  { return *_model; }
 
-    tools::misc::IProperties* getInfo ()  { return _info; }
+    tools::misc::IProperties* getInfo ()  { return &_info; }
 
 private:
 
     T      _mask;
     size_t _span;
-
 
     tools::collections::Iterable<T>* _nodesIterable;
     void setNodesIterable (tools::collections::Iterable<T>* nodesIterable)  { SP_SETATTR(nodesIterable); }
@@ -115,8 +114,14 @@ private:
         _model = model;
     }
 
-    tools::misc::IProperties* _info;
-    void setInfo (tools::misc::IProperties* info)  { SP_SETATTR(info); }
+    tools::misc::impl::Properties _info;
+
+    /** */
+    void configure (
+        size_t kmerSize,
+        tools::collections::Iterable<T>* solidIterable,
+        tools::collections::Iterable<T>* cFPKmers
+    );
 
     /** */
     bool contains (const T& item)  { return _bloom->contains (item) && !_cFPset->contains(item); }
