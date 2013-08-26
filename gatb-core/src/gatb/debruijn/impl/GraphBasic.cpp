@@ -10,12 +10,20 @@
 #include <gatb/kmer/impl/DSKAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
+#include <gatb/bank/impl/BankConverterAlgorithm.hpp>
+
 #include <gatb/tools/misc/impl/Property.hpp>
+
+#include <gatb/system/impl/System.hpp>
 
 using namespace std;
 using namespace gatb::core::tools::math;
 
 using namespace gatb::core::kmer::impl;
+
+using namespace gatb::core::bank::impl;
+
+using namespace gatb::core::system::impl;
 
 #define DEBUG(a)  //printf a
 
@@ -83,20 +91,25 @@ template<typename T>
 GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
     : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
 {
+    string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
+
+    /** We create the binary bank. */
+    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
+    executeAlgorithm (converter);
+
     /** We create a DSK instance and execute it. */
-    DSKAlgorithm<T> dsk (bank, kmerSize, nks);
-    dsk.getInput()->add (0, STR_PROGRESS_BAR, "2");
-    dsk.execute();
-    getInfo()->add (1, dsk.getInfo());
+    DSKAlgorithm<T> dsk (converter.getResult(), kmerSize, nks);
+    executeAlgorithm (dsk);
 
     /** We create a debloom instance and execute it. */
     DebloomAlgorithm<T> debloom (dsk.getSolidKmers(), kmerSize);
-    debloom.getInput()->add (0, STR_PROGRESS_BAR, "2");
-    debloom.execute();
-    getInfo()->add (1, debloom.getInfo());
+    executeAlgorithm (debloom);
 
     /** We configure the graph from the result of DSK and debloom. */
     configure (kmerSize, dsk.getSolidKmers(), debloom.getCriticalKmers());
+
+    /** We can get rid of the binary bank. */
+    System::file().remove (binaryBankUri);
 }
 
 /*********************************************************************
@@ -153,6 +166,26 @@ void GraphBasic<T>::configure (
     /** Some shortcuts attributes. */
     _mask = _model->getMask ();
     _span = _model->getSpan ();
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename T>
+void GraphBasic<T>::executeAlgorithm (gatb::core::tools::misc::impl::Algorithm& algorithm)
+{
+    string bargraph = "2";
+
+    algorithm.getInput()->add (0, STR_PROGRESS_BAR, bargraph);
+
+    algorithm.execute();
+
+    getInfo()->add (1, algorithm.getInfo());
 }
 
 /*********************************************************************

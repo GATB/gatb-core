@@ -29,6 +29,7 @@
 #include <gatb/tools/collections/impl/ContainerSet.hpp>
 #include <gatb/tools/misc/api/StringsRepository.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <gatb/tools/misc/impl/Algorithm.hpp>
 
 #include <math.h>
 
@@ -122,6 +123,9 @@ private:
         tools::collections::Iterable<T>* solidIterable,
         tools::collections::Iterable<T>* cFPKmers
     );
+
+    /** */
+    void executeAlgorithm (gatb::core::tools::misc::impl::Algorithm& algorithm);
 
     /** */
     bool contains (const T& item)  { return _bloom->contains (item) && !_cFPset->contains(item); }
