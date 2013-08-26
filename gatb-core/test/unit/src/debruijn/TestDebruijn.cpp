@@ -220,15 +220,13 @@ public:
     {
         size_t seqLen   = strlen (seq);
 
+        NodeIterator<T> nodes = graph.nodes();
+
         /** We get the first node. */
-        Node<T> node = graph.nodes().item();
+        Node<T> node = nodes.item();
 
         /** We compute the branching range for the node. */
-        Node<NativeInt64> begin, end;
-        graph.getNearestBranchingRange (node, begin, end);
-
-        // cout << range.first.toString (STRAND_FORWARD) << "  " << range.second.toString(STRAND_FORWARD) << endl;
-        // cout << range.first.toString (STRAND_REVCOMP) << "  " << range.second.toString(STRAND_REVCOMP) << endl;
+        Node<NativeInt64> begin, end;     graph.getNearestBranchingRange (node, begin, end);
 
         /** We check that the begin kmer matches the beginning of the sequence. */
         bool check1 =
@@ -320,11 +318,10 @@ public:
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
                 /** We create the graph. */
-                Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new BankStrings (sequences[i], 0), kmerSizes[j]);
+                Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new BankStrings (sequences[i], 0), kmerSizes[j], 1);
 
                 /** We compute the branching range for the node. */
-                Node<NativeInt64> begin, end;
-                graph.getNearestBranchingRange (graph.nodes().item(), begin, end);
+                Node<NativeInt64> begin, end;   graph.getNearestBranchingRange (graph.nodes().item(), begin, end);
 
                 debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
             }
