@@ -52,6 +52,9 @@ public:
     std::string getName () const  { return _name; }
 
     /** */
+    virtual void execute () = 0;
+
+    /** */
     virtual IProperties*            getInput      ()  { return _input;      }
     virtual IProperties*            getOutput     ()  { return _output;     }
     virtual IProperties*            getInfo       ()  { return _info;       }
