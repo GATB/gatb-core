@@ -54,9 +54,10 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Properties::Properties (const string& initfile)
+Properties::Properties (const std::string& rootname)
 {
-    if (!initfile.empty())  {   readFile (initfile);  }
+    if (rootname.empty()==false)  { this->add (0, rootname); }
+    // if (!initfile.empty())  {   readFile (initfile);  }
 }
 
 /*********************************************************************

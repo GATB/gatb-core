@@ -63,7 +63,7 @@ public:
     /** Constructor. If a file path is provided, it tries to read [key,value] entries from this file.
      * \param initfile : the file (if any) to be read
      */
-    Properties (const std::string& initfile = "");
+    Properties (const std::string& rootname = "");
 
     /** Destructor. */
     virtual ~Properties ();

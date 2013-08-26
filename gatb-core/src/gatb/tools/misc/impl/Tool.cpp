@@ -142,7 +142,7 @@ IProperties* Tool::run (IProperties* input)
 void Tool::preExecute ()
 {
     /** We add a potential config file to the input properties. */
-    _input->add (1, new Properties (System::info().getHomeDirectory() + "/." + getName() ));
+    _input->add (1, new Properties (/*System::info().getHomeDirectory() + "/." + getName() */));
 
     /** We may have to add a default prefix for temporary files. */
     if (_input->get(STR_URI_PREFIX)==0)  { _input->add (1, STR_URI_PREFIX, "tmp.");  }
