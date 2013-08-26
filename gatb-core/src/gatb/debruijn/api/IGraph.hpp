@@ -178,7 +178,7 @@ class Edge : public GraphItem<T>
 {
 public:
 
-    Edge (IGraph<T>* graph) : GraphItem<T> (graph), from(graph), to(graph), nt(NUCL_ALL), direction(DIR_OUTCOMING)  {}
+    Edge (IGraph<T>* graph=0) : GraphItem<T> (graph), from(graph), to(graph), nt(NUCL_ALL), direction(DIR_OUTCOMING)  {}
 
     Node<T>    from;
     Node<T>    to;
