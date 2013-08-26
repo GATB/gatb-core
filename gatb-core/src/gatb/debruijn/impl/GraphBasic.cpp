@@ -36,32 +36,19 @@ static const double lg2 = 0.69314718055994530941723212145817656808;
 *********************************************************************/
 template<typename T>
 GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info(0)
+    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
 {
     setProps (props);
 
-    setInfo (new tools::misc::impl::Properties());
+    assert (props->get(STR_KMER_SIZE)  != 0);
+    assert (props->get(STR_KMER_SOLID) != 0);
+    assert (props->get(STR_KMER_CFP)   != 0);
 
-    setNodesIterable (new tools::collections::impl::IterableFile<T> (props->getStr (STR_KMER_SOLID)));
-
-    setModel (new kmer::impl::Model<T> (props->getInt(STR_KMER_SIZE)));
-
-    /** We compute the bloom size. */
-    float NBITS_PER_KMER = log (16*props->getInt(STR_KMER_SIZE)*(lg2*lg2))/(lg2*lg2);
-    size_t nbHash        = (int)floorf (0.7*NBITS_PER_KMER);
-    u_int64_t bloomSize =  (u_int64_t) (system::impl::System::file().getSize (props->getStr (STR_KMER_SOLID)) / sizeof (T) * NBITS_PER_KMER);
-
-    setBloom (kmer::impl::BloomBuilder<T> (_nodesIterable->iterator(), bloomSize, nbHash).build ());
-
-    if (props->get(STR_KMER_CFP) != 0)
-    {
-        setcFPset (new tools::collections::impl::ContainerSet<T> (
-            new tools::collections::impl::IteratorFile<T> (props->getStr(STR_KMER_CFP))
-        ));
-    }
-
-    _mask = _model->getMask ();
-    _span = _model->getSpan ();
+    configure (
+        props->getInt(STR_KMER_SIZE),
+        new tools::collections::impl::IterableFile<T> (props->getStr (STR_KMER_SOLID)),
+        new tools::collections::impl::IterableFile<T> (props->getStr(STR_KMER_CFP))
+    );
 }
 
 /*********************************************************************
@@ -78,26 +65,10 @@ GraphBasic<T>::GraphBasic (
     tools::collections::Iterable<T>* cFPKmers,
     size_t kmerSize
 )
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info(0)
+    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
 {
-    setInfo (new tools::misc::impl::Properties());
 
-    setNodesIterable (solidKmers);
-
-    setModel (new kmer::impl::Model<T> (kmerSize));
-
-    /** We compute the bloom size. */
-    double lg2 = log(2);
-    float NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
-    size_t nbHash        = (int)floorf (0.7*NBITS_PER_KMER);
-    u_int64_t bloomSize =  (u_int64_t) (solidKmers->getNbItems() * NBITS_PER_KMER);
-
-    setBloom (kmer::impl::BloomBuilder<T> (_nodesIterable->iterator(), bloomSize, nbHash).build ());
-
-    setcFPset (new tools::collections::impl::ContainerSet<T> (cFPKmers->iterator()));
-
-    _mask = _model->getMask ();
-    _span = _model->getSpan ();
+    configure (kmerSize, solidKmers, cFPKmers);
 }
 
 /*********************************************************************
@@ -110,16 +81,8 @@ GraphBasic<T>::GraphBasic (
 *********************************************************************/
 template<typename T>
 GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info(0)
+    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
 {
-    setInfo (new tools::misc::impl::Properties());
-    _info->add (0, "graph");
-
-    /** We set the model. */
-    setModel (new kmer::impl::Model<T> (kmerSize));
-    _mask = _model->getMask ();
-    _span = _model->getSpan ();
-
     /** We create a DSK instance and execute it. */
     DSKAlgorithm<T> dsk (bank, kmerSize, nks);
     dsk.execute();
@@ -130,19 +93,8 @@ GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
     debloom.execute();
     getInfo()->add (1, debloom.getInfo());
 
-    /** We set the solid and critical kmers iterables. */
-    setNodesIterable (dsk.getSolidKmers());
-    setcFPset        (new tools::collections::impl::ContainerSet<T> (debloom.getCriticalKmers()->iterator()));
-
-    /** We compute the bloom size. */
-    float NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
-    size_t nbHash        = (int)floorf (0.7*NBITS_PER_KMER);
-    u_int64_t bloomSize =  (u_int64_t) (dsk.getSolidKmers()->getNbItems() * NBITS_PER_KMER);
-
-    DEBUG (("nbSolid=%d  NBITS_PER_KMER=%f  bloomSize=%d \n", dsk.getSolidKmers()->getNbItems(), NBITS_PER_KMER, bloomSize));
-
-    /** We build the bloom filter. */
-    setBloom (kmer::impl::BloomBuilder<T> (dsk.getSolidKmers()->iterator(), bloomSize, nbHash).build ());
+    /** We configure the graph from the result of DSK and debloom. */
+    configure (kmerSize, dsk.getSolidKmers(), debloom.getCriticalKmers());
 }
 
 /*********************************************************************
@@ -161,7 +113,44 @@ GraphBasic<T>::~GraphBasic ()
     setcFPset        (0);
     setModel         (0);
     setBloom         (0);
-    setInfo          (0);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename T>
+void GraphBasic<T>::configure (
+    size_t kmerSize,
+    tools::collections::Iterable<T>* solidIterable,
+    tools::collections::Iterable<T>* cFPKmers
+)
+{
+    /** We create the kmer model. */
+    setModel (new kmer::impl::Model<T> (kmerSize));
+
+    /** We set the iterable for the solid kmers. */
+    setNodesIterable (solidIterable);
+
+    /** We compute parameters for the Bloom filter. */
+    double lg2 = log(2);
+    float     NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
+    size_t    nbHash         = (int)floorf (0.7*NBITS_PER_KMER);
+    u_int64_t bloomSize      = (u_int64_t) (solidIterable->getNbItems() * NBITS_PER_KMER);
+
+    /** We create Bloom filter and fill it with the solid kmers. */
+    setBloom (kmer::impl::BloomBuilder<T> (solidIterable->iterator(), bloomSize, nbHash).build ());
+
+    /** We build the set of critical false positive kmers. */
+    setcFPset (new tools::collections::impl::ContainerSet<T> (cFPKmers->iterator()));
+
+    /** Some shortcuts attributes. */
+    _mask = _model->getMask ();
+    _span = _model->getSpan ();
 }
 
 /*********************************************************************
