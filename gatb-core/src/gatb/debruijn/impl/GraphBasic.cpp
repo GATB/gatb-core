@@ -19,6 +19,7 @@ using namespace gatb::core::kmer::impl;
 
 #define DEBUG(a)  //printf a
 
+bool dbg = false;
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
@@ -35,9 +36,11 @@ static const double lg2 = 0.69314718055994530941723212145817656808;
 *********************************************************************/
 template<typename T>
 GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0)
+    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info(0)
 {
     setProps (props);
+
+    setInfo (new tools::misc::impl::Properties());
 
     setNodesIterable (new tools::collections::impl::IterableFile<T> (props->getStr (STR_KMER_SOLID)));
 
@@ -45,9 +48,10 @@ GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
 
     /** We compute the bloom size. */
     float NBITS_PER_KMER = log (16*props->getInt(STR_KMER_SIZE)*(lg2*lg2))/(lg2*lg2);
+    size_t nbHash        = (int)floorf (0.7*NBITS_PER_KMER);
     u_int64_t bloomSize =  (u_int64_t) (system::impl::System::file().getSize (props->getStr (STR_KMER_SOLID)) / sizeof (T) * NBITS_PER_KMER);
 
-    setBloom (kmer::impl::BloomBuilder<T> (_nodesIterable->iterator(), bloomSize, 7).build ());
+    setBloom (kmer::impl::BloomBuilder<T> (_nodesIterable->iterator(), bloomSize, nbHash).build ());
 
     if (props->get(STR_KMER_CFP) != 0)
     {
@@ -74,8 +78,10 @@ GraphBasic<T>::GraphBasic (
     tools::collections::Iterable<T>* cFPKmers,
     size_t kmerSize
 )
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0)
+    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info(0)
 {
+    setInfo (new tools::misc::impl::Properties());
+
     setNodesIterable (solidKmers);
 
     setModel (new kmer::impl::Model<T> (kmerSize));
@@ -83,9 +89,10 @@ GraphBasic<T>::GraphBasic (
     /** We compute the bloom size. */
     double lg2 = log(2);
     float NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
+    size_t nbHash        = (int)floorf (0.7*NBITS_PER_KMER);
     u_int64_t bloomSize =  (u_int64_t) (solidKmers->getNbItems() * NBITS_PER_KMER);
 
-    setBloom (kmer::impl::BloomBuilder<T> (_nodesIterable->iterator(), bloomSize, 7).build ());
+    setBloom (kmer::impl::BloomBuilder<T> (_nodesIterable->iterator(), bloomSize, nbHash).build ());
 
     setcFPset (new tools::collections::impl::ContainerSet<T> (cFPKmers->iterator()));
 
@@ -103,8 +110,11 @@ GraphBasic<T>::GraphBasic (
 *********************************************************************/
 template<typename T>
 GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
-    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0)
+    : _nodesIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info(0)
 {
+    setInfo (new tools::misc::impl::Properties());
+    _info->add (0, "graph");
+
     /** We set the model. */
     setModel (new kmer::impl::Model<T> (kmerSize));
     _mask = _model->getMask ();
@@ -113,10 +123,12 @@ GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
     /** We create a DSK instance and execute it. */
     DSKAlgorithm<T> dsk (bank, kmerSize, nks);
     dsk.execute();
+    getInfo()->add (1, dsk.getInfo());
 
     /** We create a debloom instance and execute it. */
     DebloomAlgorithm<T> debloom (dsk.getSolidKmers(), kmerSize);
     debloom.execute();
+    getInfo()->add (1, debloom.getInfo());
 
     /** We set the solid and critical kmers iterables. */
     setNodesIterable (dsk.getSolidKmers());
@@ -124,12 +136,13 @@ GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
 
     /** We compute the bloom size. */
     float NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
+    size_t nbHash        = (int)floorf (0.7*NBITS_PER_KMER);
     u_int64_t bloomSize =  (u_int64_t) (dsk.getSolidKmers()->getNbItems() * NBITS_PER_KMER);
 
     DEBUG (("nbSolid=%d  NBITS_PER_KMER=%f  bloomSize=%d \n", dsk.getSolidKmers()->getNbItems(), NBITS_PER_KMER, bloomSize));
 
     /** We build the bloom filter. */
-    setBloom (kmer::impl::BloomBuilder<T> (dsk.getSolidKmers()->iterator(), bloomSize, 7).build ());
+    setBloom (kmer::impl::BloomBuilder<T> (dsk.getSolidKmers()->iterator(), bloomSize, nbHash).build ());
 }
 
 /*********************************************************************
@@ -148,6 +161,7 @@ GraphBasic<T>::~GraphBasic ()
     setcFPset        (0);
     setModel         (0);
     setBloom         (0);
+    setInfo          (0);
 }
 
 /*********************************************************************
@@ -177,14 +191,14 @@ size_t GraphBasic<T>::getEdges (const Node<T>& source, EdgeSet<T>& edges, Direct
             {
                 if (this->contains (forward))
                 {
-                    edges[idx++].set (source.kmer, source.strand, forward, STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
+                    edges[idx++].set (source.getGraph(), source.kmer, source.strand, forward, STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
                 }
             }
             else
             {
                 if (this->contains (reverse))
                 {
-                    edges[idx++].set (source.kmer, source.strand, reverse, STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
+                    edges[idx++].set (source.getGraph(), source.kmer, source.strand, reverse, STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
                 }
             }
         }
@@ -201,14 +215,14 @@ size_t GraphBasic<T>::getEdges (const Node<T>& source, EdgeSet<T>& edges, Direct
             {
                 if (this->contains (forward))
                 {
-                    edges[idx++].set (forward, STRAND_FORWARD, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                    edges[idx++].set (source.getGraph(), forward, STRAND_FORWARD, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
                 }
             }
             else
             {
                 if (this->contains (reverse))
                 {
-                    edges[idx++].set (reverse, STRAND_REVCOMP, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                    edges[idx++].set (source.getGraph(), reverse, STRAND_REVCOMP, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
                 }
             }
         }
@@ -246,8 +260,8 @@ size_t GraphBasic<T>::getNodes (const Node<T>& source, NodeSet<T>& nodes, Direct
             T forward = ( (graine << 2 )  + nt) & _mask;    // next kmer
             T reverse = revcomp (forward, _span);
 
-            if (forward < reverse)  {  if (this->contains (forward))  {  nodes[idx++].set (forward, STRAND_FORWARD);  }  }
-            else                    {  if (this->contains (reverse))  {  nodes[idx++].set (reverse, STRAND_REVCOMP);  }  }
+            if (forward < reverse)  {  if (this->contains (forward))  {  nodes[idx++].set (source.getGraph(), forward, STRAND_FORWARD);  }  }
+            else                    {  if (this->contains (reverse))  {  nodes[idx++].set (source.getGraph(), reverse, STRAND_REVCOMP);  }  }
         }
     }
     else if (direction == DIR_INCOMING)
@@ -257,10 +271,8 @@ size_t GraphBasic<T>::getNodes (const Node<T>& source, NodeSet<T>& nodes, Direct
             T forward = ((graine >> 2 )  + ( nt <<  ((_span-1)*2)) ) & _mask; // previous kmer
             T reverse = revcomp (forward, _span);
 
-            //std::cout << "span=" << _span << "  graine=" << graine << "  nt=" << (int)nt << "  forward=" << forward << "  reverse=" << reverse << std::endl;
-
-            if (forward < reverse)  {  if (this->contains (forward))  {  nodes[idx++].set (forward, STRAND_FORWARD);  }  }
-            else                    {  if (this->contains (reverse))  {  nodes[idx++].set (reverse, STRAND_REVCOMP);  }  }
+            if (forward < reverse)  {  if (this->contains (forward))  {  nodes[idx++].set (source.getGraph(), forward, STRAND_FORWARD);  }  }
+            else                    {  if (this->contains (reverse))  {  nodes[idx++].set (source.getGraph(), reverse, STRAND_REVCOMP);  }  }
         }
     }
 

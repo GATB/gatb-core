@@ -19,6 +19,7 @@
 #include <gatb/tools/collections/api/Container.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+#include <gatb/tools/misc/api/IProperty.hpp>
 
 #include <gatb/kmer/impl/Model.hpp>
 
@@ -69,12 +70,18 @@ class GraphItem
 public:
 
     /** Constructor. */
-    GraphItem (IGraph<T>* graph) : _graph(graph)  {}
+    GraphItem (IGraph<T>* g) : graph(g)  {}
+
+    /** */
+    void setGraph (IGraph<T>* g)  { this->graph = g; }
+
+    /** */
+    IGraph<T>* getGraph() const { return graph; }
 
 protected:
 
     /** */
-    IGraph<T>* _graph;
+    IGraph<T>* graph;
 };
 
 /********************************************************************************/
@@ -85,17 +92,16 @@ class GraphItemSet
 public:
     GraphItemSet () : _size(0)  { }
 
-    ~GraphItemSet ()  {  for (size_t i=0; i<8; i++)  {  delete _items[i]; }  }
+    ~GraphItemSet () {}
 
-
-    Item& operator[] (size_t idx)  { return *(_items[idx]); }
+    Item& operator[] (size_t idx)  { return (_items[idx]); }
 
     size_t size()  { return _size; }
 
     void setSize (size_t n)  { _size = n; }
 
 protected:
-    Item*  _items[8];
+    Item   _items[8];
     size_t _size;
 };
 
@@ -110,16 +116,17 @@ public:
     T         kmer;
     Strand    strand;
 
+    /** */
     Node (IGraph<T>* graph=0) : GraphItem<T> (graph), kmer(0), strand(STRAND_FORWARD)  {}
 
     /** */
-    void set (const T& k, const Strand& s) { kmer=k; strand=s; }
+    void set (const Graph<T>& graph, const T& k, const Strand& s) { this->graph=graph._ref; kmer=k; strand=s; }
 
     /** */
     Node reverse ()
     {
         Node res;
-        res.kmer = this->_graph->getModel().revcomp(kmer);
+        res.kmer = this->graph->getModel().revcomp(kmer);
         res.strand = strand == STRAND_FORWARD ? STRAND_REVCOMP : STRAND_FORWARD;
         return res;
     }
@@ -135,13 +142,13 @@ public:
 
         if (strand == STRAND_ALL || this->strand == strand)
         {
-            kmerStr = this->_graph->getModel().toString (kmer);
+            kmerStr = this->graph->getModel().toString (kmer);
             strandStr = (this->strand==STRAND_FORWARD ? "FORWARD" : "REVCOMP");
         }
         else
         {
-            T reverse = this->_graph->getModel().reverse (kmer);
-            kmerStr = this->_graph->getModel().toString (reverse);
+            T reverse = this->graph->getModel().reverse (kmer);
+            kmerStr = this->graph->getModel().toString (reverse);
             strandStr = (this->strand==STRAND_FORWARD ? "REVCOMP" : "FORWARD");
         }
 
@@ -181,20 +188,21 @@ public:
     /** */
     void setGraph (IGraph<T>* graph)
     {
-        this->_graph = graph;
+        this->graph = graph;
         from.setGraph (graph);
         to.setGraph (graph);
     }
 
     /** */
     void set (
+        const Graph<T>& graph,
         const T& kmer_from, Strand strand_from,
         const T& kmer_to,   Strand strand_to,
         Nucleotide n, Direction dir
     )
     {
-        from.set (kmer_from, strand_from);
-        to.set   (kmer_to,   strand_to);
+        from.set (graph, kmer_from, strand_from);
+        to.set   (graph, kmer_to,   strand_to);
         nt = n;
         direction = dir;
     }
@@ -226,22 +234,12 @@ public:
 /********************************************************************************/
 template<typename T>  class NodeSet : public GraphItemSet<T, Node<T> >
 {
-public:
-    NodeSet (Graph<T>& graph)
-    {
-        /** For each item, we set the reference on the graph. */
-        for (size_t i=0; i<8; i++)  {  this->_items[i] = new Node<T> (graph._ref);  }
-     }
+public: NodeSet (Graph<T>& graph)  {}
 };
 
 template<typename T>  class EdgeSet : public GraphItemSet<T, Edge<T> >
 {
-public:
-    EdgeSet (Graph<T>& graph)
-    {
-        /** For each item, we set the reference on the graph. */
-        for (size_t i=0; i<8; i++)  {  this->_items[i] = new Edge<T> (graph._ref);  }
-    }
+public: EdgeSet (Graph<T>& graph)  {}
 };
 
 /********************************************************************************/
@@ -258,6 +256,9 @@ public:
 
     /** Constructor. */
     NodeIterator (INodeIterator<T>* ref) : _ref(0)  { setRef(ref); }
+
+    /** Constructor. */
+    NodeIterator (const NodeIterator<T>& n)  { setRef (n._ref); }
 
     /** Destructor. */
     ~NodeIterator ()  { setRef(0); }
@@ -320,6 +321,9 @@ public:
 
     /** */
     virtual kmer::impl::Model<T>& getModel ()  = 0;
+
+    /** */
+    virtual tools::misc::IProperties* getInfo () = 0;
 };
 
 /********************************************************************************/
@@ -366,6 +370,9 @@ public:
 
     /** */
     kmer::impl::Model<T>& getModel ()  { return _ref->getModel(); }
+
+    /** */
+    tools::misc::IProperties& getInfo ()  { return *(_ref->getInfo()); }
 
     /** */
     void getNearestBranchingRange (const Node<T>& node, Node<T>& begin, Node<T>& end)

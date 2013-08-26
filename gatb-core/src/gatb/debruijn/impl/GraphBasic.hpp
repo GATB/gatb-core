@@ -88,6 +88,8 @@ public:
 
     kmer::impl::Model<T>& getModel ()  { return *_model; }
 
+    tools::misc::IProperties* getInfo ()  { return _info; }
+
 private:
 
     T      _mask;
@@ -113,6 +115,9 @@ private:
         _model = model;
     }
 
+    tools::misc::IProperties* _info;
+    void setInfo (tools::misc::IProperties* info)  { SP_SETATTR(info); }
+
     /** */
     bool contains (const T& item)  { return _bloom->contains (item) && !_cFPset->contains(item); }
 
@@ -127,30 +132,55 @@ private:
     {
     public:
 
-        NodeIteratorBasic (GraphBasic* graph, tools::dp::Iterator<T>* ref) : _ref(0), _current(graph)
+        NodeIteratorBasic (GraphBasic* graph, tools::dp::Iterator<T>* ref) : _ref(0), _graph(graph), _isDone(true)
         {
             setRef(ref);
+            (this->_item)->setGraph (_graph);
+            _ref->setItem (this->_item->kmer);
         }
 
         ~NodeIteratorBasic ()  { setRef(0);   }
 
         /** \copydoc  Iterator::first */
-        void first() { _ref->first(); }
+        void first()
+        {
+            _ref->first();
+            _isDone = _ref->isDone();
+        }
 
         /** \copydoc  Iterator::next */
-        void next()  { _ref->next(); }
+        void next()
+        {
+            _ref->next();
+            _isDone = _ref->isDone();
+        }
 
         /** \copydoc  Iterator::isDone */
-        bool isDone() { return _ref->isDone();  }
+        bool isDone() { return _isDone;  }
 
         /** \copydoc  Iterator::item */
-        Node<T>& item ()  {  _current.kmer = _ref->item();  return _current; }
+        Node<T>& item ()  {  return *(this->_item);  }
+
+        /** */
+        void setItem (Node<T>& i)
+        {
+            /** We set the node item to be set for the current iterator. */
+            this->_item = &i;
+
+            /** We set the graph for the current node. */
+//            (this->_item)->setGraph (_graph);
+
+            /** We set the kmer item to be set for the kmer iterator. */
+            _ref->setItem (this->_item->kmer);
+        }
 
     private:
         tools::dp::Iterator<T>* _ref;
         void setRef (tools::dp::Iterator<T>* ref)  { SP_SETATTR(ref); }
 
-        Node<T> _current;
+        GraphBasic* _graph;
+
+        bool _isDone;
     };
 };
 
