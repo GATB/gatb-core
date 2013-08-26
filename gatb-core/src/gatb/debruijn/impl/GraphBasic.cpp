@@ -32,8 +32,6 @@ bool dbg = false;
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
 
-static const double lg2 = 0.69314718055994530941723212145817656808;
-
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -55,7 +53,7 @@ GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
     configure (
         props->getInt(STR_KMER_SIZE),
         new tools::collections::impl::IterableFile<T> (props->getStr (STR_KMER_SOLID)),
-        new tools::collections::impl::IterableFile<T> (props->getStr(STR_KMER_CFP))
+        new tools::collections::impl::IterableFile<T> (props->getStr (STR_KMER_CFP))
     );
 }
 
