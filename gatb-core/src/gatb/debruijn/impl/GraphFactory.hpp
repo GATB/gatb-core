@@ -67,7 +67,7 @@ public:
     static Graph<T>  createGraph (
         bank::IBank* bank,
         size_t       kmerSize,
-        size_t       nks=1
+        size_t       nks=3
     )
     {
         return  Graph<T> (new GraphBasic<T> (bank, kmerSize, nks));
