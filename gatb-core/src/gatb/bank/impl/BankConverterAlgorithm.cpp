@@ -79,8 +79,6 @@ BankConverterAlgorithm::~BankConverterAlgorithm ()
 *********************************************************************/
 void BankConverterAlgorithm::execute ()
 {
-    TIME_INFO (getTimeInfo(), "bank conversion");
-
     /** We may have to delete the binary file if it already exists. */
     System::file().remove (_outputUri);
 
@@ -99,14 +97,19 @@ void BankConverterAlgorithm::execute ()
      u_int64_t   nbSeq = 0;
      u_int64_t sizeSeq = 0;
 
-     /** We iterate the sequences of the input bank. */
-     for (itBank->first(); !itBank->isDone(); itBank->next())
+     /** We use a block for measuring the time elapsed in it. */
      {
-         nbSeq ++;
-         sizeSeq += (*itBank)->getDataSize();
+         TIME_INFO (getTimeInfo(), "conversion");
 
-         /** We insert the current sequence into the output bank. */
-         _bankOutput->insert (itBank->item());
+         /** We iterate the sequences of the input bank. */
+         for (itBank->first(); !itBank->isDone(); itBank->next())
+         {
+             nbSeq ++;
+             sizeSeq += (*itBank)->getDataSize();
+
+             /** We insert the current sequence into the output bank. */
+             _bankOutput->insert (itBank->item());
+         }
      }
 
      /** We flush the output bank (important if it is a file output). */
@@ -118,6 +121,7 @@ void BankConverterAlgorithm::execute ()
      getInfo()->add (2, "sequences size",   "%ld",  sizeSeq);
      getInfo()->add (2, "output size",      "%ld",  _bankOutput->getSize());
      getInfo()->add (2, "ratio",            "%.3f",  (double)sizeSeq / (double)_bankOutput->getSize());
+     getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
 
 /********************************************************************************/
