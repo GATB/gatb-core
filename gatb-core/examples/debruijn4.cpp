@@ -68,13 +68,20 @@ int main (int argc, char* argv[])
     /** We get an iterator over all the nodes of the graph. */
     NodeIterator<NativeInt64> itNodes = graph.nodes();
 
+    /** We encapsulate the nodes iterator with a notification iterator. */
+    SubjectIterator<Node<NativeInt64> > itNotif (
+        &itNodes,
+        itNodes.getNbItems()/100,
+        new ProgressTimer(itNodes.getNbItems(), "computing")
+    );
+
     /** We want to compute some statistics about the graph nodes. */
     Info info;
 
     TIME_START (ti, "compute");
 
         /** We iterate the nodes through a dispatcher. */
-        ParallelCommandDispatcher().iterate (itNodes, Functor(graph, info));
+        ParallelCommandDispatcher().iterate (itNotif, Functor(graph, info));
 
     TIME_STOP (ti, "compute");
 
