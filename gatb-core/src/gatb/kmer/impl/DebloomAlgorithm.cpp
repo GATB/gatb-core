@@ -91,8 +91,7 @@ public:
     BuildKmerExtension (Model<Item>& model, Bloom<Item>* bloom, Bag<Item>* extendBag)
         : _bloom(bloom), _extendBag(extendBag, 50*1000, this->newSynchro()), _itNeighbors(model)  { }
 
-    ~BuildKmerExtension ()  {  _extendBag.flush();  }
-
+private:
     Bloom<Item>*   _bloom;
     BagCache<Item> _extendBag;
     typename ModelAbstract<Item>::KmerNeighborIterator _itNeighbors;
@@ -271,12 +270,6 @@ public:
     }
 
     EndDebloomPartition (Hash16<Item>& set, Bag<Item>* output)   : _solidKmers(set), _output (output, 10*1000, this->newSynchro())  { }
-
-    ~EndDebloomPartition ()
-    {
-        /** We need to flush the cache to be sure to get all the items in the actual cached bag. */
-        _output.flush();
-    }
 
 private:
     /** Reference of the solid kmers (as a hash table). */

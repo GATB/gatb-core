@@ -328,22 +328,20 @@ public:
         : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition.size()), nbWrittenKmers(0),
           _partition(partition,this->newSynchro()), _progress (progress,this->newSynchro())  {}
 
-    ~FillPartitions ()  {}
-
 private:
 
+    /** Local resources. */
     Model<T>& model;
     size_t    pass;
     size_t    nbPass;
     size_t    nbPartitions;
     size_t    nbWrittenKmers;
+    Data      binaryData;
+    vector<T> kmers;
 
-    Data  binaryData;
-
+    /** Shared resources (must support concurrent accesses). */
     BagCachePartition<T> _partition;
     ProgressSynchro      _progress;
-
-    vector<T> kmers;
 };
 
 /*********************************************************************
@@ -388,9 +386,8 @@ class PartitionsCommand : public ICommand
 {
 public:
     PartitionsCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, const string& filename, ISynchronizer* synchro)
-        : _nks(algo.getNks()), _solidKmers(solidKmers, 10*1000), _filename(filename), _progress(algo.getProgress(), synchro)   {}
-
-    ~PartitionsCommand ()  { _solidKmers.flush (); }
+        : _nks(algo.getNks()), _filename(filename),
+          _solidKmers(solidKmers, 10*1000), _progress(algo.getProgress(), synchro)   {}
 
 protected:
     size_t           _nks;
