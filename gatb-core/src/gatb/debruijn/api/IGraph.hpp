@@ -246,6 +246,13 @@ public: EdgeSet (Graph<T>& graph)  {}
 template<typename T>
 class INodeIterator : public tools::dp::Iterator<Node<T> >
 {
+public:
+
+    /** */
+    virtual ~INodeIterator() {}
+
+    /** */
+    virtual u_int64_t getNbItems () const = 0;
 };
 
 /********************************************************************************/
@@ -277,6 +284,13 @@ public:
 
     /** \copydoc  Iterator::setItem */
     void setItem (Node<T>& i)  { _ref->setItem(i); }
+
+    /** \copydoc  Iterator::getNbItems */
+    u_int64_t getNbItems () const { return _ref->getNbItems(); }
+
+    /** */
+    INodeIterator<T>* operator&() const { return _ref; }
+
 
 protected:
 

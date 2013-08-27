@@ -70,7 +70,7 @@ public:
     bool contains (const Node<T>& item)  { return contains (item.kmer); }
 
     /** */
-    INodeIterator<T>* nodes ()  { return new NodeIteratorBasic (this, _solidKmersIterable->iterator()); }
+    INodeIterator<T>* nodes ()  { return new NodeIteratorBasic (this, _solidKmersIterable->iterator(), _solidKmersIterable->getNbItems()); }
 
     /** */
     bool isEdge (const Node<T>& u, const Node<T>& v)  { return false; }
@@ -141,7 +141,8 @@ private:
     {
     public:
 
-        NodeIteratorBasic (GraphBasic* graph, tools::dp::Iterator<T>* ref) : _ref(0), _graph(graph), _isDone(true)
+        NodeIteratorBasic (GraphBasic* graph, tools::dp::Iterator<T>* ref, u_int64_t nbItems)
+            : _ref(0), _graph(graph), _isDone(true), _nbItems(nbItems)
         {
             setRef(ref);
             (this->_item)->setGraph (_graph);
@@ -183,6 +184,9 @@ private:
             _ref->setItem (this->_item->kmer);
         }
 
+        /** */
+        u_int64_t getNbItems () const { return _nbItems; }
+
     private:
         tools::dp::Iterator<T>* _ref;
         void setRef (tools::dp::Iterator<T>* ref)  { SP_SETATTR(ref); }
@@ -190,6 +194,8 @@ private:
         GraphBasic* _graph;
 
         bool _isDone;
+
+        u_int64_t _nbItems;
     };
 };
 
