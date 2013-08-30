@@ -20,7 +20,6 @@
 
 #include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/collections/api/Bag.hpp>
-#include <gatb/tools/designpattern/api/INode.hpp>
 
 /********************************************************************************/
 namespace gatb          {
