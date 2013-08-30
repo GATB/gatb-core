@@ -107,17 +107,22 @@ private:
 *********************************************************************/
 template<typename T>
 DebloomAlgorithm<T>::DebloomAlgorithm (
-    tools::collections::Iterable<T>* solidIterable,
+    Product<CollectionFile>& product,
+    Iterable<T>*        solidIterable,
     size_t              kmerSize,
     BloomFactory::Kind  bloomKind,
     const std::string&  debloomUri,
+    size_t              max_memory,
     IProperties*        options
 )
-    :  Algorithm("debloom", options), _kmerSize(kmerSize), _bloomKind(bloomKind), _debloomUri("debloom"),
-       _solidIterable(0), _criticalIterable(0)
+    :  Algorithm("debloom", options), _product(product), _kmerSize(kmerSize), _bloomKind(bloomKind), _debloomUri("debloom"),
+       _max_memory(max_memory),
+       _solidIterable(0)
 {
     setSolidIterable    (solidIterable);
-    setCriticalIterable (new IterableFile<T> (_debloomUri, 2000));
+
+    /** We get a collection for the cFP from the product. */
+    setCriticalCollection (& product().addCollection<T> ("debloom"));
 }
 
 /*********************************************************************
@@ -131,8 +136,8 @@ DebloomAlgorithm<T>::DebloomAlgorithm (
 template<typename T>
 DebloomAlgorithm<T>::~DebloomAlgorithm ()
 {
-    setSolidIterable    (0);
-    setCriticalIterable (0);
+    setSolidIterable      (0);
+    setCriticalCollection (0);
 }
 
 /*********************************************************************
@@ -148,53 +153,38 @@ void DebloomAlgorithm<T>::execute ()
 {
     Model<T> model (_kmerSize);
 
-    /*************************************************/
-    /** We create an iterator over the solid kmers.  */
-    /*************************************************/
-    Iterator<T>* itKmers = createIterator<T> (
-        _solidIterable->iterator(),
-        _solidIterable->getNbItems(),
-        progressFormat2
-    );
-    LOCAL (itKmers);
+    /***************************************************/
+    /** We create a bloom and insert solid kmers into. */
+    /***************************************************/
+    Bloom<T>* bloom = createBloom (_solidIterable);
+    LOCAL (bloom);
 
     /*************************************************/
-    /** We create the debloom file.                 */
-    /*************************************************/
-
-    /** First, we delete the debloom file if already existing. */
-    System::file().remove (_debloomUri);
-
-    Bag<T>* debloomFile = new BagFile<T>(_debloomUri);
-    LOCAL (debloomFile);
-
-    /*************************************************/
-    /** We fill the debloom file.                    */
+    /** We build the solid neighbors extension.      */
     /*************************************************/
     {
         TIME_INFO (getTimeInfo(), "fill debloom file");
 
-        /** We create a bloom with inserted solid kmers. */
-        Bloom<T>* bloom = createBloom ();
-        LOCAL (bloom);
+        /** We create an iterator over the solid kmers. */
+        Iterator<T>* itKmers = createIterator<T> (
+            _solidIterable->iterator(),
+            _solidIterable->getNbItems(),
+            progressFormat2
+        );
+        LOCAL (itKmers);
 
-        /** We iterate the kmers and add them into the bloom filter. */
-        getDispatcher()->iterate (itKmers, BuildKmerExtension<T> (model, bloom, debloomFile));
+        /** We iterate the solid kmers and build the neighbors extension. */
+        getDispatcher()->iterate (itKmers, BuildKmerExtension<T> (model, bloom, new BagFile<T>(_debloomUri)));
     }
 
-    /** We make sure everything is put into the extension file. */
-    debloomFile->flush();
-
-    /*************************************************/
-    /** We compute the final cFP file.               */
-    /*************************************************/
-
-    size_t max_memory = 1000;
-
-    Hash16<T> partition (max_memory);
-
+    /*************************************************************/
+    /** We extract the solid kmers from the neighbors extension. */
+    /*************************************************************/
     string inputUri  = _debloomUri;
     string outputUri = _debloomUri + "2";
+
+    /** We need a hash that will hold solid kmers. */
+    Hash16<T> partition (_max_memory);
 
     {
         TIME_INFO (getTimeInfo(), "finalize debloom file");
@@ -216,30 +206,33 @@ void DebloomAlgorithm<T>::execute ()
             if (partition.size() >= partition.getMaxNbItems())
             {
                 /** We exclude the partition content from the critical false positive file. */
-                end_debloom_partition (partition, inputUri, outputUri);
+                end_debloom_partition (
+                    partition,
+                    new IteratorFile <T> (inputUri),
+                    new BagFile      <T> (outputUri)
+                );
+
+                /** We swap the filenames. */
+                std::swap (inputUri, outputUri);
             }
         }
 
-        /** We exclude the partition content from the critical false positive file. */
-        end_debloom_partition (partition, inputUri, outputUri);
+        /** We finally write into the dedicated bag. */
+        end_debloom_partition (
+            partition,
+            new IteratorFile <T> (inputUri),
+            _criticalCollection->bag()
+        );
     }
 
-    /** We swap the filenames (because the last 'end_debloom_partition' call made one too much). */
-    std::swap (inputUri, outputUri);
-
-    /** We make sure that 1) the final cFP file has the good name  2) we remove the other temporary debloom file. */
-    if (outputUri != _debloomUri)
-    {
-        /** We rename the temporary file to the final name. */
-        System::file().rename (outputUri, inputUri);
-    }
-    else
-    {
-        /** We delete the temporary file. */
-        System::file().remove (inputUri);
-    }
+    /** We remove the two temporary files. */
+    System::file().remove (inputUri);
+    System::file().remove (outputUri);
 
     /** We gather some statistics. */
+    getInfo()->add (1, "stats");
+    getInfo()->add (2, "critical kmers nb", "%ld", _criticalCollection->iterable()->getNbItems() );
+    getInfo()->add (2, "critical kmers uri",       _criticalCollection->getFullId());
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
 
@@ -288,15 +281,12 @@ private:
 ** REMARKS :
 *********************************************************************/
 template<typename T>
-void DebloomAlgorithm<T>::end_debloom_partition (Hash16<T>& partition, string& inputUri, string& outputUri)
+void DebloomAlgorithm<T>::end_debloom_partition (
+    Hash16<T>&    partition,
+    Iterator<T>*  debloomInput,
+    Bag<T>*       debloomOutput
+)
 {
-    /** First, we delete the output debloom file if already existing. */
-    System::file().remove (outputUri);
-
-    /** We need an input and an output. */
-    IteratorFile<T>* debloomInput  = new IteratorFile <T> (inputUri);
-    Bag<T>*          debloomOutput = new BagFile      <T> (outputUri);
-
     LOCAL (debloomInput);
     LOCAL (debloomOutput);
 
@@ -305,9 +295,6 @@ void DebloomAlgorithm<T>::end_debloom_partition (Hash16<T>& partition, string& i
 
     /** We make sure we output all the items. */
     debloomOutput->flush ();
-
-    /** We swap the filenames. */
-    std::swap (inputUri, outputUri);
 
     /** We clear the set. */
     partition.clear ();
@@ -322,21 +309,21 @@ void DebloomAlgorithm<T>::end_debloom_partition (Hash16<T>& partition, string& i
 ** REMARKS :
 *********************************************************************/
 template<typename T>
-Bloom<T>* DebloomAlgorithm<T>::createBloom ()
+Bloom<T>* DebloomAlgorithm<T>::createBloom (tools::collections::Iterable<T>* solidIterable)
 {
     TIME_INFO (getTimeInfo(), "create bloom from kmers");
 
     double lg2 = log(2);
     float NBITS_PER_KMER = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
 
-    u_int64_t solidKmersNb = _solidIterable->getNbItems();
+    u_int64_t solidKmersNb = solidIterable->getNbItems();
 
     u_int64_t estimatedBloomSize = (u_int64_t) (solidKmersNb * NBITS_PER_KMER);
     if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
 
     /** We create the kmers iterator from the solid file. */
     Iterator<T>* itKmers = createIterator<T> (
-        _solidIterable->iterator(),
+        solidIterable->iterator(),
         solidKmersNb,
         progressFormat1
     );

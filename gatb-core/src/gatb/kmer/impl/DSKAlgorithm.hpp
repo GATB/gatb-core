@@ -16,6 +16,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
+#include <gatb/tools/collections/impl/Product.hpp>
 #include <string>
 
 /********************************************************************************/
@@ -45,6 +46,7 @@ public:
 
     /** Constructor.*/
     DSKAlgorithm (
+        tools::collections::impl::Product<tools::collections::impl::CollectionFile>& product,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
         size_t              nks,
@@ -67,7 +69,7 @@ public:
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
-    tools::collections::Iterable<T>* getSolidKmers ()  { return _solidIterable; }
+    tools::collections::Iterable<T>* getSolidKmers ()  { return _solidCollection->iterable(); }
 
 private:
 
@@ -94,26 +96,17 @@ private:
      */
     virtual gatb::core::tools::collections::Bag<T>* createSolidKmersBag ();
 
-    /** Compute the format of the URI for the partition files. This format is set from the user preferences,
-     * in particular a suffix may be used.
-     * \return the output format.
-     */
-    std::string getPartitionFormat ();
-
     /** */
-    std::string getPartitionUri (size_t i)
-    {
-        char filename[128];  snprintf (filename, sizeof(filename), getPartitionFormat().c_str(), i);
-        return filename;
-    }
+    tools::collections::impl::Product<tools::collections::impl::CollectionFile>& _product;
 
     /** */
     gatb::core::bank::IBank* _bank;
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
 
     /** */
-    tools::collections::Iterable<T>* _solidIterable;
-    void setSolidIterable (tools::collections::Iterable<T>* solidIterable)  { SP_SETATTR(solidIterable); }
+    tools::collections::impl::CollectionNode<tools::collections::impl::CollectionFile,T>* _solidCollection;
+    void setSolidCollection (tools::collections::impl::CollectionNode<tools::collections::impl::CollectionFile,T>* solidCollection)
+    {  _solidCollection = solidCollection;  }
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;
@@ -149,6 +142,10 @@ private:
     u_int32_t _current_pass;
 
     gatb::core::tools::misc::impl::Histogram* _histogram;
+
+    /** Partitions management. */
+    tools::collections::impl::Partition<tools::collections::impl::CollectionFile,T>* _partitions;
+    void setPartitions (tools::collections::impl::Partition<tools::collections::impl::CollectionFile,T>* partitions)  {  SP_SETATTR(partitions);  }
 
     template<typename T1> friend class PartitionsCommand;
 };

@@ -79,6 +79,7 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
 *********************************************************************/
 template<typename T>
 DSKAlgorithm<T>::DSKAlgorithm (
+    Product<CollectionFile>& product,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
     size_t      nks,
@@ -91,16 +92,20 @@ DSKAlgorithm<T>::DSKAlgorithm (
     gatb::core::tools::misc::IProperties* options
 )
   : Algorithm("dsk", options),
-    _bank(0), _solidIterable(0),
+    _product(product),
+    _bank(0),
     _kmerSize(kmerSize), _nks(nks),
     _partitionType(partitionType), _nbCores(nbCores), _prefix(prefix), _solidKmers(prefix + "solid"),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
-    _histogram (0), _histogramUri(histogramUri)
+    _histogram (0), _histogramUri(histogramUri),
+    _partitions(0)
 {
     setBank (bank);
-    setSolidIterable (new IterableFile<T> (_solidKmers, 1000));
+
+    /** We create the collection corresponding to the solid kmers output. */
+    setSolidCollection (& product().addCollection<T> ("solid"));
 }
 
 /*********************************************************************
@@ -114,29 +119,13 @@ DSKAlgorithm<T>::DSKAlgorithm (
 template<typename T>
 DSKAlgorithm<T>::~DSKAlgorithm ()
 {
-    /** We remove physically the partition files. */
-    for (size_t i=0; i<_nb_partitions; i++)
-    {
-        System::file().remove (getPartitionUri(i));
-    }
-
     setProgress(0);
     if (_histogram)  {  delete _histogram; }
 
-    setBank (0);
-    setSolidIterable (0);
+    setBank            (0);
+    setPartitions      (0);
+    setSolidCollection (0);
 }
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<typename T>
-std::string DSKAlgorithm<T>::getPartitionFormat () {  return _prefix + "partition.%d";  }
 
 /*********************************************************************
 ** METHOD  :
@@ -196,10 +185,13 @@ void DSKAlgorithm<T>::execute ()
     /** We save the histogram if any. */
     _histogram->save ();
 
+    /** We want to remove physically the partitions. */
+    _partitions->remove ();
+
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
-    getInfo()->add (2, "solid kmers nb",   "%ld", (System::file().getSize(_solidKmers) / sizeof (T)) );
-    getInfo()->add (2, "solid kmers uri",  _solidKmers);
+    getInfo()->add (2, "solid kmers nb", "%ld", _solidCollection->iterable()->getNbItems() );
+    getInfo()->add (2, "solid kmers uri",       _solidCollection->getFullId());
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 
     /** We set the result of the execution. */
@@ -256,7 +248,7 @@ void DSKAlgorithm<T>::configure (IBank* bank)
 
     /** We gather some statistics. */
     getInfo()->add (1, "config");
-    getInfo()->add (2, "current directory", System::file().getCurrentDirectory());
+    getInfo()->add (2, "nks",               "%ld", _nks);
     getInfo()->add (2, "available space",   "%ld", available_space);
     getInfo()->add (2, "bank size",         "%ld", bankSize);
     getInfo()->add (2, "sequence number",   "%ld", _estimateSeqNb);
@@ -316,7 +308,7 @@ public:
             size_t p = reduced_kmer % nbPartitions;
 
             /** We write the kmer into the bag. */
-            _partition[p]->insert (kmers[i]);
+            _partition[p].insert (kmers[i]);
 
             nbWrittenKmers++;
         }
@@ -324,9 +316,9 @@ public:
         if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
 
-    FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, BagFilePartition<T>& partition, IteratorListener* progress)
-        : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition.size()), nbWrittenKmers(0),
-          _partition(partition,this->newSynchro()), _progress (progress,this->newSynchro())  {}
+    FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, Partition<CollectionFile,T>* partition, IteratorListener* progress)
+        : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0),
+          _partition(*partition,1<<12,this->newSynchro()), _progress (progress,this->newSynchro())  {}
 
 private:
 
@@ -340,7 +332,7 @@ private:
     vector<T> kmers;
 
     /** Shared resources (must support concurrent accesses). */
-    BagCachePartition<T> _partition;
+    PartitionCache<CollectionFile,T> _partition;
     ProgressSynchro      _progress;
 };
 
@@ -361,13 +353,13 @@ void DSKAlgorithm<T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
     Model<T> model (_kmerSize);
 
     /** We create the partition files for the current pass. */
-    BagFilePartition<T> partitions (_nb_partitions, getPartitionFormat());
+    setPartitions (new Partition<CollectionFile,T> (0, "parts", _nb_partitions) );
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<T> (model, _nb_passes, pass, partitions, _progress), 15*1000);
+    getDispatcher()->iterate (itSeq, FillPartitions<T> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
 }
 
 /*********************************************************************
@@ -385,14 +377,14 @@ template<typename T>
 class PartitionsCommand : public ICommand
 {
 public:
-    PartitionsCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, const string& filename, ISynchronizer* synchro)
-        : _nks(algo.getNks()), _filename(filename),
-          _solidKmers(solidKmers, 10*1000), _progress(algo.getProgress(), synchro)   {}
+    PartitionsCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
+        : _nks(algo.getNks()),
+          _solidKmers(solidKmers, 10*1000), _partition(partition), _progress(algo.getProgress(), synchro)   {}
 
 protected:
     size_t           _nks;
-    string           _filename;
     BagCache<T>      _solidKmers;
+    Iterable<T>&     _partition;
     ProgressSynchro  _progress;
 
     void add (const T& kmer, size_t abundance)
@@ -414,8 +406,8 @@ class PartitionsByHashCommand : public PartitionsCommand<T>
 {
 public:
 
-    PartitionsByHashCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, const string& filename, ISynchronizer* synchro, u_int64_t hashMemory)
-        : PartitionsCommand<T> (algo, solidKmers, filename, synchro), _hashMemory(hashMemory)  {}
+    PartitionsByHashCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro, u_int64_t hashMemory)
+        : PartitionsCommand<T> (algo, solidKmers, partition, synchro), _hashMemory(hashMemory)  {}
 
     void execute ()
     {
@@ -425,10 +417,10 @@ public:
         OAHash<T> hash (_hashMemory);
 
         /** We directly fill the vector from the current partition file. */
-        IteratorFile<T> it (this->_filename);
-        for (it.first(); !it.isDone(); it.next())
+        Iterator<T>* it = this->_partition.iterator();  LOCAL(it);
+        for (it->first(); !it->isDone(); it->next())
         {
-            hash.increment (*it);
+            hash.increment (it->item());
 
             /** Some display. */
             if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
@@ -461,14 +453,14 @@ class PartitionsByVectorCommand : public PartitionsCommand<T>
 
 public:
 
-    PartitionsByVectorCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, const string& filename, ISynchronizer* synchro)
-        : PartitionsCommand<T> (algo, solidKmers, filename, synchro)
+    PartitionsByVectorCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
+        : PartitionsCommand<T> (algo, solidKmers, partition, synchro)
           {}
 
     void execute ()
     {
         /** We get the length of the current partition file. */
-        size_t partitionLen = System::file().getSize(this->_filename) / sizeof(T);
+        size_t partitionLen = this->_partition.getNbItems();
 
         /** We check that we got something. */
         if (partitionLen == 0)  { throw Exception ("DSK: no solid kmers found"); }
@@ -478,7 +470,11 @@ public:
         kmers.resize (1 + partitionLen);
 
         /** We directly fill the vector from the current partition file. */
-        IteratorFile<T> it (this->_filename);   it.fill (kmers, partitionLen);
+        Iterator<T>* it = this->_partition.iterator();  LOCAL (it);
+        size_t idx = 0;
+        for (it->first(); !it->isDone(); it->next(), idx++) { kmers[idx] = it->item(); }
+
+        // IteratorFile<T> it (this->_filename);   it.fill (kmers, partitionLen);
 
         /** We set the extra item to a max value, so we are sure it will sorted at the last location.
          * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
@@ -572,8 +568,8 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
         {
             ICommand* cmd = 0;
 
-            if (_partitionType == 0)   {  cmd = new PartitionsByHashCommand<T>   (*this, solidKmers, getPartitionUri(p), synchro, mem);  }
-            else                       {  cmd = new PartitionsByVectorCommand<T> (*this, solidKmers, getPartitionUri(p), synchro);       }
+            if (_partitionType == 0)   {  cmd = new PartitionsByHashCommand<T>   (*this, solidKmers, (*_partitions)[p], synchro, mem);  }
+            else                       {  cmd = new PartitionsByVectorCommand<T> (*this, solidKmers, (*_partitions)[p], synchro);       }
 
             cmds.push_back (cmd);
         }
@@ -596,10 +592,7 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
 template<typename T>
 Bag<T>* DSKAlgorithm<T>::createSolidKmersBag ()
 {
-    /** We delete the solid kmers file. */
-    System::file().remove (_solidKmers);
-
-    return new  BagFile<T> (_solidKmers);
+    return _solidCollection->bag();
 }
 
 /********************************************************************************/
