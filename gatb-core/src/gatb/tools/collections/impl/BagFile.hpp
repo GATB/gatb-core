@@ -39,7 +39,11 @@ public:
     /** Constructor. */
     BagFile (const std::string& filename) : _filename(filename), _file(0)
     {
-        _file = system::impl::System::file().newFile (filename, "wb");
+        /** We first erase the file. */
+        system::impl::System::file().remove (filename);
+
+        /** We get a handle on the file. */
+        _file = system::impl::System::file().newFile (filename, "wb+");
     }
 
     /** Destructor. */
