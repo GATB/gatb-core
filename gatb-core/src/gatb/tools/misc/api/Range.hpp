@@ -82,21 +82,34 @@ public:
     {
     public:
 
-        Iterator (const T& x, const T& y) : _begin(x), _end(y) {}
+        Iterator (const T& x, const T& y) : _begin(x), _end(y), _value(0), _isDone(true) {}
 
-        Iterator (Range& ref) : _begin(ref.getBegin()), _end(ref.getEnd())  {}
+        Iterator (Range& ref) : _begin(ref.getBegin()), _end(ref.getEnd()), _value(0), _isDone(true)  {}
 
-        void first()  { *this->_item = _begin; }
+        void first()
+        {
+            _value = _begin;
+            _isDone = _value > _end;
+            if (!_isDone)  { *this->_item = _value; }
+        }
 
-        void next()   { (*this->_item) ++; }
+        void next()
+        {
+            _value ++;
+            _isDone = _value > _end;
+            if (!_isDone)  { *this->_item = _value; }
 
-        bool isDone() { return (*this->_item) > _end; }
+        }
+
+        bool isDone() { return _isDone; }
 
         T& item ()     { return (*this->_item); }
 
     private:
         T      _begin;
         T      _end;
+        T      _value;
+        bool   _isDone;
     };
 
     friend class Iterator;
