@@ -33,22 +33,32 @@ public:
     /** Constructor.
      * \param[in]  l : the list to be iterated
      */
-    STLIterator (const Container& l)  : _l(l) {}
+    STLIterator (const Container& l)  : _l(l),_isDone(true) {}
 
     /** Destructor (here because of virtual methods). */
     virtual ~STLIterator ()  {}
 
     /** \copydoc Iterator<T1>::first */
-    void first()  {  _iter = _l.begin(); }
+    void first()
+    {
+        _iter = _l.begin();
+        _isDone = _iter == _l.end ();
+        if (!_isDone)  { * this->_item = *_iter; }
+    }
 
     /** \copydoc Iterator<T1>::next */
-    void next()   { _iter++; }
+    void next()
+    {
+        _iter++;
+        _isDone = _iter == _l.end ();
+        if (!_isDone)  { * this->_item = *_iter; }
+    }
 
     /** \copydoc Iterator<T1>::isDone */
-    bool isDone() { return _iter == _l.end (); }
+    bool isDone() { return _isDone; }
 
     /** \copydoc Iterator<T1>::item */
-    Type& item()  { return *_iter; }
+    Type& item()  { return * this->_item; }
 
 private:
 
@@ -57,6 +67,8 @@ private:
 
     /** STL iterator we are going to wrap. */
     typename Container::iterator _iter;
+
+    bool _isDone;
 };
 
 /********************************************************************************/
