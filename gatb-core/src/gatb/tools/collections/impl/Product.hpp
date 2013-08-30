@@ -1,0 +1,445 @@
+/*****************************************************************************
+ *   GATB : Genome Assembly Tool Box                                         *
+ *   Authors: [R.Chikhi, G.Rizk, E.Drezen]                                   *
+ *   Based on Minia, Authors: [R.Chikhi, G.Rizk], CeCILL license             *
+ *   Copyright (c) INRIA, CeCILL license, 2013                               *
+ *****************************************************************************/
+
+/** \file Collection.hpp
+ *  \date 01/03/2013
+ *  \author edrezen
+ *  \brief Collection interface
+ *
+ *  This file holds interfaces related to the Collection interface
+ */
+
+#ifndef _GATB_CORE_TOOLS_COLLECTIONS_IMPL_PRODUCT_HPP_
+#define _GATB_CORE_TOOLS_COLLECTIONS_IMPL_PRODUCT_HPP_
+
+/********************************************************************************/
+
+#include <gatb/tools/designpattern/impl/Cell.hpp>
+
+#include <gatb/tools/collections/api/Collection.hpp>
+#include <gatb/tools/collections/impl/CollectionAbstract.hpp>
+#include <gatb/tools/collections/impl/CollectionCache.hpp>
+#include <gatb/tools/collections/impl/CollectionFile.hpp>
+
+#include <string>
+#include <sstream>
+#include <list>
+#include <vector>
+#include <map>
+
+/********************************************************************************/
+namespace gatb          {
+namespace core          {
+namespace tools         {
+namespace collections   {
+namespace impl          {
+/********************************************************************************/
+
+/** Forward declarations. */
+template <template<class> class Container>                 class Product;
+template <template<class> class Container>                 class Group;
+template <template<class> class Container, typename Type>  class Partition;
+
+/********************************************************************************/
+
+#if 0
+template <template<class> class Container, typename Type>
+class IVisitor : public dp::SmartPointer
+{
+public:
+
+    virtual void visitProduct    (Product<Container>&        product)    = 0;
+    virtual void visitGroup      (Group<Container>&          group)      = 0;
+    virtual void visitPartition  (Partition<Container,Type>& partition)  = 0;
+    virtual void visitCollection (Collection<Type>&          collection) = 0;
+};
+#endif
+
+
+/********************************************************************************
+     #####   #######  #        #        #######   #####   #######
+    #     #  #     #  #        #        #        #     #     #
+    #        #     #  #        #        #        #           #
+    #        #     #  #        #        #####    #           #
+    #        #     #  #        #        #        #           #
+    #     #  #     #  #        #        #        #     #     #      ##
+     #####   #######  #######  #######  #######   #####      #      ##
+********************************************************************************/
+/** \brief Class that add some features to the Collection interface
+ *
+ * The CollectionNode has two aspects:
+ *      - this is a Collection
+ *      - this is a Node
+ *
+ * The idea was not to have a Collection interface extending the INode interface
+ * => we introduce the CollectionNode for this.
+ */
+template <template<class> class Container, class Item>
+class CollectionNode : public dp::impl::Cell, public CollectionAbstract<Item>
+{
+public:
+
+    /** Constructor.
+     *  The idea is to use a referred collection for:
+     *      - its bag part
+     *      - its iterable part
+     *      - its remove part
+     * \param[in] parent : parent node
+     * \param[in] id  : identifier of the collection to be created
+     * \param[in] ref : referred collection.
+     */
+    CollectionNode (dp::ICell* parent, const std::string& id, Container<Item>* ref)
+        : dp::impl::Cell(parent,id), CollectionAbstract<Item> (ref->bag(), ref->iterable()), _ref(0)
+    {
+        /** We get a token on the referred Collection instance. */
+        setRef(ref);
+    }
+
+    /** Destructor. */
+    virtual ~CollectionNode()
+    {
+        /** We release the token of the Collection instance. */
+        setRef(0);
+    }
+
+    /** \copydoc ICell::remove */
+    void remove ()
+    {
+        /** We delegate the job to the referred Collection instance. */
+        _ref->remove();
+    }
+
+    /**  */
+    Container<Item>* getRef ()  { return _ref; }
+
+private:
+
+    Container<Item>* _ref;
+    void setRef (Container<Item>* ref)  { SP_SETATTR(ref); }
+};
+
+/**********************************************************************
+             #####   ######   #######  #     #  ######
+            #     #  #     #  #     #  #     #  #     #
+            #        #     #  #     #  #     #  #     #
+            #  ####  ######   #     #  #     #  ######
+            #     #  #   #    #     #  #     #  #
+            #     #  #    #   #     #  #     #  #
+             #####   #     #  #######   #####   #
+**********************************************************************/
+
+/** */
+template<template<class> class Container>
+class Group : public dp::impl::Cell
+{
+public:
+
+    /** Constructor. */
+    Group (dp::ICell* parent, const std::string& name) : dp::impl::Cell(parent, name) {}
+
+    /** Destructor. */
+    ~Group()
+    {
+        /** We release the collections. */
+        for (size_t i=0; i<_collections.size(); i++)  {  _collections[i]->forget();  }
+
+        /** We release the partitions. */
+        for (size_t i=0; i<_partitions.size(); i++)  { _partitions[i]->forget(); }
+
+        /** We release the groups. */
+        for (size_t i=0; i<_groups.size(); i++)  { _groups[i]->forget(); }
+    }
+
+    /** */
+    template <class Type>  CollectionNode<Container,Type>& addCollection (const std::string& name)
+    {
+        /** We define the full qualified id of the current collection to be created. */
+        std::stringstream ss;  ss << this->getFullId().c_str() << "." << name;
+
+        CollectionNode<Container,Type>* result = new CollectionNode<Container,Type> (
+            this,
+            name,
+            new Container<Type>(ss.str())
+        );
+        _collections.push_back (result);
+        result->use ();
+        return *result;
+    }
+
+    /** */
+    template <class Type>  Partition<Container,Type>& addPartition (const std::string& name, size_t nb)
+    {
+        Partition<Container,Type>* result = new Partition<Container,Type> (this, name, nb);
+        _partitions.push_back(result);
+        result->use();
+        return *result;
+    }
+
+    /** */
+    size_t getNbCollections () { return _collections.size(); }
+
+    /** */
+    template <class Type>  Container<Type>& getCollection (size_t idx)
+    {
+        //return dynamic_cast<Container<Type>*> (_collections[idx]);  => SURELY TIME EXPENSIVE...
+        return * reinterpret_cast<Container<Type>*> (_collections[idx]);
+    }
+
+    /** */
+    Group<Container>& operator[] (size_t idx)  {  return *_groups[idx];  }
+
+    /** */
+    Group<Container>& operator[] (const std::string& name)  {  return *_groups[_groupsMap[name]];  }
+
+
+    /** */
+    void remove ()
+    {
+        /** We remove the collections. */
+        for (size_t i=0; i<_collections.size(); i++)  {  _collections[i]->remove ();  }
+
+        /** We remove the partitions. */
+        for (size_t i=0; i<_partitions.size(); i++)   { _partitions[i]->remove(); }
+
+        /** We remove the children groups. */
+        for (size_t i=0; i<_groups.size(); i++)       { _groups[i]->remove(); }
+    }
+
+protected:
+
+    std::vector<ICell*> _collections;
+
+    std::vector <Group<Container>* > _groups;
+    std::map    <std::string, size_t> _groupsMap;
+
+    std::vector<ICell*> _partitions;
+
+    /** */
+    void addGroup (const std::string& name)
+    {
+        Group<Container>* group = new Group<Container>(name);
+        group->use ();
+
+        _groups.push_back (group);
+
+        _groupsMap[name] = _groups.size() - 1;
+    }
+};
+
+/**********************************************************************
+######      #     ######   #######  ###  #######  ###  #######  #     #
+#     #    # #    #     #     #      #      #      #   #     #  ##    #
+#     #   #   #   #     #     #      #      #      #   #     #  # #   #
+######   #     #  ######      #      #      #      #   #     #  #  #  #
+#        #######  #   #       #      #      #      #   #     #  #   # #
+#        #     #  #    #      #      #      #      #   #     #  #    ##
+#        #     #  #     #     #     ###     #     ###  #######  #     #
+**********************************************************************/
+
+/** \brief Define a set of Collection instances having the same type.
+ *
+ * The Partition class groups several Collections that share the same kind
+ * of items.
+ *
+ * It is defined as a subclass of Group.
+ */
+template<template<class> class Container, typename Type>
+class Partition : public Group<Container>
+{
+public:
+
+    /** Constructor.
+     * \param[in] parent : the parent node
+     * \param[in] id : the identifier of the instance to be created
+     * \param[in] nbCollections : number of collections for this partition
+     */
+    Partition (dp::ICell* parent, const std::string& id, size_t nbCollections) : Group<Container> (parent, id), _typedCollections(nbCollections)
+    {
+        /** We want to instantiate the wanted number of collections. */
+        for (size_t i=0; i<_typedCollections.size(); i++)
+        {
+            /** We define the full qualified id of the current collection to be created. */
+            std::stringstream ss;  ss << this->getFullId().c_str() << "." << i;
+
+            /** We create the current collection. Note that we provide the full id to the
+             *  actual Collection instance. */
+            CollectionNode<Container,Type>* result = new CollectionNode<Container,Type> (
+                this,
+                id,
+                new Container<Type>(ss.str())
+            );
+
+            /** We add the collection node to the dedicated vector and take a token for it. */
+            (_typedCollections [i] = result)->use ();
+        }
+    }
+
+    /** Destructor. */
+    ~Partition ()
+    {
+        /** We release the token for each collection node. */
+        for (size_t i=0; i<_typedCollections.size(); i++)  { _typedCollections[i]->forget ();  }
+    }
+
+    /** Return the number of collections for this partition.
+     * \return the number of collections. */
+    size_t size()  const  { return _typedCollections.size(); }
+
+    /** Get the ith collection
+     * \param[in] idx : index of the collection to be retrieved
+     * \return the wanted collection.
+     */
+    Container<Type>& operator[] (size_t idx)  {  return  * _typedCollections[idx]->getRef();  }
+
+    /** Flush the whole partition (ie flush each collection). */
+    void flush ()
+    {
+        for (size_t i=0; i<_typedCollections.size(); i++)  { _typedCollections[i]->flush();  }
+    }
+
+    /** Remove physically the partition (ie. remove each collection). */
+    void remove ()
+    {
+        /** We remove each collection of this partition. */
+        for (size_t i=0; i<_typedCollections.size(); i++)  { _typedCollections[i]->remove ();  }
+
+        /** We call the remove of the parent class. */
+        Group<Container>::remove ();
+    }
+
+protected:
+
+    std::vector <CollectionNode<Container,Type>* > _typedCollections;
+};
+
+/********************************************************************************/
+
+/** \brief Cache (with potential synchronization) of a Partition.
+ *
+ * This class implements a cache for a Partition instance:
+ *  -> an 'insert' is first cached in memory; when the cache is full, all the items are inserted in the
+ *  real partition
+ *  -> flushing the cache in the real partition is protected with a synchronizer
+ *
+ *  A typical use case is to create several PartitionCache referring the same Partition, and use them
+ *  independently in different threads => in each thread, we will work on the local (cached) partition
+ *  like a normal partition (ie. use 'insert'), but without taking care to the concurrent accesses to
+ *  the referred partition (it is checked by the PartitionCache class).
+ */
+template<template<class> class Container, typename Type>
+class PartitionCache
+{
+public:
+
+    /** Constructor */
+    PartitionCache (Partition<Container,Type>& ref, size_t nbItemsCache, system::ISynchronizer* synchro=0)
+        :  _ref(ref), _nbItemsCache(nbItemsCache), _synchro(synchro), _cachedCollections(ref.size())
+    {
+        /** We create the partition files. */
+        for (size_t i=0; i<_cachedCollections.size(); i++)
+        {
+            _cachedCollections[i] = new CollectionCache<Type> (ref[i], nbItemsCache, synchro);
+            _cachedCollections[i]->use ();
+        }
+    }
+
+    /** Copy constructor. */
+    PartitionCache (const PartitionCache<Container,Type>& p)
+        : _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro), _cachedCollections(p.size())
+    {
+        /** We create the partition files. */
+        for (size_t i=0; i<_cachedCollections.size(); i++)
+        {
+            PartitionCache<Container,Type>& pp = (PartitionCache<Container,Type>&)p;
+            _cachedCollections[i] = new CollectionCache<Type> (pp[i].getRef(), p._nbItemsCache, p._synchro);
+            _cachedCollections[i]->use ();
+        }
+    }
+
+    /** Destructor. */
+    ~PartitionCache ()
+    {
+        flush ();
+        for (size_t i=0; i<_cachedCollections.size(); i++)  {  _cachedCollections[i]->forget ();  }
+    }
+
+    /** Return the number of collections for this partition.
+     * \return the number of collections. */
+    size_t size() const { return _cachedCollections.size(); }
+
+    /** Get the ith collection
+     * \param[in] idx : index of the collection to be retrieved
+     * \return the wanted collection.
+     */
+    CollectionCache<Type>& operator[] (size_t idx)  {  return * _cachedCollections[idx];  }
+
+    /** Flush the whole partition (ie flush each collection). */
+    void flush ()   {  for (size_t i=0; i<_cachedCollections.size(); i++)  { _cachedCollections[i]->flush();  }  }
+
+    /** Remove physically the partition (ie. remove each collection). */
+    void remove ()  {  for (size_t i=0; i<_cachedCollections.size(); i++)  { _cachedCollections[i]->remove ();  } }
+
+private:
+    Partition<Container,Type>& _ref;
+    size_t                     _nbItemsCache;
+    system::ISynchronizer*     _synchro;
+
+    std::vector <CollectionCache<Type>* > _cachedCollections;
+};
+
+/********************************************************************************
+        ######   ######   #######  ######   #     #   #####   #######
+        #     #  #     #  #     #  #     #  #     #  #     #     #
+        #     #  #     #  #     #  #     #  #     #  #           #
+        ######   ######   #     #  #     #  #     #  #           #
+        #        #   #    #     #  #     #  #     #  #           #
+        #        #    #   #     #  #     #  #     #  #     #     #
+        #        #     #  #######  ######    #####    #####      #
+********************************************************************************/
+
+/** \brief Product class
+ *
+ * The Product class is the entry point for managing collections and groups.
+ *
+ * It delegates all the actions to a root group (retrievable through an operator overload).
+ *
+ * Such a product is supposed to gather several information sets in a single environment,
+ * with possible hierarchical composition.
+ *
+ * It is a template class: one should provide the actual type of the collections containers.
+ * Possible template types could be designed for:
+ *   - classical file system
+ *   - HDF5 files
+ *   - memory
+ */
+template <template<class> class Container>
+class Product
+{
+public:
+
+    /** Constructor.
+     * \param[in] name : name of the product. */
+    Product (const std::string& name)  : _root(0, name) {}
+
+    /** Facility for retrieving the root group.
+     * \return the root group. */
+    Group<Container>& operator() (void)  { return _root; }
+
+    /** Remove physically the product. */
+    void remove ()  {  _root.remove(); }
+
+private:
+
+    /** Root group. */
+    Group<Container> _root;
+};
+
+/********************************************************************************/
+} } } } } /* end of namespaces. */
+/********************************************************************************/
+
+#endif /* _GATB_CORE_TOOLS_COLLECTIONS_IMPL_PRODUCT_HPP_ */
