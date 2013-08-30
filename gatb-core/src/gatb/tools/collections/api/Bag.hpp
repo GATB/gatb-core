@@ -48,7 +48,7 @@ public:
     virtual void insert (const std::vector<Item>& items, size_t length=0)
     {
         size_t n = length==0 ? items.size() : length;
-        for (size_t i=0; i<length; i++)  {  insert (items[i]); }
+        for (size_t i=0; i<n; i++)  {  insert (items[i]); }
     }
 
     /** Flush the current content. May be useful for implementation that uses a cache. */
