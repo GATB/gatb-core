@@ -27,6 +27,9 @@
 #include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 
+#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/collections/impl/CollectionFile.hpp>
+
 using namespace std;
 
 using namespace gatb::core::system;
@@ -39,6 +42,9 @@ using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 
 using namespace gatb::core::tools::dp;
+
+using namespace gatb::core::tools::collections;
+using namespace gatb::core::tools::collections::impl;
 
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
@@ -69,8 +75,11 @@ public:
     /********************************************************************************/
     void DSK_check1_aux (const char* sequences[], size_t nbSequences, size_t kmerSize, size_t nks, size_t checkNbSolids)
     {
+        /** We create a product instance. */
+        Product<CollectionFile> product ("test");
+
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (new BankStrings (sequences, nbSequences), kmerSize, nks);
+        DSKAlgorithm<NativeInt64> dsk (product, new BankStrings (sequences, nbSequences), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
@@ -183,8 +192,11 @@ public:
 
         const char* s1 = "GATCGATTCTTAGCACGTCCCCCCCTACACCCAAT" ;
 
+        /** We create a product instance. */
+        Product<CollectionFile> product ("test");
+
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (new BankStrings (s1, 0), kmerSize, nks);
+        DSKAlgorithm<NativeInt64> dsk (product, new BankStrings (s1, 0), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();

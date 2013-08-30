@@ -37,6 +37,9 @@
 
 #include <gatb/bank/impl/BankStrings.hpp>
 
+#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/collections/impl/CollectionFile.hpp>
+
 #include <iostream>
 #include <memory>
 
@@ -259,8 +262,11 @@ public:
         /** We create a bank with one sequence. */
         IBank* bank = new BankStrings (seq, 0);
 
+        /** We create a product instance. */
+        Product<CollectionFile> product ("test");
+
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (bank, kmerSize, 1);
+        DSKAlgorithm<NativeInt64> dsk (product, bank, kmerSize, 1);
 
         /** We launch DSK. */
         dsk.execute();
@@ -269,7 +275,7 @@ public:
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == dsk.getSolidKmers()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<NativeInt64> debloom (dsk.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();

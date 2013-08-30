@@ -28,6 +28,9 @@
 #include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 
+#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/collections/impl/CollectionFile.hpp>
+
 using namespace std;
 
 using namespace gatb::core::system;
@@ -81,14 +84,17 @@ public:
             "ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAG"
         } ;
 
+        /** We create a product instance. */
+        Product<CollectionFile> product ("test");
+
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        DSKAlgorithm<NativeInt64> dsk (product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<NativeInt64> debloom (dsk.getSolidKmers(), kmerSize, BloomFactory::Synchronized);
+        DebloomAlgorithm<NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize, BloomFactory::Synchronized);
 
         /** We launch the debloom. */
         debloom.execute();
