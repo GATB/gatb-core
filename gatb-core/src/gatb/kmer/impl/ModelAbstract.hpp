@@ -148,12 +148,12 @@ public:
                 {
                     kmer_type next1 = (((source) * 4 )  + nt) & _ref.getMask();
                     kmer_type next2 = core::tools::math::revcomp (next1, _ref.getSpan());
-                    this->_items[idx++] = min (next1, next2);
+                    this->_items[idx++] = std::min (next1, next2);
                 }
                 {
                     kmer_type next1 = (((rev) * 4 )  + nt) & _ref.getMask();
                     kmer_type next2 = core::tools::math::revcomp (next1, _ref.getSpan());
-                    this->_items[idx++] = min (next1, next2);
+                    this->_items[idx++] = std::min (next1, next2);
                 }
             }
         }
