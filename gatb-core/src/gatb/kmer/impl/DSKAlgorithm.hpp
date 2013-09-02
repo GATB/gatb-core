@@ -40,13 +40,13 @@ namespace impl      {
  * to choose dynamically the correct class according to the user choice for kmer size
  * (remember that initial Minia version had to be re-compiled for different kmer size).
  */
-template<typename T> class DSKAlgorithm : public gatb::core::tools::misc::impl::Algorithm
+template<typename ProductFactory, typename T> class DSKAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
     /** Constructor.*/
     DSKAlgorithm (
-        tools::collections::impl::Product<tools::collections::impl::CollectionFile>& product,
+        tools::collections::impl::Product<ProductFactory>& product,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
         size_t              nks,
@@ -97,15 +97,15 @@ private:
     virtual gatb::core::tools::collections::Bag<T>* createSolidKmersBag ();
 
     /** */
-    tools::collections::impl::Product<tools::collections::impl::CollectionFile>& _product;
+    tools::collections::impl::Product<ProductFactory>& _product;
 
     /** */
     gatb::core::bank::IBank* _bank;
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
 
     /** */
-    tools::collections::impl::CollectionNode<tools::collections::impl::CollectionFile,T>* _solidCollection;
-    void setSolidCollection (tools::collections::impl::CollectionNode<tools::collections::impl::CollectionFile,T>* solidCollection)
+    tools::collections::impl::CollectionNode<T>* _solidCollection;
+    void setSolidCollection (tools::collections::impl::CollectionNode<T>* solidCollection)
     {  _solidCollection = solidCollection;  }
 
     /** Shortcuts for the user input parameters. . */
@@ -144,10 +144,16 @@ private:
     gatb::core::tools::misc::impl::Histogram* _histogram;
 
     /** Partitions management. */
-    tools::collections::impl::Partition<tools::collections::impl::CollectionFile,T>* _partitions;
-    void setPartitions (tools::collections::impl::Partition<tools::collections::impl::CollectionFile,T>* partitions)  {  SP_SETATTR(partitions);  }
+    tools::collections::impl::Product<ProductFactory>* _partitionsProduct;
+    void setPartitionsProduct (tools::collections::impl::Product<ProductFactory>* partitionsProduct)
+    {
+        SP_SETATTR(partitionsProduct);
+    }
 
-    template<typename T1> friend class PartitionsCommand;
+    tools::collections::impl::Partition<ProductFactory, T>* _partitions;
+    void setPartitions (tools::collections::impl::Partition<ProductFactory, T>* partitions)  {  SP_SETATTR(partitions);  }
+
+    template<typename T1, typename T2> friend class PartitionsCommand;
 };
 
 /********************************************************************************/

@@ -49,7 +49,11 @@ public:
     virtual ~CollectionCache() {}
 
     /** */
+    void remove ()  { _ref.remove(); }
+
+    /** */
     Collection<Item>& getRef ()  { return _ref; }
+
 private:
     Collection<Item>& _ref;
 };

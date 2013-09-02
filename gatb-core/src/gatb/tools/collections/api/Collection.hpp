@@ -44,6 +44,9 @@ public:
 
     /** \return the iterable instance. */
     virtual Iterable<Item>* iterable() = 0;
+
+    /** */
+    virtual void remove () = 0;
 };
 
 /********************************************************************************/

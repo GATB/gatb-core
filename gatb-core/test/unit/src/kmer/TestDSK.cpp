@@ -28,7 +28,7 @@
 #include <gatb/tools/math/LargeInt.hpp>
 
 #include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/CollectionFile.hpp>
+#include <gatb/tools/collections/impl/ProductFile.hpp>
 
 using namespace std;
 
@@ -76,10 +76,10 @@ public:
     void DSK_check1_aux (const char* sequences[], size_t nbSequences, size_t kmerSize, size_t nks, size_t checkNbSolids)
     {
         /** We create a product instance. */
-        Product<CollectionFile> product ("test");
+        Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (product, new BankStrings (sequences, nbSequences), kmerSize, nks);
+        DSKAlgorithm<ProductFileFactory,NativeInt64> dsk (product, new BankStrings (sequences, nbSequences), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
@@ -193,10 +193,10 @@ public:
         const char* s1 = "GATCGATTCTTAGCACGTCCCCCCCTACACCCAAT" ;
 
         /** We create a product instance. */
-        Product<CollectionFile> product ("test");
+        Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (product, new BankStrings (s1, 0), kmerSize, nks);
+        DSKAlgorithm<ProductFileFactory,NativeInt64> dsk (product, new BankStrings (s1, 0), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();

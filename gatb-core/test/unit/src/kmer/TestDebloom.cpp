@@ -29,7 +29,7 @@
 #include <gatb/tools/math/LargeInt.hpp>
 
 #include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/CollectionFile.hpp>
+#include <gatb/tools/collections/impl/ProductFile.hpp>
 
 using namespace std;
 
@@ -85,16 +85,16 @@ public:
         } ;
 
         /** We create a product instance. */
-        Product<CollectionFile> product ("test");
+        Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        DSKAlgorithm<NativeInt64> dsk (product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        DSKAlgorithm<ProductFileFactory, NativeInt64> dsk (product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize, BloomFactory::Synchronized);
+        DebloomAlgorithm<ProductFileFactory, NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize, BloomFactory::Synchronized);
 
         /** We launch the debloom. */
         debloom.execute();

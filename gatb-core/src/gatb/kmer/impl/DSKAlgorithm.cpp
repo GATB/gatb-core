@@ -22,6 +22,7 @@
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
+#include <gatb/tools/collections/impl/ProductFile.hpp>
 
 #include <gatb/tools/math/NativeInt64.hpp>
 
@@ -77,9 +78,9 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-DSKAlgorithm<T>::DSKAlgorithm (
-    Product<CollectionFile>& product,
+template<typename ProductFactory, typename T>
+DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
+    Product<ProductFactory>& product,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
     size_t      nks,
@@ -100,12 +101,12 @@ DSKAlgorithm<T>::DSKAlgorithm (
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(histogramUri),
-    _partitions(0)
+    _partitionsProduct(0), _partitions(0)
 {
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidCollection (& product().addCollection<T> ("solid"));
+    setSolidCollection (& product().template addCollection<T> ("solid"));
 }
 
 /*********************************************************************
@@ -116,13 +117,14 @@ DSKAlgorithm<T>::DSKAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-DSKAlgorithm<T>::~DSKAlgorithm ()
+template<typename ProductFactory, typename T>
+DSKAlgorithm<ProductFactory,T>::~DSKAlgorithm ()
 {
     setProgress(0);
     if (_histogram)  {  delete _histogram; }
 
     setBank            (0);
+    setPartitionsProduct (0);
     setPartitions      (0);
     setSolidCollection (0);
 }
@@ -135,8 +137,8 @@ DSKAlgorithm<T>::~DSKAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-void DSKAlgorithm<T>::execute ()
+template<typename ProductFactory, typename T>
+void DSKAlgorithm<ProductFactory,T>::execute ()
 {
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
@@ -168,7 +170,7 @@ void DSKAlgorithm<T>::execute ()
     /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
     for (_current_pass=0; _current_pass<_nb_passes; _current_pass++)
     {
-        DEBUG (("DSKAlgorithm<T>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
+        DEBUG (("DSKAlgorithm<ProductFactory,T>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
 
         /** 1) We fill the partition files. */
         fillPartitions (_current_pass, itSeq);
@@ -206,8 +208,8 @@ void DSKAlgorithm<T>::execute ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-void DSKAlgorithm<T>::configure (IBank* bank)
+template<typename ProductFactory, typename T>
+void DSKAlgorithm<ProductFactory,T>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
@@ -266,7 +268,7 @@ void DSKAlgorithm<T>::configure (IBank* bank)
 
 /********************************************************************************/
 
-template<typename T>
+template<typename ProductFactory, typename T>
 class FillPartitions : public IteratorFunctor
 {
 public:
@@ -316,7 +318,7 @@ public:
         if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
 
-    FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, Partition<CollectionFile,T>* partition, IteratorListener* progress)
+    FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, Partition<ProductFactory, T>* partition, IteratorListener* progress)
         : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0),
           _partition(*partition,1<<12,this->newSynchro()), _progress (progress,this->newSynchro())  {}
 
@@ -332,7 +334,7 @@ private:
     vector<T> kmers;
 
     /** Shared resources (must support concurrent accesses). */
-    PartitionCache<CollectionFile,T> _partition;
+    PartitionCache<ProductFactory,T> _partition;
     ProgressSynchro      _progress;
 };
 
@@ -344,8 +346,8 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-void DSKAlgorithm<T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
+template<typename ProductFactory, typename T>
+void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
 {
     TIME_INFO (getTimeInfo(), "fill partitions");
 
@@ -353,13 +355,14 @@ void DSKAlgorithm<T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
     Model<T> model (_kmerSize);
 
     /** We create the partition files for the current pass. */
-    setPartitions (new Partition<CollectionFile,T> (0, "parts", _nb_partitions) );
+    setPartitionsProduct (new Product<ProductFactory> ("partitions"));
+    setPartitions        ( & (*_partitionsProduct)().template addPartition<T> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<T> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
+    getDispatcher()->iterate (itSeq, FillPartitions<ProductFactory,T> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
 }
 
 /*********************************************************************
@@ -373,11 +376,11 @@ void DSKAlgorithm<T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
 
 /********************************************************************************/
 /** */
-template<typename T>
+template<typename ProductFactory, typename T>
 class PartitionsCommand : public ICommand
 {
 public:
-    PartitionsCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
+    PartitionsCommand (DSKAlgorithm<ProductFactory,T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
         : _nks(algo.getNks()),
           _solidKmers(solidKmers, 10*1000), _partition(partition), _progress(algo.getProgress(), synchro)   {}
 
@@ -401,13 +404,13 @@ protected:
 
 /********************************************************************************/
 /** */
-template<typename T>
-class PartitionsByHashCommand : public PartitionsCommand<T>
+template<typename ProductFactory, typename T>
+class PartitionsByHashCommand : public PartitionsCommand<ProductFactory, T>
 {
 public:
 
-    PartitionsByHashCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro, u_int64_t hashMemory)
-        : PartitionsCommand<T> (algo, solidKmers, partition, synchro), _hashMemory(hashMemory)  {}
+    PartitionsByHashCommand (DSKAlgorithm<ProductFactory,T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro, u_int64_t hashMemory)
+        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, synchro), _hashMemory(hashMemory)  {}
 
     void execute ()
     {
@@ -446,15 +449,15 @@ private:
 
 /********************************************************************************/
 /** */
-template<typename T>
-class PartitionsByVectorCommand : public PartitionsCommand<T>
+template<typename ProductFactory, typename T>
+class PartitionsByVectorCommand : public PartitionsCommand<ProductFactory, T>
 {
     vector<T> kmers;
 
 public:
 
-    PartitionsByVectorCommand (DSKAlgorithm<T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
-        : PartitionsCommand<T> (algo, solidKmers, partition, synchro)
+    PartitionsByVectorCommand (DSKAlgorithm<ProductFactory,T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
+        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, synchro)
           {}
 
     void execute ()
@@ -516,8 +519,8 @@ public:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-std::vector<size_t> DSKAlgorithm<T>::getNbCoresList ()
+template<typename ProductFactory, typename T>
+std::vector<size_t> DSKAlgorithm<ProductFactory,T>::getNbCoresList ()
 {
     std::vector<size_t> result;
 
@@ -538,8 +541,8 @@ std::vector<size_t> DSKAlgorithm<T>::getNbCoresList ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
+template<typename ProductFactory, typename T>
+void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<T>*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill solid kmers");
 
@@ -568,8 +571,8 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
         {
             ICommand* cmd = 0;
 
-            if (_partitionType == 0)   {  cmd = new PartitionsByHashCommand<T>   (*this, solidKmers, (*_partitions)[p], synchro, mem);  }
-            else                       {  cmd = new PartitionsByVectorCommand<T> (*this, solidKmers, (*_partitions)[p], synchro);       }
+            if (_partitionType == 0)   {  cmd = new PartitionsByHashCommand<ProductFactory, T>   (*this, solidKmers, (*_partitions)[p], synchro, mem);  }
+            else                       {  cmd = new PartitionsByVectorCommand<ProductFactory, T> (*this, solidKmers, (*_partitions)[p], synchro);       }
 
             cmds.push_back (cmd);
         }
@@ -589,8 +592,8 @@ void DSKAlgorithm<T>::fillSolidKmers (Bag<T>*  solidKmers)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-Bag<T>* DSKAlgorithm<T>::createSolidKmersBag ()
+template<typename ProductFactory, typename T>
+Bag<T>* DSKAlgorithm<ProductFactory,T>::createSolidKmersBag ()
 {
     return _solidCollection->bag();
 }
@@ -600,15 +603,15 @@ Bag<T>* DSKAlgorithm<T>::createSolidKmersBag ()
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DSKAlgorithm <gatb::core::tools::math::NativeInt64>;
+template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt64>;
 #ifdef INT128_FOUND
-template class DSKAlgorithm <gatb::core::tools::math::NativeInt128>;
+template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt128>;
 #else
-template class DSKAlgorithm <gatb::core::tools::math::LargeInt<2> >;
+template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<2> >;
 #endif
 
-template class DSKAlgorithm <gatb::core::tools::math::LargeInt<3> >;
-template class DSKAlgorithm <gatb::core::tools::math::LargeInt<4> >;
+template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<3> >;
+template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<4> >;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

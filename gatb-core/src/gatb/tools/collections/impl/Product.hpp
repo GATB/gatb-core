@@ -40,25 +40,9 @@ namespace impl          {
 /********************************************************************************/
 
 /** Forward declarations. */
-template <template<class> class Container>                 class Product;
-template <template<class> class Container>                 class Group;
-template <template<class> class Container, typename Type>  class Partition;
-
-/********************************************************************************/
-
-#if 0
-template <template<class> class Container, typename Type>
-class IVisitor : public dp::SmartPointer
-{
-public:
-
-    virtual void visitProduct    (Product<Container>&        product)    = 0;
-    virtual void visitGroup      (Group<Container>&          group)      = 0;
-    virtual void visitPartition  (Partition<Container,Type>& partition)  = 0;
-    virtual void visitCollection (Collection<Type>&          collection) = 0;
-};
-#endif
-
+template <typename Factory>  class Group;
+template <typename Factory, typename Type>  class Partition;
+template <typename Type>  class CollectionNode;
 
 /********************************************************************************
      #####   #######  #        #        #######   #####   #######
@@ -78,7 +62,7 @@ public:
  * The idea was not to have a Collection interface extending the INode interface
  * => we introduce the CollectionNode for this.
  */
-template <template<class> class Container, class Item>
+template <class Item>
 class CollectionNode : public dp::impl::Cell, public CollectionAbstract<Item>
 {
 public:
@@ -92,7 +76,7 @@ public:
      * \param[in] id  : identifier of the collection to be created
      * \param[in] ref : referred collection.
      */
-    CollectionNode (dp::ICell* parent, const std::string& id, Container<Item>* ref)
+    CollectionNode (dp::ICell* parent, const std::string& id, Collection<Item>* ref)
         : dp::impl::Cell(parent,id), CollectionAbstract<Item> (ref->bag(), ref->iterable()), _ref(0)
     {
         /** We get a token on the referred Collection instance. */
@@ -114,12 +98,12 @@ public:
     }
 
     /**  */
-    Container<Item>* getRef ()  { return _ref; }
+    Collection<Item>* getRef ()  { return _ref; }
 
 private:
 
-    Container<Item>* _ref;
-    void setRef (Container<Item>* ref)  { SP_SETATTR(ref); }
+    Collection<Item>* _ref;
+    void setRef (Collection<Item>* ref)  { SP_SETATTR(ref); }
 };
 
 /**********************************************************************
@@ -133,7 +117,7 @@ private:
 **********************************************************************/
 
 /** */
-template<template<class> class Container>
+template <typename Factory>
 class Group : public dp::impl::Cell
 {
 public:
@@ -155,46 +139,34 @@ public:
     }
 
     /** */
-    template <class Type>  CollectionNode<Container,Type>& addCollection (const std::string& name)
+    Group<Factory>& addGroup (const std::string& name)
     {
-        /** We define the full qualified id of the current collection to be created. */
-        std::stringstream ss;  ss << this->getFullId().c_str() << "." << name;
-
-        CollectionNode<Container,Type>* result = new CollectionNode<Container,Type> (
-            this,
-            name,
-            new Container<Type>(ss.str())
-        );
-        _collections.push_back (result);
-        result->use ();
-        return *result;
+        /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
+        Group* group = Factory::template createGroup (this, name);
+        _groups.push_back (group);
+        group->use ();
+        return *group;
     }
 
     /** */
-    template <class Type>  Partition<Container,Type>& addPartition (const std::string& name, size_t nb)
+    template <class Type>  Partition<Factory,Type>& addPartition (const std::string& name, size_t nb)
     {
-        Partition<Container,Type>* result = new Partition<Container,Type> (this, name, nb);
+        /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
+        Partition<Factory,Type>* result = Factory::template createPartition<Type> (this, name, nb);
         _partitions.push_back(result);
         result->use();
         return *result;
     }
 
     /** */
-    size_t getNbCollections () { return _collections.size(); }
-
-    /** */
-    template <class Type>  Container<Type>& getCollection (size_t idx)
+    template <class Type>  CollectionNode<Type>& addCollection (const std::string& name)
     {
-        //return dynamic_cast<Container<Type>*> (_collections[idx]);  => SURELY TIME EXPENSIVE...
-        return * reinterpret_cast<Container<Type>*> (_collections[idx]);
+        /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
+        CollectionNode<Type>* result = Factory::template createCollection<Type> (this, name);
+        _collections.push_back (result);
+        result->use ();
+        return *result;
     }
-
-    /** */
-    Group<Container>& operator[] (size_t idx)  {  return *_groups[idx];  }
-
-    /** */
-    Group<Container>& operator[] (const std::string& name)  {  return *_groups[_groupsMap[name]];  }
-
 
     /** */
     void remove ()
@@ -212,22 +184,8 @@ public:
 protected:
 
     std::vector<ICell*> _collections;
-
-    std::vector <Group<Container>* > _groups;
-    std::map    <std::string, size_t> _groupsMap;
-
     std::vector<ICell*> _partitions;
-
-    /** */
-    void addGroup (const std::string& name)
-    {
-        Group<Container>* group = new Group<Container>(name);
-        group->use ();
-
-        _groups.push_back (group);
-
-        _groupsMap[name] = _groups.size() - 1;
-    }
+    std::vector<ICell*> _groups;
 };
 
 /**********************************************************************
@@ -247,8 +205,8 @@ protected:
  *
  * It is defined as a subclass of Group.
  */
-template<template<class> class Container, typename Type>
-class Partition : public Group<Container>
+template<typename Factory, typename Type>
+class Partition : public Group<Factory>
 {
 public:
 
@@ -257,21 +215,16 @@ public:
      * \param[in] id : the identifier of the instance to be created
      * \param[in] nbCollections : number of collections for this partition
      */
-    Partition (dp::ICell* parent, const std::string& id, size_t nbCollections) : Group<Container> (parent, id), _typedCollections(nbCollections)
+    Partition (dp::ICell* parent, const std::string& id, size_t nbCollections) : Group<Factory> (parent, id), _typedCollections(nbCollections)
     {
         /** We want to instantiate the wanted number of collections. */
         for (size_t i=0; i<_typedCollections.size(); i++)
         {
-            /** We define the full qualified id of the current collection to be created. */
-            std::stringstream ss;  ss << this->getFullId().c_str() << "." << i;
+            /** We define the name of the current partition as a mere number. */
+            std::stringstream ss;  ss << i;
 
-            /** We create the current collection. Note that we provide the full id to the
-             *  actual Collection instance. */
-            CollectionNode<Container,Type>* result = new CollectionNode<Container,Type> (
-                this,
-                id,
-                new Container<Type>(ss.str())
-            );
+            /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
+            CollectionNode<Type>* result = Factory::template createCollection<Type> (this, ss.str());
 
             /** We add the collection node to the dedicated vector and take a token for it. */
             (_typedCollections [i] = result)->use ();
@@ -293,7 +246,7 @@ public:
      * \param[in] idx : index of the collection to be retrieved
      * \return the wanted collection.
      */
-    Container<Type>& operator[] (size_t idx)  {  return  * _typedCollections[idx]->getRef();  }
+    Collection<Type>& operator[] (size_t idx)  {  return  * _typedCollections[idx]->getRef();  }
 
     /** Flush the whole partition (ie flush each collection). */
     void flush ()
@@ -308,12 +261,12 @@ public:
         for (size_t i=0; i<_typedCollections.size(); i++)  { _typedCollections[i]->remove ();  }
 
         /** We call the remove of the parent class. */
-        Group<Container>::remove ();
+        Group<Factory>::remove ();
     }
 
 protected:
 
-    std::vector <CollectionNode<Container,Type>* > _typedCollections;
+    std::vector <CollectionNode<Type>* > _typedCollections;
 };
 
 /********************************************************************************/
@@ -330,13 +283,13 @@ protected:
  *  like a normal partition (ie. use 'insert'), but without taking care to the concurrent accesses to
  *  the referred partition (it is checked by the PartitionCache class).
  */
-template<template<class> class Container, typename Type>
+template<typename Factory, typename Type>
 class PartitionCache
 {
 public:
 
     /** Constructor */
-    PartitionCache (Partition<Container,Type>& ref, size_t nbItemsCache, system::ISynchronizer* synchro=0)
+    PartitionCache (Partition<Factory,Type>& ref, size_t nbItemsCache, system::ISynchronizer* synchro=0)
         :  _ref(ref), _nbItemsCache(nbItemsCache), _synchro(synchro), _cachedCollections(ref.size())
     {
         /** We create the partition files. */
@@ -348,13 +301,13 @@ public:
     }
 
     /** Copy constructor. */
-    PartitionCache (const PartitionCache<Container,Type>& p)
+    PartitionCache (const PartitionCache<Factory, Type>& p)
         : _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro), _cachedCollections(p.size())
     {
         /** We create the partition files. */
         for (size_t i=0; i<_cachedCollections.size(); i++)
         {
-            PartitionCache<Container,Type>& pp = (PartitionCache<Container,Type>&)p;
+            PartitionCache<Factory,Type>& pp = (PartitionCache<Factory,Type>&)p;
             _cachedCollections[i] = new CollectionCache<Type> (pp[i].getRef(), p._nbItemsCache, p._synchro);
             _cachedCollections[i]->use ();
         }
@@ -384,7 +337,7 @@ public:
     void remove ()  {  for (size_t i=0; i<_cachedCollections.size(); i++)  { _cachedCollections[i]->remove ();  } }
 
 private:
-    Partition<Container,Type>& _ref;
+    Partition<Factory,Type>& _ref;
     size_t                     _nbItemsCache;
     system::ISynchronizer*     _synchro;
 
@@ -416,18 +369,19 @@ private:
  *   - HDF5 files
  *   - memory
  */
-template <template<class> class Container>
-class Product
+template<class Factory>
+class Product : public dp::SmartPointer
 {
 public:
 
     /** Constructor.
      * \param[in] name : name of the product. */
-    Product (const std::string& name)  : _root(0, name) {}
+    Product (const std::string& name)  : _root(0, name)
+    {}
 
     /** Facility for retrieving the root group.
      * \return the root group. */
-    Group<Container>& operator() (void)  { return _root; }
+    Group<Factory>& operator() (void)  { return _root; }
 
     /** Remove physically the product. */
     void remove ()  {  _root.remove(); }
@@ -435,7 +389,7 @@ public:
 private:
 
     /** Root group. */
-    Group<Container> _root;
+    Group<Factory> _root;
 };
 
 /********************************************************************************/

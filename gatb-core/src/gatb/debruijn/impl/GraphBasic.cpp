@@ -17,7 +17,7 @@
 #include <gatb/system/impl/System.hpp>
 
 #include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/CollectionFile.hpp>
+#include <gatb/tools/collections/impl/ProductFile.hpp>
 
 using namespace std;
 using namespace gatb::core::tools::math;
@@ -98,18 +98,18 @@ GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
     string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
 
     /** We create a product instance. */
-    Product<CollectionFile> product ("graph");
+    Product<ProductFileFactory> product ("graph");
 
     /** We create the binary bank. */
     BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
     executeAlgorithm (converter);
 
     /** We create a DSK instance and execute it. */
-    DSKAlgorithm<T> dsk (product, converter.getResult(), kmerSize, nks);
+    DSKAlgorithm<ProductFileFactory, T> dsk (product, converter.getResult(), kmerSize, nks);
     executeAlgorithm (dsk);
 
     /** We create a debloom instance and execute it. */
-    DebloomAlgorithm<T> debloom (product, dsk.getSolidKmers(), kmerSize);
+    DebloomAlgorithm<ProductFileFactory, T> debloom (product, dsk.getSolidKmers(), kmerSize);
     executeAlgorithm (debloom);
 
     /** We configure the graph from the result of DSK and debloom. */

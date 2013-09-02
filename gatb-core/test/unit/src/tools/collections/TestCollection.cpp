@@ -16,9 +16,9 @@
 
 #include <gatb/system/impl/System.hpp>
 
-#include <gatb/tools/collections/impl/CollectionFile.hpp>
-#include <gatb/tools/collections/impl/CollectionCache.hpp>
 #include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/collections/impl/CollectionCache.hpp>
 
 #include <gatb/tools/misc/api/Range.hpp>
 
@@ -130,7 +130,7 @@ public:
     void collection_check2 ()
     {
         /** We create a product. */
-        Product<CollectionFile> product ("dsk");
+        Product<ProductFileFactory> product ("dsk");
 
         /** We get a collection from the product. */
         Collection<NativeInt64>& solidKmers = product().addCollection<NativeInt64> ("solid");
@@ -157,10 +157,10 @@ public:
         size_t nbParts = 10;
 
         /** We create a product. */
-        Product<CollectionFile> product ("graph");
+        Product<ProductFileFactory> product ("graph");
 
         /** We create a partition. */
-        Partition<CollectionFile,NativeInt64>& partition = product().addPartition<NativeInt64> ("parts", nbParts);
+        Partition<ProductFileFactory,NativeInt64>& partition = product().addPartition<NativeInt64> ("parts", nbParts);
 
         CPPUNIT_ASSERT (partition.size() == nbParts);
 
@@ -180,7 +180,7 @@ public:
         }
 
         /** We use a partition cache. */
-        PartitionCache<CollectionFile,NativeInt64> cache (partition, 10000);
+        PartitionCache<ProductFileFactory,NativeInt64> cache (partition, 10000);
 
         /** We insert some items into the partition. */
         for (size_t i=0; i<cache.size(); i++)  {  cache[i].insert (2*i+1);  }
@@ -212,10 +212,10 @@ public:
         size_t nbItems = nbParts * 1000;
 
         /** We create a product. */
-        Product<CollectionFile> product ("graph");
+        Product<ProductFileFactory> product ("graph");
 
         /** We create a partition. */
-        Partition<CollectionFile,NativeInt64>& partition = product().addPartition<NativeInt64> ("parts", nbParts);
+        Partition<ProductFileFactory,NativeInt64>& partition = product().addPartition<NativeInt64> ("parts", nbParts);
 
         /** We add items in partitions. */
         for (size_t i=0; i<nbItems; i++)  {  partition[i%nbParts].insert (i);  }
@@ -246,7 +246,7 @@ public:
     {
     public:
 
-        MyFunctor (Partition<CollectionFile,NativeInt64>& partition, size_t nbRepeat)
+        MyFunctor (Partition<ProductFileFactory,NativeInt64>& partition, size_t nbRepeat)
             : _cache (partition, 10000, this->newSynchro()), _nbParts(partition.size()), _nbRepeat(nbRepeat)   {}
 
         void operator() (const size_t& item)
@@ -257,7 +257,7 @@ public:
 
     private:
 
-        PartitionCache<CollectionFile,NativeInt64> _cache;
+        PartitionCache<ProductFileFactory,NativeInt64> _cache;
         size_t _nbParts;
         size_t _nbRepeat;
     };
@@ -269,10 +269,10 @@ public:
         size_t nbRepeat = 500;
 
         /** We create a product. */
-        Product<CollectionFile> product ("graph");
+        Product<ProductFileFactory> product ("graph");
 
         /** We create a partition. */
-        Partition<CollectionFile,NativeInt64>& partition = product().addPartition<NativeInt64> ("parts", nbParts);
+        Partition<ProductFileFactory,NativeInt64>& partition = product().addPartition<NativeInt64> ("parts", nbParts);
 
         /** We build a Range. */
         Range<size_t>::Iterator it (0, nbItems-1);

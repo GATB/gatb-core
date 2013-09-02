@@ -23,6 +23,8 @@
 #include <gatb/tools/collections/impl/BagCache.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 
+#include <gatb/tools/collections/impl/ProductFile.hpp>
+
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
@@ -105,9 +107,9 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-DebloomAlgorithm<T>::DebloomAlgorithm (
-    Product<CollectionFile>& product,
+template<typename ProductFactory, typename T>
+DebloomAlgorithm<ProductFactory,T>::DebloomAlgorithm (
+    Product<ProductFactory>& product,
     Iterable<T>*        solidIterable,
     size_t              kmerSize,
     BloomFactory::Kind  bloomKind,
@@ -122,7 +124,7 @@ DebloomAlgorithm<T>::DebloomAlgorithm (
     setSolidIterable    (solidIterable);
 
     /** We get a collection for the cFP from the product. */
-    setCriticalCollection (& product().addCollection<T> ("debloom"));
+    setCriticalCollection (& product().template addCollection<T> ("debloom"));
 }
 
 /*********************************************************************
@@ -133,8 +135,8 @@ DebloomAlgorithm<T>::DebloomAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-DebloomAlgorithm<T>::~DebloomAlgorithm ()
+template<typename ProductFactory, typename T>
+DebloomAlgorithm<ProductFactory,T>::~DebloomAlgorithm ()
 {
     setSolidIterable      (0);
     setCriticalCollection (0);
@@ -148,8 +150,8 @@ DebloomAlgorithm<T>::~DebloomAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-void DebloomAlgorithm<T>::execute ()
+template<typename ProductFactory, typename T>
+void DebloomAlgorithm<ProductFactory,T>::execute ()
 {
     Model<T> model (_kmerSize);
 
@@ -280,8 +282,8 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-void DebloomAlgorithm<T>::end_debloom_partition (
+template<typename ProductFactory, typename T>
+void DebloomAlgorithm<ProductFactory,T>::end_debloom_partition (
     Hash16<T>&    partition,
     Iterator<T>*  debloomInput,
     Bag<T>*       debloomOutput
@@ -308,8 +310,8 @@ void DebloomAlgorithm<T>::end_debloom_partition (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename T>
-Bloom<T>* DebloomAlgorithm<T>::createBloom (tools::collections::Iterable<T>* solidIterable)
+template<typename ProductFactory, typename T>
+Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (tools::collections::Iterable<T>* solidIterable)
 {
     TIME_INFO (getTimeInfo(), "create bloom from kmers");
 
@@ -348,15 +350,15 @@ Bloom<T>* DebloomAlgorithm<T>::createBloom (tools::collections::Iterable<T>* sol
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DebloomAlgorithm <gatb::core::tools::math::NativeInt64>;
+template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt64>;
 #ifdef INT128_FOUND
-template class DebloomAlgorithm <gatb::core::tools::math::NativeInt128>;
+template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt128>;
 #else
-template class DebloomAlgorithm <gatb::core::tools::math::LargeInt<2> >;
+template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<2> >;
 #endif
 
-template class DebloomAlgorithm <gatb::core::tools::math::LargeInt<3> >;
-template class DebloomAlgorithm <gatb::core::tools::math::LargeInt<4> >;
+template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<3> >;
+template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<4> >;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -35,13 +35,14 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-template<typename T> class DebloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
+template<typename ProductFactory, typename T>
+class DebloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
     /** */
     DebloomAlgorithm (
-        tools::collections::impl::Product<tools::collections::impl::CollectionFile>& product,
+        tools::collections::impl::Product<ProductFactory>& product,
         tools::collections::Iterable<T>* solidIterable,
         size_t                      kmerSize,
         tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
@@ -72,7 +73,7 @@ private:
     );
 
     /** */
-    tools::collections::impl::Product<tools::collections::impl::CollectionFile>& _product;
+    tools::collections::impl::Product<ProductFactory>& _product;
 
     size_t       _kmerSize;
     tools::collections::impl::BloomFactory::Kind _bloomKind;
@@ -83,8 +84,8 @@ private:
     void setSolidIterable (tools::collections::Iterable<T>* solidIterable)  {  SP_SETATTR(solidIterable); }
 
     /** */
-    tools::collections::impl::CollectionNode<tools::collections::impl::CollectionFile,T>* _criticalCollection;
-    void setCriticalCollection (tools::collections::impl::CollectionNode<tools::collections::impl::CollectionFile,T>* criticalCollection)
+    tools::collections::impl::CollectionNode<T>* _criticalCollection;
+    void setCriticalCollection (tools::collections::impl::CollectionNode<T>* criticalCollection)
     { _criticalCollection = criticalCollection; }
 };
 
