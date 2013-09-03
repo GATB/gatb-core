@@ -202,7 +202,7 @@ public:
         dsk.execute();
 
         /** We iterate the solid kmers. */
-        Iterator<NativeInt64>* iter = dsk.getSolidKmers()->iterator();
+        Iterator<Kmer<NativeInt64> >* iter = dsk.getSolidKmers()->iterator();
         LOCAL (iter);
 
         /** The following values have been computed with the original DSK.
@@ -221,10 +221,10 @@ public:
         size_t idx=0;
         for (iter->first(); !iter->isDone(); iter->next(), idx++)
         {
-            set<NativeInt64>::iterator lookup = okValues.find (iter->item());
+            set<NativeInt64>::iterator lookup = okValues.find (iter->item().value);
             CPPUNIT_ASSERT (lookup != okValues.end());
 
-            checkValues.insert (iter->item());
+            checkValues.insert (iter->item().value);
         }
 
         CPPUNIT_ASSERT (checkValues.size() == okValues.size());

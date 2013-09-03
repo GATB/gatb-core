@@ -80,14 +80,14 @@ public:
         CPPUNIT_ASSERT (hash.get (badKey) == false);
 
         /** We iterate the map. */
-        Iterator <pair<T,u_int32_t> >* it = hash.iterator();
+        Iterator <Abundance<T> >* it = hash.iterator();
         LOCAL (it);
 
         size_t nbItems = 0;
         for (it->first(); !it->isDone(); it->next(), nbItems++)
         {
             /** All abundances should be one. */
-            CPPUNIT_ASSERT (it->item().second == 1);
+            CPPUNIT_ASSERT (it->item().abundance == 1);
         }
 
         CPPUNIT_ASSERT (nbItems == hash.getMaxNbItems());
