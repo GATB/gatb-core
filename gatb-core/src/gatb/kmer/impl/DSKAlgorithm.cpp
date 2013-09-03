@@ -121,12 +121,11 @@ template<typename ProductFactory, typename T>
 DSKAlgorithm<ProductFactory,T>::~DSKAlgorithm ()
 {
     setProgress(0);
-    if (_histogram)  {  delete _histogram; }
-
-    setBank            (0);
+    setBank              (0);
     setPartitionsProduct (0);
-    setPartitions      (0);
-    setSolidCollection (0);
+    setPartitions        (0);
+    setSolidCollection   (0);
+    setHistogram         (0);
 }
 
 /*********************************************************************
@@ -148,8 +147,14 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
     _max_memory /= _nbCores;
 
     /** We setup the histogram if needed. */
-    if (_histogramUri.empty() == false)  {  _histogram = new Histogram     (10000, _histogramUri);  }
-    else                                 {  _histogram = new HistogramNull (); }
+    if (_histogramUri.empty() == false)
+    {
+        setHistogram (new Histogram  (10000, & _product().template addCollection<Histogram::Abundance>(_histogramUri) ));
+    }
+    else
+    {
+        setHistogram (new HistogramNull ());
+    }
 
     /** We configure dsk by computing the number of passes and partitions we will have
      * according to the allowed disk and memory space. */
@@ -380,14 +385,24 @@ template<typename ProductFactory, typename T>
 class PartitionsCommand : public ICommand
 {
 public:
-    PartitionsCommand (DSKAlgorithm<ProductFactory,T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
+    PartitionsCommand (
+        DSKAlgorithm<ProductFactory,T>& algo,
+        Bag<T>*        solidKmers,
+        Iterable<T>&   partition,
+        IHistogram*    histogram,
+        ISynchronizer* synchro
+    )
         : _nks(algo.getNks()),
-          _solidKmers(solidKmers, 10*1000), _partition(partition), _progress(algo.getProgress(), synchro)   {}
+          _solidKmers(solidKmers, 10*1000),
+          _partition(partition),
+          _histogram(histogram),
+          _progress(algo.getProgress(), synchro)  {}
 
 protected:
     size_t           _nks;
     BagCache<T>      _solidKmers;
     Iterable<T>&     _partition;
+    HistogramCache   _histogram;
     ProgressSynchro  _progress;
 
     void add (const T& kmer, size_t abundance)
@@ -395,7 +410,7 @@ protected:
         u_int32_t max_couv  = 2147483646;
 
         /** We should update the abundance histogram*/
-        // _histogram->inc (abundance);
+        _histogram.inc (abundance);
 
         /** We check that the current abundance is in the correct range. */
         if (abundance >= this->_nks  && abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
@@ -409,8 +424,15 @@ class PartitionsByHashCommand : public PartitionsCommand<ProductFactory, T>
 {
 public:
 
-    PartitionsByHashCommand (DSKAlgorithm<ProductFactory,T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro, u_int64_t hashMemory)
-        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, synchro), _hashMemory(hashMemory)  {}
+    PartitionsByHashCommand (
+        DSKAlgorithm<ProductFactory,T>& algo,
+        Bag<T>*         solidKmers,
+        Iterable<T>&    partition,
+        IHistogram*     histogram,
+        ISynchronizer*  synchro,
+        u_int64_t       hashMemory
+    )
+        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, histogram, synchro), _hashMemory(hashMemory)  {}
 
     void execute ()
     {
@@ -456,8 +478,14 @@ class PartitionsByVectorCommand : public PartitionsCommand<ProductFactory, T>
 
 public:
 
-    PartitionsByVectorCommand (DSKAlgorithm<ProductFactory,T>& algo, Bag<T>* solidKmers, Iterable<T>& partition, ISynchronizer* synchro)
-        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, synchro)
+    PartitionsByVectorCommand (
+        DSKAlgorithm<ProductFactory,T>& algo,
+        Bag<T>*         solidKmers,
+        Iterable<T>&    partition,
+        IHistogram*     histogram,
+        ISynchronizer*  synchro
+    )
+        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, histogram, synchro)
           {}
 
     void execute ()
@@ -571,8 +599,14 @@ void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<T>*  solidKmers)
         {
             ICommand* cmd = 0;
 
-            if (_partitionType == 0)   {  cmd = new PartitionsByHashCommand<ProductFactory, T>   (*this, solidKmers, (*_partitions)[p], synchro, mem);  }
-            else                       {  cmd = new PartitionsByVectorCommand<ProductFactory, T> (*this, solidKmers, (*_partitions)[p], synchro);       }
+            if (_partitionType == 0)
+            {
+                cmd = new PartitionsByHashCommand<ProductFactory, T>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, mem);
+            }
+            else
+            {
+                cmd = new PartitionsByVectorCommand<ProductFactory, T> (*this, solidKmers, (*_partitions)[p], _histogram, synchro);
+            }
 
             cmds.push_back (cmd);
         }

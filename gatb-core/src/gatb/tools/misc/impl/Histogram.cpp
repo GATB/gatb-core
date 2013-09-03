@@ -28,29 +28,12 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Histogram::inc (size_t abundance)
-{
-    _histogram [(abundance >= _length) ? _length : abundance] ++;
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
 void Histogram::save ()
 {
-    /** We first delete the previous file. */
-    System::file().remove (_uri);
-
-    IFile* file = System::file().newFile (_uri, "w");
-    if (file != 0)
+    for (size_t cc=1; cc<_histogram.size(); cc++)
     {
-        for (size_t cc=1; cc<_histogram.size(); cc++)  {  file->print ("%i\t%u\n", cc, _histogram[cc]);  }
-        delete file;
+        struct Abundance a = { cc, _histogram[cc] };
+        _bag->insert (a);
     }
 }
 

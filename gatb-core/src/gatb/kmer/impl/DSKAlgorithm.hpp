@@ -55,7 +55,7 @@ public:
         size_t              partitionType  = 0,
         size_t              nbCores        = 0,
         const std::string&  prefix         = "tmp.",
-        const std::string&  histogramUri   = "",
+        const std::string&  histogramUri   = "histogram",
         gatb::core::tools::misc::IProperties* options = 0
     );
 
@@ -141,7 +141,8 @@ private:
     u_int32_t _nb_partitions;
     u_int32_t _current_pass;
 
-    gatb::core::tools::misc::impl::Histogram* _histogram;
+    gatb::core::tools::misc::IHistogram* _histogram;
+    void setHistogram (gatb::core::tools::misc::IHistogram* histogram)  { SP_SETATTR(histogram); }
 
     /** Partitions management. */
     tools::collections::impl::Product<ProductFactory>* _partitionsProduct;
