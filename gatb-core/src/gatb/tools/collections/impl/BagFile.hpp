@@ -64,6 +64,12 @@ public:
         _file->fwrite (items.data(), sizeof(Item), length);
     }
 
+    /** */
+    void insert (const Item* items, size_t length)
+    {
+        _file->fwrite (items, sizeof(Item), length);
+    }
+
     /**  \copydoc Bag::flush */
     void flush ()  { _file->flush(); }
 

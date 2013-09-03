@@ -51,6 +51,13 @@ public:
         for (size_t i=0; i<n; i++)  {  insert (items[i]); }
     }
 
+    /** Insert items into the bag.
+     * \param[in] items : items to be inserted. */
+    virtual void insert (const Item* items, size_t length)
+    {
+        for (size_t i=0; i<length; i++)  {  insert (items[i]); }
+    }
+
     /** Flush the current content. May be useful for implementation that uses a cache. */
     virtual void flush () = 0;
 };

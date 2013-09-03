@@ -38,24 +38,30 @@ public:
 
     /** Constructor. */
     BagCache (Bag<Item>* ref, size_t cacheSize, system::ISynchronizer* synchro=0)
-        : _ref(0), _nbMax(cacheSize), _synchro(synchro), _items (cacheSize), _idx(0)
+        : _ref(0), _nbMax(cacheSize), _synchro(synchro), _items(0), _idx(0)
     {
         setRef(ref);
+        _items = (Item*) system::impl::System::memory().calloc (_nbMax, sizeof(Item));
+        system::impl::System::memory().memset (_items, 0, _nbMax*sizeof(Item));
     }
 
     BagCache (const BagCache<Item>& b)
-        : _ref(0), _nbMax(b._nbMax), _synchro(b._synchro), _items (b._nbMax), _idx(0)
-
+        : _ref(0), _nbMax(b._nbMax), _synchro(b._synchro), _items (0), _idx(0)
     {
         setRef (b._ref);
+        _items = (Item*) system::impl::System::memory().calloc (_nbMax, sizeof(Item));
+        system::impl::System::memory().memset (_items, 0, _nbMax*sizeof(Item));
     }
 
-
     /** Destructor. */
-    ~BagCache ()
+    virtual ~BagCache ()
     {
+        /** We flush the potential remaining stuf. */
+        flush ();
+
         /** We clean resources. */
         setRef(0);
+        system::impl::System::memory().free (_items);
     }
 
     /**  \copydoc Bag::insert */
@@ -86,7 +92,7 @@ protected:
     void setRef (Bag<Item>* ref)  { SP_SETATTR(ref); }
 
     system::ISynchronizer* _synchro;
-    std::vector<Item>      _items;
+    Item*                  _items;
     size_t                 _nbMax;
     size_t                 _idx;
 
