@@ -344,6 +344,8 @@ void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Seque
 {
     TIME_INFO (getTimeInfo(), "fill partitions");
 
+    DEBUG (("DSKAlgorithm<ProductFactory,T>::fillPartitions  pass \n", pass));
+
     /** We create a kmer model. */
     Model<T> model (_kmerSize);
 
@@ -390,7 +392,7 @@ protected:
     HistogramCache      _histogram;
     ProgressSynchro     _progress;
 
-    void add (const Kmer<T>& kmer)
+    void insert (const Kmer<T>& kmer)
     {
         u_int32_t max_couv  = 2147483646;
 
@@ -443,7 +445,7 @@ public:
         for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
         {
             /** We may add this kmer to the solid kmers bag. */
-           this->add ((Kmer<T>&) itKmerAbundance->item());
+           this->insert ((Kmer<T>&) itKmerAbundance->item());
         }
     }
 
@@ -507,7 +509,7 @@ public:
             if (*itKmers == previous_kmer)  {   abundance++;  }
             else
             {
-                this->add (Kmer<T> (previous_kmer, abundance) );
+                this->insert (Kmer<T> (previous_kmer, abundance) );
 
                 abundance     = 1;
                 previous_kmer = *itKmers;
@@ -554,6 +556,8 @@ void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill solid kmers");
 
+    DEBUG (("DSKAlgorithm<ProductFactory,T>::fillSolidKmers\n"));
+
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
 
@@ -570,6 +574,7 @@ void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
         vector<ICommand*> cmds;
 
         size_t currentNbCores = coreList[i];
+        assert (currentNbCores > 0);
 
         /** We correct the number of memory per map according to the max allowed memory.
          * Note that _max_memory has initially been divided by the user provided cores number. */
