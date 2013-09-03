@@ -74,10 +74,10 @@ template <typename Item>
 class BuildKmerExtension : public IteratorFunctor
 {
 public:
-    void operator() (const Item& kmer)
+    void operator() (const Kmer<Item>& kmer)
     {
         /** We configure the neighbor kmers iterator for a given source kmer. */
-        _itNeighbors.setSource (kmer);
+        _itNeighbors.setSource (kmer.value);
 
         /** We iterate all 8 neighbors. */
         for (_itNeighbors.first(); !_itNeighbors.isDone(); _itNeighbors.next())
@@ -110,7 +110,7 @@ private:
 template<typename ProductFactory, typename T>
 DebloomAlgorithm<ProductFactory,T>::DebloomAlgorithm (
     Product<ProductFactory>& product,
-    Iterable<T>*        solidIterable,
+    Iterable<Kmer<T> >* solidIterable,
     size_t              kmerSize,
     BloomFactory::Kind  bloomKind,
     const std::string&  debloomUri,
@@ -168,7 +168,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         TIME_INFO (getTimeInfo(), "fill debloom file");
 
         /** We create an iterator over the solid kmers. */
-        Iterator<T>* itKmers = createIterator<T> (
+        Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
             _solidIterable->iterator(),
             _solidIterable->getNbItems(),
             progressFormat2
@@ -194,7 +194,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     {
         TIME_INFO (getTimeInfo(), "finalize debloom file");
 
-        Iterator<T>* itKmers = createIterator<T> (
+        Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
             _solidIterable->iterator(),
             _solidIterable->getNbItems(),
             progressFormat3
@@ -205,7 +205,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         for (itKmers->first(); !itKmers->isDone(); itKmers->next())
         {
             /** We add the current kmer into the partition. */
-            partition.insert (itKmers->item());
+            partition.insert (itKmers->item().value);
 
             /** We may have reach the maximum number of items in the partition. */
             if (partition.size() >= partition.getMaxNbItems())
@@ -314,7 +314,7 @@ void DebloomAlgorithm<ProductFactory,T>::end_debloom_partition (
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (tools::collections::Iterable<T>* solidIterable)
+Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (tools::collections::Iterable<Kmer<T> >* solidIterable)
 {
     TIME_INFO (getTimeInfo(), "create bloom from kmers");
 
@@ -327,7 +327,7 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (tools::collections::I
     if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
 
     /** We create the kmers iterator from the solid file. */
-    Iterator<T>* itKmers = createIterator<T> (
+    Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
         solidIterable->iterator(),
         solidKmersNb,
         progressFormat1

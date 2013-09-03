@@ -22,6 +22,8 @@
 using namespace std;
 using namespace gatb::core::tools::math;
 
+using namespace gatb::core::kmer;
+
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
@@ -58,8 +60,8 @@ GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
 
     configure (
         props->getInt(STR_KMER_SIZE),
-        new tools::collections::impl::IterableFile<T> (props->getStr (STR_KMER_SOLID)),
-        new tools::collections::impl::IterableFile<T> (props->getStr (STR_KMER_CFP))
+        new tools::collections::impl::IterableFile<Kmer<T> > (props->getStr (STR_KMER_SOLID)),
+        new tools::collections::impl::IterableFile<T>        (props->getStr (STR_KMER_CFP))
     );
 }
 
@@ -73,8 +75,8 @@ GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
 *********************************************************************/
 template<typename T>
 GraphBasic<T>::GraphBasic (
-    tools::collections::Iterable<T>* solidKmers,
-    tools::collections::Iterable<T>* cFPKmers,
+    tools::collections::Iterable<Kmer<T> >* solidKmers,
+    tools::collections::Iterable<T>*        cFPKmers,
     size_t kmerSize
 )
     : _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
@@ -148,8 +150,8 @@ GraphBasic<T>::~GraphBasic ()
 template<typename T>
 void GraphBasic<T>::configure (
     size_t kmerSize,
-    tools::collections::Iterable<T>* solidIterable,
-    tools::collections::Iterable<T>* cFPKmers
+    tools::collections::Iterable<Kmer<T> >* solidIterable,
+    tools::collections::Iterable<T>*        cFPKmers
 )
 {
     /** We create the kmer model. */
@@ -209,7 +211,7 @@ size_t GraphBasic<T>::getEdges (const Node<T>& source, EdgeSet<T>& edges, Direct
     size_t idx = 0;
 
     // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
-    T graine = ((source.strand == STRAND_FORWARD) ?  source.kmer : revcomp (source.kmer, _span));
+    T graine = ((source.strand == STRAND_FORWARD) ?  source.kmer.value : revcomp (source.kmer.value, _span));
 
     if (direction == DIR_OUTCOMING)
     {
@@ -222,14 +224,14 @@ size_t GraphBasic<T>::getEdges (const Node<T>& source, EdgeSet<T>& edges, Direct
             {
                 if (this->contains (forward))
                 {
-                    edges[idx++].set (source.getGraph(), source.kmer, source.strand, forward, STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
+                    edges[idx++].set (source.getGraph(), source.kmer.value, source.strand, forward, STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
                 }
             }
             else
             {
                 if (this->contains (reverse))
                 {
-                    edges[idx++].set (source.getGraph(), source.kmer, source.strand, reverse, STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
+                    edges[idx++].set (source.getGraph(), source.kmer.value, source.strand, reverse, STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
                 }
             }
         }
@@ -246,14 +248,14 @@ size_t GraphBasic<T>::getEdges (const Node<T>& source, EdgeSet<T>& edges, Direct
             {
                 if (this->contains (forward))
                 {
-                    edges[idx++].set (source.getGraph(), forward, STRAND_FORWARD, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                    edges[idx++].set (source.getGraph(), forward, STRAND_FORWARD, source.kmer.value, source.strand, (Nucleotide)nt, DIR_INCOMING);
                 }
             }
             else
             {
                 if (this->contains (reverse))
                 {
-                    edges[idx++].set (source.getGraph(), reverse, STRAND_REVCOMP, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                    edges[idx++].set (source.getGraph(), reverse, STRAND_REVCOMP, source.kmer.value, source.strand, (Nucleotide)nt, DIR_INCOMING);
                 }
             }
         }
@@ -282,7 +284,7 @@ size_t GraphBasic<T>::getNodes (const Node<T>& source, NodeSet<T>& nodes, Direct
     size_t idx = 0;
 
     // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
-    T graine = ((source.strand == STRAND_FORWARD) ?  source.kmer : revcomp (source.kmer, _span));
+    T graine = ((source.strand == STRAND_FORWARD) ?  source.kmer.value : revcomp (source.kmer.value, _span));
 
     if (direction == DIR_OUTCOMING)
     {

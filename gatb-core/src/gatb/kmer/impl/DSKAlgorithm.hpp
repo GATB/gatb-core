@@ -69,7 +69,7 @@ public:
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
-    tools::collections::Iterable<T>* getSolidKmers ()  { return _solidCollection->iterable(); }
+    tools::collections::Iterable<Kmer<T> >* getSolidKmers ()  { return _solidKmers->iterable(); }
 
 private:
 
@@ -85,16 +85,10 @@ private:
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
      */
-    void fillSolidKmers (gatb::core::tools::collections::Bag<T>*  solidKmers);
+    void fillSolidKmers (gatb::core::tools::collections::Bag<Kmer<T> >*  solidKmers);
 
     /** */
     std::vector <size_t> getNbCoresList ();
-
-    /** Create the bag in which the solid kmers will be put into. The actual kind of bag is likely
-     * to be a file.
-     * \return the solid kmers bag.
-     */
-    virtual gatb::core::tools::collections::Bag<T>* createSolidKmersBag ();
 
     /** */
     tools::collections::impl::Product<ProductFactory>& _product;
@@ -104,9 +98,9 @@ private:
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
 
     /** */
-    tools::collections::impl::CollectionNode<T>* _solidCollection;
-    void setSolidCollection (tools::collections::impl::CollectionNode<T>* solidCollection)
-    {  _solidCollection = solidCollection;  }
+    tools::collections::impl::CollectionNode<Kmer<T> >* _solidKmers;
+    void setSolidKmers (tools::collections::impl::CollectionNode<Kmer<T> >* solidKmers)
+    {  _solidKmers = solidKmers;  }
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;
@@ -115,7 +109,6 @@ private:
     size_t      _nbCores;
 
     std::string _prefix;
-    std::string _solidKmers;
     std::string _histogramUri;
 
     gatb::core::tools::dp::IteratorListener* _progress;

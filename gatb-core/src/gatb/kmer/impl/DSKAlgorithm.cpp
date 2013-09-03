@@ -59,6 +59,8 @@ using namespace gatb::core::tools::misc::impl;
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
 
+using namespace gatb::core::tools::math;
+
 using namespace gatb::core::kmer::impl;
 
 
@@ -96,7 +98,7 @@ DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
     _product(product),
     _bank(0),
     _kmerSize(kmerSize), _nks(nks),
-    _partitionType(partitionType), _nbCores(nbCores), _prefix(prefix), _solidKmers(prefix + "solid"),
+    _partitionType(partitionType), _nbCores(nbCores), _prefix(prefix),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -106,7 +108,10 @@ DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidCollection (& product().template addCollection<T> ("solid"));
+    setSolidKmers (& product().template addCollection<Kmer<T> > ("solid"));
+
+    /** We set the histogram instance. */
+    setHistogram (new Histogram  (10000, & _product().template addCollection<Histogram::Entry>(_histogramUri) ));
 }
 
 /*********************************************************************
@@ -120,11 +125,11 @@ DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
 template<typename ProductFactory, typename T>
 DSKAlgorithm<ProductFactory,T>::~DSKAlgorithm ()
 {
-    setProgress(0);
+    setProgress          (0);
     setBank              (0);
     setPartitionsProduct (0);
     setPartitions        (0);
-    setSolidCollection   (0);
+    setSolidKmers        (0);
     setHistogram         (0);
 }
 
@@ -146,16 +151,6 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
     /** We set the max memory according to the number of used cores. */
     _max_memory /= _nbCores;
 
-    /** We setup the histogram if needed. */
-    if (_histogramUri.empty() == false)
-    {
-        setHistogram (new Histogram  (10000, & _product().template addCollection<Histogram::Abundance>(_histogramUri) ));
-    }
-    else
-    {
-        setHistogram (new HistogramNull ());
-    }
-
     /** We configure dsk by computing the number of passes and partitions we will have
      * according to the allowed disk and memory space. */
     configure (_bank);
@@ -163,10 +158,6 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
     /** We create the sequences iterator. */
     Iterator<Sequence>* itSeq = _bank->iterator();
     LOCAL (itSeq);
-
-    /** We create the solid kmers bag. */
-    Bag<T>* solidKmers = createSolidKmersBag ();
-    LOCAL (solidKmers);
 
     /** We configure the progress bar. */
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(T), "counting kmers"));
@@ -181,13 +172,13 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
         fillPartitions (_current_pass, itSeq);
 
         /** 2) We fill the kmers solid file from the partition files. */
-        fillSolidKmers (solidKmers);
+        fillSolidKmers (_solidKmers->bag());
     }
 
     _progress->finish ();
 
     /** We flush the solid kmers file. */
-    solidKmers->flush();
+    _solidKmers->bag()->flush();
 
     /** We save the histogram if any. */
     _histogram->save ();
@@ -197,12 +188,9 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
-    getInfo()->add (2, "solid kmers nb", "%ld", _solidCollection->iterable()->getNbItems() );
-    getInfo()->add (2, "solid kmers uri",       _solidCollection->getFullId());
+    getInfo()->add (2, "solid kmers nb", "%ld", _solidKmers->iterable()->getNbItems() );
+    getInfo()->add (2, "solid kmers uri",       _solidKmers->getFullId());
     getInfo()->add (1, getTimeInfo().getProperties("time"));
-
-    /** We set the result of the execution. */
-    getOutput()->add (0, STR_KMER_SOLID,  _solidKmers);
 }
 
 /*********************************************************************
@@ -378,16 +366,13 @@ void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Seque
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-
-/********************************************************************************/
-/** */
 template<typename ProductFactory, typename T>
 class PartitionsCommand : public ICommand
 {
 public:
     PartitionsCommand (
         DSKAlgorithm<ProductFactory,T>& algo,
-        Bag<T>*        solidKmers,
+        Bag<Kmer<T> >* solidKmers,
         Iterable<T>&   partition,
         IHistogram*    histogram,
         ISynchronizer* synchro
@@ -399,21 +384,21 @@ public:
           _progress(algo.getProgress(), synchro)  {}
 
 protected:
-    size_t           _nks;
-    BagCache<T>      _solidKmers;
-    Iterable<T>&     _partition;
-    HistogramCache   _histogram;
-    ProgressSynchro  _progress;
+    size_t              _nks;
+    BagCache<Kmer<T> >  _solidKmers;
+    Iterable<T>&        _partition;
+    HistogramCache      _histogram;
+    ProgressSynchro     _progress;
 
-    void add (const T& kmer, size_t abundance)
+    void add (const Kmer<T>& kmer)
     {
         u_int32_t max_couv  = 2147483646;
 
         /** We should update the abundance histogram*/
-        _histogram.inc (abundance);
+        _histogram.inc (kmer.abundance);
 
         /** We check that the current abundance is in the correct range. */
-        if (abundance >= this->_nks  && abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
+        if (kmer.abundance >= this->_nks  && kmer.abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
     }
 };
 
@@ -426,7 +411,7 @@ public:
 
     PartitionsByHashCommand (
         DSKAlgorithm<ProductFactory,T>& algo,
-        Bag<T>*         solidKmers,
+        Bag<Kmer<T> >*  solidKmers,
         Iterable<T>&    partition,
         IHistogram*     histogram,
         ISynchronizer*  synchro,
@@ -452,16 +437,13 @@ public:
         }
 
         /** We loop over the solid kmers map. */
-        Iterator < pair<T,u_int32_t> >* itKmerAbundance = hash.iterator();
+        Iterator < Abundance<T> >* itKmerAbundance = hash.iterator();
         LOCAL (itKmerAbundance);
 
         for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
         {
-            /** Shortcut. */
-            pair<T,u_int32_t>& p = itKmerAbundance->item();
-
             /** We may add this kmer to the solid kmers bag. */
-            this->add (p.first, p.second);
+           this->add ((Kmer<T>&) itKmerAbundance->item());
         }
     }
 
@@ -480,7 +462,7 @@ public:
 
     PartitionsByVectorCommand (
         DSKAlgorithm<ProductFactory,T>& algo,
-        Bag<T>*         solidKmers,
+        Bag<Kmer<T> >*  solidKmers,
         Iterable<T>&    partition,
         IHistogram*     histogram,
         ISynchronizer*  synchro
@@ -505,8 +487,6 @@ public:
         size_t idx = 0;
         for (it->first(); !it->isDone(); it->next(), idx++) { kmers[idx] = it->item(); }
 
-        // IteratorFile<T> it (this->_filename);   it.fill (kmers, partitionLen);
-
         /** We set the extra item to a max value, so we are sure it will sorted at the last location.
          * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
         kmers[partitionLen] = ~0;
@@ -527,7 +507,7 @@ public:
             if (*itKmers == previous_kmer)  {   abundance++;  }
             else
             {
-                this->add (previous_kmer, abundance);
+                this->add (Kmer<T> (previous_kmer, abundance) );
 
                 abundance     = 1;
                 previous_kmer = *itKmers;
@@ -570,7 +550,7 @@ std::vector<size_t> DSKAlgorithm<ProductFactory,T>::getNbCoresList ()
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<T>*  solidKmers)
+void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill solid kmers");
 
@@ -618,34 +598,20 @@ void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<T>*  solidKmers)
     delete synchro;
 }
 
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<typename ProductFactory, typename T>
-Bag<T>* DSKAlgorithm<ProductFactory,T>::createSolidKmersBag ()
-{
-    return _solidCollection->bag();
-}
-
 /********************************************************************************/
 
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt64>;
+template class DSKAlgorithm <ProductFileFactory, NativeInt64>;
 #ifdef INT128_FOUND
-template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt128>;
+template class DSKAlgorithm <ProductFileFactory, NativeInt128>;
 #else
-template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<2> >;
+template class DSKAlgorithm <ProductFileFactory, LargeInt<2> >;
 #endif
 
-template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<3> >;
-template class DSKAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<4> >;
+template class DSKAlgorithm <ProductFileFactory, LargeInt<3> >;
+template class DSKAlgorithm <ProductFileFactory, LargeInt<4> >;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

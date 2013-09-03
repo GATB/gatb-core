@@ -43,7 +43,7 @@ public:
 
     /** */
     BloomBuilder (
-        tools::dp::Iterator<T>* itKmers,
+        tools::dp::Iterator<Kmer<T> >* itKmers,
         u_int64_t   bloomSize,
         size_t      nbHash,
         tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
@@ -84,8 +84,8 @@ public:
 
 private:
 
-    tools::dp::Iterator<T>* _itKmers;
-    void setItKmers (tools::dp::Iterator<T>* itKmers)  { SP_SETATTR(itKmers); }
+    tools::dp::Iterator<Kmer<T> >* _itKmers;
+    void setItKmers (tools::dp::Iterator<Kmer<T> >* itKmers)  { SP_SETATTR(itKmers); }
 
     u_int64_t _bloomSize;
     size_t    _nbHash;
@@ -96,7 +96,7 @@ private:
     class BuildKmerBloom : public tools::dp::impl::IteratorFunctor
     {
     public:
-        void operator() (const T& kmer)  {  _bloom.insert(kmer); }
+        void operator() (const Kmer<T>& kmer)  {  _bloom.insert(kmer.value); }
         BuildKmerBloom (tools::collections::impl::Bloom<T>& bloom)  : _bloom(bloom) {}
         tools::collections::impl::Bloom<T>& _bloom;
     };

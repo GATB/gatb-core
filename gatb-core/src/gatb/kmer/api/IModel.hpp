@@ -26,6 +26,14 @@ namespace core      {
 namespace kmer      {
 /********************************************************************************/
 
+/** Define a kmer. */
+template<typename Type, typename Number=u_int16_t> struct Kmer : Abundance<Type,Number>
+{
+    Kmer(const Type& val=0, const Number& abund=0) : Abundance<Type,Number>(val, abund) {}
+};
+
+/********************************************************************************/
+
 /** \brief enumeration giving the way the kmers are computed. */
 enum KmerMode
 {

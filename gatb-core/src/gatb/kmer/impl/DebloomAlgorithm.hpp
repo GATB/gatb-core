@@ -43,7 +43,7 @@ public:
     /** */
     DebloomAlgorithm (
         tools::collections::impl::Product<ProductFactory>& product,
-        tools::collections::Iterable<T>* solidIterable,
+        tools::collections::Iterable<Kmer<T> >* solidIterable,
         size_t                      kmerSize,
         tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
         const std::string&          debloomUri = "debloom",
@@ -64,7 +64,7 @@ public:
 private:
 
     /** */
-    virtual gatb::core::tools::collections::impl::Bloom<T>* createBloom (tools::collections::Iterable<T>* solidIterable);
+    virtual gatb::core::tools::collections::impl::Bloom<T>* createBloom (tools::collections::Iterable<Kmer<T> >* solidIterable);
 
     void end_debloom_partition (
         gatb::core::tools::collections::impl::Hash16<T>& set,
@@ -80,8 +80,8 @@ private:
     std::string  _debloomUri;
     size_t       _max_memory;
 
-    tools::collections::Iterable<T>* _solidIterable;
-    void setSolidIterable (tools::collections::Iterable<T>* solidIterable)  {  SP_SETATTR(solidIterable); }
+    tools::collections::Iterable<Kmer<T> >* _solidIterable;
+    void setSolidIterable (tools::collections::Iterable<Kmer<T> >* solidIterable)  {  SP_SETATTR(solidIterable); }
 
     /** */
     tools::collections::impl::CollectionNode<T>* _criticalCollection;

@@ -113,14 +113,14 @@ template<typename T>
 class Node : public GraphItem<T>
 {
 public:
-    T         kmer;
-    Strand    strand;
+    kmer::Kmer<T>   kmer;
+    Strand          strand;
 
     /** */
     Node (IGraph<T>* graph=0) : GraphItem<T> (graph), kmer(0), strand(STRAND_FORWARD)  {}
 
     /** */
-    void set (const Graph<T>& graph, const T& k, const Strand& s) { this->graph=graph._ref; kmer=k; strand=s; }
+    void set (const Graph<T>& graph, const T& k, const Strand& s) { this->graph=graph._ref; kmer.value=k; strand=s; }
 
     /** */
     Node reverse ()
@@ -132,7 +132,7 @@ public:
     }
 
     /** For debug mainly. */
-    std::string toString (Strand strand = STRAND_ALL, int mode=0)
+    std::string toString (Strand strand = STRAND_ALL, int mode=0) const
     {
         std::stringstream ss;
 
@@ -142,17 +142,17 @@ public:
 
         if (strand == STRAND_ALL || this->strand == strand)
         {
-            kmerStr = this->graph->getModel().toString (kmer);
+            kmerStr = this->graph->getModel().toString (kmer.value);
             strandStr = (this->strand==STRAND_FORWARD ? "FORWARD" : "REVCOMP");
         }
         else
         {
-            T reverse = this->graph->getModel().reverse (kmer);
+            T reverse = this->graph->getModel().reverse (kmer.value);
             kmerStr = this->graph->getModel().toString (reverse);
             strandStr = (this->strand==STRAND_FORWARD ? "REVCOMP" : "FORWARD");
         }
 
-        if (mode==0)    {  ss << "[ " << kmerStr <<  "  strand=" << strandStr << "]";  }
+        if (mode==0)    {  ss << "[ " << kmerStr <<  "  strand=" << strandStr << "  abund=" << kmer.abundance << "]";  }
         else            {  ss << kmerStr; }
 
         return ss.str();

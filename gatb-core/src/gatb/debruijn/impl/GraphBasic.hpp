@@ -51,8 +51,8 @@ public:
 
     /** Constructor. */
     GraphBasic (
-        tools::collections::Iterable<T>* solidKmers,
-        tools::collections::Iterable<T>* cFPKmers,
+        tools::collections::Iterable<kmer::Kmer<T> >* solidKmers,
+        tools::collections::Iterable<T>*              cFPKmers,
         size_t kmerSize
     );
 
@@ -67,7 +67,7 @@ public:
     ~GraphBasic ();
 
     /** */
-    bool contains (const Node<T>& item)  { return contains (item.kmer); }
+    bool contains (const Node<T>& item)  { return contains (item.kmer.value); }
 
     /** */
     INodeIterator<T>* nodes ()  { return new NodeIteratorBasic (this, _solidKmersIterable->iterator(), _solidKmersIterable->getNbItems()); }
@@ -96,8 +96,8 @@ private:
     T      _mask;
     size_t _span;
 
-    tools::collections::Iterable<T>* _solidKmersIterable;
-    void setSolidKmersIterable (tools::collections::Iterable<T>* solidKmersIterable)  { SP_SETATTR(solidKmersIterable); }
+    tools::collections::Iterable<kmer::Kmer<T> >* _solidKmersIterable;
+    void setSolidKmersIterable (tools::collections::Iterable<kmer::Kmer<T> >* solidKmersIterable)  { SP_SETATTR(solidKmersIterable); }
 
     tools::collections::Container<T>* _cFPset;
     void setcFPset (tools::collections::Container<T>* cFPset)  { SP_SETATTR(cFPset); }
@@ -120,8 +120,8 @@ private:
     /** */
     void configure (
         size_t kmerSize,
-        tools::collections::Iterable<T>* solidIterable,
-        tools::collections::Iterable<T>* cFPKmers
+        tools::collections::Iterable<kmer::Kmer<T> >* solidIterable,
+        tools::collections::Iterable<T>*              cFPKmers
     );
 
     /** */
@@ -141,7 +141,7 @@ private:
     {
     public:
 
-        NodeIteratorBasic (GraphBasic* graph, tools::dp::Iterator<T>* ref, u_int64_t nbItems)
+        NodeIteratorBasic (GraphBasic* graph, tools::dp::Iterator<kmer::Kmer<T> >* ref, u_int64_t nbItems)
             : _ref(0), _graph(graph), _isDone(true), _nbItems(nbItems)
         {
             setRef(ref);
@@ -178,7 +178,7 @@ private:
             this->_item = &i;
 
             /** We set the graph for the current node. */
-//            (this->_item)->setGraph (_graph);
+            // (this->_item)->setGraph (_graph);
 
             /** We set the kmer item to be set for the kmer iterator. */
             _ref->setItem (this->_item->kmer);
@@ -188,8 +188,8 @@ private:
         u_int64_t getNbItems () const { return _nbItems; }
 
     private:
-        tools::dp::Iterator<T>* _ref;
-        void setRef (tools::dp::Iterator<T>* ref)  { SP_SETATTR(ref); }
+        tools::dp::Iterator<kmer::Kmer<T> >* _ref;
+        void setRef (tools::dp::Iterator<kmer::Kmer<T> >* ref)  { SP_SETATTR(ref); }
 
         GraphBasic* _graph;
 
