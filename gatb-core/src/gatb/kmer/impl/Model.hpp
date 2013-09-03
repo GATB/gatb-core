@@ -72,7 +72,7 @@ public:
     }
 
     /** */
-    kmer_type reverse (kmer_type& kmer)  { return revcomp (kmer, this->_sizeKmer); }
+    kmer_type reverse (const kmer_type& kmer)  { return revcomp (kmer, this->_sizeKmer); }
 
     /** */
     std::string toString (const kmer_type& kmer)  {  return kmer.toString (this->_sizeKmer);  }
