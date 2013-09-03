@@ -159,7 +159,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     /** We create a bloom and insert solid kmers into. */
     /***************************************************/
     Bloom<T>* bloom = createBloom (_solidIterable);
-    LOCAL (bloom);
+    bloom->use ();
 
     /*************************************************/
     /** We build the solid neighbors extension.      */
@@ -178,6 +178,9 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         /** We iterate the solid kmers and build the neighbors extension. */
         getDispatcher()->iterate (itKmers, BuildKmerExtension<T> (model, bloom, new BagFile<T>(_debloomUri)));
     }
+
+    /** We get rid of the bloom. */
+    bloom->forget ();
 
     /*************************************************************/
     /** We extract the solid kmers from the neighbors extension. */
