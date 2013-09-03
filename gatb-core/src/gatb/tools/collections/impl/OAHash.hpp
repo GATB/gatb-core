@@ -58,8 +58,8 @@ public:
     {
         element_pair *element = find_slot(graine);
         if (!is_occupied(element))
-            element->first = graine;
-        element->second = value;
+            element->value = graine;
+        element->abundance = value;
     }
 
     /** */
