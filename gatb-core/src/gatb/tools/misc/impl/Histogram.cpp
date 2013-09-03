@@ -32,7 +32,7 @@ void Histogram::save ()
 {
     for (size_t cc=1; cc<_histogram.size(); cc++)
     {
-        struct Abundance a = { cc, _histogram[cc] };
+        struct Entry a = { cc, _histogram[cc] };
         _bag->insert (a);
     }
 }

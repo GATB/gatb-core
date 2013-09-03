@@ -29,7 +29,7 @@ class IHistogram : public virtual dp::ISmartPointer
 public:
 
     /** */
-    struct Abundance
+    struct Entry
     {
         u_int16_t index;
         u_int32_t abundance;

@@ -38,7 +38,7 @@ class Histogram : public IHistogram, public dp::SmartPointer
 public:
 
     /** */
-    Histogram (size_t length, tools::collections::Bag<Abundance>* bag) : _length(length), _bag(0)
+    Histogram (size_t length, tools::collections::Bag<Entry>* bag) : _length(length), _bag(0)
     {
         setBag (bag);
         _histogram.resize (_length + 1);
@@ -67,8 +67,8 @@ private:
     size_t                 _length;
     std::vector<u_int32_t> _histogram;
 
-    tools::collections::Bag<Abundance>* _bag;
-    void setBag (tools::collections::Bag<Abundance>* bag)  { SP_SETATTR(bag); }
+    tools::collections::Bag<Entry>* _bag;
+    void setBag (tools::collections::Bag<Entry>* bag)  { SP_SETATTR(bag); }
 };
 
 /********************************************************************************/
