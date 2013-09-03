@@ -54,9 +54,6 @@ public:
     /** Destructor. */
     ~BagCache ()
     {
-        /** We flush the output. */
-        flush ();
-
         /** We clean resources. */
         setRef(0);
     }
