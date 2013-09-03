@@ -8,10 +8,11 @@ using namespace std;
 /********************************************************************************/
 struct Info
 {
-    Info() : checksumNodes(0), checksumSuccessors(0), nbSuccessors(0) {}
+    Info() : checksumNodes(0), checksumSuccessors(0), nbSuccessors(0), abundance(0) {}
     NativeInt64 checksumNodes;
     NativeInt64 checksumSuccessors;
     u_int64_t   nbSuccessors;
+    u_int64_t   abundance;
 };
 
 /********************************************************************************/
@@ -26,11 +27,13 @@ public:
         _globalInfo.checksumNodes      += _info.checksumNodes;
         _globalInfo.checksumSuccessors += _info.checksumSuccessors;
         _globalInfo.nbSuccessors       += _info.nbSuccessors;
+        _globalInfo.abundance          += _info.abundance;
     }
 
     void operator ()  (const Node<NativeInt64>& node)
     {
-        _info.checksumNodes += node.kmer;
+        _info.checksumNodes += node.kmer.value;
+        _info.abundance     += node.kmer.abundance;
 
         /** We retrieve the successors. */
         size_t nbSuccessors = _graph.getSuccessors (node, _nodes);
@@ -38,7 +41,7 @@ public:
         _info.nbSuccessors += nbSuccessors;
 
         /** We iterate all the successors. */
-        for (size_t i=0; i<nbSuccessors; i++)   {  _info.checksumSuccessors += _nodes[i].kmer;  }
+        for (size_t i=0; i<nbSuccessors; i++)   {  _info.checksumSuccessors += _nodes[i].kmer.value;  }
     }
 
     Graph<NativeInt64>&  _graph;
@@ -86,7 +89,8 @@ int main (int argc, char* argv[])
     TIME_STOP (ti, "compute");
 
     /** We dump the checksum. */
-    cout << "nbNodes="            << info.nbSuccessors           << "  "
+    cout << "nbSuccessors="       << info.nbSuccessors           << "  "
+         << "abundance="          << info.abundance              << "  "
          << "checkumNodes="       << info.checksumNodes          << "  "
          << "checksumSuccessors=" << info.checksumSuccessors     << "  "
          << "time="               << ti.getEntryByKey("compute") << "  "
