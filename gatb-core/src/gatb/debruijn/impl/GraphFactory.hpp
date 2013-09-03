@@ -55,7 +55,7 @@ public:
 
     template<typename T>
     static Graph<T>  createGraph (
-        tools::collections::Iterable<T>* solidKmers,
+        tools::collections::Iterable<kmer::Kmer<T> >* solidKmers,
         tools::collections::Iterable<T>* cFPKmers,
         size_t kmerSize
     )
