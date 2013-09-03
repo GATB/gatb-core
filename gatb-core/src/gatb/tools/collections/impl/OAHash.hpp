@@ -31,7 +31,7 @@ namespace impl          {
 
 template <typename Item> class OAHash
 {
-    typedef std::pair<Item,u_int32_t>  element_pair;
+    typedef Abundance<Item> element_pair;
 
 public:
 
@@ -68,8 +68,8 @@ public:
         element_pair *element = find_slot(graine);
 
         if (!is_occupied(element))
-            element->first = graine;
-        element->second = element->second + 1;
+            element->value = graine;
+        element->abundance = element->abundance + 1;
     }
 
     /** */
@@ -80,9 +80,9 @@ public:
 
         if (!is_occupied(element))
             return false;
-        if (element->first == graine)
+        if (element->value == graine)
             if (val != NULL)
-                *val = element->second;
+                *val = element->abundance;
         return true;
     }
 
@@ -99,7 +99,7 @@ public:
         u_int64_t nbKeys = 0;
         while (ptr < hash_size)
         {
-            while ((ptr < hash_size) &&  ((data+ptr)->second == 0)  )
+            while ((ptr < hash_size) &&  ((data+ptr)->abundance == 0)  )
                 ptr++;
 
             if (ptr == hash_size)
@@ -112,11 +112,11 @@ public:
     }
 
     /** */
-    dp::Iterator <std::pair<Item,u_int32_t> >* iterator ()  {  return new Iterator (*this);  }
+    dp::Iterator <Abundance<Item> >* iterator ()  {  return new Iterator (*this);  }
 
 
     /************************************************************/
-    class Iterator : public tools::dp::Iterator <std::pair<Item,u_int32_t> >
+    class Iterator : public tools::dp::Iterator <Abundance<Item> >
     {
     public:
 
@@ -139,7 +139,7 @@ public:
             {
                 ++iterator;
                 done = (iterator >= iteratorMax);
-                if (!done && iterator->second != 0)
+                if (!done && iterator->abundance != 0)
                 {
                     *this->_item = *iterator;  break;
                 }
@@ -150,7 +150,7 @@ public:
         bool isDone ()   {  return done; }
 
         /** \copydoc tools::dp::Iterator::item */
-        std::pair<Item,u_int32_t>& item ()     { return *this->_item; }
+        Abundance<Item>& item ()     { return *this->_item; }
 
     private:
         OAHash<Item>&  ref;
@@ -172,7 +172,7 @@ protected:
         u_int64_t retries = 0;
 
         // search until we either find the key, or find an empty slot.
-        while ( ( is_occupied(element)) && ( element->first != key ) && (retries < hash_size))
+        while ( ( is_occupied(element)) && ( element->value != key ) && (retries < hash_size))
         {
             ptr = (ptr + 1) % hash_size;
             element = data+ptr;
@@ -189,7 +189,7 @@ protected:
     }
 
 
-    bool is_occupied (element_pair *element)   {  return (element->second != 0); }
+    bool is_occupied (element_pair *element)   {  return (element->abundance != 0); }
 };
 
 /********************************************************************************/

@@ -26,6 +26,27 @@
 #ifndef _GATB_CORE_SYSTEM_TYPES_HPP_
 #define _GATB_CORE_SYSTEM_TYPES_HPP_
 
+/********************************************************************************/
+
 #include <sys/types.h>
+
+/********************************************************************************/
+
+/** Define an abundance. */
+template<typename Type, typename Number=u_int16_t> struct Abundance
+{
+    Abundance (const Type& val=0, const Number& abund=0) : value(val), abundance(abund) {}
+
+    Abundance& operator=(const Abundance& a)
+    {
+        if (&a != this)  {  value = a.value;  abundance=a.abundance;  }
+        return *this;
+    }
+
+    Type    value;
+    Number  abundance;
+};
+
+/********************************************************************************/
 
 #endif /* _GATB_CORE_SYSTEM_TYPES_HPP_ */
