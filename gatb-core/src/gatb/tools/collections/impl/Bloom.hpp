@@ -126,6 +126,10 @@ public:
         return true;
     }
 
+    /** */
+    u_int8_t*& getArray ()  { return blooma; }
+    u_int64_t  getSize  ()  { return nchar;  }
+
 protected:
 
     HashFunctors<Item> _hash;
