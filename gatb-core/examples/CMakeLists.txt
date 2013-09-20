@@ -2,7 +2,7 @@
 #  EXAMPLES 
 ################################################################################
 
-set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
+include_directories (${gatb-core-includes})
 
 list (APPEND PROGRAMS iterators1 iterators2 iterators3 iterators4 iterators5)
 list (APPEND PROGRAMS bank1 bank2 bank3 bank4 bank5 bank6 bank7 bank8)
