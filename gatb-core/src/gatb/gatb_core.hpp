@@ -30,6 +30,8 @@
 #include <gatb/tools/collections/impl/Hash16.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
+#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/collections/impl/ProductFile.hpp>
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
