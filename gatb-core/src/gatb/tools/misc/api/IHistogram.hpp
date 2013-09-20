@@ -15,6 +15,7 @@
 #define _GATB_CORE_TOOLS_MISC_IHISTOGRAM_HPP_
 
 #include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <hdf5.h>
 
 /********************************************************************************/
 namespace gatb      {
@@ -23,29 +24,45 @@ namespace tools     {
 namespace misc      {
 /********************************************************************************/
 
+/** Here is a command line for showing the histogram with gnuplot from the hdf5 file 'graph.h5'
+        h5dump -y -d dsk/histogram graph.h5 | grep [0-9] | grep -v [A-Z].* | paste - - | gnuplot -p -e 'plot [][0:100] "-" with lines'
+*/
+
 /** \brief TBD */
-class IHistogram : public virtual dp::ISmartPointer
+class IHistogram : virtual public dp::ISmartPointer
 {
 public:
 
-    /** */
+    /********************************************************************************/
     struct Entry
     {
         u_int16_t index;
-        u_int32_t abundance;
+        u_int64_t abundance;
+
+        inline static hid_t hdf5 (bool& compound)
+        {
+            hid_t result = H5Tcreate (H5T_COMPOUND, sizeof(Entry));
+            H5Tinsert (result, "index",      HOFFSET(Entry, index),     H5T_NATIVE_UINT16);
+            H5Tinsert (result, "abundance",  HOFFSET(Entry, abundance), H5T_NATIVE_UINT64);
+            compound = true;
+            return result;
+        }
     };
+
+    /** */
+    virtual ~IHistogram() {}
 
     /** */
     virtual size_t getLength() = 0;
 
     /** */
-    virtual void inc (u_int32_t abundance) = 0;
+    virtual void inc (u_int16_t index) = 0;
 
     /** */
     virtual void save () = 0;
 
     /** */
-    virtual u_int32_t& get (u_int16_t idx) = 0;
+    virtual u_int64_t& get (u_int16_t idx) = 0;
 };
 
 /********************************************************************************/
