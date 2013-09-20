@@ -47,6 +47,12 @@ public:
 
     /** */
     virtual void remove () = 0;
+
+    /** */
+    virtual void addProperty (const std::string& key, const std::string value) = 0;
+
+    /** */
+    virtual std::string getProperty (const std::string& key) = 0;
 };
 
 /********************************************************************************/
