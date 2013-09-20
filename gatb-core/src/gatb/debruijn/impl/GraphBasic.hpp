@@ -31,7 +31,17 @@
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 
+#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/collections/impl/ProductHDF5.hpp>
+
 #include <math.h>
+
+#if 0
+#define ProductFactoryLocal tools::collections::impl::ProductFileFactory
+#else
+#define ProductFactoryLocal tools::collections::impl::ProductHDF5Factory
+#endif
 
 /********************************************************************************/
 namespace gatb      {
@@ -57,14 +67,16 @@ public:
     );
 
     /** Constructor. */
-    GraphBasic (
-        bank::IBank* bank,
-        size_t       kmerSize,
-        size_t       nks
-    );
+    GraphBasic (bank::IBank* bank, tools::misc::IProperties* options);
+
+    /** Constructor. */
+    GraphBasic (const std::string& uri);
 
     /** Destructor. */
     ~GraphBasic ();
+
+    /** */
+    void build ();
 
     /** */
     bool contains (const Node<T>& item)  { return contains (item.kmer.value); }
@@ -93,8 +105,13 @@ public:
 
 private:
 
+    bool _isBuilt;
     T      _mask;
     size_t _span;
+
+    tools::collections::impl::Product<ProductFactoryLocal>* _product;
+    void setProduct (tools::collections::impl::Product<ProductFactoryLocal>* product)  { SP_SETATTR(product); }
+    tools::collections::impl::Group<ProductFactoryLocal>& getProductRoot()  { return (*_product) (); }
 
     tools::collections::Iterable<kmer::Kmer<T> >* _solidKmersIterable;
     void setSolidKmersIterable (tools::collections::Iterable<kmer::Kmer<T> >* solidKmersIterable)  { SP_SETATTR(solidKmersIterable); }

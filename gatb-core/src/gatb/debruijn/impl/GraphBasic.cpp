@@ -13,11 +13,11 @@
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 
 #include <gatb/tools/misc/impl/Property.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
+
+#include <gatb/tools/math/NativeInt8.hpp>
 
 #include <gatb/system/impl/System.hpp>
-
-#include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/ProductFile.hpp>
 
 using namespace std;
 using namespace gatb::core::tools::math;
@@ -27,6 +27,11 @@ using namespace gatb::core::kmer;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
+using namespace gatb::core::tools::math;
+
+using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::misc::impl;
+
 using namespace gatb::core::kmer::impl;
 
 using namespace gatb::core::bank::impl;
@@ -35,7 +40,6 @@ using namespace gatb::core::system::impl;
 
 #define DEBUG(a)  //printf a
 
-bool dbg = false;
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
@@ -49,8 +53,70 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** REMARKS :
 *********************************************************************/
 template<typename T>
+GraphBasic<T>::GraphBasic (bank::IBank* bank, tools::misc::IProperties* options)
+    : _isBuilt(false), _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph"), _product(0)
+{
+    size_t kmerSize = options->get(STR_KMER_SIZE)  ? options->getInt(STR_KMER_SIZE) : 27;
+    size_t nks      = options->get(STR_NKS)        ? options->getInt(STR_NKS)       : 3;
+
+    string output   = options->get(STR_URI_OUTPUT) ?
+            options->getStr(STR_URI_OUTPUT)   :
+            system::impl::System::file().getBaseName (bank->getId());
+
+    string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
+
+    /** We create a product instance. */
+    setProduct (ProductFactoryLocal::createProduct (output, false));
+
+    /************************************************************/
+    /*                         Bank conversion                  */
+    /************************************************************/
+    /** We create the binary bank. */
+    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
+    executeAlgorithm (converter);
+
+    /************************************************************/
+    /*                         DSK                              */
+    /************************************************************/
+    /** We create a group for DSK. */
+    getProductRoot().addGroup ("dsk");
+
+    /** We create a DSK instance and execute it. */
+    DSKAlgorithm<ProductFactoryLocal, T> dsk (*_product, converter.getResult(), kmerSize, nks);
+    executeAlgorithm (dsk);
+
+    /************************************************************/
+    /*                         Debloom                          */
+    /************************************************************/
+    /** We create a group for deblooming. */
+    getProductRoot().addGroup ("debloom");
+
+    /** We create a debloom instance and execute it. */
+    DebloomAlgorithm<ProductFactoryLocal, T> debloom (*_product, dsk.getSolidKmers(), kmerSize);
+    executeAlgorithm (debloom);
+
+    /** We configure the graph from the result of DSK and debloom. */
+    configure (kmerSize, dsk.getSolidKmers(), debloom.getCriticalKmers());
+
+    /** We can get rid of the binary bank. */
+    System::file().remove (binaryBankUri);
+
+    /** We add metadata to some collections. */
+    dsk.getSolidKmers()->addProperty ("properties", dsk.getInfo()->getXML());
+    debloom.getCriticalKmers()->addProperty ("properties", debloom.getInfo()->getXML());
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename T>
 GraphBasic<T>::GraphBasic (tools::misc::IProperties* props)
-    : _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
+    : _isBuilt(false), _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph"), _product(0)
 {
     setProps (props);
 
@@ -79,7 +145,7 @@ GraphBasic<T>::GraphBasic (
     tools::collections::Iterable<T>*        cFPKmers,
     size_t kmerSize
 )
-    : _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
+    : _isBuilt(false), _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph"), _product(0)
 {
 
     configure (kmerSize, solidKmers, cFPKmers);
@@ -94,31 +160,44 @@ GraphBasic<T>::GraphBasic (
 ** REMARKS :
 *********************************************************************/
 template<typename T>
-GraphBasic<T>::GraphBasic (bank::IBank* bank, size_t kmerSize, size_t nks)
-    : _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph")
+GraphBasic<T>::GraphBasic (const std::string& uri)
+    : _isBuilt(false), _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph"), _product(0)
 {
-    string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
-
     /** We create a product instance. */
-    Product<ProductFileFactory> product ("graph");
+    setProduct (ProductFactoryLocal::createProduct (uri, false));
 
-    /** We create the binary bank. */
-    BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
-    executeAlgorithm (converter);
+    size_t kmerSize = 27;
 
-    /** We create a DSK instance and execute it. */
-    DSKAlgorithm<ProductFileFactory, T> dsk (product, converter.getResult(), kmerSize, nks);
-    executeAlgorithm (dsk);
+    /** We create the kmer model. */
+    setModel (new kmer::impl::Model<T> (kmerSize));
 
-    /** We create a debloom instance and execute it. */
-    DebloomAlgorithm<ProductFileFactory, T> debloom (product, dsk.getSolidKmers(), kmerSize);
-    executeAlgorithm (debloom);
+    /** We set the iterable for the solid kmers. */
+    tools::collections::Iterable<Kmer<T> >* solidIterable = & (*_product)().template addCollection<Kmer<T> > ("dsk/solid");
+    setSolidKmersIterable (solidIterable);
 
-    /** We configure the graph from the result of DSK and debloom. */
-    configure (kmerSize, dsk.getSolidKmers(), debloom.getCriticalKmers());
+    /** We compute parameters for the Bloom filter. */
+    double lg2 = log(2);
+    float     NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
+    size_t    nbHash         = (int)floorf (0.7*NBITS_PER_KMER);
+    u_int64_t bloomSize      = (u_int64_t) (solidIterable->getNbItems() * NBITS_PER_KMER);
 
-    /** We can get rid of the binary bank. */
-    System::file().remove (binaryBankUri);
+    tools::collections::Iterable<NativeInt8>* bloomIterable = & (*_product)().template addCollection<NativeInt8> ("debloom/bloom");
+
+    tools::collections::impl::Bloom<T>* bloom =  tools::collections::impl::BloomFactory::singleton().createBloom<T> (
+        tools::collections::impl::BloomFactory::CacheCoherent,
+        bloomSize,
+        nbHash
+    );
+
+    setBloom (bloom);
+    bloomIterable->getItems ((NativeInt8*&)_bloom->getArray());
+
+    tools::collections::Iterable<T>* cFPKmers = & (*_product)().template addCollection<T > ("debloom/cfp");
+    setcFPset (new tools::collections::impl::ContainerSet<T> (cFPKmers->iterator()));
+
+    /** Some shortcuts attributes. */
+    _mask = _model->getMask ();
+    _span = _model->getSpan ();
 }
 
 /*********************************************************************
@@ -137,6 +216,25 @@ GraphBasic<T>::~GraphBasic ()
     setcFPset             (0);
     setModel              (0);
     setBloom              (0);
+    setProduct            (0);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename T>
+void GraphBasic<T>::build ()
+{
+    if (_isBuilt == false)
+    {
+        // TO BE DONE...
+        _isBuilt = true;
+    }
 }
 
 /*********************************************************************
@@ -188,7 +286,7 @@ void GraphBasic<T>::configure (
 template<typename T>
 void GraphBasic<T>::executeAlgorithm (gatb::core::tools::misc::impl::Algorithm& algorithm)
 {
-    string bargraph = "0";
+    string bargraph = "2";
 
     algorithm.getInput()->add (0, STR_PROGRESS_BAR, bargraph);
 
@@ -323,15 +421,15 @@ size_t GraphBasic<T>::getNodes (const Node<T>& source, NodeSet<T>& nodes, Direct
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class GraphBasic <gatb::core::tools::math::NativeInt64>;
+template class GraphBasic <NativeInt64>;
 #ifdef INT128_FOUND
-template class GraphBasic <gatb::core::tools::math::NativeInt128>;
+template class GraphBasic <NativeInt128>;
 #else
-template class GraphBasic <gatb::core::tools::math::LargeInt<2> >;
+template class GraphBasic <LargeInt<2> >;
 #endif
 
-template class GraphBasic <gatb::core::tools::math::LargeInt<3> >;
-template class GraphBasic <gatb::core::tools::math::LargeInt<4> >;
+template class GraphBasic <LargeInt<3> >;
+template class GraphBasic <LargeInt<4> >;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
