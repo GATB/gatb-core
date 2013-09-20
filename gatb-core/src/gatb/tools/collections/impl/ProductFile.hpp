@@ -33,6 +33,12 @@ class ProductFileFactory
 public:
 
     /** */
+    static Product<ProductFileFactory>* createProduct (const std::string& name, bool autoRemove)
+    {
+        return new Product<ProductFileFactory> (name, autoRemove);
+    }
+
+    /** */
     static Group<ProductFileFactory>* createGroup (dp::ICell* parent, const std::string& name)
     {
         return new Group<ProductFileFactory> (parent, name);
@@ -47,7 +53,7 @@ public:
 
     /** */
     template<typename Type>
-    static CollectionNode<Type>* createCollection (dp::ICell* parent, const std::string& name)
+    static CollectionNode<Type>* createCollection (dp::ICell* parent, const std::string& name, system::ISynchronizer* synchro)
     {
         /** We define the full qualified id of the current collection to be created. */
         std::stringstream ss;  ss << parent->getFullId().c_str() << "." << name;
