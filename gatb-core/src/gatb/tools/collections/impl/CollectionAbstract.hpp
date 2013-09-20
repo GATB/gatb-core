@@ -64,11 +64,26 @@ public:
     /** \copydoc Iterable::getNbItems */
     int64_t getNbItems ()  { return _iterable->getNbItems(); }
 
+    /** \copydoc Iterable::getItems */
+    Item* getItems (Item*& buffer)  { return _iterable->getItems(buffer); }
+
     /** \copydoc Bag::insert */
     void insert (const Item& item)  { _bag->insert (item); }
 
+    /** \copydoc Bag::insert */
+    void insert (const std::vector<Item>& items, size_t length)  { _bag->insert (items, length); }
+
+    /** \copydoc Bag::insert */
+    void insert (const Item* items, size_t length)  { _bag->insert (items, length); }
+
     /** \copydoc Bag::flush */
     void flush ()  { _bag->flush(); }
+
+    /** */
+    void addProperty (const std::string& key, const std::string value) {}
+
+    /** */
+    std::string getProperty (const std::string& key)  {  return std::string("");  }
 
 protected:
 
