@@ -2,8 +2,6 @@
 #  CPPUNIT 
 ################################################################################
 
-set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
-
 file (GLOB_RECURSE  GatbToolsTestFiles  src/*)
 
 include_directories (${gatb-core-includes}  ${org.inria.gatb.tools_SOURCE_DIR}/test/unit/src  ${CPPUNIT_INCLUDE_DIR})

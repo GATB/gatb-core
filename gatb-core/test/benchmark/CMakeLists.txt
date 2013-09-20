@@ -2,7 +2,7 @@
 #  EXAMPLES 
 ################################################################################
 
-set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
+include_directories (${gatb-core-includes})
 
 list (APPEND PROGRAMS bench1 bench_bloom)
 
