@@ -18,6 +18,7 @@
 
 #include <gatb/bank/api/IAlphabet.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
+#include <hdf5.h>
 
 /********************************************************************************/
 namespace gatb      {
@@ -30,6 +31,20 @@ namespace kmer      {
 template<typename Type, typename Number=u_int16_t> struct Kmer : Abundance<Type,Number>
 {
     Kmer(const Type& val=0, const Number& abund=0) : Abundance<Type,Number>(val, abund) {}
+
+    /********************************************************************************/
+    inline static hid_t hdf5 (bool& isCompound)
+    {
+        hid_t abundanceType = H5Tcopy (H5T_NATIVE_UINT16);
+
+        hid_t result = H5Tcreate (H5T_COMPOUND, sizeof(Kmer));
+        H5Tinsert (result, "value",      HOFFSET(Kmer, value),     Type::hdf5(isCompound));
+        H5Tinsert (result, "abundance",  HOFFSET(Kmer, abundance), abundanceType);
+
+        isCompound = true;
+
+        return result;
+    }
 };
 
 /********************************************************************************/
