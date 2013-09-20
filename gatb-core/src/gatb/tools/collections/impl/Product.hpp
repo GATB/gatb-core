@@ -25,6 +25,8 @@
 #include <gatb/tools/collections/impl/CollectionCache.hpp>
 #include <gatb/tools/collections/impl/CollectionFile.hpp>
 
+#include <gatb/tools/misc/api/IProperty.hpp>
+
 #include <string>
 #include <sstream>
 #include <list>
@@ -97,6 +99,9 @@ public:
         _ref->remove();
     }
 
+    /** */
+    void addProperty (const std::string& key, const std::string value)  {  _ref->addProperty (key, value); }
+
     /**  */
     Collection<Item>* getRef ()  { return _ref; }
 
@@ -142,7 +147,7 @@ public:
     Group<Factory>& addGroup (const std::string& name)
     {
         /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
-        Group* group = Factory::template createGroup (this, name);
+        Group* group = Factory::createGroup (this, name);
         _groups.push_back (group);
         group->use ();
         return *group;
@@ -162,7 +167,7 @@ public:
     template <class Type>  CollectionNode<Type>& addCollection (const std::string& name)
     {
         /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
-        CollectionNode<Type>* result = Factory::template createCollection<Type> (this, name);
+        CollectionNode<Type>* result = Factory::template createCollection<Type> (this, name, 0);
         _collections.push_back (result);
         result->use ();
         return *result;
@@ -215,8 +220,12 @@ public:
      * \param[in] id : the identifier of the instance to be created
      * \param[in] nbCollections : number of collections for this partition
      */
-    Partition (dp::ICell* parent, const std::string& id, size_t nbCollections) : Group<Factory> (parent, id), _typedCollections(nbCollections)
+    Partition (dp::ICell* parent, const std::string& id, size_t nbCollections)
+        : Group<Factory> (parent, id), _typedCollections(nbCollections), _synchro(0)
     {
+        /** We create a synchronizer to be shared by the collections. */
+        _synchro = system::impl::System::thread().newSynchronizer();
+
         /** We want to instantiate the wanted number of collections. */
         for (size_t i=0; i<_typedCollections.size(); i++)
         {
@@ -224,7 +233,7 @@ public:
             std::stringstream ss;  ss << i;
 
             /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
-            CollectionNode<Type>* result = Factory::template createCollection<Type> (this, ss.str());
+            CollectionNode<Type>* result = Factory::template createCollection<Type> (this, ss.str(), _synchro);
 
             /** We add the collection node to the dedicated vector and take a token for it. */
             (_typedCollections [i] = result)->use ();
@@ -236,6 +245,8 @@ public:
     {
         /** We release the token for each collection node. */
         for (size_t i=0; i<_typedCollections.size(); i++)  { _typedCollections[i]->forget ();  }
+
+        delete _synchro;
     }
 
     /** Return the number of collections for this partition.
@@ -267,6 +278,7 @@ public:
 protected:
 
     std::vector <CollectionNode<Type>* > _typedCollections;
+    system::ISynchronizer* _synchro;
 };
 
 /********************************************************************************/
@@ -370,13 +382,13 @@ private:
  *   - memory
  */
 template<class Factory>
-class Product : public dp::SmartPointer
+class Product : public dp::impl::Cell
 {
 public:
 
     /** Constructor.
      * \param[in] name : name of the product. */
-    Product (const std::string& name)  : _root(0, name)
+    Product (const std::string& name, bool autoRemove=false)  : dp::impl::Cell(0, ""),  _root(this, name), _autoRemove(autoRemove)
     {}
 
     /** Facility for retrieving the root group.
@@ -384,12 +396,14 @@ public:
     Group<Factory>& operator() (void)  { return _root; }
 
     /** Remove physically the product. */
-    void remove ()  {  _root.remove(); }
+    virtual void remove ()  {  _root.remove(); }
 
-private:
+protected:
 
     /** Root group. */
     Group<Factory> _root;
+
+    bool _autoRemove;
 };
 
 /********************************************************************************/
