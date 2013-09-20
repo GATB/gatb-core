@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
+#include <hdf5.h>
 
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>
@@ -361,6 +362,14 @@ public:
 
         /** We return the output stream. */
         return s;
+    }
+
+    /********************************************************************************/
+    inline static hid_t hdf5 (bool& isCompound)
+    {
+        hid_t result = H5Tcopy (H5T_NATIVE_INT);
+        H5Tset_precision (result, 2*precision);
+        return result;
     }
 
 private:

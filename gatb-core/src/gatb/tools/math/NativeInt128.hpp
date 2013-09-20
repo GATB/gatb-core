@@ -19,6 +19,8 @@
 /********************************************************************************/
 
 #include <iostream>
+#include <hdf5.h>
+
 #include <gatb/system/api/types.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>
 
@@ -108,6 +110,13 @@ public:
         std::cout << seq << std::endl;
     }
     
+    /********************************************************************************/
+    inline static hid_t hdf5 (bool& isCompound)
+    {
+        hid_t result = H5Tcopy (H5T_NATIVE_INT);
+        H5Tset_precision (result, 128);
+        return result;
+    }
     
 private:
     __uint128_t value;
