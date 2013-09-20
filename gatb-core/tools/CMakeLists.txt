@@ -2,9 +2,9 @@
 #  EXAMPLES 
 ################################################################################
 
-set (LIBRARY_OUTPUT_PATH    lib/${CMAKE_BUILD_TYPE})
+include_directories (${gatb-core-includes})
 
-list (APPEND PROGRAMS ClearCache KmerChecksum)
+list (APPEND PROGRAMS dbgh5)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
