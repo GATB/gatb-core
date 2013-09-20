@@ -50,6 +50,13 @@ public:
      * it should return -1 by convention.
      * \return the number of items if known, -1 otherwise. */
     virtual int64_t getNbItems () = 0;
+
+    /** */
+    virtual Item* getItems (Item*& buffer)
+    {
+        throw "Iterable::getItems... SHOULD NOT BE HERE...";
+        return buffer;
+    }
 };
 
 /********************************************************************************/
