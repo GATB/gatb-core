@@ -53,20 +53,14 @@ public:
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 3)
+    if (argc < 2)
     {
-        cerr << "you must provide:" << endl;
-        cerr << "   1) reads file"  << endl;
-        cerr << "   2) kmer size"   << endl;
+        cerr << "you must provide a graph file" << endl;
         return EXIT_FAILURE;
     }
 
-    char*  bankUri  = argv[1];
-    size_t kmerSize = atoi (argv[2]);
-    size_t nks      = argc >= 4 ? atoi (argv[3]) : 3;
-
-    /** We create the graph with  1) a FASTA bank   2) a kmer size */
-    Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new Bank (bankUri), kmerSize, nks);
+    /** We load the graph from the provided uri. */
+    Graph<NativeInt64> graph = GraphFactory::load <NativeInt64> (argv[1]);
 
     /** We get an iterator over all the nodes of the graph. */
     NodeIterator<NativeInt64> itNodes = graph.nodes();
