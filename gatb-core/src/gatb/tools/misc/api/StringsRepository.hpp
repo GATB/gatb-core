@@ -76,7 +76,9 @@ public:
     const char* nb_cores       ()  { return "-nb-cores";       }
     const char* partition_type ()  { return "-partition-type"; }
     const char* uri_histogram  ()  { return "-histo";          }
-    const char* uri_debloom    ()  { return "-debloom";          }
+    const char* uri_debloom    ()  { return "-debloom";        }
+    const char* uri_input      ()  { return "-in";             }
+    const char* uri_output     ()  { return "-out";            }
 };
 
 /********************************************************************************/
@@ -95,6 +97,8 @@ public:
 #define STR_PARTITION_TYPE      gatb::core::tools::misc::StringRepository::singleton().partition_type ()
 #define STR_URI_HISTOGRAM       gatb::core::tools::misc::StringRepository::singleton().uri_histogram ()
 #define STR_URI_DEBLOOM         gatb::core::tools::misc::StringRepository::singleton().uri_debloom ()
+#define STR_URI_INPUT           gatb::core::tools::misc::StringRepository::singleton().uri_input ()
+#define STR_URI_OUTPUT          gatb::core::tools::misc::StringRepository::singleton().uri_output ()
 
 /********************************************************************************/
 
