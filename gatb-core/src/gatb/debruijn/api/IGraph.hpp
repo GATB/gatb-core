@@ -311,6 +311,9 @@ public:
     /** Destructor. */
     virtual ~IGraph() {}
 
+    /** Build the graph if needed. */
+    virtual void build () = 0;
+
     /** From Container interface. */
     virtual bool contains (const Node<T>& item) = 0;
 
@@ -353,6 +356,9 @@ public:
     /** Destructor. */
     ~Graph () { setRef(0); }
 
+    /**  */
+    void build ()  { _ref->build (); }
+
     /** From Container interface. */
     bool contains (const Node<T>& item)  { return _ref->contains (item); }
 
@@ -364,7 +370,7 @@ public:
         NodeIterator<T> result (_ref->nodes());
 
         /** We force a call to 'first'. */
-        result.first();
+		// result.first();
 
         /** We return the result. */
         return result;
