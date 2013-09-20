@@ -30,11 +30,10 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 *********************************************************************/
 void Histogram::save ()
 {
-    for (size_t cc=1; cc<_histogram.size(); cc++)
-    {
-        struct Entry a = { cc, _histogram[cc] };
-        _bag->insert (a);
-    }
+    DEBUG (("Histogram::save  size=%ld\n", _histogram.size()));
+
+    size_t offset = 1;
+    _bag->insert (_histogram + offset, (_length+1) - offset);
 }
 
 /********************************************************************************/
