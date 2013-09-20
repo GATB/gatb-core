@@ -20,6 +20,8 @@
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/GraphBasic.hpp>
 
+#include <gatb/bank/api/IBank.hpp>
+
 #include <gatb/kmer/impl/Model.hpp>
 
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -64,13 +66,16 @@ public:
     }
 
     template<typename T>
-    static Graph<T>  createGraph (
-        bank::IBank* bank,
-        size_t       kmerSize,
-        size_t       nks=3
+    static Graph<T>  createGraph (bank::IBank* bank, tools::misc::IProperties* options)
+    {
+        return  Graph<T> (new GraphBasic<T> (bank, options));
+    }
+
+    template<typename T>
+    static Graph<T>  load (const std::string& uri
     )
     {
-        return  Graph<T> (new GraphBasic<T> (bank, kmerSize, nks));
+        return  Graph<T> (new GraphBasic<T> (uri));
     }
 
 
