@@ -45,7 +45,7 @@ public:
 
     /** Return the full identifier (like a path "x.y.z")
      * \return the full identifier. */
-    virtual std::string getFullId () const = 0;
+    virtual std::string getFullId (char sep='.') const = 0;
 
     /** Physically remove the node. */
     virtual void remove () = 0;

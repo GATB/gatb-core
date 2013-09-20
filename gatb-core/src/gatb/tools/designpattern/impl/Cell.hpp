@@ -45,9 +45,9 @@ public:
     const std::string& getId ()  const { return _id; }
 
     /** \copydoc ICell::getFullId  */
-    std::string getFullId () const
+    std::string getFullId (char sep='.') const
     {
-        if (_parent != 0)   {  return _parent->getId() + "." + getId();  }
+        if (_parent != 0)   {  return _parent->getId() + sep + getId();  }
         else                {  return getId();  }
     }
 
