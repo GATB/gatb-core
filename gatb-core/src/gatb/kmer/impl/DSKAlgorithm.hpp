@@ -19,6 +19,9 @@
 #include <gatb/tools/collections/impl/Product.hpp>
 #include <string>
 
+#include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/collections/impl/ProductHDF5.hpp>
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -69,7 +72,7 @@ public:
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
-    tools::collections::Iterable<Kmer<T> >* getSolidKmers ()  { return _solidKmers->iterable(); }
+    tools::collections::Collection<Kmer<T> >* getSolidKmers ()  { return _solidKmers; }
 
 private:
 
@@ -138,14 +141,14 @@ private:
     void setHistogram (gatb::core::tools::misc::IHistogram* histogram)  { SP_SETATTR(histogram); }
 
     /** Partitions management. */
-    tools::collections::impl::Product<ProductFactory>* _partitionsProduct;
-    void setPartitionsProduct (tools::collections::impl::Product<ProductFactory>* partitionsProduct)
+    tools::collections::impl::Product<tools::collections::impl::ProductFileFactory>* _partitionsProduct;
+    void setPartitionsProduct (tools::collections::impl::Product<tools::collections::impl::ProductFileFactory>* partitionsProduct)
     {
         SP_SETATTR(partitionsProduct);
     }
 
-    tools::collections::impl::Partition<ProductFactory, T>* _partitions;
-    void setPartitions (tools::collections::impl::Partition<ProductFactory, T>* partitions)  {  SP_SETATTR(partitions);  }
+    tools::collections::impl::Partition<tools::collections::impl::ProductFileFactory, T>* _partitions;
+    void setPartitions (tools::collections::impl::Partition<tools::collections::impl::ProductFileFactory, T>* partitions)  {  SP_SETATTR(partitions);  }
 
     template<typename T1, typename T2> friend class PartitionsCommand;
 };

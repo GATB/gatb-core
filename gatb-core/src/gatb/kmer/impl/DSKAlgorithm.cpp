@@ -22,13 +22,15 @@
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
-#include <gatb/tools/collections/impl/ProductFile.hpp>
 
 #include <gatb/tools/math/NativeInt64.hpp>
 
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
+
+#include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/collections/impl/ProductHDF5.hpp>
 
 #include <math.h>
 #include <algorithm>
@@ -108,10 +110,10 @@ DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& product().template addCollection<Kmer<T> > ("solid"));
+    setSolidKmers (& product().template addCollection<Kmer<T> > ("dsk/solid"));
 
     /** We set the histogram instance. */
-    setHistogram (new Histogram  (10000, & _product().template addCollection<Histogram::Entry>(_histogramUri) ));
+    setHistogram (new Histogram  (10000, & _product().template addCollection<Histogram::Entry>("dsk/histogram") ));
 }
 
 /*********************************************************************
@@ -163,6 +165,9 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(T), "counting kmers"));
     _progress->init ();
 
+    /*************************************************************/
+    /*                       DSK MAIN LOOP                       */
+    /*************************************************************/
     /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
     for (_current_pass=0; _current_pass<_nb_passes; _current_pass++)
     {
@@ -349,15 +354,18 @@ void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Seque
     /** We create a kmer model. */
     Model<T> model (_kmerSize);
 
+    /** We delete the previous partitions product. */
+    if (_partitionsProduct)  { _partitionsProduct->remove (); }
+
     /** We create the partition files for the current pass. */
-    setPartitionsProduct (new Product<ProductFactory> ("partitions"));
+    setPartitionsProduct (tools::collections::impl::ProductFileFactory::createProduct ("partitions", false));
     setPartitions        ( & (*_partitionsProduct)().template addPartition<T> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<ProductFactory,T> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
+    getDispatcher()->iterate (itSeq, FillPartitions<tools::collections::impl::ProductFileFactory,T> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
 }
 
 /*********************************************************************
@@ -380,7 +388,7 @@ public:
         ISynchronizer* synchro
     )
         : _nks(algo.getNks()),
-          _solidKmers(solidKmers, 10*1000),
+          _solidKmers(solidKmers, 10*1000, synchro),
           _partition(partition),
           _histogram(histogram),
           _progress(algo.getProgress(), synchro)  {}
@@ -430,6 +438,7 @@ public:
 
         /** We directly fill the vector from the current partition file. */
         Iterator<T>* it = this->_partition.iterator();  LOCAL(it);
+
         for (it->first(); !it->isDone(); it->next())
         {
             hash.increment (it->item());
@@ -617,6 +626,19 @@ template class DSKAlgorithm <ProductFileFactory, LargeInt<2> >;
 
 template class DSKAlgorithm <ProductFileFactory, LargeInt<3> >;
 template class DSKAlgorithm <ProductFileFactory, LargeInt<4> >;
+
+/********************************************************************************/
+
+template class DSKAlgorithm <ProductHDF5Factory, NativeInt64>;
+#ifdef INT128_FOUND
+template class DSKAlgorithm <ProductHDF5Factory, NativeInt128>;
+#else
+template class DSKAlgorithm <ProductHDF5Factory, LargeInt<2> >;
+#endif
+
+template class DSKAlgorithm <ProductHDF5Factory, LargeInt<3> >;
+template class DSKAlgorithm <ProductHDF5Factory, LargeInt<4> >;
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

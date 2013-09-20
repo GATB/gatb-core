@@ -24,6 +24,7 @@
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 
 #include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/collections/impl/ProductHDF5.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -34,6 +35,7 @@
 #include <math.h>
 
 #include <gatb/tools/math/Integer.hpp>
+#include <gatb/tools/math/NativeInt8.hpp>
 
 // We use the required packages
 using namespace std;
@@ -52,6 +54,8 @@ using namespace gatb::core::tools::dp::impl;
 
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
+
+using namespace gatb::core::tools::math;
 
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
@@ -124,7 +128,7 @@ DebloomAlgorithm<ProductFactory,T>::DebloomAlgorithm (
     setSolidIterable    (solidIterable);
 
     /** We get a collection for the cFP from the product. */
-    setCriticalCollection (& product().template addCollection<T> ("debloom"));
+    setCriticalCollection (& product().template addCollection<T> ("debloom/cfp"));
 }
 
 /*********************************************************************
@@ -158,7 +162,8 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     /***************************************************/
     /** We create a bloom and insert solid kmers into. */
     /***************************************************/
-    Bloom<T>* bloom = createBloom (_solidIterable);
+    IProperties* bloomProps = new Properties();  LOCAL (bloomProps);
+    Bloom<T>* bloom = createBloom (_solidIterable, bloomProps);
     bloom->use ();
 
     /*************************************************/
@@ -178,6 +183,11 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         /** We iterate the solid kmers and build the neighbors extension. */
         getDispatcher()->iterate (itKmers, BuildKmerExtension<T> (model, bloom, new BagFile<T>(_debloomUri)));
     }
+
+    /** We save the bloom. */
+    Collection<NativeInt8>* bloomCollection = & _product().template addCollection<NativeInt8> ("debloom/bloom");
+    bloomCollection->insert ((NativeInt8*)bloom->getArray(), bloom->getSize());
+    bloomCollection->addProperty ("properties", bloomProps->getXML());
 
     /** We get rid of the bloom. */
     bloom->forget ();
@@ -314,7 +324,10 @@ void DebloomAlgorithm<ProductFactory,T>::end_debloom_partition (
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (tools::collections::Iterable<Kmer<T> >* solidIterable)
+Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
+    tools::collections::Iterable<Kmer<T> >* solidIterable,
+    tools::misc::IProperties* bloomProps
+)
 {
     TIME_INFO (getTimeInfo(), "create bloom from kmers");
 
@@ -338,11 +351,8 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (tools::collections::I
     BloomBuilder<T> builder (itKmers, estimatedBloomSize, (int)floorf (0.7*NBITS_PER_KMER), _bloomKind, getDispatcher()->getExecutionUnitsNumber());
 
     /** We instantiate the bloom object. */
-    IProperties* bloomProps = new Properties();
     Bloom<T>* bloom = builder.build (bloomProps);
-
-    getInfo()->add (1, bloomProps);
-    getInfo()->add (2, "nbits per kmer", "%f", NBITS_PER_KMER);
+    bloomProps->add (1, "nbits per kmer", "%f", NBITS_PER_KMER);
 
     /** We return the created bloom filter. */
     return bloom;
@@ -353,15 +363,27 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (tools::collections::I
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt64>;
+template class DebloomAlgorithm <ProductFileFactory, NativeInt64>;
 #ifdef INT128_FOUND
-template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::NativeInt128>;
+template class DebloomAlgorithm <ProductFileFactory, NativeInt128>;
 #else
-template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<2> >;
+template class DebloomAlgorithm <ProductFileFactory, LargeInt<2> >;
 #endif
 
-template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<3> >;
-template class DebloomAlgorithm <ProductFileFactory, gatb::core::tools::math::LargeInt<4> >;
+template class DebloomAlgorithm <ProductFileFactory, LargeInt<3> >;
+template class DebloomAlgorithm <ProductFileFactory, LargeInt<4> >;
+
+/********************************************************************************/
+
+template class DebloomAlgorithm <ProductHDF5Factory, NativeInt64>;
+#ifdef INT128_FOUND
+template class DebloomAlgorithm <ProductHDF5Factory, NativeInt128>;
+#else
+template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<2> >;
+#endif
+
+template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<3> >;
+template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<4> >;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

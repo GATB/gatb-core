@@ -57,14 +57,17 @@ public:
     /** */
     void execute ();
 
-    /** Get the iterable over the computed critical FP kmers.
-     * \return the cFP  kmers iterable. */
-    tools::collections::Iterable<T>* getCriticalKmers ()  { return _criticalCollection->iterable(); }
+    /** Get the collection for the computed critical FP kmers.
+     * \return the cFP  kmers collection. */
+    tools::collections::Collection<T>* getCriticalKmers ()  { return _criticalCollection; }
 
 private:
 
     /** */
-    virtual gatb::core::tools::collections::impl::Bloom<T>* createBloom (tools::collections::Iterable<Kmer<T> >* solidIterable);
+    virtual gatb::core::tools::collections::impl::Bloom<T>* createBloom (
+        tools::collections::Iterable<Kmer<T> >* solidIterable,
+        tools::misc::IProperties* props
+    );
 
     void end_debloom_partition (
         gatb::core::tools::collections::impl::Hash16<T>& set,
