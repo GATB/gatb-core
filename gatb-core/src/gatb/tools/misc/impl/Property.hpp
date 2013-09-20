@@ -119,6 +119,9 @@ public:
     /** */
     void dump (std::ostream& s);
 
+    /** */
+    std::string getXML ();
+
 private:
 
     /** List of IProperty instances. */

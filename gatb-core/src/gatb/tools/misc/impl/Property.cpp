@@ -7,6 +7,7 @@
 
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <sstream>
 #include <fstream>
 
 #define DEBUG(a)  //printf a
@@ -550,6 +551,22 @@ void Properties::setToFront (const std::string& key)
             break;
         }
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+string Properties::getXML ()
+{
+    stringstream ss;
+    XmlDumpPropertiesVisitor v(ss, false);
+    this->accept (&v);
+    return ss.str();
 }
 
 /*********************************************************************

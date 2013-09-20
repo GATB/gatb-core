@@ -218,6 +218,9 @@ public:
     /** */
     friend std::ostream & operator<<(std::ostream & s, IProperties& p)  {  p.dump(s);  return s;  }
 
+    /** */
+    virtual std::string getXML () = 0;
+
 protected:
 
     /** */
