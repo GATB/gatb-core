@@ -40,6 +40,9 @@ public:
     static const char* name()  { return "strings"; }
 
     /** Constructor. */
+    std::string getId ()  { static std::string s("dummy");  return s; }
+
+    /** Constructor. */
     BankStrings (const std::vector<std::string>& sequencesData)
         : _sequencesData(sequencesData), _totalSize(0), _maxSize(0)  {  init ();  }
 

@@ -61,6 +61,9 @@ public:
     /** Destructor. */
     ~BankDelegate () { setRef(0); }
 
+    /** */
+    std::string getId ()  { return _ref->getId(); }
+
     /** \copydoc tools::collections::Iterable::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return _ref->iterator(); }
 

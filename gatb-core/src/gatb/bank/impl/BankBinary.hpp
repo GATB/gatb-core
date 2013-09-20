@@ -59,6 +59,9 @@ public:
     /** Destructor. */
     ~BankBinary ();
 
+    /** \copydoc IBank::getId. */
+    std::string getId ()  { return _filename; }
+
     /** \copydoc IBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return new Iterator (*this); }
 

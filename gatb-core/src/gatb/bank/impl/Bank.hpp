@@ -67,6 +67,9 @@ public:
     /** Destructor. */
     ~Bank ();
 
+    /** \copydoc IBank::getId. */
+    std::string getId ()  { return _filenames[0]; }
+
     /** \copydoc IBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return new Iterator (*this); }
 

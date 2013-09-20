@@ -44,6 +44,10 @@ class IBank : public tools::collections::Iterable<Sequence>, public tools::colle
 {
 public:
 
+    /** Get an unique identifier for the bank (could be an URI for instance).
+     * \return the identifier */
+    virtual std::string getId () = 0;
+
     /** \copydoc tools::collections::Iterable::iterator */
     virtual tools::dp::Iterator<Sequence>* iterator () = 0;
 
