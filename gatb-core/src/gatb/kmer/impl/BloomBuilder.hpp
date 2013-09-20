@@ -74,8 +74,8 @@ public:
         if (stats != 0)
         {
             stats->add (0, "bloom");
-            stats->add (1, "filter size", "%d", _bloomSize);
-            stats->add (1, "nb hash fct", "%d", _nbHash);
+            stats->add (1, "filter size", "%lld", _bloomSize);
+            stats->add (1, "nb hash fct", "%d",   _nbHash);
         }
 
         /** We return the created bloom filter. */
