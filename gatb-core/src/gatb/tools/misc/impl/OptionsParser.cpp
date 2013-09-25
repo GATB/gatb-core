@@ -170,7 +170,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
     DEBUG (("OptionsParser::parse  errorsNb=%d  warningsNb=%d \n", _errors.size(), _warnings.size()));
 
     /** We may launch an exception if needed. */
-    if (!_errors.empty())   {  throw OptionFailure (this);  }
+    if (!_errors.empty())   {  throw OptionFailure (*this);  }
 
     /** We fill the properties. */
     buildProperties ();

@@ -80,6 +80,7 @@ public:
     const char* uri_input      ()  { return "-in";             }
     const char* uri_output     ()  { return "-out";            }
     const char* verbose        ()  { return "-verbose";        }
+    const char* help           ()  { return "-help";           }
 };
 
 /********************************************************************************/
@@ -101,6 +102,7 @@ public:
 #define STR_URI_INPUT           gatb::core::tools::misc::StringRepository::singleton().uri_input ()
 #define STR_URI_OUTPUT          gatb::core::tools::misc::StringRepository::singleton().uri_output ()
 #define STR_VERBOSE             gatb::core::tools::misc::StringRepository::singleton().verbose ()
+#define STR_HELP                gatb::core::tools::misc::StringRepository::singleton().help ()
 
 /********************************************************************************/
 

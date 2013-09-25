@@ -372,25 +372,15 @@ public:
     /** Constructor.
      * \param[in] parser : the parser that threw the exception.
      */
-    OptionFailure (OptionsParser* parser) : _parser(0)
-    {
-        setParser (parser);
-    }
-
-    /** Destructor */
-    ~OptionFailure ()
-    {
-        setParser (0);
-    }
+    OptionFailure (OptionsParser& parser) : _parser(parser)  {}
 
     /** Getter on the parser.
      * \return the parser.
      */
-    OptionsParser& getParser ()  { return *_parser; }
+    OptionsParser& getParser ()  { return _parser; }
 
 private:
-    OptionsParser* _parser;
-    void setParser (OptionsParser* parser)  { SP_SETATTR(parser); }
+    OptionsParser& _parser;
 };
 
 /********************************************************************************/
