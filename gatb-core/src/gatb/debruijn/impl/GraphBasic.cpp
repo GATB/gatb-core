@@ -225,8 +225,11 @@ void GraphBasic<T>::build (bank::IBank* bank)
         );
         executeAlgorithm (debloom);
 
+        /** We retrieve the bloom raw data. */
+        Iterable<NativeInt8>* bloomArray = & getProduct("debloom").template getCollection<NativeInt8> ("bloom");
+
         /** We configure the graph from the result of DSK and debloom. */
-        configure (_kmerSize, dsk.getSolidKmers(), debloom.getCriticalKmers());
+        configure (_kmerSize, dsk.getSolidKmers(), debloom.getCriticalKmers(), bloomArray);
 
         /** We can get rid of the binary bank. */
         System::file().remove (binaryBankUri);
@@ -251,8 +254,9 @@ void GraphBasic<T>::build (bank::IBank* bank)
 template<typename T>
 void GraphBasic<T>::configure (
     size_t kmerSize,
-    tools::collections::Iterable<Kmer<T> >* solidIterable,
-    tools::collections::Iterable<T>*        cFPKmers
+    tools::collections::Iterable<Kmer<T> >*   solidIterable,
+    tools::collections::Iterable<T>*          cFPKmers,
+    tools::collections::Iterable<tools::math::NativeInt8>* bloomArray
 )
 {
     /** We create the kmer model. */
@@ -270,13 +274,17 @@ void GraphBasic<T>::configure (
     /** We need a bloom builder for creating the Bloom filter. */
     kmer::impl::BloomBuilder<T> builder (bloomSize, nbHash);
 
-#if 0
-    /** We create Bloom filter and fill it with the solid kmers. */
-    setBloom (builder.build (solidIterable->iterator()));
-#else
-    /** We load the Bloom filter from the specific dataset. */
-    setBloom (builder.load (& getProduct("debloom").template getCollection<NativeInt8> ("bloom")));
-#endif
+    /** We check whether we have a stored Bloom filter. */
+    if (bloomArray == 0)
+    {
+        /** We create Bloom filter and fill it with the solid kmers. */
+        setBloom (builder.build (solidIterable->iterator()));
+    }
+    else
+    {
+        /** We load the Bloom filter from the specific dataset. */
+        setBloom (builder.load (bloomArray));
+    }
 
     /** We build the set of critical false positive kmers. */
     setcFPset (new tools::collections::impl::ContainerSet<T> (cFPKmers->iterator()));

@@ -150,7 +150,8 @@ private:
     void configure (
         size_t kmerSize,
         tools::collections::Iterable<kmer::Kmer<T> >* solidIterable,
-        tools::collections::Iterable<T>*              cFPKmers
+        tools::collections::Iterable<T>*              cFPKmers,
+        tools::collections::Iterable<tools::math::NativeInt8>* bloomArray=0
     );
 
     /** */
