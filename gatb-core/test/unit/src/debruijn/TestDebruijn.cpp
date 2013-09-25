@@ -339,9 +339,6 @@ public:
                 /** We build the graph. */
                 graph.build (new BankStrings (sequences[i], 0));
 
-                /** We compute the branching range for the node. */
-                Node<NativeInt64> begin, end;   graph.getNearestBranchingRange (graph.nodes().item(), begin, end);
-
                 debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
 
                 /** We remove the graph. */
