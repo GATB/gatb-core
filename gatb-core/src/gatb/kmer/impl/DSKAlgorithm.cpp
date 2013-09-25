@@ -191,12 +191,14 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
     /** We want to remove physically the partitions. */
     _partitions->remove ();
 
+    u_int64_t nbSolids = _solidKmers->iterable()->getNbItems();
+
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
     getInfo()->add (2, "kmers_nb_valid",     "%ld", _totalKmerNb);
-    getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - _solidKmers->iterable()->getNbItems() );
-    getInfo()->add (2, "kmers_nb_solid",     "%ld", _solidKmers->iterable()->getNbItems() );
-    getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)_solidKmers->iterable()->getNbItems() / (double)_totalKmerNb  );
+    getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
+    getInfo()->add (2, "kmers_nb_solid",     "%ld", nbSolids);
+    if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
 
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
@@ -228,6 +230,8 @@ void DSKAlgorithm<ProductFactory,T>::configure (IBank* bank)
 
     if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, bankSize);  }
     if (_max_disk_space == 0)  { _max_disk_space = 10000; }
+
+    if (_max_memory == 0)  {  _max_memory = 1000; }
 
     _nb_passes = ( _volume / _max_disk_space ) + 1;
 
