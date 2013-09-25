@@ -34,44 +34,44 @@ namespace math  {
 
 /** \brief Large integer class
  */
-class NativeInt64
+class NativeInt64 : private ArrayData<u_int64_t, 1>
 {
 public:
 
     /** Constructor.
      * \param[in] c : initial value of the large integer. */
-    NativeInt64 (const u_int64_t& c=0)  {  value = c;  }
+    NativeInt64 (const u_int64_t& c=0)  {  value[0] = c;  }
 
     static const char* getName ()  { return "NativeInt64"; }
 
     static const size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
-    NativeInt64 operator+  (const NativeInt64& other)   const   {  return value + other.value;  }
-    NativeInt64 operator-  (const NativeInt64& other)   const   {  return value - other.value;  }
-    NativeInt64 operator|  (const NativeInt64& other)   const   {  return value | other.value;  }
-    NativeInt64 operator*  (const int& coeff)           const   {  return value * coeff;        }
-    NativeInt64 operator/  (const u_int32_t& divisor)   const   {  return value / divisor;      }
-    u_int32_t   operator%  (const u_int32_t& divisor)   const   {  return value % divisor;      }
-    NativeInt64 operator^  (const NativeInt64& other)   const   {  return value ^ other.value;  }
-    NativeInt64 operator&  (const NativeInt64& other)   const   {  return value & other.value;  }
-    NativeInt64 operator&  (const char& other)          const   {  return value & other;        }
-    NativeInt64 operator~  ()                           const   {  return ~value;               }
-    NativeInt64 operator<< (const int& coeff)           const   {  return value << coeff;       }
-    NativeInt64 operator>> (const int& coeff)           const   {  return value >> coeff;       }
-    bool        operator!= (const NativeInt64& c)       const   {  return value != c.value;     }
-    bool        operator== (const NativeInt64& c)       const   {  return value == c.value;     }
-    bool        operator<  (const NativeInt64& c)       const   {  return value < c.value;      }
-    bool        operator<= (const NativeInt64& c)       const   {  return value <= c.value;     }
+    NativeInt64 operator+  (const NativeInt64& other)   const   {  return value[0] + other.value[0];  }
+    NativeInt64 operator-  (const NativeInt64& other)   const   {  return value[0] - other.value[0];  }
+    NativeInt64 operator|  (const NativeInt64& other)   const   {  return value[0] | other.value[0];  }
+    NativeInt64 operator*  (const int& coeff)           const   {  return value[0] * coeff;        }
+    NativeInt64 operator/  (const u_int32_t& divisor)   const   {  return value[0] / divisor;      }
+    u_int32_t   operator%  (const u_int32_t& divisor)   const   {  return value[0] % divisor;      }
+    NativeInt64 operator^  (const NativeInt64& other)   const   {  return value[0] ^ other.value[0];  }
+    NativeInt64 operator&  (const NativeInt64& other)   const   {  return value[0] & other.value[0];  }
+    NativeInt64 operator&  (const char& other)          const   {  return value[0] & other;        }
+    NativeInt64 operator~  ()                           const   {  return ~value[0];               }
+    NativeInt64 operator<< (const int& coeff)           const   {  return value[0] << coeff;       }
+    NativeInt64 operator>> (const int& coeff)           const   {  return value[0] >> coeff;       }
+    bool        operator!= (const NativeInt64& c)       const   {  return value[0] != c.value[0];     }
+    bool        operator== (const NativeInt64& c)       const   {  return value[0] == c.value[0];     }
+    bool        operator<  (const NativeInt64& c)       const   {  return value[0] < c.value[0];      }
+    bool        operator<= (const NativeInt64& c)       const   {  return value[0] <= c.value[0];     }
 
-    NativeInt64& operator+=  (const NativeInt64& other)    {  value += other.value; return *this; }
-    NativeInt64& operator^=  (const NativeInt64& other)    {  value ^= other.value; return *this; }
+    NativeInt64& operator+=  (const NativeInt64& other)    {  value[0] += other.value[0]; return *this; }
+    NativeInt64& operator^=  (const NativeInt64& other)    {  value[0] ^= other.value[0]; return *this; }
 
-    u_int8_t  operator[]  (size_t idx)    {  return (value >> (2*idx)) & 3; }
+    u_int8_t  operator[]  (size_t idx)    {  return (value[0] >> (2*idx)) & 3; }
 
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const NativeInt64 & l)
     {
-        s << std::hex << l.value << std::dec;  return s;
+        s << std::hex << l.value[0] << std::dec;  return s;
     }
     /********************************************************************************/
     /** Print corresponding kmer in ASCII
@@ -80,7 +80,7 @@ public:
     inline void printASCII ( size_t sizeKmer = 32)
     {
         int i;
-        u_int64_t temp = value;
+        u_int64_t temp = value[0];
 
         
         char seq[33];
@@ -103,7 +103,7 @@ public:
     std::string toString (size_t sizeKmer) const
     {
         int i;
-        u_int64_t temp = value;
+        u_int64_t temp = value[0];
 
         char seq[33];
         char bin2NT[4] = {'A','C','T','G'};
@@ -181,9 +181,8 @@ public:
     {
         return H5Tcopy (H5T_NATIVE_UINT64);
     }
-    
+
 private:
-    u_int64_t value;
 
     friend NativeInt64 revcomp (const NativeInt64& i,   size_t sizeKmer);
     friend u_int64_t    hash    (const NativeInt64& key, u_int64_t  seed);
@@ -195,25 +194,25 @@ private:
 /********************************************************************************/
 inline NativeInt64 revcomp (const NativeInt64& x, size_t sizeKmer)
 {
-    return NativeInt64::revcomp64 (x.value, sizeKmer);
+    return NativeInt64::revcomp64 (x.value[0], sizeKmer);
 }
 
 /********************************************************************************/
 inline u_int64_t hash (const NativeInt64& key, u_int64_t seed=0)
 {
-    return NativeInt64::hash64 (key.value, seed);
+    return NativeInt64::hash64 (key.value[0], seed);
 }
 
 /********************************************************************************/
 inline u_int64_t oahash (const NativeInt64& key)
 {
-    return NativeInt64::oahash (key.value);
+    return NativeInt64::oahash (key.value[0]);
 }
     
 /********************************************************************************/
 inline u_int64_t simplehash16 (const NativeInt64& key, int  shift)
 {
-    return NativeInt64::simplehash16_64 (key.value, shift);
+    return NativeInt64::simplehash16_64 (key.value[0], shift);
 }
 
 /********************************************************************************/

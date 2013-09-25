@@ -54,7 +54,7 @@ namespace math  {
 
 /** \brief Large integer class
  */
-template<int precision>  class LargeInt
+template<int precision>  class LargeInt : private ArrayData<u_int64_t, precision>
 {
 public:
 
@@ -73,7 +73,7 @@ public:
      * \param[in] val : initial value of the large integer. */
     LargeInt(const u_int64_t& val = 0)
     {
-        array[0] = val;   for (int i = 1; i < precision; i++)  {  array[i] = 0;  }
+        this->value[0] = val;   for (int i = 1; i < precision; i++)  {  this->value[i] = 0;  }
     }
 
     /********************************************************************************/
@@ -83,11 +83,11 @@ public:
         int carry = 0;
         for (int i = 0 ; i < precision ; i++)
         {
-            result.array[i] = array[i] + other.array[i] + carry;
-            carry = (result.array[i] < array[i]) ? 1 : 0;
+            result.value[i] = this->value[i] + other.value[i] + carry;
+            carry = (result.value[i] < this->value[i]) ? 1 : 0;
         }
 
-        assert    (precision != 1 || (result == other.array[0] + array[0]));
+        assert    (precision != 1 || (result == other.value[0] + this->value[0]));
         assert128 (result.toInt128() == other.toInt128() + toInt128());
         return result;
     }
@@ -99,11 +99,11 @@ public:
         int carry = 0;
         for (int i = 0 ; i < precision ; i++)
         {
-            result.array[i] = array[i] - other.array[i] - carry;
-            carry = (result.array[i] > array[i]) ? 1 : 0;
+            result.value[i] = this->value[i] - other.value[i] - carry;
+            carry = (result.value[i] > this->value[i]) ? 1 : 0;
         }
 
-        assert(precision != 1 || (result == array[0] - other.array[0]));
+        assert(precision != 1 || (result == this->value[0] - other.value[0]));
         assert128(result.toInt128() == toInt128() - other.toInt128());
         return result;
     }
@@ -133,7 +133,7 @@ public:
             }
         }
 
-        assert(precision != 1 || (result == array[0] * coeff));
+        assert(precision != 1 || (result == this->value[0] * coeff));
         assert128(result.toInt128() == toInt128() * coeff);
         return result;
     }
@@ -142,7 +142,7 @@ public:
     LargeInt operator/(const uint32_t& divisor) const
     {
         LargeInt result;
-        std::fill( result.array, result.array + precision, 0 );
+        std::fill( result.value, result.value + precision, 0 );
 
         // inspired by Divide32() from http://subversion.assembla.com/svn/pxcode/RakNet/Source/BigInt.cpp
 
@@ -152,12 +152,12 @@ public:
         {
             for (int j = 1; j >= 0; --j) // [j=1: high-32 bits, j=0: low-32 bits] of array[i]
             {
-                u_int64_t n = (r << 32) | ((array[i] >> (32*j)) & mask32bits );
-                result.array[i] = result.array[i] | (((n / divisor) & mask32bits) << (32*j));
+                u_int64_t n = (r << 32) | ((this->value[i] >> (32*j)) & mask32bits );
+                result.value[i] = result.value[i] | (((n / divisor) & mask32bits) << (32*j));
                 r = n % divisor;
             }
         }
-        assert(precision != 1 || (result == array[0] / divisor));
+        assert(precision != 1 || (result == this->value[0] / divisor));
         assert128(result.toInt128() == toInt128() / divisor);
         return result;
     }
@@ -171,12 +171,12 @@ public:
         {
             for (int j = 1; j >= 0; --j) // [j=1: high-32 bits, j=0: low-32 bits] of array[i]
             {
-                u_int64_t n = (r << 32) | ((array[i] >> (32*j)) & mask32bits );
+                u_int64_t n = (r << 32) | ((this->value[i] >> (32*j)) & mask32bits );
                 r = n % divisor;
             }
         }
 
-        assert(precision != 1 || (r == array[0] % divisor));
+        assert(precision != 1 || (r == this->value[0] % divisor));
         assert128(r == toInt128() % divisor);
         return (uint32_t)r;
     }
@@ -186,9 +186,9 @@ public:
     {
         LargeInt result;
         for (int i=0 ; i < precision ; i++)
-            result.array[i] = array[i] ^ other.array[i];
+            result.value[i] = this->value[i] ^ other.value[i];
 
-        assert(precision != 1 || (result == (array[0] ^ other.array[0])));
+        assert(precision != 1 || (result == (this->value[0] ^ other.value[0])));
         assert128(result.toInt128() == (toInt128() ^ other.toInt128()));
         return result;
     }
@@ -198,9 +198,9 @@ public:
     {
         LargeInt result;
         for (int i=0 ; i < precision ; i++)
-            result.array[i] = array[i] | other.array[i];
+            result.value[i] = this->value[i] | other.value[i];
         
-        assert(precision != 1 || (result == (array[0] | other.array[0])));
+        assert(precision != 1 || (result == (this->value[0] | other.value[0])));
         assert128(result.toInt128() == (toInt128() | other.toInt128()));
         return result;
     }
@@ -210,9 +210,9 @@ public:
     {
         LargeInt result;
         for (int i=0 ; i < precision ; i++)
-            result.array[i] = array[i] & other.array[i];
+            result.value[i] = this->value[i] & other.value[i];
 
-        assert(precision != 1 || (result == (array[0] & other.array[0])));
+        assert(precision != 1 || (result == (this->value[0] & other.value[0])));
         assert128(result.toInt128() == (toInt128() & other.toInt128()));
         return result;
     }
@@ -221,7 +221,7 @@ public:
     LargeInt operator&(const char& other) const
     {
         LargeInt result;
-        result.array[0] = array[0] & other;
+        result.value[0] = this->value[0] & other;
         return result;
     }
 
@@ -230,9 +230,9 @@ public:
                     {
         LargeInt result;
         for (int i=0 ; i < precision ; i++)
-            result.array[i] = ~array[i];
+            result.value[i] = ~this->value[i];
 
-        assert(precision != 1 || (result == ~array[0]));
+        assert(precision != 1 || (result == ~this->value[0]));
         assert128(result.toInt128() == ~toInt128());
         return result;
                     }
@@ -247,21 +247,21 @@ public:
 
         for (int i = large_shift ; i < precision-1; i++)
         {
-            result.array[i] = result.array[i] | (array[i-large_shift] << small_shift);
+            result.value[i] = result.value[i] | (this->value[i-large_shift] << small_shift);
 
             if (small_shift == 0) // gcc "bug".. u_int64_t x; x>>64 == 1<<63, x<<64 == 1
             {
-                result.array[i+1] = 0;
+                result.value[i+1] = 0;
             }
             else
             {
-                result.array[i+1] = array[i-large_shift] >> (64 - small_shift);
+                result.value[i+1] = this->value[i-large_shift] >> (64 - small_shift);
             }
 
         }
-        result.array[precision-1] = result.array[precision-1] | (array[precision-1-large_shift] << small_shift);
+        result.value[precision-1] = result.value[precision-1] | (this->value[precision-1-large_shift] << small_shift);
 
-        assert(precision != 1 || (result == (array[0] << coeff)));
+        assert(precision != 1 || (result == (this->value[0] << coeff)));
         assert128(result.toInt128() == (toInt128() << coeff));
         return result;
     }
@@ -274,22 +274,22 @@ public:
         int large_shift = coeff / 64;
         int small_shift = coeff % 64;
 
-        result.array[0] = (array[large_shift] >> small_shift);
+        result.value[0] = (this->value[large_shift] >> small_shift);
 
         for (int i = 1 ; i < precision - large_shift ; i++)
         {
-            result.array[i] = (array[i+large_shift] >> small_shift);
+            result.value[i] = (this->value[i+large_shift] >> small_shift);
             if (small_shift == 0 && large_shift > 0) // gcc "bug".. u_int64_t x; x>>64 == 1<<63, x<<64 == 1
             {
-                result.array[i-1] =  result.array[i-1];
+                result.value[i-1] =  result.value[i-1];
             }
             else
             {
-                result.array[i-1] =  result.array[i-1] | (array[i+large_shift] << (64 - small_shift));
+                result.value[i-1] =  result.value[i-1] | (this->value[i+large_shift] << (64 - small_shift));
             }
         }
 
-        assert(precision != 1 || ( small_shift == 0 || (result == array[0] >> coeff)));
+        assert(precision != 1 || ( small_shift == 0 || (result == this->value[0] >> coeff)));
         assert128(small_shift == 0 || (result.toInt128() == (toInt128() >> coeff)));
         return result;
     }
@@ -298,7 +298,7 @@ public:
     bool     operator!=(const LargeInt& c) const
                     {
         for (int i = 0 ; i < precision ; i++)
-            if( array[i] != c.array[i] )
+            if( this->value[i] != c.value[i] )
                 return true;
         return false;
                     }
@@ -307,7 +307,7 @@ public:
     bool operator==(const LargeInt& c) const
     {
         for (int i = 0 ; i < precision ; i++)
-            if( array[i] != c.array[i] )
+            if( this->value[i] != c.value[i] )
                 return false;
         return true;
     }
@@ -316,8 +316,8 @@ public:
     bool operator<(const LargeInt& c) const
     {
         for (int i = precision-1 ; i>=0 ; --i)
-            if( array[i] != c.array[i] )
-                return array[i] < c.array[i];
+            if( this->value[i] != c.value[i] )
+                return this->value[i] < c.value[i];
 
         return false;
     }
@@ -339,7 +339,7 @@ public:
     /********************************************************************************/
     LargeInt& operator^=  (const LargeInt& other)
     {
-        for (int i=0 ; i < precision ; i++)  {  array[i] ^= other.array[i];  }
+        for (int i=0 ; i < precision ; i++)  {  this->value[i] ^= other.value[i];  }
         return *this;
     }
 
@@ -352,10 +352,10 @@ public:
         s << std::hex;
 
         /** We skip leading 0. */
-        for (i=precision-1; i>=0 && l.array[i]==0; i--)  {}
+        for (i=precision-1; i>=0 && l.value[i]==0; i--)  {}
 
         /** We dump the different parts of the large integer. */
-        for (  ; i>=0 ; i--)  { s << l.array[i];   if (i>=1) { s << ".";  }  }
+        for (  ; i>=0 ; i--)  { s << l.value[i];   if (i>=1) { s << ".";  }  }
 
         /** We go back to decimal format. */
         s << std::dec;
@@ -373,7 +373,7 @@ public:
     }
 
 private:
-    u_int64_t array[precision];
+//    u_int64_t value[precision];
 
     template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
     template<int T>  friend u_int64_t   hash    (const LargeInt<T>& key, u_int64_t  seed);
@@ -389,8 +389,8 @@ template<int precision>  inline LargeInt<precision> revcomp (const LargeInt<prec
 {
     const LargeInt<precision> res = x;
 
-    unsigned char* kmerrev  = (unsigned char *) (&(res.array[0]));
-    unsigned char* kmer     = (unsigned char *) (&(x.array[0]));
+    unsigned char* kmerrev  = (unsigned char *) (&(res.value[0]));
+    unsigned char* kmer     = (unsigned char *) (&(x.value[0]));
 
     for (size_t i=0; i<8*precision; ++i)
     {
@@ -409,7 +409,7 @@ template<int precision>  inline u_int64_t hash (const LargeInt<precision>& elem,
     LargeInt<precision> intermediate = elem;
     for (size_t i=0;i<precision;i++)
     {
-        chunk = (intermediate & mask).array[0];
+        chunk = (intermediate & mask).value[0];
         intermediate = intermediate >> 64;
 
         result ^= NativeInt64::hash64 (chunk,seed);
@@ -426,7 +426,7 @@ template<int precision>  u_int64_t oahash (const LargeInt<precision>& elem)
     LargeInt<precision> intermediate = elem;
     for (size_t i=0;i<precision;i++)
     {
-        chunk = (intermediate & mask).array[0];
+        chunk = (intermediate & mask).value[0];
         intermediate = intermediate >> 64;
         result ^= NativeInt64::oahash (chunk);
     }
@@ -439,7 +439,7 @@ template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision
     u_int64_t result = 0, chunk, mask = ~0;
     LargeInt<precision> intermediate = elem;
     
-    chunk = (intermediate & mask).array[0];
+    chunk = (intermediate & mask).value[0];
     result ^= NativeInt64::simplehash16_64 (chunk,shift);
 
     return result;

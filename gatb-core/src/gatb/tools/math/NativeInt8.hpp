@@ -30,38 +30,38 @@ namespace math  {
 
 /** \brief Large integer class
  */
-class NativeInt8
+class NativeInt8 : private ArrayData<u_int8_t, 1>
 {
 public:
 
     /** Constructor.
      * \param[in] c : initial value of the large integer. */
-    NativeInt8 (const u_int8_t& c=0)  {  value = c;  }
+    NativeInt8 (const u_int8_t& c=0)  {  value[0] = c;  }
 
     static const char* getName ()  { return "NativeInt8"; }
 
     static const size_t getSize ()  { return 8*sizeof(u_int8_t); }
 
-    NativeInt8 operator+  (const NativeInt8& other)   const   {  return value + other.value;  }
-    NativeInt8 operator-  (const NativeInt8& other)   const   {  return value - other.value;  }
-    NativeInt8 operator|  (const NativeInt8& other)   const   {  return value | other.value;  }
-    NativeInt8 operator^  (const NativeInt8& other)   const   {  return value ^ other.value;  }
-    NativeInt8 operator&  (const NativeInt8& other)   const   {  return value & other.value;  }
-    NativeInt8 operator&  (const char& other)          const   {  return value & other;        }
-    NativeInt8 operator~  ()                           const   {  return ~value;               }
-    NativeInt8 operator<< (const int& coeff)           const   {  return value << coeff;       }
-    NativeInt8 operator>> (const int& coeff)           const   {  return value >> coeff;       }
-    bool        operator!= (const NativeInt8& c)       const   {  return value != c.value;     }
-    bool        operator== (const NativeInt8& c)       const   {  return value == c.value;     }
-    bool        operator<  (const NativeInt8& c)       const   {  return value < c.value;      }
-    bool        operator<= (const NativeInt8& c)       const   {  return value <= c.value;     }
-    NativeInt8& operator+=  (const NativeInt8& other)    {  value += other.value; return *this; }
-    NativeInt8& operator^=  (const NativeInt8& other)    {  value ^= other.value; return *this; }
+    NativeInt8 operator+  (const NativeInt8& other)   const   {  return value[0] + other.value[0];  }
+    NativeInt8 operator-  (const NativeInt8& other)   const   {  return value[0] - other.value[0];  }
+    NativeInt8 operator|  (const NativeInt8& other)   const   {  return value[0] | other.value[0];  }
+    NativeInt8 operator^  (const NativeInt8& other)   const   {  return value[0] ^ other.value[0];  }
+    NativeInt8 operator&  (const NativeInt8& other)   const   {  return value[0] & other.value[0];  }
+    NativeInt8 operator&  (const char& other)          const   {  return value[0] & other;        }
+    NativeInt8 operator~  ()                           const   {  return ~value[0];               }
+    NativeInt8 operator<< (const int& coeff)           const   {  return value[0] << coeff;       }
+    NativeInt8 operator>> (const int& coeff)           const   {  return value[0] >> coeff;       }
+    bool        operator!= (const NativeInt8& c)       const   {  return value[0] != c.value[0];     }
+    bool        operator== (const NativeInt8& c)       const   {  return value[0] == c.value[0];     }
+    bool        operator<  (const NativeInt8& c)       const   {  return value[0] < c.value[0];      }
+    bool        operator<= (const NativeInt8& c)       const   {  return value[0] <= c.value[0];     }
+    NativeInt8& operator+=  (const NativeInt8& other)    {  value[0] += other.value[0]; return *this; }
+    NativeInt8& operator^=  (const NativeInt8& other)    {  value[0] ^= other.value[0]; return *this; }
 
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const NativeInt8 & l)
     {
-        s << std::hex << l.value << std::dec;  return s;
+        s << std::hex << l.value[0] << std::dec;  return s;
     }
 
     /********************************************************************************/
@@ -69,9 +69,6 @@ public:
     {
         return H5Tcopy (H5T_NATIVE_UINT8);
     }
-    
-private:
-    u_int8_t value;
 };
 
 /********************************************************************************/
