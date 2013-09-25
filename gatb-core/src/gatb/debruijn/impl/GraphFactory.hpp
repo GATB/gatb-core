@@ -66,9 +66,9 @@ public:
     }
 
     template<typename T>
-    static Graph<T>  createGraph (bank::IBank* bank, tools::misc::IProperties* options)
+    static Graph<T>  createGraph (tools::misc::IProperties* options)
     {
-        return  Graph<T> (new GraphBasic<T> (bank, options));
+        return  Graph<T> (new GraphBasic<T> (options));
     }
 
     template<typename T>

@@ -21,6 +21,7 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/IProperty.hpp>
 
+#include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 
 #include <sstream>
@@ -311,8 +312,11 @@ public:
     /** Destructor. */
     virtual ~IGraph() {}
 
+    /** */
+    virtual void remove () = 0;
+
     /** Build the graph if needed. */
-    virtual void build () = 0;
+    virtual void build (bank::IBank* bank) = 0;
 
     /** From Container interface. */
     virtual bool contains (const Node<T>& item) = 0;
@@ -356,8 +360,11 @@ public:
     /** Destructor. */
     ~Graph () { setRef(0); }
 
+    /** */
+    void remove ()  { _ref->remove (); }
+
     /**  */
-    void build ()  { _ref->build (); }
+    void build (bank::IBank* bank)  { _ref->build (bank); }
 
     /** From Container interface. */
     bool contains (const Node<T>& item)  { return _ref->contains (item); }

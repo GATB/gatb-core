@@ -57,9 +57,6 @@ class GraphBasic : public IGraph<T>
 public:
 
     /** Constructor. */
-    GraphBasic (tools::misc::IProperties* props);
-
-    /** Constructor. */
     GraphBasic (
         tools::collections::Iterable<kmer::Kmer<T> >* solidKmers,
         tools::collections::Iterable<T>*              cFPKmers,
@@ -67,7 +64,7 @@ public:
     );
 
     /** Constructor. */
-    GraphBasic (bank::IBank* bank, tools::misc::IProperties* options);
+    GraphBasic (tools::misc::IProperties* options);
 
     /** Constructor. */
     GraphBasic (const std::string& uri);
@@ -76,7 +73,10 @@ public:
     ~GraphBasic ();
 
     /** */
-    void build ();
+    void remove () { _product->remove (); }
+
+    /** */
+    void build (bank::IBank* bank);
 
     /** */
     bool contains (const Node<T>& item)  { return contains (item.kmer.value); }
@@ -105,13 +105,25 @@ public:
 
 private:
 
-    bool _isBuilt;
+    /** We define states for the graph. */
+    enum State_e
+    {
+        INIT,
+        READY
+    };
+    State_e _state;
+    State_e getState () const { return _state; }
+    void setState (State_e state)  { _state = state; }
+
+    /** Shortcuts. */
+    size_t _kmerSize;
+    size_t _nks;
     T      _mask;
     size_t _span;
 
     tools::collections::impl::Product<ProductFactoryLocal>* _product;
     void setProduct (tools::collections::impl::Product<ProductFactoryLocal>* product)  { SP_SETATTR(product); }
-    tools::collections::impl::Group<ProductFactoryLocal>& getProductRoot()  { return (*_product) (); }
+    tools::collections::impl::Group<ProductFactoryLocal>& getProduct(const std::string name="")  { return (*_product) (name); }
 
     tools::collections::Iterable<kmer::Kmer<T> >* _solidKmersIterable;
     void setSolidKmersIterable (tools::collections::Iterable<kmer::Kmer<T> >* solidKmersIterable)  { SP_SETATTR(solidKmersIterable); }
