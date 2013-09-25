@@ -6,6 +6,7 @@
  *****************************************************************************/
 
 #include <gatb/tools/misc/impl/Property.hpp>
+#include <gatb/tools/misc/impl/XmlReader.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <sstream>
 #include <fstream>
@@ -394,7 +395,6 @@ void Properties::dump (std::ostream& s)
 *********************************************************************/
 void Properties::readXML (std::istream& stream)
 {
-#if 0
     /** We create an XML reader. */
     XmlReader reader (stream);
 
@@ -433,7 +433,13 @@ void Properties::readXML (std::istream& stream)
             if (e3)
             {
                 /** We find a text => set it to the current property.  */
-                if (_currentProperty)  { _currentProperty->value = e3->_txt; }
+                if (_currentProperty)
+                {
+                    _currentProperty->value = e3->_txt;
+
+                    /** We don't want to bother with dummy text tag. */
+                    _currentProperty = NULL;
+                }
 
                 DEBUG (("XmlTagTextEvent (%d) : txt=%s\n", _depth, e3->_txt.c_str()));
                 return;
@@ -454,7 +460,6 @@ void Properties::readXML (std::istream& stream)
 
     /** We read the stream. */
     reader.read ();
-#endif
 }
 
 /*********************************************************************
@@ -731,7 +736,7 @@ void XmlDumpPropertiesVisitor::visitProperty (IProperty* prop)
         size_t actualDepth = prop->depth + 1;
 
         DEBUG (("XmlDumpPropertiesVisitor::visitProperty:  actualDepth=%ld stack.size=%ld '%s' \n",
-            actualDepth, _stack.size(), prop->toString().c_str()
+            actualDepth, _stack.size(), prop->key.c_str()
         ));
 
         if (actualDepth > _stack.size())
