@@ -49,6 +49,13 @@ public:
 
     /** Physically remove the node. */
     virtual void remove () = 0;
+
+    /** \copydoc ICell::getRoot  */
+    static ICell* getRoot (ICell* cell)
+    {
+        dp::ICell* loop=0;  for (loop=cell ; loop && loop->getParent() != 0;  loop=loop->getParent())  {}
+        return loop;
+    }
 };
 
 /********************************************************************************/
