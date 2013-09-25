@@ -5,7 +5,7 @@
 file (GLOB_RECURSE  ComponentFiles  *)
 
 # WARNING !!! For the moment, we need to remove some warnings (on Macos) due to use of offsetof macro on non Plain Old Data
-set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -Wno-invalid-offsetof")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof") 
 
 include_directories (${gatb-core-includes})
 
