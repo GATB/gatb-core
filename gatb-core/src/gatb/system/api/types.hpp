@@ -32,6 +32,14 @@
 
 /********************************************************************************/
 
+template<typename Type, int precision>
+struct ArrayData
+{
+    Type value[precision];
+};
+
+/********************************************************************************/
+
 /** Define an abundance. */
 template<typename Type, typename Number=u_int16_t> struct Abundance
 {
