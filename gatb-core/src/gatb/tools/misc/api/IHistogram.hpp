@@ -25,7 +25,10 @@ namespace misc      {
 /********************************************************************************/
 
 /** Here is a command line for showing the histogram with gnuplot from the hdf5 file 'graph.h5'
-        h5dump -y -d dsk/histogram graph.h5 | grep [0-9] | grep -v [A-Z].* | paste - - | gnuplot -p -e 'plot [][0:100] "-" with lines'
+    h5dump -y -d dsk/histogram graph.h5 | grep [0-9] | grep -v [A-Z].* | paste - - | gnuplot -p -e 'plot [][0:100] "-" with lines'
+
+ For the sum of the distribution, you can use;
+    h5dump -y -d dsk/histogram graph.h5 | grep [0-9] | grep -v [A-Z].* | paste - - | gawk 'BEGIN{s=0; i=0} { s=s+$2; i=i+1; print i,"  ", s}' | gnuplot -p -e 'plot [0:10][0:] "-" with lines'
 */
 
 /** \brief TBD */
