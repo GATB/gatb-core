@@ -55,8 +55,8 @@ public:
         size_t              nks,
         u_int32_t           max_memory     = 1000,
         u_int64_t           max_disk_space = 0,
-        size_t              partitionType  = 0,
         size_t              nbCores        = 0,
+        size_t              partitionType  = 0,
         const std::string&  prefix         = "tmp.",
         const std::string&  histogramUri   = "histogram",
         gatb::core::tools::misc::IProperties* options = 0
@@ -75,6 +75,8 @@ public:
     tools::collections::Collection<Kmer<T> >* getSolidKmers ()  { return _solidKmers; }
 
 private:
+
+    typedef tools::collections::impl::ProductFileFactory  PartitionFactory;
 
     /** Compute several values, in particular the number of passes and partitions. */
     void configure (gatb::core::bank::IBank* bank);
@@ -141,14 +143,16 @@ private:
     void setHistogram (gatb::core::tools::misc::IHistogram* histogram)  { SP_SETATTR(histogram); }
 
     /** Partitions management. */
-    tools::collections::impl::Product<tools::collections::impl::ProductFileFactory>* _partitionsProduct;
-    void setPartitionsProduct (tools::collections::impl::Product<tools::collections::impl::ProductFileFactory>* partitionsProduct)
+    tools::collections::impl::Product<PartitionFactory>* _partitionsProduct;
+    void setPartitionsProduct (tools::collections::impl::Product<PartitionFactory>* partitionsProduct)
     {
         SP_SETATTR(partitionsProduct);
     }
 
-    tools::collections::impl::Partition<tools::collections::impl::ProductFileFactory, T>* _partitions;
-    void setPartitions (tools::collections::impl::Partition<tools::collections::impl::ProductFileFactory, T>* partitions)  {  SP_SETATTR(partitions);  }
+    tools::collections::impl::Partition<PartitionFactory, T>* _partitions;
+    void setPartitions (tools::collections::impl::Partition<PartitionFactory, T>* partitions)  {  SP_SETATTR(partitions);  }
+
+    u_int64_t _totalKmerNb;
 
     template<typename T1, typename T2> friend class PartitionsCommand;
 };

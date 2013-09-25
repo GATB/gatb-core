@@ -90,13 +90,13 @@ DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
     size_t      nks,
     u_int32_t   max_memory,
     u_int64_t   max_disk_space,
-    size_t      partitionType,
     size_t      nbCores,
+    size_t      partitionType,
     const std::string& prefix,
     const std::string& histogramUri,
     gatb::core::tools::misc::IProperties* options
 )
-  : Algorithm("dsk", options),
+  : Algorithm("dsk", nbCores, options),
     _product(product),
     _bank(0),
     _kmerSize(kmerSize), _nks(nks),
@@ -105,15 +105,15 @@ DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(histogramUri),
-    _partitionsProduct(0), _partitions(0)
+    _partitionsProduct(0), _partitions(0), _totalKmerNb(0)
 {
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& product().template addCollection<Kmer<T> > ("dsk/solid"));
+    setSolidKmers (& product("dsk").template getCollection<Kmer<T> > ("solid"));
 
     /** We set the histogram instance. */
-    setHistogram (new Histogram  (10000, & _product().template addCollection<Histogram::Entry>("dsk/histogram") ));
+    setHistogram (new Histogram  (10000, & product("dsk").template getCollection<Histogram::Entry>("histogram") ));
 }
 
 /*********************************************************************
@@ -193,8 +193,11 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
-    getInfo()->add (2, "solid kmers nb", "%ld", _solidKmers->iterable()->getNbItems() );
-    getInfo()->add (2, "solid kmers uri",       _solidKmers->getFullId());
+    getInfo()->add (2, "kmers_nb_valid",     "%ld", _totalKmerNb);
+    getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - _solidKmers->iterable()->getNbItems() );
+    getInfo()->add (2, "kmers_nb_solid",     "%ld", _solidKmers->iterable()->getNbItems() );
+    getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)_solidKmers->iterable()->getNbItems() / (double)_totalKmerNb  );
+
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
 
@@ -248,20 +251,21 @@ void DSKAlgorithm<ProductFactory,T>::configure (IBank* bank)
 
     /** We gather some statistics. */
     getInfo()->add (1, "config");
+    getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);
     getInfo()->add (2, "nks",               "%ld", _nks);
-    getInfo()->add (2, "available space",   "%ld", available_space);
-    getInfo()->add (2, "bank size",         "%ld", bankSize);
-    getInfo()->add (2, "sequence number",   "%ld", _estimateSeqNb);
-    getInfo()->add (2, "sequence volume",   "%ld", _estimateSeqTotalSize / MBYTE);
-    getInfo()->add (2, "kmers number",      "%ld", kmersNb);
-    getInfo()->add (2, "kmers volume",      "%ld", _volume);
-    getInfo()->add (2, "max disk space",    "%ld", _max_disk_space);
-    getInfo()->add (2, "max memory",        "%ld", _max_memory);
-    getInfo()->add (2, "nb passes",         "%d",  _nb_passes);
-    getInfo()->add (2, "nb partitions",     "%d",  _nb_partitions);
-    getInfo()->add (2, "nb bits per kmer",  "%d",  T::getSize());
-    getInfo()->add (2, "nb cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
-    getInfo()->add (2, "partition type",    "%d",  _partitionType);
+    getInfo()->add (2, "available_space",   "%ld", available_space);
+    getInfo()->add (2, "bank_size",         "%ld", bankSize);
+    getInfo()->add (2, "sequence_number",   "%ld", _estimateSeqNb);
+    getInfo()->add (2, "sequence_volume",   "%ld", _estimateSeqTotalSize / MBYTE);
+    getInfo()->add (2, "kmers_number",      "%ld", kmersNb);
+    getInfo()->add (2, "kmers_volume",      "%ld", _volume);
+    getInfo()->add (2, "max_disk_space",    "%ld", _max_disk_space);
+    getInfo()->add (2, "max_memory",        "%ld", _max_memory);
+    getInfo()->add (2, "nb_passes",         "%d",  _nb_passes);
+    getInfo()->add (2, "nb_partitions",     "%d",  _nb_partitions);
+    getInfo()->add (2, "nb_bits_per_kmer",  "%d",  T::getSize());
+    getInfo()->add (2, "nb_cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
+    getInfo()->add (2, "partition_type",    "%d",  _partitionType);
 }
 
 /********************************************************************************/
@@ -347,7 +351,7 @@ private:
 template<typename ProductFactory, typename T>
 void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
 {
-    TIME_INFO (getTimeInfo(), "fill partitions");
+    TIME_INFO (getTimeInfo(), "fill_partitions");
 
     DEBUG (("DSKAlgorithm<ProductFactory,T>::fillPartitions  pass \n", pass));
 
@@ -358,14 +362,14 @@ void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Seque
     if (_partitionsProduct)  { _partitionsProduct->remove (); }
 
     /** We create the partition files for the current pass. */
-    setPartitionsProduct (tools::collections::impl::ProductFileFactory::createProduct ("partitions", false));
-    setPartitions        ( & (*_partitionsProduct)().template addPartition<T> ("parts", _nb_partitions));
+    setPartitionsProduct (PartitionFactory::createProduct ("partitions", false));
+    setPartitions        ( & (*_partitionsProduct)().template getPartition<T> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<tools::collections::impl::ProductFileFactory,T> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
+    getDispatcher()->iterate (itSeq, FillPartitions<PartitionFactory,T> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
 }
 
 /*********************************************************************
@@ -385,13 +389,18 @@ public:
         Bag<Kmer<T> >* solidKmers,
         Iterable<T>&   partition,
         IHistogram*    histogram,
-        ISynchronizer* synchro
+        ISynchronizer* synchro,
+        u_int64_t&     totalKmerNbRef
     )
         : _nks(algo.getNks()),
           _solidKmers(solidKmers, 10*1000, synchro),
           _partition(partition),
           _histogram(histogram),
-          _progress(algo.getProgress(), synchro)  {}
+          _progress(algo.getProgress(), synchro),
+          _totalKmerNb(0),
+          _totalKmerNbRef(totalKmerNbRef) {}
+
+    ~PartitionsCommand()  { _totalKmerNbRef += _totalKmerNb; }
 
 protected:
     size_t              _nks;
@@ -399,10 +408,14 @@ protected:
     Iterable<T>&        _partition;
     HistogramCache      _histogram;
     ProgressSynchro     _progress;
+    u_int64_t           _totalKmerNb;
+    u_int64_t&          _totalKmerNbRef;
 
     void insert (const Kmer<T>& kmer)
     {
         u_int32_t max_couv  = 2147483646;
+
+        _totalKmerNb++;
 
         /** We should update the abundance histogram*/
         _histogram.inc (kmer.abundance);
@@ -425,9 +438,10 @@ public:
         Iterable<T>&    partition,
         IHistogram*     histogram,
         ISynchronizer*  synchro,
+        u_int64_t&      totalKmerNbRef,
         u_int64_t       hashMemory
     )
-        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, histogram, synchro), _hashMemory(hashMemory)  {}
+        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef), _hashMemory(hashMemory)  {}
 
     void execute ()
     {
@@ -476,9 +490,10 @@ public:
         Bag<Kmer<T> >*  solidKmers,
         Iterable<T>&    partition,
         IHistogram*     histogram,
-        ISynchronizer*  synchro
+        ISynchronizer*  synchro,
+        u_int64_t&      totalKmerNbRef
     )
-        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, histogram, synchro)
+        : PartitionsCommand<ProductFactory, T> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef)
           {}
 
     void execute ()
@@ -563,7 +578,7 @@ std::vector<size_t> DSKAlgorithm<ProductFactory,T>::getNbCoresList ()
 template<typename ProductFactory, typename T>
 void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
 {
-    TIME_INFO (getTimeInfo(), "fill solid kmers");
+    TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
     DEBUG (("DSKAlgorithm<ProductFactory,T>::fillSolidKmers\n"));
 
@@ -595,11 +610,11 @@ void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
 
             if (_partitionType == 0)
             {
-                cmd = new PartitionsByHashCommand<ProductFactory, T>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, mem);
+                cmd = new PartitionsByHashCommand<ProductFactory, T>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, mem);
             }
             else
             {
-                cmd = new PartitionsByVectorCommand<ProductFactory, T> (*this, solidKmers, (*_partitions)[p], _histogram, synchro);
+                cmd = new PartitionsByVectorCommand<ProductFactory, T> (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb);
             }
 
             cmds.push_back (cmd);
