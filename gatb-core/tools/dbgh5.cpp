@@ -13,13 +13,11 @@ public:
     {
         LOCAL (options);
 
-        IBank* bank = new Bank (options->getStr(STR_URI_INPUT));
-
         /** We create the graph. */
-        Graph<T> graph = GraphFactory::createGraph <T> (bank, options);
+        Graph<T> graph = GraphFactory::createGraph <T> (options);
 
         /** We build the graph. */
-        graph.build ();
+        graph.build (new Bank (options->getStr(STR_URI_INPUT)));
 
         /** We dump some information about the graph. */
         cout << graph.getInfo() << endl;
@@ -35,24 +33,35 @@ int main (int argc, char* argv[])
     parser.add (new OptionOneParam (STR_URI_OUTPUT, "graph output",             false));
     parser.add (new OptionOneParam (STR_KMER_SIZE,  "kmer size",                false, "27"));
     parser.add (new OptionOneParam (STR_NKS,        "kmer abundance threshold", false, "3" ));
+    parser.add (new OptionOneParam (STR_MAX_MEMORY, "max memory",               false, "1000"));
+    parser.add (new OptionOneParam (STR_MAX_DISK,   "max disk",                 false, "0"));
+    parser.add (new OptionOneParam (STR_NB_CORES,   "nb cores (0 for all)",     false, "0"));
+    parser.add (new OptionNoParam  (STR_VERBOSE,    "verbosity",                false));
 
-    /** We parse the user options. */
-    IProperties* options = parser.parse (argc, argv);
-
-    /** Shortcut */
-    size_t kmerSize = options->getInt (STR_KMER_SIZE);
-
-    /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
-    if (kmerSize < 32)        {  GraphGenerator<NativeInt64>::build (options); }
-    else if (kmerSize < 64)
+    try
     {
-#ifdef INT128_FOUND
-        GraphGenerator<NativeInt128>::build (options);
-#else
-        GraphGenerator<LargeInt<2> >::build (options);
-#endif
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+        /** Shortcut */
+        size_t kmerSize = options->getInt (STR_KMER_SIZE);
+
+        /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
+        if (kmerSize < 32)        {  GraphGenerator<NativeInt64>::build (options); }
+        else if (kmerSize < 64)
+        {
+    #ifdef INT128_FOUND
+            GraphGenerator<NativeInt128>::build (options);
+    #else
+            GraphGenerator<LargeInt<2> >::build (options);
+    #endif
+        }
+        else if (kmerSize < 96)   {  GraphGenerator<LargeInt<3> >::build (options);  }
+        else if (kmerSize < 128)  {  GraphGenerator<LargeInt<4> >::build (options);  }
+        else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
     }
-    else if (kmerSize < 96)   {  GraphGenerator<LargeInt<3> >::build (options);  }
-    else if (kmerSize < 128)  {  GraphGenerator<LargeInt<4> >::build (options);  }
-    else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
+    catch (...)
+    {
+
+    }
 }
