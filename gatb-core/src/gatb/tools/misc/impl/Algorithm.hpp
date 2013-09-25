@@ -42,7 +42,7 @@ public:
 
     /** Constructor.
      * \param[in] name: name of the algorithm. */
-    Algorithm (const std::string& name, gatb::core::tools::misc::IProperties* input=0);
+    Algorithm (const std::string& name, int nbCores=-1, gatb::core::tools::misc::IProperties* input=0);
 
     /** Destructor. */
     virtual ~Algorithm ();

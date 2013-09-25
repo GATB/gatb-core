@@ -32,13 +32,15 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Algorithm::Algorithm (const std::string& name, gatb::core::tools::misc::IProperties* input)
+Algorithm::Algorithm (const std::string& name, int nbCores, gatb::core::tools::misc::IProperties* input)
     : _name(name), _input(0), _output(0), _info(0), _dispatcher(0)
 {
     setInput  (input ? input : new Properties());
     setOutput (new Properties());
     setInfo   (new Properties());
-    setDispatcher (new ParallelCommandDispatcher (_input->get(STR_NB_CORES)  ? _input->getInt(STR_NB_CORES) : 0) );
+
+    if (nbCores < 0)  {  nbCores = _input->get(STR_NB_CORES)  ? _input->getInt(STR_NB_CORES) : 0;  }
+    setDispatcher (new ParallelCommandDispatcher (nbCores) );
 
     _info->add (0, _name);
 }
