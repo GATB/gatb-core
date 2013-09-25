@@ -116,19 +116,23 @@ DebloomAlgorithm<ProductFactory,T>::DebloomAlgorithm (
     Product<ProductFactory>& product,
     Iterable<Kmer<T> >* solidIterable,
     size_t              kmerSize,
+    size_t              max_memory,
+    size_t              nb_cores,
     BloomFactory::Kind  bloomKind,
     const std::string&  debloomUri,
-    size_t              max_memory,
     IProperties*        options
 )
-    :  Algorithm("debloom", options), _product(product), _kmerSize(kmerSize), _bloomKind(bloomKind), _debloomUri("debloom"),
+    :  Algorithm("debloom", nb_cores, options), _product(product), _kmerSize(kmerSize), _bloomKind(bloomKind), _debloomUri("debloom"),
        _max_memory(max_memory),
        _solidIterable(0)
 {
+    /** We get a group for deblooming. */
+    Group<ProductFactory>& group = _product().getGroup ("debloom");
+
     setSolidIterable    (solidIterable);
 
     /** We get a collection for the cFP from the product. */
-    setCriticalCollection (& product().template addCollection<T> ("debloom/cfp"));
+    setCriticalCollection (& group.template getCollection<T> ("cfp"));
 }
 
 /*********************************************************************
@@ -159,6 +163,9 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
 {
     Model<T> model (_kmerSize);
 
+    /** We get a group for deblooming. */
+    Group<ProductFactory>& group = _product().getGroup ("debloom");
+
     /***************************************************/
     /** We create a bloom and insert solid kmers into. */
     /***************************************************/
@@ -170,7 +177,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     /** We build the solid neighbors extension.      */
     /*************************************************/
     {
-        TIME_INFO (getTimeInfo(), "fill debloom file");
+        TIME_INFO (getTimeInfo(), "fill_debloom_file");
 
         /** We create an iterator over the solid kmers. */
         Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
@@ -185,7 +192,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     }
 
     /** We save the bloom. */
-    Collection<NativeInt8>* bloomCollection = & _product().template addCollection<NativeInt8> ("debloom/bloom");
+    Collection<NativeInt8>* bloomCollection = & group.template getCollection<NativeInt8> ("bloom");
     bloomCollection->insert ((NativeInt8*)bloom->getArray(), bloom->getSize());
     bloomCollection->addProperty ("properties", bloomProps->getXML());
 
@@ -202,7 +209,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     Hash16<T> partition (_max_memory);
 
     {
-        TIME_INFO (getTimeInfo(), "finalize debloom file");
+        TIME_INFO (getTimeInfo(), "finalize_debloom_file");
 
         Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
             _solidIterable->iterator(),
@@ -246,8 +253,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
-    getInfo()->add (2, "critical kmers nb", "%ld", _criticalCollection->iterable()->getNbItems() );
-    getInfo()->add (2, "critical kmers uri",       _criticalCollection->getFullId());
+    getInfo()->add (2, "critical_kmers_nb", "%ld", _criticalCollection->iterable()->getNbItems() );
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
 
@@ -329,7 +335,7 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
     tools::misc::IProperties* bloomProps
 )
 {
-    TIME_INFO (getTimeInfo(), "create bloom from kmers");
+    TIME_INFO (getTimeInfo(), "create_bloom_from_kmers");
 
     double lg2 = log(2);
     float NBITS_PER_KMER = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
@@ -348,11 +354,11 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
     LOCAL (itKmers);
 
     /** We use a bloom builder. */
-    BloomBuilder<T> builder (itKmers, estimatedBloomSize, (int)floorf (0.7*NBITS_PER_KMER), _bloomKind, getDispatcher()->getExecutionUnitsNumber());
+    BloomBuilder<T> builder (estimatedBloomSize, (int)floorf (0.7*NBITS_PER_KMER), _bloomKind, getDispatcher()->getExecutionUnitsNumber());
 
     /** We instantiate the bloom object. */
-    Bloom<T>* bloom = builder.build (bloomProps);
-    bloomProps->add (1, "nbits per kmer", "%f", NBITS_PER_KMER);
+    Bloom<T>* bloom = builder.build (itKmers, bloomProps);
+    bloomProps->add (1, "nbits_per_kmer", "%f", NBITS_PER_KMER);
 
     /** We return the created bloom filter. */
     return bloom;

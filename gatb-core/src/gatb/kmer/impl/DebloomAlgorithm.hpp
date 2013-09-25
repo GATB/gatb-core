@@ -45,9 +45,10 @@ public:
         tools::collections::impl::Product<ProductFactory>& product,
         tools::collections::Iterable<Kmer<T> >* solidIterable,
         size_t                      kmerSize,
+        size_t                      max_memory = 1000,
+        size_t                      nb_cores   = 0,
         tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
         const std::string&          debloomUri = "debloom",
-        size_t                      max_memory = 1000,
         tools::misc::IProperties*   options    = 0
     );
 
