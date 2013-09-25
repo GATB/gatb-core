@@ -39,6 +39,7 @@
 
 #include <gatb/tools/collections/impl/Product.hpp>
 #include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/collections/impl/ProductHDF5.hpp>
 
 #include <iostream>
 #include <memory>
@@ -224,6 +225,7 @@ public:
         size_t seqLen   = strlen (seq);
 
         NodeIterator<T> nodes = graph.nodes();
+        nodes.first ();
 
         /** We get the first node. */
         Node<T> node = nodes.item();
@@ -253,6 +255,7 @@ public:
     }
 
     /********************************************************************************/
+    template<typename ProductFactory>
     void debruijn_test2_aux (size_t kmerSize, const char* seq)
     {
         size_t seqLen   = strlen (seq);
@@ -263,10 +266,11 @@ public:
         IBank* bank = new BankStrings (seq, 0);
 
         /** We create a product instance. */
-        Product<ProductFileFactory> product ("test");
+        Product<ProductFactory>* product  = ProductFactory::createProduct ("test", true);
+        LOCAL (product);
 
         /** We create a DSK instance. */
-        DSKAlgorithm<ProductFileFactory, NativeInt64> dsk (product, bank, kmerSize, 1);
+        DSKAlgorithm<ProductFactory, NativeInt64> dsk (*product, bank, kmerSize, 1);
 
         /** We launch DSK. */
         dsk.execute();
@@ -275,7 +279,7 @@ public:
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == dsk.getSolidKmers()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFileFactory, NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<ProductFactory, NativeInt64> debloom (*product, dsk.getSolidKmers(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();
@@ -302,7 +306,7 @@ public:
         {
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
-                debruijn_test2_aux (kmerSizes[j], sequences[i]);
+                debruijn_test2_aux <ProductHDF5Factory> (kmerSizes[j], sequences[i]);
             }
         }
     }
@@ -323,13 +327,24 @@ public:
         {
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
+                /** We define options for the graph generation. */
+                IProperties* props = new Properties();  LOCAL (props);
+                props->add (0, STR_KMER_SIZE, "%d", kmerSizes[j]);
+                props->add (0, STR_NKS,       "%d", 1);
+
                 /** We create the graph. */
-                Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new BankStrings (sequences[i], 0), kmerSizes[j], 1);
+                Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (props);
+
+                /** We build the graph. */
+                graph.build (new BankStrings (sequences[i], 0));
 
                 /** We compute the branching range for the node. */
                 Node<NativeInt64> begin, end;   graph.getNearestBranchingRange (graph.nodes().item(), begin, end);
 
                 debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
+
+                /** We remove the graph. */
+                graph.remove ();
             }
         }
     }
