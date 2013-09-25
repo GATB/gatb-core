@@ -102,6 +102,9 @@ public:
     /** */
     void addProperty (const std::string& key, const std::string value)  {  _ref->addProperty (key, value); }
 
+    /** */
+    std::string getProperty (const std::string& key) {  return _ref->getProperty (key); }
+
     /**  */
     Collection<Item>* getRef ()  { return _ref; }
 
@@ -144,17 +147,21 @@ public:
     }
 
     /** */
-    Group<Factory>& addGroup (const std::string& name)
+    Group<Factory>& getGroup (const std::string& name)
     {
-        /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
-        Group* group = Factory::createGroup (this, name);
-        _groups.push_back (group);
-        group->use ();
+        Group* group=0;  for (size_t i=0; !group && i<_groups.size(); i++)  {  if (_groups[i]->getId() == name)  { group = _groups[i]; }  }
+
+        if (group == 0)
+        {
+            group = Factory::createGroup (this, name);
+            _groups.push_back (group);
+            group->use ();
+        }
         return *group;
     }
 
     /** */
-    template <class Type>  Partition<Factory,Type>& addPartition (const std::string& name, size_t nb)
+    template <class Type>  Partition<Factory,Type>& getPartition (const std::string& name, size_t nb)
     {
         /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
         Partition<Factory,Type>* result = Factory::template createPartition<Type> (this, name, nb);
@@ -164,7 +171,7 @@ public:
     }
 
     /** */
-    template <class Type>  CollectionNode<Type>& addCollection (const std::string& name)
+    template <class Type>  CollectionNode<Type>& getCollection (const std::string& name)
     {
         /** See http://stackoverflow.com/questions/15572415/expected-primary-expression-before-in-g-but-not-in-microsoft-compiler */
         CollectionNode<Type>* result = Factory::template createCollection<Type> (this, name, 0);
@@ -190,7 +197,7 @@ protected:
 
     std::vector<ICell*> _collections;
     std::vector<ICell*> _partitions;
-    std::vector<ICell*> _groups;
+    std::vector<Group<Factory>*> _groups;
 };
 
 /**********************************************************************
@@ -388,12 +395,16 @@ public:
 
     /** Constructor.
      * \param[in] name : name of the product. */
-    Product (const std::string& name, bool autoRemove=false)  : dp::impl::Cell(0, ""),  _root(this, name), _autoRemove(autoRemove)
-    {}
+    Product (const std::string& name, bool autoRemove=false)
+        : dp::impl::Cell(0, ""),  _root(this, ""), _autoRemove(autoRemove)  {}
 
     /** Facility for retrieving the root group.
      * \return the root group. */
-    Group<Factory>& operator() (void)  { return _root; }
+    Group<Factory>& operator() (const std::string name="")
+    {
+        if (name.empty())  { return _root; }
+        else               { return _root.getGroup (name);  }
+    }
 
     /** Remove physically the product. */
     virtual void remove ()  {  _root.remove(); }

@@ -45,15 +45,25 @@ public:
     /** */
     static Group<ProductHDF5Factory>* createGroup (dp::ICell* parent, const std::string& name)
     {
-        for ( ; parent->getParent() != 0;  parent=parent->getParent())  {}
-        ProductHDF5* product = dynamic_cast<ProductHDF5*> (parent);
+        dp::ICell* root = dp::ICell::getRoot (parent);
+
+        Product<ProductHDF5Factory>* p1 = dynamic_cast<Product<ProductHDF5Factory>*> (root);
+
+        ProductHDF5* product = dynamic_cast<ProductHDF5*> (p1);
+        assert (product != 0);
 
         /** We create the instance. */
         Group<ProductHDF5Factory>* result = new Group<ProductHDF5Factory> (parent, name);
 
-        /** We create the HDF5 group. */
-        hid_t group = H5Gcreate (product->getId(), result->getFullId('/').c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        H5Gclose (group);
+        std::string actualName = result->getFullId('/');
+
+        /** We create the HDF5 group if needed. */
+        htri_t doesExist = H5Lexists (product->getId(), actualName.c_str(), H5P_DEFAULT);
+        if (doesExist <= 0)
+        {
+            hid_t group = H5Gcreate (product->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            H5Gclose (group);
+        }
 
         /** We return the result. */
         return result;
@@ -63,6 +73,19 @@ public:
     template<typename Type>
     static Partition<ProductHDF5Factory,Type>* createPartition (dp::ICell* parent, const std::string& name, size_t nb)
     {
+        dp::ICell* loop = dp::ICell::getRoot (parent);
+        ProductHDF5* product = dynamic_cast<ProductHDF5*> (loop);
+
+        std::string actualName = parent->getFullId('/') + "/" + name;
+
+        /** We create the HDF5 group if needed. */
+        htri_t doesExist = H5Lexists (product->getId(), actualName.c_str(), H5P_DEFAULT);
+        if (doesExist <= 0)
+        {
+            hid_t group = H5Gcreate (product->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            H5Gclose (group);
+        }
+
         return new Partition<ProductHDF5Factory,Type> (parent, name, nb);
     }
 
@@ -70,14 +93,36 @@ public:
     template<typename Type>
     static CollectionNode<Type>* createCollection (dp::ICell* parent, const std::string& name, system::ISynchronizer* synchro)
     {
-        for ( ; parent->getParent() != 0;  parent=parent->getParent())  {}
-        ProductHDF5* product = dynamic_cast<ProductHDF5*> (parent);
+#if 1
+        synchro = GlobalSynchro::singleton();
+#endif
+        dp::ICell* loop=0;
+        for (loop=parent ; loop->getParent() != 0;  loop=loop->getParent())  {}
+        ProductHDF5* product = dynamic_cast<ProductHDF5*> (loop);
 
-        return new CollectionNode<Type> (parent, name, new CollectionHDF5<Type>(product->getId(), name, synchro));
+        std::string actualName = parent->getFullId('/') + "/" + name;
+
+        return new CollectionNode<Type> (parent, name, new CollectionHDF5<Type>(product->getId(), actualName, synchro));
     }
 
 private:
 
+    class GlobalSynchro
+    {
+    public:
+        static system::ISynchronizer* singleton()
+        {
+            static GlobalSynchro instance;
+            return instance.synchro;
+        }
+
+    private:
+        GlobalSynchro ()  { synchro = system::impl::System::thread().newSynchronizer(); }
+        system::ISynchronizer* synchro;
+    };
+
+
+    /** */
     class ProductHDF5 : public Product<ProductHDF5Factory>
     {
     public:

@@ -58,7 +58,11 @@ public:
         /** We define the full qualified id of the current collection to be created. */
         std::stringstream ss;  ss << parent->getFullId().c_str() << "." << name;
 
+#if 0
         return new CollectionNode<Type> (parent, name, new CollectionFile<Type>(ss.str()));
+#else
+        return new CollectionNode<Type> (parent, name, new CollectionFile<Type>(name));
+#endif
     }
 };
 

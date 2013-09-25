@@ -59,7 +59,7 @@ public:
     {
         herr_t status = 0;
 
-        //system::LocalSynchronizer localsynchro (_synchro);
+        system::LocalSynchronizer localsynchro (_synchro);
 
         /** Resize the memory dataspace to indicate the new size of our buffer. */
         hsize_t memDim = length;
@@ -131,9 +131,7 @@ public:
     /** */
     Item* getItems (Item*& buffer)
     {
-//std::cout << "getItems: " <<getNbItems() << std::endl;
         retrieveCache (buffer, 0, getNbItems());
-//for (size_t i=0; i<100; i++)  { printf ("%2d ", buffer[i]);  if ((i+1)%20==0)  { printf("\n"); } } printf("\n");
         return buffer;
     }
 
@@ -215,50 +213,15 @@ private:
 
         hid_t _memspaceId;
 
-#if 0
-        u_int64_t retrieveNextCache ()
-        {
-            herr_t status = 0;
-
-            if (_total <= _nbRead)  {  return 0;   }
-            hsize_t nbToRead = std::min (_blockSize, _total - _nbRead);
-
-            system::LocalSynchronizer localsynchro (_ref->_synchro);
-
-            hid_t memspaceId = H5Screate_simple (1, &nbToRead, NULL);
-
-            /** Select hyperslab on file dataset. */
-            hid_t filespaceId = H5Dget_space(_ref->_datasetId);
-            hsize_t start = _nbRead;
-            hsize_t count = nbToRead;
-            status = H5Sselect_hyperslab (filespaceId, H5S_SELECT_SET, &start, NULL, &count, NULL);
-            if (status != 0)  { std::cout << "err H5Sselect_hyperslab" << std::endl; }
-
-            /** Read buffer from dataset */
-            status = H5Dread (_ref->_datasetId, _ref->_typeId, memspaceId, filespaceId, H5P_DEFAULT, _data);
-            if (status != 0)  { std::cout << "err H5Dwrite" << std::endl; }
-
-            /** Close resources. */
-            status = H5Sclose (filespaceId);
-            status = H5Sclose (memspaceId);
-            if (status != 0)  { std::cout << "err H5Sclose" << std::endl; }
-
-            _nbRead += nbToRead;
-
-            return nbToRead;
-        }
-#else
         u_int64_t retrieveNextCache ()
         {
             if (_total <= _nbRead)  {  return 0;   }
-            hsize_t nbToRead = std::min (_blockSize, _total - _nbRead);
+            hsize_t nbToRead = std::min ((u_int64_t)_blockSize, _total - _nbRead);
 
             _nbRead += _ref->retrieveCache (_data, _nbRead, nbToRead);
 
             return nbToRead;
         }
-#endif
-
     };
 
     /** */
@@ -314,7 +277,7 @@ public:
         hid_t actualType = H5Tcopy (_typeId);
         //if (isCompound)  {  status = H5Tpack(actualType);  }
 
-        std::string actualName = "/" + filename;
+        std::string actualName = filename;
 
         /** We look whether the object exists or not. */
         htri_t doesExist = H5Lexists (fileId, actualName.c_str(), H5P_DEFAULT);
@@ -389,6 +352,39 @@ public:
         H5Aclose (attrId);
         H5Tclose (datatype);
         H5Sclose (space_id);
+    }
+
+    /** \copydoc Collection::getProperty */
+    std::string getProperty (const std::string& key)
+    {
+        std::string result;
+        herr_t status;
+
+        hid_t datatype = H5Tcopy (H5T_C_S1);  H5Tset_size (datatype, H5T_VARIABLE);
+
+        hid_t attrId = H5Aopen (_datasetId, key.c_str(), H5P_DEFAULT);
+
+        hid_t space_id = H5Aget_space (attrId);
+
+        hsize_t dims = 1;
+        H5Sget_simple_extent_dims (space_id, &dims, NULL);
+        char** rdata = (char **) malloc (dims * sizeof (char *));
+
+        status = H5Aread (attrId, datatype, rdata);
+
+        /** We set the result. */
+        result.assign (rdata[0]);
+
+        /** We release buffers. */
+        status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
+        free (rdata);
+
+        /** We close resources. */
+        H5Aclose (attrId);
+        H5Tclose (datatype);
+        H5Sclose (space_id);
+
+        return result;
     }
 
 private:
