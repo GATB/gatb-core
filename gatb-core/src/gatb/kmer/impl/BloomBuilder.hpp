@@ -26,6 +26,8 @@
 #include <gatb/tools/misc/api/IProperty.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 
+#include <gatb/tools/math/NativeInt8.hpp>
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -43,49 +45,76 @@ public:
 
     /** */
     BloomBuilder (
-        tools::dp::Iterator<Kmer<T> >* itKmers,
         u_int64_t   bloomSize,
         size_t      nbHash,
         tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
         size_t      nbCores = 0
     )
-        : _itKmers (0), _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind)
+        : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind)
     {
-        setItKmers (itKmers);
     }
 
     /** */
-    ~BloomBuilder ()  {  setItKmers (0);  }
-
-    /** */
-    tools::collections::impl::Bloom<T>*  build (tools::misc::IProperties* stats = 0)
+    tools::collections::impl::Bloom<T>*  build (
+        tools::dp::Iterator<Kmer<T> >* itKmers,
+        tools::misc::IProperties* stats=0
+    )
     {
         tools::misc::impl::TimeInfo ti;
-        TIME_INFO (ti, "build kmers bloom");
+        TIME_INFO (ti, "build_kmers_bloom");
+
+        LOCAL (itKmers);
 
         /** We instantiate the bloom object. */
         tools::collections::impl::Bloom<T>* bloom =
             tools::collections::impl::BloomFactory::singleton().createBloom<T> (_bloomKind, _bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
-        tools::dp::impl::ParallelCommandDispatcher(_nbCores).iterate (_itKmers,  BuildKmerBloom (*bloom));
+        tools::dp::impl::ParallelCommandDispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom));
 
         /** We gather some statistics. */
         if (stats != 0)
         {
             stats->add (0, "bloom");
-            stats->add (1, "filter size", "%lld", _bloomSize);
-            stats->add (1, "nb hash fct", "%d",   _nbHash);
+            stats->add (1, "filter_size", "%lld", _bloomSize);
+            stats->add (1, "nb_hash_fct", "%d",   _nbHash);
         }
 
         /** We return the created bloom filter. */
         return bloom;
     }
 
-private:
+    /** */
+    tools::collections::impl::Bloom<T>*  load (
+        tools::collections::Iterable<tools::math::NativeInt8>* bloomIterable,
+        tools::misc::IProperties* stats = 0)
+    {
+        tools::misc::impl::TimeInfo ti;
+        TIME_INFO (ti, "load_bloom");
 
-    tools::dp::Iterator<Kmer<T> >* _itKmers;
-    void setItKmers (tools::dp::Iterator<Kmer<T> >* itKmers)  { SP_SETATTR(itKmers); }
+        LOCAL (bloomIterable);
+
+        /** We instantiate the bloom object. */
+        tools::collections::impl::Bloom<T>* bloom =
+            tools::collections::impl::BloomFactory::singleton().createBloom<T> (_bloomKind, _bloomSize, _nbHash);
+
+        /** We set the bloom with the provided array given as an iterable of NativeInt8 objects. */
+        bloomIterable->getItems ((tools::math::NativeInt8*&)bloom->getArray());
+
+        /** We gather some statistics. */
+        if (stats != 0)
+        {
+            stats->add (0, "bloom");
+            stats->add (1, "filter_size", "%lld", _bloomSize);
+            stats->add (1, "nb_hash_fct", "%d",   _nbHash);
+        }
+
+        /** We return the created bloom filter. */
+        return bloom;
+    }
+
+
+private:
 
     u_int64_t _bloomSize;
     size_t    _nbHash;
