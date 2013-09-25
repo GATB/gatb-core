@@ -256,7 +256,7 @@ public:
 
     /********************************************************************************/
     template<typename ProductFactory>
-    void debruijn_test2_aux (size_t kmerSize, const char* seq)
+    void debruijn_test2_aux (size_t kmerSize, size_t nks, const char* seq)
     {
         size_t seqLen   = strlen (seq);
 
@@ -270,7 +270,7 @@ public:
         LOCAL (product);
 
         /** We create a DSK instance. */
-        DSKAlgorithm<ProductFactory, NativeInt64> dsk (*product, bank, kmerSize, 1);
+        DSKAlgorithm<ProductFactory, NativeInt64> dsk (*product, bank, kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
@@ -301,12 +301,13 @@ public:
         };
 
         size_t kmerSizes[] = { 13, 15, 17, 19, 21, 23, 25, 27, 29, 31};
+        size_t nks=1;
 
         for (size_t i=0; i<ARRAY_SIZE(sequences); i++)
         {
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
-                debruijn_test2_aux <ProductHDF5Factory> (kmerSizes[j], sequences[i]);
+                debruijn_test2_aux <ProductHDF5Factory> (kmerSizes[j], nks, sequences[i]);
             }
         }
     }

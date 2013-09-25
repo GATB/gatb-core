@@ -84,7 +84,7 @@ public:
         /** We launch DSK. */
         dsk.execute();
 
-        CPPUNIT_ASSERT (checkNbSolids == dsk.getInfo()->getInt("solid kmers nb"));
+        CPPUNIT_ASSERT (checkNbSolids == dsk.getInfo()->getInt("kmers_nb_solid"));
     }
 
     /********************************************************************************/

@@ -93,8 +93,10 @@ public:
         /** We launch DSK. */
         dsk.execute();
 
+        CPPUNIT_ASSERT (dsk.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
+
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFileFactory, NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize, BloomFactory::Synchronized);
+        DebloomAlgorithm<ProductFileFactory, NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
 
         /** We launch the debloom. */
         debloom.execute();
@@ -106,6 +108,8 @@ public:
             0xaaa8b,    0x28838d,   0x20000,    0xa93ab,    0x2c18d,    0x2ba89,    0x183600,   0xea00b,    0x1a4ea0,   0xf8585
         };
         set<NativeInt64> okValues (values, values + ARRAY_SIZE(values));
+
+        CPPUNIT_ASSERT (debloom.getCriticalKmers()->getNbItems() == ARRAY_SIZE(values));
 
         /** We iterate the cFP kmers. */
         set<NativeInt64> checkValues;
