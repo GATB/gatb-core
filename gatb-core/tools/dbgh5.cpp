@@ -20,7 +20,7 @@ public:
         graph.build (new Bank (options->getStr(STR_URI_INPUT)));
 
         /** We dump some information about the graph. */
-        cout << graph.getInfo() << endl;
+        if (options->get(STR_VERBOSE) != 0)  {  cout << graph.getInfo() << endl;  }
     }
 };
 
@@ -37,6 +37,7 @@ int main (int argc, char* argv[])
     parser.add (new OptionOneParam (STR_MAX_DISK,   "max disk",                 false, "0"));
     parser.add (new OptionOneParam (STR_NB_CORES,   "nb cores (0 for all)",     false, "0"));
     parser.add (new OptionNoParam  (STR_VERBOSE,    "verbosity",                false));
+    parser.add (new OptionNoParam  (STR_HELP,       "help",                     false));
 
     try
     {
@@ -59,6 +60,11 @@ int main (int argc, char* argv[])
         else if (kmerSize < 96)   {  GraphGenerator<LargeInt<3> >::build (options);  }
         else if (kmerSize < 128)  {  GraphGenerator<LargeInt<4> >::build (options);  }
         else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
+    }
+    catch (OptionFailure& e)
+    {
+        e.getParser().displayErrors (stdout);
+        e.getParser().displayHelp   (stdout);
     }
     catch (...)
     {
