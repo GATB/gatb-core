@@ -92,7 +92,7 @@ GraphBasic<T>::GraphBasic (const std::string& uri)
     : _state(INIT), _solidKmersIterable(0), _bloom(0), _cFPset(0), _model(0), _props(0), _info("graph"), _product(0)
 {
     /** We create a product instance. */
-    setProduct (ProductFactoryLocal::createProduct (uri, false));
+    setProduct (ProductFactoryLocal::createProduct (uri, false, false));
 
     /** We set the iterable for the solid kmers. */
     tools::collections::Collection<Kmer<T> >* solidCollection = & getProduct("dsk").template getCollection<Kmer<T> > ("solid");
@@ -188,7 +188,7 @@ void GraphBasic<T>::build (bank::IBank* bank)
         /************************************************************/
         /*                       Product creation                   */
         /************************************************************/
-        setProduct (ProductFactoryLocal::createProduct (output, false));
+        setProduct (ProductFactoryLocal::createProduct (output, true, false));
 
         /************************************************************/
         /*                         Bank conversion                  */

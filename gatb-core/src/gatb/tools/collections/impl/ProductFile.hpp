@@ -33,7 +33,7 @@ class ProductFileFactory
 public:
 
     /** */
-    static Product<ProductFileFactory>* createProduct (const std::string& name, bool autoRemove)
+    static Product<ProductFileFactory>* createProduct (const std::string& name, bool deleteIfExist, bool autoRemove)
     {
         return new Product<ProductFileFactory> (name, autoRemove);
     }

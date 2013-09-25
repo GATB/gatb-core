@@ -366,7 +366,7 @@ void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Seque
     if (_partitionsProduct)  { _partitionsProduct->remove (); }
 
     /** We create the partition files for the current pass. */
-    setPartitionsProduct (PartitionFactory::createProduct ("partitions", false));
+    setPartitionsProduct (PartitionFactory::createProduct ("partitions", true, false));
     setPartitions        ( & (*_partitionsProduct)().template getPartition<T> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */

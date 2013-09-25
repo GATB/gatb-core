@@ -37,9 +37,9 @@ class ProductHDF5Factory
 public:
 
     /** */
-    static Product<ProductHDF5Factory>* createProduct (const std::string& name, bool autoRemove)
+    static Product<ProductHDF5Factory>* createProduct (const std::string& name, bool deleteIfExist, bool autoRemove)
     {
-        return new ProductHDF5 (name, autoRemove);
+        return new ProductHDF5 (name, deleteIfExist, autoRemove);
     }
 
     /** */
@@ -126,8 +126,11 @@ private:
     class ProductHDF5 : public Product<ProductHDF5Factory>
     {
     public:
-        ProductHDF5 (const std::string& name, bool autoRemove) : Product<ProductHDF5Factory> (name, autoRemove), _fileId(0), _name(name)
+        ProductHDF5 (const std::string& name, bool deleteIfExist, bool autoRemove)
+            : Product<ProductHDF5Factory> (name, autoRemove), _fileId(0), _name(name)
         {
+            if (deleteIfExist)  {  system::impl::System::file().remove (getActualName());  }
+
             /** We create a new file using default properties. */
             if (system::impl::System::file().doesExist(getActualName()))
             {
