@@ -118,9 +118,9 @@ private:
 
     private:
         GlobalSynchro ()  { synchro = system::impl::System::thread().newSynchronizer(); }
+        ~GlobalSynchro () { if (synchro)  { delete synchro; } }
         system::ISynchronizer* synchro;
     };
-
 
     /** */
     class ProductHDF5 : public Product<ProductHDF5Factory>
