@@ -266,7 +266,7 @@ public:
         IBank* bank = new BankStrings (seq, 0);
 
         /** We create a product instance. */
-        Product<ProductFactory>* product  = ProductFactory::createProduct ("test", true);
+        Product<ProductFactory>* product  = ProductFactory::createProduct ("test", true, true);
         LOCAL (product);
 
         /** We create a DSK instance. */
