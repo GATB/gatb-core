@@ -117,9 +117,9 @@ void BankConverterAlgorithm::execute ()
 
      /** We gather some statistics. */
      getInfo()->add (1, "info");
-     getInfo()->add (2, "sequences number", "%ld",  nbSeq);
-     getInfo()->add (2, "sequences size",   "%ld",  sizeSeq);
-     getInfo()->add (2, "output size",      "%ld",  _bankOutput->getSize());
+     getInfo()->add (2, "sequences_number", "%ld",  nbSeq);
+     getInfo()->add (2, "sequences_size",   "%ld",  sizeSeq);
+     getInfo()->add (2, "output_size",      "%ld",  _bankOutput->getSize());
      getInfo()->add (2, "ratio",            "%.3f",  (double)sizeSeq / (double)_bankOutput->getSize());
      getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
