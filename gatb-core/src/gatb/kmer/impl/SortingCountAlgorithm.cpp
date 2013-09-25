@@ -9,7 +9,7 @@
 // We include required definitions
 /********************************************************************************/
 
-#include <gatb/kmer/impl/DSKAlgorithm.hpp>
+#include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 
 #include <gatb/system/impl/System.hpp>
 
@@ -83,7 +83,7 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
+SortingCountAlgorithm<ProductFactory,T>::SortingCountAlgorithm (
     Product<ProductFactory>& product,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
@@ -125,7 +125,7 @@ DSKAlgorithm<ProductFactory,T>::DSKAlgorithm (
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-DSKAlgorithm<ProductFactory,T>::~DSKAlgorithm ()
+SortingCountAlgorithm<ProductFactory,T>::~SortingCountAlgorithm ()
 {
     setProgress          (0);
     setBank              (0);
@@ -144,7 +144,7 @@ DSKAlgorithm<ProductFactory,T>::~DSKAlgorithm ()
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-void DSKAlgorithm<ProductFactory,T>::execute ()
+void SortingCountAlgorithm<ProductFactory,T>::execute ()
 {
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
@@ -166,12 +166,12 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
     _progress->init ();
 
     /*************************************************************/
-    /*                       DSK MAIN LOOP                       */
+    /*                         MAIN LOOP                         */
     /*************************************************************/
     /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
     for (_current_pass=0; _current_pass<_nb_passes; _current_pass++)
     {
-        DEBUG (("DSKAlgorithm<ProductFactory,T>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
+        DEBUG (("SortingCountAlgorithm<ProductFactory,T>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
 
         /** 1) We fill the partition files. */
         fillPartitions (_current_pass, itSeq);
@@ -212,7 +212,7 @@ void DSKAlgorithm<ProductFactory,T>::execute ()
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-void DSKAlgorithm<ProductFactory,T>::configure (IBank* bank)
+void SortingCountAlgorithm<ProductFactory,T>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
@@ -353,11 +353,11 @@ private:
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-void DSKAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
+void SortingCountAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
 {
     TIME_INFO (getTimeInfo(), "fill_partitions");
 
-    DEBUG (("DSKAlgorithm<ProductFactory,T>::fillPartitions  pass \n", pass));
+    DEBUG (("SortingCountAlgorithm<ProductFactory,T>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
     Model<T> model (_kmerSize);
@@ -389,7 +389,7 @@ class PartitionsCommand : public ICommand
 {
 public:
     PartitionsCommand (
-        DSKAlgorithm<ProductFactory,T>& algo,
+        SortingCountAlgorithm<ProductFactory,T>& algo,
         Bag<Kmer<T> >* solidKmers,
         Iterable<T>&   partition,
         IHistogram*    histogram,
@@ -437,7 +437,7 @@ class PartitionsByHashCommand : public PartitionsCommand<ProductFactory, T>
 public:
 
     PartitionsByHashCommand (
-        DSKAlgorithm<ProductFactory,T>& algo,
+        SortingCountAlgorithm<ProductFactory,T>& algo,
         Bag<Kmer<T> >*  solidKmers,
         Iterable<T>&    partition,
         IHistogram*     histogram,
@@ -490,7 +490,7 @@ class PartitionsByVectorCommand : public PartitionsCommand<ProductFactory, T>
 public:
 
     PartitionsByVectorCommand (
-        DSKAlgorithm<ProductFactory,T>& algo,
+        SortingCountAlgorithm<ProductFactory,T>& algo,
         Bag<Kmer<T> >*  solidKmers,
         Iterable<T>&    partition,
         IHistogram*     histogram,
@@ -558,7 +558,7 @@ public:
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-std::vector<size_t> DSKAlgorithm<ProductFactory,T>::getNbCoresList ()
+std::vector<size_t> SortingCountAlgorithm<ProductFactory,T>::getNbCoresList ()
 {
     std::vector<size_t> result;
 
@@ -580,11 +580,11 @@ std::vector<size_t> DSKAlgorithm<ProductFactory,T>::getNbCoresList ()
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
+void SortingCountAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
-    DEBUG (("DSKAlgorithm<ProductFactory,T>::fillSolidKmers\n"));
+    DEBUG (("SortingCountAlgorithm<ProductFactory,T>::fillSolidKmers\n"));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
@@ -636,27 +636,27 @@ void DSKAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  solidKmers)
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DSKAlgorithm <ProductFileFactory, NativeInt64>;
+template class SortingCountAlgorithm <ProductFileFactory, NativeInt64>;
 #ifdef INT128_FOUND
-template class DSKAlgorithm <ProductFileFactory, NativeInt128>;
+template class SortingCountAlgorithm <ProductFileFactory, NativeInt128>;
 #else
-template class DSKAlgorithm <ProductFileFactory, LargeInt<2> >;
+template class SortingCountAlgorithm <ProductFileFactory, LargeInt<2> >;
 #endif
 
-template class DSKAlgorithm <ProductFileFactory, LargeInt<3> >;
-template class DSKAlgorithm <ProductFileFactory, LargeInt<4> >;
+template class SortingCountAlgorithm <ProductFileFactory, LargeInt<3> >;
+template class SortingCountAlgorithm <ProductFileFactory, LargeInt<4> >;
 
 /********************************************************************************/
 
-template class DSKAlgorithm <ProductHDF5Factory, NativeInt64>;
+template class SortingCountAlgorithm <ProductHDF5Factory, NativeInt64>;
 #ifdef INT128_FOUND
-template class DSKAlgorithm <ProductHDF5Factory, NativeInt128>;
+template class SortingCountAlgorithm <ProductHDF5Factory, NativeInt128>;
 #else
-template class DSKAlgorithm <ProductHDF5Factory, LargeInt<2> >;
+template class SortingCountAlgorithm <ProductHDF5Factory, LargeInt<2> >;
 #endif
 
-template class DSKAlgorithm <ProductHDF5Factory, LargeInt<3> >;
-template class DSKAlgorithm <ProductHDF5Factory, LargeInt<4> >;
+template class SortingCountAlgorithm <ProductHDF5Factory, LargeInt<3> >;
+template class SortingCountAlgorithm <ProductHDF5Factory, LargeInt<4> >;
 
 
 /********************************************************************************/

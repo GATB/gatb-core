@@ -18,7 +18,7 @@
 
 #include <gatb/bank/impl/BankStrings.hpp>
 
-#include <gatb/kmer/impl/DSKAlgorithm.hpp>
+#include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 
 #include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -79,7 +79,7 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        DSKAlgorithm<ProductFileFactory,NativeInt64> dsk (product, new BankStrings (sequences, nbSequences), kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory,NativeInt64> dsk (product, new BankStrings (sequences, nbSequences), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
@@ -196,13 +196,13 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        DSKAlgorithm<ProductFileFactory,NativeInt64> dsk (product, new BankStrings (s1, 0), kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory,NativeInt64> sortingCount (product, new BankStrings (s1, 0), kmerSize, nks);
 
         /** We launch DSK. */
-        dsk.execute();
+        sortingCount.execute();
 
         /** We iterate the solid kmers. */
-        Iterator<Kmer<NativeInt64> >* iter = dsk.getSolidKmers()->iterator();
+        Iterator<Kmer<NativeInt64> >* iter = sortingCount.getSolidKmers()->iterator();
         LOCAL (iter);
 
         /** The following values have been computed with the original DSK.

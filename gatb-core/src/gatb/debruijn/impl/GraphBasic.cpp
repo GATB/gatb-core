@@ -7,7 +7,7 @@
 
 #include <gatb/debruijn/impl/GraphBasic.hpp>
 
-#include <gatb/kmer/impl/DSKAlgorithm.hpp>
+#include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
@@ -198,10 +198,10 @@ void GraphBasic<T>::build (bank::IBank* bank)
         executeAlgorithm (converter);
 
         /************************************************************/
-        /*                         DSK                              */
+        /*                         Sorting count                    */
         /************************************************************/
         /** We create a DSK instance and execute it. */
-        DSKAlgorithm<ProductFactoryLocal, T> dsk (
+        SortingCountAlgorithm<ProductFactoryLocal, T> sortingCount (
             *_product,
             converter.getResult(),
             _kmerSize,
@@ -210,7 +210,7 @@ void GraphBasic<T>::build (bank::IBank* bank)
             _props->get(STR_MAX_DISK)   ? _props->getInt(STR_MAX_DISK)   : 0,
             _props->get(STR_NB_CORES)   ? _props->getInt(STR_NB_CORES)   : 0
         );
-        executeAlgorithm (dsk);
+        executeAlgorithm (sortingCount);
 
         /************************************************************/
         /*                         Debloom                          */
@@ -218,7 +218,7 @@ void GraphBasic<T>::build (bank::IBank* bank)
         /** We create a debloom instance and execute it. */
         DebloomAlgorithm<ProductFactoryLocal, T> debloom (
             *_product,
-            dsk.getSolidKmers(),
+            sortingCount.getSolidKmers(),
             _kmerSize,
             _props->get(STR_MAX_MEMORY) ? _props->getInt(STR_MAX_MEMORY) : 1000,
             _props->get(STR_NB_CORES)   ? _props->getInt(STR_NB_CORES)   : 0
@@ -229,13 +229,13 @@ void GraphBasic<T>::build (bank::IBank* bank)
         Iterable<NativeInt8>* bloomArray = & getProduct("debloom").template getCollection<NativeInt8> ("bloom");
 
         /** We configure the graph from the result of DSK and debloom. */
-        configure (_kmerSize, dsk.getSolidKmers(), debloom.getCriticalKmers(), bloomArray);
+        configure (_kmerSize, sortingCount.getSolidKmers(), debloom.getCriticalKmers(), bloomArray);
 
         /** We can get rid of the binary bank. */
         System::file().remove (binaryBankUri);
 
         /** We add metadata to some collections. */
-        dsk.getSolidKmers()->addProperty ("properties", dsk.getInfo()->getXML());
+        sortingCount.getSolidKmers()->addProperty ("properties", sortingCount.getInfo()->getXML());
         debloom.getCriticalKmers()->addProperty ("properties", debloom.getInfo()->getXML());
 
         /** We update the state of the graph. */

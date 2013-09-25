@@ -32,7 +32,7 @@
 #include <gatb/debruijn/impl/GraphBasic.hpp>
 #include <gatb/debruijn/impl/GraphFactory.hpp>
 
-#include <gatb/kmer/impl/DSKAlgorithm.hpp>
+#include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/bank/impl/BankStrings.hpp>
@@ -270,22 +270,22 @@ public:
         LOCAL (product);
 
         /** We create a DSK instance. */
-        DSKAlgorithm<ProductFactory, NativeInt64> dsk (*product, bank, kmerSize, nks);
+        SortingCountAlgorithm<ProductFactory, NativeInt64> sortingCount (*product, bank, kmerSize, nks);
 
         /** We launch DSK. */
-        dsk.execute();
+        sortingCount.execute();
 
         /** We check that the sequence has no duplicate kmers. */
-        CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == dsk.getSolidKmers()->getNbItems());
+        CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidKmers()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFactory, NativeInt64> debloom (*product, dsk.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<ProductFactory, NativeInt64> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();
 
         /** We create the graph. */
-        Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (dsk.getSolidKmers(), debloom.getCriticalKmers(), kmerSize);
+        Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (sortingCount.getSolidKmers(), debloom.getCriticalKmers(), kmerSize);
 
         debruijn_check_sequence (graph, kmerSize, seq);
     }

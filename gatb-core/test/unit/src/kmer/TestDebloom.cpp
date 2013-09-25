@@ -18,7 +18,7 @@
 
 #include <gatb/bank/impl/BankStrings.hpp>
 
-#include <gatb/kmer/impl/DSKAlgorithm.hpp>
+#include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/tools/misc/api/Macros.hpp>
@@ -88,15 +88,15 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        DSKAlgorithm<ProductFileFactory, NativeInt64> dsk (product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory, NativeInt64> sortingCount (product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
 
         /** We launch DSK. */
-        dsk.execute();
+        sortingCount.execute();
 
-        CPPUNIT_ASSERT (dsk.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
+        CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFileFactory, NativeInt64> debloom (product, dsk.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
+        DebloomAlgorithm<ProductFileFactory, NativeInt64> debloom (product, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
 
         /** We launch the debloom. */
         debloom.execute();

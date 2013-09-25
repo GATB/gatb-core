@@ -5,8 +5,8 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-#ifndef _DSK_ALGORITHM_HPP_
-#define _DSK_ALGORITHM_HPP_
+#ifndef _SORTING_COUNT_ALGORITHM_HPP_
+#define _SORTING_COUNT_ALGORITHM_HPP_
 
 /********************************************************************************/
 
@@ -31,24 +31,24 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Class performing the DSK counting.
+/** \brief Class performing the kmer counting.
  *
  * This class does the real job of counting the kmers from a reads database.
  *
  * This is a template class whose template argument is the kind of integer used for
  * kmers (integers on 64 bits, 128 bits, etc...)
  *
- * We define some template instantiations of this DSKAlgorithm; such an instantiation
+ * We define some template instantiations of this SortingCountAlgorithm; such an instantiation
  * does the real job of kmers counting. By defining several instantiations, we allow
  * to choose dynamically the correct class according to the user choice for kmer size
  * (remember that initial Minia version had to be re-compiled for different kmer size).
  */
-template<typename ProductFactory, typename T> class DSKAlgorithm : public gatb::core::tools::misc::impl::Algorithm
+template<typename ProductFactory, typename T> class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
     /** Constructor.*/
-    DSKAlgorithm (
+    SortingCountAlgorithm (
         tools::collections::impl::Product<ProductFactory>& product,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
@@ -63,7 +63,7 @@ public:
     );
 
     /** Destructor */
-    virtual ~DSKAlgorithm ();
+    virtual ~SortingCountAlgorithm ();
 
     /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
      * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
@@ -161,5 +161,5 @@ private:
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _DSK_ALGORITHM_HPP_ */
+#endif /* _SORTING_COUNT_ALGORITHM_HPP_ */
 

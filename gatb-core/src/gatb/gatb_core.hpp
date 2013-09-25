@@ -50,7 +50,7 @@
 
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
-#include <gatb/kmer/impl/DSKAlgorithm.hpp>
+#include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/debruijn/impl/GraphFactory.hpp>
