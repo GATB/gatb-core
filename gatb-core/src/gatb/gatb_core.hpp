@@ -47,6 +47,7 @@
 #include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankStrings.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
+#include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
