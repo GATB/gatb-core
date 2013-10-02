@@ -117,6 +117,7 @@ void BankConverterAlgorithm::execute ()
 
      /** We gather some statistics. */
      getInfo()->add (1, "info");
+     getInfo()->add (2, "input",            "%s",   _bankInput->getId().c_str());
      getInfo()->add (2, "sequences_number", "%ld",  nbSeq);
      getInfo()->add (2, "sequences_size",   "%ld",  sizeSeq);
      getInfo()->add (2, "output_size",      "%ld",  _bankOutput->getSize());
