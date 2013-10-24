@@ -369,25 +369,15 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DebloomAlgorithm <ProductFileFactory, NativeInt64>;
-#ifdef INT128_FOUND
-template class DebloomAlgorithm <ProductFileFactory, NativeInt128>;
-#else
+template class DebloomAlgorithm <ProductFileFactory, LargeInt<1> >;
 template class DebloomAlgorithm <ProductFileFactory, LargeInt<2> >;
-#endif
-
 template class DebloomAlgorithm <ProductFileFactory, LargeInt<3> >;
 template class DebloomAlgorithm <ProductFileFactory, LargeInt<4> >;
 
 /********************************************************************************/
 
-template class DebloomAlgorithm <ProductHDF5Factory, NativeInt64>;
-#ifdef INT128_FOUND
-template class DebloomAlgorithm <ProductHDF5Factory, NativeInt128>;
-#else
+template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<1> >;
 template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<2> >;
-#endif
-
 template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<3> >;
 template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<4> >;
 
