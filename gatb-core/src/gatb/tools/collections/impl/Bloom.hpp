@@ -45,7 +45,7 @@ public:
     }
 
     /** */
-    u_int64_t operator ()  (const Item& key, size_t idx)  {  return hash (key, seed_tab[idx]);  }
+    u_int64_t operator ()  (const Item& key, size_t idx)  {  return hash1 (key, seed_tab[idx]);  }
 
 private:
 
