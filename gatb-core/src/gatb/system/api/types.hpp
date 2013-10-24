@@ -51,6 +51,9 @@ template<typename Type, typename Number=u_int16_t> struct Abundance
         return *this;
     }
 
+    const Number& getAbundance() const { return abundance; }
+    const Type&   getValue()     const { return value;     }
+
     Type    value;
     Number  abundance;
 };
