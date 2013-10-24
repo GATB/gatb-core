@@ -282,7 +282,7 @@ public:
         Range<size_t>::Iterator it (0, nbItems-1);
 
         /** We dispatch the range iteration. */
-        ParallelCommandDispatcher().iterate (it, MyFunctor(partition,nbRepeat));
+        ParallelDispatcher().iterate (it, MyFunctor(partition,nbRepeat));
 
         /** We check the content of each partition. */
         size_t nbIterTotal = 0;

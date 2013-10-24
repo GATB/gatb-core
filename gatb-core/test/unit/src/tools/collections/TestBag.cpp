@@ -139,7 +139,7 @@ public:
         CPPUNIT_ASSERT (synchro);
 
         /** We need a command dispatcher. */
-        ParallelCommandDispatcher dispatcher (nbCores);
+        ParallelDispatcher dispatcher (nbCores);
 
         /** We create several commands that will insert items into the bag file through a cache. */
         vector<ICommand*> commands (dispatcher.getExecutionUnitsNumber());
