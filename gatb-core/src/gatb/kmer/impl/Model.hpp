@@ -186,20 +186,6 @@ public:
 };
 
 /********************************************************************************/
-
-/** Definition of the "default" Model implementation that relies on the Integer class as kmer type.
- * The Integer class is the default name for managing integers. It is defined at compilation time.
- *
- * The KmerModel can be seen as a shortcut for the every day work with a kmer model; in particular,
- * end user doesn't have to bother with the template since the default Integer choice is made.
- */
-typedef Model<gatb::core::tools::math::Integer> KmerModel;
-
-/** Define by default what the kmer_type is: the default Integer type.
- */
-typedef gatb::core::tools::math::Integer kmer_type;
-
-/********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
