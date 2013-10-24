@@ -16,6 +16,7 @@
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <set>
+#include <boost/variant.hpp>
 
 /********************************************************************************/
 namespace gatb  {
@@ -163,7 +164,8 @@ private:
  * We define a an iterator for two iterators, by iterating each of the two iterators
  * and providing a pair of the two currently iterated items.
  */
-template <class T1, class T2> class PairedIterator : public Iterator < std::pair<T1,T2> >
+template <template<class> class IteratorType, class T1, class T2>
+class PairedIterator : public Iterator < std::pair<T1,T2> >
 {
 public:
 
@@ -171,7 +173,7 @@ public:
      * \param[in] it1 : first iterator.
      * \param[in] it2 : second iterator.
      */
-    PairedIterator (Iterator<T1>& it1, Iterator<T2>& it2)  : _it1(it1), _it2(it2) { }
+    PairedIterator (IteratorType<T1>& it1, IteratorType<T2>& it2)  : _it1(it1), _it2(it2) { }
 
     /** Destructor. */
     virtual ~PairedIterator ()  {}
@@ -197,10 +199,10 @@ public:
 private:
 
     /** First iterator. */
-    Iterator<T1>& _it1;
+    IteratorType<T1>& _it1;
 
     /** Second iterator. */
-    Iterator<T2>& _it2;
+    IteratorType<T2>& _it2;
 
     /** Current item in the iteration. */
     std::pair<T1,T2> _current;
@@ -523,6 +525,9 @@ template <class Item> class VectorIterator : public Iterator<Item>
 {
 public:
     /** */
+    VectorIterator (const std::vector<Item>& items) : _idx(0), _nb (items.size()), _items(items)  {}
+
+    /** */
     VectorIterator () : _idx(0), _nb (0)  {}
 
     /** */
@@ -573,6 +578,64 @@ protected:
     std::vector<Item>& _items;
     int32_t            _idx;
     int32_t            _nb;
+};
+
+/********************************************************************************/
+
+template <template <class> class IteratorType , typename T1, typename T2=T1, typename T3=T2, typename T4=T3>
+class IteratorVariant : public IteratorType <boost::variant<T1,T2,T3,T4> >
+{
+private:
+
+    typedef boost::variant < IteratorType<T1>, IteratorType<T2>, IteratorType<T3>, IteratorType<T4> > Type;
+
+    Type var;
+
+    struct fct_first  : public boost::static_visitor<>     {  template<typename T>  void operator() (T& a) const { a.first();          }};
+    struct fct_next   : public boost::static_visitor<>     {  template<typename T>  void operator() (T& a) const { a.next ();          }};
+    struct fct_isDone : public boost::static_visitor<bool> {  template<typename T>  bool operator() (T& a) const { return a.isDone();  }};
+
+    struct fct_set : public boost::static_visitor<>
+    {
+        boost::variant<T1,T2,T3,T4>& val;
+        fct_set (boost::variant<T1,T2,T3,T4>& val) : val(val) {}
+        template<typename T>  void operator() (T& a) const { val = a.item();  }
+    };
+
+    bool _isDone;
+
+public:
+
+    virtual ~IteratorVariant() {}
+
+    template<typename T>
+    IteratorVariant& operator=(const T& t)  {  var = t;  return *this;  }
+
+    /**  */
+    void first()
+    {
+        boost::apply_visitor (fct_first(), var);
+        _isDone = boost::apply_visitor (fct_isDone(), var);
+        if (!_isDone)  {  boost::apply_visitor (fct_set(*(this->_item)), var);  }
+    }
+
+    /** */
+    void next()
+    {
+        boost::apply_visitor (fct_next(), var);
+        _isDone = boost::apply_visitor (fct_isDone(), var);
+        if (!_isDone)  {  boost::apply_visitor (fct_set(*(this->_item)), var);  }
+    }
+
+    /** */
+    bool isDone() { return _isDone; }
+
+    /** */
+    boost::variant<T1,T2,T3,T4>& item ()  {  return *(this->_item);  }
+
+    /** Get a reference on the object to be configured as the currently iterated item.
+     * \param[in] i : object to be referred. */
+    virtual void setItem (boost::variant<T1,T2,T3,T4>& i)  {  this->_item = &i;  }
 };
 
 /********************************************************************************/
