@@ -372,11 +372,32 @@ public:
         return result;
     }
 
+    /********************************************************************************/
+    /** Print corresponding kmer in ASCII
+     * \param[sizeKmer] in : kmer size (def=32).
+     */
+    std::string toString (size_t sizeKmer) const
+    {
+        int i;
+        u_int64_t temp = this->value[0];
+
+        char seq[33];
+        char bin2NT[4] = {'A','C','T','G'};
+
+        for (i=sizeKmer-1; i>=0; i--)
+        {
+            seq[i] = bin2NT[ temp&3 ];
+            temp = temp>>2;
+        }
+        seq[sizeKmer]='\0';
+        return seq;
+    }
+
 private:
 //    u_int64_t value[precision];
 
     template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
-    template<int T>  friend u_int64_t   hash    (const LargeInt<T>& key, u_int64_t  seed);
+    template<int T>  friend u_int64_t   hash1    (const LargeInt<T>& key, u_int64_t  seed);
     template<int T>  friend u_int64_t   oahash  (const LargeInt<T>& key);
     template<int T>  friend u_int64_t   simplehash16    (const LargeInt<T>& key, int  shift);
 
@@ -401,7 +422,7 @@ template<int precision>  inline LargeInt<precision> revcomp (const LargeInt<prec
 }
 
 /********************************************************************************/
-template<int precision>  inline u_int64_t hash (const LargeInt<precision>& elem, u_int64_t seed=0)
+template<int precision>  inline u_int64_t hash1 (const LargeInt<precision>& elem, u_int64_t seed=0)
 {
     // hash = XOR_of_series[hash(i-th chunk iof 64 bits)]
     u_int64_t result = 0, chunk, mask = ~0;
@@ -428,7 +449,7 @@ template<int precision>  u_int64_t oahash (const LargeInt<precision>& elem)
     {
         chunk = (intermediate & mask).value[0];
         intermediate = intermediate >> 64;
-        result ^= NativeInt64::oahash (chunk);
+        result ^= NativeInt64::oahash64 (chunk);
     }
     return result;
 }
@@ -445,7 +466,17 @@ template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision
     return result;
 }
 
-    
+
+/********************************************************************************/
+/********************     SPECIALIZATION FOR precision=1     ********************/
+/********************************************************************************/
+#include <gatb/tools/math/LargeInt1.pri>
+
+/********************************************************************************/
+/********************     SPECIALIZATION FOR precision=2     ********************/
+/********************************************************************************/
+#include <gatb/tools/math/LargeInt2.pri>
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
