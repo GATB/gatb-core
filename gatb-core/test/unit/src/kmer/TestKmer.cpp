@@ -20,8 +20,6 @@
 #include <gatb/bank/impl/Alphabet.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 
-#include <gatb/tools/math/NativeInt64.hpp>
-#include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/math/Integer.hpp>
 
@@ -44,6 +42,10 @@ using namespace gatb::core::tools::misc;
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
+
+typedef LargeInt<1>    Integer;
+typedef Model<Integer> KmerModel;
+typedef Integer        kmer_type;
 
 /** \brief Test class for genomic databases management
  */
@@ -160,12 +162,10 @@ public:
     void kmer_checkInfo ()
     {
         /** We check with the native 64 bits type. */
-        Check <NativeInt64>::kmer_checkInfo();
+        Check <LargeInt<1> >::kmer_checkInfo();
 
         /** We check with the native 128 bits type. */
-#ifdef INT128_FOUND
-        Check <NativeInt128>::kmer_checkInfo();
-#endif
+        Check <LargeInt<2> >::kmer_checkInfo();
 
         /** We check with the LargeInt type. */
         Check < LargeInt<KMER_PRECISION> >::kmer_checkInfo();
@@ -178,12 +178,10 @@ public:
     void kmer_checkCompute ()
     {
         /** We check with the native 64 bits type. */
-        Check <NativeInt64>::kmer_checkCompute();
+        Check <LargeInt<1> >::kmer_checkCompute();
 
         /** We check with the native 128 bits type. */
-#ifdef INT128_FOUND
-        Check <NativeInt128>::kmer_checkCompute();
-#endif
+        Check <LargeInt<2> >::kmer_checkCompute();
 
         /** We check with the LargeInt type. */
         Check < LargeInt<KMER_PRECISION> >::kmer_checkCompute();
@@ -196,12 +194,11 @@ public:
     void kmer_checkIterator ()
     {
         /** We check with the native 64 bits type. */
-        Check<NativeInt64>::kmer_checkIterator();
+        Check<LargeInt<1> >::kmer_checkIterator();
 
         /** We check with the native 128 bits type. */
-#ifdef INT128_FOUND
-        Check <NativeInt128>::kmer_checkIterator();
-#endif
+        Check <LargeInt<2> >::kmer_checkIterator();
+
         /** We check with the LargeInt type. */
         Check < LargeInt<KMER_PRECISION> >::kmer_checkIterator();
 

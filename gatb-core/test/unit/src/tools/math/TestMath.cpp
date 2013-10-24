@@ -14,9 +14,8 @@
 
 #include <CppunitCommon.hpp>
 
-#include <gatb/tools/math/NativeInt64.hpp>
-#include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
+#include <gatb/tools/math/Integer.hpp>
 
 using namespace std;
 using namespace gatb::core::tools::math;
@@ -25,8 +24,6 @@ using namespace gatb::core::tools::math;
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
 
-/** \brief Test class for miscellaneous operations
- */
 class TestMath : public Test
 {
     /********************************************************************************/
@@ -43,42 +40,60 @@ public:
     void tearDown ()  {}
 
     /********************************************************************************/
-    template <typename T> void math_checkBasicTemplate ()
+    template <typename T, typename U=T> void math_checkBasicTemplate ()
     {
-        T a (3);
-        T b (5);
+#define CST(a) T(U(a))
 
-        CPPUNIT_ASSERT (a == 3);
-        CPPUNIT_ASSERT (b == 5);
+        T a (CST(3));
+        T b (CST(5));
+
+        CPPUNIT_ASSERT (a == CST(3));
+        CPPUNIT_ASSERT (b == CST(5));
+
         CPPUNIT_ASSERT (a != b);
         CPPUNIT_ASSERT (a <  b);
         CPPUNIT_ASSERT (a <= b);
 
-        CPPUNIT_ASSERT (a + 1 == 4);
-        CPPUNIT_ASSERT (b + 1 == 6);
+        CPPUNIT_ASSERT (a + CST(1) == CST(4));
+        CPPUNIT_ASSERT (b + CST(1) == CST(6));
 
-        CPPUNIT_ASSERT (a - 1 == 2);
-        CPPUNIT_ASSERT (b - 1 == 4);
+        CPPUNIT_ASSERT (a - CST(1) == CST(2));
+        CPPUNIT_ASSERT (b - CST(1) == CST(4));
 
-        CPPUNIT_ASSERT (a*2 == 6);
-        CPPUNIT_ASSERT (b*4 == 20);
+        CPPUNIT_ASSERT (a*2 == CST(6));
+        CPPUNIT_ASSERT (b*4 == CST(20));
 
-        CPPUNIT_ASSERT (a/2 == 1);
-        CPPUNIT_ASSERT (b/2 == 2);
+        CPPUNIT_ASSERT (a/2 == CST(1));
+        CPPUNIT_ASSERT (b/2 == CST(2));
 
         CPPUNIT_ASSERT (a%2 == 1);
         CPPUNIT_ASSERT (b%2 == 1);
 
-        CPPUNIT_ASSERT ( (a ^ b) == 6);
-        CPPUNIT_ASSERT ( (a & b) == 1);
+        CPPUNIT_ASSERT ( (a ^ b) == CST(6));
+        CPPUNIT_ASSERT ( (a & b) == CST(1));
 
-        CPPUNIT_ASSERT ( (a << 4) == 48);
-        CPPUNIT_ASSERT ( (a >> 1) ==  1);
-        CPPUNIT_ASSERT ( (a >> 2) ==  0);
+        CPPUNIT_ASSERT ( (a << 4) == CST(48));
+        CPPUNIT_ASSERT ( (a >> 1) == CST(1));
+        CPPUNIT_ASSERT ( (a >> 2) == CST(0));
+
+        a  = CST(4);
+        a += CST(5);
+        CPPUNIT_ASSERT (a == CST(9));
+
+        a = CST (0xCC);
+        b = ~a  & CST(0xFF);
+        CPPUNIT_ASSERT (b == CST(0x33));
+
+        CPPUNIT_ASSERT (revcomp (CST (0x112233445566), 11) ==  CST (0xcffee));
+#if 0
+        CPPUNIT_ASSERT (simplehash16 (CST(0x11223344), 12) == 2129748964359514508);
+        CPPUNIT_ASSERT (hash1(CST(0x11223344), 5)  ==  9479217074923583263UL);   // => BUG ???
+        CPPUNIT_ASSERT (oahash(CST(0x11223344))    == 102913755990806762);       // => BUG ???
+#endif
     }
 
     /********************************************************************************/
-    template <typename T> void math_checkFiboTemplate ()
+    template <typename T, typename U=T> void math_checkFiboTemplate ()
     {
         static u_int64_t table[] =
         {
@@ -93,9 +108,9 @@ public:
 
         for (size_t i=0; i<sizeof(table)/sizeof(table[0]); i++)
         {
-            T u2;
+            T u2(0);
             u2 = u1 + u0;
-            CPPUNIT_ASSERT (u2 == table[i]);
+            CPPUNIT_ASSERT (u2 == T(table[i]));
 
             u0 = u1;
             u1 = u2;
@@ -105,21 +120,31 @@ public:
     /********************************************************************************/
     void math_checkBasic ()
     {
-        math_checkBasicTemplate < NativeInt64 >                  ();
-#ifdef INT128_FOUND
-        math_checkBasicTemplate < NativeInt128 >                 ();
-#endif
-        math_checkBasicTemplate < LargeInt<KMER_PRECISION> >     ();
+        math_checkBasicTemplate < LargeInt<1> >     ();
+        math_checkBasicTemplate < LargeInt<2> >     ();
+        math_checkBasicTemplate < LargeInt<3> >     ();
+        math_checkBasicTemplate < LargeInt<4> >     ();
+        math_checkBasicTemplate < LargeInt<5> >     ();
+        math_checkBasicTemplate < LargeInt<6> >     ();
+
+        math_checkBasicTemplate <Integer, LargeInt<1> > ();
+        math_checkBasicTemplate <Integer, LargeInt<2> > ();
+        math_checkBasicTemplate <Integer, LargeInt<3> > ();
+        math_checkBasicTemplate <Integer, LargeInt<4> > ();
     }
 
     /********************************************************************************/
     void math_checkFibo ()
     {
-        math_checkFiboTemplate < NativeInt64 >                  ();
-#ifdef INT128_FOUND
-        math_checkFiboTemplate < NativeInt128 >                 ();
-#endif
-        math_checkFiboTemplate < LargeInt<KMER_PRECISION> >     ();
+        math_checkBasicTemplate < LargeInt<1> >     ();
+        math_checkBasicTemplate < LargeInt<2> >     ();
+        math_checkBasicTemplate < LargeInt<3> >     ();
+        math_checkBasicTemplate < LargeInt<4> >     ();
+
+        math_checkBasicTemplate <Integer, LargeInt<1> > ();
+        math_checkBasicTemplate <Integer, LargeInt<2> > ();
+        math_checkBasicTemplate <Integer, LargeInt<3> > ();
+        math_checkBasicTemplate <Integer, LargeInt<4> > ();
     }
 };
 

@@ -29,6 +29,7 @@ using namespace std;
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
 
+using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
 
 using namespace gatb::core::tools::math;
@@ -44,6 +45,10 @@ extern std::string DBPATH (const string& a);
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
+
+typedef NativeInt64         LocalInteger;
+typedef Model<LocalInteger> KmerModel;
+typedef LocalInteger        kmer_type;
 
 /** \brief Test class for genomic databases management
  */
@@ -87,11 +92,11 @@ public:
         /** We declare two kmer iterators for the two banks and a paired one that links them. */
         KmerModel::Iterator itKmer1 (model);
         KmerModel::Iterator itKmer2 (model);
-        PairedIterator<Integer,Integer> itKmer (itKmer1, itKmer2);
+        PairedIterator<Iterator, LocalInteger,LocalInteger> itKmer (itKmer1, itKmer2);
 
         /** We loop the two banks with a paired iterator. */
         BankBinary::Iterator itSeq2 (bank2);
-        PairedIterator<Sequence,Sequence> itSeq (itSeq1, itSeq2);
+        PairedIterator<Iterator, Sequence,Sequence> itSeq (itSeq1, itSeq2);
 
         /** We loop the sequences of the two banks. */
         for (itSeq.first(); !itSeq.isDone();  itSeq.next())

@@ -17,13 +17,19 @@
 #include <gatb/tools/designpattern/impl/IteratorWrappers.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
+#include <gatb/tools/math/Integer.hpp>
+
 #include <vector>
 #include <string>
 
+#include <typeinfo>
+
+#include <boost/variant.hpp>
 using namespace std;
 
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
+using namespace gatb::core::tools::math;
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
@@ -42,6 +48,8 @@ class TestIterators : public Test
         CPPUNIT_TEST_GATB (iterators_checkCompoundIterator);
         CPPUNIT_TEST_GATB (iterators_checkTruncateIterator);
         CPPUNIT_TEST_GATB (iterators_checkPairedIterator);
+        CPPUNIT_TEST_GATB (iterators_checkVariant1);
+        CPPUNIT_TEST_GATB (iterators_checkVariant2);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -248,7 +256,7 @@ public:
         ListIterator<float> it2 (l2);
 
         /** We declare a paired iterator on the two iterators. */
-        PairedIterator<int,float> it (it1, it2);
+        PairedIterator<ListIterator, int,float> it (it1, it2);
         for (it.first(); !it.isDone(); it.next(), i++)
         {
             CPPUNIT_ASSERT (it->first  == values1[i]);
@@ -259,6 +267,39 @@ public:
 
         CPPUNIT_ASSERT (nbItems > 0);
         CPPUNIT_ASSERT (nbItems == min (sizeof(values1)/sizeof(values1[0]), sizeof(values2)/sizeof(values2[0])));
+    }
+
+    /********************************************************************************/
+    void iterators_checkVariant1 ()
+    {
+        vector<int>    v1;  v1.push_back(1);                            VectorIterator<int>    it1 (v1);
+        vector<float>  v2;  v2.push_back(3.14);   v2.push_back(0.577);  VectorIterator<float>  it2 (v2);
+        vector<string> v3;  v3.push_back("foo");  v3.push_back("bar");  VectorIterator<string> it3 (v3);
+
+        IteratorVariant<VectorIterator,int,float,string> it;
+
+        it = it3;
+
+        size_t i=0;
+        for (it.first(); !it.isDone(); it.next(), i++)
+        {
+        }
+    }
+
+    /********************************************************************************/
+    void iterators_checkVariant2 ()
+    {
+        IteratorVariant<VectorIterator,INTEGER_TYPES> it;
+
+        vector<LargeInt<1> > v1;  v1.push_back(1);  VectorIterator<LargeInt<1> >  it1 (v1);
+        vector<LargeInt<2> > v2;  v2.push_back(2);  v2.push_back(3);  VectorIterator<LargeInt<2> > it2 (v2);
+
+        it = it1;
+
+        size_t i=0;
+        for (it.first(); !it.isDone(); it.next(), i++)
+        {
+        }
     }
 };
 
