@@ -47,7 +47,7 @@ int main (int argc, char* argv[])
         Graph graph  = GraphFactory::load (options->getStr(STR_URI_INPUT));
 
         /** We get an iterator over the nodes of the graph. */
-        INodeIterator* nodes = graph.nodes ();
+        INodeIterator* nodes = graph.nodes ();  LOCAL(nodes);
 
         /** We want to gather some statistics during the iteration. */
         ThreadContainer<Stats> stats;
@@ -78,7 +78,8 @@ int main (int argc, char* argv[])
 
         /** We dump the statistics. */
         std::cout << std::endl;
-        std::cout << "nbSuccessors       = " << s.nbSuccessors           << "  "  << std::endl
+        std::cout << "nbSolids           = " << nodes->getNbItems()      << "  "  << std::endl
+                  << "nbSuccessors       = " << s.nbSuccessors           << "  "  << std::endl
                   << "checkumNodes       = " << s.checksumNodes          << "  "  << std::endl
                   << "checksumSuccessors = " << s.checksumSuccessors     << "  "  << std::endl
                   << "abundance          = " << s.abundance              << "  "  << std::endl
