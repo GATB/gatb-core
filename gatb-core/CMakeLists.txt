@@ -42,6 +42,8 @@ if (INT128_FOUND)
     set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -DINT128_FOUND")
 endif()
 
+set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -std=c++0x")
+
 message("-- Options: ${COMPILE_DEFINITIONS}")
 
 add_definitions (${COMPILE_DEFINITIONS})
