@@ -30,7 +30,11 @@ namespace kmer      {
 /** Define a kmer. */
 template<typename Type, typename Number=u_int16_t> struct Kmer : Abundance<Type,Number>
 {
-    Kmer(const Type& val=0, const Number& abund=0) : Abundance<Type,Number>(val, abund) {}
+    Kmer(const Type& val, const Number& abund) : Abundance<Type,Number>(val, abund) {}
+
+    Kmer() : Abundance<Type,Number>(Type(), 0) {}
+
+    Kmer(const Type& val) : Abundance<Type,Number>(val, 0) {}
 
     /********************************************************************************/
     inline static hid_t hdf5 (bool& isCompound)
@@ -58,6 +62,22 @@ enum KmerMode
     KMER_REVCOMP,
     /** Kmer as minimum between the direct and reverse complement */
     KMER_MINIMUM
+};
+
+enum Strand
+{
+    STRAND_FORWARD = (1<<0),
+    STRAND_REVCOMP = (1<<1),
+    STRAND_ALL     = STRAND_FORWARD + STRAND_REVCOMP
+};
+
+enum Nucleotide
+{
+    NUCL_A   = (1<<0),
+    NUCL_C   = (1<<1),
+    NUCL_T   = (1<<2),
+    NUCL_G   = (1<<3),
+    NUCL_ALL = NUCL_A + NUCL_C + NUCL_T + NUCL_G
 };
 
 /********************************************************************************/
