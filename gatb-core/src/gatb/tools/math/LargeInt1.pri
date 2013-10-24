@@ -23,7 +23,7 @@ public:
 
     static const char* getName ()  { return "LargeInt<1>"; }
 
-    const size_t getSize ()  { return 8*sizeof(u_int64_t); }
+    static const size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
     LargeInt<1> operator+  (const LargeInt<1>& other)   const   {  return value[0] + other.value[0];  }
     LargeInt<1> operator-  (const LargeInt<1>& other)   const   {  return value[0] - other.value[0];  }
