@@ -41,6 +41,16 @@ template <class Item> class IteratorFile : public dp::Iterator<Item>
 public:
 
     /** Constructor. */
+    IteratorFile () : _file(0), _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(0), _isDone(true) {}
+
+    IteratorFile (const IteratorFile& it):
+        _filename(it._filename), _file(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(it._cacheItemsNb), _isDone(true)
+    {
+        _file    = system::impl::System::file().newFile (_filename, "rb");
+        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
+    }
+
+    /** Constructor. */
     IteratorFile (const std::string& filename, size_t cacheItemsNb=10000) :
         _filename(filename), _file(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(cacheItemsNb), _isDone(true)
 
@@ -54,6 +64,26 @@ public:
     {
         if (_file)  { delete _file;  }
         if (_buffer) { free (_buffer); }
+    }
+
+    /** Affectation. */
+    IteratorFile& operator= (const IteratorFile& it)
+    {
+        if (this != &it)
+        {
+            if (_file)    { delete _file; }
+            if (_buffer)  { free(_buffer); }
+
+            _filename     = it._filename;
+            _cpt_buffer   = it._cpt_buffer;
+            _idx          = it._idx;
+            _cacheItemsNb = it._cacheItemsNb;
+            _isDone       = it._isDone;
+
+            _file    = system::impl::System::file().newFile (it._filename, "rb");
+            _buffer  = (Item*) malloc (sizeof(Item) * it._cacheItemsNb);
+        }
+        return *this;
     }
 
     /** \copydoc Iterator::first */
