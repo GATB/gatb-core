@@ -25,9 +25,9 @@ public:
      * \param[in] c : initial value of the large integer. */
     LargeInt<2> (const __uint128_t& c=0)  {  value[0] = c;  }
 
-    const char* getName ()  { return "LargeInt<2>"; }
+    static const char* getName ()  { return "LargeInt<2>"; }
 
-    const size_t getSize ()  { return 8*sizeof(__uint128_t); }
+    static const size_t getSize ()  { return 8*sizeof(__uint128_t); }
 
     LargeInt<2> operator+  (const LargeInt<2>& other)     const   {  return value[0] + other.value[0];  }
     LargeInt<2> operator-  (const LargeInt<2>& other)     const   {  return value[0] - other.value[0];  }
@@ -112,7 +112,7 @@ public:
     }
 
     /********************************************************************************/
-    hid_t hdf5 (bool& isCompound)
+    static hid_t hdf5 (bool& isCompound)
     {
         hid_t result = H5Tcopy (H5T_NATIVE_INT);
         H5Tset_precision (result, 128);

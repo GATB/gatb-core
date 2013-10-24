@@ -21,7 +21,7 @@ public:
      * \param[in] c : initial value of the large integer. */
     LargeInt<1> (const u_int64_t& c=0)  {  value[0] = c;  }
 
-    const char* getName ()  { static const char* res = "LargeInt<1>";  return res; }
+    static const char* getName ()  { return "LargeInt<1>"; }
 
     const size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
@@ -156,7 +156,7 @@ public:
     }
 
     /********************************************************************************/
-    hid_t hdf5 (bool& isCompound)
+    static hid_t hdf5 (bool& isCompound)
     {
         return H5Tcopy (H5T_NATIVE_UINT64);
     }
