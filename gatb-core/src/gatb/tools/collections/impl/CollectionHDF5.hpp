@@ -108,6 +108,8 @@ private:
 
 /********************************************************************************/
 
+template<typename Item> class HDF5Iterator;
+
 template <class Item> class IterableHDF5 : public Iterable<Item>, public dp::SmartPointer
 {
 public:
@@ -120,7 +122,7 @@ public:
     ~IterableHDF5 ()  {}
 
     /** */
-    dp::Iterator<Item>* iterator ()  {  return new HDF5Iterator (this);  }
+    dp::Iterator<Item>* iterator ()  {  return new HDF5Iterator<Item> (this);  }
 
     /** */
     int64_t getNbItems ()
@@ -143,86 +145,6 @@ private:
     u_int64_t& _nbItems;
     system::ISynchronizer* _synchro;
 
-    /** */
-    class HDF5Iterator : public dp::Iterator<Item>
-    {
-    public:
-
-        /** */
-        HDF5Iterator (IterableHDF5* ref, size_t blockSize=4096)
-            : _ref(ref), _blockSize(blockSize),
-              _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
-              _nbRead(0), _memspaceId(0), _total(0)
-        {
-            _data = (Item*) malloc (_blockSize*sizeof(Item));
-            memset (_data, 0, _blockSize*sizeof(Item));
-
-            _total = _ref->_nbItems;
-
-        }
-
-        /** */
-        ~HDF5Iterator()
-        {
-            if (_data)  { free (_data); }
-        }
-
-        void first()
-        {
-
-            _dataIdx  = 0;
-            _dataSize = retrieveNextCache();
-            _isDone   = _dataIdx >= _dataSize;
-
-            if (!_isDone)  {  *this->_item = _data[_dataIdx];  }
-        }
-
-        void next()
-        {
-            _dataIdx++;
-            _isDone = _dataIdx >= _dataSize;
-            if (!_isDone)  {  *this->_item = _data[_dataIdx];  }
-            else
-            {
-                _dataIdx  = 0;
-                _dataSize = retrieveNextCache();
-                _isDone = _dataIdx >= _dataSize;
-                if (!_isDone)  {  *this->_item = _data[_dataIdx];  }
-            }
-        }
-
-        bool isDone()
-        {
-            return _isDone;
-        }
-
-        Item& item ()  { return *this->_item; }
-
-    private:
-        IterableHDF5* _ref;
-        size_t        _blockSize;
-
-        Item*     _data;
-        u_int64_t _dataSize;
-        u_int64_t _dataIdx;
-
-        bool _isDone;
-
-        u_int64_t     _nbRead;
-        u_int64_t     _total;
-
-        hid_t _memspaceId;
-
-        u_int64_t retrieveNextCache ()
-        {
-            if (_total <= _nbRead)  {  return 0;   }
-            hsize_t nbToRead = std::min ((u_int64_t)_blockSize, _total - _nbRead);
-
-            _nbRead += _ref->retrieveCache (_data, _nbRead, nbToRead);
-
-            return nbToRead;
-        }
-    };
 
     /** */
     u_int64_t retrieveCache (Item* data, hsize_t start, hsize_t count)
@@ -250,7 +172,129 @@ private:
         return count;
     }
 
+    template<typename U>
     friend class HDF5Iterator;
+};
+
+/********************************************************************************/
+
+/** */
+template<typename Item>
+class HDF5Iterator : public dp::Iterator<Item>
+{
+public:
+
+    /** */
+    HDF5Iterator ()  : _ref(0), _blockSize(0),
+         _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
+         _nbRead(0), _memspaceId(0), _total(0)
+    {}
+
+    /** */
+    HDF5Iterator (const HDF5Iterator& it)
+    : _ref(it._ref), _blockSize(it._blockSize),
+        _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
+        _nbRead(0), _memspaceId(0), _total(0)
+    {
+        _data = (Item*) malloc (_blockSize*sizeof(Item));
+        memset (_data, 0, _blockSize*sizeof(Item));
+        _total = _ref->_nbItems;
+    }
+
+    /** */
+    HDF5Iterator (IterableHDF5<Item>* ref, size_t blockSize=4096)
+        : _ref(ref), _blockSize(blockSize),
+          _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
+          _nbRead(0), _memspaceId(0), _total(0)
+    {
+        _data = (Item*) malloc (_blockSize*sizeof(Item));
+        memset (_data, 0, _blockSize*sizeof(Item));
+
+        _total = _ref->_nbItems;
+    }
+
+    HDF5Iterator& operator= (const HDF5Iterator& it)
+    {
+        if (this != &it)
+        {
+            _ref        = it._ref;
+            _blockSize  = it._blockSize;
+            _dataSize   = it._dataSize;
+            _dataIdx    = it._dataIdx;
+            _isDone     = it._isDone;
+            _nbRead     = it._nbRead;
+            _memspaceId = it._memspaceId;
+            _total      = it._total;
+
+            if (_data)  { free (_data); }
+            _data = (Item*) malloc (_blockSize*sizeof(Item));
+            memcpy (_data, it._data, _blockSize*sizeof(Item));
+        }
+        return *this;
+    }
+
+
+    /** */
+    ~HDF5Iterator()
+    {
+        if (_data)  { free (_data); }
+    }
+
+    void first()
+    {
+
+        _dataIdx  = 0;
+        _dataSize = retrieveNextCache();
+        _isDone   = _dataIdx >= _dataSize;
+
+        if (!_isDone)  {  *this->_item = _data[_dataIdx];  }
+    }
+
+    void next()
+    {
+        _dataIdx++;
+        _isDone = _dataIdx >= _dataSize;
+        if (!_isDone)  {  *this->_item = _data[_dataIdx];  }
+        else
+        {
+            _dataIdx  = 0;
+            _dataSize = retrieveNextCache();
+            _isDone = _dataIdx >= _dataSize;
+            if (!_isDone)  {  *this->_item = _data[_dataIdx];  }
+        }
+    }
+
+    bool isDone()
+    {
+        return _isDone;
+    }
+
+    Item& item ()  { return *this->_item; }
+
+private:
+    IterableHDF5<Item>* _ref;
+    size_t        _blockSize;
+
+    Item*     _data;
+    u_int64_t _dataSize;
+    u_int64_t _dataIdx;
+
+    bool _isDone;
+
+    u_int64_t     _nbRead;
+    u_int64_t     _total;
+
+    hid_t _memspaceId;
+
+    u_int64_t retrieveNextCache ()
+    {
+        if (_total <= _nbRead)  {  return 0;   }
+        hsize_t nbToRead = std::min ((u_int64_t)_blockSize, _total - _nbRead);
+
+        _nbRead += _ref->retrieveCache (_data, _nbRead, nbToRead);
+
+        return nbToRead;
+    }
 };
 
 /********************************************************************************/
@@ -271,7 +315,7 @@ public:
 
         /** We get the HDF5 type of the item. */
         bool isCompound=false;
-        _typeId = Item::hdf5(isCompound);
+        _typeId = Item().hdf5(isCompound);
 
         /** We pack the type. */
         hid_t actualType = H5Tcopy (_typeId);
