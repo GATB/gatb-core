@@ -16,17 +16,8 @@
 
 /********************************************************************************/
 
-#include <gatb/debruijn/api/IGraph.hpp>
 #include <gatb/debruijn/impl/Graph.hpp>
-#include <gatb/debruijn/impl/GraphBasic.hpp>
-
 #include <gatb/bank/api/IBank.hpp>
-
-#include <gatb/kmer/impl/Model.hpp>
-
-#include <gatb/tools/misc/impl/Property.hpp>
-
-#include <stdarg.h>
 
 /********************************************************************************/
 namespace gatb      {
@@ -35,60 +26,36 @@ namespace debruijn  {
 namespace impl      {
 
 /********************************************************************************/
-
+/** \brief Factory that creates Graph objects
+ *
+ * Users have to use this factory for getting Graph instances.
+ *
+ * Two ways:
+ *      1) create a graph from scratch => launch DSK + Debloom and save the result in filesystem
+ *      2) load a graph from filesystem
+ */
 class GraphFactory
 {
 public:
 
-    template<typename T>
-    static Graph<T>  createGraph (tools::misc::IProperty* prop, ...)
-    {
-        tools::misc::IProperties* props = new tools::misc::impl::Properties ();
-        LOCAL (props);
+    /** Build a graph from a given bank.
+     * \param[in] bank : bank to get the reads from
+     * \param[in] options : user parameters for building the graph.
+     * \return the created graph.
+     */
+    static Graph  create (bank::IBank* bank, tools::misc::IProperties* options)  {  return  Graph (bank, options);  }
 
-        va_list args;
-        va_start (args, prop);
-        props->add (prop, args);
-        va_end (args);
+    /** Build a graph from scratch.
+     * \param[in] options : user parameters for building the graph.
+     * \return the created graph.
+     */
+    static Graph  create (tools::misc::IProperties* options)  {  return  Graph (options);  }
 
-        /** */
-        return  Graph<T> (singleton().newGraph<T> (props));
-    }
-
-    template<typename T>
-    static Graph<T>  createGraph (
-        tools::collections::Iterable<kmer::Kmer<T> >* solidKmers,
-        tools::collections::Iterable<T>* cFPKmers,
-        size_t kmerSize
-    )
-    {
-        return  Graph<T> (new GraphBasic<T> (solidKmers, cFPKmers, kmerSize));
-    }
-
-    template<typename T>
-    static Graph<T>  createGraph (tools::misc::IProperties* options)
-    {
-        return  Graph<T> (new GraphBasic<T> (options));
-    }
-
-    template<typename T>
-    static Graph<T>  load (const std::string& uri
-    )
-    {
-        return  Graph<T> (new GraphBasic<T> (uri));
-    }
-
-
-protected:
-
-    static GraphFactory& singleton()  { static GraphFactory instance;  return instance; }
-
-    template<typename T>
-    Graph<T>  newGraph (tools::misc::IProperties* props)
-    {
-        /** */
-        return  new GraphBasic<T> (props);
-    }
+    /** Load a graph from some URI.
+     * \parm[in] uri : the uri to get the graph from
+     * \return the loaded graph.
+     */
+    static Graph  load (const std::string& uri)  {  return  Graph (uri);  }
 };
 
 /********************************************************************************/

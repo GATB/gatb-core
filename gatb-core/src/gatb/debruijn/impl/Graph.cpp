@@ -294,6 +294,35 @@ public:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
+    : _product(0), _variant(new DataVariant())
+{
+    /** We get the kmer size from the user parameters. */
+    size_t kmerSize = params->getInt (STR_KMER_SIZE);
+
+    /** We get the Integer precision. */
+    int precision = 1 + kmerSize / 32;
+    Integer::setType (precision);
+
+    /** We build the graph according to the wanted precision. */
+    switch (precision)
+    {
+        case 1: GraphFactoryImpl<LargeInt<1> >::buildGraph (*this, bank, params);  break;
+        case 2: GraphFactoryImpl<LargeInt<2> >::buildGraph (*this, bank, params);  break;
+        case 3: GraphFactoryImpl<LargeInt<3> >::buildGraph (*this, bank, params);  break;
+        case 4: GraphFactoryImpl<LargeInt<4> >::buildGraph (*this, bank, params);  break;
+        default:   throw system::Exception ("Graph failure because of unhandled kmer precision %d", precision);
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 Graph::Graph (tools::misc::IProperties* params)
     : _product(0), _variant(new DataVariant())
 {
@@ -305,6 +334,7 @@ Graph::Graph (tools::misc::IProperties* params)
 
     /** We get the Integer precision. */
     int precision = 1 + kmerSize / 32;
+    Integer::setType (precision);
 
     /** We build the graph according to the wanted precision. */
     switch (precision)
@@ -390,7 +420,7 @@ void Graph::remove ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end)
+void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) const
 {
     NodeSet nodes (*this);
 
@@ -671,6 +701,54 @@ INodeIterator* Graph::nodes () const
 {
     DEBUG (("Graph::nodes \n"));
     return boost::apply_visitor (nodes_visitor(),  *(DataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+struct toString_visitor : public boost::static_visitor<std::string>    {
+
+    const Node& node;  kmer::Strand& strand; int& mode;
+    toString_visitor (const Node& node, kmer::Strand strand, int mode) : node(node), strand(strand), mode(mode) {}
+
+    template<typename T>  std::string operator() (const Data<T>& data) const
+    {
+        std::stringstream ss;
+
+        /** We set the strings for the kmer and the strand. */
+        std::string kmerStr;
+        std::string strandStr;
+
+        T value = node.kmer.value.get<T>();
+
+        if (strand == STRAND_ALL || node.strand == strand)
+        {
+            kmerStr = data._model->toString (value);
+            strandStr = (node.strand==STRAND_FORWARD ? "FORWARD" : "REVCOMP");
+        }
+        else
+        {
+            T reverse = data._model->reverse (value);
+            kmerStr = data._model->toString (reverse);
+            strandStr = (node.strand==STRAND_FORWARD ? "REVCOMP" : "FORWARD");
+        }
+
+        if (mode==0)    {  ss << "[ " << kmerStr <<  "  strand=" << strandStr << "  abund=" << node.kmer.abundance << "]";  }
+        else            {  ss << kmerStr; }
+
+        return ss.str();
+
+    }
+};
+
+std::string Graph::toString (const Node& node, kmer::Strand strand, int mode) const
+{
+    return boost::apply_visitor (toString_visitor(node,strand,mode),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************
