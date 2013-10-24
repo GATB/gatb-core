@@ -91,6 +91,27 @@ public:
     }
     
     /********************************************************************************/
+    /** Print corresponding kmer in ASCII
+     * \param[sizeKmer] in : kmer size (def=32).
+     */
+    std::string toString (size_t sizeKmer) const
+    {
+        int i;
+        u_int64_t temp = this->value[0];
+
+        char seq[33];
+        char bin2NT[4] = {'A','C','T','G'};
+
+        for (i=sizeKmer-1; i>=0; i--)
+        {
+            seq[i] = bin2NT[ temp&3 ];
+            temp = temp>>2;
+        }
+        seq[sizeKmer]='\0';
+        return seq;
+    }
+
+    /********************************************************************************/
     hid_t hdf5 (bool& isCompound)
     {
         hid_t result = H5Tcopy (H5T_NATIVE_INT);
