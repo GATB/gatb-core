@@ -1,28 +1,11 @@
+/*****************************************************************************
+ *   GATB : Genome Assembly Tool Box                                         *
+ *   Authors: [R.Chikhi, G.Rizk, E.Drezen]                                   *
+ *   Based on Minia, Authors: [R.Chikhi, G.Rizk], CeCILL license             *
+ *   Copyright (c) INRIA, CeCILL license, 2013                               *
+ *****************************************************************************/
+
 #include <gatb/gatb_core.hpp>
-
-using namespace std;
-
-/********************************************************************************/
-
-template <typename T>
-class GraphGenerator
-{
-public:
-
-    static void build (IProperties* options)
-    {
-        LOCAL (options);
-
-        /** We create the graph. */
-        Graph<T> graph = GraphFactory::createGraph <T> (options);
-
-        /** We build the graph. */
-        graph.build (new Bank (options->getStr(STR_URI_INPUT)));
-
-        /** We dump some information about the graph. */
-        if (options->get(STR_VERBOSE) != 0)  {  cout << graph.getInfo() << endl;  }
-    }
-};
 
 /********************************************************************************/
 int main (int argc, char* argv[])
@@ -44,30 +27,18 @@ int main (int argc, char* argv[])
         /** We parse the user options. */
         IProperties* options = parser.parse (argc, argv);
 
-        /** Shortcut */
-        size_t kmerSize = options->getInt (STR_KMER_SIZE);
+         /** We create the graph with the provided options. */
+         Graph graph = GraphFactory::create (options);
 
-        /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
-        if (kmerSize < 32)        {  GraphGenerator<NativeInt64>::build (options); }
-        else if (kmerSize < 64)
-        {
-    #ifdef INT128_FOUND
-            GraphGenerator<NativeInt128>::build (options);
-    #else
-            GraphGenerator<LargeInt<2> >::build (options);
-    #endif
-        }
-        else if (kmerSize < 96)   {  GraphGenerator<LargeInt<3> >::build (options);  }
-        else if (kmerSize < 128)  {  GraphGenerator<LargeInt<4> >::build (options);  }
-        else  { throw Exception ("unsupported kmer size %d", kmerSize);  }
+         /** We dump some information about the graph. */
+         if (options->get(STR_VERBOSE) != 0)  {  std::cout << graph.getInfo() << std::endl;  }
     }
     catch (OptionFailure& e)
     {
         e.getParser().displayErrors (stdout);
         e.getParser().displayHelp   (stdout);
+        return EXIT_FAILURE;
     }
-    catch (...)
-    {
 
-    }
+    return EXIT_SUCCESS;
 }
