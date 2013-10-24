@@ -42,6 +42,8 @@ public:
 
     static const size_t getSize ()  { return 8*sizeof(u_int8_t); }
 
+    operator char ()  const {  return (char) value[0];  }
+
     NativeInt8 operator+  (const NativeInt8& other)   const   {  return value[0] + other.value[0];  }
     NativeInt8 operator-  (const NativeInt8& other)   const   {  return value[0] - other.value[0];  }
     NativeInt8 operator|  (const NativeInt8& other)   const   {  return value[0] | other.value[0];  }
