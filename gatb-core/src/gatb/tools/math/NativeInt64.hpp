@@ -147,7 +147,7 @@ public:
     }
 
     /********************************************************************************/
-    inline static u_int64_t oahash (u_int64_t elem)
+    inline static u_int64_t oahash64 (u_int64_t elem)
     {
         u_int64_t code = elem;
         code = code ^ (code >> 14); //supp
@@ -185,7 +185,7 @@ public:
 private:
 
     friend NativeInt64 revcomp (const NativeInt64& i,   size_t sizeKmer);
-    friend u_int64_t    hash    (const NativeInt64& key, u_int64_t  seed);
+    friend u_int64_t    hash1    (const NativeInt64& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const NativeInt64& key);
     friend u_int64_t    simplehash16    (const NativeInt64& key, int  shift);
 
@@ -198,7 +198,7 @@ inline NativeInt64 revcomp (const NativeInt64& x, size_t sizeKmer)
 }
 
 /********************************************************************************/
-inline u_int64_t hash (const NativeInt64& key, u_int64_t seed=0)
+inline u_int64_t hash1 (const NativeInt64& key, u_int64_t seed=0)
 {
     return NativeInt64::hash64 (key.value[0], seed);
 }
@@ -206,7 +206,7 @@ inline u_int64_t hash (const NativeInt64& key, u_int64_t seed=0)
 /********************************************************************************/
 inline u_int64_t oahash (const NativeInt64& key)
 {
-    return NativeInt64::oahash (key.value[0]);
+    return NativeInt64::oahash64 (key.value[0]);
 }
     
 /********************************************************************************/
