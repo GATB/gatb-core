@@ -97,7 +97,7 @@ public:
 
         cell_ptr_t  newcell_internal_ptr;
 
-        clef = (unsigned int) (hash(graine) & mask);
+        clef = (unsigned int) (hash1(graine,0) & mask);
 
         cell_ptr = storage.internal_ptr_to_cell_pointer (datah[clef]);
 
@@ -128,7 +128,7 @@ public:
         cell* cell_ptr, *newcell_ptr;
         cell_ptr_t  newcell_internal_ptr;
 
-        clef = (unsigned int) hash(graine) & mask;
+        clef = (unsigned int) hash1(graine,0) & mask;
 
         cell_ptr = storage.internal_ptr_to_cell_pointer(datah[clef]);
 
@@ -162,7 +162,7 @@ public:
         unsigned int clef ;
         cell* cell_ptr;
 
-        clef = (unsigned int) hash (graine) & mask;
+        clef = (unsigned int) hash1 (graine,0) & mask;
 
         cell_ptr = storage.internal_ptr_to_cell_pointer(datah[clef]);
         while(cell_ptr != NULL &&  cell_ptr->graine != graine)
@@ -194,7 +194,7 @@ public:
         cell* cell_ptr;
         cell_ptr_t * cellprec_ptr;
 
-        clef = (unsigned int) hash (graine) & mask;
+        clef = (unsigned int) hash1 (graine,0) & mask;
 
         cell_ptr = storage.internal_ptr_to_cell_pointer(datah[clef]);
         cellprec_ptr = & (datah[clef]);
