@@ -70,7 +70,7 @@ public:
             tools::collections::impl::BloomFactory::singleton().createBloom<T> (_bloomKind, _bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
-        tools::dp::impl::ParallelCommandDispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom));
+        tools::dp::impl::ParallelDispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom));
 
         /** We gather some statistics. */
         if (stats != 0)
