@@ -40,7 +40,7 @@ Algorithm::Algorithm (const std::string& name, int nbCores, gatb::core::tools::m
     setInfo   (new Properties());
 
     if (nbCores < 0)  {  nbCores = _input->get(STR_NB_CORES)  ? _input->getInt(STR_NB_CORES) : 0;  }
-    setDispatcher (new ParallelCommandDispatcher (nbCores) );
+    setDispatcher (new ParallelDispatcher (nbCores) );
 
     _info->add (0, _name);
 }

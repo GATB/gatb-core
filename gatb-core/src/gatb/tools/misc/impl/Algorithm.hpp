@@ -58,7 +58,7 @@ public:
     virtual IProperties*            getInput      ()  { return _input;      }
     virtual IProperties*            getOutput     ()  { return _output;     }
     virtual IProperties*            getInfo       ()  { return _info;       }
-    virtual dp::ICommandDispatcher* getDispatcher ()  { return _dispatcher; }
+    virtual dp::IDispatcher* getDispatcher ()  { return _dispatcher; }
     virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
 
     /** */
@@ -93,7 +93,7 @@ protected:
     void setInput      (IProperties*            input)       { SP_SETATTR (input);      }
     void setOutput     (IProperties*            output)      { SP_SETATTR (output);     }
     void setInfo       (IProperties*            info)        { SP_SETATTR (info);       }
-    void setDispatcher (dp::ICommandDispatcher* dispatcher)  { SP_SETATTR (dispatcher); }
+    void setDispatcher (dp::IDispatcher*        dispatcher)  { SP_SETATTR (dispatcher); }
 
 private:
 
@@ -106,7 +106,7 @@ private:
 
     IProperties* _info;
 
-    dp::ICommandDispatcher* _dispatcher;
+    dp::IDispatcher* _dispatcher;
 
     /** */
     TimeInfo _timeInfo;

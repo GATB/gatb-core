@@ -108,11 +108,11 @@ IProperties* Tool::run (IProperties* input)
     /** We define one dispatcher. */
     if (_input->getInt(STR_NB_CORES) == 1)
     {
-        setDispatcher (new SerialCommandDispatcher ());
+        setDispatcher (new SerialDispatcher ());
     }
     else
     {
-        setDispatcher (new ParallelCommandDispatcher (_input->getInt(STR_NB_CORES)) );
+        setDispatcher (new ParallelDispatcher (_input->getInt(STR_NB_CORES)) );
     }
 
     /** We may have some pre processing. */
