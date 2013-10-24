@@ -94,7 +94,7 @@ struct FunctorIter1
 };
 
 template <typename Functor> void iter1 (
-    ICommandDispatcher& dispatcher,
+    IDispatcher& dispatcher,
     IBank& bank,
     KmerModel& model,
     Functor& hash,
