@@ -7,6 +7,7 @@
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <gatb/tools/misc/impl/TimeInfo.hpp>
 
 using namespace std;
 using namespace gatb::core::tools::dp;
@@ -35,8 +36,10 @@ public:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void SerialCommandDispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand* post)
+size_t SerialDispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand* post)
 {
+    TIME_START (ti, "compute");
+
     for (std::vector<ICommand*>::iterator it = commands.begin(); it != commands.end(); it++)
     {
         if (*it != 0)  {  (*it)->use ();  (*it)->execute ();  (*it)->forget ();  }
@@ -44,6 +47,10 @@ void SerialCommandDispatcher::dispatchCommands (std::vector<ICommand*>& commands
 
     /** We may have to do some post treatment. Note that we do it in the current thread. */
     if (post != 0)  {  post->use ();  post->execute ();  post->forget ();  }
+
+    TIME_STOP (ti, "compute");
+
+    return ti.getEntryByKey("compute");
 }
 
 /*********************************************************************
@@ -54,7 +61,7 @@ void SerialCommandDispatcher::dispatchCommands (std::vector<ICommand*>& commands
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-system::ISynchronizer* SerialCommandDispatcher::newSynchro ()
+system::ISynchronizer* SerialDispatcher::newSynchro ()
 {
     return new SynchronizerNull();
 }
@@ -67,7 +74,7 @@ system::ISynchronizer* SerialCommandDispatcher::newSynchro ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-ParallelCommandDispatcher::ParallelCommandDispatcher (size_t nbUnits) : _nbUnits(nbUnits)
+ParallelDispatcher::ParallelDispatcher (size_t nbUnits) : _nbUnits(nbUnits)
 {
     if (_nbUnits==0)  { _nbUnits = system::impl::System::info().getNbCores(); }
 }
@@ -80,8 +87,10 @@ ParallelCommandDispatcher::ParallelCommandDispatcher (size_t nbUnits) : _nbUnits
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void ParallelCommandDispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment)
+size_t ParallelDispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment)
 {
+    TIME_START (ti, "compute");
+
     std::vector<system::IThread*> threads;
     for (std::vector<ICommand*>::iterator it = commands.begin(); it != commands.end(); it++)
     {
@@ -97,6 +106,10 @@ void ParallelCommandDispatcher::dispatchCommands (std::vector<ICommand*>& comman
     {
         delete (*it);
     }
+
+    TIME_STOP (ti, "compute");
+
+    return ti.getEntryByKey("compute");
 }
 
 /*********************************************************************
@@ -107,7 +120,7 @@ void ParallelCommandDispatcher::dispatchCommands (std::vector<ICommand*>& comman
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-system::ISynchronizer* ParallelCommandDispatcher::newSynchro ()
+system::ISynchronizer* ParallelDispatcher::newSynchro ()
 {
     return system::impl::System::thread().newSynchronizer();
 }
@@ -120,7 +133,7 @@ system::ISynchronizer* ParallelCommandDispatcher::newSynchro ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-system::IThread* ParallelCommandDispatcher::newThread (ICommand* command)
+system::IThread* ParallelDispatcher::newThread (ICommand* command)
 {
     return system::impl::System::thread().newThread (mainloop, command);
 }
@@ -133,7 +146,7 @@ system::IThread* ParallelCommandDispatcher::newThread (ICommand* command)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void* ParallelCommandDispatcher::mainloop (void* data)
+void* ParallelDispatcher::mainloop (void* data)
 {
     ICommand* cmd = (ICommand*) data;
 

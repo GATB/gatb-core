@@ -121,17 +121,24 @@ public:
  *
  *  \see ICommand
  */
-class ICommandDispatcher : public SmartPointer
+class IDispatcher : public SmartPointer
 {
 public:
+
+    struct Status
+    {
+        size_t nbCores;
+        size_t time;
+    };
 
     /** Dispatch commands execution in some separate contexts (threads for instance).
      *  Once the commands are launched, this dispatcher waits for the commands finish.
      *  Then, it may have to execute a post treatment command (if any).
      * \param[in] commands      : commands to be executed
      * \param[in] postTreatment : command to be executed after all the commands are done
+     * \return time elapsed in msec
      */
-    virtual void dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0) = 0;
+    virtual size_t dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0) = 0;
 
     /** Returns the number of execution units for this dispatcher.
      *  For instance, it could be the number of cores in a multi cores architecture.
@@ -148,8 +155,10 @@ public:
      *  \param[in] functors : vector of functors that are fed with iterated items
      *  \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
      */
-    template <typename Item, typename Functor> void iterate (Iterator<Item>* iterator, std::vector<Functor*>& functors, size_t groupSize = 1000)
+    template <typename Item, typename Functor> Status iterate (Iterator<Item>* iterator, std::vector<Functor*>& functors, size_t groupSize = 1000)
     {
+        Status status;
+
         /** We create a common synchronizer. */
         system::ISynchronizer* synchro = newSynchro();
 
@@ -161,35 +170,53 @@ public:
         }
 
         /** We dispatch the commands. */
-        dispatchCommands (commands);
+        status.time = dispatchCommands (commands);
 
         /** We reset the iterator (in case it would be used again). */
         iterator->reset();
 
         /** We get rid of the synchronizer. */
         delete synchro;
+
+        /** We set the status. */
+        status.nbCores = commands.size();
+
+        /** We return the status. */
+        return status;
     }
 
     /** */
     template <typename Item, typename Functor>
-    void iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000)
+    Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000)
     {
+        Status status;
+
         /** We create N functors that are copies of the provided one. */
         std::vector<Functor*> functors (getExecutionUnitsNumber());
         for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
 
         /** We iterate the iterator. */
-        iterate (iterator, functors, groupSize);
+        status = iterate (iterator, functors, groupSize);
 
         /** We get rid of the functors. */
         for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
+
+        /** We return the status. */
+        return status;
     }
 
     /** Another way: use iterator object instead of pointer. */
     template <typename Item, typename Functor>
-    void iterate (Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
+    Status iterate (Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
     {
-        iterate (&iterator, functor, groupSize);
+        return iterate (&iterator, functor, groupSize);
+    }
+
+    /** Another way: use iterator object instead of pointer. */
+    template <typename Item, typename Functor>
+    Status iterate (const Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
+    {
+        return iterate ((Iterator<Item>*)&iterator, functor, groupSize);
     }
 
 protected:

@@ -36,15 +36,15 @@ namespace impl  {
  * when it is required, while keeping an uniform API (ie. call dispatchCommands)
  * for running ICommand instances.
  */
-class SerialCommandDispatcher : public ICommandDispatcher
+class SerialDispatcher : public IDispatcher
 {
 public:
 
     /** Destructor (defined because of presence of virtual methods). */
-    virtual ~SerialCommandDispatcher() {}
+    virtual ~SerialDispatcher() {}
 
     /** \copydoc ICommandDispatcher::dispatchCommands */
-    void dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
+    size_t dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
 
     /** \copydoc ICommandDispatcher::getExecutionUnitsNumber */
     size_t getExecutionUnitsNumber () { return 1; }
@@ -75,17 +75,17 @@ private:
  *  DefaultFactory::thread().getNbCores() method, and uses it as default value. This means
  *  that default constructor will use by default the whole CPU multicore power.
  */
-class ParallelCommandDispatcher : public ICommandDispatcher
+class ParallelDispatcher : public IDispatcher
 {
 public:
 
     /** Constructor.
      * \param[in] nbUnits : number of threads to be used. If 0 is provided, one tries to guess the number of available cores.
      */
-    ParallelCommandDispatcher (size_t nbUnits=0);
+    ParallelDispatcher (size_t nbUnits=0);
 
     /** \copydoc ICommandDispatcher::dispatchCommands */
-    void dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
+    size_t dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
 
     /** \copydoc ICommandDispatcher::getExecutionUnitsNumber */
     size_t getExecutionUnitsNumber () { return _nbUnits; }
