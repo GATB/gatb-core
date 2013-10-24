@@ -23,7 +23,7 @@
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 
-#include <gatb/tools/math/NativeInt64.hpp>
+#include <gatb/tools/math/Integer.hpp>
 
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
@@ -83,8 +83,31 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
+SortingCountAlgorithm<ProductFactory,T>::SortingCountAlgorithm ()
+    : Algorithm("dsk", 0, 0),
+      _product(0),
+      _bank(0),
+      _kmerSize(0), _nks(0),
+      _partitionType(0), _nbCores(0), _prefix(""),
+      _progress (0),
+      _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
+      _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
+      _histogram (0), _histogramUri(""),
+      _partitionsProduct(0), _partitions(0), _totalKmerNb(0), _solidKmers(0)
+{
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename ProductFactory, typename T>
 SortingCountAlgorithm<ProductFactory,T>::SortingCountAlgorithm (
-    Product<ProductFactory>& product,
+    Product<ProductFactory>* product,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
     size_t      nks,
@@ -110,10 +133,10 @@ SortingCountAlgorithm<ProductFactory,T>::SortingCountAlgorithm (
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& product("dsk").template getCollection<Kmer<T> > ("solid"));
+    setSolidKmers (& (*_product)("dsk").template getCollection<Kmer<T> > ("solid"));
 
     /** We set the histogram instance. */
-    setHistogram (new Histogram  (10000, & product("dsk").template getCollection<Histogram::Entry>("histogram") ));
+    setHistogram (new Histogram  (10000, & (*_product)("dsk").template getCollection<Histogram::Entry>("histogram") ));
 }
 
 /*********************************************************************
@@ -133,6 +156,47 @@ SortingCountAlgorithm<ProductFactory,T>::~SortingCountAlgorithm ()
     setPartitions        (0);
     setSolidKmers        (0);
     setHistogram         (0);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename ProductFactory, typename T>
+SortingCountAlgorithm<ProductFactory,T>& SortingCountAlgorithm<ProductFactory,T>::operator= (const SortingCountAlgorithm& s)
+{
+    if (this != &s)
+    {
+        _product                = s._product;
+        _kmerSize               = s._kmerSize;
+        _nks                    = s._nks;
+        _partitionType          = s._partitionType;
+        _nbCores                = s._nbCores;
+        _prefix                 = s._prefix;
+        _estimateSeqNb          = s._estimateSeqNb;
+        _estimateSeqTotalSize   = s._estimateSeqTotalSize;
+        _estimateSeqMaxSize     = s._estimateSeqMaxSize;
+        _max_disk_space         = s._max_disk_space;
+        _max_memory             = s._max_memory;
+        _volume                 = s._volume;
+        _nb_passes              = s._nb_passes;
+        _nb_partitions          = s._nb_partitions;
+        _current_pass           = s._current_pass;
+        _histogramUri           = s._histogramUri;
+        _totalKmerNb            = s._totalKmerNb;
+
+        setBank                 (s._bank);
+        setProgress             (s._progress);
+        setHistogram            (s._histogram);
+        setPartitionsProduct    (s._partitionsProduct);
+        setPartitions           (s._partitions);
+        setSolidKmers           (s._solidKmers);
+    }
+    return *this;
 }
 
 /*********************************************************************
@@ -636,25 +700,15 @@ void SortingCountAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  so
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class SortingCountAlgorithm <ProductFileFactory, NativeInt64>;
-#ifdef INT128_FOUND
-template class SortingCountAlgorithm <ProductFileFactory, NativeInt128>;
-#else
+template class SortingCountAlgorithm <ProductFileFactory, LargeInt<1> >;
 template class SortingCountAlgorithm <ProductFileFactory, LargeInt<2> >;
-#endif
-
 template class SortingCountAlgorithm <ProductFileFactory, LargeInt<3> >;
 template class SortingCountAlgorithm <ProductFileFactory, LargeInt<4> >;
 
 /********************************************************************************/
 
-template class SortingCountAlgorithm <ProductHDF5Factory, NativeInt64>;
-#ifdef INT128_FOUND
-template class SortingCountAlgorithm <ProductHDF5Factory, NativeInt128>;
-#else
+template class SortingCountAlgorithm <ProductHDF5Factory, LargeInt<1> >;
 template class SortingCountAlgorithm <ProductHDF5Factory, LargeInt<2> >;
-#endif
-
 template class SortingCountAlgorithm <ProductHDF5Factory, LargeInt<3> >;
 template class SortingCountAlgorithm <ProductHDF5Factory, LargeInt<4> >;
 

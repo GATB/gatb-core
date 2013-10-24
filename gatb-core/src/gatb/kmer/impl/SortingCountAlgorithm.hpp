@@ -48,8 +48,11 @@ template<typename ProductFactory, typename T> class SortingCountAlgorithm : publ
 public:
 
     /** Constructor.*/
+    SortingCountAlgorithm ();
+
+    /** Constructor.*/
     SortingCountAlgorithm (
-        tools::collections::impl::Product<ProductFactory>& product,
+        tools::collections::impl::Product<ProductFactory>* product,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
         size_t              nks,
@@ -64,6 +67,9 @@ public:
 
     /** Destructor */
     virtual ~SortingCountAlgorithm ();
+
+    /** operator=.*/
+    SortingCountAlgorithm& operator= (const SortingCountAlgorithm& s);
 
     /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
      * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
@@ -96,7 +102,7 @@ private:
     std::vector <size_t> getNbCoresList ();
 
     /** */
-    tools::collections::impl::Product<ProductFactory>& _product;
+    tools::collections::impl::Product<ProductFactory>* _product;
 
     /** */
     gatb::core::bank::IBank* _bank;
