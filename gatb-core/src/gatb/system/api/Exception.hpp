@@ -89,8 +89,8 @@ namespace system    {
         va_list args;  va_start (args, format);  init (format, args);  va_end (args);
 
         char* buffer       = (char*) malloc (BUFSIZ);
-        char* errorMessage = (char*) strerror_r (errno, buffer, BUFSIZ);
-        if (errorMessage != NULL)  {  _message += std::string(" (") + std::string(errorMessage) + std::string(")");  }
+        strerror_r (errno, buffer, BUFSIZ);
+        {  _message += std::string(" (") + std::string(buffer) + std::string(")");  }
         free(buffer);
     }
  };

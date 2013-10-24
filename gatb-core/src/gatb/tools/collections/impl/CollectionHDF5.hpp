@@ -361,8 +361,8 @@ public:
         }
 
         /** We create the bag and the iterable instances. */
-        setBag      (new BagHDF5<Item>      (_datasetId, _typeId, _nbItems, synchro));
-        setIterable (new IterableHDF5<Item> (_datasetId, _typeId, _nbItems, synchro));
+        this->setBag      (new BagHDF5<Item>      (_datasetId, _typeId, _nbItems, synchro));
+        this->setIterable (new IterableHDF5<Item> (_datasetId, _typeId, _nbItems, synchro));
 
     }
 
