@@ -53,7 +53,7 @@ namespace impl      {
  * given mode (direct kmer, revcomp or the minimum of both). This method is likely to be used
  * by children classes for implementing the methods not implemented here.
  */
-template <typename kmer_type> class ModelAbstract : public IModel<kmer_type>
+template <typename kmer_type> class ModelAbstract : public IModel<kmer_type>, public tools::dp::SmartPointer
 {
 public:
 
@@ -147,12 +147,12 @@ public:
             {
                 {
                     kmer_type next1 = (((source) * 4 )  + nt) & _ref.getMask();
-                    kmer_type next2 = core::tools::math::revcomp (next1, _ref.getSpan());
+                    kmer_type next2 = revcomp (next1, _ref.getSpan());
                     this->_items[idx++] = std::min (next1, next2);
                 }
                 {
                     kmer_type next1 = (((rev) * 4 )  + nt) & _ref.getMask();
-                    kmer_type next2 = core::tools::math::revcomp (next1, _ref.getSpan());
+                    kmer_type next2 = revcomp (next1, _ref.getSpan());
                     this->_items[idx++] = std::min (next1, next2);
                 }
             }
@@ -212,7 +212,7 @@ protected:
 
         if (mode == KMER_DIRECT)  { return direct; }
 
-        kmer_type rev = core::tools::math::revcomp (direct, _sizeKmer);
+        kmer_type rev = revcomp (direct, _sizeKmer);
 
         if (mode == KMER_REVCOMP)  { return rev; }
 
@@ -236,7 +236,7 @@ protected:
 
         if (mode == KMER_DIRECT)  { return direct; }
 
-        kmer_type rev = core::tools::math::revcomp (direct, _sizeKmer);
+        kmer_type rev = revcomp (direct, _sizeKmer);
 
         if (mode == KMER_REVCOMP)  { return rev; }
 
