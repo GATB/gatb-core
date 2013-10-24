@@ -23,6 +23,7 @@
 #include <gatb/system/impl/FileSystemMacos.hpp>
 #include <gatb/system/impl/ThreadLinux.hpp>
 #include <gatb/system/impl/ThreadMacos.hpp>
+#include <map>
 
 /********************************************************************************/
 namespace gatb      {
@@ -145,6 +146,21 @@ class System
         #warning "TO BE DONE..."
 #endif
      }
+};
+
+/********************************************************************************/
+template<typename T> class ThreadContainer
+{
+public:
+
+    T& current()  { return _map[pthread_self()]; }
+
+    template<class Function>
+    void foreach (Function fn)
+    {  for (typename std::map<pthread_t,T>::iterator it = _map.begin(); it != _map.end(); it++)  { fn (it->second); } }
+
+private:
+    std::map<pthread_t,T> _map;
 };
 
 /********************************************************************************/
