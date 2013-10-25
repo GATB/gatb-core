@@ -21,6 +21,7 @@
 #include <gatb/tools/misc/api/IProperty.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
+#include <gatb/tools/misc/api/StringsRepository.hpp>
 
 #include <string>
 #include <list>
@@ -90,16 +91,6 @@ public:
     /** */
     virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
 
-    /** */
-    static const char* STR_NB_CORES;
-    static const char* STR_STATS_XML;
-    static const char* STR_VERBOSE;
-    static const char* STR_URI_PREFIX;
-    static const char* STR_URI_DATABASE;
-    static const char* STR_URI_OUTPUT;
-    static const char* STR_PROGRESS_BAR;
-    static const char* STR_HELP;
-
 protected:
 
     /** */
@@ -110,7 +101,7 @@ protected:
     std::string getUriByKey (const std::string& key)  { return getUri (getInput()->getStr(key)); }
 
     /** Computes the uri from an uri (ie add a prefix if any). */
-    std::string getUri (const std::string& str)  { return getInput()->getStr(STR_URI_PREFIX) + str; }
+    std::string getUri (const std::string& str)  { return getInput()->getStr(STR_PREFIX) + str; }
 
     /** Setters. */
     void setInput      (IProperties*            input)       { SP_SETATTR (input);      }

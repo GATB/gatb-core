@@ -88,7 +88,7 @@ class HistogramNull : public IHistogram, public dp::SmartPointer
 public:
 
     /** */
-    void inc (u_int32_t abundance) {}
+    void inc (u_int16_t abundance) {}
 
     /** */
     void save ()  {}

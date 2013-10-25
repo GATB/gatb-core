@@ -11,7 +11,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
-#define DEBUG(a)  printf a
+#define DEBUG(a)  //printf a
 
 using namespace std;
 using namespace gatb::core::system;
@@ -23,15 +23,6 @@ using namespace gatb::core::tools::dp::impl;
 /********************************************************************************/
 namespace gatb {  namespace core { namespace tools {  namespace misc {  namespace impl {
 /********************************************************************************/
-
-const char* Tool::STR_NB_CORES      = "-nb-cores";
-const char* Tool::STR_STATS_XML     = "-stats";
-const char* Tool::STR_VERBOSE       = "-verbose";
-const char* Tool::STR_URI_PREFIX    = "-prefix";
-const char* Tool::STR_URI_DATABASE  = "-db";
-const char* Tool::STR_URI_OUTPUT    = "-out";
-const char* Tool::STR_PROGRESS_BAR  = "-bargraph";
-const char* Tool::STR_HELP          = "-help";
 
 /*********************************************************************
 ** METHOD  :
@@ -52,12 +43,12 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     setParser (new OptionsParser ());
 
     /** We configure this parser with some options useful for each tool. */
-    _parser->add (new OptionOneParam (Tool::STR_NB_CORES,       "number of cores",                      false, "0"  ));
-    _parser->add (new OptionOneParam (Tool::STR_STATS_XML,      "dump exec info into a XML file",       false       ));
-    _parser->add (new OptionNoParam  (Tool::STR_VERBOSE,        "dump execution information",           false       ));
-    _parser->add (new OptionOneParam (Tool::STR_URI_PREFIX,     "prefix to be appended to temp files",  false, ""   ));
-    _parser->add (new OptionNoParam  (Tool::STR_HELP,           "display help about possible options",  false       ));
-    _parser->add (new OptionOneParam (Tool::STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
+    _parser->add (new OptionOneParam (STR_NB_CORES,       "number of cores",                      false, "0"  ));
+    _parser->add (new OptionNoParam  (STR_VERBOSE,        "dump execution information",           false       ));
+    _parser->add (new OptionOneParam (STR_PREFIX,         "prefix to be appended to temp files",  false, ""   ));
+    _parser->add (new OptionNoParam  (STR_HELP,           "display help about possible options",  false       ));
+    _parser->add (new OptionOneParam (STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
+    //_parser->add (new OptionOneParam (STR_STATS_XML,      "dump exec info into a XML file",       false       ));
 }
 
 /*********************************************************************
@@ -145,7 +136,7 @@ void Tool::preExecute ()
     _input->add (1, new Properties (/*System::info().getHomeDirectory() + "/." + getName() */));
 
     /** We may have to add a default prefix for temporary files. */
-    if (_input->get(STR_URI_PREFIX)==0)  { _input->add (1, STR_URI_PREFIX, "tmp.");  }
+    if (_input->get(STR_PREFIX)==0)  { _input->add (1, STR_PREFIX, "tmp.");  }
 
     /** We may have to add a default prefix for temporary files. */
     if (_input->getInt(STR_NB_CORES)<=0)  { _input->setInt (STR_NB_CORES, System::info().getNbCores());  }
@@ -172,14 +163,14 @@ void Tool::postExecute ()
     _info->add (2, _output);
 
     /** We may have to dump execution information into a stats file. */
-    if (_input->get(Tool::STR_STATS_XML) != 0)
-    {
-        XmlDumpPropertiesVisitor visit (_info->getStr (Tool::STR_STATS_XML));
-        _info->accept (&visit);
-    }
+//    if (_input->get(STR_STATS_XML) != 0)
+//    {
+//        XmlDumpPropertiesVisitor visit (_info->getStr (STR_STATS_XML));
+//        _info->accept (&visit);
+//    }
 
     /** We may have to dump execution information to stdout. */
-    if (_input->get(Tool::STR_VERBOSE))
+    if (_input->get(STR_VERBOSE))
     {
         RawDumpPropertiesVisitor visit;
         _info->accept (&visit);
@@ -340,11 +331,11 @@ void ToolComposite::preExecute ()
 void ToolComposite::postExecute ()
 {
     /** We may have to dump execution information into a stats file. */
-    if (_input->get(Tool::STR_STATS_XML) != 0)
-    {
-        XmlDumpPropertiesVisitor visit (_info->getStr (Tool::STR_STATS_XML), false);
-        _info->accept (&visit);
-    }
+//    if (_input->get(Tool::STR_STATS_XML) != 0)
+//    {
+//        XmlDumpPropertiesVisitor visit (_info->getStr (Tool::STR_STATS_XML), false);
+//        _info->accept (&visit);
+//    }
 }
 
 /********************************************************************************/

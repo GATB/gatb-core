@@ -56,13 +56,9 @@ public:
     static CollectionNode<Type>* createCollection (dp::ICell* parent, const std::string& name, system::ISynchronizer* synchro)
     {
         /** We define the full qualified id of the current collection to be created. */
-        std::stringstream ss;  ss << parent->getFullId().c_str() << "." << name;
+        std::string actualName = std::string("tmp.") + name;
 
-#if 0
-        return new CollectionNode<Type> (parent, name, new CollectionFile<Type>(ss.str()));
-#else
-        return new CollectionNode<Type> (parent, name, new CollectionFile<Type>(name));
-#endif
+        return new CollectionNode<Type> (parent, name, new CollectionFile<Type>(actualName));
     }
 };
 
