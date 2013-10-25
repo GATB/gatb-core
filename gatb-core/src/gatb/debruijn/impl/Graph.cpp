@@ -448,26 +448,30 @@ struct getEdges_visitor : public boost::static_visitor<size_t>    {
         /** We get the specific typed value from the generic typed value. */
         const T& sourceVal = source.kmer.value.get<T>();
 
+        /** Shortcuts. */
+        size_t   span = data._model->getSpan();
+        const T& mask = data._model->getMask();
+
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
-        T graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, data._model->getSpan()) );
+        T graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, span) );
 
         if (direction == DIR_OUTCOMING)
         {
             for (u_int64_t nt=0; nt<4; nt++)
             {
-                T forward = ( (graine << 2 )  + nt) & data._model->getMask();
-                T reverse = revcomp (forward, data._model->getSpan());
+                T forward = ( (graine << 2 )  + nt) & mask;
+                T reverse = revcomp (forward, span);
 
                 if (forward < reverse)
                 {
-                    if (data._cfp->contains (forward))
+                    if (data.contains (forward))
                     {
                         edges[idx++].set (source.getGraph(), source.kmer.value, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
                     }
                 }
                 else
                 {
-                    if (data._cfp->contains (reverse))
+                    if (data.contains (reverse))
                     {
                         edges[idx++].set (source.getGraph(), source.kmer.value, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
                     }
@@ -479,19 +483,19 @@ struct getEdges_visitor : public boost::static_visitor<size_t>    {
             /** IMPORTANT !!! Since we have hugely shift the nt value, we make sure to use a long enough integer. */
             for (u_int64_t nt=0; nt<4; nt++)
             {
-                T forward = ((graine >> 2 )  + ( nt << ((data._model->getSpan()-1)*2)) ) & data._model->getMask(); // previous kmer
-                T reverse = revcomp (forward, data._model->getSpan());
+                T forward = ((graine >> 2 )  + ( nt << ((span-1)*2)) ) & mask; // previous kmer
+                T reverse = revcomp (forward, span);
 
                 if (forward < reverse)
                 {
-                    if (data._cfp->contains (forward))
+                    if (data.contains (forward))
                     {
                         edges[idx++].set (source.getGraph(), Type(forward), STRAND_FORWARD, source.kmer.value, source.strand, (Nucleotide)nt, DIR_INCOMING);
                     }
                 }
                 else
                 {
-                    if (data._cfp->contains (reverse))
+                    if (data.contains (reverse))
                     {
                         edges[idx++].set (source.getGraph(), Type(reverse), STRAND_REVCOMP, source.kmer.value, source.strand, (Nucleotide)nt, DIR_INCOMING);
                     }
