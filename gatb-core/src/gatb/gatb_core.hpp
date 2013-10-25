@@ -39,6 +39,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
+#include <gatb/tools/misc/impl/Tool.hpp>
 
 #include <gatb/tools/math/NativeInt64.hpp>
 #include <gatb/tools/math/NativeInt128.hpp>
