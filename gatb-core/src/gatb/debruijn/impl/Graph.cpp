@@ -501,7 +501,7 @@ struct getEdges_visitor : public boost::static_visitor<size_t>    {
             /** IMPORTANT !!! Since we have hugely shift the nt value, we make sure to use a long enough integer. */
             for (u_int64_t nt=0; nt<4; nt++)
             {
-                T forward = ((graine >> 2 )  + ( nt << ((span-1)*2)) ) & mask; // previous kmer
+                T forward = ((graine >> 2 )  + ( T(nt) << ((span-1)*2)) ) & mask; // previous kmer
                 T reverse = revcomp (forward, span);
 
                 if (forward < reverse)
