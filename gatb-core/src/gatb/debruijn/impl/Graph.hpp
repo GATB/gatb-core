@@ -83,6 +83,9 @@ public:
     /** */
     void getNearestBranchingRange (const Node& node, Node& begin, Node& end) const;
 
+    /** */
+    bool isBranching (const Node& node) const;
+
 private:
 
     /** Constructor. Use for Graph creation (ie. DSK + debloom) and filesystem save. */

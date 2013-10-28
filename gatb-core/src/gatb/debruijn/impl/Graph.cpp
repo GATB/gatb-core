@@ -436,6 +436,24 @@ void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) 
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+bool Graph::isBranching (const Node& node) const
+{
+    NodeSet nodeset (*this);
+
+    size_t nbSuccessors   = getSuccessors   (node, nodeset);
+    size_t nbPredecessors = getPredecessors (node, nodeset);
+
+    return (! (nbSuccessors==1 && nbPredecessors == 1));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 struct getEdges_visitor : public boost::static_visitor<size_t>    {
 
     const Node& source;  EdgeSet& edges;  Direction direction;
@@ -553,27 +571,16 @@ struct getNodes_visitor : public boost::static_visitor<size_t>    {
                 T forward = ( (graine << 2 )  + nt) & mask;    // next kmer
                 T reverse = revcomp (forward, span);
 
-                if (forward < reverse)
-                {
-                    if (data.contains (forward))
-                    {
-                        nodes[idx++].set (source.getGraph(), Type(forward), STRAND_FORWARD);
-                    }
-                }
-                else
-                {
-                    if (data.contains (reverse))
-                    {
-                        nodes[idx++].set (source.getGraph(), Type(reverse), STRAND_REVCOMP);
-                    }
-                }
+                if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (source.getGraph(), Type(forward), STRAND_FORWARD);  } }
+                else                    {  if (data.contains (reverse))  {  nodes[idx++].set (source.getGraph(), Type(reverse), STRAND_REVCOMP);  } }
             }
         }
         else if (direction == DIR_INCOMING)
         {
             for (u_int64_t nt=0; nt<4; nt++)
             {
-                T forward = ((graine >> 2 )  + ( nt <<  ((span-1)*2)) ) & mask; // previous kmer
+                /** WARNING!!! we have to convert nt in T. */
+                T forward = ((graine >> 2 )  + ( T(nt) <<  ((span-1)*2)) ) & mask; // previous kmer
                 T reverse = revcomp (forward, span);
 
                 if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (source.getGraph(), Type(forward), STRAND_FORWARD);  }  }
