@@ -38,7 +38,7 @@ using namespace gatb::core::tools::misc::impl;
 namespace gatb {  namespace core { namespace bank { namespace impl {
 /********************************************************************************/
 
-static const char* progressFormat1 = "Bank: fasta to binary                ";
+static const char* progressFormat1 = "Bank: fasta to binary                  ";
 
 /*********************************************************************
 ** METHOD  :
