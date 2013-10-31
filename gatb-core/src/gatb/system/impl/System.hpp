@@ -206,11 +206,11 @@ public:
             if (_isInit == false)
             {
                 /** We look for the TreadGroup if any. */
-                IThreadGroup* group = ThreadGroup::find ((IThread::Id)pthread_self());
+                IThreadGroup* group = ThreadGroup::find (System::thread().getThreadSelf());
 
                 if (group)
                 {
-                    group->foreach ([this] (IThread* thread)  {  this->_map.insert (std::pair<pthread_t,T>(thread->getId(),this->_object)); });
+                    group->foreach ([this] (IThread* thread)  {  this->_map.insert (std::pair<IThread::Id,T>(thread->getId(),this->_object)); });
                 }
                 else
                 {
@@ -220,20 +220,20 @@ public:
             }
         }
 
-        return _map[(IThread::Id)pthread_self()];
+        return _map[System::thread().getThreadSelf()];
     }
 
     void terminate ()  { foreach (_endFct); }
 
     void foreach (const std::function<void (T&)>& fct)
-    {  for (typename std::map<pthread_t,T>::iterator it = _map.begin(); it != _map.end(); it++)  { fct (it->second); } }
+    {  for (typename std::map<IThread::Id,T>::iterator it = _map.begin(); it != _map.end(); it++)  { fct (it->second); } }
 
     T* operator-> ()  { return &_object; }
 
     T& operator* ()  { return _object; }
 
 private:
-    std::map<pthread_t,T> _map;
+    std::map<IThread::Id,T> _map;
 
     const std::function<void (const T&)> _endFct;
     T _object;

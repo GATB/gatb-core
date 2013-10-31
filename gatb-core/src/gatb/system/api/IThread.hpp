@@ -109,6 +109,9 @@ public:
      */
     virtual ISynchronizer* newSynchronizer (void) = 0;
 
+    /** Return the id of the calling thread. */
+    virtual IThread::Id getThreadSelf() = 0;
+
     /** Destructor. */
     virtual ~IThreadFactory ()  {}
 };

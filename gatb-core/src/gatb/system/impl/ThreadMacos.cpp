@@ -88,6 +88,19 @@ ISynchronizer* ThreadFactoryMacos::newSynchronizer (void)
     return new SynchronizerMacos ();
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IThread::Id ThreadFactoryMacos::getThreadSelf()
+{
+    return (IThread::Id) pthread_self();
+}
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

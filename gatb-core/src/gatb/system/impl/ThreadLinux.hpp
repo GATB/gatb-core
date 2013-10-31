@@ -35,6 +35,9 @@ public:
 
     /** \copydoc IThreadFactory::newSynchronizer */
     ISynchronizer* newSynchronizer (void);
+
+    /** \copydoc IThreadFactory::getThreadSelf */
+    IThread::Id getThreadSelf();
 };
 
 /********************************************************************************/

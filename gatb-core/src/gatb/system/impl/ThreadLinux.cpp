@@ -88,6 +88,19 @@ ISynchronizer* ThreadFactoryLinux::newSynchronizer (void)
     return new SynchronizerLinux ();
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IThread::Id ThreadFactoryLinux::getThreadSelf()
+{
+    return (IThread::Id) pthread_self();
+}
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
