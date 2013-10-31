@@ -9,7 +9,9 @@
 #define _GATB_CORE_SYSTEM_ITHREAD_HPP_
 
 #include <gatb/system/api/types.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <string>
+#include <functional>
 
 /********************************************************************************/
 namespace gatb      {
@@ -17,13 +19,24 @@ namespace core      {
 namespace system    {
 /********************************************************************************/
 
+/** Forward declarations. */
+class ISynchronizer;
+
+/********************************************************************************/
+
 /** \brief Define what a thread is.
  *
  * Definition of a thread in an OS independent fashion. See below how to create a thread through a factory.
  */
-class IThread
+class IThread : virtual public ISmartPointer
 {
 public:
+
+    /** We define a Id type. */
+    typedef long long Id;
+
+    /** Wait the end of the thread. */
+    virtual Id getId () const = 0;
 
     /** Wait the end of the thread. */
     virtual void join () = 0;
@@ -34,12 +47,29 @@ public:
 
 /********************************************************************************/
 
+class IThreadGroup : virtual public ISmartPointer
+{
+public:
+
+    virtual ~IThreadGroup () {}
+
+    virtual void add (void* (*mainloop) (void*), void* data) = 0;
+
+    virtual void start () = 0;
+
+    virtual ISynchronizer* getSynchro() = 0;
+
+    virtual void foreach (const std::function<void (IThread*)>& fct) = 0;
+};
+
+/********************************************************************************/
+
 /** \brief Define a synchronization abstraction
  *
  *  This is an abstraction layer of what we need for handling synchronization.
  *  Actual implementations may use mutex for instance.
  */
-class ISynchronizer
+class ISynchronizer : virtual public ISmartPointer
 {
 public:
 
