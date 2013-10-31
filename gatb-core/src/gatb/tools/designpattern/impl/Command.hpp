@@ -75,14 +75,14 @@ private:
  *  DefaultFactory::thread().getNbCores() method, and uses it as default value. This means
  *  that default constructor will use by default the whole CPU multicore power.
  */
-class ParallelDispatcher : public IDispatcher
+class Dispatcher : public IDispatcher
 {
 public:
 
     /** Constructor.
      * \param[in] nbUnits : number of threads to be used. If 0 is provided, one tries to guess the number of available cores.
      */
-    ParallelDispatcher (size_t nbUnits=0);
+    Dispatcher (size_t nbUnits=0);
 
     /** \copydoc ICommandDispatcher::dispatchCommands */
     size_t dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
@@ -103,37 +103,6 @@ private:
 
     /** Number of execution units to be used for command dispatching. */
     size_t _nbUnits;
-};
-
-/********************************************************************************/
-
-class IteratorFunctor
-{
-public:
-
-    IteratorFunctor ()  {}
-
-    ~IteratorFunctor ()
-    {
-        /** We delete only synchronizers that have been deleted by the current instance. */
-        for (std::list<IteratorFunctorItem>::iterator it = _synchros.begin(); it != _synchros.end(); it++)
-        {
-            if (this == it->first &&  it->second != 0)  { delete it->second; }
-        }
-    }
-
-    system::ISynchronizer* newSynchro ()
-    {
-        system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer ();
-        _synchros.push_back (IteratorFunctorItem(this,synchro));
-        return synchro;
-    }
-
-
-private:
-
-    typedef std::pair <IteratorFunctor*, system::ISynchronizer*> IteratorFunctorItem;
-    std::list <IteratorFunctorItem>_synchros;
 };
 
 /********************************************************************************/
