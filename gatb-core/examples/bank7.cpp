@@ -15,7 +15,7 @@ size_t threshold = 500;
 
 // We a define a functor that will be called during iteration for filtering odd items.
 // Here, we keep sequences whose data size is greater than 500.
-struct FilterFunctor  {  bool operator ()  (Sequence& seq)   {  return seq.getDataSize() >= threshold; } };
+struct FilterFunctor  {  bool operator ()  (Sequence& seq) const  {  return seq.getDataSize() >= threshold; } };
 
 int main (int argc, char* argv[])
 {

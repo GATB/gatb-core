@@ -1,28 +1,13 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/system/impl/System.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankBinary.hpp>
-#include <gatb/kmer/impl/Model.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/tools/math/LargeInt.hpp>
-#include <gatb/tools/math/Integer.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 #include <string.h>
 
 // We use the required packages
 using namespace std;
-using namespace gatb::core::system;
-using namespace gatb::core::system::impl;
-using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
-using namespace gatb::core::kmer;
-using namespace gatb::core::kmer::impl;
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
-using namespace gatb::core::tools::misc::impl;
-using namespace gatb::core::tools::math;
+
+typedef LargeInt<1> kmer_type;
 
 int main (int argc, char* argv[])
 {
@@ -44,7 +29,7 @@ int main (int argc, char* argv[])
     try
     {
         // We declare a kmer model with a given span size.
-        KmerModel model (kmerSize);
+        Model<kmer_type> model (kmerSize);
 
         // We declare the FASTA bank
         Bank bank1 (filename);

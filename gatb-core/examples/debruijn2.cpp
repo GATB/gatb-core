@@ -7,67 +7,87 @@ using namespace std;
 
 /********************************************************************************/
 
-template<typename T>  T computeChecksum (Graph<T>& graph)
+void computeChecksum (const Graph& graph, size_t nbCores)
 {
     /** We want to compute some checkum. */
-    T checksum = 0;
+    struct Stats {
+        Stats () : nbNodesTotal(0), nbSuccessorsTotal(0), nbBranching(0) {}
+        size_t  nbNodesTotal;
+        size_t  nbSuccessorsTotal;
+        Integer checksum;
+        size_t  nbBranching;
+        void operator+= (const Stats& st)  {  checksum += st.checksum;   nbNodesTotal += st.nbNodesTotal;   nbSuccessorsTotal += st.nbSuccessorsTotal; }
+    };
+
+    ThreadObject<Stats> stats;
 
     /** We get an iterator over all the nodes of the graph. */
-    NodeIterator<T> itNodes = graph.nodes();
-
-    NodeSet<T> nodes (graph);
-
-    size_t nbNodesTotal      = 0;
-    size_t nbSuccessorsTotal = 0;
+    Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
     /** We iterate all the nodes of the graph. */
-    for (itNodes.first(); !itNodes.isDone(); itNodes.next(), nbNodesTotal++)
+    IDispatcher::Status status = Dispatcher(nbCores).iterate (itNodes, [&graph, &stats] (const Node& node)
     {
+        Stats& s = stats();
+
+        s.nbNodesTotal ++;
+
         /** We retrieve the successors. */
-        size_t nbSuccessors = graph.getSuccessors (*itNodes, nodes);
+        Graph::Vector<Node> nodeset = graph.successors<Node> (node);
 
         /** We update the number of found successors. */
-        nbSuccessorsTotal += nbSuccessors;
+        s.nbSuccessorsTotal += nodeset.size();
 
         /** We iterate all the successors. */
-        for (size_t i=0; i<nbSuccessors; i++)   {  checksum += nodes[i].kmer;  }
-    }
+        for (size_t i=0; i<nodeset.size(); i++)   {  s.checksum += nodeset[i].kmer;  }
+    });
 
-    cout << "nbNodes=" << nbNodesTotal << "  nbSuccessors=" << nbSuccessorsTotal << "  checksum=" << checksum <<  endl;
+    stats.foreach ([&] (const Stats& st)  {  *stats += st;  });
+
+    cout << "  nbNodes="      << stats->nbNodesTotal
+         << "  nbSuccessors=" << stats->nbSuccessorsTotal
+         << "  checksum="     << stats->checksum
+         << "  time="         << status.time
+         << "  nbCores="      << status.nbCores
+         <<  endl;
 }
 
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 3)
+    const char* STR_NB_CORES_TEST = "-nb-cores-test";
+
+    /** We create a command line parser. */
+    OptionsParser parser;
+    parser.add (new OptionOneParam (STR_URI_INPUT,     "graph file",               true));
+    parser.add (new OptionOneParam (STR_KMER_SIZE,     "kmer size",                false, "27"));
+    parser.add (new OptionOneParam (STR_NKS,           "kmer abundance threshold", false, "3" ));
+    parser.add (new OptionOneParam (STR_NB_CORES_TEST, "nb cores (0 for all)",     false, "0"));
+    parser.add (new OptionNoParam  (STR_VERBOSE,       "verbosity",                false));
+
+    try
     {
-        cerr << "you must provide:" << endl;
-        cerr << "   1) reads file"  << endl;
-        cerr << "   2) kmer size"   << endl;
-        cerr << "optional:" << endl;
-        cerr << "   3) nks"  << endl;
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+         /** We create the graph with the provided options. */
+         Graph graph = Graph::create (options);
+
+         /** We launch the test. */
+         for (size_t i=1; i<= options->getInt(STR_NB_CORES_TEST); i++)
+         {
+             computeChecksum (graph, i);
+         }
+
+         /** We dump some information about the graph. */
+         if (options->get(STR_VERBOSE) != 0)  {  std::cout << graph.getInfo() << endl;  }
+    }
+    catch (OptionFailure& e)
+    {
+        e.getParser().displayErrors (stdout);
+        e.getParser().displayHelp   (stdout);
         return EXIT_FAILURE;
     }
 
-    char*  bankUri  = argv[1];
-    size_t kmerSize = atoi (argv[2]);
-    size_t nks      = argc >=4 ? atoi (argv[3]) : 1;
-
-    /** We create the graph with  1) a FASTA bank   2) a kmer size */
-    Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new Bank (bankUri), kmerSize, nks);
-
-    /** We want some time statistics. */
-    TimeInfo ti;
-    {
-        TIME_INFO (ti, "checksum");
-
-        /** We launch the test. */
-        computeChecksum <NativeInt64> (graph);
-    }
-
-	/** We dump some information about the graph. */
-    cout << graph.getInfo() << endl; 
-    
-    cout << "time=" << ti.getEntryByKey("checksum") << endl;
+    return EXIT_SUCCESS;
 }
 //! [snippet1]

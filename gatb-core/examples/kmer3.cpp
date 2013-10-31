@@ -1,25 +1,21 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/tools/misc/api/Data.hpp>
-#include <gatb/kmer/impl/Model.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 #include <string.h>
 
 // We use the required packages
 using namespace std;
-using namespace gatb::core::tools::misc;
-using namespace gatb::core::kmer;
-using namespace gatb::core::kmer::impl;
 
 int main (int argc, char* argv[])
 {
     const char* seq = "CATTGATAGTGG";
 
     // We declare a kmer model with a given span size.
-    KmerModel model (3);
+    Model<LargeInt<1> > model (3);
 
     // We declare an iterator on a given sequence.
-    KmerModel::Iterator it (model);
+    Model<LargeInt<1> >::Iterator it (model);
 
     // We set the data from which we want to extract kmers.
     Data data (Data::ASCII);

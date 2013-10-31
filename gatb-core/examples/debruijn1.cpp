@@ -7,57 +7,56 @@ using namespace std;
 
 /********************************************************************************/
 
-template<typename T>  void test (Graph<T>& graph)
+void test (const Graph& graph)
 {
     /** We get an iterator over all the nodes of the graph. */
-    NodeIterator<T> itNodes = graph.nodes();
+    Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
     /** We retrieve the first node. */
     itNodes.first();
-    Node<T> node =  itNodes.item();
+    Node node =  itNodes.item();
 
     /** We memorize the initial strand. */
     Strand strandDisplay = node.strand;
 
-    /** We need an edges set. */
-    EdgeSet<T> edges (graph);
-
     /** We loop until we reach a dead end along the kmers chain. */
-    for (size_t nbEdges = ~0 ; nbEdges > 0; node = edges[0].to)
+    for (Graph::Vector<Edge> edges; (edges = graph.successors<Edge>(node)).size() > 0; node = edges[0].to)
     {
-        /** We retrieve the outcoming edges from the current node. */
-        nbEdges = graph.getOutEdges (node, edges);
-
-        /** If the current edge has some successors, we dump information about the first one.
-         *  Note that we force the display in order to have the same strand for the two nodes.
-         */
-        if (nbEdges > 0)  {  cout << "-------------- " << edges[0].toString (strandDisplay) << " --------------" << endl; }
-
-        /** The 'for' loop is going to update the current node with the first neighbor (if any). */
+        cout << "node=" << graph.toString(node, strandDisplay) << endl;
     }
 }
 
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 3)
+    /** We create a command line parser. */
+    OptionsParser parser;
+    parser.add (new OptionOneParam (STR_URI_INPUT,  "graph file",               true));
+    parser.add (new OptionOneParam (STR_KMER_SIZE,  "kmer size",                false, "27"));
+    parser.add (new OptionOneParam (STR_NKS,        "kmer abundance threshold", false, "3" ));
+    parser.add (new OptionNoParam  (STR_VERBOSE,    "verbosity",                false));
+
+    try
     {
-        cerr << "you must provide:" << endl;
-        cerr << "   1) reads file"  << endl;
-        cerr << "   2) kmer size"   << endl;
-        cerr << "optional:" << endl;
-        cerr << "   3) nks"  << endl;
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+         /** We create the graph with the provided options. */
+         Graph graph = Graph::create (options);
+
+         /** We launch the test. */
+         test (graph);
+
+         /** We dump some information about the graph. */
+         if (options->get(STR_VERBOSE) != 0)  {  std::cout << graph.getInfo() << endl;  }
+    }
+    catch (OptionFailure& e)
+    {
+        e.getParser().displayErrors (stdout);
+        e.getParser().displayHelp   (stdout);
         return EXIT_FAILURE;
     }
 
-    char*  bankUri  = argv[1];
-    size_t kmerSize = atoi (argv[2]);
-    size_t nks      = argc >=4 ? atoi (argv[3]) : 1;
-
-    /** We create the graph with  1) a FASTA bank   2) a kmer size */
-    Graph<NativeInt64> graph = GraphFactory::createGraph <NativeInt64> (new Bank (bankUri), kmerSize, nks);
-
-    /** We launch the test. */
-    test<NativeInt64> (graph);
+    return EXIT_SUCCESS;
 }
 //! [snippet1]

@@ -15,7 +15,7 @@ using namespace gatb::core::bank::impl;
 //       likely to be moved in an independant method.
 //     - such a functor can be reused in other contexts.
 
-struct Functor {  void operator ()  (Sequence& s)
+struct Functor {  void operator ()  (Sequence& s)  const
 {
     // We dump the data size and the comment
     cout << "[" << s.getDataSize() << "] " << s.getComment()  << endl;

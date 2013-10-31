@@ -1,27 +1,20 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/system/impl/System.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/kmer/impl/Model.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 #include <string.h>
 
 // We use the required packages
 using namespace std;
-using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
-using namespace gatb::core::kmer;
-using namespace gatb::core::kmer::impl;
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
+
+typedef LargeInt<1> kmer_type;
 
 // We need a functor that links two iterators; it updates the inner loop iterator (on kmers)
 // with the data of the outer iterator (on sequences).
 struct Update { void operator() (Iterator<kmer_type>* itKmer, Sequence* seq)
 {
     // We have to recover the real type of the iterator (lost due to genericity of InnerIterator)
-    static_cast<KmerModel::Iterator*> (itKmer)->setData (seq->getData());
+    static_cast<Model<kmer_type>::Iterator*> (itKmer)->setData (seq->getData());
 }};
 
 // We need a functor that shows some iteration progress
@@ -45,7 +38,7 @@ int main (int argc, char* argv[])
         Bank bank (argc-1, argv+1);
 
         // We declare a kmer model with a given span size.
-        KmerModel model (27);
+        Model<kmer_type> model (27);
 
         // We create a sequence iterator for the bank
         Bank::Iterator* itBank = new Bank::Iterator (bank);
@@ -57,7 +50,7 @@ int main (int argc, char* argv[])
         itSeq.addObserver (new ProgressFunctor (bank.estimateNbSequences()));
 
         // We declare a kmer iterator for the model
-        KmerModel::Iterator itKmer (model);
+        Model<kmer_type>::Iterator itKmer (model);
 
         // We create a compound iterator that iterates kmer from sequences
         CompoundIterator<Sequence,kmer_type,Update> it (itSeq, itKmer, Update());

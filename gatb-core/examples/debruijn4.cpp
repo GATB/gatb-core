@@ -8,46 +8,11 @@ using namespace std;
 /********************************************************************************/
 struct Info
 {
-    Info() : checksumNodes(0), checksumSuccessors(0), nbSuccessors(0), abundance(0) {}
-    NativeInt64 checksumNodes;
-    NativeInt64 checksumSuccessors;
-    u_int64_t   nbSuccessors;
-    u_int64_t   abundance;
-};
-
-/********************************************************************************/
-class Functor : public IteratorFunctor
-{
-public:
-
-    Functor (Graph<NativeInt64>& graph, Info& globalInfo)  : _graph(graph), _globalInfo(globalInfo), _nodes(graph)  {}
-
-    ~Functor ()
-    {
-        _globalInfo.checksumNodes      += _info.checksumNodes;
-        _globalInfo.checksumSuccessors += _info.checksumSuccessors;
-        _globalInfo.nbSuccessors       += _info.nbSuccessors;
-        _globalInfo.abundance          += _info.abundance;
-    }
-
-    void operator ()  (const Node<NativeInt64>& node)
-    {
-        _info.checksumNodes += node.kmer.value;
-        _info.abundance     += node.kmer.abundance;
-
-        /** We retrieve the successors. */
-        size_t nbSuccessors = _graph.getSuccessors (node, _nodes);
-
-        _info.nbSuccessors += nbSuccessors;
-
-        /** We iterate all the successors. */
-        for (size_t i=0; i<nbSuccessors; i++)   {  _info.checksumSuccessors += _nodes[i].kmer.value;  }
-    }
-
-    Graph<NativeInt64>&  _graph;
-    NodeSet<NativeInt64> _nodes;
-    Info&                _globalInfo;
-    Info                 _info;
+    Info() : nbSuccessors(0), abundance(0) {}
+    Integer   checksumNodes;
+    Integer   checksumSuccessors;
+    u_int64_t nbSuccessors;
+    u_int64_t abundance;
 };
 
 /********************************************************************************/
@@ -60,34 +25,44 @@ int main (int argc, char* argv[])
     }
 
     /** We load the graph from the provided uri. */
-    Graph<NativeInt64> graph = GraphFactory::load <NativeInt64> (argv[1]);
+    Graph graph = Graph::load (argv[1]);
 
     /** We get an iterator over all the nodes of the graph. */
-    NodeIterator<NativeInt64> itNodes = graph.nodes();
+    Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
-    /** We encapsulate the nodes iterator with a notification iterator. */
-    SubjectIterator<Node<NativeInt64> > itNotif (
-        &itNodes,
-        itNodes.getNbItems()/100,
-        new ProgressTimer(itNodes.getNbItems(), "computing")
-    );
+    ThreadObject<Info> infos;
 
-    /** We want to compute some statistics about the graph nodes. */
-    Info info;
+    /** We iterate the nodes through a dispatcher. */
+    IDispatcher::Status status = Dispatcher().iterate (itNodes, [&] (const Node& node)
+    {
+        Info& info = infos();
 
-    TIME_START (ti, "compute");
+        info.checksumNodes += node.kmer;
+        info.abundance     += node.abundance;
 
-        /** We iterate the nodes through a dispatcher. */
-        ParallelCommandDispatcher().iterate (itNotif, Functor(graph, info));
+        /** We retrieve the successors. */
+        Graph::Vector<Node> successors = graph.successors<Node> (node);
 
-    TIME_STOP (ti, "compute");
+        info.nbSuccessors += successors.size();
+
+        /** We iterate all the successors. */
+        for (size_t i=0; i<successors.size(); i++)   {  info.checksumSuccessors += successors[i].kmer;  }
+    });
+
+    infos.foreach ([&](const Info& i)
+    {
+        infos->checksumNodes      += i.checksumNodes;
+        infos->checksumSuccessors += i.checksumSuccessors;
+        infos->nbSuccessors       += i.nbSuccessors;
+        infos->abundance          += i.abundance;
+    });
 
     /** We dump the checksum. */
-    cout << "nbSuccessors="       << info.nbSuccessors           << "  "
-         << "abundance="          << info.abundance              << "  "
-         << "checkumNodes="       << info.checksumNodes          << "  "
-         << "checksumSuccessors=" << info.checksumSuccessors     << "  "
-         << "time="               << ti.getEntryByKey("compute") << "  "
+    cout << "nbSuccessors="       << infos->nbSuccessors        << "  "
+         << "abundance="          << infos->abundance           << "  "
+         << "checkumNodes="       << infos->checksumNodes       << "  "
+         << "checksumSuccessors=" << infos->checksumSuccessors  << "  "
+         << "time="               << status.time                << "  "
          << endl;
 
     /** We dump some information about the graph. */

@@ -1,16 +1,11 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/system/impl/System.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/kmer/impl/Model.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 #include <string.h>
 
 // We use the required packages
 using namespace std;
-using namespace gatb::core::bank::impl;
-using namespace gatb::core::kmer;
-using namespace gatb::core::kmer::impl;
 
 int main (int argc, char* argv[])
 {
@@ -35,13 +30,13 @@ int main (int argc, char* argv[])
         Bank b (argc-2, argv+2);
 
         // We declare a kmer model with a given span size.
-        KmerModel model (kmerSize);
+        Model<LargeInt<1> > model (kmerSize);
 
         // We create an iterator over this bank.
         Bank::Iterator itSeq (b);
 
         // We declare an iterator on a given sequence.
-        KmerModel::Iterator itKmer (model);
+        Model<LargeInt<1> >::Iterator itKmer (model);
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
