@@ -32,23 +32,29 @@ namespace impl          {
 
 /** \brief Bag implementation as a cache to a referred Bag instance
  */
-template <typename Item> class BagCache : public Bag<Item>, public dp::SmartPointer
+template <typename Item> class BagCache : public Bag<Item>, public system::SmartPointer
 {
 public:
 
+    /** Constructor */
+    BagCache () : _ref(0), _nbMax(0), _synchro(0), _items(0), _idx(0)  {}
+
     /** Constructor. */
     BagCache (Bag<Item>* ref, size_t cacheSize, system::ISynchronizer* synchro=0)
-        : _ref(0), _nbMax(cacheSize), _synchro(synchro), _items(0), _idx(0)
+        : _ref(0), _nbMax(cacheSize), _synchro(0), _items(0), _idx(0)
     {
-        setRef(ref);
+        setRef     (ref);
+        setSynchro (synchro);
         _items = (Item*) system::impl::System::memory().calloc (_nbMax, sizeof(Item));
         system::impl::System::memory().memset (_items, 0, _nbMax*sizeof(Item));
     }
 
     BagCache (const BagCache<Item>& b)
-        : _ref(0), _nbMax(b._nbMax), _synchro(b._synchro), _items (0), _idx(0)
+        : _ref(0), _nbMax(b._nbMax), _synchro(0), _items (0), _idx(0)
     {
-        setRef (b._ref);
+        setRef     (b._ref);
+        setSynchro (b._synchro);
+
         _items = (Item*) system::impl::System::memory().calloc (_nbMax, sizeof(Item));
         system::impl::System::memory().memset (_items, 0, _nbMax*sizeof(Item));
     }
@@ -60,7 +66,9 @@ public:
         flush ();
 
         /** We clean resources. */
-        setRef(0);
+        setRef     (0);
+        setSynchro (0);
+
         system::impl::System::memory().free (_items);
     }
 
@@ -92,6 +100,8 @@ protected:
     void setRef (Bag<Item>* ref)  { SP_SETATTR(ref); }
 
     system::ISynchronizer* _synchro;
+    void setSynchro (system::ISynchronizer* synchro)  { SP_SETATTR(synchro); }
+
     Item*                  _items;
     size_t                 _nbMax;
     size_t                 _idx;
