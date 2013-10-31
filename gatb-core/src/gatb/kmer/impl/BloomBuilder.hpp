@@ -70,14 +70,14 @@ public:
             tools::collections::impl::BloomFactory::singleton().createBloom<T> (_bloomKind, _bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
-        tools::dp::impl::ParallelDispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom));
+        tools::dp::impl::Dispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom));
 
         /** We gather some statistics. */
         if (stats != 0)
         {
-            stats->add (0, "bloom");
-            stats->add (1, "filter_size", "%lld", _bloomSize);
-            stats->add (1, "nb_hash_fct", "%d",   _nbHash);
+            //stats->add (0, "bloom");
+            stats->add (0, "filter_size", "%lld", _bloomSize);
+            stats->add (0, "nb_hash_fct", "%d",   _nbHash);
         }
 
         /** We return the created bloom filter. */
@@ -122,7 +122,7 @@ private:
     tools::collections::impl::BloomFactory::Kind _bloomKind;
 
     /********************************************************************************/
-    class BuildKmerBloom : public tools::dp::impl::IteratorFunctor
+    class BuildKmerBloom
     {
     public:
         void operator() (const Kmer<T>& kmer)  {  _bloom.insert(kmer.value); }
