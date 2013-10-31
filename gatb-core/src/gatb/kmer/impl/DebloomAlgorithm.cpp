@@ -68,40 +68,9 @@ using namespace gatb::core::tools::math;
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
-static const char* progressFormat1 = "Debloom: read solid kmers            ";
-static const char* progressFormat2 = "Debloom: build extension             ";
-static const char* progressFormat3 = "Debloom: finalization                ";
-
-/********************************************************************************/
-
-template <typename Item>
-class BuildKmerExtension : public IteratorFunctor
-{
-public:
-    void operator() (const Kmer<Item>& kmer)
-    {
-        /** We configure the neighbor kmers iterator for a given source kmer. */
-        _itNeighbors.setSource (kmer.value);
-
-        /** We iterate all 8 neighbors. */
-        for (_itNeighbors.first(); !_itNeighbors.isDone(); _itNeighbors.next())
-        {
-            /** If the bloom contains the current neighbor, we add it to the debloom file. */
-            if (_bloom->contains (*_itNeighbors))
-            {
-                _extendBag.insert (*_itNeighbors);
-            }
-        }
-    }
-
-    BuildKmerExtension (Model<Item>& model, Bloom<Item>* bloom, Bag<Item>* extendBag)
-        : _bloom(bloom), _extendBag(extendBag, 50*1000, this->newSynchro()), _itNeighbors(model)  { }
-
-private:
-    Bloom<Item>*   _bloom;
-    BagCache<Item> _extendBag;
-    typename ModelAbstract<Item>::KmerNeighborIterator _itNeighbors;
-};
+static const char* progressFormat1 = "Debloom: read solid kmers              ";
+static const char* progressFormat2 = "Debloom: build extension               ";
+static const char* progressFormat3 = "Debloom: finalization                  ";
 
 /*********************************************************************
 ** METHOD  :
@@ -187,8 +156,21 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         );
         LOCAL (itKmers);
 
-        /** We iterate the solid kmers and build the neighbors extension. */
-        getDispatcher()->iterate (itKmers, BuildKmerExtension<T> (model, bloom, new BagFile<T>(_debloomUri)));
+        /** We create a synchronized cache on the debloom output. This cache will be cloned by the dispatcher. */
+        ThreadObject<BagCache<T> > extendBag = BagCache<T> (new BagFile<T>(_debloomUri), 50*1000, System::thread().newSynchronizer());
+
+        /** We iterate the solid kmers. */
+        getDispatcher()->iterate (itKmers, [&] (const Kmer<T>& kmer)
+        {
+            /** We iterate the neighbors of the current solid kmer. */
+            model.iterateNeighbors (kmer.value, [&] (const T& k)
+            {
+                if (bloom->contains (k))  {  extendBag().insert (k);  }
+            });
+        });
+
+        /** We have to flush each bag cache used during iteration. */
+        extendBag.foreach ([] (BagCache<T>& bag)  { bag.flush(); });
     }
 
     /** We save the bloom. */
@@ -253,45 +235,11 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
+    getInfo()->add (2, bloomProps);
     getInfo()->add (2, "critical_kmers_nb", "%ld", _criticalCollection->iterable()->getNbItems() );
+
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
-
-/*********************************************************************/
-
-/** The following functor builds the critical false positive file by excluding
- *  kmers from a current cFP file if they are solid kmers.
- *  
- *  It is designed to get a kmer from the current cFP file and check
- *  whether it belongs to the solid kmers file (at least one part of it
- *  as a partition hash table).
- *
- *  In case the input cFP kmer doesn't belong to the solid kmers,
- *  we add it to the output cFP file.
- *
- *  This functor is supposed to be used concurrently by several thread. Therefore
- *  we have to protect the output cFP file against concurrent access, which is
- *  achieved by encapsulating the actual output file by a BagCache instance.
- */
-template <typename Item>
-class EndDebloomPartition : public IteratorFunctor
-{
-public:
-    void operator() (const Item& extensionKmer)
-    {
-        /** If the extension kmer is not a solid kmer, then this is a critical false positive. */
-        if (_solidKmers.contains (extensionKmer) == false)  {  _output.insert (extensionKmer);  }
-    }
-
-    EndDebloomPartition (Hash16<Item>& set, Bag<Item>* output)   : _solidKmers(set), _output (output, 10*1000, this->newSynchro())  { }
-
-private:
-    /** Reference of the solid kmers (as a hash table). */
-    Hash16<Item>&   _solidKmers;
-
-    /** Encapsulation of the output cFP file => ensure caching and thread-access protection. */
-    BagCache<Item>  _output;
-};
 
 /*********************************************************************
 ** METHOD  :
@@ -311,11 +259,30 @@ void DebloomAlgorithm<ProductFactory,T>::end_debloom_partition (
     LOCAL (debloomInput);
     LOCAL (debloomOutput);
 
-    /** We dispatch the iteration of the current cFP bag. */
-    getDispatcher()->iterate (debloomInput, EndDebloomPartition<T> (partition, debloomOutput));
+    /** We create a synchronized cache on the debloom output. This cache will be cloned by the dispatcher. */
+    ThreadObject<BagCache<T> > finalizeBag = BagCache<T> (debloomOutput, 8*1024, System::thread().newSynchronizer());
 
-    /** We make sure we output all the items. */
-    debloomOutput->flush ();
+    /** The following functor builds the critical false positive file by excluding
+     *  kmers from a current cFP file if they are solid kmers.
+     *
+     *  It is designed to get a kmer from the current cFP file and check
+     *  whether it belongs to the solid kmers file (at least one part of it
+     *  as a partition hash table).
+     *
+     *  In case the input cFP kmer doesn't belong to the solid kmers,
+     *  we add it to the output cFP file.
+     *
+     *  This functor is supposed to be used concurrently by several thread. Therefore
+     *  we have to protect the output cFP file against concurrent access, which is
+     *  achieved by encapsulating the actual output file by a BagCache instance.
+     */
+    getDispatcher()->iterate (debloomInput, [&] (const T& extensionKmer)
+    {
+        if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
+    });
+
+    /** We have to flush each bag cache used during iteration. */
+    finalizeBag.foreach ([] (BagCache<T>& bag)  { bag.flush(); });
 
     /** We clear the set. */
     partition.clear ();
@@ -337,12 +304,14 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
 {
     TIME_INFO (getTimeInfo(), "create_bloom_from_kmers");
 
-    double lg2 = log(2);
-    float NBITS_PER_KMER = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
-
+    /** We get the number of solid kmers. */
     u_int64_t solidKmersNb = solidIterable->getNbItems();
 
-    u_int64_t estimatedBloomSize = (u_int64_t) (solidKmersNb * NBITS_PER_KMER);
+    double lg2 = log(2);
+    float     NBITS_PER_KMER     = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
+    size_t    nbHash             = (int)floorf (0.7*NBITS_PER_KMER);
+    u_int64_t estimatedBloomSize = (u_int64_t) (solidIterable->getNbItems() * NBITS_PER_KMER);
+
     if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
 
     /** We create the kmers iterator from the solid file. */
@@ -354,11 +323,11 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
     LOCAL (itKmers);
 
     /** We use a bloom builder. */
-    BloomBuilder<T> builder (estimatedBloomSize, (int)floorf (0.7*NBITS_PER_KMER), _bloomKind, getDispatcher()->getExecutionUnitsNumber());
+    BloomBuilder<T> builder (estimatedBloomSize, nbHash, _bloomKind, getDispatcher()->getExecutionUnitsNumber());
 
     /** We instantiate the bloom object. */
     Bloom<T>* bloom = builder.build (itKmers, bloomProps);
-    bloomProps->add (1, "nbits_per_kmer", "%f", NBITS_PER_KMER);
+    bloomProps->add (0, "nbits_per_kmer", "%f", NBITS_PER_KMER);
 
     /** We return the created bloom filter. */
     return bloom;
