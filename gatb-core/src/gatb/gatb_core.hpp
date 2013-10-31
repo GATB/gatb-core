@@ -56,7 +56,6 @@
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
-#include <gatb/debruijn/impl/GraphFactory.hpp>
 #include <gatb/debruijn/impl/Graph.hpp>
 
 using namespace gatb::core::system;
