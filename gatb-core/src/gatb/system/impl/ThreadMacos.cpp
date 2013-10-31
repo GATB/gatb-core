@@ -29,12 +29,14 @@ namespace gatb { namespace core { namespace system { namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-class ThreadMacos : public IThread
+class ThreadMacos : public IThread, public system::SmartPointer
 {
 public:
 	ThreadMacos (void* (mainloop) (void*), void* data)  { pthread_create (&_thread, NULL,  mainloop, data); }
     ~ThreadMacos ()  { /* pthread_detach (_thread); */  }
     void join ()     { pthread_join   (_thread, NULL);  }
+    Id getId ()  const { return (Id) _thread; }
+
 private:
     pthread_t  _thread;
 };
@@ -47,7 +49,7 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-class SynchronizerMacos : public ISynchronizer
+class SynchronizerMacos : public ISynchronizer, public system::SmartPointer
 {
 public:
 	SynchronizerMacos ()            {  pthread_mutex_init (&_mutex, NULL);  }

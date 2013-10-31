@@ -29,12 +29,14 @@ namespace gatb { namespace core { namespace system { namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-class ThreadLinux : public IThread
+class ThreadLinux : public IThread, public system::SmartPointer
 {
 public:
     ThreadLinux (void* (mainloop) (void*), void* data)  { pthread_create (&_thread, NULL,  mainloop, data); }
     ~ThreadLinux ()  { /* pthread_detach (_thread); */  }
     void join ()     { pthread_join   (_thread, NULL);  }
+    Id getId () const { return (Id) _thread; }
+
 private:
     pthread_t  _thread;
 };
@@ -47,7 +49,7 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-class SynchronizerLinux : public ISynchronizer
+class SynchronizerLinux : public ISynchronizer, public system::SmartPointer
 {
 public:
     SynchronizerLinux ()             {  pthread_mutex_init (&_mutex, NULL);  }
