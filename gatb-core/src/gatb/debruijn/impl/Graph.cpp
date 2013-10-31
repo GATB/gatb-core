@@ -6,6 +6,7 @@
  *****************************************************************************/
 
 #include <gatb/debruijn/impl/Graph.hpp>
+#include <gatb/debruijn/impl/BranchingAlgorithm.hpp>
 
 #include <gatb/system/impl/System.hpp>
 
@@ -14,6 +15,7 @@
 #include <gatb/tools/misc/impl/Property.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+#include <gatb/tools/designpattern/impl/Command.hpp>
 
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 
@@ -35,11 +37,12 @@ using namespace gatb::core::kmer::impl;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
-
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
+
+//using namespace gatb::core::tools::dp;
+//using namespace gatb::core::tools::dp::impl;
+
 
 #define DEBUG(a)  //printf a
 
@@ -65,24 +68,26 @@ template<typename T>
 struct Data
 {
     /** Constructor. */
-    Data () : _model(0), _solid(0), _bloom(0), _cfp(0) {}
+    Data () : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0) {}
 
     /** Destructor. */
     ~Data ()
     {
-        setModel (0);
-        setSolid (0);
-        setBloom (0);
-        setCfp   (0);
+        setModel     (0);
+        setSolid     (0);
+        setBloom     (0);
+        setCfp       (0);
+        setBranching (0);
     }
 
     /** Constructor (copy). */
-    Data (const Data& d) : _model(0), _solid(0), _bloom(0), _cfp(0)
+    Data (const Data& d) : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0)
     {
-        setModel (d._model);
-        setSolid (d._solid);
-        setBloom (d._bloom);
-        setCfp   (d._cfp);
+        setModel     (d._model);
+        setSolid     (d._solid);
+        setBloom     (d._bloom);
+        setCfp       (d._cfp);
+        setBranching (d._branching);
     }
 
     /** Assignment operator. */
@@ -90,10 +95,11 @@ struct Data
     {
         if (this != &d)
         {
-            setModel (d._model);
-            setSolid (d._solid);
-            setBloom (d._bloom);
-            setCfp   (d._cfp);
+            setModel     (d._model);
+            setSolid     (d._solid);
+            setBloom     (d._bloom);
+            setCfp       (d._cfp);
+            setBranching (d._branching);
         }
         return *this;
     }
@@ -103,12 +109,14 @@ struct Data
     Collection<kmer::Kmer<T> >* _solid;
     Bloom<T>*                   _bloom;
     Container<T>*               _cfp;
+    Collection<kmer::Kmer<T> >* _branching;
 
     /** Setters. */
-    void setModel (Model<T>* model)                     { SP_SETATTR (model); }
-    void setSolid (Collection<kmer::Kmer<T> >* solid)   { SP_SETATTR (solid); }
-    void setBloom (Bloom<T>* bloom)                     { SP_SETATTR (bloom); }
-    void setCfp   (Container<T>* cfp)                   { SP_SETATTR (cfp);   }
+    void setModel       (Model<T>* model)                       { SP_SETATTR (model);     }
+    void setSolid       (Collection<kmer::Kmer<T> >* solid)     { SP_SETATTR (solid);     }
+    void setBloom       (Bloom<T>* bloom)                       { SP_SETATTR (bloom);     }
+    void setCfp         (Container<T>* cfp)                     { SP_SETATTR (cfp);       }
+    void setBranching   (Collection<kmer::Kmer<T> >* branching) { SP_SETATTR (branching); }
 
     /** Shortcut. */
     bool contains (const T& item)  const  {  return _bloom->contains (item) && !_cfp->contains(item);  }
@@ -203,7 +211,7 @@ public:
         Iterable<NativeInt8>* bloomArray = & graph.getProduct("debloom").getCollection<NativeInt8> ("bloom");
 
         /** We configure the graph from the result of DSK and debloom. */
-        configureVariant (graph, kmerSize, sortingCount.getSolidKmers(), debloom.getCriticalKmers(), bloomArray);
+        configureVariant (graph, kmerSize, sortingCount.getSolidKmers(), debloom.getCriticalKmers(), bloomArray, 0);
 
         /** We can get rid of the binary bank. */
         System::file().remove (binaryBankUri);
@@ -216,6 +224,12 @@ public:
         Collection<NativeInt8>* metadata = & graph.getProduct().getCollection<NativeInt8> ("metadata");
         NativeInt8 kmerSizeData[] = { kmerSize };
         metadata->insert (kmerSizeData, 1);
+
+        /************************************************************/
+        /*                         Branching                        */
+        /************************************************************/
+        BranchingAlgorithm<ProductFactoryLocal, T> branchingAlgo (graph, & graph.getProduct("graph").getCollection<kmer::Kmer<T> > ("branching"));
+        graph.executeAlgorithm (branchingAlgo, props, graph._info);
     }
 
     /********************************************************************************/
@@ -230,7 +244,8 @@ public:
             kmerSize,
             & (*product) ("dsk").    getCollection<kmer::Kmer<T> > ("solid"),
             & (*product) ("debloom").getCollection<T >             ("cfp"),
-            & (*product) ("debloom").getCollection<NativeInt8>     ("bloom")
+            & (*product) ("debloom").getCollection<NativeInt8>     ("bloom"),
+            & (*product) ("graph").  getCollection<kmer::Kmer<T> > ("branching")
         );
     }
 
@@ -240,7 +255,8 @@ public:
         size_t kmerSize,
         tools::collections::Collection<Kmer<T> >* solidIterable,
         tools::collections::Iterable<T>*          cFPKmers,
-        tools::collections::Iterable<NativeInt8>* bloomArray
+        tools::collections::Iterable<NativeInt8>* bloomArray,
+        tools::collections::Collection<Kmer<T> >* branching
     )
     {
         /** We create a templated data and configure it with instances needed for
@@ -276,6 +292,9 @@ public:
 
         /** We build the set of critical false positive kmers. */
         data.setCfp (new tools::collections::impl::ContainerSet<T> (cFPKmers->iterator()));
+
+        /** We set the branching container. */
+        data.setBranching (branching);
 
         /** THE BIG IDEA IS HERE... We set the Graph variant with the specific T data we just configured.
          *  From this moment, the Graph instance has the needed resources for providing the services,
@@ -366,7 +385,7 @@ Graph::Graph (const std::string& uri)
 
     /** We retrieve the type of kmers to be used from the product. */
     Collection<NativeInt8>* metadata = & getProduct().getCollection<NativeInt8> ("metadata");
-    Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
+    gatb::core::tools::dp::Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
     itData->first(); if (!itData->isDone())  { kmerSize = itData->item(); }
 
     /** We set the precision of Integer to be used. */
@@ -422,10 +441,8 @@ void Graph::remove ()
 *********************************************************************/
 void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) const
 {
-    NodeSet nodes (*this);
-
-    begin = node;    for (size_t nbNodes=0 ; (nbNodes = getPredecessors (begin, nodes)) == 1;  begin = nodes[0])  {}
-    end   = node;    for (size_t nbNodes=0 ; (nbNodes = getSuccessors   (end,   nodes)) == 1;  end   = nodes[0])  {}
+    begin = node;    for (Graph::Vector<Node> nodes ; (nodes = predecessors<Node> (begin)).size() == 1;  begin = nodes[0])  {}
+    end   = node;    for (Graph::Vector<Node> nodes ; (nodes = successors  <Node> (end  )).size() == 1;  end   = nodes[0])  {}
 }
 
 /*********************************************************************
@@ -438,12 +455,7 @@ void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) 
 *********************************************************************/
 bool Graph::isBranching (const Node& node) const
 {
-    NodeSet nodeset (*this);
-
-    size_t nbSuccessors   = getSuccessors   (node, nodeset);
-    size_t nbPredecessors = getPredecessors (node, nodeset);
-
-    return (! (nbSuccessors==1 && nbPredecessors == 1));
+    return (! (successors<Node>(node).size()==1 && predecessors<Node>(node).size() == 1));
 }
 
 /*********************************************************************
@@ -454,17 +466,19 @@ bool Graph::isBranching (const Node& node) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-struct getEdges_visitor : public boost::static_visitor<size_t>    {
+struct getEdges_visitor : public boost::static_visitor<Graph::Vector<Edge> >    {
 
-    const Node& source;  EdgeSet& edges;  Direction direction;
-    getEdges_visitor (const Node& source, EdgeSet& edges, Direction direction) : source(source), edges(edges), direction(direction) {}
+    const Node& source;  Direction direction;
+    getEdges_visitor (const Node& source, Direction direction) : source(source), direction(direction) {}
 
-    template<typename T>  size_t operator() (const Data<T>& data) const
+    template<typename T>  Graph::Vector<Edge> operator() (const Data<T>& data) const
     {
+        Graph::Vector<Edge> edges;
+
         size_t idx = 0;
 
         /** We get the specific typed value from the generic typed value. */
-        const T& sourceVal = source.kmer.value.get<T>();
+        const T& sourceVal = source.kmer.get<T>();
 
         /** Shortcuts. */
         size_t   span = data._model->getSpan();
@@ -484,14 +498,14 @@ struct getEdges_visitor : public boost::static_visitor<size_t>    {
                 {
                     if (data.contains (forward))
                     {
-                        edges[idx++].set (source.getGraph(), source.kmer.value, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
+                        edges[idx++].set (source.kmer, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
                     }
                 }
                 else
                 {
                     if (data.contains (reverse))
                     {
-                        edges[idx++].set (source.getGraph(), source.kmer.value, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
+                        edges[idx++].set (source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
                     }
                 }
             }
@@ -508,14 +522,14 @@ struct getEdges_visitor : public boost::static_visitor<size_t>    {
                 {
                     if (data.contains (forward))
                     {
-                        edges[idx++].set (source.getGraph(), Type(forward), STRAND_FORWARD, source.kmer.value, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                        edges[idx++].set (Type(forward), STRAND_FORWARD, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
                     }
                 }
                 else
                 {
                     if (data.contains (reverse))
                     {
-                        edges[idx++].set (source.getGraph(), Type(reverse), STRAND_REVCOMP, source.kmer.value, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                        edges[idx++].set (Type(reverse), STRAND_REVCOMP, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
                     }
                 }
             }
@@ -526,15 +540,15 @@ struct getEdges_visitor : public boost::static_visitor<size_t>    {
         /** We update the size of the container according to the number of found items. */
         edges.setSize (idx);
 
-        /** We return the number of found items. */
-        return idx;
+        /** We return the result. */
+        return edges;
     }
 };
 
 /********************************************************************************/
-size_t Graph::getEdges (const Node& source, EdgeSet& edges, Direction direction)  const
+Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  const
 {
-    return boost::apply_visitor (getEdges_visitor(source, edges, direction),  *(DataVariant*)_variant);
+    return boost::apply_visitor (getEdges_visitor(source, direction),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -545,17 +559,19 @@ size_t Graph::getEdges (const Node& source, EdgeSet& edges, Direction direction)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-struct getNodes_visitor : public boost::static_visitor<size_t>    {
+struct getNodes_visitor : public boost::static_visitor<Graph::Vector<Node> >    {
 
-    const Node& source;  NodeSet& nodes;  Direction direction;
-    getNodes_visitor (const Node& source, NodeSet& nodes, Direction direction) : source(source), nodes(nodes), direction(direction) {}
+    const Node& source;  Direction direction;
+    getNodes_visitor (const Node& source, Direction direction) : source(source), direction(direction) {}
 
-    template<typename T>  size_t operator() (const Data<T>& data) const
+    template<typename T>  Graph::Vector<Node> operator() (const Data<T>& data) const
     {
+        Graph::Vector<Node> nodes;
+
         size_t idx = 0;
 
         /** We get the specific typed value from the generic typed value. */
-        const T& sourceVal = source.kmer.value.get<T>();
+        const T& sourceVal = source.kmer.get<T>();
 
         /** Shortcuts. */
         size_t   span = data._model->getSpan();
@@ -571,8 +587,8 @@ struct getNodes_visitor : public boost::static_visitor<size_t>    {
                 T forward = ( (graine << 2 )  + nt) & mask;    // next kmer
                 T reverse = revcomp (forward, span);
 
-                if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (source.getGraph(), Type(forward), STRAND_FORWARD);  } }
-                else                    {  if (data.contains (reverse))  {  nodes[idx++].set (source.getGraph(), Type(reverse), STRAND_REVCOMP);  } }
+                if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (Type(forward), STRAND_FORWARD);  } }
+                else                    {  if (data.contains (reverse))  {  nodes[idx++].set (Type(reverse), STRAND_REVCOMP);  } }
             }
         }
         else if (direction == DIR_INCOMING)
@@ -583,8 +599,8 @@ struct getNodes_visitor : public boost::static_visitor<size_t>    {
                 T forward = ((graine >> 2 )  + ( T(nt) <<  ((span-1)*2)) ) & mask; // previous kmer
                 T reverse = revcomp (forward, span);
 
-                if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (source.getGraph(), Type(forward), STRAND_FORWARD);  }  }
-                else                    {  if (data.contains (reverse))  {  nodes[idx++].set (source.getGraph(), Type(reverse), STRAND_REVCOMP);  }  }
+                if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (Type(forward), STRAND_FORWARD);  }  }
+                else                    {  if (data.contains (reverse))  {  nodes[idx++].set (Type(reverse), STRAND_REVCOMP);  }  }
             }
         }
 
@@ -593,15 +609,15 @@ struct getNodes_visitor : public boost::static_visitor<size_t>    {
         /** We update the size of the container according to the number of found items. */
         nodes.setSize (idx);
 
-        /** We return the number of found items. */
-        return idx;
+        /** We return the result. */
+        return nodes;
     }
 };
 
 /********************************************************************************/
-size_t Graph::getNodes (const Node& source, NodeSet& nodes, Direction direction)  const
+Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
 {
-    return boost::apply_visitor (getNodes_visitor(source, nodes, direction),  *(DataVariant*)_variant);
+    return boost::apply_visitor (getNodes_visitor(source, direction),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -619,7 +635,7 @@ struct contains_visitor : public boost::static_visitor<bool>    {
 
     template<typename T>  size_t operator() (const Data<T>& data) const
     {
-        return data.contains (node.kmer.value.get<T>());
+        return data.contains (node.kmer.get<T>());
     }
 };
 
@@ -637,11 +653,12 @@ bool Graph::contains (const Node& item) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-struct nodes_visitor : public boost::static_visitor<INodeIterator*>    {
+template<typename NodeType>
+struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<NodeType>*>    {
 
-    template<typename T>  INodeIterator* operator() (const Data<T>& data) const
+    template<typename T>  tools::dp::ISmartIterator<NodeType>* operator() (const Data<T>& data) const
     {
-        class NodeIterator : public INodeIterator
+        class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
         public:
             NodeIterator (tools::dp::Iterator<kmer::Kmer<T> >* ref, u_int64_t nbItems)
@@ -657,8 +674,8 @@ struct nodes_visitor : public boost::static_visitor<INodeIterator*>    {
 
                 if (!_isDone)
                 {
-                    this->_item->kmer.value     = _ref->item().value;
-                    this->_item->kmer.abundance = _ref->item().abundance;
+                    this->_item->kmer      = _ref->item().value;
+                    this->_item->abundance = _ref->item().abundance;
                 }
             }
 
@@ -669,8 +686,8 @@ struct nodes_visitor : public boost::static_visitor<INodeIterator*>    {
                 _isDone = _ref->isDone();
                 if (!_isDone)
                 {
-                    this->_item->kmer.value     = _ref->item().value;
-                    this->_item->kmer.abundance = _ref->item().abundance;
+                    this->_item->kmer      = _ref->item().value;
+                    this->_item->abundance = _ref->item().abundance;
                 }
             }
 
@@ -678,10 +695,10 @@ struct nodes_visitor : public boost::static_visitor<INodeIterator*>    {
             bool isDone() { return _isDone;  }
 
             /** \copydoc  Iterator::item */
-            Node& item ()  {  return *(this->_item);  }
+            NodeType& item ()  {  return *(this->_item);  }
 
             /** */
-            void setItem (Node& i)
+            void setItem (NodeType& i)
             {
                 /** We set the node item to be set for the current iterator. */
                 this->_item = &i;
@@ -702,16 +719,36 @@ struct nodes_visitor : public boost::static_visitor<INodeIterator*>    {
             u_int64_t _nbItems;
         };
 
-        return new NodeIterator (data._solid->iterator (), data._solid->getNbItems());
+             if (typeid(NodeType) == typeid(Node))           {  return new NodeIterator (data._solid->iterator (),     data._solid->getNbItems());  }
+        else if (typeid(NodeType) == typeid(BranchingNode))  {  return new NodeIterator (data._branching->iterator (), data._branching->getNbItems());  }
+        else {  throw "Invalid type";  }
     }
 };
 
-
-/********************************************************************************/
-INodeIterator* Graph::nodes () const
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Iterator<Node> Graph::getNodes () const
 {
-    DEBUG (("Graph::nodes \n"));
-    return boost::apply_visitor (nodes_visitor(),  *(DataVariant*)_variant);
+    return Graph::Iterator<Node> (boost::apply_visitor (nodes_visitor<Node>(),  *(DataVariant*)_variant));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Iterator<BranchingNode> Graph::getBranchingNodes () const
+{
+    return Graph::Iterator<BranchingNode> (boost::apply_visitor (nodes_visitor<BranchingNode>(),  *(DataVariant*)_variant));
 }
 
 /*********************************************************************
@@ -735,7 +772,7 @@ struct toString_visitor : public boost::static_visitor<std::string>    {
         std::string kmerStr;
         std::string strandStr;
 
-        T value = node.kmer.value.get<T>();
+        T value = node.kmer.get<T>();
 
         if (strand == STRAND_ALL || node.strand == strand)
         {
@@ -749,7 +786,7 @@ struct toString_visitor : public boost::static_visitor<std::string>    {
             strandStr = (node.strand==STRAND_FORWARD ? "REVCOMP" : "FORWARD");
         }
 
-        if (mode==0)    {  ss << "[ " << kmerStr <<  "  strand=" << strandStr << "  abund=" << node.kmer.abundance << "]";  }
+        if (mode==0)    {  ss << "[ " << kmerStr <<  "  strand=" << strandStr << "  abund=" << node.abundance << "]";  }
         else            {  ss << kmerStr; }
 
         return ss.str();
