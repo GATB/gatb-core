@@ -18,7 +18,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 
 /********************************************************************************/
 namespace gatb          {
@@ -31,7 +31,7 @@ namespace collections   {
  *
  * The Container interface provides an operation that ask for a given item
  */
-template <class Item> class Container : public virtual dp::ISmartPointer
+template <class Item> class Container : public virtual system::ISmartPointer
 {
 public:
 

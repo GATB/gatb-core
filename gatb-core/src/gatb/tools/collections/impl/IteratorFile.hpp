@@ -136,7 +136,7 @@ private:
 
 /********************************************************************************/
 
-template <class Item> class IterableFile : public tools::collections::Iterable<Item>, public virtual tools::dp::SmartPointer
+template <class Item> class IterableFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
 {
 public:
 

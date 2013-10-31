@@ -38,7 +38,7 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
-template <class Item> class BagHDF5 : public Bag<Item>, public dp::SmartPointer
+template <class Item> class BagHDF5 : public Bag<Item>, public system::SmartPointer
 {
 public:
 
@@ -110,7 +110,7 @@ private:
 
 template<typename Item> class HDF5Iterator;
 
-template <class Item> class IterableHDF5 : public Iterable<Item>, public dp::SmartPointer
+template <class Item> class IterableHDF5 : public Iterable<Item>, public system::SmartPointer
 {
 public:
 
@@ -301,7 +301,7 @@ private:
 
 /** \brief Collection interface
  */
-template <class Item> class CollectionHDF5 : public CollectionAbstract<Item>, public dp::SmartPointer
+template <class Item> class CollectionHDF5 : public CollectionAbstract<Item>, public system::SmartPointer
 {
 public:
 

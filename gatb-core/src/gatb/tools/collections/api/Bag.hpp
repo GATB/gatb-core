@@ -18,7 +18,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 
 /********************************************************************************/
@@ -34,7 +34,7 @@ namespace collections   {
  *
  * Note that one Iterable instance can create several iterators.
  */
-template <class Item> class Bag : public virtual  dp::ISmartPointer
+template <class Item> class Bag : public virtual  system::ISmartPointer
 {
 public:
 

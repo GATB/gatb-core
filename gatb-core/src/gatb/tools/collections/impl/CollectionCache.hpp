@@ -34,7 +34,7 @@ namespace impl          {
  *
  * The Collection interface is the union of a Bag and an Iterable interfaces
  */
-template <class Item> class CollectionCache : public CollectionAbstract<Item>, public dp::SmartPointer
+template <class Item> class CollectionCache : public CollectionAbstract<Item>, public system::SmartPointer
 {
 public:
 

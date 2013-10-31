@@ -37,7 +37,7 @@ namespace impl          {
 
 /** \brief Collection interface
  */
-template <class Item> class CollectionFile : public CollectionAbstract<Item>, public dp::SmartPointer
+template <class Item> class CollectionFile : public CollectionAbstract<Item>, public system::SmartPointer
 {
 public:
 
