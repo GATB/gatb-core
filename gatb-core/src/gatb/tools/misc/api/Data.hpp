@@ -16,7 +16,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/api/Range.hpp>
 #include <gatb/tools/misc/api/Vector.hpp>
