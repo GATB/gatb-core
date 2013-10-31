@@ -16,10 +16,10 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
-#include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/system/api/types.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/system/api/IThread.hpp>
+#include <gatb/tools/designpattern/api/Iterator.hpp>
 
 #include <vector>
 
@@ -62,7 +62,7 @@ namespace dp    {
  *
  * \see ICommandDispatcher
  */
-class ICommand : public SmartPointer
+class ICommand : virtual public system::ISmartPointer
 {
 public:
     /** Method that executes some job. */
@@ -121,7 +121,7 @@ public:
  *
  *  \see ICommand
  */
-class IDispatcher : public SmartPointer
+class IDispatcher : public system::SmartPointer
 {
 public:
 
@@ -207,13 +207,6 @@ public:
 
     /** Another way: use iterator object instead of pointer. */
     template <typename Item, typename Functor>
-    Status iterate (Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
-    {
-        return iterate (&iterator, functor, groupSize);
-    }
-
-    /** Another way: use iterator object instead of pointer. */
-    template <typename Item, typename Functor>
     Status iterate (const Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
     {
         return iterate ((Iterator<Item>*)&iterator, functor, groupSize);
@@ -226,7 +219,7 @@ protected:
     virtual system::ISynchronizer* newSynchro () = 0;
 
     /** We need some inner class for iterate some iterator in one thread. */
-    template <typename Item, typename Functor> class IteratorCommand : public ICommand
+    template <typename Item, typename Functor> class IteratorCommand : public ICommand, public system::SmartPointer
     {
     public:
         /** Constructor.
