@@ -206,7 +206,7 @@ public:
             if (_isInit == false)
             {
                 /** We look for the TreadGroup if any. */
-                IThreadGroup* group = ThreadGroup::find (pthread_self());
+                IThreadGroup* group = ThreadGroup::find ((IThread::Id)pthread_self());
 
                 if (group)
                 {
