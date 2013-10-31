@@ -71,8 +71,8 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
 /********************************************************************************/
-static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning  ";
-static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers";
+static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
+static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
 
 /*********************************************************************
 ** METHOD  :
@@ -339,31 +339,14 @@ void SortingCountAlgorithm<ProductFactory,T>::configure (IBank* bank)
 /********************************************************************************/
 
 template<typename ProductFactory, typename T>
-class FillPartitions : public IteratorFunctor
+class FillPartitions
 {
 public:
 
     void operator() (Sequence& sequence)
     {
-        /** By default, we will use the provided data with a ASCII encoding. */
-        Data* data = & sequence.getData();
-
-        /** We may have to expand the binary data to integer format. */
-        if (sequence.getData().getEncoding() == Data::BINARY)
-        {
-            size_t expandedLen = sequence.getData().size() ;
-
-            if (expandedLen > binaryData.size())  {  binaryData.resize (expandedLen + 4);  }
-
-            /** We convert the provided binary data into integer encoding. */
-            Data::convert (sequence.getData(), binaryData);
-
-            /** The actual data will be the binary data. */
-            data = &binaryData;
-        }
-
         /** We build the kmers from the current sequence. */
-        if (model.build (*data, kmers) == false)  { return; }
+        if (model.build (sequence.getData(), kmers) == false)  { return; }
 
         /** We loop over the kmers. */
         for (size_t i=0; i<kmers.size(); i++)
@@ -390,7 +373,8 @@ public:
 
     FillPartitions (Model<T>& model, size_t nbPasses, size_t currentPass, Partition<ProductFactory, T>* partition, IteratorListener* progress)
         : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0),
-          _partition(*partition,1<<12,this->newSynchro()), _progress (progress,this->newSynchro())  {}
+          _partition (*partition,1<<12,System::thread().newSynchronizer()),
+          _progress  (progress,System::thread().newSynchronizer())  {}
 
 private:
 
@@ -449,7 +433,7 @@ void SortingCountAlgorithm<ProductFactory,T>::fillPartitions (size_t pass, Itera
 ** REMARKS :
 *********************************************************************/
 template<typename ProductFactory, typename T>
-class PartitionsCommand : public ICommand
+class PartitionsCommand : public ICommand, public system::SmartPointer
 {
 public:
     PartitionsCommand (
@@ -653,8 +637,6 @@ void SortingCountAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  so
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
 
-    ISynchronizer* synchro = System::thread().newSynchronizer();
-
     /** We retrieve the list of cores number for dispatching N partitions in N threads.
      *  We need to know these numbers for allocating the N maps according to the maximum allowed memory.
      */
@@ -671,6 +653,9 @@ void SortingCountAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  so
         /** We correct the number of memory per map according to the max allowed memory.
          * Note that _max_memory has initially been divided by the user provided cores number. */
         u_int64_t mem = (_max_memory*MBYTE*_nbCores)/currentNbCores;
+
+        ISynchronizer* synchro = System::thread().newSynchronizer();
+        LOCAL (synchro);
 
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
@@ -690,9 +675,6 @@ void SortingCountAlgorithm<ProductFactory,T>::fillSolidKmers (Bag<Kmer<T> >*  so
 
         getDispatcher()->dispatchCommands (cmds, 0);
     }
-
-    /** Some cleanup. */
-    delete synchro;
 }
 
 /********************************************************************************/
