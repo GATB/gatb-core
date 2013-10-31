@@ -24,6 +24,10 @@
 #include <gatb/system/impl/ThreadLinux.hpp>
 #include <gatb/system/impl/ThreadMacos.hpp>
 #include <map>
+#include <functional>
+#include <list>
+#include <vector>
+#include <iostream>
 
 /********************************************************************************/
 namespace gatb      {
@@ -149,18 +153,93 @@ class System
 };
 
 /********************************************************************************/
-template<typename T> class ThreadContainer
+
+class ThreadGroup : public IThreadGroup, public system::SmartPointer
 {
 public:
 
-    T& current()  { return _map[pthread_self()]; }
+    static IThreadGroup* create ();
+    static void destroy (IThreadGroup* thr);
 
-    template<class Function>
-    void foreach (Function fn)
-    {  for (typename std::map<pthread_t,T>::iterator it = _map.begin(); it != _map.end(); it++)  { fn (it->second); } }
+    static IThreadGroup* find (IThread::Id id);
+
+    void add (void* (*mainloop) (void*), void* data);
+
+    void start ();
+
+    ISynchronizer* getSynchro()  { return _startSynchro; }
+
+    void foreach (const std::function<void (IThread*)>& fct);
+
+private:
+
+    ThreadGroup ();
+    ~ThreadGroup();
+
+    std::vector<IThread*>  _threads;
+    system::ISynchronizer* _startSynchro;
+
+    static std::list<ThreadGroup*> _groups;
+};
+
+/********************************************************************************/
+template<typename T> class ThreadObject
+{
+public:
+
+    ThreadObject (const T& object = T()) : _object(object), _isInit(false), _synchro(0)
+    {
+        _synchro = system::impl::System::thread().newSynchronizer();
+    }
+
+    ~ThreadObject()
+    {
+        if (_synchro)  { delete _synchro; }
+    }
+
+    T& operator () ()
+    {
+
+        if (_isInit == false)
+        {
+            LocalSynchronizer ls (_synchro);
+            if (_isInit == false)
+            {
+                /** We look for the TreadGroup if any. */
+                IThreadGroup* group = ThreadGroup::find (pthread_self());
+
+                if (group)
+                {
+                    group->foreach ([this] (IThread* thread)  {  this->_map.insert (std::pair<pthread_t,T>(thread->getId(),this->_object)); });
+                }
+                else
+                {
+                    std::cout << "ThreadObject::operator()  CAN'T HAPPEN......" << std::endl;
+                }
+                _isInit = true;
+            }
+        }
+
+        return _map[pthread_self()];
+    }
+
+    void terminate ()  { foreach (_endFct); }
+
+    void foreach (const std::function<void (T&)>& fct)
+    {  for (typename std::map<pthread_t,T>::iterator it = _map.begin(); it != _map.end(); it++)  { fct (it->second); } }
+
+    T* operator-> ()  { return &_object; }
+
+    T& operator* ()  { return _object; }
 
 private:
     std::map<pthread_t,T> _map;
+
+    const std::function<void (const T&)> _endFct;
+    T _object;
+
+    bool _isInit;
+    system::ISynchronizer* _synchro;
 };
 
 /********************************************************************************/
