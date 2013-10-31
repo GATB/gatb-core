@@ -26,8 +26,6 @@
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
-#include <gatb/debruijn/api/IGraph.hpp>
-#include <gatb/debruijn/impl/GraphFactory.hpp>
 #include <gatb/debruijn/impl/Graph.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
@@ -116,9 +114,9 @@ public:
     void debruijn_test1_aux (Graph& graph)
     {
         /** We get an iterator over all the nodes of the graph. */
-        INodeIterator* itNodes = graph.nodes();   LOCAL (itNodes);
+        Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
-        NodeSet nodes (graph);
+        Graph::Vector<Node> successors;
         Info    info;
 
         TimeInfo ti;
@@ -126,15 +124,15 @@ public:
             TIME_INFO (ti, "loop");
 
             /** We iterate all the nodes of the graph. */
-            for (itNodes->first(); !itNodes->isDone(); itNodes->next())
+            for (itNodes.first(); !itNodes.isDone(); itNodes.next())
             {
                 info.incNodes();
 
                 /** We retrieve the successors. */
-                size_t nbNodes = graph.getSuccessors (itNodes->item(), nodes);
+                successors = graph.successors<Node> (itNodes.item());
 
                 /** We iterate all the successors. */
-                for (size_t i=0; i<nbNodes; i++)   {  info.inc (nodes[i].kmer.value);  }
+                for (size_t i=0; i<successors.size(); i++)   {  info.inc (successors[i].kmer);  }
             }
         }
 
@@ -146,9 +144,9 @@ public:
     void debruijn_test2_aux (Graph& graph)
     {
         /** We get an iterator over all the nodes of the graph. */
-        INodeIterator* itNodes = graph.nodes();  LOCAL (itNodes);
+        Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
-        EdgeSet edges (graph);
+        Graph::Vector<Edge> successors;
         Info    info;
 
         TimeInfo ti;
@@ -156,15 +154,15 @@ public:
             TIME_INFO (ti, "loop");
 
             /** We iterate all the nodes of the graph. */
-            for (itNodes->first(); !itNodes->isDone(); itNodes->next())
+            for (itNodes.first(); !itNodes.isDone(); itNodes.next())
             {
                 info.incNodes();
 
                 /** We retrieve the outcoming edges. */
-                size_t nbEdges = graph.getOutEdges (itNodes->item(), edges);
+                successors = graph.successors<Edge> (itNodes.item());
 
                 /** We iterate all outcoming edges. */
-                for (size_t i=0; i<nbEdges; i++)  {  info.inc (edges[i].to.kmer.value);  }
+                for (size_t i=0; i<successors.size(); i++)  {  info.inc (successors[i].to.kmer);  }
             }
         }
 
@@ -175,25 +173,20 @@ public:
     /********************************************************************************/
     void debruijn_test3_aux (const Graph& graph)
     {
-        EdgeSet edges (graph);
-
         /** We get an iterator over all the nodes of the graph. */
-        INodeIterator* itNodes = graph.nodes();  LOCAL(itNodes);
+        Graph::Iterator<Node> itNodes = graph.iterator<Node> ();
 
         /** We retrieve the first node. */
-        itNodes->first();  //for (size_t i=1; i<=5; i++)  { itNodes.next(); }
-        Node node =  itNodes->item();
+        itNodes.first();  //for (size_t i=1; i<=5; i++)  { itNodes.next(); }
+        Node node =  itNodes.item();
 
         cout << "------- NODE " << graph.toString(node) << endl;
 
         Strand strandInit = node.strand;
 
         size_t i=0;
-        for (size_t nbEdges = ~0 ; nbEdges > 0; i++, node = edges[0].to)
+        for (Graph::Vector<Edge> successors; (successors = graph.successors<Edge>(node)).size() > 0; i++, node = successors[0].to)
         {
-            nbEdges = graph.getOutEdges (node, edges);
-
-            //if (nbEdges > 0)  {  cout << "-------------- " << edges[0].toString (strandInit) << " --------------" << endl; }
         }
         cout << "nb found " << i << endl;
     }
@@ -219,11 +212,11 @@ public:
     {
         size_t seqLen = strlen (seq);
 
-        INodeIterator* nodes = graph.nodes();  LOCAL(nodes);
-        nodes->first ();
+        Graph::Iterator<Node> nodes = graph.iterator<Node> ();
+        nodes.first ();
 
         /** We get the first node. */
-        Node node = nodes->item();
+        Node node = nodes.item();
 
         /** We compute the branching range for the node. */
         Node begin, end;     graph.getNearestBranchingRange (node, begin, end);
@@ -329,7 +322,7 @@ public:
                 props->add (0, STR_NKS,       "%d", 1);
 
                 /** We create the graph. */
-                Graph graph = GraphFactory::create (new BankStrings (sequences[i], 0), props);
+                Graph graph = Graph::create (new BankStrings (sequences[i], 0), props);
 
                 debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
 

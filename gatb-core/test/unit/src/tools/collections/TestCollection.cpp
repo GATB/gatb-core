@@ -246,12 +246,12 @@ public:
 
     /********************************************************************************/
 
-    class MyFunctor : public IteratorFunctor
+    class MyFunctor
     {
     public:
 
         MyFunctor (Partition<ProductFileFactory,NativeInt64>& partition, size_t nbRepeat)
-            : _cache (partition, 10000, this->newSynchro()), _nbParts(partition.size()), _nbRepeat(nbRepeat)   {}
+            : _cache (partition, 10000, System::thread().newSynchronizer()), _nbParts(partition.size()), _nbRepeat(nbRepeat)   {}
 
         void operator() (const size_t& item)
         {
@@ -282,7 +282,7 @@ public:
         Range<size_t>::Iterator it (0, nbItems-1);
 
         /** We dispatch the range iteration. */
-        ParallelDispatcher().iterate (it, MyFunctor(partition,nbRepeat));
+        Dispatcher().iterate (it, MyFunctor(partition,nbRepeat));
 
         /** We check the content of each partition. */
         size_t nbIterTotal = 0;

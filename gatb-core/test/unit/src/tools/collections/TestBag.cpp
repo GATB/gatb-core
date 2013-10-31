@@ -24,6 +24,7 @@
 #include <gatb/tools/designpattern/api/ICommand.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/system/impl/System.hpp>
 
 #include <vector>
@@ -102,7 +103,7 @@ public:
 
     /********************************************************************************/
 
-    template <typename Item> class BagInsertCommand : public ICommand
+    template <typename Item> class BagInsertCommand : public ICommand, public SmartPointer
     {
     public:
         BagInsertCommand (Bag<Item>* ref, size_t cacheSize, ISynchronizer* synchro, size_t nbIters)
@@ -134,16 +135,12 @@ public:
         BagFile<u_int32_t>* bag = new BagFile<u_int32_t>(filename);
         LOCAL (bag);
 
-        /** We create a synchronizer to be shared between different threads. */
-        ISynchronizer* synchro = System::thread().newSynchronizer();
-        CPPUNIT_ASSERT (synchro);
-
         /** We need a command dispatcher. */
-        ParallelDispatcher dispatcher (nbCores);
+        Dispatcher dispatcher (nbCores);
 
         /** We create several commands that will insert items into the bag file through a cache. */
         vector<ICommand*> commands (dispatcher.getExecutionUnitsNumber());
-        for (size_t i=0; i<commands.size(); i++)  { commands[i] = new BagInsertCommand<u_int32_t> (bag, cacheSize, synchro, nbItersPerThread); }
+        for (size_t i=0; i<commands.size(); i++)  { commands[i] = new BagInsertCommand<u_int32_t> (bag, cacheSize, System::thread().newSynchronizer(), nbItersPerThread); }
 
         /** We dispatch the commands. */
         dispatcher.dispatchCommands (commands, 0);
@@ -161,9 +158,6 @@ public:
 
         /** We check we read the correct number of items. */
         CPPUNIT_ASSERT (nbItemsRead == nbItersTotal);
-
-        /** We delete the shared synchronizer. */
-        delete synchro;
 
         /** We remove the temporary file. */
         System::file().remove (filename);
