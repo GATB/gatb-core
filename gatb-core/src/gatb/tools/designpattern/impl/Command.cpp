@@ -20,8 +20,35 @@ namespace dp    {
 namespace impl  {
 /********************************************************************************/
 
+/** */
+class CommandStartSynchro : public ICommand, public system::SmartPointer
+{
+public:
+
+    CommandStartSynchro (ICommand* ref, system::ISynchronizer* synchro) : _ref(0), _synchro(synchro)  { setRef(ref); }
+    ~CommandStartSynchro ()  { setRef(0); }
+
+    void execute ()
+    {
+        if (_ref && _synchro)
+        {
+            /** We lock/unlock the synchronizer. */
+            _synchro->lock();  _synchro->unlock ();
+
+            /** We execute the delegate command. */
+            _ref->execute();
+        }
+    }
+
+private:
+    ICommand* _ref;
+    void setRef (ICommand* ref)  { SP_SETATTR(ref); }
+
+    system::ISynchronizer* _synchro;
+};
+
 /********************************************************************************/
-class SynchronizerNull : public system::ISynchronizer
+class SynchronizerNull : public system::ISynchronizer, public system::SmartPointer
 {
 public:
     void   lock ()  {}
@@ -74,7 +101,7 @@ system::ISynchronizer* SerialDispatcher::newSynchro ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-ParallelDispatcher::ParallelDispatcher (size_t nbUnits) : _nbUnits(nbUnits)
+Dispatcher::Dispatcher (size_t nbUnits) : _nbUnits(nbUnits)
 {
     if (_nbUnits==0)  { _nbUnits = system::impl::System::info().getNbCores(); }
 }
@@ -87,28 +114,27 @@ ParallelDispatcher::ParallelDispatcher (size_t nbUnits) : _nbUnits(nbUnits)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-size_t ParallelDispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment)
+size_t Dispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment)
 {
     TIME_START (ti, "compute");
 
-    std::vector<system::IThread*> threads;
+    system::IThreadGroup* threadGroup = system::impl::ThreadGroup::create ();
+
     for (std::vector<ICommand*>::iterator it = commands.begin(); it != commands.end(); it++)
     {
-        threads.push_back (newThread(*it));
+        /** We add the thread to the group. */
+        threadGroup->add (mainloop, new CommandStartSynchro (*it, threadGroup->getSynchro()) );
     }
 
-    for (std::vector<system::IThread*>::iterator it = threads.begin(); it != threads.end(); it++)
-    {
-        (*it)->join ();
-    }
+    /** We start the group. */
+    threadGroup->start ();
 
-    for (std::vector<system::IThread*>::iterator it = threads.begin(); it != threads.end(); it++)
-    {
-        delete (*it);
-    }
+    /** Some cleanup. */
+    system::impl::ThreadGroup::destroy (threadGroup);
 
     TIME_STOP (ti, "compute");
 
+    /** We return the result. */
     return ti.getEntryByKey("compute");
 }
 
@@ -120,7 +146,7 @@ size_t ParallelDispatcher::dispatchCommands (std::vector<ICommand*>& commands, I
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-system::ISynchronizer* ParallelDispatcher::newSynchro ()
+system::ISynchronizer* Dispatcher::newSynchro ()
 {
     return system::impl::System::thread().newSynchronizer();
 }
@@ -133,7 +159,7 @@ system::ISynchronizer* ParallelDispatcher::newSynchro ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-system::IThread* ParallelDispatcher::newThread (ICommand* command)
+system::IThread* Dispatcher::newThread (ICommand* command)
 {
     return system::impl::System::thread().newThread (mainloop, command);
 }
@@ -146,7 +172,7 @@ system::IThread* ParallelDispatcher::newThread (ICommand* command)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void* ParallelDispatcher::mainloop (void* data)
+void* Dispatcher::mainloop (void* data)
 {
     ICommand* cmd = (ICommand*) data;
 
