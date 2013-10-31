@@ -53,7 +53,7 @@ namespace impl      {
  * given mode (direct kmer, revcomp or the minimum of both). This method is likely to be used
  * by children classes for implementing the methods not implemented here.
  */
-template <typename kmer_type> class ModelAbstract : public IModel<kmer_type>, public tools::dp::SmartPointer
+template <typename kmer_type> class ModelAbstract : public IModel<kmer_type>, public system::SmartPointer
 {
 public:
 
@@ -162,6 +162,29 @@ public:
         /** Reference on the underlying model; called for its 'build' method. */
         ModelAbstract& _ref;
     };
+
+
+    /** */
+    template<typename Functor>
+    void iterateNeighbors (const kmer_type& source, const Functor& fct)
+    {
+        kmer_type rev = core::tools::math::revcomp (source, getSpan());
+
+        /** We compute the 8 possible neighbors. */
+        for (size_t nt=0; nt<4; nt++)
+        {
+            {
+                kmer_type next1 = (((source) * 4 )  + nt) & getMask();
+                kmer_type next2 = revcomp (next1, getSpan());
+                fct (std::min (next1, next2));
+            }
+            {
+                kmer_type next1 = (((rev) * 4 )  + nt) & getMask();
+                kmer_type next2 = revcomp (next1, getSpan());
+                fct (std::min (next1, next2));
+            }
+        }
+    }
 
 protected:
 
