@@ -18,7 +18,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/system/api/types.hpp>
 
 /********************************************************************************/
@@ -47,7 +47,7 @@ typedef u_int32_t InterfaceId;
  *
  *  Defined as a SmartPointer for easing the EventInfo instances life cycle management.
  */
-class EventInfo : public SmartPointer
+class EventInfo : public system::SmartPointer
 {
 public:
 

@@ -16,7 +16,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <string>
 
 /********************************************************************************/
@@ -28,7 +28,7 @@ namespace tools {
 namespace dp    {
 /********************************************************************************/
 
-class ICell : public virtual dp::ISmartPointer
+class ICell : public virtual system::ISmartPointer
 {
 public:
 

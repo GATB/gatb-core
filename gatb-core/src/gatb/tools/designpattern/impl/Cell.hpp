@@ -28,7 +28,7 @@ namespace impl  {
  *
  * The 'remove' method is still abstract.
  */
-class Cell : public virtual ICell, public dp::SmartPointer
+class Cell : public virtual ICell, public system::SmartPointer
 {
 public:
 

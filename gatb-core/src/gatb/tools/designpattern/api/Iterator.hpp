@@ -18,7 +18,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 
 #include <vector>
 #include <iostream>
@@ -96,7 +96,7 @@ namespace dp    {
  *
  *  Moreover, we can use our iterator as a basis for other ways for iteration.
  */
-template <class Item> class Iterator : public SmartPointer
+template <class Item> class Iterator : public system::SmartPointer
 {
 public:
 
@@ -173,6 +173,16 @@ private:
 
 /********************************************************************************/
 
+template<typename T>
+class ISmartIterator : public Iterator<T>
+{
+public:
+    virtual ~ISmartIterator() {}
+    virtual u_int64_t getNbItems () const = 0;
+};
+
+/********************************************************************************/
+
 /** \brief Interface for listening to iteration progress.
  *
  * This interface is intended to be notified by some progress job, and in particular
@@ -191,7 +201,7 @@ private:
  *
  * \see SubjectIterator
  */
-class IteratorListener : public SmartPointer
+class IteratorListener : public system::SmartPointer
 {
 public:
 
