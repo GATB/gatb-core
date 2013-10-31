@@ -28,7 +28,7 @@ int main (int argc, char* argv[])
         IProperties* options = parser.parse (argc, argv);
 
          /** We create the graph with the provided options. */
-         Graph graph = GraphFactory::create (options);
+         Graph graph = Graph::create (options);
 
          /** We dump some information about the graph. */
          if (options->get(STR_VERBOSE) != 0)  {  std::cout << graph.getInfo() << std::endl;  }

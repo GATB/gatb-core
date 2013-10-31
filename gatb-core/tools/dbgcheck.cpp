@@ -7,15 +7,19 @@
 
 #include <gatb/gatb_core.hpp>
 
+using namespace std;
+
 /********************************************************************************/
 
 struct Stats
 {
-    Stats() :  nbSuccessors(0), abundance(0) {}
+    Stats() :  nbSuccessors(0), abundance(0), nbBranching(0) {}
     Integer    checksumNodes;
     Integer    checksumSuccessors;
     u_int64_t  nbSuccessors;
     u_int64_t  abundance;
+    u_int64_t  nbBranching;
+    Integer    checksumBranching;
 
     Stats& operator+= (const Stats& st)
     {
@@ -25,6 +29,8 @@ struct Stats
             checksumSuccessors += st.checksumSuccessors;
             nbSuccessors       += st.nbSuccessors;
             abundance          += st.abundance;
+            nbBranching        += st.nbBranching;
+            checksumBranching  += st.checksumBranching;
         }
         return *this;
     }
@@ -44,47 +50,59 @@ int main (int argc, char* argv[])
         IProperties* options = parser.parse (argc, argv);
 
         /** We load the graph from the provided uri. */
-        Graph graph  = GraphFactory::load (options->getStr(STR_URI_INPUT));
-
-        /** We get an iterator over the nodes of the graph. */
-        INodeIterator* nodes = graph.nodes ();  LOCAL(nodes);
+        Graph graph = Graph::load (options->getStr(STR_URI_INPUT));
 
         /** We want to gather some statistics during the iteration. */
-        ThreadContainer<Stats> stats;
+        ThreadObject<Stats> stats;
 
-        /** We launch the iteration.
-         *  Note that we encapsulate the node iterator by an iterator that writes progression status on the console. */
-        IDispatcher::Status status = ParallelDispatcher().iterate (ProgressIterator<ProgressTimer>(nodes), [&graph,&stats] (const Node& node)
+        /*********************************************/
+        /**********    ITERATE ALL NODES    **********/
+        /*********************************************/
+        IDispatcher::Status status = Dispatcher().iterate (graph.iterator<Node>(), [&] (const Node& node)
         {
             /** We get the Stats object for the current thread. */
-            Stats& s = stats.current();
+            Stats& s = stats();
 
             /** We update the statistics. */
-            s.checksumNodes  += node.kmer.value;
-            s.abundance      += node.kmer.abundance;
+            s.checksumNodes  += node.kmer;
+            s.abundance      += node.abundance;
 
             /** We retrieve the successors. */
-            NodeSet nodeset (graph);
-            size_t nbSuccessors = graph.getSuccessors (node, nodeset);
+            Graph::Vector<Node> nodeset = graph.successors<Node> (node);
 
-            s.nbSuccessors += nbSuccessors;
+            s.nbSuccessors += nodeset.size();
 
             /** We iterate all the successors. */
-            for (size_t i=0; i<nbSuccessors; i++)  {  s.checksumSuccessors += nodeset[i].kmer.value;  }
+            for (size_t i=0; i<nodeset.size(); i++)  {  s.checksumSuccessors += nodeset[i].kmer;  }
         });
 
-        /** We aggregate the statistics gathered during iteration. */
-        Stats s;   stats.foreach ([&s] (const Stats& st)  {  s += st;  });
+        /*********************************************/
+        /********** ITERATE BRANCHING NODES **********/
+        /*********************************************/
+        Dispatcher().iterate (graph.iterator<BranchingNode>(), [&] (const BranchingNode& node)
+        {
+            /** We get the Stats object for the current thread. */
+            Stats& s = stats();
+
+            /** We update the statistics. */
+            s.nbBranching  ++;
+            s.checksumBranching += node.kmer;
+        });
+
+        /** We finalize the gathered statistics. */
+        stats.foreach ([&stats] (const Stats& st)  {  *stats += st;  });
 
         /** We dump the statistics. */
         std::cout << std::endl;
-        std::cout << "nbSolids           = " << nodes->getNbItems()      << "  "  << std::endl
-                  << "nbSuccessors       = " << s.nbSuccessors           << "  "  << std::endl
-                  << "checkumNodes       = " << s.checksumNodes          << "  "  << std::endl
-                  << "checksumSuccessors = " << s.checksumSuccessors     << "  "  << std::endl
-                  << "abundance          = " << s.abundance              << "  "  << std::endl
-                  << "time               = " << status.time              << "  "  << std::endl
-                  << "nbCores            = " << status.nbCores           << "  "  << std::endl
+        std::cout << "nbSolids           = " << graph.iterator<Node>().getNbItems() << "  "  << std::endl
+                  << "nbSuccessors       = " << stats->nbSuccessors                 << "  "  << std::endl
+                  << "nbBranching        = " << stats->nbBranching                  << "  "  << std::endl
+                  << "checkumNodes       = " << stats->checksumNodes                << "  "  << std::endl
+                  << "checksumSuccessors = " << stats->checksumSuccessors           << "  "  << std::endl
+                  << "checksumBranching  = " << stats->checksumBranching            << "  "  << std::endl
+                  << "abundance          = " << stats->abundance                    << "  "  << std::endl
+                  << "time               = " << status.time                         << "  "  << std::endl
+                  << "nbCores            = " << status.nbCores                      << "  "  << std::endl
                   << std::endl;
         std::cout << std::endl;
     }
