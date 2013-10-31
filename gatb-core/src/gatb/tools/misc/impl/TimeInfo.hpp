@@ -56,7 +56,7 @@ namespace impl      {
  }
  * \endcode
   */
-class TimeInfo : public dp::SmartPointer
+class TimeInfo : public system::SmartPointer
 {
 public:
 

@@ -103,7 +103,7 @@ IProperties* Tool::run (IProperties* input)
     }
     else
     {
-        setDispatcher (new ParallelDispatcher (_input->getInt(STR_NB_CORES)) );
+        setDispatcher (new Dispatcher (_input->getInt(STR_NB_CORES)) );
     }
 
     /** We may have some pre processing. */

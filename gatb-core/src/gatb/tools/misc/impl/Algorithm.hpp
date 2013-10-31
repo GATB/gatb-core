@@ -36,7 +36,7 @@ namespace impl      {
 
 /** \brief Framework class for implementing algorithm
  */
-class Algorithm : public dp::SmartPointer
+class Algorithm : public system::SmartPointer
 {
 public:
 
@@ -58,7 +58,7 @@ public:
     virtual IProperties*            getInput      ()  { return _input;      }
     virtual IProperties*            getOutput     ()  { return _output;     }
     virtual IProperties*            getInfo       ()  { return _info;       }
-    virtual dp::IDispatcher* getDispatcher ()  { return _dispatcher; }
+    virtual dp::IDispatcher*        getDispatcher ()  { return _dispatcher; }
     virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
 
     /** */

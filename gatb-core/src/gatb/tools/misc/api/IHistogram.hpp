@@ -14,7 +14,7 @@
 #ifndef _GATB_CORE_TOOLS_MISC_IHISTOGRAM_HPP_
 #define _GATB_CORE_TOOLS_MISC_IHISTOGRAM_HPP_
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <hdf5.h>
 
 /********************************************************************************/
@@ -32,7 +32,7 @@ namespace misc      {
 */
 
 /** \brief TBD */
-class IHistogram : virtual public dp::ISmartPointer
+class IHistogram : virtual public system::ISmartPointer
 {
 public:
 

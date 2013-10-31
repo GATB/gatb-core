@@ -36,7 +36,7 @@ namespace impl      {
 
 /** \brief Framework class for implementing tools (ie. binary tools).
  */
-class Tool : public dp::SmartPointer
+class Tool : public system::SmartPointer
 {
 public:
 

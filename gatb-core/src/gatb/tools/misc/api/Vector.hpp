@@ -16,7 +16,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -31,7 +31,7 @@ namespace misc      {
  *      - dynamic allocation: the data buffer is allocated
  *      - reference : the data buffer is a reference to some existing buffer in memory
  */
-template<typename T> class Vector : public dp::SmartPointer
+template<typename T> class Vector : public system::SmartPointer
 {
 public:
 

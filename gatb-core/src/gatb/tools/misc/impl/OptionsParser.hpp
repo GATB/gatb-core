@@ -16,7 +16,7 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/tools/misc/api/IProperty.hpp>
 
 #include <list>
@@ -39,7 +39,7 @@ namespace impl      {
  *
  * \see OptionsParser
  */
-class Option : public tools::dp::SmartPointer
+class Option : public system::SmartPointer
 {
 public:
 
@@ -238,7 +238,7 @@ public:
  * }
  * \endcode
  */
-class OptionsParser : public tools::dp::SmartPointer
+class OptionsParser : public system::SmartPointer
 {
 public:
 

@@ -14,7 +14,7 @@
 #ifndef _GATB_CORE_TOOLS_MISC_IPROPERTY_HPP_
 #define _GATB_CORE_TOOLS_MISC_IPROPERTY_HPP_
 
-#include <gatb/tools/designpattern/api/SmartPointer.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <list>
@@ -39,7 +39,7 @@ namespace misc      {
  *
  *  \see IProperties
  */
-class IProperty : public dp::SmartPointer
+class IProperty : public system::SmartPointer
 {
 public:
     /** Constructor.
@@ -99,7 +99,7 @@ typedef IProperty  Property;
  *
  *  It is defined as a SmartPointer for easing instance life cycle management.
  */
-class IPropertiesVisitor : public dp::SmartPointer
+class IPropertiesVisitor : public system::SmartPointer
 {
 public:
 
@@ -134,7 +134,7 @@ public:
  *  \see IProperty
  *  \see IPropertiesVisitor
  */
-class IProperties : public dp::SmartPointer
+class IProperties : public system::SmartPointer
 {
 public:
 

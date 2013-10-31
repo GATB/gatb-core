@@ -33,7 +33,7 @@ namespace impl      {
 /********************************************************************************/
 
 /** TBD */
-class Histogram : public IHistogram, public dp::SmartPointer
+class Histogram : public IHistogram, public system::SmartPointer
 {
 public:
 
@@ -83,7 +83,7 @@ private:
 /********************************************************************************/
 
 /** */
-class HistogramNull : public IHistogram, public dp::SmartPointer
+class HistogramNull : public IHistogram, public system::SmartPointer
 {
 public:
 
@@ -103,7 +103,7 @@ public:
 /********************************************************************************/
 
 /** */
-class HistogramCache : public IHistogram, public dp::SmartPointer
+class HistogramCache : public IHistogram, public system::SmartPointer
 {
 public:
 
