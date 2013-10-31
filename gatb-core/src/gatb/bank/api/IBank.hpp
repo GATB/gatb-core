@@ -91,7 +91,7 @@ public:
 /** \brief Factory for IBank.
  */
 
-class IBankFactory : public tools::dp::SmartPointer
+class IBankFactory : public system::SmartPointer
 {
 public:
 
