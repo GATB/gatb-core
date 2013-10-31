@@ -220,7 +220,7 @@ public:
             }
         }
 
-        return _map[pthread_self()];
+        return _map[(IThread::Id)pthread_self()];
     }
 
     void terminate ()  { foreach (_endFct); }
