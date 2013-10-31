@@ -134,7 +134,11 @@ class ProgressProxy : public dp::IteratorListener
 {
 public:
 
+    ProgressProxy ()  : _ref(0) {}
+
     ProgressProxy (dp::IteratorListener* ref)  : _ref(ref) {}
+
+    ProgressProxy (const ProgressProxy& p) : _ref(p._ref) {}
 
     /** Initialization of the object. */
     void init ()  { _ref->init(); }
@@ -153,6 +157,8 @@ public:
     /** \copydoc dp::impl::IteratorListener::setMessage*/
     void setMessage (const char* format, ...)  { _ref->setMessage (format); }
 
+    dp::IteratorListener* getRef() const  { return _ref; }
+
 private:
     dp::IteratorListener* _ref;
 };
@@ -164,8 +170,14 @@ class ProgressSynchro : public ProgressProxy
 {
 public:
 
+    ProgressSynchro () : _synchro(0)  {}
+
     ProgressSynchro (dp::IteratorListener* ref, system::ISynchronizer* synchro)
-        : ProgressProxy (ref), _synchro(synchro){}
+        : ProgressProxy (ref), _synchro(0)  { setSynchro(synchro); }
+
+    ProgressSynchro (const ProgressSynchro& p) : ProgressProxy(p.getRef()), _synchro(0)  {  setSynchro(p._synchro); }
+
+    ~ProgressSynchro ()  { setSynchro (0); }
 
     void inc (u_int64_t ntasks_done)
     {
@@ -177,6 +189,7 @@ public:
 private:
 
     system::ISynchronizer* _synchro;
+    void setSynchro (system::ISynchronizer* synchro)  { SP_SETATTR(synchro); }
 };
 
 /********************************************************************************/
