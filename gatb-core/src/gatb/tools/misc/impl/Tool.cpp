@@ -141,8 +141,8 @@ void Tool::preExecute ()
     /** We may have to add a default prefix for temporary files. */
     if (_input->getInt(STR_NB_CORES)<=0)  { _input->setInt (STR_NB_CORES, System::info().getNbCores());  }
 
-    /** We add the input properties to the statistics result. */
-    _info->add (1, _input);
+//    /** We add the input properties to the statistics result. */
+//    _info->add (1, _input);
 }
 
 /*********************************************************************
@@ -155,12 +155,12 @@ void Tool::preExecute ()
 *********************************************************************/
 void Tool::postExecute ()
 {
-    /** We add the time properties to the output result. */
-    _info->add (1, _timeInfo.getProperties ("time"));
-
-    /** We add the output properties to the output result. */
-    _info->add (1, "output");
-    _info->add (2, _output);
+//    /** We add the time properties to the output result. */
+//    _info->add (1, _timeInfo.getProperties ("time"));
+//
+//    /** We add the output properties to the output result. */
+//    _info->add (1, "output");
+//    _info->add (2, _output);
 
     /** We may have to dump execution information into a stats file. */
 //    if (_input->get(STR_STATS_XML) != 0)
