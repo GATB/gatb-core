@@ -36,6 +36,9 @@ template<typename Type, typename Number=u_int16_t> struct Kmer : Abundance<Type,
 
     Kmer(const Type& val) : Abundance<Type,Number>(val, 0) {}
 
+    bool operator< (const Kmer& other) const {  return this->value < other.value; }
+
+
     /********************************************************************************/
     inline static hid_t hdf5 (bool& isCompound)
     {
@@ -71,14 +74,29 @@ enum Strand
     STRAND_ALL     = STRAND_FORWARD + STRAND_REVCOMP
 };
 
+inline Strand StrandReverse (const Strand& s)  {  return (s==STRAND_FORWARD ? STRAND_REVCOMP : STRAND_FORWARD);  }
+
+
 enum Nucleotide
 {
-    NUCL_A   = (1<<0),
-    NUCL_C   = (1<<1),
-    NUCL_T   = (1<<2),
-    NUCL_G   = (1<<3),
-    NUCL_ALL = NUCL_A + NUCL_C + NUCL_T + NUCL_G
+    NUCL_A   = 0,
+    NUCL_C   = 1,
+    NUCL_T   = 2,
+    NUCL_G   = 3,
+    NUCL_UNKNOWN = 4
 };
+
+inline char ascii (Nucleotide nt)
+{
+    static char table[] = {'A', 'C', 'T', 'G', 'N' };
+    return table[(int)nt];
+}
+
+inline Nucleotide reverse (Nucleotide nt)
+{
+    static Nucleotide table[] = {NUCL_T, NUCL_G, NUCL_A, NUCL_C, NUCL_UNKNOWN};
+    return table[(int)nt];
+}
 
 /********************************************************************************/
 
