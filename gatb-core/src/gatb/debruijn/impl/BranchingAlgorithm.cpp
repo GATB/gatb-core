@@ -73,8 +73,11 @@ BranchingAlgorithm<ProductFactory,T>::~BranchingAlgorithm ()
 template<typename ProductFactory, typename T>
 void BranchingAlgorithm<ProductFactory,T>::execute ()
 {
+    /** Shortcut. */
+    typedef kmer::Kmer<T>  Kmer;
+
     /** We get a synchronized cache on the branching bag to be built. */
-    ThreadObject<BagCache<kmer::Kmer<T> > > branching = BagCache<kmer::Kmer<T> > (_branchingBag, 8*1024, System::thread().newSynchronizer());
+    ThreadObject<BagCache<Kmer> > branching = BagCache<Kmer> (_branchingBag, 8*1024, System::thread().newSynchronizer());
     ThreadObject<u_int64_t> count;
 
     /** We get an iterator over all graph nodes. */
@@ -88,15 +91,30 @@ void BranchingAlgorithm<ProductFactory,T>::execute ()
     );
     LOCAL (iter);
 
+    ThreadObject <vector<Kmer> > branchingNodes;
+
     /** We iterate the nodes. */
     tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (const Node& node)
     {
         if (this->_graph.isBranching(node))
         {
             count() ++;
-            branching().insert (kmer::Kmer<T> (node.kmer.get<T>(), node.abundance));
+            branchingNodes().push_back (kmer::Kmer<T> (node.kmer.get<T>(), node.abundance));
         }
     });
+
+    /** We concate the kmers. */
+    branchingNodes.foreach ([&] (vector<Kmer>& v)
+    {
+        branchingNodes->insert (branchingNodes->end(), v.begin(), v.end());
+        v.clear ();
+    });
+
+    /** We sort the kmers. */
+    sort (branchingNodes->begin(), branchingNodes->end());
+
+    /** We put the kmers into the final bag. */
+    _branchingBag->insert (branchingNodes->data(), branchingNodes->size());
 
     /** We gather the information collected during iteration. */
     count.foreach    ([&] (u_int64_t n) { *count += n; } );
