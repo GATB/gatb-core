@@ -13,13 +13,14 @@ using namespace std;
 
 struct Stats
 {
-    Stats() :  nbSuccessors(0), abundance(0), nbBranching(0) {}
+    Stats() :  nbSuccessors(0), abundance(0), nbBranching(0), abundanceBranching(0) {}
     Integer    checksumNodes;
     Integer    checksumSuccessors;
     u_int64_t  nbSuccessors;
     u_int64_t  abundance;
     u_int64_t  nbBranching;
     Integer    checksumBranching;
+    u_int64_t  abundanceBranching;
 
     Stats& operator+= (const Stats& st)
     {
@@ -31,6 +32,7 @@ struct Stats
             abundance          += st.abundance;
             nbBranching        += st.nbBranching;
             checksumBranching  += st.checksumBranching;
+            abundanceBranching += st.abundanceBranching;
         }
         return *this;
     }
@@ -86,7 +88,8 @@ int main (int argc, char* argv[])
 
             /** We update the statistics. */
             s.nbBranching  ++;
-            s.checksumBranching += node.kmer;
+            s.checksumBranching  += node.kmer;
+            s.abundanceBranching += node.abundance;
         });
 
         /** We finalize the gathered statistics. */
@@ -101,6 +104,7 @@ int main (int argc, char* argv[])
                   << "checksumSuccessors = " << stats->checksumSuccessors           << "  "  << std::endl
                   << "checksumBranching  = " << stats->checksumBranching            << "  "  << std::endl
                   << "abundance          = " << stats->abundance                    << "  "  << std::endl
+                  << "abundanceBranching = " << stats->abundanceBranching           << "  "  << std::endl
                   << "time               = " << status.time                         << "  "  << std::endl
                   << "nbCores            = " << status.nbCores                      << "  "  << std::endl
                   << std::endl;
