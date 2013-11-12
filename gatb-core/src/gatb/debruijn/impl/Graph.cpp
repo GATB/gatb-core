@@ -58,6 +58,15 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 
 /********************************************************************************/
 
+/** IMPORTANT !!!
+ * We want to have the same behavior than the original minia, in particular the order
+ * of the incoming neighbors. Since we don't use exactly the same way to compute
+ * incoming neighbors, we have to restore the same order with a little reordering trick.
+ */
+static u_int64_t incomingTable[] = { 2, 3, 0, 1 };
+
+/********************************************************************************/
+
 /** We define a structure that holds all the necessary stuff for implementing the graph API.
  *  Here, the structure is templated by the required Integer class.
  *
@@ -259,6 +268,9 @@ public:
         tools::collections::Collection<Kmer<T> >* branching
     )
     {
+        /** We set the kmer size. */
+        graph._kmerSize = kmerSize;
+
         /** We create a templated data and configure it with instances needed for
          * implementing the graph API. */
         Data<T> data;
@@ -314,13 +326,13 @@ public:
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
-    : _product(0), _variant(new DataVariant())
+    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
 {
     /** We get the kmer size from the user parameters. */
-    size_t kmerSize = params->getInt (STR_KMER_SIZE);
+    _kmerSize = params->getInt (STR_KMER_SIZE);
 
     /** We get the Integer precision. */
-    int precision = 1 + kmerSize / 32;
+    int precision = 1 + _kmerSize / 32;
     Integer::setType (precision);
 
     /** We build the graph according to the wanted precision. */
@@ -343,16 +355,16 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (tools::misc::IProperties* params)
-    : _product(0), _variant(new DataVariant())
+    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
 {
     /** We get the kmer size from the user parameters. */
-    size_t kmerSize = params->getInt (STR_KMER_SIZE);
+    _kmerSize = params->getInt (STR_KMER_SIZE);
 
     /** We build a Bank instance for the provided reads uri. */
     bank::IBank* bank = new Bank (params->getStr(STR_URI_INPUT));
 
     /** We get the Integer precision. */
-    int precision = 1 + kmerSize / 32;
+    int precision = 1 + _kmerSize / 32;
     Integer::setType (precision);
 
     /** We build the graph according to the wanted precision. */
@@ -375,9 +387,8 @@ Graph::Graph (tools::misc::IProperties* params)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (const std::string& uri)
-    : _product(0), _variant(new DataVariant())
+    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
 {
-    size_t kmerSize  = 0;
     size_t precision = 0;
 
     /** We create a product instance. */
@@ -386,21 +397,69 @@ Graph::Graph (const std::string& uri)
     /** We retrieve the type of kmers to be used from the product. */
     Collection<NativeInt8>* metadata = & getProduct().getCollection<NativeInt8> ("metadata");
     gatb::core::tools::dp::Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
-    itData->first(); if (!itData->isDone())  { kmerSize = itData->item(); }
+    itData->first(); if (!itData->isDone())  { _kmerSize = itData->item(); }
 
     /** We set the precision of Integer to be used. */
-    precision = 1 + kmerSize / 32;
+    precision = 1 + _kmerSize / 32;
     Integer::setType (precision);
 
     /** We load the graph. */
     switch (precision)
     {
-        case 1: GraphFactoryImpl<LargeInt<1> >::loadGraph (*this, uri, kmerSize);  break;
-        case 2: GraphFactoryImpl<LargeInt<2> >::loadGraph (*this, uri, kmerSize);  break;
-        case 3: GraphFactoryImpl<LargeInt<3> >::loadGraph (*this, uri, kmerSize);  break;
-        case 4: GraphFactoryImpl<LargeInt<4> >::loadGraph (*this, uri, kmerSize);  break;
+        case 1: GraphFactoryImpl<LargeInt<1> >::loadGraph (*this, uri, _kmerSize);  break;
+        case 2: GraphFactoryImpl<LargeInt<2> >::loadGraph (*this, uri, _kmerSize);  break;
+        case 3: GraphFactoryImpl<LargeInt<3> >::loadGraph (*this, uri, _kmerSize);  break;
+        case 4: GraphFactoryImpl<LargeInt<4> >::loadGraph (*this, uri, _kmerSize);  break;
         default:   throw system::Exception ("Graph failure because of unhandled kmer precision %d", precision);
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Graph () : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
+{
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Graph (const Graph& graph) : _product(0), _variant(new DataVariant()), _kmerSize(graph._kmerSize), _info("graph")
+{
+    setProduct (graph._product);
+
+    if (graph._variant)  {  *((DataVariant*)_variant) = *((DataVariant*)graph._variant);  }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph& Graph::operator= (const Graph& graph)
+{
+    if (this != &graph)
+    {
+        _kmerSize = graph._kmerSize;
+
+        setProduct (graph._product);
+
+        if (graph._variant)  {  *((DataVariant*)_variant) = *((DataVariant*)graph._variant);  }
+    }
+    return *this;
 }
 
 /*********************************************************************
@@ -415,7 +474,7 @@ Graph::~Graph ()
 {
     /** We release resources. */
     setProduct (0);
-    delete (DataVariant*)_variant;
+    if (_variant)  {  delete (DataVariant*)_variant;  }
 }
 
 /*********************************************************************
@@ -466,14 +525,46 @@ bool Graph::isBranching (const Node& node) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-struct getEdges_visitor : public boost::static_visitor<Graph::Vector<Edge> >    {
+size_t Graph::indegree  (const Node& node) const  {  return neighbors<Node> (node, DIR_INCOMING).size();   }
 
-    const Node& source;  Direction direction;
-    getEdges_visitor (const Node& source, Direction direction) : source(source), direction(direction) {}
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+size_t Graph::outdegree (const Node& node) const  {  return neighbors<Node> (node, DIR_OUTCOMING).size();  }
 
-    template<typename T>  Graph::Vector<Edge> operator() (const Data<T>& data) const
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+size_t Graph::degree (const Node& node, Direction dir) const  {  return neighbors<Node> (node, dir).size();  }
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename Item, typename Functor>
+struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    {
+
+    const Node& source;  Direction direction;  Functor fct;
+
+    getItems_visitor (const Node& source, Direction direction, Functor fct) : source(source), direction(direction), fct(fct) {}
+
+    template<typename T>  Graph::Vector<Item> operator() (const Data<T>& data) const
     {
-        Graph::Vector<Edge> edges;
+        Graph::Vector<Item> items;
 
         size_t idx = 0;
 
@@ -487,7 +578,7 @@ struct getEdges_visitor : public boost::static_visitor<Graph::Vector<Edge> >    
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
         T graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, span) );
 
-        if (direction == DIR_OUTCOMING)
+        if (direction & DIR_OUTCOMING)
         {
             for (u_int64_t nt=0; nt<4; nt++)
             {
@@ -498,23 +589,26 @@ struct getEdges_visitor : public boost::static_visitor<Graph::Vector<Edge> >    
                 {
                     if (data.contains (forward))
                     {
-                        edges[idx++].set (source.kmer, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
                     }
                 }
                 else
                 {
                     if (data.contains (reverse))
                     {
-                        edges[idx++].set (source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
                     }
                 }
             }
         }
-        else if (direction == DIR_INCOMING)
+
+        if (direction & DIR_INCOMING)
         {
             /** IMPORTANT !!! Since we have hugely shift the nt value, we make sure to use a long enough integer. */
-            for (u_int64_t nt=0; nt<4; nt++)
+            for (u_int64_t k=0; k<ARRAY_SIZE(incomingTable); k++)
             {
+                u_int64_t nt = incomingTable[k];
+
                 T forward = ((graine >> 2 )  + ( T(nt) << ((span-1)*2)) ) & mask; // previous kmer
                 T reverse = revcomp (forward, span);
 
@@ -522,102 +616,66 @@ struct getEdges_visitor : public boost::static_visitor<Graph::Vector<Edge> >    
                 {
                     if (data.contains (forward))
                     {
-                        edges[idx++].set (Type(forward), STRAND_FORWARD, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)k, DIR_INCOMING);
                     }
                 }
                 else
                 {
                     if (data.contains (reverse))
                     {
-                        edges[idx++].set (Type(reverse), STRAND_REVCOMP, source.kmer, source.strand, (Nucleotide)nt, DIR_INCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)k, DIR_INCOMING);
                     }
                 }
             }
         }
 
-        else  {  throw system::Exception ("Unknown direction for getting edges");  }
-
         /** We update the size of the container according to the number of found items. */
-        edges.setSize (idx);
+        items.setSize (idx);
 
         /** We return the result. */
-        return edges;
+        return items;
     }
 };
 
 /********************************************************************************/
 Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  const
 {
-    return boost::apply_visitor (getEdges_visitor(source, direction),  *(DataVariant*)_variant);
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-struct getNodes_visitor : public boost::static_visitor<Graph::Vector<Node> >    {
-
-    const Node& source;  Direction direction;
-    getNodes_visitor (const Node& source, Direction direction) : source(source), direction(direction) {}
-
-    template<typename T>  Graph::Vector<Node> operator() (const Data<T>& data) const
+    struct Functor {  void operator() (
+        Graph::Vector<Edge>& items,
+        size_t               idx,
+        const Type&          kmer_from,
+        kmer::Strand         strand_from,
+        const Type&          kmer_to,
+        kmer::Strand         strand_to,
+        kmer::Nucleotide     nt,
+        Direction            dir
+    ) const
     {
-        Graph::Vector<Node> nodes;
+        items[idx++].set (kmer_from, strand_from, kmer_to, strand_to, nt, dir);
+    }};
 
-        size_t idx = 0;
 
-        /** We get the specific typed value from the generic typed value. */
-        const T& sourceVal = source.kmer.get<T>();
-
-        /** Shortcuts. */
-        size_t   span = data._model->getSpan();
-        const T& mask = data._model->getMask();
-
-        // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
-        T graine = ((source.strand == STRAND_FORWARD) ?  sourceVal : revcomp (sourceVal, span));
-
-        if (direction == DIR_OUTCOMING)
-        {
-            for (u_int64_t nt=0; nt<4; nt++)
-            {
-                T forward = ( (graine << 2 )  + nt) & mask;    // next kmer
-                T reverse = revcomp (forward, span);
-
-                if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (Type(forward), STRAND_FORWARD);  } }
-                else                    {  if (data.contains (reverse))  {  nodes[idx++].set (Type(reverse), STRAND_REVCOMP);  } }
-            }
-        }
-        else if (direction == DIR_INCOMING)
-        {
-            for (u_int64_t nt=0; nt<4; nt++)
-            {
-                /** WARNING!!! we have to convert nt in T. */
-                T forward = ((graine >> 2 )  + ( T(nt) <<  ((span-1)*2)) ) & mask; // previous kmer
-                T reverse = revcomp (forward, span);
-
-                if (forward < reverse)  {  if (data.contains (forward))  {  nodes[idx++].set (Type(forward), STRAND_FORWARD);  }  }
-                else                    {  if (data.contains (reverse))  {  nodes[idx++].set (Type(reverse), STRAND_REVCOMP);  }  }
-            }
-        }
-
-        else  {  throw system::Exception ("Unknown direction for getting nodes");  }
-
-        /** We update the size of the container according to the number of found items. */
-        nodes.setSize (idx);
-
-        /** We return the result. */
-        return nodes;
-    }
-};
+    return boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+}
 
 /********************************************************************************/
 Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
 {
-    return boost::apply_visitor (getNodes_visitor(source, direction),  *(DataVariant*)_variant);
+    struct Functor {  void operator() (
+        Graph::Vector<Node>& items,
+        size_t               idx,
+        const Type&          kmer_from,
+        kmer::Strand         strand_from,
+        const Type&          kmer_to,
+        kmer::Strand         strand_to,
+        kmer::Nucleotide     nt,
+        Direction            dir
+    ) const
+    {
+        items[idx++].set (kmer_to, strand_to);
+    }};
+
+    return boost::apply_visitor (getItems_visitor<Node,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************

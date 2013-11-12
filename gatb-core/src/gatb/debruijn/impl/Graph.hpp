@@ -50,9 +50,15 @@ namespace impl      {
 
 enum Direction
 {
-    DIR_OUTCOMING = 0,
-    DIR_INCOMING  = 1
+    DIR_OUTCOMING = 1,
+    DIR_INCOMING,
+    DIR_END
 };
+
+inline Direction reverse (Direction dir)  { return dir==DIR_OUTCOMING ? DIR_INCOMING : DIR_OUTCOMING; }
+
+// Quite ugly... should be improved...
+#define foreach_direction(d)  for (Direction d=DIR_OUTCOMING; d<DIR_END; d = (Direction)((int)d + 1) )
 
 /********************************************************************************/
 
@@ -61,9 +67,27 @@ typedef tools::math::Integer Type;
 /** Definition of a Node. */
 struct Node
 {
+
+    typedef tools::math::Integer Type;
+
+    Node () {}
+
+    Node (const Type& kmer, kmer::Strand strand, u_int16_t abundance=0) : kmer(kmer), strand(strand), abundance(abundance) {}
+
     Type         kmer;
     u_int16_t    abundance;
     kmer::Strand strand;
+
+    bool operator== (const Node& other) const  { return kmer == other.kmer; }
+    bool operator!= (const Node& other) const  { return kmer != other.kmer; }
+
+    bool operator< (const Node& other) const
+    {
+        // need to define a strict weak ordering
+        if (kmer   != other.kmer)    {  return (kmer   < other.kmer);    }
+        if (strand != other.strand)  {  return (strand < other.strand);  }
+        return false;
+    }
 
     /** */
     void set (const Type& kmer, const kmer::Strand& strand)
@@ -100,6 +124,19 @@ struct Edge
         to.set   (kmer_to,   strand_to);
         nt = n;
         direction = dir;
+    }
+
+    /** */
+    Edge reverse() const
+    {
+        Edge result;
+        result.set (
+            to.kmer,   to.strand,
+            from.kmer, from.strand,
+            kmer::reverse(nt),
+            direction==DIR_OUTCOMING ? DIR_INCOMING : DIR_OUTCOMING
+        );
+        return result;
     }
 };
 
@@ -138,6 +175,9 @@ public:
         Item& operator[] (size_t idx)  { return (_items[idx]); }
         size_t size()  { return _size; }
         void setSize (size_t n)  { _size = n; }
+
+        template<typename Functor>  void iterate (const Functor& f)  { for (size_t i=0; i<_size; i++)  { f(_items[i]); } }
+
     protected:
         Item   _items[NB];
         size_t _size;
@@ -192,12 +232,21 @@ public:
 
         tools::dp::ISmartIterator<Item>* _ref;
         void setRef (tools::dp::ISmartIterator<Item>* ref)  { SP_SETATTR(ref); }
-
-        template<class Listener> friend class ProgressIterator;
     };
+
+    /********************************************************************************/
+
+    /** Default Constructor.*/
+    Graph ();
+
+    /** Copy Constructor.*/
+    Graph (const Graph& graph);
 
     /** Destructor. */
     ~Graph ();
+
+    /** */
+    Graph& operator= (const Graph& graph);
 
     /** */
     void remove ();
@@ -217,6 +266,14 @@ public:
     template <typename T>  Graph::Vector<T> predecessors (const Node& node) const;
 
     /** */
+    template <typename T>  Graph::Vector<T> neighbors (const Node& node, Direction direction) const;
+
+    /** */
+    size_t indegree  (const Node& node) const;
+    size_t outdegree (const Node& node) const;
+    size_t degree    (const Node& node, Direction dir) const;
+
+    /** */
     bool isEdge (const Node& u, const Node& v) const { return false; }
 
     /** */
@@ -230,6 +287,9 @@ public:
 
     /** */
     bool isBranching (const Node& node) const;
+
+    /** */
+    size_t getKmerSize() const { return _kmerSize; }
 
 private:
 
@@ -246,6 +306,9 @@ private:
     tools::collections::impl::Product<ProductFactoryLocal>* _product;
     void setProduct (tools::collections::impl::Product<ProductFactoryLocal>* product)  { SP_SETATTR(product); }
     tools::collections::impl::Group<ProductFactoryLocal>& getProduct(const std::string name="")  { return (*_product) (name); }
+
+    /** */
+    size_t _kmerSize;
 
     /** Creation information. */
     tools::misc::impl::Properties _info;
@@ -277,22 +340,24 @@ private:
 template<>   inline Graph::Iterator<Node>          Graph::iterator () const  {  return getNodes ();           }
 template<>   inline Graph::Iterator<BranchingNode> Graph::iterator () const  {  return getBranchingNodes ();  }
 
-template <>  inline Graph::Vector<Node> Graph::successors   (const Node& node) const  {  return getNodes (node, DIR_OUTCOMING); }
-template <>  inline Graph::Vector<Node> Graph::predecessors (const Node& node) const  {  return getNodes (node, DIR_INCOMING);  }
+template <>  inline Graph::Vector<Node> Graph::successors   (const Node& node) const                 {  return getNodes (node, DIR_OUTCOMING); }
+template <>  inline Graph::Vector<Node> Graph::predecessors (const Node& node) const                 {  return getNodes (node, DIR_INCOMING);  }
+template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
 
 /********************************************************************************/
 
-template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) const  {  return getEdges (node, DIR_OUTCOMING); }
-template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const  {  return getEdges (node, DIR_INCOMING);  }
+template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
+template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
+template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
 
 /********************************************************************************/
 
-template<class Listener>
-class ProgressIterator : public tools::dp::impl::SubjectIterator<Node>
+template<class Type, class Listener>
+class ProgressIterator : public tools::dp::impl::SubjectIterator<Type>
 {
 public:
-    ProgressIterator (const Graph::Iterator<Node>& nodes, const char* msg = "compute")
-        : tools::dp::impl::SubjectIterator<Node> (nodes.get(), nodes.getNbItems()/100, new Listener (nodes.getNbItems(), msg)) {}
+    ProgressIterator (const Graph::Iterator<Type>& items, const char* msg = "compute")
+        : tools::dp::impl::SubjectIterator<Type> (items.get(), items.getNbItems()/100, new Listener (items.getNbItems(), msg)) {}
 };
 
 /********************************************************************************/
