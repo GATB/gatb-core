@@ -98,17 +98,10 @@ public:
      */
     std::string toString (size_t sizeKmer) const
     {
-        int i;
-        u_int64_t temp = this->value[0];
-
-        char seq[33];
+        char seq[65];
         char bin2NT[4] = {'A','C','T','G'};
 
-        for (i=sizeKmer-1; i>=0; i--)
-        {
-            seq[i] = bin2NT[ temp&3 ];
-            temp = temp>>2;
-        }
+        for (size_t i=0; i<sizeKmer; i++)  {  seq[sizeKmer-i-1] = bin2NT [(*this)[i]];  }
         seq[sizeKmer]='\0';
         return seq;
     }
