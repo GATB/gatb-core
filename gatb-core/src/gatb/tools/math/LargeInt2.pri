@@ -49,6 +49,8 @@ public:
     LargeInt<2>& operator+=  (const LargeInt<2>& other)    {  value[0] += other.value[0]; return *this; }
     LargeInt<2>& operator^=  (const LargeInt<2>& other)    {  value[0] ^= other.value[0]; return *this; }
 
+    u_int8_t  operator[]  (size_t idx) const   {  return (value[0] >> (2*idx)) & 3; }
+
     /** Output stream overload. NOTE: for easier process, dump the value in hexadecimal.
      * \param[in] os : the output stream
      * \param[in] in : the integer value to be output.

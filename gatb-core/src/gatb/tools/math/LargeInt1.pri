@@ -45,7 +45,7 @@ public:
     LargeInt<1>& operator+=  (const LargeInt<1>& other)    {  value[0] += other.value[0]; return *this; }
     LargeInt<1>& operator^=  (const LargeInt<1>& other)    {  value[0] ^= other.value[0]; return *this; }
 
-    u_int8_t  operator[]  (size_t idx)    {  return (value[0] >> (2*idx)) & 3; }
+    u_int8_t  operator[]  (size_t idx) const   {  return (value[0] >> (2*idx)) & 3; }
 
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const LargeInt<1> & l)

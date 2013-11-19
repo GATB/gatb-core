@@ -100,6 +100,8 @@ public:
     void operator+= (const IntegerTemplate& a)  {  boost::apply_visitor (Integer_plusaffect(),  *(*this), *a);  }
     void operator^= (const IntegerTemplate& a)  {  boost::apply_visitor (Integer_xoraffect(),   *(*this), *a);  }
 
+    u_int8_t  operator[]  (size_t idx) const   { return  boost::apply_visitor (Integer_value_at(idx), *(*this)); }
+
     friend IntegerTemplate revcomp (const IntegerTemplate& a,  size_t sizeKmer)  {  return  boost::apply_visitor (Integer_revomp(sizeKmer),  *a);  }
 
     friend u_int64_t hash1        (const IntegerTemplate& a,  u_int64_t seed)  {  return  boost::apply_visitor (Integer_hash1(seed),  *a);          }
@@ -218,6 +220,11 @@ private:
     struct Integer_simplehash16 : public Visitor<u_int64_t,int>    {
         Integer_simplehash16 (const int& c) : Visitor<u_int64_t,int>(c) {}
         template<typename T>  u_int64_t operator() (const T& a) const  { return (simplehash16(a,this->arg));  }};
+
+    struct Integer_value_at : public Visitor<u_int8_t,size_t>   {
+        Integer_value_at (size_t idx) : Visitor<u_int8_t,size_t>(idx) {}
+        template<typename T>  u_int8_t operator() (const T& a) const { return a[this->arg];  }};
+
 };
 
 /********************************************************************************/

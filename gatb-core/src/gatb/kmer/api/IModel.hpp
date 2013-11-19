@@ -74,6 +74,13 @@ enum Strand
     STRAND_ALL     = STRAND_FORWARD + STRAND_REVCOMP
 };
 
+inline std::string toString (Strand s)
+{
+         if (s == STRAND_FORWARD)  { return std::string("FWD"); }
+    else if (s == STRAND_REVCOMP)  { return std::string("REV"); }
+    else { return std::string("???"); }
+}
+
 inline Strand StrandReverse (const Strand& s)  {  return (s==STRAND_FORWARD ? STRAND_REVCOMP : STRAND_FORWARD);  }
 
 

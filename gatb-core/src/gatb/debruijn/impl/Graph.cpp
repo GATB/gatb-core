@@ -43,8 +43,23 @@ using namespace gatb::core::tools::misc::impl;
 //using namespace gatb::core::tools::dp;
 //using namespace gatb::core::tools::dp::impl;
 
+#undef NDEBUG
+#include <cassert>
+
 
 #define DEBUG(a)  //printf a
+
+/********************************************************************************/
+
+/** IMPORTANT !!!
+ * We want to have the same behavior than the original minia, in particular the order
+ * of the incoming neighbors. Since we don't use exactly the same way to compute
+ * incoming neighbors, we have to restore the same order with a little reordering trick.
+ */
+u_int64_t incomingTable[] = { 2, 3, 0, 1 };
+//u_int64_t incomingTable[] = { 0, 1, 2, 3 };
+bool hack = true;
+
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
@@ -55,15 +70,6 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 #else
 #define ProductFactoryLocal tools::collections::impl::ProductHDF5Factory
 #endif
-
-/********************************************************************************/
-
-/** IMPORTANT !!!
- * We want to have the same behavior than the original minia, in particular the order
- * of the incoming neighbors. Since we don't use exactly the same way to compute
- * incoming neighbors, we have to restore the same order with a little reordering trick.
- */
-static u_int64_t incomingTable[] = { 2, 3, 0, 1 };
 
 /********************************************************************************/
 
@@ -612,18 +618,23 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
                 T forward = ((graine >> 2 )  + ( T(nt) << ((span-1)*2)) ) & mask; // previous kmer
                 T reverse = revcomp (forward, span);
 
+                Nucleotide NT;
+
+                if (source.strand == STRAND_FORWARD)  {  NT = (Nucleotide) (source.kmer[0]);  }
+                else                                  {  NT = kmer::reverse ((Nucleotide) (source.kmer[(span-1)]));  }
+
                 if (forward < reverse)
                 {
                     if (data.contains (forward))
                     {
-                        fct (items, idx++, source.kmer, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)k, DIR_INCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Type(forward), STRAND_FORWARD, NT, DIR_INCOMING);
                     }
                 }
                 else
                 {
                     if (data.contains (reverse))
                     {
-                        fct (items, idx++, source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)k, DIR_INCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, NT, DIR_INCOMING);
                     }
                 }
             }
@@ -655,7 +666,31 @@ Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  c
     }};
 
 
-    return boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+    Graph::Vector<Edge> result =  boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+
+#ifdef GRAPH_CHECK
+    for (size_t i=0; i<result.size(); i++)
+    {
+        Edge& edge = result[i];
+
+        string from = toString (edge.from, STRAND_FORWARD, 1);
+        string to   = toString (edge.to,   STRAND_FORWARD, 1);
+        string nt; nt   = (ascii(edge.nt));
+        string check;
+        if (edge.direction==DIR_OUTCOMING)
+        {
+            check = from + nt;  check = check.substr (1, check.size()-1);
+            assert (check == to);
+        }
+        else
+        {
+            check = to   + nt;  check = check.substr (1, check.size()-1);
+            assert (check == from);
+        }
+    }
+#endif
+
+    return result;
 }
 
 /********************************************************************************/
@@ -835,16 +870,16 @@ struct toString_visitor : public boost::static_visitor<std::string>    {
         if (strand == STRAND_ALL || node.strand == strand)
         {
             kmerStr = data._model->toString (value);
-            strandStr = (node.strand==STRAND_FORWARD ? "FORWARD" : "REVCOMP");
+            strandStr = (node.strand==STRAND_FORWARD ? "FWD" : "REV");
         }
         else
         {
             T reverse = data._model->reverse (value);
             kmerStr = data._model->toString (reverse);
-            strandStr = (node.strand==STRAND_FORWARD ? "REVCOMP" : "FORWARD");
+            strandStr = (node.strand==STRAND_FORWARD ? "REV" : "FWD");
         }
 
-        if (mode==0)    {  ss << "[ " << kmerStr <<  "  strand=" << strandStr << "  abund=" << node.abundance << "]";  }
+        if (mode==0)    {  ss << "[ " << kmerStr <<  " / " << strandStr << "]";  }
         else            {  ss << kmerStr; }
 
         return ss.str();
@@ -855,6 +890,57 @@ struct toString_visitor : public boost::static_visitor<std::string>    {
 std::string Graph::toString (const Node& node, kmer::Strand strand, int mode) const
 {
     return boost::apply_visitor (toString_visitor(node,strand,mode),  *(DataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+struct toString_edge_visitor : public boost::static_visitor<std::string>    {
+
+    const Edge& edge;  Strand strand;  int mode;
+    toString_edge_visitor (const Edge& edge, Strand strand, int mode=0) : edge(edge), strand(strand), mode(mode) {}
+
+    template<typename T>  std::string operator() (const Data<T>& data) const
+    {
+        std::stringstream ss;
+
+        if (mode == 0)
+        {
+            ss << "["
+               << "(" << edge.from.kmer << "," << edge.from.strand-1 << ")"
+               << " ";
+            if (edge.direction == DIR_OUTCOMING)  {  ss <<  "--"  << ascii(edge.nt) << "-->";  }
+            else                                  {  ss <<  "<--" << ascii(edge.nt) << "--";   }
+
+            ss  << " "
+               << "(" << edge.to.kmer << "," << edge.to.strand-1 << ")"
+               << "]";
+        }
+        else if (mode==1)
+        {
+            ss << "["
+               << toString_visitor (edge.from, strand, 0) (data)
+               << " ";
+            if (edge.direction == DIR_OUTCOMING)  {  ss <<  "--"  << ascii(edge.nt) << "-->";  }
+            else                                  {  ss <<  "<--" << ascii(edge.nt) << "--";   }
+
+            ss  << " "
+                    << toString_visitor (edge.to, strand, 0) (data)
+               << "]";
+        }
+
+        return ss.str();
+    }
+};
+
+std::string Graph::toString (const Edge& edge, kmer::Strand strand) const
+{
+    return boost::apply_visitor (toString_edge_visitor(edge, strand),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************

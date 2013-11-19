@@ -55,6 +55,13 @@ enum Direction
     DIR_END
 };
 
+inline std::string toString (Direction d)
+{
+    if (d==DIR_OUTCOMING)      { return std::string("OUT"); }
+    else if (d==DIR_INCOMING)  { return std::string("IN");  }
+    else { return std::string ("???"); }
+}
+
 inline Direction reverse (Direction dir)  { return dir==DIR_OUTCOMING ? DIR_INCOMING : DIR_OUTCOMING; }
 
 // Quite ugly... should be improved...
@@ -70,7 +77,7 @@ struct Node
 
     typedef tools::math::Integer Type;
 
-    Node () {}
+    Node () : abundance(0), strand(kmer::STRAND_FORWARD) {}
 
     Node (const Type& kmer, kmer::Strand strand, u_int16_t abundance=0) : kmer(kmer), strand(strand), abundance(abundance) {}
 
@@ -133,7 +140,7 @@ struct Edge
         result.set (
             to.kmer,   to.strand,
             from.kmer, from.strand,
-            kmer::reverse(nt),
+            nt,
             direction==DIR_OUTCOMING ? DIR_INCOMING : DIR_OUTCOMING
         );
         return result;
@@ -281,6 +288,9 @@ public:
 
     /** */
     std::string toString (const Node& node, kmer::Strand strand = kmer::STRAND_ALL, int mode=0) const;
+
+    /** */
+    std::string toString (const Edge& edge, kmer::Strand strand = kmer::STRAND_ALL) const;
 
     /** */
     void getNearestBranchingRange (const Node& node, Node& begin, Node& end) const;

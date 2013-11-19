@@ -393,6 +393,9 @@ public:
         return seq;
     }
 
+    /********************************************************************************/
+    u_int8_t  operator[]  (size_t idx) const    {  return (this->value[0] >> (2*idx)) & 3; }
+
 private:
 //    u_int64_t value[precision];
 
