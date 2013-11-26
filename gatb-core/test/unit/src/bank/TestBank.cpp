@@ -69,7 +69,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_checkRegistery1);
         CPPUNIT_TEST_GATB (bank_checkRegistery2);
         CPPUNIT_TEST_GATB (bank_strings1);
-        //CPPUNIT_TEST_GATB (bank_perf1);
+        CPPUNIT_TEST_GATB (bank_sequence);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -697,6 +697,15 @@ public:
         bank_strings1_aux (table3, ARRAY_SIZE (table3));
     }
 
+    /********************************************************************************/
+    void bank_sequence ()
+    {
+        char* buf = (char*)"ACTACGATCGATGTA";
+
+        Sequence s1 (buf);
+        CPPUNIT_ASSERT (s1.getDataSize() == 15);
+        CPPUNIT_ASSERT (strcmp (s1.getDataBuffer(), buf) == 0);
+    }
 };
 
 /********************************************************************************/

@@ -17,6 +17,7 @@
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
 #include <gatb/tools/misc/api/Macros.hpp>
+#include <gatb/bank/api/Sequence.hpp>
 #include <gatb/bank/impl/Alphabet.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 
@@ -57,6 +58,7 @@ class TestKmer : public Test
         CPPUNIT_TEST_GATB (kmer_checkInfo);
         CPPUNIT_TEST_GATB (kmer_checkCompute);
         CPPUNIT_TEST_GATB (kmer_checkIterator);
+        CPPUNIT_TEST_GATB (kmer_build);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -204,6 +206,32 @@ public:
 
         /** We check with the default integer type */
         Check <Integer>::kmer_checkIterator();
+    }
+
+    /********************************************************************************/
+    void kmer_build ()
+    {
+        char* buf = (char*)"ACTACGATCGATGTA";
+
+        Sequence s1 (buf);
+
+        Model<Integer> model (5);
+
+        Integer check[] = {0x61, 0x187, 0x21c, 0x72, 0x1c9, 0x1c9, 0x9c, 0x9c, 0x127, 0x49, 0xb8};
+
+        vector<Integer> kmers;
+        model.build (s1.getData(), kmers);
+        CPPUNIT_ASSERT (kmers.size() == 11);
+
+        size_t i=0;
+        for (i=0; i<kmers.size(); i++)  {  CPPUNIT_ASSERT (kmers[i] == check[i]);  }
+        CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
+
+        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer(s1.getData(), i) == check[i]);  }
+        CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
+
+        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer (Data(buf), i) == check[i]);  }
+        CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
     }
 };
 

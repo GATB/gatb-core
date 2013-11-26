@@ -59,6 +59,9 @@ public:
     /** Default constructor. */
     Data (Encoding_e encode = BINARY)  : encoding(encode) {}
 
+    /** Default constructor. */
+    Data (char* buffer)  : encoding(ASCII) { setRef(buffer,strlen(buffer)); }
+
     /** Constructor. */
     Data (size_t len)  : Vector<char>(len), encoding(BINARY)  {}
 

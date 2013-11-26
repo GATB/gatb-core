@@ -78,6 +78,17 @@ public:
     std::string toString (const kmer_type& kmer)  {  return kmer.toString (this->_sizeKmer);  }
 
     /** */
+    kmer_type getKmer (const tools::misc::Data& data, size_t idx=0, KmerMode mode = KMER_MINIMUM)
+    {
+        /** We compute the first kmer as a polynomial value. */
+        kmer_type graine  = ModelAbstract<kmer_type>::codeSeed (data.getBuffer()+idx, data.getEncoding(), KMER_DIRECT);
+        kmer_type revcomp = ModelAbstract<kmer_type>::codeSeed (data.getBuffer()+idx, data.getEncoding(), KMER_REVCOMP);
+             if (mode == KMER_MINIMUM)  {  return std::min (graine, revcomp); }
+        else if (mode == KMER_DIRECT)   {  return graine; }
+        else  {  throw system::Exception ("BAD KMER MODE");  }
+    }
+
+    /** */
     bool build (tools::misc::Data& data, std::vector<kmer_type>& kmersBuffer,KmerMode mode = KMER_MINIMUM)
     {
         /** We compute the number of kmers for the provided data. Note that we have to check that we have

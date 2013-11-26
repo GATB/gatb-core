@@ -32,6 +32,9 @@ struct Sequence
     /** Constructor. */
     Sequence (tools::misc::Data::Encoding_e encoding = tools::misc::Data::ASCII) : _data(encoding), _index(0)  {}
 
+    /** Constructor. */
+    Sequence (char* seq) : _data(seq), _index(0)  {}
+
     /** Destructor. */
     virtual ~Sequence ()  { }
 
