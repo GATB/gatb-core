@@ -67,19 +67,23 @@ public:
     	if (span >= sizeof(kmer_type)*4)
     	{
     		throw system::Exception ("kmer_type '%s' has too low precision (%d bits) for the required %d kmer size",
-				kmer_type::getName(), sizeof(kmer_type)*8, span
+				kmer_type().getName(), sizeof(kmer_type)*8, span
 			);
     	}
 
-        /** We compute the mask of the kmer. Useful for computing kmers in a recursive way. */
-        _kmerMask = (((kmer_type)1) << (_sizeKmer*2))-1;
+    	/** We compute the mask of the kmer. Useful for computing kmers in a recursive way. */
+    	kmer_type un = 1;
+    	_kmerMask = (un << (_sizeKmer*2)) - un;
 
-        size_t shift = 2*(_sizeKmer-1);
+    	size_t shift = 2*(_sizeKmer-1);
 
         /** The _revcompTable is a shortcut used while computing revcomp recursively. */
-
         /** Important: don't forget the kmer_type cast, otherwise the result in only on 32 bits. */
-        for (size_t i=0; i<4; i++)  {  _revcompTable[i] = ((kmer_type)comp_NT[i]) << shift;  }
+        for (size_t i=0; i<4; i++)
+        {
+        	kmer_type tmp  = comp_NT[i];
+        	_revcompTable[i] = tmp << shift;
+        }
     }
 
     /** \copydoc IModel::getAlphabet */

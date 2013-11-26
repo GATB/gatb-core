@@ -117,10 +117,10 @@ public:
 private:
 
     struct Integer_name : public boost::static_visitor<const char*>    {
-        template<typename T>  const char* operator() (const T& a)  { return a.getName();  }};
+        template<typename T>  const char* operator() (const T& a) const { return a.getName();  }};
 
     struct Integer_size : public boost::static_visitor<const size_t>    {
-        template<typename T>  const size_t operator() (const T& a)  { return a.getSize();  }};
+        template<typename T>  const size_t operator() (const T& a) const  { return a.getSize();  }};
 
     struct Integer_plus : public boost::static_visitor<IntegerTemplate>    {
         template<typename T>              IntegerTemplate operator() (const T& a, const T& b) const  { return IntegerTemplate(a + b);  }
