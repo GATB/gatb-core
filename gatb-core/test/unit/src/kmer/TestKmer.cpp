@@ -232,6 +232,9 @@ public:
 
         for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer (Data(buf), i) == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
+
+        Integer kmer = model.getKmer (Data(buf));
+        CPPUNIT_ASSERT (kmer == check[0]);
     }
 };
 
