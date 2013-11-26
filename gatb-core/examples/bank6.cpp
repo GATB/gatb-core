@@ -62,7 +62,7 @@ int main (int argc, char* argv[])
         {
             // We dump the comment into the file according to the user mode
             if (!it->getComment().empty())   {  cout << ">" << it->getComment() << endl;  }
-            else                             {  cout << ">generic" << idxSeq    << endl;  }
+            else                             {  cout << ">seq=" << idxSeq << " len=" << it.item().getDataSize() << endl;  }
 
             // shortcut
             size_t len = it->getDataSize();
@@ -70,7 +70,10 @@ int main (int argc, char* argv[])
             // We dump the data with fixed sized columns
             for (size_t i=0; i<len; )
             {
-                for (size_t j=0; j<dataLineSize && i<len; j++, i++)    {  cout << it->getData() [i];  }
+                for (size_t j=0; j<dataLineSize && i<len; j++, i++)
+                {
+                    cout << (char) toupper (it->getData() [i]);
+                }
                 cout << endl;
             }
         }
