@@ -81,6 +81,8 @@ class TestDebruijn : public Test
 //        CPPUNIT_TEST_GATB (debruijn_test2);
         CPPUNIT_TEST_GATB (debruijn_test3);
         CPPUNIT_TEST_GATB (debruijn_test4);
+        CPPUNIT_TEST_GATB (debruijn_test5);
+        CPPUNIT_TEST_GATB (debruijn_test6);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -225,12 +227,12 @@ public:
         /** We check that the begin kmer matches the beginning of the sequence. */
         bool check1 =
             graph.toString (begin)        == string (seq, kmerSize)  ||
-            graph.toString (reverse(end)) == string (seq, kmerSize);
+            graph.toString (graph.reverse(end)) == string (seq, kmerSize);
 
         /** We check that the end kmer matches the end of the sequence. */
         bool check2 =
             graph.toString (end)            == string (seq + seqLen - kmerSize, kmerSize)  ||
-            graph.toString (reverse(begin)) == string (seq + seqLen - kmerSize, kmerSize);
+            graph.toString (graph.reverse(begin)) == string (seq + seqLen - kmerSize, kmerSize);
 
         if (!check1 || !check2)
         {
@@ -348,9 +350,51 @@ public:
         CPPUNIT_ASSERT (n1.strand == STRAND_FORWARD);
         CPPUNIT_ASSERT (graph.toString(n1).compare (seq) == 0);
 
-        Node n2 = reverse (n1);
+        Node n2 = graph.reverse (n1);
         CPPUNIT_ASSERT (n2.strand == STRAND_REVCOMP);
         CPPUNIT_ASSERT (graph.toString(n2).compare (rev) == 0);
+    }
+
+    /********************************************************************************/
+    void debruijn_test5 ()
+    {
+        /** We create an empty graph with a given kmer size. */
+        Graph graph = Graph::create (7);
+
+        /** We define a string of size equal to the kmer size. */
+        char* seq = (char*) "ACCAGTT";
+        char* rev = (char*) "AACTGGT";
+
+        Node n1 = graph.getNode (Data(seq));
+        CPPUNIT_ASSERT (graph.toString (n1) == seq);
+
+        Node n2 = graph.reverse (n1);
+        CPPUNIT_ASSERT (graph.toString (n2) == rev);
+    }
+
+    /********************************************************************************/
+    void debruijn_test6 ()
+    {
+        char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
+
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings (seq, 0));
+
+        graph.iterator<Node>().iterate ([&] (const Node& node)
+        {
+            string snode = graph.toString (node);
+
+            Node rev = graph.reverse (node);
+            string srev = graph.toString (rev);
+
+            /** We build a node from the reverse string. */
+            Node rev2 = graph.getNode (Data ((char*)srev.c_str()));
+            CPPUNIT_ASSERT (graph.toString(rev2) == srev);
+
+            /** We reverse the reversed node. */
+            Node node2 = graph.reverse (rev2);
+            CPPUNIT_ASSERT (graph.toString(node2) == snode);
+        });
     }
 };
 

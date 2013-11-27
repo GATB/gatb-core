@@ -227,13 +227,13 @@ public:
         for (i=0; i<kmers.size(); i++)  {  CPPUNIT_ASSERT (kmers[i] == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
 
-        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer(s1.getData(), i) == check[i]);  }
+        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer(s1.getData(), i).first == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
 
-        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer (Data(buf), i) == check[i]);  }
+        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer (Data(buf), i).first == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
 
-        Integer kmer = model.getKmer (Data(buf));
+        Integer kmer = model.getKmer (Data(buf)).first;
         CPPUNIT_ASSERT (kmer == check[0]);
     }
 };
