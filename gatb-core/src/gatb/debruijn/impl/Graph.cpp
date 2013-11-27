@@ -321,7 +321,52 @@ public:
          */
         *((DataVariant*)graph._variant) = data;
     }
+
+    /********************************************************************************/
+    static void configureVariant (Graph& graph, size_t kmerSize)
+    {
+        /** We create a templated data and configure it with instances needed for
+         * implementing the graph API. */
+        Data<T> data;
+
+        /** We create the kmer model. */
+        data.setModel (new kmer::impl::Model<T> (kmerSize));
+
+        /** THE BIG IDEA IS HERE... We set the Graph variant with the specific T data we just configured.
+         *  From this moment, the Graph instance has the needed resources for providing the services,
+         *  without any explicit reference to a LargeInt<T> type. Actually, the "lost" T type information
+         *  will be retrieved through the use of boost::static_visitor class.
+         */
+        *((DataVariant*)graph._variant) = data;
+    }
+
 };
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Graph (size_t kmerSize)
+: _product(0), _variant(new DataVariant()), _kmerSize(kmerSize), _info("graph")
+{
+    /** We get the Integer precision. */
+    int precision = 1 + _kmerSize / 32;
+    Integer::setType (precision);
+
+    /** We build the graph according to the wanted precision. */
+    switch (precision)
+    {
+        case 1: GraphFactoryImpl<LargeInt<1> >::configureVariant (*this, kmerSize);  break;
+        case 2: GraphFactoryImpl<LargeInt<2> >::configureVariant (*this, kmerSize);  break;
+        case 3: GraphFactoryImpl<LargeInt<3> >::configureVariant (*this, kmerSize);  break;
+        case 4: GraphFactoryImpl<LargeInt<4> >::configureVariant (*this, kmerSize);  break;
+        default:   throw system::Exception ("Graph failure because of unhandled kmer precision %d", precision);
+    }
+}
 
 /*********************************************************************
 ** METHOD  :
@@ -521,6 +566,41 @@ void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) 
 bool Graph::isBranching (const Node& node) const
 {
     return (! (successors<Node>(node).size()==1 && predecessors<Node>(node).size() == 1));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Node Graph::getNode (const tools::misc::Data& data, size_t offset)  const
+{
+    /** We create a kmer model. */
+    Model<Integer> model (this->getKmerSize());
+
+    pair<Integer,bool> kmer = model.getKmer (data, offset);
+
+    Strand strand = kmer.second ? STRAND_FORWARD : STRAND_REVCOMP;
+
+    return Node (kmer.first, strand);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Node Graph::reverse (const Node& node) const
+{
+    Node result = node;
+    result.strand = kmer::StrandReverse(node.strand);
+    return result;
 }
 
 /*********************************************************************

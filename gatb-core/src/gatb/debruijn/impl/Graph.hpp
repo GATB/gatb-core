@@ -106,11 +106,6 @@ struct Node
     }
 };
 
-static inline Node reverse (const Node& node)
-{
-    Node result = node;  result.strand = kmer::StrandReverse(node.strand);  return result;
-}
-
 /********************************************************************************/
 
 struct BranchingNode : Node
@@ -161,6 +156,12 @@ class Graph
 public:
 
     /********************************************************************************/
+    /** Build an empty graph.
+     * \param[in] kmerSize: kmer size
+     * \return the created graph.
+     */
+    static Graph  create (size_t kmerSize=27)  {  return  Graph (kmerSize);  }
+
     /** Build a graph from a given bank.
      * \param[in] bank : bank to get the reads from
      * \param[in] options : user parameters for building the graph.
@@ -315,6 +316,12 @@ public:
     /** */
     size_t getKmerSize() const { return _kmerSize; }
 
+    /** */
+    Node getNode (const tools::misc::Data& data, size_t offset=0) const;
+
+    /** */
+    Node reverse (const Node& node) const;
+
     /**********************************************************************/
     /*                         DEBUG METHODS                              */
     /**********************************************************************/
@@ -325,6 +332,9 @@ public:
     std::string debugString (const Edge& edge, kmer::Strand strand = kmer::STRAND_ALL, int mode=0) const;
 
 private:
+
+    /** Constructor for empty graph.*/
+    Graph (size_t kmerSize);
 
     /** Constructor. Use for Graph creation (ie. DSK + debloom) and filesystem save. */
     Graph (bank::IBank* bank, tools::misc::IProperties* params);
