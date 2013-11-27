@@ -32,6 +32,8 @@
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 
+#include <vector>
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -79,7 +81,7 @@ struct Node
 
     Node () : abundance(0), strand(kmer::STRAND_FORWARD) {}
 
-    Node (const Type& kmer, kmer::Strand strand, u_int16_t abundance=0) : kmer(kmer), strand(strand), abundance(abundance) {}
+    Node (const Type& kmer, kmer::Strand strand=kmer::STRAND_FORWARD, u_int16_t abundance=0) : kmer(kmer), strand(strand), abundance(abundance) {}
 
     Type         kmer;
     u_int16_t    abundance;
@@ -103,6 +105,11 @@ struct Node
         this->strand    = strand;
     }
 };
+
+static inline Node reverse (const Node& node)
+{
+    Node result = node;  result.strand = kmer::StrandReverse(node.strand);  return result;
+}
 
 /********************************************************************************/
 
@@ -159,7 +166,16 @@ public:
      * \param[in] options : user parameters for building the graph.
      * \return the created graph.
      */
-    static Graph  create (bank::IBank* bank, tools::misc::IProperties* options)  {  return  Graph (bank, options);  }
+    static Graph  create (bank::IBank* bank, tools::misc::IProperties* options=0)
+    {
+        if (options==0)
+        {
+            options = new tools::misc::impl::Properties();
+            options->add (0, STR_KMER_SIZE, "%d", 27);
+            options->add (0, STR_NKS,       "%d", 1);
+        }
+        return  Graph (bank, options);
+    }
 
     /** Build a graph from scratch.
      * \param[in] options : user parameters for building the graph.
@@ -174,6 +190,7 @@ public:
     static Graph  load (const std::string& uri)  {  return  Graph (uri);  }
 
     /********************************************************************************/
+#if 0
     template<typename Item, int NB=8>
     class Vector
     {
@@ -189,7 +206,7 @@ public:
         Item   _items[NB];
         size_t _size;
     };
-
+#endif
     /********************************************************************************/
     template<typename Item>
     class Iterator : public tools::dp::ISmartIterator<Item>
@@ -267,13 +284,13 @@ public:
     Graph::Iterator<T> iterator () const;
 
     /** */
-    template <typename T>  Graph::Vector<T> successors (const Node& node) const;
+    template <typename T>  std::vector<T> successors (const Node& node) const;
 
     /** */
-    template <typename T>  Graph::Vector<T> predecessors (const Node& node) const;
+    template <typename T>  std::vector<T> predecessors (const Node& node) const;
 
     /** */
-    template <typename T>  Graph::Vector<T> neighbors (const Node& node, Direction direction) const;
+    template <typename T>  std::vector<T> neighbors (const Node& node, Direction direction) const;
 
     /** */
     size_t indegree  (const Node& node) const;
@@ -287,10 +304,7 @@ public:
     tools::misc::IProperties& getInfo () const { return (tools::misc::IProperties&)_info; }
 
     /** */
-    std::string toString (const Node& node, kmer::Strand strand = kmer::STRAND_ALL, int mode=0) const;
-
-    /** */
-    std::string toString (const Edge& edge, kmer::Strand strand = kmer::STRAND_ALL) const;
+    std::string toString (const Node& node) const;
 
     /** */
     void getNearestBranchingRange (const Node& node, Node& begin, Node& end) const;
@@ -300,6 +314,15 @@ public:
 
     /** */
     size_t getKmerSize() const { return _kmerSize; }
+
+    /**********************************************************************/
+    /*                         DEBUG METHODS                              */
+    /**********************************************************************/
+    /** */
+    std::string debugString (const Node& node, kmer::Strand strand = kmer::STRAND_ALL, int mode=0) const;
+
+    /** */
+    std::string debugString (const Edge& edge, kmer::Strand strand = kmer::STRAND_ALL, int mode=0) const;
 
 private:
 
@@ -333,10 +356,10 @@ private:
     Graph::Iterator<BranchingNode> getBranchingNodes () const;
 
     /** */
-    Graph::Vector<Edge> getEdges (const Node& source, Direction direction) const;
+    std::vector<Edge> getEdges (const Node& source, Direction direction) const;
 
     /** */
-    Graph::Vector<Node> getNodes (const Node& source, Direction direction) const;
+    std::vector<Node> getNodes (const Node& source, Direction direction) const;
 
     /** */
     void executeAlgorithm (tools::misc::impl::Algorithm& algorithm, tools::misc::IProperties* props, tools::misc::IProperties& info);
@@ -350,15 +373,15 @@ private:
 template<>   inline Graph::Iterator<Node>          Graph::iterator () const  {  return getNodes ();           }
 template<>   inline Graph::Iterator<BranchingNode> Graph::iterator () const  {  return getBranchingNodes ();  }
 
-template <>  inline Graph::Vector<Node> Graph::successors   (const Node& node) const                 {  return getNodes (node, DIR_OUTCOMING); }
-template <>  inline Graph::Vector<Node> Graph::predecessors (const Node& node) const                 {  return getNodes (node, DIR_INCOMING);  }
-template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
+template <>  inline std::vector<Node> Graph::successors   (const Node& node) const                 {  return getNodes (node, DIR_OUTCOMING); }
+template <>  inline std::vector<Node> Graph::predecessors (const Node& node) const                 {  return getNodes (node, DIR_INCOMING);  }
+template <>  inline std::vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
 
 /********************************************************************************/
 
-template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
-template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
-template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
+template <>  inline std::vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
+template <>  inline std::vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
+template <>  inline std::vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
 
 /********************************************************************************/
 

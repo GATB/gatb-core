@@ -80,6 +80,7 @@ class TestDebruijn : public Test
 //        CPPUNIT_TEST_GATB (debruijn_test1);
 //        CPPUNIT_TEST_GATB (debruijn_test2);
         CPPUNIT_TEST_GATB (debruijn_test3);
+        CPPUNIT_TEST_GATB (debruijn_test4);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -116,7 +117,7 @@ public:
         /** We get an iterator over all the nodes of the graph. */
         Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
-        Graph::Vector<Node> successors;
+        std::vector<Node> successors;
         Info    info;
 
         TimeInfo ti;
@@ -146,7 +147,7 @@ public:
         /** We get an iterator over all the nodes of the graph. */
         Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
-        Graph::Vector<Edge> successors;
+        std::vector<Edge> successors;
         Info    info;
 
         TimeInfo ti;
@@ -185,7 +186,7 @@ public:
         Strand strandInit = node.strand;
 
         size_t i=0;
-        for (Graph::Vector<Edge> successors; (successors = graph.successors<Edge>(node)).size() > 0; i++, node = successors[0].to)
+        for (std::vector<Edge> successors; (successors = graph.successors<Edge>(node)).size() > 0; i++, node = successors[0].to)
         {
         }
         cout << "nb found " << i << endl;
@@ -223,20 +224,20 @@ public:
 
         /** We check that the begin kmer matches the beginning of the sequence. */
         bool check1 =
-            graph.toString (begin, STRAND_FORWARD,1) == string (seq, kmerSize)  ||
-            graph.toString (end,   STRAND_REVCOMP,1) == string (seq, kmerSize);
+            graph.toString (begin)        == string (seq, kmerSize)  ||
+            graph.toString (reverse(end)) == string (seq, kmerSize);
 
         /** We check that the end kmer matches the end of the sequence. */
         bool check2 =
-            graph.toString (end,   STRAND_FORWARD,1) == string (seq + seqLen - kmerSize, kmerSize)  ||
-            graph.toString (begin, STRAND_REVCOMP,1) == string (seq + seqLen - kmerSize, kmerSize);
+            graph.toString (end)            == string (seq + seqLen - kmerSize, kmerSize)  ||
+            graph.toString (reverse(begin)) == string (seq + seqLen - kmerSize, kmerSize);
 
         if (!check1 || !check2)
         {
             cout << "kmerSize=" << kmerSize << endl;
-            cout << graph.toString (node,  STRAND_FORWARD) << "  " << graph.toString (node,  STRAND_REVCOMP) << endl;
-            cout << graph.toString (begin, STRAND_FORWARD) << "  " << graph.toString (end,   STRAND_FORWARD) << endl;
-            cout << graph.toString (end,   STRAND_REVCOMP) << "  " << graph.toString (begin, STRAND_REVCOMP) << endl;
+            cout << graph.debugString (node,  STRAND_FORWARD) << "  " << graph.debugString (node,  STRAND_REVCOMP) << endl;
+            cout << graph.debugString (begin, STRAND_FORWARD) << "  " << graph.debugString (end,   STRAND_FORWARD) << endl;
+            cout << graph.debugString (end,   STRAND_REVCOMP) << "  " << graph.debugString (begin, STRAND_REVCOMP) << endl;
         }
 
         CPPUNIT_ASSERT (check1 && check2);
@@ -330,6 +331,26 @@ public:
                 graph.remove ();
             }
         }
+    }
+
+    /********************************************************************************/
+    void debruijn_test4 ()
+    {
+        char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCT";  // size 27
+        char* rev = (char*) "AGGTACCTACTTATAATTATACATGGT";
+
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings (seq, 0));  // kmerSize=27 by default
+
+        Graph::Iterator<Node> it = graph.iterator<Node>();  it.first();
+
+        Node n1 = it.item();
+        CPPUNIT_ASSERT (n1.strand == STRAND_FORWARD);
+        CPPUNIT_ASSERT (graph.toString(n1).compare (seq) == 0);
+
+        Node n2 = reverse (n1);
+        CPPUNIT_ASSERT (n2.strand == STRAND_REVCOMP);
+        CPPUNIT_ASSERT (graph.toString(n2).compare (rev) == 0);
     }
 };
 

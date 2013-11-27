@@ -506,8 +506,8 @@ void Graph::remove ()
 *********************************************************************/
 void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) const
 {
-    begin = node;    for (Graph::Vector<Node> nodes ; (nodes = predecessors<Node> (begin)).size() == 1;  begin = nodes[0])  {}
-    end   = node;    for (Graph::Vector<Node> nodes ; (nodes = successors  <Node> (end  )).size() == 1;  end   = nodes[0])  {}
+    begin = node;    for (std::vector<Node> nodes ; (nodes = predecessors<Node> (begin)).size() == 1;  begin = nodes[0])  {}
+    end   = node;    for (std::vector<Node> nodes ; (nodes = successors  <Node> (end  )).size() == 1;  end   = nodes[0])  {}
 }
 
 /*********************************************************************
@@ -562,15 +562,15 @@ size_t Graph::degree (const Node& node, Direction dir) const  {  return neighbor
 ** REMARKS :
 *********************************************************************/
 template<typename Item, typename Functor>
-struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    {
+struct getItems_visitor : public boost::static_visitor<std::vector<Item> >    {
 
     const Node& source;  Direction direction;  Functor fct;
 
     getItems_visitor (const Node& source, Direction direction, Functor fct) : source(source), direction(direction), fct(fct) {}
 
-    template<typename T>  Graph::Vector<Item> operator() (const Data<T>& data) const
+    template<typename T>  std::vector<Item> operator() (const Data<T>& data) const
     {
-        Graph::Vector<Item> items;
+        std::vector<Item> items(8);
 
         size_t idx = 0;
 
@@ -641,7 +641,7 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
         }
 
         /** We update the size of the container according to the number of found items. */
-        items.setSize (idx);
+        items.resize (idx);
 
         /** We return the result. */
         return items;
@@ -649,10 +649,10 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
 };
 
 /********************************************************************************/
-Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  const
+std::vector<Edge> Graph::getEdges (const Node& source, Direction direction)  const
 {
     struct Functor {  void operator() (
-        Graph::Vector<Edge>& items,
+        std::vector<Edge>& items,
         size_t               idx,
         const Type&          kmer_from,
         kmer::Strand         strand_from,
@@ -666,7 +666,7 @@ Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  c
     }};
 
 
-    Graph::Vector<Edge> result =  boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+    std::vector<Edge> result =  boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
 
 #ifdef GRAPH_CHECK
     for (size_t i=0; i<result.size(); i++)
@@ -694,10 +694,10 @@ Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  c
 }
 
 /********************************************************************************/
-Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
+std::vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
 {
     struct Functor {  void operator() (
-        Graph::Vector<Node>& items,
+        std::vector<Node>&   items,
         size_t               idx,
         const Type&          kmer_from,
         kmer::Strand         strand_from,
@@ -852,10 +852,36 @@ Graph::Iterator<BranchingNode> Graph::getBranchingNodes () const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-struct toString_visitor : public boost::static_visitor<std::string>    {
+struct toString_node_visitor : public boost::static_visitor<std::string>    {
+
+    const Node& node;
+    toString_node_visitor (const Node& node) : node(node) {}
+
+    template<typename T>  std::string operator() (const Data<T>& data) const
+    {
+        T value = node.kmer.get<T>();
+        if (node.strand == STRAND_FORWARD)   {  return data._model->toString (value);  }
+        else                                 {  return data._model->toString (data._model->reverse (value));  }
+    }
+};
+
+std::string Graph::toString (const Node& node) const
+{
+    return boost::apply_visitor (toString_node_visitor(node),  *(DataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+struct debugString_node_visitor : public boost::static_visitor<std::string>    {
 
     const Node& node;  kmer::Strand& strand; int& mode;
-    toString_visitor (const Node& node, kmer::Strand strand, int mode) : node(node), strand(strand), mode(mode) {}
+    debugString_node_visitor (const Node& node, kmer::Strand strand, int mode) : node(node), strand(strand), mode(mode) {}
 
     template<typename T>  std::string operator() (const Data<T>& data) const
     {
@@ -887,9 +913,9 @@ struct toString_visitor : public boost::static_visitor<std::string>    {
     }
 };
 
-std::string Graph::toString (const Node& node, kmer::Strand strand, int mode) const
+std::string Graph::debugString (const Node& node, kmer::Strand strand, int mode) const
 {
-    return boost::apply_visitor (toString_visitor(node,strand,mode),  *(DataVariant*)_variant);
+    return boost::apply_visitor (debugString_node_visitor(node,strand,mode),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -900,10 +926,10 @@ std::string Graph::toString (const Node& node, kmer::Strand strand, int mode) co
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-struct toString_edge_visitor : public boost::static_visitor<std::string>    {
+struct debugString_edge_visitor : public boost::static_visitor<std::string>    {
 
     const Edge& edge;  Strand strand;  int mode;
-    toString_edge_visitor (const Edge& edge, Strand strand, int mode=0) : edge(edge), strand(strand), mode(mode) {}
+    debugString_edge_visitor (const Edge& edge, Strand strand, int mode=0) : edge(edge), strand(strand), mode(mode) {}
 
     template<typename T>  std::string operator() (const Data<T>& data) const
     {
@@ -924,13 +950,13 @@ struct toString_edge_visitor : public boost::static_visitor<std::string>    {
         else if (mode==1)
         {
             ss << "["
-               << toString_visitor (edge.from, strand, 0) (data)
+               << debugString_node_visitor (edge.from, strand, 0) (data)
                << " ";
             if (edge.direction == DIR_OUTCOMING)  {  ss <<  "--"  << ascii(edge.nt) << "-->";  }
             else                                  {  ss <<  "<--" << ascii(edge.nt) << "--";   }
 
             ss  << " "
-                    << toString_visitor (edge.to, strand, 0) (data)
+                    << debugString_node_visitor (edge.to, strand, 0) (data)
                << "]";
         }
 
@@ -938,9 +964,9 @@ struct toString_edge_visitor : public boost::static_visitor<std::string>    {
     }
 };
 
-std::string Graph::toString (const Edge& edge, kmer::Strand strand) const
+std::string Graph::debugString (const Edge& edge, kmer::Strand strand, int mode) const
 {
-    return boost::apply_visitor (toString_edge_visitor(edge, strand),  *(DataVariant*)_variant);
+    return boost::apply_visitor (debugString_edge_visitor(edge, strand),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************
