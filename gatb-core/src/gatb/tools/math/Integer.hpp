@@ -108,6 +108,8 @@ public:
     friend u_int64_t oahash       (const IntegerTemplate& a)                   {  return  boost::apply_visitor (Integer_oahash(), *a);              }
     friend u_int64_t simplehash16 (const IntegerTemplate& a,  int shift)       {  return  boost::apply_visitor (Integer_simplehash16(shift),  *a);  }
 
+    std::string toString (size_t sizeKmer) const  {  return boost::apply_visitor (Integer_toString(sizeKmer), *(*this)); }
+
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const IntegerTemplate& a)  {  s << *a;  return s;  }
 
@@ -225,6 +227,9 @@ private:
         Integer_value_at (size_t idx) : Visitor<u_int8_t,size_t>(idx) {}
         template<typename T>  u_int8_t operator() (const T& a) const { return a[this->arg];  }};
 
+    struct Integer_toString : public Visitor<std::string,size_t>   {
+        Integer_toString (size_t c) : Visitor<std::string,size_t>(c) {}
+        template<typename T>  std::string operator() (const T& a) const  { return a.toString(this->arg);  }};
 };
 
 /********************************************************************************/
