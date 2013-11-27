@@ -135,6 +135,7 @@ struct Edge
         direction = dir;
     }
 
+#if 0
     /** */
     Edge reverse() const
     {
@@ -147,6 +148,7 @@ struct Edge
         );
         return result;
     }
+#endif
 };
 
 /********************************************************************************/
@@ -291,7 +293,7 @@ public:
     template <typename T>  std::vector<T> predecessors (const Node& node) const;
 
     /** */
-    template <typename T>  std::vector<T> neighbors (const Node& node, Direction direction) const;
+    template <typename T>  std::vector<T> neighbors (const Node& node, Direction direction=DIR_END) const;
 
     /** */
     size_t indegree  (const Node& node) const;
@@ -321,6 +323,9 @@ public:
 
     /** */
     Node reverse (const Node& node) const;
+
+    /** */
+    Edge reverse (const Edge& edge) const;
 
     /**********************************************************************/
     /*                         DEBUG METHODS                              */

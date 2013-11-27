@@ -611,6 +611,41 @@ Node Graph::reverse (const Node& node) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+Edge Graph::reverse (const Edge& edge) const
+{
+    Edge result;
+
+    Nucleotide NT;
+
+    if (edge.direction == DIR_INCOMING)
+    {
+        if (edge.from.strand == kmer::STRAND_FORWARD)  {  NT = (Nucleotide) edge.from.kmer[0];  }
+        else                                           {  NT = kmer::reverse ((Nucleotide) edge.from.kmer[getKmerSize()-1]);  }
+    }
+    else
+    {
+        if (edge.from.strand == STRAND_FORWARD)  {  NT = kmer::reverse ((Nucleotide) edge.from.kmer[getKmerSize()-1]);  }
+        else                                     {  NT = (Nucleotide) edge.from.kmer[0];                                }
+    }
+
+    result.set (
+        edge.to.kmer,   edge.to.strand,
+        edge.from.kmer, edge.from.strand,
+        NT,
+        edge.direction==DIR_OUTCOMING ? DIR_INCOMING : DIR_OUTCOMING
+    );
+
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 size_t Graph::indegree  (const Node& node) const  {  return neighbors<Node> (node, DIR_INCOMING).size();   }
 
 /*********************************************************************
