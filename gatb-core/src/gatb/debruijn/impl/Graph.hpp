@@ -71,19 +71,19 @@ inline Direction reverse (Direction dir)  { return dir==DIR_OUTCOMING ? DIR_INCO
 
 /********************************************************************************/
 
-typedef tools::math::Integer Type;
+//typedef tools::math::Integer Type;
 
 /** Definition of a Node. */
 struct Node
 {
 
-    typedef tools::math::Integer Type;
+    typedef tools::math::Integer Value;
 
     Node () : abundance(0), strand(kmer::STRAND_FORWARD) {}
 
-    Node (const Type& kmer, kmer::Strand strand=kmer::STRAND_FORWARD, u_int16_t abundance=0) : kmer(kmer), strand(strand), abundance(abundance) {}
+    Node (const Node::Value& kmer, kmer::Strand strand=kmer::STRAND_FORWARD, u_int16_t abundance=0) : kmer(kmer), strand(strand), abundance(abundance) {}
 
-    Type         kmer;
+    Node::Value  kmer;
     u_int16_t    abundance;
     kmer::Strand strand;
 
@@ -99,7 +99,7 @@ struct Node
     }
 
     /** */
-    void set (const Type& kmer, const kmer::Strand& strand)
+    void set (const Node::Value& kmer, const kmer::Strand& strand)
     {
         this->kmer      = kmer;
         this->strand    = strand;
@@ -124,8 +124,8 @@ struct Edge
 
     /** */
     void set (
-        const Type& kmer_from, kmer::Strand strand_from,
-        const Type& kmer_to,   kmer::Strand strand_to,
+        const Node::Value& kmer_from, kmer::Strand strand_from,
+        const Node::Value& kmer_to,   kmer::Strand strand_to,
         kmer::Nucleotide n, Direction dir
     )
     {
@@ -169,16 +169,7 @@ public:
      * \param[in] options : user parameters for building the graph.
      * \return the created graph.
      */
-    static Graph  create (bank::IBank* bank, tools::misc::IProperties* options=0)
-    {
-        if (options==0)
-        {
-            options = new tools::misc::impl::Properties();
-            options->add (0, STR_KMER_SIZE, "%d", 27);
-            options->add (0, STR_NKS,       "%d", 1);
-        }
-        return  Graph (bank, options);
-    }
+    static Graph  create (bank::IBank* bank, const char* fmt, ...);
 
     /** Build a graph from scratch.
      * \param[in] options : user parameters for building the graph.
@@ -292,30 +283,53 @@ public:
     /** */
     template <typename T>  std::vector<T> predecessors (const Node& node) const;
 
-    /** */
+    /** Returns a vector of neighbors of the provided node.
+     * \param[in] node : the node whose neighbors are wanted
+     * \param[in] direction : the direction of the neighbors.
+     * \return a vector of the node neighbors (may be empty). */
     template <typename T>  std::vector<T> neighbors (const Node& node, Direction direction=DIR_END) const;
 
     /** */
+    template <typename T>  std::vector<T> neighbors (const Node::Value& kmer) const;
+
+    /** Get the incoming degree of the node.
+     * \param[in] node : the node
+     * \return the indegree of the node. */
     size_t indegree  (const Node& node) const;
+
+    /** Get the outcoming degree of the node.
+     * \param[in] node : the node
+     * \return the outdegree of the node. */
     size_t outdegree (const Node& node) const;
+
+    /** Get the degree of the node (either incoming or outcoming).
+     * \param[in] node : the node
+     * \param[in] direction : direction of the degree
+     * \return the degree of the node. */
     size_t degree    (const Node& node, Direction dir) const;
 
     /** */
     bool isEdge (const Node& u, const Node& v) const { return false; }
 
-    /** */
+    /** Get information about the graph (gathered during its creation).
+     * \return a property object holding graph information. */
     tools::misc::IProperties& getInfo () const { return (tools::misc::IProperties&)_info; }
 
-    /** */
+    /** Get the ascii string for the node, according to its strand.
+     * \param[in] node: the node to get the string from
+     * \return the string representation for the provided node. */
     std::string toString (const Node& node) const;
 
     /** */
     void getNearestBranchingRange (const Node& node, Node& begin, Node& end) const;
 
-    /** */
+    /** Tells whether the provided node is branching or not.
+     * \param[in] node : the node to be asked
+     * \return true if the node is branching, false otherwise. */
     bool isBranching (const Node& node) const;
 
-    /** */
+    /** Get the size of the kmers.
+     * \return the kmer size. */
     size_t getKmerSize() const { return _kmerSize; }
 
     /** */
@@ -377,6 +391,12 @@ private:
     std::vector<Node> getNodes (const Node& source, Direction direction) const;
 
     /** */
+    std::vector<Edge> getEdgeValues (const Node::Value& kmer) const;
+
+    /** */
+    std::vector<Node> getNodeValues (const Node::Value& kmer) const;
+
+    /** */
     void executeAlgorithm (tools::misc::impl::Algorithm& algorithm, tools::misc::IProperties* props, tools::misc::IProperties& info);
 
     /** Friends. */
@@ -391,12 +411,14 @@ template<>   inline Graph::Iterator<BranchingNode> Graph::iterator () const  {  
 template <>  inline std::vector<Node> Graph::successors   (const Node& node) const                 {  return getNodes (node, DIR_OUTCOMING); }
 template <>  inline std::vector<Node> Graph::predecessors (const Node& node) const                 {  return getNodes (node, DIR_INCOMING);  }
 template <>  inline std::vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
+template <>  inline std::vector<Node> Graph::neighbors    (const Node::Value& kmer) const          {  return getNodeValues (kmer);           }
 
 /********************************************************************************/
 
 template <>  inline std::vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
 template <>  inline std::vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
 template <>  inline std::vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
+template <>  inline std::vector<Edge> Graph::neighbors    (const Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
 
 /********************************************************************************/
 

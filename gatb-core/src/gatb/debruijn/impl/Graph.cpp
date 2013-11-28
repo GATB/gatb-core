@@ -350,6 +350,32 @@ public:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
+{
+    tools::misc::impl::OptionsParser parser;
+    parser.add (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE, "size of a kmer",                       true            ));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_NKS,       "abundance threshold for solid kmers",  false,  "3"     ));
+
+    /** We build the command line from the format and the ellipsis. */
+    std::string commandLine;
+    char* buffer = 0;
+    va_list args;
+    va_start (args, fmt);
+    vasprintf (&buffer, fmt, args);
+    va_end (args);
+    if (buffer != NULL)  {  commandLine = buffer;  free (buffer);  }
+
+    return  Graph (bank, parser.parse(commandLine));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 Graph::Graph (size_t kmerSize)
 : _product(0), _variant(new DataVariant()), _kmerSize(kmerSize), _info("graph")
 {
@@ -710,14 +736,14 @@ struct getItems_visitor : public boost::static_visitor<std::vector<Item> >    {
                 {
                     if (data.contains (forward))
                     {
-                        fct (items, idx++, source.kmer, source.strand, Type(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Node::Value(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
                     }
                 }
                 else
                 {
                     if (data.contains (reverse))
                     {
-                        fct (items, idx++, source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Node::Value(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
                     }
                 }
             }
@@ -742,14 +768,14 @@ struct getItems_visitor : public boost::static_visitor<std::vector<Item> >    {
                 {
                     if (data.contains (forward))
                     {
-                        fct (items, idx++, source.kmer, source.strand, Type(forward), STRAND_FORWARD, NT, DIR_INCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Node::Value(forward), STRAND_FORWARD, NT, DIR_INCOMING);
                     }
                 }
                 else
                 {
                     if (data.contains (reverse))
                     {
-                        fct (items, idx++, source.kmer, source.strand, Type(reverse), STRAND_REVCOMP, NT, DIR_INCOMING);
+                        fct (items, idx++, source.kmer, source.strand, Node::Value(reverse), STRAND_REVCOMP, NT, DIR_INCOMING);
                     }
                 }
             }
@@ -769,9 +795,9 @@ std::vector<Edge> Graph::getEdges (const Node& source, Direction direction)  con
     struct Functor {  void operator() (
         std::vector<Edge>& items,
         size_t               idx,
-        const Type&          kmer_from,
+        const Node::Value&   kmer_from,
         kmer::Strand         strand_from,
-        const Type&          kmer_to,
+        const Node::Value&   kmer_to,
         kmer::Strand         strand_to,
         kmer::Nucleotide     nt,
         Direction            dir
@@ -814,9 +840,9 @@ std::vector<Node> Graph::getNodes (const Node& source, Direction direction)  con
     struct Functor {  void operator() (
         std::vector<Node>&   items,
         size_t               idx,
-        const Type&          kmer_from,
+        const Node::Value&   kmer_from,
         kmer::Strand         strand_from,
-        const Type&          kmer_to,
+        const Node::Value&   kmer_to,
         kmer::Strand         strand_to,
         kmer::Nucleotide     nt,
         Direction            dir
@@ -826,6 +852,46 @@ std::vector<Node> Graph::getNodes (const Node& source, Direction direction)  con
     }};
 
     return boost::apply_visitor (getItems_visitor<Node,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+std::vector<Edge> Graph::getEdgeValues (const Node::Value& kmer) const
+{
+    Node source (kmer);
+
+    std::vector<Edge> v1 = getEdges (source,          DIR_OUTCOMING);
+    std::vector<Edge> v2 = getEdges (reverse(source), DIR_OUTCOMING);
+
+    /** We reverse the edges of v2. */
+    for (size_t i=0; i<v2.size(); i++)
+    {
+        swap (v2[i].from, v2[i].to);
+        v2[i].direction = impl::reverse (v2[i].direction);
+    }
+
+    v1.insert (v1.end(), v2.begin(), v2.end());
+
+    return v1;
+}
+
+/********************************************************************************/
+std::vector<Node> Graph::getNodeValues (const Node::Value& kmer) const
+{
+    Node source (kmer);
+
+    std::vector<Node> v1 = getNodes (source,          DIR_OUTCOMING);
+    std::vector<Node> v2 = getNodes (reverse(source), DIR_OUTCOMING);
+
+    v1.insert (v1.end(), v2.begin(), v2.end());
+
+    return v1;
 }
 
 /*********************************************************************
@@ -1074,6 +1140,18 @@ struct debugString_edge_visitor : public boost::static_visitor<std::string>    {
                     << debugString_node_visitor (edge.to, strand, 0) (data)
                << "]";
         }
+        else if (mode==2)
+        {
+            ss << "["
+               << toString_node_visitor (edge.from) (data)
+               << " ";
+            if (edge.direction == DIR_OUTCOMING)  {  ss <<  "--"  << ascii(edge.nt) << "-->";  }
+            else                                  {  ss <<  "<--" << ascii(edge.nt) << "--";   }
+
+            ss  << " "
+                    << toString_node_visitor (edge.to) (data)
+               << "]";
+        }
 
         return ss.str();
     }
@@ -1081,7 +1159,7 @@ struct debugString_edge_visitor : public boost::static_visitor<std::string>    {
 
 std::string Graph::debugString (const Edge& edge, kmer::Strand strand, int mode) const
 {
-    return boost::apply_visitor (debugString_edge_visitor(edge, strand),  *(DataVariant*)_variant);
+    return boost::apply_visitor (debugString_edge_visitor(edge, strand, mode),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************

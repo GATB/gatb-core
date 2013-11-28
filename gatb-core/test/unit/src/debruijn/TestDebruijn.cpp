@@ -79,10 +79,12 @@ class TestDebruijn : public Test
 
 //        CPPUNIT_TEST_GATB (debruijn_test1);
 //        CPPUNIT_TEST_GATB (debruijn_test2);
+
         CPPUNIT_TEST_GATB (debruijn_test3);
         CPPUNIT_TEST_GATB (debruijn_test4);
         CPPUNIT_TEST_GATB (debruijn_test5);
         CPPUNIT_TEST_GATB (debruijn_test6);
+        CPPUNIT_TEST_GATB (debruijn_test7);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -319,13 +321,11 @@ public:
         {
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
-                /** We define options for the graph generation. */
-                IProperties* props = new Properties();  LOCAL (props);
-                props->add (0, STR_KMER_SIZE, "%d", kmerSizes[j]);
-                props->add (0, STR_NKS,       "%d", 1);
-
                 /** We create the graph. */
-                Graph graph = Graph::create (new BankStrings (sequences[i], 0), props);
+                Graph graph = Graph::create (
+                    new BankStrings (sequences[i], 0),
+                    "-kmer-size %d  -nks 1", kmerSizes[j]
+                );
 
                 debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
 
@@ -342,7 +342,7 @@ public:
         char* rev = (char*) "AGGTACCTACTTATAATTATACATGGT";
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, 0));  // kmerSize=27 by default
+        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -nks 1");
 
         Graph::Iterator<Node> it = graph.iterator<Node>();  it.first();
 
@@ -378,7 +378,7 @@ public:
         char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, 0));
+        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -nks 1");
 
         graph.iterator<Node>().iterate ([&] (const Node& node)
         {
@@ -394,6 +394,66 @@ public:
             /** We reverse the reversed node. */
             Node node2 = graph.reverse (rev2);
             CPPUNIT_ASSERT (graph.toString(node2) == snode);
+        });
+    }
+
+    /********************************************************************************/
+    void debruijn_test7 ()
+    {
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings ("AGGCGC", 0),  "-kmer-size 5  -nks 1");
+
+        /** We should get two kmers:
+         *      - AGGCG / CGCCT
+         *      - GCGCC / GGCGC
+         */
+        Node n1 = graph.getNode ((char*)"AGGCG");
+        Node n2 = graph.getNode ((char*)"GCGCC");
+
+        graph.iterator<Node>().iterate ([&] (const Node& current)
+        {
+            string currentStr = graph.toString(current);
+
+            CPPUNIT_ASSERT (currentStr==graph.toString(n1) || currentStr==graph.toString(n2) );
+
+            /** We get all possible edges from the current kmer (note: not from the current node). */
+            std::vector<Edge> neighbors = graph.neighbors<Edge>(current.kmer);
+            for (size_t i=0; i<neighbors.size(); i++)
+            {
+                /** Shortcut. */
+                Edge& edge = neighbors[i];
+
+                if (currentStr==graph.toString(n1))  // 1 neighbor
+                {
+                    CPPUNIT_ASSERT (neighbors.size()==1);
+
+                    CPPUNIT_ASSERT (edge.nt==NUCL_C);
+                    CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+                    CPPUNIT_ASSERT (graph.toString(edge.from)=="AGGCG");
+                    CPPUNIT_ASSERT (graph.toString(edge.to)  =="GGCGC");
+                }
+
+                if (currentStr==graph.toString(n2))  // 2 neighbors
+                {
+                    CPPUNIT_ASSERT (neighbors.size()==2);
+
+                    CPPUNIT_ASSERT (graph.toString(edge.from)=="GCGCC");
+                    CPPUNIT_ASSERT (graph.toString(edge.to)=="GGCGC" || graph.toString(edge.to)=="CGCCT");
+
+                    if (graph.toString(edge.to)=="CGCCT")
+                    {
+                        CPPUNIT_ASSERT (edge.nt==NUCL_T);
+                        CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+                    }
+
+                    if (graph.toString(edge.to)=="GGCGC")
+                    {
+                        CPPUNIT_ASSERT (edge.nt==NUCL_C);
+                        CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+
+                    }
+                }
+            }
         });
     }
 };
