@@ -564,8 +564,8 @@ void Graph::remove ()
 *********************************************************************/
 void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) const
 {
-    begin = node;    for (std::vector<Node> nodes ; (nodes = predecessors<Node> (begin)).size() == 1;  begin = nodes[0])  {}
-    end   = node;    for (std::vector<Node> nodes ; (nodes = successors  <Node> (end  )).size() == 1;  end   = nodes[0])  {}
+    begin = node;    for (Graph::Vector<Node> nodes ; (nodes = predecessors<Node> (begin)).size() == 1;  begin = nodes[0])  {}
+    end   = node;    for (Graph::Vector<Node> nodes ; (nodes = successors  <Node> (end  )).size() == 1;  end   = nodes[0])  {}
 }
 
 /*********************************************************************
@@ -690,15 +690,15 @@ size_t Graph::degree (const Node& node, Direction dir) const  {  return neighbor
 ** REMARKS :
 *********************************************************************/
 template<typename Item, typename Functor>
-struct getItems_visitor : public boost::static_visitor<std::vector<Item> >    {
+struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    {
 
     const Node& source;  Direction direction;  Functor fct;
 
     getItems_visitor (const Node& source, Direction direction, Functor fct) : source(source), direction(direction), fct(fct) {}
 
-    template<typename T>  std::vector<Item> operator() (const Data<T>& data) const
+    template<typename T>  Graph::Vector<Item> operator() (const Data<T>& data) const
     {
-        std::vector<Item> items(8);
+        Graph::Vector<Item> items;
 
         size_t idx = 0;
 
@@ -775,10 +775,10 @@ struct getItems_visitor : public boost::static_visitor<std::vector<Item> >    {
 };
 
 /********************************************************************************/
-std::vector<Edge> Graph::getEdges (const Node& source, Direction direction)  const
+Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  const
 {
     struct Functor {  void operator() (
-        std::vector<Edge>& items,
+        Graph::Vector<Edge>& items,
         size_t               idx,
         const Node::Value&   kmer_from,
         kmer::Strand         strand_from,
@@ -792,7 +792,7 @@ std::vector<Edge> Graph::getEdges (const Node& source, Direction direction)  con
     }};
 
 
-    std::vector<Edge> result =  boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+    Graph::Vector<Edge> result =  boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
 
 #ifdef GRAPH_CHECK
     for (size_t i=0; i<result.size(); i++)
@@ -820,10 +820,10 @@ std::vector<Edge> Graph::getEdges (const Node& source, Direction direction)  con
 }
 
 /********************************************************************************/
-std::vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
+Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
 {
     struct Functor {  void operator() (
-        std::vector<Node>&   items,
+        Graph::Vector<Node>&   items,
         size_t               idx,
         const Node::Value&   kmer_from,
         kmer::Strand         strand_from,
@@ -847,26 +847,38 @@ std::vector<Node> Graph::getNodes (const Node& source, Direction direction)  con
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-std::vector<Edge> Graph::getEdgeValues (const Node::Value& kmer) const
+Graph::Vector<Edge> Graph::getEdgeValues (const Node::Value& kmer) const
 {
     Node source (kmer);
 
-    std::vector<Edge> v1 = getEdges (source,          DIR_OUTCOMING);
-    std::vector<Edge> v2 = getEdges (reverse(source), DIR_OUTCOMING);
+    Graph::Vector<Edge> v1 = getEdges (source,          DIR_OUTCOMING);
+    Graph::Vector<Edge> v2 = getEdges (reverse(source), DIR_OUTCOMING);
+#if 0
     v1.insert (v1.end(), v2.begin(), v2.end());
+#else
+    size_t n1=v1.size(), n2=v2.size();
+    v1.resize (n1+n2);
+    for (size_t i=0; i<n2; i++)  { v1[i+n1] = v2[i];  }
+#endif
 
     return v1;
 }
 
 /********************************************************************************/
-std::vector<Node> Graph::getNodeValues (const Node::Value& kmer) const
+Graph::Vector<Node> Graph::getNodeValues (const Node::Value& kmer) const
 {
     Node source (kmer);
 
-    std::vector<Node> v1 = getNodes (source,          DIR_OUTCOMING);
-    std::vector<Node> v2 = getNodes (reverse(source), DIR_OUTCOMING);
+    Graph::Vector<Node> v1 = getNodes (source,          DIR_OUTCOMING);
+    Graph::Vector<Node> v2 = getNodes (reverse(source), DIR_OUTCOMING);
 
+#if 0
     v1.insert (v1.end(), v2.begin(), v2.end());
+#else
+    size_t n1=v1.size(), n2=v2.size();
+    v1.resize (n1+n2);
+    for (size_t i=0; i<n2; i++)  { v1[i+n1] = v2[i];  }
+#endif
 
     return v1;
 }

@@ -178,7 +178,7 @@ public:
     static Graph  load (const std::string& uri)  {  return  Graph (uri);  }
 
     /********************************************************************************/
-#if 0
+#if 1
     template<typename Item, int NB=8>
     class Vector
     {
@@ -186,13 +186,22 @@ public:
         Vector () : _size(0)  {}
         Item& operator[] (size_t idx)  { return (_items[idx]); }
         size_t size()  { return _size; }
-        void setSize (size_t n)  { _size = n; }
+        void resize (size_t n)  { _size = n; }
 
         template<typename Functor>  void iterate (const Functor& f)  { for (size_t i=0; i<_size; i++)  { f(_items[i]); } }
 
     protected:
         Item   _items[NB];
         size_t _size;
+    };
+#else
+    /** Not optimal since std::vector uses dynamic allocation, although we know we can't have more that 8 items.*/
+    template<typename Item>
+    class Vector : public std::vector<Item>
+    {
+    public:
+        Vector () : std::vector<Item>(8) {}
+        template<typename Functor>  void iterate (const Functor& f)  { for (size_t i=0; i<this->size(); i++)  { f((*this)[i]); } }
     };
 #endif
     /********************************************************************************/
@@ -272,19 +281,19 @@ public:
     Graph::Iterator<T> iterator () const;
 
     /** */
-    template <typename T>  std::vector<T> successors (const Node& node) const;
+    template <typename T>  Graph::Vector<T> successors (const Node& node) const;
 
     /** */
-    template <typename T>  std::vector<T> predecessors (const Node& node) const;
+    template <typename T>  Graph::Vector<T> predecessors (const Node& node) const;
 
     /** Returns a vector of neighbors of the provided node.
      * \param[in] node : the node whose neighbors are wanted
      * \param[in] direction : the direction of the neighbors.
      * \return a vector of the node neighbors (may be empty). */
-    template <typename T>  std::vector<T> neighbors (const Node& node, Direction direction=DIR_END) const;
+    template <typename T>  Graph::Vector<T> neighbors (const Node& node, Direction direction=DIR_END) const;
 
     /** */
-    template <typename T>  std::vector<T> neighbors (const Node::Value& kmer) const;
+    template <typename T>  Graph::Vector<T> neighbors (const Node::Value& kmer) const;
 
     /** Get the incoming degree of the node.
      * \param[in] node : the node
@@ -379,16 +388,16 @@ private:
     Graph::Iterator<BranchingNode> getBranchingNodes () const;
 
     /** */
-    std::vector<Edge> getEdges (const Node& source, Direction direction) const;
+    Graph::Vector<Edge> getEdges (const Node& source, Direction direction) const;
 
     /** */
-    std::vector<Node> getNodes (const Node& source, Direction direction) const;
+    Graph::Vector<Node> getNodes (const Node& source, Direction direction) const;
 
     /** */
-    std::vector<Edge> getEdgeValues (const Node::Value& kmer) const;
+    Graph::Vector<Edge> getEdgeValues (const Node::Value& kmer) const;
 
     /** */
-    std::vector<Node> getNodeValues (const Node::Value& kmer) const;
+    Graph::Vector<Node> getNodeValues (const Node::Value& kmer) const;
 
     /** */
     void executeAlgorithm (tools::misc::impl::Algorithm& algorithm, tools::misc::IProperties* props, tools::misc::IProperties& info);
@@ -402,17 +411,17 @@ private:
 template<>   inline Graph::Iterator<Node>          Graph::iterator () const  {  return getNodes ();           }
 template<>   inline Graph::Iterator<BranchingNode> Graph::iterator () const  {  return getBranchingNodes ();  }
 
-template <>  inline std::vector<Node> Graph::successors   (const Node& node) const                 {  return getNodes (node, DIR_OUTCOMING); }
-template <>  inline std::vector<Node> Graph::predecessors (const Node& node) const                 {  return getNodes (node, DIR_INCOMING);  }
-template <>  inline std::vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
-template <>  inline std::vector<Node> Graph::neighbors    (const Node::Value& kmer) const          {  return getNodeValues (kmer);           }
+template <>  inline Graph::Vector<Node> Graph::successors   (const Node& node) const                 {  return getNodes (node, DIR_OUTCOMING); }
+template <>  inline Graph::Vector<Node> Graph::predecessors (const Node& node) const                 {  return getNodes (node, DIR_INCOMING);  }
+template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
+template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node::Value& kmer) const          {  return getNodeValues (kmer);           }
 
 /********************************************************************************/
 
-template <>  inline std::vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
-template <>  inline std::vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
-template <>  inline std::vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
-template <>  inline std::vector<Edge> Graph::neighbors    (const Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
+template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
+template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
+template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
+template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
 
 /********************************************************************************/
 

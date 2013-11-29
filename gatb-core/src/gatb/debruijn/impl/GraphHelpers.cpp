@@ -39,7 +39,7 @@ int GraphHelper::simplePathAvance (const Node& node, Direction dir) const
 *********************************************************************/
 int GraphHelper::simplePathAvance (const Node& node, Direction dir, Edge& output) const
 {
-    std::vector<Edge> neighbors = _graph.neighbors<Edge> (node, dir);
+    Graph::Vector<Edge> neighbors = _graph.neighbors<Edge> (node, dir);
 
     /** We check we have no outbranching. */
     if (neighbors.size() == 1)

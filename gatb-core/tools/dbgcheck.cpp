@@ -70,7 +70,7 @@ int main (int argc, char* argv[])
             s.abundance      += node.abundance;
 
             /** We retrieve the successors. */
-            std::vector<Node> nodeset = graph.successors<Node> (node);
+            Graph::Vector<Node> nodeset = graph.successors<Node> (node);
 
             s.nbSuccessors += nodeset.size();
 

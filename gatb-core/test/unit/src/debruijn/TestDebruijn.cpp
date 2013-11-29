@@ -121,7 +121,7 @@ public:
         /** We get an iterator over all the nodes of the graph. */
         Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
-        std::vector<Node> successors;
+        Graph::Vector<Node> successors;
         Info    info;
 
         TimeInfo ti;
@@ -151,7 +151,7 @@ public:
         /** We get an iterator over all the nodes of the graph. */
         Graph::Iterator<Node> itNodes = graph.iterator<Node>();
 
-        std::vector<Edge> successors;
+        Graph::Vector<Edge> successors;
         Info    info;
 
         TimeInfo ti;
@@ -190,7 +190,7 @@ public:
         Strand strandInit = node.strand;
 
         size_t i=0;
-        for (std::vector<Edge> successors; (successors = graph.successors<Edge>(node)).size() > 0; i++, node = successors[0].to)
+        for (Graph::Vector<Edge> successors; (successors = graph.successors<Edge>(node)).size() > 0; i++, node = successors[0].to)
         {
         }
         cout << "nb found " << i << endl;
@@ -422,7 +422,7 @@ public:
             CPPUNIT_ASSERT (currentStr==graph.toString(n1) || currentStr==graph.toString(n2) );
 
             /** We get all possible edges from the current kmer (note: not from the current node). */
-            std::vector<Edge> neighbors = graph.neighbors<Edge>(current.kmer);
+            Graph::Vector<Edge> neighbors = graph.neighbors<Edge>(current.kmer);
             for (size_t i=0; i<neighbors.size(); i++)
             {
                 /** Shortcut. */
