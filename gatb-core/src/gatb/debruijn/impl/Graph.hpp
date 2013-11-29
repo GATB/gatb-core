@@ -90,13 +90,7 @@ struct Node
     bool operator== (const Node& other) const  { return kmer == other.kmer; }
     bool operator!= (const Node& other) const  { return kmer != other.kmer; }
 
-    bool operator< (const Node& other) const
-    {
-        // need to define a strict weak ordering
-        if (kmer   != other.kmer)    {  return (kmer   < other.kmer);    }
-        if (strand != other.strand)  {  return (strand < other.strand);  }
-        return false;
-    }
+    bool operator< (const Node& other) const  { return (kmer   < other.kmer); }
 
     /** */
     void set (const Node::Value& kmer, const kmer::Strand& strand)

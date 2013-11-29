@@ -12,10 +12,6 @@ using namespace std;
 
 #define DEBUG(a)  //printf a
 
-extern u_int64_t incomingTable[];
-extern bool hack;
-
-
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
@@ -52,25 +48,6 @@ int GraphHelper::simplePathAvance (const Node& node, Direction dir, Edge& output
         if (_graph.degree (neighbors[0].to, reverse(dir)) > 1)  { return -2; }
 
         output = neighbors[0];
-
-		if (hack)
-		{
-		    if (output.direction == DIR_INCOMING)
-		    {
-		        size_t span = _graph.getKmerSize();
-
-		        if (output.to.strand == kmer::STRAND_FORWARD)
-		        {
-		            output.nt = ((kmer::Nucleotide) (output.to.kmer[span-1]));
-		            output.nt = (kmer::Nucleotide) incomingTable[output.nt];
-		        }
-		        else
-		        {
-		            output.nt = kmer::reverse ((kmer::Nucleotide) (output.to.kmer[0]));
-		            output.nt = (kmer::Nucleotide) incomingTable[output.nt];
-		        }
-		    }
-		}
 
         return 1;
     }

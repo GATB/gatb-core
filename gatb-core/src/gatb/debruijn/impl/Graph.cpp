@@ -46,20 +46,7 @@ using namespace gatb::core::tools::misc::impl;
 #undef NDEBUG
 #include <cassert>
 
-
 #define DEBUG(a)  //printf a
-
-/********************************************************************************/
-
-/** IMPORTANT !!!
- * We want to have the same behavior than the original minia, in particular the order
- * of the incoming neighbors. Since we don't use exactly the same way to compute
- * incoming neighbors, we have to restore the same order with a little reordering trick.
- */
-u_int64_t incomingTable[] = { 2, 3, 0, 1 };
-//u_int64_t incomingTable[] = { 0, 1, 2, 3 };
-bool hack = true;
-
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
@@ -641,7 +628,7 @@ Edge Graph::reverse (const Edge& edge) const
 {
     Edge result;
 
-    Nucleotide NT;
+    Nucleotide NT = edge.nt;
 
     if (edge.direction == DIR_INCOMING)
     {
@@ -752,10 +739,8 @@ struct getItems_visitor : public boost::static_visitor<std::vector<Item> >    {
         if (direction & DIR_INCOMING)
         {
             /** IMPORTANT !!! Since we have hugely shift the nt value, we make sure to use a long enough integer. */
-            for (u_int64_t k=0; k<ARRAY_SIZE(incomingTable); k++)
+            for (u_int64_t nt=0; nt<4; nt++)
             {
-                u_int64_t nt = incomingTable[k];
-
                 T forward = ((graine >> 2 )  + ( T(nt) << ((span-1)*2)) ) & mask; // previous kmer
                 T reverse = revcomp (forward, span);
 
@@ -814,8 +799,8 @@ std::vector<Edge> Graph::getEdges (const Node& source, Direction direction)  con
     {
         Edge& edge = result[i];
 
-        string from = toString (edge.from, STRAND_FORWARD, 1);
-        string to   = toString (edge.to,   STRAND_FORWARD, 1);
+        string from = toString (edge.from);
+        string to   = toString (edge.to);
         string nt; nt   = (ascii(edge.nt));
         string check;
         if (edge.direction==DIR_OUTCOMING)
@@ -868,14 +853,6 @@ std::vector<Edge> Graph::getEdgeValues (const Node::Value& kmer) const
 
     std::vector<Edge> v1 = getEdges (source,          DIR_OUTCOMING);
     std::vector<Edge> v2 = getEdges (reverse(source), DIR_OUTCOMING);
-
-    /** We reverse the edges of v2. */
-    for (size_t i=0; i<v2.size(); i++)
-    {
-        swap (v2[i].from, v2[i].to);
-        v2[i].direction = impl::reverse (v2[i].direction);
-    }
-
     v1.insert (v1.end(), v2.begin(), v2.end());
 
     return v1;
@@ -1086,8 +1063,9 @@ struct debugString_node_visitor : public boost::static_visitor<std::string>    {
             strandStr = (node.strand==STRAND_FORWARD ? "REV" : "FWD");
         }
 
-        if (mode==0)    {  ss << "[ " << kmerStr <<  " / " << strandStr << "]";  }
-        else            {  ss << kmerStr; }
+             if (mode==0)  {  ss << "[ " << value <<  " / " << strandStr << "]";  }
+        else if (mode==1)  {  ss << "[ " << kmerStr <<  " / " << strandStr << "]";  }
+        else if (mode==2)  {  ss << "[ " << kmerStr <<  " / " << strandStr << "]";  }
 
         return ss.str();
 

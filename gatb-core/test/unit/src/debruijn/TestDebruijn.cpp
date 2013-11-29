@@ -410,6 +410,11 @@ public:
         Node n1 = graph.getNode ((char*)"AGGCG");
         Node n2 = graph.getNode ((char*)"GCGCC");
 
+        // We should get as neighborhood
+        // GCGCC  [GCGCC --T--> CGCCT]
+        // GCGCC  [GGCGC --C--> GCGCC]
+        // AGGCG  [AGGCG --C--> GGCGC]
+
         graph.iterator<Node>().iterate ([&] (const Node& current)
         {
             string currentStr = graph.toString(current);
@@ -437,20 +442,22 @@ public:
                 {
                     CPPUNIT_ASSERT (neighbors.size()==2);
 
-                    CPPUNIT_ASSERT (graph.toString(edge.from)=="GCGCC");
-                    CPPUNIT_ASSERT (graph.toString(edge.to)=="GGCGC" || graph.toString(edge.to)=="CGCCT");
-
-                    if (graph.toString(edge.to)=="CGCCT")
+                    if (graph.toString(edge.from)=="GCGCC")
                     {
+                        CPPUNIT_ASSERT (graph.toString(edge.to)=="CGCCT");
                         CPPUNIT_ASSERT (edge.nt==NUCL_T);
                         CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+
                     }
-
-                    if (graph.toString(edge.to)=="GGCGC")
+                    else if (graph.toString(edge.from)=="GGCGC")
                     {
+                        CPPUNIT_ASSERT (graph.toString(edge.to)=="GCGCC");
                         CPPUNIT_ASSERT (edge.nt==NUCL_C);
-                        CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
-
+                        CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+                    }
+                    else
+                    {
+                        CPPUNIT_ASSERT (false);
                     }
                 }
             }
