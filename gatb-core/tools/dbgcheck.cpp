@@ -97,7 +97,7 @@ int main (int argc, char* argv[])
 
         /** We dump the statistics. */
         std::cout << std::endl;
-        std::cout << "nbSolids           = " << graph.iterator<Node>().getNbItems() << "  "  << std::endl
+        std::cout << "nbSolids           = " << graph.iterator<Node>().size ()      << "  "  << std::endl
                   << "nbSuccessors       = " << stats->nbSuccessors                 << "  "  << std::endl
                   << "nbBranching        = " << stats->nbBranching                  << "  "  << std::endl
                   << "checkumNodes       = " << stats->checksumNodes                << "  "  << std::endl
