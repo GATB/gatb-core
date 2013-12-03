@@ -777,7 +777,7 @@ class ProgressIterator : public tools::dp::impl::SubjectIterator<Type>
 {
 public:
     ProgressIterator (const Graph::Iterator<Type>& items, const char* msg = "compute")
-        : tools::dp::impl::SubjectIterator<Type> (items.get(), items.getNbItems()/100, new Listener (items.getNbItems(), msg)) {}
+        : tools::dp::impl::SubjectIterator<Type> (items.get(), items.size()/100, new Listener (items.size(), msg)) {}
 };
 
 /********************************************************************************/
