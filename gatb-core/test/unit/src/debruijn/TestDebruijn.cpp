@@ -365,7 +365,7 @@ public:
         char* seq = (char*) "ACCAGTT";
         char* rev = (char*) "AACTGGT";
 
-        Node n1 = graph.getNode (Data(seq));
+        Node n1 = graph.buildNode (Data(seq));
         CPPUNIT_ASSERT (graph.toString (n1) == seq);
 
         Node n2 = graph.reverse (n1);
@@ -388,7 +388,7 @@ public:
             string srev = graph.toString (rev);
 
             /** We build a node from the reverse string. */
-            Node rev2 = graph.getNode (Data ((char*)srev.c_str()));
+            Node rev2 = graph.buildNode (Data ((char*)srev.c_str()));
             CPPUNIT_ASSERT (graph.toString(rev2) == srev);
 
             /** We reverse the reversed node. */
@@ -407,8 +407,8 @@ public:
          *      - AGGCG / CGCCT
          *      - GCGCC / GGCGC
          */
-        Node n1 = graph.getNode ((char*)"AGGCG");
-        Node n2 = graph.getNode ((char*)"GCGCC");
+        Node n1 = graph.buildNode ((char*)"AGGCG");
+        Node n2 = graph.buildNode ((char*)"GCGCC");
 
         // We should get as neighborhood
         // GCGCC  [GCGCC --T--> CGCCT]
