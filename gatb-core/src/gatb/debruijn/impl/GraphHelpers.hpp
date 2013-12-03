@@ -45,6 +45,7 @@ public:
     //     -2 if no out-branching but next kmer has in-branching
     int simplePathAvance (const Node& node, Direction dir) const;
     int simplePathAvance (const Node& node, Direction dir, Edge& output) const;
+    int simplePathAvance (const Node& node, Direction dir, kmer::Nucleotide& nt) const;
 
     /** */
     template<typename T> Graph::Iterator<T> simplePathIterator (const Node& node, Direction dir) const;

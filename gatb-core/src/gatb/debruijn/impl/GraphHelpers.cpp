@@ -24,6 +24,22 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+int GraphHelper::simplePathAvance (const Node& node, Direction dir, kmer::Nucleotide& nt) const
+{
+    Edge edge;
+    int res = simplePathAvance (node, dir, edge);
+    nt = edge.nt;
+    return res;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 int GraphHelper::simplePathAvance (const Node& node, Direction dir) const
 {
     Edge output;  return simplePathAvance (node, dir, output);
