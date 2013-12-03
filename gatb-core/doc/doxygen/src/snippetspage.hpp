@@ -15,9 +15,11 @@
 /**\page snippets_page How to use the library ?
  *
  * \subpage compilation         \n
+ * \subpage snippets_system     \n
  * \subpage snippets_iterators  \n
  * \subpage snippets_bank       \n
  * \subpage snippets_kmer       \n
+ * \subpage snippets_graph      \n
  *
  * ************************************************************************************
  * \page compilation Compilation instructions
@@ -290,5 +292,188 @@
  ************************************************************************************
  * \section snippets_system_snippet1 to be done
  *
+ * \n
+ *
+ ************************************************************************************
+ *
+ * \page snippets_graph De Bruijn graph snippets
+ *
+ ************************************************************************************
+ * \section snippets_kmer_dbg_1  Building a De Bruijn graph from command line options
+ *
+ * This snippet shows how to create a Graph object thanks to command line options with at
+ * least a mandatory FASTA file URI.
+ *
+ * The first thing to do is to get a parser that analyzes the command line options
+ * from (argc,argv). Such a parser can be retrieved with a static method from Graph class.
+ *
+ * Then, the parsed options can be provided to the Graph::create method and then we get
+ * a Graph object on which we can do anything we want.
+ *
+ * The only mandatory option is '-in fastafile'. All other options have default values if not
+ * set through command line.
+ *
+ * In this snippet, we dump information about the Graph object building with Graph::getInfo method.
+ *
+ *\snippet debruijn1.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_2  Building a De Bruijn graph from a command-line-like string
+ *
+ * Like the previous snippet, we create a Graph object with command line options, but
+ * here the options are directly provided as a string.
+ *
+ * \snippet debruijn2.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_3  Building a De Bruijn graph from a bank object
+ *
+ * Here, we create a Graph object by providing a bank object, more precisely a IBank
+ * object.
+ *
+ * It is therefore possible to provide a Bank instance (ie a FASTA bank), or
+ * another kind of bank that implements the IBank interface.
+ *
+ * Note in the example that we can provide additional options after the bank object.
+ *
+ * \snippet debruijn3.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_4  Building a De Bruijn graph from a fake bank object
+ *
+ * Like the previous snippet, we create a Graph object by providing a bank object, but
+ * here this is a 'fake' bank built "on the fly".
+ *
+ * Such banks are often useful for testing purposes.
+ *
+ * In such a case, the output file for the graph will be named "noname", unless a specific
+ * name is set through the command line option "-out mygraph".
+ *
+ * \snippet debruijn4.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_5  Load a De Bruijn graph from a graph file
+ *
+ * Once we have built a graph, it is saved as a file (likely a HDF5 file).
+ *
+ * This snippet shows how to load such a file to get a Graph object.
+ *
+ * \snippet debruijn5.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_6  Iterate the nodes of a De Bruijn graph
+ *
+ * This snippet shows how to iterate all the nodes of a graph (the graph is loaded
+ * from a graph file).
+ *
+ * The idea is to get an iterator from the graph and use it to get each node of the graph.
+ *
+ * Here, the nodes are retrieved regardless of any edges between them.
+ *
+ * \snippet debruijn6.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_7  Iterate the nodes of a De Bruijn graph in a multithread way
+ *
+ * As the previous example, this snippet shows how to iterate all the nodes of a graph.
+ *
+ * The difference here is that the iteration is parallelized, using all possible available
+ * cores, which should speed up the iteration.
+ *
+ * WARNING ! don't forget this is parallel execution, so you have be careful if you want to
+ * modify the same object in different thread execution contexts.
+ *
+ * Note: lambda expressions are used here to have code conciseness (which suppose to use
+ * an up-to-date compiler). You can have some information at
+ * http://stackoverflow.com/questions/7627098/what-is-a-lambda-expression-in-c11
+ *
+ * \snippet debruijn7.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_8  Iterate the branching nodes of a De Bruijn graph
+ *
+ * This snippet shows how to iterate the branching nodes of a graph (the graph is loaded
+ * from a graph file).
+ *
+ * The idea is to get an iterator from the graph and use it to get each branching node of the graph.
+ *
+ * \snippet debruijn8.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_9  Working with neighborhoods of nodes in the De Bruijn graph
+ *
+ * This snippet shows how to use some methods related to neighbors in a graph.
+ *
+ * We use a fake bank with one sequence of size 5 and use a kmer size of 4, so we will have 2 possible
+ * nodes in the graph.
+ *
+ * We iterate these two nodes, and for one of them, we ask for its neighbors with the Graph::successors method.
+ * We can then check that the retrieved neighbor is the correct one by analyzing the node string representations.
+ *
+ * In this example, we use the successors method, but note it is possible to get the incoming neighbors with the
+ * Graph::predecessors method. By the way, it is possible to know the in and out degree of a given node with the two
+ * corresponding methods Graph::indegree and Graph::outdegree
+ *
+ * \snippet debruijn9.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_10  Working with neighborhoods of nodes in the De Bruijn graph (continued)
+ *
+ * This snippet shows how to use some methods related to neighbors in a graph.
+ *
+ * We do the same work as the previous example. The only difference is that we retrieve the neighbors as
+ * Edge objects rather than Node objects, so we will have the full information about each transition between
+ * the source node and the retrieved neighbors (including the transition nucleotide for instance).
+ *
+ * In particular, we use some of the Edge attributes (Edge::to, Edge::nt)
+ *
+ * \snippet debruijn10.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_11  Working with a specific neighbor for a specific node
+ *
+ * This snippet shows how to get a specific neighbor for a specific node.
+ *
+ * Sometimes, it is interesting to ask the graph for only one neighbor for a given node.
+ * It may happen when one has already got neighbors information through a Graph::neighbors
+ * call and memorized only the transition nucleotides for valid neighbors.
+ *
+ * The Graph::neighbor fulfills this need. This method has two forms, with or without check
+ * to graph membership, according to performance considerations.
+ *
+ * \snippet debruijn11.cpp  snippet1
+ * \n
+ *
+ *************************************************************************************
+ * \section snippets_kmer_dbg_12  Playing with node strands
+ *
+ * A Node object is fully defined by a kmer value and a strand that disambiguates how to
+ * interpret the kmer.
+ *
+ * It is often required to change the reading strand of a node. This can be done with the
+ * Graph::reverse method.
+ *
+ * \snippet debruijn12.cpp  snippet1
+ * \n
+ *************************************************************************************
+ * \section snippets_kmer_dbg_13  Playing with fake nodes
+ *
+ * Sometimes, it is useful to build "fake" nodes from a simple sequence, without having
+ * a graph holding true data.
+ *
+ * It is possible to get an empty Graph object (its kmer size must be nevertheless specified),
+ * and then use the Graph::buildNode to get a node based on a Data object.
+ *
+ * \snippet debruijn13.cpp  snippet1
  * \n
  */

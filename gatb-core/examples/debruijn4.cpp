@@ -1,71 +1,30 @@
 //! [snippet1]
-// We include what we need for the test
 
+// We include what we need for the test
 #include <gatb/gatb_core.hpp>
 
-using namespace std;
-
 /********************************************************************************/
-struct Info
-{
-    Info() : nbSuccessors(0), abundance(0) {}
-    Integer   checksumNodes;
-    Integer   checksumSuccessors;
-    u_int64_t nbSuccessors;
-    u_int64_t abundance;
-};
-
+/*             Graph creation from a fake bank and command line options         */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 2)
-    {
-        cerr << "you must provide a graph file" << endl;
-        return EXIT_FAILURE;
-    }
+    // We get a handle on a fake bank made of 3 sequences.
+    IBank* bank = new BankStrings (
+        "ATCGTACGACGCTAGCTAGCA",
+        "ACTACGTATCGGTATATATTTTCGATCGATCAG",
+        "TGACGGTAGCATCGATCAGGATCGA",
+        NULL
+    );
 
-    /** We load the graph from the provided uri. */
-    Graph graph = Graph::load (argv[1]);
+    // We create the graph with the bank and other options
+    Graph graph = Graph::create (bank, "-kmer-size 5  -out mygraph");
 
-    /** We get an iterator over all the nodes of the graph. */
-    Graph::Iterator<Node> itNodes = graph.iterator<Node>();
+    // We dump some information about the graph.
+    std::cout << graph.getInfo() << std::endl;
 
-    ThreadObject<Info> infos;
+    // Note: Graph::create will take care about 'bank' object and will delete it if nobody else needs it.
+    // In other words: there is no need here to call 'delete' on 'bank' here.
 
-    /** We iterate the nodes through a dispatcher. */
-    IDispatcher::Status status = Dispatcher().iterate (itNodes, [&] (const Node& node)
-    {
-        Info& info = infos();
-
-        info.checksumNodes += node.kmer;
-        info.abundance     += node.abundance;
-
-        /** We retrieve the successors. */
-        Graph::Vector<Node> successors = graph.successors<Node> (node);
-
-        info.nbSuccessors += successors.size();
-
-        /** We iterate all the successors. */
-        for (size_t i=0; i<successors.size(); i++)   {  info.checksumSuccessors += successors[i].kmer;  }
-    });
-
-    infos.foreach ([&](const Info& i)
-    {
-        infos->checksumNodes      += i.checksumNodes;
-        infos->checksumSuccessors += i.checksumSuccessors;
-        infos->nbSuccessors       += i.nbSuccessors;
-        infos->abundance          += i.abundance;
-    });
-
-    /** We dump the checksum. */
-    cout << "nbSuccessors="       << infos->nbSuccessors        << "  "
-         << "abundance="          << infos->abundance           << "  "
-         << "checkumNodes="       << infos->checksumNodes       << "  "
-         << "checksumSuccessors=" << infos->checksumSuccessors  << "  "
-         << "time="               << status.time                << "  "
-         << endl;
-
-    /** We dump some information about the graph. */
-    cout << graph.getInfo() << endl;
+    return EXIT_SUCCESS;
 }
 //! [snippet1]
