@@ -89,14 +89,17 @@ Graph::Iterator<Node> GraphHelper::getSimplePathNodeIterator (const Node& node, 
     public:
 
         LocalIterator (const GraphHelper& helper, const Node& node, Direction dir)
-            : _helper(helper), _graph(helper.getGraph()), _dir(dir), _isDone(true)
+            : _helper(helper), _graph(helper.getGraph()), _dir(dir), _rank(0), _isDone(true)
         {
             *(this->_item) = node;
         }
 
+        u_int64_t rank () const { return _rank; }
+
         /** \copydoc  Iterator::first */
         void first()
         {
+            _rank   = 0;
             _isDone = false;
             next ();
         }
@@ -105,6 +108,8 @@ Graph::Iterator<Node> GraphHelper::getSimplePathNodeIterator (const Node& node, 
         void next()
         {
             Edge output;
+
+            _rank ++;
 
             if (_helper.simplePathAvance (*(this->_item), _dir, output) > 0)
             {
@@ -125,12 +130,13 @@ Graph::Iterator<Node> GraphHelper::getSimplePathNodeIterator (const Node& node, 
         Node& item ()  {  return *(this->_item);  }
 
         /** */
-        u_int64_t getNbItems () const { return 0; }
+        u_int64_t size () const { return 0; }
 
     private:
         const GraphHelper& _helper;
         const Graph&       _graph;
         Direction          _dir;
+        u_int64_t          _rank;
         bool               _isDone;
     };
 

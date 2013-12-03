@@ -86,7 +86,7 @@ void BranchingAlgorithm<ProductFactory,T>::execute ()
     /** We encapsulate this iterator with a potentially decorated iterated (for progress information). */
     tools::dp::Iterator<Node>* iter = createIterator<Node> (
         itNodes.get(),
-        itNodes.getNbItems(),
+        itNodes.size(),
         progressFormat1
     );
     LOCAL (iter);

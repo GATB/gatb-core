@@ -37,7 +37,9 @@
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
+/** \brief Package for De Bruijn graph management. */
 namespace debruijn  {
+/** \brief Implementation package for De Bruijn graph management. */
 namespace impl      {
 
 /********************************************************************************/
@@ -384,6 +386,12 @@ public:
      */
     static Graph  create (bank::IBank* bank, const char* fmt, ...);
 
+    /** Build a graph from user options.
+     * \param[in] fmt: printf-like format
+     * \return the created graph.
+     */
+    static Graph  create (const char* fmt, ...);
+
     /** Build a graph from scratch.
      * \param[in] options : user parameters for building the graph.
      * \return the created graph.
@@ -395,6 +403,11 @@ public:
      * \return the loaded graph.
      */
     static Graph  load (const std::string& uri)  {  return  Graph (uri);  }
+
+    /** Get a parser object that knows the user options for building a graph.
+     * \return the options parser object.
+     */
+    static tools::misc::impl::OptionsParser getOptionsParser (bool includeMandatory=true);
 
     /********************************************************************************/
     template<typename Item, int NB=8>
@@ -431,6 +444,9 @@ public:
         /** */
         Iterator& operator= (const Iterator<Item>& i)  {  if (this != &i)   {  setRef (i._ref);  }   return *this;  }
 
+        /** Method that the number of iterated items so far. */
+        virtual u_int64_t rank() const  { return _ref->rank(); }
+
         /** Method that initializes the iteration. */
         void first()  { _ref->first(); }
 
@@ -453,7 +469,7 @@ public:
         void setItem (Item& i)  {  _ref->setItem (i); }
 
         /** */
-        u_int64_t getNbItems () const  { return _ref->getNbItems(); }
+        u_int64_t size () const  { return _ref->size(); }
 
         /** */
         tools::dp::ISmartIterator<Item>* get()  const { return _ref; }
@@ -468,13 +484,13 @@ public:
     /*                               CONSTRUCTORS                                   */
     /********************************************************************************/
 
-    /** Default Constructor.*/
+    /* Default Constructor.*/
     Graph ();
 
-    /** Copy Constructor.*/
+    /* Copy Constructor.*/
     Graph (const Graph& graph);
 
-    /** Destructor. */
+    /* Destructor. */
     ~Graph ();
 
     /** Affectation overload. */
@@ -494,7 +510,7 @@ public:
 
 
     /**********************************************************************/
-    /*                     NEIGHBORHOOD METHODS                           */
+    /*                     ALL NEIGHBORS METHODS                          */
     /**********************************************************************/
 
     /** Returns a vector of neighbors of the provided node.
@@ -526,19 +542,49 @@ public:
      */
     template <typename T>  Graph::Vector<T> neighbors (const Node::Value& kmer) const;
 
+    /**********************************************************************/
+    /*                     ONE NEIGHBOR METHODS                           */
+    /**********************************************************************/
+
     /** Return a specific neighbor from a given node. The neighbor is defined by a direction and the transition
      * nucleotide.
-     * IMPORTANT: this method will not (by default) check that the neighbor node belongs to the graph: it merely
+     * IMPORTANT: this method will not check that the neighbor node belongs to the graph: it merely
      * computes the next kmer but doesn't check the Bloom filter. It is supposed that the client has already asked
-     * for the neighbors and so knows the valid transitions. It is still possible to force the Bloom query by
-     * setting the 'trustable' argument to false.
+     * for the neighbors and so knows the valid transitions.
      * \param[in] source : the source neighbor
      * \param[in] dir : the direction of the transition
      * \param[in] nt : the nucleotide of the transition
-     * \param[in] trustable : yes means that the neighbor existence is not checked in the Bloom filter.
      * \return the neighbor object.
      */
-    template <typename T>  T neighbor (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable=true) const;
+    template <typename T>  T neighbor (const Node& source, Direction dir, kmer::Nucleotide nt) const;
+
+    /** Return a specific neighbor from a given node. The neighbor is defined by a direction and the transition
+     * nucleotide.
+     * IMPORTANT: this method will check that the neighbor node belongs to the graph. If the neighbor is not in the
+     * graph, the 'exists' parameter is set to false, true otherwise.
+     * \param[in] source : the source neighbor
+     * \param[in] dir : the direction of the transition
+     * \param[in] nt : the nucleotide of the transition
+     * \param[out] exists : yes means that the neighbor is in the graph, false otherwise
+     * \return the neighbor object.
+     */
+    template <typename T>  T neighbor (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
+
+    /** Shortcut for neighbor with dir==DIR_OUTCOMING. */
+    template <typename T>  T successor (const Node& source, kmer::Nucleotide nt, bool& exists) const;
+
+    /** Shortcut for neighbor with dir==DIR_OUTCOMING. */
+    template <typename T>  T successor (const Node& source, kmer::Nucleotide nt) const;
+
+    /** Shortcut for neighbor with dir==DIR_INCOMING. */
+    template <typename T>  T predecessor (const Node& source, kmer::Nucleotide nt, bool& exists) const;
+
+    /** Shortcut for neighbor with dir==DIR_INCOMING. */
+    template <typename T>  T predecessor (const Node& source, kmer::Nucleotide nt) const;
+
+    /**********************************************************************/
+    /*                      MISC NEIGHBORS METHODS                        */
+    /**********************************************************************/
 
     /** Get the incoming degree of the node.
      * \param[in] node : the node
@@ -560,7 +606,7 @@ public:
      * \param[in] u : first node
      * \param[in] v : second node
      * \return true if such a transition exists, false otherwise. */
-    bool isEdge (const Node& u, const Node& v) const { return false; }
+    bool isEdge (const Node& u, const Node& v) const;
 
     /**********************************************************************/
     /*                         NODE METHODS                               */
@@ -671,7 +717,7 @@ private:
     Graph::Vector<Node> getNodeValues (const Node::Value& kmer) const;
 
     /** */
-    Node getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable) const;
+    Node getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
 
     /** */
     void executeAlgorithm (tools::misc::impl::Algorithm& algorithm, tools::misc::IProperties* props, tools::misc::IProperties& info);
@@ -692,8 +738,23 @@ template <>  inline Graph::Vector<Node> Graph::predecessors (const Node& node) c
 template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
 template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node::Value& kmer) const          {  return getNodeValues (kmer);           }
 
-template <>  inline Node Graph::neighbor (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable) const
-{  return getNode (source, dir, nt, trustable);  }
+template <>  inline Node Graph::neighbor (const Node& source, Direction dir, kmer::Nucleotide nt) const
+{  bool exists=true; return getNode (source, dir, nt, exists);  }
+
+template <>  inline Node Graph::neighbor (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
+{  return getNode (source, dir, nt, exists);  }
+
+template <>  inline Node Graph::successor (const Node& source, kmer::Nucleotide nt) const
+{  bool exists=true; return getNode (source, DIR_OUTCOMING, nt, exists);  }
+
+template <>  inline Node Graph::successor (const Node& source, kmer::Nucleotide nt, bool& exists) const
+{  return getNode (source, DIR_OUTCOMING, nt, exists);  }
+
+template <>  inline Node Graph::predecessor (const Node& source, kmer::Nucleotide nt) const
+{  bool exists=true; return getNode (source, DIR_INCOMING, nt, exists);  }
+
+template <>  inline Node Graph::predecessor (const Node& source, kmer::Nucleotide nt, bool& exists) const
+{  return getNode (source, DIR_INCOMING, nt, exists);  }
 
 template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
 template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }

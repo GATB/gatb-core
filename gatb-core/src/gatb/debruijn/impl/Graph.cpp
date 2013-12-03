@@ -46,7 +46,7 @@ using namespace gatb::core::tools::misc::impl;
 #undef NDEBUG
 #include <cassert>
 
-#define DEBUG(a)  //printf a
+#define DEBUG(a)  //a
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
@@ -60,7 +60,7 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 
 /********************************************************************************/
 
-/** We define a structure that holds all the necessary stuff for implementing the graph API.
+/* We define a structure that holds all the necessary stuff for implementing the graph API.
  *  Here, the structure is templated by the required Integer class.
  *
  *  This structure is the basis for defining a boost::variant with all required integer
@@ -126,7 +126,7 @@ struct Data
 
 /********************************************************************************/
 
-/** This definition is the basis for having a "generic" Graph class, ie. not relying on a template
+/* This definition is the basis for having a "generic" Graph class, ie. not relying on a template
  * parameter.
  *
  * This is done through a boost::variant; actually, we use a limited number of variant, corresponding
@@ -141,7 +141,7 @@ typedef boost::variant <
 
 /********************************************************************************/
 
-/** This class has 3 main parts:
+/* This class has 3 main parts:
  *
  *      1) buildGraph: Graph creation from user parameters and save in filesystem
  *
@@ -169,6 +169,13 @@ public:
 
         string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
 
+        DEBUG ((cout << "builGraph for bank '" << bank->getId() << "'"
+            << " kmerSize=" << kmerSize
+            << " nks=" << nks
+            << " output='" << output << "'"
+            << endl
+        ));
+
         /************************************************************/
         /*                       Product creation                   */
         /************************************************************/
@@ -195,6 +202,9 @@ public:
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
         );
         graph.executeAlgorithm (sortingCount, props, graph._info);
+
+        /** We check that we got solid kmers. */
+        if (sortingCount.getSolidKmers()->getNbItems() == 0)  {  throw "NO SOLID KMERS FOUND...";  }
 
         /************************************************************/
         /*                         Debloom                          */
@@ -347,11 +357,34 @@ public:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
+tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
 {
     tools::misc::impl::OptionsParser parser;
-    parser.add (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE, "size of a kmer",                       true            ));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_NKS,       "abundance threshold for solid kmers",  false,  "3"     ));
+
+    if (includeMandatory == true)
+    {
+        parser.add (new tools::misc::impl::OptionOneParam (STR_URI_INPUT, "reads file", true ));
+    }
+
+    parser.add (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,  "size of a kmer",                       false,  "27"    ));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_NKS,        "abundance threshold for solid kmers",  false,  "3"     ));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT, "output file",                          false));
+    parser.add (new tools::misc::impl::OptionNoParam  (STR_VERBOSE,    "verbose",                              false));
+
+    return parser;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
+{
+    OptionsParser parser = getOptionsParser (false);
 
     /** We build the command line from the format and the ellipsis. */
     std::string commandLine;
@@ -363,6 +396,30 @@ Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
     if (buffer != NULL)  {  commandLine = buffer;  free (buffer);  }
 
     return  Graph (bank, parser.parse(commandLine));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph  Graph::create (const char* fmt, ...)
+{
+    OptionsParser parser = getOptionsParser (true);
+
+    /** We build the command line from the format and the ellipsis. */
+    std::string commandLine;
+    char* buffer = 0;
+    va_list args;
+    va_start (args, fmt);
+    vasprintf (&buffer, fmt, args);
+    va_end (args);
+    if (buffer != NULL)  {  commandLine = buffer;  free (buffer);  }
+
+    return  Graph (parser.parse(commandLine));
 }
 
 /*********************************************************************
@@ -561,7 +618,7 @@ Graph::~Graph ()
 *********************************************************************/
 void Graph::remove ()
 {
-    DEBUG (("Graph::remove  NOT IMPLEMENTED...\n"));
+    DEBUG ((cout << "Graph::remove  NOT IMPLEMENTED..." << endl));
 }
 
 /*********************************************************************
@@ -589,6 +646,21 @@ void Graph::getNearestBranchingRange (const Node& node, Node& begin, Node& end) 
 bool Graph::isBranching (const Node& node) const
 {
     return (! (successors<Node>(node).size()==1 && predecessors<Node>(node).size() == 1));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+bool Graph::isEdge (const Node& u, const Node& v) const
+{
+    bool result = false;
+
+    return result;
 }
 
 /*********************************************************************
@@ -860,10 +932,10 @@ Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  c
 template<typename Item, typename Functor>
 struct getItem_visitor : public boost::static_visitor<Item>    {
 
-    const Node& source;  Direction direction;  Nucleotide nt; bool trustable; Functor fct;
+    const Node& source;  Direction direction;  Nucleotide nt; bool& exists; Functor fct;
 
-    getItem_visitor (const Node& source, Direction direction, Nucleotide nt, bool trustable, Functor fct)
-        : source(source), direction(direction), nt(nt), trustable(trustable), fct(fct) {}
+    getItem_visitor (const Node& source, Direction direction, Nucleotide nt, bool& exists, Functor fct)
+        : source(source), direction(direction), nt(nt), exists(exists), fct(fct) {}
 
     template<typename T>  Item operator() (const Data<T>& data) const
     {
@@ -886,16 +958,26 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
 
             if (forward < reverse)
             {
-                if (trustable || data.contains (forward))
+                if (data.contains (forward))
                 {
                     fct (item, source.kmer, source.strand, Node::Value(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
+                    exists = true;
+                }
+                else
+                {
+                    exists = false;
                 }
             }
             else
             {
-                if (trustable || data.contains (reverse))
+                if (data.contains (reverse))
                 {
                     fct (item, source.kmer, source.strand, Node::Value(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
+                    exists = true;
+                }
+                else
+                {
+                    exists = false;
                 }
             }
         }
@@ -912,16 +994,26 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
 
             if (forward < reverse)
             {
-                if (trustable || data.contains (forward))
+                if (data.contains (forward))
                 {
                     fct (item, source.kmer, source.strand, Node::Value(forward), STRAND_FORWARD, NT, DIR_INCOMING);
+                    exists = true;
+                }
+                else
+                {
+                    exists = false;
                 }
             }
             else
             {
-                if (trustable || data.contains (reverse))
+                if (data.contains (reverse))
                 {
                     fct (item, source.kmer, source.strand, Node::Value(reverse), STRAND_REVCOMP, NT, DIR_INCOMING);
+                    exists = true;
+                }
+                else
+                {
+                    exists = false;
                 }
             }
         }
@@ -931,7 +1023,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
     }
 };
 
-Node Graph::getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable) const
+Node Graph::getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
 {
     struct Functor {  void operator() (
         Node&                item,
@@ -946,7 +1038,7 @@ Node Graph::getNode (const Node& source, Direction dir, kmer::Nucleotide nt, boo
         item.set (kmer_to, strand_to);
     }};
 
-    return boost::apply_visitor (getItem_visitor<Node,Functor>(source, dir, nt, trustable, Functor()),  *(DataVariant*)_variant);
+    return boost::apply_visitor (getItem_visitor<Node,Functor>(source, dir, nt, exists, Functor()),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1035,18 +1127,22 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
         {
         public:
             NodeIterator (tools::dp::Iterator<kmer::Kmer<T> >* ref, u_int64_t nbItems)
-                : _ref(0),  _isDone(true), _nbItems(nbItems)   {  setRef(ref);  this->_item->strand = STRAND_FORWARD; }
+                : _ref(0),  _rank(0), _isDone(true), _nbItems(nbItems)   {  setRef(ref);  this->_item->strand = STRAND_FORWARD; }
 
             ~NodeIterator ()  { setRef(0);   }
+
+            u_int64_t rank () const { return _rank; }
 
             /** \copydoc  Iterator::first */
             void first()
             {
                 _ref->first();
+                _rank   = 0;
                 _isDone = _ref->isDone();
 
                 if (!_isDone)
                 {
+                    this->_rank ++;
                     this->_item->kmer      = _ref->item().value;
                     this->_item->abundance = _ref->item().abundance;
                 }
@@ -1059,6 +1155,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
                 _isDone = _ref->isDone();
                 if (!_isDone)
                 {
+                    this->_rank ++;
                     this->_item->kmer      = _ref->item().value;
                     this->_item->abundance = _ref->item().abundance;
                 }
@@ -1082,12 +1179,13 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
             }
 
             /** */
-            u_int64_t getNbItems () const { return _nbItems; }
+            u_int64_t size () const { return _nbItems; }
 
         private:
             tools::dp::Iterator<kmer::Kmer<T> >* _ref;
             void setRef (tools::dp::Iterator<kmer::Kmer<T> >* ref)  { SP_SETATTR(ref); }
 
+            u_int64_t _rank;
             bool      _isDone;
             u_int64_t _nbItems;
         };
