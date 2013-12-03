@@ -329,6 +329,16 @@ public:
 
 };
 
+/********************************************************************************
+                 #####   ######      #     ######   #     #
+                #     #  #     #    # #    #     #  #     #
+                #        #     #   #   #   #     #  #     #
+                #  ####  ######   #     #  ######   #######
+                #     #  #   #    #######  #        #     #
+                #     #  #    #   #     #  #        #     #
+                 #####   #     #  #     #  #        #     #
+********************************************************************************/
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -589,7 +599,7 @@ bool Graph::isBranching (const Node& node) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Node Graph::getNode (const tools::misc::Data& data, size_t offset)  const
+Node Graph::buildNode (const tools::misc::Data& data, size_t offset)  const
 {
     /** We create a kmer model. */
     Model<Integer> model (this->getKmerSize());
@@ -837,6 +847,106 @@ Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  c
     }};
 
     return boost::apply_visitor (getItems_visitor<Node,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename Item, typename Functor>
+struct getItem_visitor : public boost::static_visitor<Item>    {
+
+    const Node& source;  Direction direction;  Nucleotide nt; bool trustable; Functor fct;
+
+    getItem_visitor (const Node& source, Direction direction, Nucleotide nt, bool trustable, Functor fct)
+        : source(source), direction(direction), nt(nt), trustable(trustable), fct(fct) {}
+
+    template<typename T>  Item operator() (const Data<T>& data) const
+    {
+        Item item;
+
+        /** We get the specific typed value from the generic typed value. */
+        const T& sourceVal = source.kmer.get<T>();
+
+        /** Shortcuts. */
+        size_t   span = data._model->getSpan();
+        const T& mask = data._model->getMask();
+
+        // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
+        T graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, span) );
+
+        if (direction & DIR_OUTCOMING)
+        {
+            T forward = ( (graine << 2 )  + nt) & mask;
+            T reverse = revcomp (forward, span);
+
+            if (forward < reverse)
+            {
+                if (trustable || data.contains (forward))
+                {
+                    fct (item, source.kmer, source.strand, Node::Value(forward), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING);
+                }
+            }
+            else
+            {
+                if (trustable || data.contains (reverse))
+                {
+                    fct (item, source.kmer, source.strand, Node::Value(reverse), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING);
+                }
+            }
+        }
+
+        if (direction & DIR_INCOMING)
+        {
+            T forward = ((graine >> 2 )  + ( T(nt) << ((span-1)*2)) ) & mask; // previous kmer
+            T reverse = revcomp (forward, span);
+
+            Nucleotide NT;
+
+            if (source.strand == STRAND_FORWARD)  {  NT = (Nucleotide) (source.kmer[0]);  }
+            else                                  {  NT = kmer::reverse ((Nucleotide) (source.kmer[(span-1)]));  }
+
+            if (forward < reverse)
+            {
+                if (trustable || data.contains (forward))
+                {
+                    fct (item, source.kmer, source.strand, Node::Value(forward), STRAND_FORWARD, NT, DIR_INCOMING);
+                }
+            }
+            else
+            {
+                if (trustable || data.contains (reverse))
+                {
+                    fct (item, source.kmer, source.strand, Node::Value(reverse), STRAND_REVCOMP, NT, DIR_INCOMING);
+                }
+            }
+        }
+
+        /** We return the result. */
+        return item;
+    }
+};
+
+Node Graph::getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable) const
+{
+    struct Functor {  void operator() (
+        Node&                item,
+        const Node::Value&   kmer_from,
+        kmer::Strand         strand_from,
+        const Node::Value&   kmer_to,
+        kmer::Strand         strand_to,
+        kmer::Nucleotide     nt,
+        Direction            dir
+    ) const
+    {
+        item.set (kmer_to, strand_to);
+    }};
+
+    return boost::apply_visitor (getItem_visitor<Node,Functor>(source, dir, nt, trustable, Functor()),  *(DataVariant*)_variant);
 }
 
 /*********************************************************************
