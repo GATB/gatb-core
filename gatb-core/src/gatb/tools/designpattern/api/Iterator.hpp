@@ -178,7 +178,8 @@ class ISmartIterator : public Iterator<T>
 {
 public:
     virtual ~ISmartIterator() {}
-    virtual u_int64_t getNbItems () const = 0;
+    virtual u_int64_t size () const = 0;
+    virtual u_int64_t rank () const = 0;
 };
 
 /********************************************************************************/
