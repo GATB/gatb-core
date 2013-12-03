@@ -8,7 +8,7 @@
 /** \file GraphBasic.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief
+ *  \brief Graph class
  */
 
 #ifndef _GATB_CORE_DEBRUIJN_IMPL_GRAPH_HPP_
@@ -69,30 +69,81 @@ inline Direction reverse (Direction dir)  { return dir==DIR_OUTCOMING ? DIR_INCO
 // Quite ugly... should be improved...
 #define foreach_direction(d)  for (Direction d=DIR_OUTCOMING; d<DIR_END; d = (Direction)((int)d + 1) )
 
-/********************************************************************************/
 
-//typedef tools::math::Integer Type;
+/********************************************************************************
+                        #     #  #######  ######   #######
+                        ##    #  #     #  #     #  #
+                        # #   #  #     #  #     #  #
+                        #  #  #  #     #  #     #  #####
+                        #   # #  #     #  #     #  #
+                        #    ##  #     #  #     #  #
+                        #     #  #######  ######   #######
+********************************************************************************/
 
-/** Definition of a Node. */
+/** \brief Node structure representing a node in the De Bruijn graph
+ *
+ * The Node structure needs at least two attributes for uniquely defining a node in the DBG:
+ *  - a kmer value (representing a node and its reverse complement)
+ *  - a strand value (telling on which strand the kmer has to be interpreted)
+ *
+ *  A specific Node::Value type is defined for the kmer type. It may be used sometimes when one
+ *  wants to perform some action on a node without the need to know the strand.
+ *
+ *  Although it is possible to instantiate "from scratch" a Node object, it is likely that Node
+ *  objects are retrieved through the Graph class. Indeed, a Node object is likely to be useful
+ *  if it belongs to a graph, so it makes sense that the Graph class is the main actor for providing
+ *  Node objects.
+ *
+ *  The Node structure may be inherited by other structure, mainly for refining some characteristics
+ *  for some kinds of nodes. For instance, a BranchingNode structure may be defined for nodes that have
+ *  more than one incoming and/or outcoming neighbors. Such inherited structures could be understood as
+ *  regular Node instance with a specific invariant. They can also be the material for specialization of
+ *  some template methods of the Graph class (see for instance Graph::iterator template specialization
+ *  for the BranchingNode structure).
+ *
+ *  The Node structure has also a 'abundance' attribute; it gives the occurrences number of the kmer in
+ *  the initial set of reads. Note that this attribute has a value only for so-called 'solid kmers',
+ *  generally computed by the DSK tool.
+ */
 struct Node
 {
-
+    /** Type for a kmer value. */
     typedef tools::math::Integer Value;
 
+    /** Default constructor. */
     Node () : abundance(0), strand(kmer::STRAND_FORWARD) {}
 
-    Node (const Node::Value& kmer, kmer::Strand strand=kmer::STRAND_FORWARD, u_int16_t abundance=0) : kmer(kmer), strand(strand), abundance(abundance) {}
+    /** Constructor.
+     * \param[in] kmer : kmer value. By default, it is the minimum value of the forward and revcomp value.
+     * \param[in] strand : strand telling how to interpret the kmer value. Default value is forward by convention.
+     * \param[in] abundance : abundance of the kmer. Default value is 0 if not set.
+     */
+    Node (const Node::Value& kmer, kmer::Strand strand=kmer::STRAND_FORWARD, u_int16_t abundance=0)
+        : kmer(kmer), strand(strand), abundance(abundance) {}
 
+    /** kmer value for the node (min of the forward and revcomp value of the bi-directed DB graph). */
     Node::Value  kmer;
-    u_int16_t    abundance;
+
+    /** Strand telling how to interpret the node in the bi-directed DB graph. */
     kmer::Strand strand;
 
+    /** Abundance of the kmer in the initial set of reads. */
+    u_int16_t    abundance;
+
+    /** Overload of operator ==  NOTE: by now, it doesn't take care of the strand... */
     bool operator== (const Node& other) const  { return kmer == other.kmer; }
+
+    /** Overload of operator !=  NOTE: by now, it doesn't take care of the strand... */
     bool operator!= (const Node& other) const  { return kmer != other.kmer; }
 
+    /** Overload of operator <  NOTE: by now, it doesn't take care of the strand... */
     bool operator< (const Node& other) const  { return (kmer   < other.kmer); }
 
-    /** */
+    /** Setter for some attributes of the Node object. Usually used by the Graph class for setting
+     * a Node object's guts.
+     * \param[in] kmer : the kmer value to be set
+     * \param[in] strand : strand to be set
+     */
     void set (const Node::Value& kmer, const kmer::Strand& strand)
     {
         this->kmer      = kmer;
@@ -102,21 +153,67 @@ struct Node
 
 /********************************************************************************/
 
+/** \brief Specific Node structure representing a branching node in the De Bruijn graph
+ *
+ * The BranchingNode inherits from the Node structure.
+ *
+ * Its semantics is to define nodes this way:
+ *      indegree!=1 || outdegree!=1
+ *
+ * Note: with such a definition, nodes that are tips (ie indegree==0 || outdegree=0) are considered
+ * as branching. This could be refined if needed (defined this way for historical matters).
+ *
+ * Its main usage is to be the template specialization type for some Graph class methods.
+ */
 struct BranchingNode : Node
 {
 };
 
-/********************************************************************************/
+/********************************************************************************
+                        #######  ######    #####   #######
+                        #        #     #  #     #  #
+                        #        #     #  #        #
+                        #####    #     #  #  ####  #####
+                        #        #     #  #     #  #
+                        #        #     #  #     #  #
+                        #######  ######    #####   #######
+********************************************************************************/
 
-/** Definition of an Edge. */
+/** \brief Definition of an Edge, ie a transition between two nodes in the De Bruijn graph.
+ *
+ * The Edge structure represents an oriented transition between two nodes. Therefore, it holds:
+ *  - the 'from' node
+ *  - the 'to' node
+ *  - the direction of the transition
+ *  - the nucleotide that decorates the transition
+ *
+ *  The Edge objects are mainly provided by the Graph class, for instance when neighbors of a node
+ *  are needed.
+ *
+ *  The Edge structure may be used as a template specialization type for some Graph class methods.
+ */
 struct Edge
 {
+    /** The source node of the edge. */
     Node             from;
+
+    /** The target node of the edge. */
     Node             to;
+
+    /** The transition nucleotide. */
     kmer::Nucleotide nt;
+
+    /** The direction of the transition. */
     Direction        direction;
 
-    /** */
+    /** Setter for some attributes of the Edge object.
+     * \param[in] kmer_from : kmer value of the 'from' Node
+     * \param[in] strand_from : strand of the 'from' Node
+     * \param[in] kmer_to : kmer value of the 'to' Node
+     * \param[in] strand_to : strand of the 'to' Node
+     * \param[in] n : the transition nucleotide
+     * \param[in] dir : direction of the transition.
+     */
     void set (
         const Node::Value& kmer_from, kmer::Strand strand_from,
         const Node::Value& kmer_to,   kmer::Strand strand_to,
@@ -128,30 +225,152 @@ struct Edge
         nt = n;
         direction = dir;
     }
-
-#if 0
-    /** */
-    Edge reverse() const
-    {
-        Edge result;
-        result.set (
-            to.kmer,   to.strand,
-            from.kmer, from.strand,
-            nt,
-            direction==DIR_OUTCOMING ? DIR_INCOMING : DIR_OUTCOMING
-        );
-        return result;
-    }
-#endif
 };
 
-/********************************************************************************/
+/********************************************************************************
+                    ######      #     #######  #     #
+                    #     #    # #       #     #     #
+                    #     #   #   #      #     #     #
+                    ######   #     #     #     #######
+                    #        #######     #     #     #
+                    #        #     #     #     #     #
+                    #        #     #     #     #     #
+********************************************************************************/
 
+/** \brief Structure representing a path in the De Bruijn graph.
+ *
+ * The Path structure provides information on a path in the DB graph. It mainly holds
+ * the succession of nucleotides that define the path.
+ *
+ * The path start is defined by an Edge object, which defines without ambiguity the first
+ * transition of the path.
+ *
+ * It can be used by clients such a contiger tool.
+ *
+ * Note: by now, the structure is not perfect and some adaptations could come.
+ */
+struct Path
+{
+    /** Constructor (default one)
+     * \param[in] n : size of the path. */
+    Path (size_t n=0) : path(n) {}
+
+    /** Edge defining the initial transition of the path. */
+    Edge root;
+
+    /** Path definition as a succession of nucleotides. */
+    std::vector<kmer::Nucleotide> path;
+
+    /** Get the path size
+     * \return the size of the path. */
+    size_t size() const  { return path.size(); }
+
+    /** Set the size of the path
+     * \param[in] n : the size of the path. */
+    void resize (size_t n) { path.resize(n); }
+
+    /** Get the ascii value of the ith nucleotide in the path.
+     * \param[in] i : index of the nucleotide
+     * \return the ascii code for the ith nucleotide. */
+    char ascii (size_t i) const { return gatb::core::kmer::ascii((*this)[i]); }
+
+    /** Add a nucleotide to the path.
+     * \param[in] nt : nucleotide to be appended to the path. */
+    void push_back (kmer::Nucleotide nt)  { path.push_back(nt); }
+
+    /** Clear the path (ie remove all the nucleotides). */
+    void clear () { path.clear(); }
+
+    /** Retrieve a reference on the ith nucleotide in the path.
+     * \param[in] i : index od the nucleotide to be retrieved.
+     * \return a reference on the ith nucleotide */
+    kmer::Nucleotide& operator[] (size_t i)        { return path[i]; }
+
+    /** Retrieve a reference on the ith nucleotide in the path.
+     * \param[in] i : index od the nucleotide to be retrieved.
+     * \return a const reference on the ith nucleotide */
+    const kmer::Nucleotide& operator[] (size_t i) const  { return path[i]; }
+};
+
+/** Define a comparator for two path. The comparison is a lexicographic comparison on
+ * the ascii representation of the path.
+ * \param[in] a : path a
+ * \param[in] b : path b
+ * \return true if path a is less than path b. */
+inline bool operator< (const Path& a, const Path& b)
+{
+    size_t N = std::min(a.size(),b.size());
+    for (size_t i=0; i<N; i++)
+    {
+             if (a.ascii(i) < b.ascii(i)) { return true;  }
+        else if (a.ascii(i) > b.ascii(i)) { return false; }
+    }
+    return a.size() < b.size();
+}
+
+/** Output stream operator for dumping a Path object as an ascii string
+ * holding the nucleotides of the path.
+ * \param[in] s : the output stream
+ * \param[in] p : the path to be output
+ * \return the output stream.
+ */
+inline std::ostream& operator<< (std::ostream& s, const Path& p)
+{
+    for (size_t i=0; i<p.size(); i++)  { s << p.ascii(i); }
+    return s;
+}
+
+/********************************************************************************
+                 #####   ######      #     ######   #     #
+                #     #  #     #    # #    #     #  #     #
+                #        #     #   #   #   #     #  #     #
+                #  ####  ######   #     #  ######   #######
+                #     #  #   #    #######  #        #     #
+                #     #  #    #   #     #  #        #     #
+                 #####   #     #  #     #  #        #     #
+********************************************************************************/
+
+/** \brief Class representing a De Bruijn graph.
+ *
+ * This class is the entry point for managing De Bruijn class in gatb-core.
+ *
+ * Getting a Graph object can be done through :
+ *      - creating Graph object (likely from a set of reads).
+ *      - loading a Graph object from a file
+ *
+ * Once a client has a Graph object (with create or load), it is possible to goes
+ * through the graph in different ways.
+ *
+ * The first possibility is to use a Node iterator on the globality of the graph. For
+ * instance, all the nodes can be iterated this way, or only branching nodes.
+ *
+ * The second possibility is to navigate starting from a specific node. For instance,
+ * the neighbors of the starting node can be reached.
+ *
+ * Note: the Graph class doesn't provide means to mark nodes (ie remember which nodes
+ * have been visited); this feature could be let to subclasses or other helpers classes.
+ *
+ * Some utility methods may be useful for debugging (like ascii representation of a node
+ * or an edge).
+ *
+ * The underlying structure of the graph is taken from Minia:
+ *      - a Bloom filter
+ *      - a set of false positives
+ *
+ * Once a graph is built (from a set of reads), it is saved in a file (likely HDF5 format).
+ * It is so possible to get a Graph object by loading the file instead of re-build it.
+ *
+ * Note: branching nodes are computed during the graph building; they are also saved in the graph
+ * output file.
+ */
 class Graph
 {
 public:
 
     /********************************************************************************/
+    /*                            STATIC METHODS   (create/load)                    */
+    /********************************************************************************/
+
     /** Build an empty graph.
      * \param[in] kmerSize: kmer size
      * \return the created graph.
@@ -178,7 +397,6 @@ public:
     static Graph  load (const std::string& uri)  {  return  Graph (uri);  }
 
     /********************************************************************************/
-#if 1
     template<typename Item, int NB=8>
     class Vector
     {
@@ -194,16 +412,7 @@ public:
         Item   _items[NB];
         size_t _size;
     };
-#else
-    /** Not optimal since std::vector uses dynamic allocation, although we know we can't have more that 8 items.*/
-    template<typename Item>
-    class Vector : public std::vector<Item>
-    {
-    public:
-        Vector () : std::vector<Item>(8) {}
-        template<typename Functor>  void iterate (const Functor& f)  { for (size_t i=0; i<this->size(); i++)  { f((*this)[i]); } }
-    };
-#endif
+
     /********************************************************************************/
     template<typename Item>
     class Iterator : public tools::dp::ISmartIterator<Item>
@@ -256,6 +465,8 @@ public:
     };
 
     /********************************************************************************/
+    /*                               CONSTRUCTORS                                   */
+    /********************************************************************************/
 
     /** Default Constructor.*/
     Graph ();
@@ -266,34 +477,68 @@ public:
     /** Destructor. */
     ~Graph ();
 
-    /** */
+    /** Affectation overload. */
     Graph& operator= (const Graph& graph);
 
-    /** */
-    void remove ();
+    /**********************************************************************/
+    /*                     GLOBAL ITERATOR METHODS                        */
+    /**********************************************************************/
 
-    /** From Container interface. */
-    bool contains (const Node& item) const;
-
-    /** Creates an iterator over all nodes of the graph.
-     * \return the all nodes iterator. */
+    /** Creates an iterator over nodes of the graph.
+     * The kind of nodes may depend on the template specialization of this method:
+     *      - all nodes for T=Node,
+     *      - branching nodes for T=BranchingNode...
+     * \return the nodes iterator. */
     template<typename T>
     Graph::Iterator<T> iterator () const;
 
-    /** */
-    template <typename T>  Graph::Vector<T> successors (const Node& node) const;
 
-    /** */
-    template <typename T>  Graph::Vector<T> predecessors (const Node& node) const;
+    /**********************************************************************/
+    /*                     NEIGHBORHOOD METHODS                           */
+    /**********************************************************************/
 
     /** Returns a vector of neighbors of the provided node.
      * \param[in] node : the node whose neighbors are wanted
-     * \param[in] direction : the direction of the neighbors.
-     * \return a vector of the node neighbors (may be empty). */
+     * \param[in] direction : the direction of the neighbors. If not set, out and in neighbors are computed.
+     * \return a vector of the node neighbors (may be empty).
+     */
     template <typename T>  Graph::Vector<T> neighbors (const Node& node, Direction direction=DIR_END) const;
 
-    /** */
+    /** Shortcut for 'neighbors' method with direction==DIR_OUTCOMING.
+     * \param[in] node : the node whose neighbors are wanted
+     * \return a vector of the node neighbors (may be empty).
+     */
+    template <typename T>  Graph::Vector<T> successors (const Node& node) const;
+
+    /** Shortcut for 'neighbors' method with direction==DIR_INCOMING.
+     * \param[in] node : the node whose neighbors are wanted
+     * \return a vector of the node neighbors (may be empty).
+     */
+    template <typename T>  Graph::Vector<T> predecessors (const Node& node) const;
+
+    /** Returns a vector of neighbors of the provided kmer. It has to be understood as the following:
+     *  - a node N is built with the kmer, with the strand FORWARD
+     *  - a call to 'neighbors<T> (N,          DIR_OUTGOING)' is done; we get v1
+     *  - a call to 'neighbors<T> (reverse(N), DIR_OUTGOING)' is done; we get v2
+     *  - the result is the concatenation of v1 and v2
+     *  \param[in] kmer : the kmer whose neighbors are wanted.
+     *  \return a vector of the neighbors (may be empty).
+     */
     template <typename T>  Graph::Vector<T> neighbors (const Node::Value& kmer) const;
+
+    /** Return a specific neighbor from a given node. The neighbor is defined by a direction and the transition
+     * nucleotide.
+     * IMPORTANT: this method will not (by default) check that the neighbor node belongs to the graph: it merely
+     * computes the next kmer but doesn't check the Bloom filter. It is supposed that the client has already asked
+     * for the neighbors and so knows the valid transitions. It is still possible to force the Bloom query by
+     * setting the 'trustable' argument to false.
+     * \param[in] source : the source neighbor
+     * \param[in] dir : the direction of the transition
+     * \param[in] nt : the nucleotide of the transition
+     * \param[in] trustable : yes means that the neighbor existence is not checked in the Bloom filter.
+     * \return the neighbor object.
+     */
+    template <typename T>  T neighbor (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable=true) const;
 
     /** Get the incoming degree of the node.
      * \param[in] node : the node
@@ -311,37 +556,63 @@ public:
      * \return the degree of the node. */
     size_t degree    (const Node& node, Direction dir) const;
 
-    /** */
+    /** Tells whether or not a transition exists between two given nodes.
+     * \param[in] u : first node
+     * \param[in] v : second node
+     * \return true if such a transition exists, false otherwise. */
     bool isEdge (const Node& u, const Node& v) const { return false; }
 
-    /** Get information about the graph (gathered during its creation).
-     * \return a property object holding graph information. */
-    tools::misc::IProperties& getInfo () const { return (tools::misc::IProperties&)_info; }
+    /**********************************************************************/
+    /*                         NODE METHODS                               */
+    /**********************************************************************/
+
+    /** Tells whether or not a node belongs to the graph.
+     * \param[in] item : the node
+     * \return true if the node belongs to the graph, false otherwise. */
+    bool contains (const Node& item) const;
 
     /** Get the ascii string for the node, according to its strand.
      * \param[in] node: the node to get the string from
      * \return the string representation for the provided node. */
     std::string toString (const Node& node) const;
 
-    /** */
-    void getNearestBranchingRange (const Node& node, Node& begin, Node& end) const;
-
     /** Tells whether the provided node is branching or not.
      * \param[in] node : the node to be asked
      * \return true if the node is branching, false otherwise. */
     bool isBranching (const Node& node) const;
 
+    /** Build a fake node (ie. not necessarily in the De Bruijn graph). Mainly for test purpose.
+     * \param[in] data : a string like structure for the sequence from which the kmer of the node is extracted
+     * \param[in] offset : starting offset in the data
+     * \return the fake node. */
+    Node buildNode (const tools::misc::Data& data, size_t offset=0) const;
+
+    /** Return the reverse complement node of the provided one.
+     * param[in] node : the node to be reverted
+     * \return the reverted node.  */
+    Node reverse (const Node& node) const;
+
+    /**********************************************************************/
+    /*                         MISC METHODS                               */
+    /**********************************************************************/
+
     /** Get the size of the kmers.
      * \return the kmer size. */
     size_t getKmerSize() const { return _kmerSize; }
 
-    /** */
-    Node getNode (const tools::misc::Data& data, size_t offset=0) const;
+    /** Get information about the graph (gathered during its creation).
+     * \return a property object holding graph information. */
+    tools::misc::IProperties& getInfo () const { return (tools::misc::IProperties&)_info; }
 
     /** */
-    Node reverse (const Node& node) const;
+    void getNearestBranchingRange (const Node& node, Node& begin, Node& end) const;
 
-    /** */
+    /** Remove physically a graph. */
+    void remove ();
+
+    /** Reverse an edge.
+     * param[in] edge: the edge to be reverted
+     * \return the reverted edge. */
     Edge reverse (const Edge& edge) const;
 
     /**********************************************************************/
@@ -400,12 +671,17 @@ private:
     Graph::Vector<Node> getNodeValues (const Node::Value& kmer) const;
 
     /** */
+    Node getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable) const;
+
+    /** */
     void executeAlgorithm (tools::misc::impl::Algorithm& algorithm, tools::misc::IProperties* props, tools::misc::IProperties& info);
 
     /** Friends. */
     template<typename T> friend class GraphFactoryImpl;
 };
 
+/********************************************************************************/
+/**                           TEMPLATE SPECIALIZATIONS                          */
 /********************************************************************************/
 
 template<>   inline Graph::Iterator<Node>          Graph::iterator () const  {  return getNodes ();           }
@@ -416,14 +692,24 @@ template <>  inline Graph::Vector<Node> Graph::predecessors (const Node& node) c
 template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node& node, Direction dir) const  {  return getNodes (node, dir);           }
 template <>  inline Graph::Vector<Node> Graph::neighbors    (const Node::Value& kmer) const          {  return getNodeValues (kmer);           }
 
-/********************************************************************************/
+template <>  inline Node Graph::neighbor (const Node& source, Direction dir, kmer::Nucleotide nt, bool trustable) const
+{  return getNode (source, dir, nt, trustable);  }
 
 template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) const                 {  return getEdges (node, DIR_OUTCOMING); }
 template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
 
-/********************************************************************************/
+
+/********************************************************************************
+                        #     #  ###   #####    #####
+                        ##   ##   #   #     #  #     #
+                        # # # #   #   #        #
+                        #  #  #   #    #####   #
+                        #     #   #         #  #
+                        #     #   #   #     #  #     #
+                        #     #  ###   #####    #####
+********************************************************************************/
 
 template<class Type, class Listener>
 class ProgressIterator : public tools::dp::impl::SubjectIterator<Type>
