@@ -1,0 +1,25 @@
+//! [snippet1]
+
+// We include what we need for the test
+#include <gatb/gatb_core.hpp>
+
+/********************************************************************************/
+/*             Graph loading from a HDF5 file                                   */
+/********************************************************************************/
+int main (int argc, char* argv[])
+{
+    // We check that the user provides at least one option (supposed to be in HDF5 format).
+    // IMPORTANT: only the prefix of the file has to be given. For instance, if the graph
+    // file name is "foo.h5", one should provide "foo"
+    if (argc < 2)
+    {
+        std::cerr << "You must provide a HDF5 file." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // We create the graph with the bank and other options
+    Graph graph = Graph::load (argv[1]);
+
+    return EXIT_SUCCESS;
+}
+//! [snippet1]
