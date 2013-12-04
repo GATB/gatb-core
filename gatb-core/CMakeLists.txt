@@ -1,6 +1,12 @@
-project(org.inria.gatb.tools)
+project(gatb-core)
 
 cmake_minimum_required (VERSION 2.6)
+
+################################################################################
+# The version number.
+################################################################################
+set (gatb-core_VERSION_MAJOR 1)
+set (gatb-core_VERSION_MINOR 0)
 
 ################################################################################
 # Boost
@@ -113,10 +119,19 @@ ADD_DEPENDENCIES (gatbcore-static hdf5)
 ################################################################################
 #  DOCUMENTATION GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(doc)
 
 ################################################################################
 #  EXAMPLES GENERATION 
 ################################################################################
 ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
 
+################################################################################
+#  INSTALLER 
+################################################################################
+    
+# build a CPack driven installer package
+include (InstallRequiredSystemLibraries)
+set (CPACK_PACKAGE_VERSION_MAJOR "${gatb-core_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${gatb-core_VERSION_MINOR}")
+include (CPack)

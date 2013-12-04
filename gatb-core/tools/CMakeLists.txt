@@ -10,3 +10,8 @@ FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
   target_link_libraries(${program} ${gatb-core-libraries})
 ENDFOREACH (program)
+
+################################################################################
+#  INSTALLATION 
+################################################################################
+install (TARGETS dbgh5   DESTINATION bin)

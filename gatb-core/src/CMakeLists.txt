@@ -14,3 +14,14 @@ add_library    (gatbcore-static  STATIC  ${ComponentFiles} )
 
 set_target_properties  (gatbcore-static   PROPERTIES OUTPUT_NAME  gatbcore  clean_direct_output 1)
 #set_target_properties (gatbcore-dynamic  PROPERTIES OUTPUT_NAME  gatbcore  clean_direct_output 1)
+
+################################################################################
+#  INSTALLATION 
+################################################################################
+
+# We install the libraries
+install (TARGETS gatbcore-static DESTINATION lib)
+#install (TARGETS gatbcore-dynamic DESTINATION lib)
+
+# We install the header files
+install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp")
