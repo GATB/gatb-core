@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file Collection.hpp
+/** \file Product.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Collection interface
@@ -92,7 +92,7 @@ public:
         setRef(0);
     }
 
-    /** \copydoc ICell::remove */
+    /** \copydoc dp::ICell::remove */
     void remove ()
     {
         /** We delegate the job to the referred Collection instance. */
@@ -394,7 +394,8 @@ class Product : public dp::impl::Cell
 public:
 
     /** Constructor.
-     * \param[in] name : name of the product. */
+     * \param[in] name : name of the product.
+     * \param[in] autoRemove : tells whether the product has to be physically deleted when this object is deleted. */
     Product (const std::string& name, bool autoRemove=false)
         : dp::impl::Cell(0, ""),  _root(this, ""), _autoRemove(autoRemove)  {}
 

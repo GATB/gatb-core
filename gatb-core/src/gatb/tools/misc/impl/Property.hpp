@@ -61,7 +61,7 @@ class Properties : public IProperties
 public:
 
     /** Constructor. If a file path is provided, it tries to read [key,value] entries from this file.
-     * \param initfile : the file (if any) to be read
+     * \param[in] rootname : the file (if any) to be read
      */
     Properties (const std::string& rootname = "");
 
@@ -86,7 +86,7 @@ public:
     /** \copydoc IProperties::merge  */
     void  merge (IProperties* prop);
 
-    /** \copydoc IProperties::getProperty  */
+    /** \copydoc IProperties::operator[]  */
     IProperty* operator[] (const std::string& key);
 
     /** \copydoc IProperties::get */

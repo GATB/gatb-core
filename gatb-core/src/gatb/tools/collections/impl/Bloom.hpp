@@ -224,7 +224,10 @@ template <typename Item> class BloomCacheCoherent : public Bloom<Item>
 {
 public:
     
-    /** \copydoc BloomContainer::BloomContainer */
+    /** Constructor.
+     * \param[in] tai_bloom : size (in bits) of the bloom filter.
+     * \param[in] nbHash : number of hash functions to use
+     * \param[in] block_nbits : size of the block (actual 2^nbits) */
     BloomCacheCoherent (u_int64_t tai_bloom, size_t nbHash = 4,size_t block_nbits = 12)  : Bloom<Item> (tai_bloom + (1<<block_nbits), nbHash),_nbits_BlockSize(block_nbits)
     {
         _mask_block = (1<<_nbits_BlockSize) - 1;

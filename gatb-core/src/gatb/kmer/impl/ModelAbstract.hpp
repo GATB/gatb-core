@@ -110,6 +110,7 @@ public:
 
         /** Set the data to be iterated.
          * \param[in] d : the data as information source for the iterator
+         * \param[in] mode : mode for building the kmer
          */
         void setData (tools::misc::Data& d,KmerMode mode = KMER_MINIMUM)
         {

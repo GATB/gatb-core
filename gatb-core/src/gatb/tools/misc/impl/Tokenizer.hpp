@@ -64,16 +64,16 @@ public:
     /** Destructor. */
     virtual ~TokenizerIterator ();
 
-    /** \copydoc Iterator::first */
+    /** \copydoc tools::dp::Iterator::first */
     void first();
 
-    /** \copydoc Iterator::next */
+    /** \copydoc tools::dp::Iterator::next */
     void next();
 
-    /** \copydoc Iterator::isDone */
+    /** \copydoc tools::dp::Iterator::isDone */
     bool isDone()  { return _loop == 0;  }
 
-    /** \copydoc Iterator::currentItem */
+    /** \copydoc tools::dp::Iterator::item */
     char*& item()  {  return _loop;  }
 
 private:

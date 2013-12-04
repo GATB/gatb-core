@@ -5,6 +5,12 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
+/** \file BankConverterAlgorithm.hpp
+ *  \date 01/03/2013
+ *  \author edrezen
+ *  \brief Bank conversion from one IBank to another IBank
+ */
+
 #ifndef _BANK_CONVERTER_ALGORITHM_HPP_
 #define _BANK_CONVERTER_ALGORITHM_HPP_
 

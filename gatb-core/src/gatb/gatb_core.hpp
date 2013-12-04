@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file gatb.hpp
+/** \file gatb_core.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Global header file

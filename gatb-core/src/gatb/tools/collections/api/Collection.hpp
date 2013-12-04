@@ -45,13 +45,17 @@ public:
     /** \return the iterable instance. */
     virtual Iterable<Item>* iterable() = 0;
 
-    /** */
+    /** Remove physically the collection. */
     virtual void remove () = 0;
 
-    /** */
+    /** Add a property to the collection.
+     * \param[in] key : key of the property
+     * \param[in] value  : value of the property. */
     virtual void addProperty (const std::string& key, const std::string value) = 0;
 
-    /** */
+    /** Retrieve a property for a given key
+     * \param[in] key : key of the property to be retrieved
+     * \return the value of the property. */
     virtual std::string getProperty (const std::string& key) = 0;
 };
 

@@ -86,7 +86,7 @@ public:
         return *this;
     }
 
-    /** \copydoc Iterator::first */
+    /** \copydoc dp::Iterator::first */
     void first()
     {
         _file->seeko (0, SEEK_SET);
@@ -96,7 +96,7 @@ public:
         next ();
     }
 
-    /** \copydoc Iterator::next */
+    /** \copydoc dp::Iterator::next */
     void next()
     {
         if (_cpt_buffer==0)
@@ -111,10 +111,10 @@ public:
         _idx ++;
     }
 
-    /** \copydoc Iterator::isDone */
+    /** \copydoc dp::Iterator::isDone */
     bool isDone()  { return _isDone; }
 
-    /** \copydoc Iterator::item */
+    /** \copydoc dp::Iterator::item */
     Item& item ()  { return *(this->_item); }
 
     /** */

@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file OptionParser.hpp
+/** \file OptionsParser.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Tool for parsing command line arguments
@@ -47,6 +47,7 @@ public:
      * \param[in] name : name of the option
      * \param[in] nbArgs : number of arguments for this option
      * \param[in] mandatory : tells whether this option is mandatory or not
+     * \param[in] defaultValue : default value for the option
      * \param[in] help : textual help for this option
      * \param[in] multiple : tells whether this option may be used more than once
      * \param[in] include : list of names of options that must be used with the current one
@@ -183,6 +184,7 @@ public:
      * \param[in] name : name of the option
      * \param[in] help : textual help for this option
      * \param[in] mandatory : tells whether this option is mandatory or not
+     * \param[in] defaultValue : default value for the option
      * \param[in] multiple : tells whether this option may be used more than once
      * \param[in] include : list of names of options that must be used with the current one
      * \param[in] exclude : list of names of options that must not be used with the current one

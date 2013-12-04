@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file TimeTools.hpp
+/** \file TimeInfo.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Tool for time measurement feature

@@ -315,6 +315,10 @@
  *
  * In this snippet, we dump information about the Graph object building with Graph::getInfo method.
  *
+ * \remark This snippet essentially does the same job as the \b dbgh5 tool provided by the
+ * gatb-core project: it takes a set of reads (as a FASTA file) and generates the corresponding
+ * De Bruijn graph as a HDF5 file.
+ *
  *\snippet debruijn1.cpp  snippet1
  * \n
  *

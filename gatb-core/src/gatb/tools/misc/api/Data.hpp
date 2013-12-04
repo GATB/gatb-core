@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file Range.hpp
+/** \file Data.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Data structure
@@ -65,7 +65,7 @@ public:
     /** Constructor. */
     Data (size_t len)  : Vector<char>(len), encoding(BINARY)  {}
 
-    /** \copydoc Vector<char>::setRef */
+    /**  */
     void setRef (Data* ref, size_t offset, size_t length)
     {
         /** We call the parent method. */
@@ -75,7 +75,7 @@ public:
         encoding = ref->getEncoding();
     }
 
-    /** \copydoc Vector<char>::setRef */
+    /** \copydoc Vector<char>::setRef(char*,size_t) */
     void setRef (char* buffer, size_t length)
     {
         /** We call the parent method. */

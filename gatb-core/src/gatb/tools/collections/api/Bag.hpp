@@ -44,7 +44,9 @@ public:
 
 
     /** Insert items into the bag.
-     * \param[in] items : items to be inserted. */
+     * \param[in] items : items to be inserted.
+     * \param[in] length : the number of items to be inserted. If 0 (default value),
+     *                     all the items of the vector are inserted. */
     virtual void insert (const std::vector<Item>& items, size_t length=0)
     {
         size_t n = length==0 ? items.size() : length;
@@ -52,7 +54,8 @@ public:
     }
 
     /** Insert items into the bag.
-     * \param[in] items : items to be inserted. */
+     * \param[in] items : items to be inserted.
+     * \param[in] length : number of items to be inserted. */
     virtual void insert (const Item* items, size_t length)
     {
         for (size_t i=0; i<length; i++)  {  insert (items[i]); }

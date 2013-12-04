@@ -5,6 +5,12 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
+/** \file BranchingAlgorithm.hpp
+ *  \date 01/03/2013
+ *  \author edrezen
+ *  \brief Algorithm that computes the branching nodes of a De Bruijn graph
+ */
+
 #ifndef _GATB_CORE_DEBRUIJN_IMPL_BRANCHING_ALGORITHM_HPP_
 #define _GATB_CORE_DEBRUIJN_IMPL_BRANCHING_ALGORITHM_HPP_
 

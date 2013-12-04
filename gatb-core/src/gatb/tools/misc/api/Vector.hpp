@@ -98,7 +98,7 @@ public:
     }
 
     /** Set the current data as a part of a referenced another data.
-     * \param[in] offset : the current data will begin 'offset' bytes from the beginning of the referred data.
+     * \param[in] buffer : pointer to the buffer to be referred
      * \param[in] length : size of the data */
     void setRef (T* buffer, size_t length)
     {

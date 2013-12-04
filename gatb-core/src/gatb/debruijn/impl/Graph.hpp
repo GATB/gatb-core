@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file GraphBasic.hpp
+/** \file Graph.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Graph class
@@ -381,7 +381,7 @@ public:
 
     /** Build a graph from a given bank.
      * \param[in] bank : bank to get the reads from
-     * \param[in] options : user parameters for building the graph.
+     * \param[in] fmt : printf-like format for the command line string
      * \return the created graph.
      */
     static Graph  create (bank::IBank* bank, const char* fmt, ...);
@@ -399,7 +399,7 @@ public:
     static Graph  create (tools::misc::IProperties* options)  {  return  Graph (options);  }
 
     /** Load a graph from some URI.
-     * \parm[in] uri : the uri to get the graph from
+     * \param[in] uri : the uri to get the graph from
      * \return the loaded graph.
      */
     static Graph  load (const std::string& uri)  {  return  Graph (uri);  }
@@ -598,7 +598,7 @@ public:
 
     /** Get the degree of the node (either incoming or outcoming).
      * \param[in] node : the node
-     * \param[in] direction : direction of the degree
+     * \param[in] dir : direction of the degree
      * \return the degree of the node. */
     size_t degree    (const Node& node, Direction dir) const;
 

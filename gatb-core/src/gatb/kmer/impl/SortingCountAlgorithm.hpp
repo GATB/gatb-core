@@ -5,6 +5,12 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
+/** \file SortingCountAlgorithm.hpp
+ *  \date 01/03/2013
+ *  \author edrezen
+ *  \brief Counting kmers from a set of sequences
+ */
+
 #ifndef _SORTING_COUNT_ALGORITHM_HPP_
 #define _SORTING_COUNT_ALGORITHM_HPP_
 

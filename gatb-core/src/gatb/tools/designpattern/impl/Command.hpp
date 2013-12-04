@@ -43,10 +43,10 @@ public:
     /** Destructor (defined because of presence of virtual methods). */
     virtual ~SerialDispatcher() {}
 
-    /** \copydoc ICommandDispatcher::dispatchCommands */
+    /** \copydoc IDispatcher::dispatchCommands */
     size_t dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
 
-    /** \copydoc ICommandDispatcher::getExecutionUnitsNumber */
+    /** \copydoc IDispatcher::getExecutionUnitsNumber */
     size_t getExecutionUnitsNumber () { return 1; }
 
 private:
@@ -84,10 +84,10 @@ public:
      */
     Dispatcher (size_t nbUnits=0);
 
-    /** \copydoc ICommandDispatcher::dispatchCommands */
+    /** \copydoc IDispatcher::dispatchCommands */
     size_t dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
 
-    /** \copydoc ICommandDispatcher::getExecutionUnitsNumber */
+    /** \copydoc IDispatcher::getExecutionUnitsNumber */
     size_t getExecutionUnitsNumber () { return _nbUnits; }
 
 private:

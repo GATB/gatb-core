@@ -5,10 +5,10 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file SmartPointer.hpp
+/** \file ISmartPointer.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Smart Pointer Design Pattern definition
+ *  \brief Smart Pointer Design Pattern interface
  *
  *  Define tools for easing life cycle of objects. Also known as smart pointer.
  */

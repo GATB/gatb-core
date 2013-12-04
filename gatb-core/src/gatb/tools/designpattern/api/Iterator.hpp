@@ -218,7 +218,8 @@ public:
     /** Increase the number of currently done tasks. */
     virtual void inc (u_int64_t ntasks_done) {}
 
-    /** Associate a message to the listener. */
+    /** Associate a message to the listener.
+     * \param[in] format : printf-like argument for building the message */
     virtual void setMessage (const char* format, ...)  {}
 
     /** Set the current number of tasks done.

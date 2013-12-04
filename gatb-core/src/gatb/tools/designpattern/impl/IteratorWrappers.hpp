@@ -38,7 +38,7 @@ public:
     /** Destructor (here because of virtual methods). */
     virtual ~STLIterator ()  {}
 
-    /** \copydoc Iterator<T1>::first */
+    /** */
     void first()
     {
         _iter = _l.begin();
@@ -46,7 +46,7 @@ public:
         if (!_isDone)  { * this->_item = *_iter; }
     }
 
-    /** \copydoc Iterator<T1>::next */
+    /** */
     void next()
     {
         _iter++;
@@ -54,10 +54,10 @@ public:
         if (!_isDone)  { * this->_item = *_iter; }
     }
 
-    /** \copydoc Iterator<T1>::isDone */
+    /** */
     bool isDone() { return _isDone; }
 
-    /** \copydoc Iterator<T1>::item */
+    /** */
     Type& item()  { return * this->_item; }
 
 private:

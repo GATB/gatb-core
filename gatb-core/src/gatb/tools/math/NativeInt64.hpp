@@ -75,7 +75,7 @@ public:
     }
     /********************************************************************************/
     /** Print corresponding kmer in ASCII
-     * \param[sizeKmer] in : kmer size (def=32).
+     * \param[in] sizeKmer : kmer size (def=32).
      */
     inline void printASCII ( size_t sizeKmer = 32)
     {
@@ -98,7 +98,7 @@ public:
 
     /********************************************************************************/
     /** Print corresponding kmer in ASCII
-     * \param[sizeKmer] in : kmer size (def=32).
+     * \param[in] sizeKmer : kmer size (def=32).
      */
     std::string toString (size_t sizeKmer) const
     {
@@ -162,7 +162,8 @@ public:
 
     /********************************************************************************/
     /** computes a simple, naive hash using only 16 bits from input key
-     * \param[shift] in : selects which of the input byte will be used for hash computation
+     * \param[in] key : key of the hash
+     * \param[in] shift : selects which of the input byte will be used for hash computation
      */
     inline static  u_int64_t    simplehash16_64   (u_int64_t key, int  shift)
     {

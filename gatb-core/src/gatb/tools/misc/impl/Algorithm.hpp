@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file Tool.hpp
+/** \file Algorithm.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Tool framework
@@ -41,7 +41,9 @@ class Algorithm : public system::SmartPointer
 public:
 
     /** Constructor.
-     * \param[in] name: name of the algorithm. */
+     * \param[in] name: name of the algorithm.
+     * \param[in] nbCores : number of cores to be used for this algorithm.
+     * \param[in] input : extra options for configuring the algorithm. */
     Algorithm (const std::string& name, int nbCores=-1, gatb::core::tools::misc::IProperties* input=0);
 
     /** Destructor. */

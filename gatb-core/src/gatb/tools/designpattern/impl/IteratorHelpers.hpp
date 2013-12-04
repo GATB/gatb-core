@@ -329,7 +329,9 @@ public:
 
     /** Constructor
      * \param[in] ref : the referred iterator
-     * \param[in] modulo : notifies every 'modulo' time */
+     * \param[in] modulo : notifies every 'modulo' time
+     * \param[in] listener : default listener attached to this subject (default value is 0)
+     */
     SubjectIterator (Iterator<Item>* ref, u_int32_t modulo, IteratorListener* listener=0)
         : _ref(0), _modulo(modulo==0 ? 1 : modulo), _current(0)
     {

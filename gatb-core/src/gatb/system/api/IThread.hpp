@@ -5,6 +5,12 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
+/** \file IThread.hpp
+ *  \date 01/03/2013
+ *  \author edrezen
+ *  \brief Interface for threads
+ */
+
 #ifndef _GATB_CORE_SYSTEM_ITHREAD_HPP_
 #define _GATB_CORE_SYSTEM_ITHREAD_HPP_
 

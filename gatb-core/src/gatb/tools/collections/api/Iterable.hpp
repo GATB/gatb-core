@@ -51,7 +51,9 @@ public:
      * \return the number of items if known, -1 otherwise. */
     virtual int64_t getNbItems () = 0;
 
-    /** */
+    /** Return a buffer of items.
+     * \param[out] buffer : the buffer
+     * \return the buffer */
     virtual Item* getItems (Item*& buffer)
     {
         throw "Iterable::getItems... SHOULD NOT BE HERE...";

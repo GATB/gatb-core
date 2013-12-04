@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file Node.hpp
+/** \file ICell.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Node
@@ -28,6 +28,8 @@ namespace tools {
 namespace dp    {
 /********************************************************************************/
 
+/** \brief Interface for a cell
+ */
 class ICell : public virtual system::ISmartPointer
 {
 public:
@@ -50,7 +52,9 @@ public:
     /** Physically remove the node. */
     virtual void remove () = 0;
 
-    /** \copydoc ICell::getRoot  */
+    /** Get the root of the given cell
+     * \param[in] cell : the cell we want to get the root
+     * \return the root of the given cell  */
     static ICell* getRoot (ICell* cell)
     {
         dp::ICell* loop=0;  for (loop=cell ; loop && loop->getParent() != 0;  loop=loop->getParent())  {}

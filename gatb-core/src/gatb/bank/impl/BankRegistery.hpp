@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file BankFactory.hpp
+/** \file BankRegistery.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Interface definition for genomic databases management

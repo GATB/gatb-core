@@ -5,6 +5,12 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
+/** \file DebloomAlgorithm.hpp
+ *  \date 01/03/2013
+ *  \author edrezen
+ *  \brief Debloom algorithm, ie. compute false positive sets for a Bloom filter
+ */
+
 #ifndef _DEBLOOM_HPP_
 #define _DEBLOOM_HPP_
 

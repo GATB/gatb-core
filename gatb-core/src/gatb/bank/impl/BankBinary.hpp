@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file Bank.hpp
+/** \file BankBinary.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Implementation of IBank interface with compressed format.

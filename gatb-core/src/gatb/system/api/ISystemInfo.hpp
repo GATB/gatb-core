@@ -5,6 +5,12 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
+/** \file ISystemInfo.hpp
+ *  \date 01/03/2013
+ *  \author edrezen
+ *  \brief Interface providing information about the operating system
+ */
+
 #ifndef _GATB_CORE_SYSTEM_ISYSTEM_INFO_HPP_
 #define _GATB_CORE_SYSTEM_ISYSTEM_INFO_HPP_
 
