@@ -4,14 +4,24 @@
 
 file (GLOB_RECURSE  GatbCoreTestFiles  src/*)
 
-include_directories (${gatb-core-includes}  ${org.inria.gatb.tools_SOURCE_DIR}/test/unit/src  ${CPPUNIT_INCLUDE_DIR})
+include_directories (${gatb-core-includes}  ${gatb-core_SOURCE_DIR}/test/unit/src  ${CPPUNIT_INCLUDE_DIR})
 
-add_executable        (GatbCoreTest    ${GatbCoreTestFiles})
-target_link_libraries (GatbCoreTest    ${gatb-core-libraries} ${CPPUNIT_LIBRARY})
+add_executable        (gatb-core-cppunit    ${GatbCoreTestFiles})
+target_link_libraries (gatb-core-cppunit    ${gatb-core-libraries} ${CPPUNIT_LIBRARY})
 
-################################################################################
+#################################################
 #  LAUNCH 
-################################################################################
+#################################################
 
 # We add an optional target for launching unit tests
-add_custom_target (test GatbCoreTest  "All Tests"  ${org.inria.gatb.tools_SOURCE_DIR}/test/db  unittests.xml)
+add_custom_target (test gatb-core-cppunit  "All Tests"  ${gatb-core_SOURCE_DIR}/test/db  unittests.xml)
+
+#################################################
+#  INSTALL 
+#################################################
+install (TARGETS gatb-core-cppunit   DESTINATION test)
+install (DIRECTORY ${gatb-core_SOURCE_DIR}/test/db DESTINATION test/)
+    
+    
+
+

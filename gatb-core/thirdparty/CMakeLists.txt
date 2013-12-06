@@ -9,11 +9,16 @@ SET (HDF5_ENABLE_THREADSAFE       ON)
 #SET (CMAKE_EXE_LINKER_FLAGS       "-lpthread -lz")
 
 SET (HDF5_EXTERNALLY_CONFIGURED     ON)
-SET (HDF5_INSTALL_BIN_DIR           ${PROJECT_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
-SET (HDF5_INSTALL_LIB_DIR           ${PROJECT_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE})
-SET (HDF5_INSTALL_INCLUDE_DIR       ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE})
+
+#SET (HDF5_INSTALL_BIN_DIR           ${PROJECT_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
+#SET (HDF5_INSTALL_LIB_DIR           ${PROJECT_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE})
+SET (HDF5_INSTALL_BIN_DIR           bin)
+SET (HDF5_INSTALL_LIB_DIR           lib)
+
+SET (HDF5_INSTALL_INCLUDE_DIR       ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5)
 SET (HDF5_INSTALL_DATA_DIR          ${PROJECT_BINARY_DIR}/share/${CMAKE_BUILD_TYPE})
 SET (HDF5_INSTALL_CMAKE_DIR         ${PROJECT_BINARY_DIR}/share/${CMAKE_BUILD_TYPE})
+SET (HDF5_EXPORTED_TARGETS          "gatb-hdf5")
 
 # We don't want warnings from HDF5 compilation
 set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -w")
@@ -21,3 +26,23 @@ add_definitions (${COMPILE_DEFINITIONS})
 
 # add HDF5 generation
 ADD_SUBDIRECTORY (hdf5)
+
+# We add a custom target for copying header files.
+add_custom_target (hdf5_postbuild)
+
+# We build the output directory
+add_custom_command (TARGET hdf5_postbuild POST_BUILD  COMMAND ${CMAKE_COMMAND} -E make_directory ${HDF5_INSTALL_INCLUDE_DIR})
+
+# We define all the header files to be copied
+file (GLOB headerfiles ${PROJECT_SOURCE_DIR}/thirdparty/hdf5/src/*.h ${PROJECT_BINARY_DIR}/thirdparty/hdf5/H5pubconf.h)
+
+# We copy each header file
+foreach (header ${headerfiles})
+  add_custom_command (TARGET hdf5_postbuild POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy ${header} ${HDF5_INSTALL_INCLUDE_DIR}  )
+endforeach()
+
+
+################################################################################
+#  INSTALL 
+################################################################################
+INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5 DESTINATION include)

@@ -10,7 +10,7 @@
 #                                                                                                #
 ##################################################################################################
 
-The gatb-core project provides a library with services for genome assembly.
+The gatb-core project provides a library for denovo genome assembly.
 
 The archive is made of:
 
@@ -22,3 +22,11 @@ The archive is made of:
     - test       : unit tests of the library
     - examples   : a few snippets showing how to use the library
 
+For documentation, please have a look at doc/html/index.html
+
+You can check the library by launching unit tests on your system. Just go into 'test' directory 
+and run 'gatb-core-cppunit'. 
+
+You can try the library by compiling a snippet from the 'examples' directory, for instance:
+    g++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x 
+    

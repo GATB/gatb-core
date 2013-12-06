@@ -30,11 +30,10 @@ DefineInteger (k)
 ################################################################################
 # OPENMP MANAGEMENT
 ################################################################################
-find_package(OpenMP)
-
-if (OPENMP_FOUND AND NOT (omp EQUAL 0))
-    set (COMPILE_DEFINITIONS    "${COMPILE_DEFINITIONS}    ${OpenMP_C_FLAGS} -DOMP")
-endif()
+#find_package(OpenMP)
+#if (OPENMP_FOUND AND NOT (omp EQUAL 0))
+#    set (COMPILE_DEFINITIONS    "${COMPILE_DEFINITIONS}    ${OpenMP_C_FLAGS} -DOMP")
+#endif()
 
 ################################################################################
 # GENERAL DEFINITIONS
@@ -77,8 +76,7 @@ set (gatb-core-flags ${COMPILE_DEFINITIONS})
 set (gatb-core-includes   
     ${PROJECT_SOURCE_DIR}/src  
     ${PROJECT_SOURCE_DIR}/src/gatb/tools  
-    ${PROJECT_SOURCE_DIR}/thirdparty/hdf5/src
-    ${PROJECT_BINARY_DIR}/thirdparty/hdf5  
+    ${PROJECT_BINARY_DIR}/include
 )
 
 # We define the libraries used for linking binary based on gatb core
@@ -89,6 +87,7 @@ set (gatb-core-flags     ${gatb-core-flags}     PARENT_SCOPE)
 set (gatb-core-includes  ${gatb-core-includes}  PARENT_SCOPE)
 set (gatb-core-libraries ${gatb-core-libraries} PARENT_SCOPE)
 
+
 ################################################################################
 #  LIBRARY GENERATION 
 ################################################################################
@@ -98,7 +97,7 @@ ADD_SUBDIRECTORY(src)
 #  UNIT TESTS GENERATION 
 ################################################################################
 IF (DEFINED CPPUNIT_FOUND)
-    ADD_SUBDIRECTORY (test EXCLUDE_FROM_ALL)
+    ADD_SUBDIRECTORY (test)
 ENDIF()
 
 ################################################################################
@@ -114,7 +113,8 @@ ADD_SUBDIRECTORY(thirdparty)
 ################################################################################
 #  DEPENDENCIES 
 ################################################################################
-ADD_DEPENDENCIES (gatbcore-static hdf5)
+# we must be sure that hdf5 is built and installed before building gatb-core
+ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
 
 ################################################################################
 #  DOCUMENTATION GENERATION 
@@ -127,11 +127,17 @@ ADD_SUBDIRECTORY(doc)
 ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
 
 ################################################################################
+#  INSTALL 
+################################################################################
+INSTALL (FILES ${PROJECT_SOURCE_DIR}/doc/misc/README.txt  DESTINATION .)
+INSTALL (DIRECTORY ${PROJECT_SOURCE_DIR}/examples DESTINATION . FILES_MATCHING PATTERN "*.cpp")
+
+################################################################################
 #  INSTALLER 
 ################################################################################
-    
-# build a CPack driven installer package
-include (InstallRequiredSystemLibraries)
-set (CPACK_PACKAGE_VERSION_MAJOR "${gatb-core_VERSION_MAJOR}")
-set (CPACK_PACKAGE_VERSION_MINOR "${gatb-core_VERSION_MINOR}")
+SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY  "gatb-core project")
+SET (CPACK_PACKAGE_VENDOR               "Genscale team (INRIA)")
+SET (CPACK_PACKAGE_VERSION_MAJOR        "${gatb-core_VERSION_MAJOR}")
+SET (CPACK_PACKAGE_VERSION_MINOR        "${gatb-core_VERSION_MINOR}")
 include (CPack)
+

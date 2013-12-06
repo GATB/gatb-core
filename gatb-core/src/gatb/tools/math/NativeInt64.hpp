@@ -18,7 +18,7 @@
 
 #include <iostream>
 #include <gatb/system/api/types.hpp>
-#include <hdf5.h>
+#include <hdf5/hdf5.h>
 
 extern const unsigned char revcomp_4NT[];
 extern const unsigned char comp_NT    [];

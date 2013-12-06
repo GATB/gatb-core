@@ -21,7 +21,7 @@
 #include <gatb/tools/collections/impl/Product.hpp>
 #include <gatb/tools/collections/impl/CollectionHDF5.hpp>
 #include <gatb/system/impl/System.hpp>
-#include <hdf5.h>
+#include <hdf5/hdf5.h>
 #include <typeinfo>
 
 /********************************************************************************/

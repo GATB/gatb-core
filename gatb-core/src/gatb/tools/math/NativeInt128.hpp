@@ -19,7 +19,7 @@
 /********************************************************************************/
 
 #include <iostream>
-#include <hdf5.h>
+#include <hdf5/hdf5.h>
 
 #include <gatb/system/api/types.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>

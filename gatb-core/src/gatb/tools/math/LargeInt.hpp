@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
-#include <hdf5.h>
+#include <hdf5/hdf5.h>
 
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>

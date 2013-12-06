@@ -15,7 +15,7 @@
 #define _GATB_CORE_TOOLS_MISC_IHISTOGRAM_HPP_
 
 #include <gatb/system/api/ISmartPointer.hpp>
-#include <hdf5.h>
+#include <hdf5/hdf5.h>
 
 /********************************************************************************/
 namespace gatb      {

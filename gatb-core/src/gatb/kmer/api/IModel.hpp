@@ -18,7 +18,7 @@
 
 #include <gatb/bank/api/IAlphabet.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
-#include <hdf5.h>
+#include <hdf5/hdf5.h>
 
 /********************************************************************************/
 namespace gatb      {
