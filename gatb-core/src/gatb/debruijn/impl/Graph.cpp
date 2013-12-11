@@ -1360,6 +1360,18 @@ std::string Graph::debugString (const Edge& edge, kmer::Strand strand, int mode)
     return boost::apply_visitor (debugString_edge_visitor(edge, strand, mode),  *(DataVariant*)_variant);
 }
 
+std::string Graph::toString (const Edge& edge) const
+{
+    std::stringstream ss;
+
+    ss << "["  << this->toString (edge.from)  << " ";
+    if (edge.direction == DIR_OUTCOMING)  {  ss <<  "--"  << ascii(edge.nt) << "-->";  }
+    else                                  {  ss <<  "<--" << ascii(edge.nt) << "--";   }
+    ss << " "  << this->toString (edge.to)  << "]";
+
+    return ss.str();
+}
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -1377,6 +1389,205 @@ void Graph::executeAlgorithm (Algorithm& algorithm, IProperties* props, IPropert
     algorithm.execute();
 
     info.add (1, algorithm.getInfo());
+}
+
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+int Graph::simplePathAvance (const Node& node, Direction dir, kmer::Nucleotide& nt) const
+{
+    Edge edge;
+    int res = simplePathAvance (node, dir, edge);
+    nt = edge.nt;
+    return res;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+int Graph::simplePathAvance (const Node& node, Direction dir) const
+{
+    Edge output;  return simplePathAvance (node, dir, output);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+int Graph::simplePathAvance (const Node& node, Direction dir, Edge& output) const
+{
+    Graph::Vector<Edge> neighbors = this->neighbors<Edge> (node, dir);
+
+    /** We check we have no outbranching. */
+    if (neighbors.size() == 1)
+    {
+        /** We check whether the neighbor has an inbranching or not. */
+        if (this->degree (neighbors[0].to, impl::reverse(dir)) > 1)  { return -2; }
+
+        output = neighbors[0];
+
+        return 1;
+    }
+
+    /** if this kmer has out-branching, don't extend it. */
+    if (neighbors.size() > 1)  {  return -1;  }
+
+    return 0;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename Item, typename Functor>
+class AbstractSimplePathIterator : public tools::dp::ISmartIterator<Item>
+{
+public:
+
+    AbstractSimplePathIterator (const Graph& graph, const Node& node, Direction dir, const Functor& update)
+        : _graph(graph), _dir(dir), _rank(0), _isDone(true), _update(update) {}
+
+    virtual ~AbstractSimplePathIterator() {}
+
+    u_int64_t rank () const { return _rank; }
+
+    /** \copydoc  Iterator::first */
+    void first()
+    {
+        _rank   = 0;
+        _isDone = false;
+        next ();
+        /** The rank must begin at 0; we just remove the 1 added in the first call to next. */
+        _rank --;
+    }
+
+    /** \copydoc  Iterator::next */
+    void next()
+    {
+        _rank ++;
+        _update (_graph, *(this->_item), _dir, _isDone);
+    }
+
+    /** \copydoc  Iterator::isDone */
+    bool isDone() {  return _isDone;  }
+
+    /** \copydoc  Iterator::item */
+    Item& item ()  {  return *(this->_item);  }
+
+    /** */
+    u_int64_t size () const { return 0; }
+
+protected:
+    const Graph&       _graph;
+    Direction          _dir;
+    u_int64_t          _rank;
+    bool               _isDone;
+    const Functor&     _update;
+};
+
+/** */
+template<typename Functor>
+class NodeSimplePathIterator : public AbstractSimplePathIterator<Node,Functor>
+{
+public:
+    NodeSimplePathIterator (const Graph& graph, const Node& node, Direction dir, const Functor& update)
+        : AbstractSimplePathIterator<Node,Functor> (graph, node, dir, update)  { *(this->_item) = node;  }
+};
+
+/** */
+template<typename Functor>
+class EdgeSimplePathIterator : public AbstractSimplePathIterator<Edge, Functor>
+{
+public:
+    EdgeSimplePathIterator (const Graph& graph, const Node& node, Direction dir, const Functor& udpate)
+        : AbstractSimplePathIterator<Edge, Functor> (graph, node, dir, udpate)
+    { this->_item->set (node.kmer, node.strand, node.kmer, node.strand, NUCL_UNKNOWN, dir); }
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Iterator<Node> Graph::getSimpleNodeIterator (const Node& node, Direction dir) const
+{
+    struct Functor {  void operator() (
+        const Graph&         graph,
+        Node&                item,
+        Direction            dir,
+        bool&                isDone
+    ) const
+    {
+        Edge output;
+        if (graph.simplePathAvance (item, dir, output) > 0)
+        {
+            /** We update the currently iterated node. */
+            item = output.to;
+        }
+        else
+        {
+            /** We can't have a non branching node in the wanted direction => iteration is finished. */
+            isDone = true;
+        }
+    }};
+
+    return Graph::Iterator<Node> (new NodeSimplePathIterator <Functor> (*this, node, dir, Functor()));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Iterator<Edge> Graph::getSimpleEdgeIterator (const Node& node, Direction dir) const
+{
+
+    struct Functor {  void operator() (
+        const Graph&         graph,
+        Edge&                item,
+        Direction            dir,
+        bool&                isDone
+    ) const
+    {
+        Edge output;
+        if (graph.simplePathAvance (item.to, dir, output) > 0)
+        {
+            /** We update the currently iterated node. */
+            item = output;
+        }
+        else
+        {
+            /** We can't have a non branching node in the wanted direction => iteration is finished. */
+            isDone = true;
+        }
+    }};
+
+    return Graph::Iterator<Edge> (new EdgeSimplePathIterator<Functor>(*this, node, dir, Functor()));
 }
 
 /********************************************************************************/

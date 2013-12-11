@@ -171,6 +171,21 @@ struct BranchingNode : Node
 {
 };
 
+/********************************************************************************/
+
+/** \brief Specific Node structure representing a simple node in the De Bruijn graph
+ *
+ * The SimpleNode inherits from the Node structure.
+ *
+ * Its semantics is to define nodes this way:
+ *      indegree==1 && outdegree==1
+ *
+ * Its main usage is to be the template specialization type for some Graph class methods.
+ */
+struct SimpleNode : Node
+{
+};
+
 /********************************************************************************
                         #######  ######    #####   #######
                         #        #     #  #     #  #
@@ -609,6 +624,30 @@ public:
     bool isEdge (const Node& u, const Node& v) const;
 
     /**********************************************************************/
+    /*                         SIMPLE PATH METHODS                        */
+    /**********************************************************************/
+
+    /** Simple paths traversal
+     *  invariant: the input kmer has no in-branching.
+     * \returns
+     *       1 if a good extension is found
+     *       0 if a deadend was reached
+     *      -1 if out-branching was detected
+     *      -2 if no out-branching but next kmer has in-branching
+     */
+    int simplePathAvance (const Node& node, Direction dir, Edge& output) const;
+
+    /** */
+    int simplePathAvance (const Node& node, Direction dir) const;
+
+    /** */
+    int simplePathAvance (const Node& node, Direction dir, kmer::Nucleotide& nt) const;
+
+    /** */
+    template<typename T> Graph::Iterator<T> simplePath (const Node& node, Direction dir) const;
+
+
+    /**********************************************************************/
     /*                         NODE METHODS                               */
     /**********************************************************************/
 
@@ -637,6 +676,15 @@ public:
      * param[in] node : the node to be reverted
      * \return the reverted node.  */
     Node reverse (const Node& node) const;
+
+    /**********************************************************************/
+    /*                         EDGE METHODS                               */
+    /**********************************************************************/
+
+    /** Get the ascii string for the edge
+     * \param[in] edge : the edge to get the string from
+     * \return the string representation for the provided edge . */
+    std::string toString (const Edge& edge) const;
 
     /**********************************************************************/
     /*                         MISC METHODS                               */
@@ -705,6 +753,12 @@ private:
     Graph::Iterator<BranchingNode> getBranchingNodes () const;
 
     /** */
+    Graph::Iterator<Node> getSimpleNodeIterator (const Node& node, Direction dir) const;
+
+    /** */
+    Graph::Iterator<Edge> getSimpleEdgeIterator (const Node& node, Direction dir) const;
+
+    /** */
     Graph::Vector<Edge> getEdges (const Node& source, Direction direction) const;
 
     /** */
@@ -761,6 +815,9 @@ template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) c
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
 
+/** */
+template<> inline Graph::Iterator<Node> Graph::simplePath (const Node& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }
+template<> inline Graph::Iterator<Edge> Graph::simplePath (const Node& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
 
 /********************************************************************************
                         #     #  ###   #####    #####
