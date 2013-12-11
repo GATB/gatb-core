@@ -27,6 +27,9 @@ endmacro()
 
 MACRO(DefineInteger K)
 
+    # we initialize the variable
+    SET(INT128_FOUND 0)
+
     Check_Int128 ("__uint128"    128_DEF "USE__uint128")
     Check_Int128 ("__uint128_t"  128_DEF "USE__uint128_t")
 
