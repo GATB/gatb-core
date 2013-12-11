@@ -101,7 +101,7 @@ public:
         for (size_t i=0; i<ARRAY_SIZE(table); i++)
         {
             checkOAHash_aux<NativeInt64>  (table[i]);
-    #ifdef INT128_FOUND
+    #if INT128_FOUND == 1
             checkOAHash_aux<NativeInt128> (table[i]);
     #endif
             checkOAHash_aux<LargeInt<3> >  (table[i]);

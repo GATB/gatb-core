@@ -99,7 +99,7 @@ public:
         bloom_checkContains_aux<NativeInt64> (values2, ARRAY_SIZE(values2));
         bloom_checkContains_aux<NativeInt64> (values3, ARRAY_SIZE(values3));
 
-#ifdef INT128_FOUND
+#if INT128_FOUND == 1
         bloom_checkContains_aux<NativeInt128> (values1, ARRAY_SIZE(values1));
         bloom_checkContains_aux<NativeInt128> (values2, ARRAY_SIZE(values2));
         bloom_checkContains_aux<NativeInt128> (values3, ARRAY_SIZE(values3));
