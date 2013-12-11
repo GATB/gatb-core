@@ -6,6 +6,8 @@ configure_file (
     ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp
 )
 
+install (FILES ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp DESTINATION include/gatb/system/api/)
+
 ################################################################################
 #  HEADERS COPY
 ################################################################################
@@ -13,6 +15,8 @@ file (COPY ${PROJECT_SOURCE_DIR}/src/
     DESTINATION ${PROJECT_BINARY_DIR}/include
     FILES_MATCHING PATTERN "*.hpp"  PATTERN "*.pri"
 )
+
+install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.pri")
 
 ################################################################################
 #  LIBRARY GENERATION 
@@ -38,6 +42,3 @@ set_target_properties  (gatbcore-static   PROPERTIES OUTPUT_NAME  gatbcore  clea
 # We install the libraries
 install (TARGETS gatbcore-static DESTINATION lib)
 #install (TARGETS gatbcore-dynamic DESTINATION lib)
-
-# We install the header files
-install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.pri")

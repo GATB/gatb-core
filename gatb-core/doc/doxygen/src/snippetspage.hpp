@@ -59,7 +59,7 @@
  *
  * Then, you can use the following command for compiling one snippet:
  * \code
- * g++ ../examples/debruijn/debruijn14.cpp -Iinclude -Llib -lgatbcore -ldl -lpthread -lz -lhdf5 -std=c++0x
+ * g++ examples/debruijn/debruijn14.cpp -Iinclude -Llib -lgatbcore -ldl -lpthread -lz -lhdf5 -std=c++0x
  * \endcode
  *
  * where the GATB environment variable should point to the GATB core directory and where snippetX.cpp is
