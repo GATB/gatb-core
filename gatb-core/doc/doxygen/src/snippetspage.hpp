@@ -46,10 +46,9 @@
  *
  * About the unit tests binary, you can launch it with
  * \code
- * build/test/GatbToolsTest out.xml
+ * bin/gatb-core-cppunit
  * \endcode
- * If you don't specify an output file name, you will get no console output,
- * but you will be able to use the exit status code of the command (useful for automatization processes).
+ * You can use the exit status code of the command to know the success status (0 for success)
  *
  ************************************************************************************
  * \section compilation_snippets Compiling the snippets
@@ -60,7 +59,7 @@
  *
  * Then, you can use the following command for compiling one snippet:
  * \code
- * g++ GATB/examples/snippetX.cpp -I GATB/src GATB/build/lib/libGatbTools.a -lz
+ * g++ ../examples/debruijn/debruijn14.cpp -Iinclude -Llib -lgatbcore -ldl -lpthread -lz -lhdf5 -std=c++0x
  * \endcode
  *
  * where the GATB environment variable should point to the GATB core directory and where snippetX.cpp is
