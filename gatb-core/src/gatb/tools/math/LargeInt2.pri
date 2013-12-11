@@ -11,8 +11,10 @@
  *  \brief Integer class relying on native u_int64_t type
  */
 
+#include <gatb/system/api/config.hpp>
+
 /********************************************************************************/
-#ifdef INT128_FOUND
+#if  INT128_FOUND == 1
 /********************************************************************************/
 
 /** \brief Large integer class

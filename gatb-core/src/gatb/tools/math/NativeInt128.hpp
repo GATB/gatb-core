@@ -14,8 +14,10 @@
 #ifndef _GATB_CORE_TOOLS_MATH_INTEGER_NATIVE_128_HPP_
 #define _GATB_CORE_TOOLS_MATH_INTEGER_NATIVE_128_HPP_
 
+#include <gatb/system/api/config.hpp>
+
 /********************************************************************************/
-#ifdef INT128_FOUND
+#if  INT128_FOUND == 1
 /********************************************************************************/
 
 #include <iostream>
