@@ -73,11 +73,7 @@ set (EXECUTABLE_OUTPUT_PATH    ${PROJECT_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
 set (gatb-core-flags ${COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
-set (gatb-core-includes   
-    ${PROJECT_SOURCE_DIR}/src  
-    ${PROJECT_SOURCE_DIR}/src/gatb/tools  
-    ${PROJECT_BINARY_DIR}/include
-)
+set (gatb-core-includes ${PROJECT_BINARY_DIR}/include)
 
 # We define the libraries used for linking binary based on gatb core
 set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5  ${OpenMP_C_FLAGS} )
