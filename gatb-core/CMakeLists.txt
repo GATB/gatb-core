@@ -114,7 +114,7 @@ ADD_SUBDIRECTORY(thirdparty)
 #  DEPENDENCIES 
 ################################################################################
 # we must be sure that hdf5 is built and installed before building gatb-core
-ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
+ADD_DEPENDENCIES (gatbcore-static hdf5)
 
 ################################################################################
 #  DOCUMENTATION GENERATION 

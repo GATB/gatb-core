@@ -28,7 +28,7 @@ add_definitions (${COMPILE_DEFINITIONS})
 ADD_SUBDIRECTORY (hdf5)
 
 # We add a custom target for copying header files.
-add_custom_target (hdf5_postbuild)
+add_custom_target (hdf5_postbuild ALL)
 
 # We build the output directory
 add_custom_command (TARGET hdf5_postbuild POST_BUILD  COMMAND ${CMAKE_COMMAND} -E make_directory ${HDF5_INSTALL_INCLUDE_DIR})
