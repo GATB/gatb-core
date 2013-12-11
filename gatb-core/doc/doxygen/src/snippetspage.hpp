@@ -480,4 +480,23 @@
  *
  * \snippet debruijn13.cpp  snippet1
  * \n
+ *************************************************************************************
+ * \section snippets_kmer_dbg_14  Iterating simple path from a node
+ *
+ * First, a simple node is defined as having indegree==1 and outdegree==1. It is often useful
+ * to iterate successive simple nodes in order to build some path in the De Bruijn graph.
+ *
+ * This snippet shows how to iterate such a simple path. Here, the iterated items are the
+ * successive nodes of the path.
+ *
+ * \snippet debruijn14.cpp  snippet1
+ * \n
+ *************************************************************************************
+ * \section snippets_kmer_dbg_15  Iterating simple path from a node (continued)
+ *
+ * Like the previous example, this snippet shows how to iterate a simple path.
+ * Here, the iterated items are the successive edges of the path.
+ *
+ * \snippet debruijn15.cpp  snippet1
+ * \n
  */

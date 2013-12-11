@@ -85,6 +85,8 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test5);
         CPPUNIT_TEST_GATB (debruijn_test6);
         CPPUNIT_TEST_GATB (debruijn_test7);
+        CPPUNIT_TEST_GATB (debruijn_test8);
+        CPPUNIT_TEST_GATB (debruijn_test9);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -462,6 +464,67 @@ public:
                 }
             }
         });
+    }
+
+    /********************************************************************************/
+    void debruijn_test8_aux (char* seq, size_t kmerSize)
+    {
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d  -nks 1", kmerSize);
+
+        // We get the first node.
+        Node node = graph.buildNode (seq);
+
+        Graph::Iterator<Edge> path = graph.simplePath<Edge> (node, DIR_OUTCOMING);
+
+        for (path.first(); !path.isDone(); path.next())
+        {
+            /** We check that the current transition nucleotide matches the correct character in the sequence. */
+            CPPUNIT_ASSERT (ascii(path.item().nt) == seq [graph.getKmerSize() + path.rank()]);
+        }
+
+        /** We check that we found the correct number of nodes. */
+        CPPUNIT_ASSERT (path.rank() == strlen (seq) - kmerSize);
+    }
+
+    /** */
+    void debruijn_test8 ()
+    {
+        /** This sequence should not have branching nodes for kmer size big enough. */
+        char* seq = (char*) "AGGCGCTAGGGTAGAGGATGATGA";
+
+        size_t kmerSizes[] {7, 9, 11, 13, 15, 17};
+
+        for (size_t i=0; i<ARRAY_SIZE(kmerSizes); i++)  { debruijn_test8_aux (seq, kmerSizes[i]); }
+    }
+
+    /********************************************************************************/
+    void debruijn_test9 ()
+    {
+        size_t kmerSize = 9;
+
+        char* seq1 = (char*) "AGGCGCTAGGGTAGAGGATGATGA";
+        char* seq2 = (char*) "AGGCGCTAGGGTATAGGATGATGA";
+        //                    000000000011111111112222
+        //                    012345678901234567890123
+        //  difference here                ^
+
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -nks 1", kmerSize);
+
+        /** We get the first node. */
+        Node node = graph.buildNode (seq1);
+
+        /** We get a simple path iterator starting from the beginning of the seq1. */
+        Graph::Iterator<Edge> path = graph.simplePath<Edge> (node, DIR_OUTCOMING);
+
+        for (path.first(); !path.isDone(); path.next())
+        {
+            CPPUNIT_ASSERT (ascii(path.item().nt) == seq1 [graph.getKmerSize() + path.rank()]);
+        }
+
+        /** We check that we stopped at the first difference between the two sequences. */
+        CPPUNIT_ASSERT (path.rank() == 4);   // 4 = diffOffset - kmerSize
     }
 };
 
