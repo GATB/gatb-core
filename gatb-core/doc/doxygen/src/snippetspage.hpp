@@ -298,7 +298,10 @@
  * \page snippets_graph De Bruijn graph snippets
  *
  ************************************************************************************
- * \section snippets_kmer_dbg_1  Building a De Bruijn graph from command line options
+ * \section snippets_dbg_1  Build / Load De Bruijn graphs
+ *
+ ************************************************************************************
+ * \subsection snippets_kmer_dbg_1  Building a De Bruijn graph from command line options
  *
  * This snippet shows how to create a Graph object thanks to command line options with at
  * least a mandatory FASTA file URI.
@@ -322,7 +325,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_2  Building a De Bruijn graph from a command-line-like string
+ * \subsection snippets_kmer_dbg_2  Building a De Bruijn graph from a command-line-like string
  *
  * Like the previous snippet, we create a Graph object with command line options, but
  * here the options are directly provided as a string.
@@ -331,7 +334,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_3  Building a De Bruijn graph from a bank object
+ * \subsection snippets_kmer_dbg_3  Building a De Bruijn graph from a bank object
  *
  * Here, we create a Graph object by providing a bank object, more precisely a IBank
  * object.
@@ -345,7 +348,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_4  Building a De Bruijn graph from a fake bank object
+ * \subsection snippets_kmer_dbg_4  Building a De Bruijn graph from a fake bank object
  *
  * Like the previous snippet, we create a Graph object by providing a bank object, but
  * here this is a 'fake' bank built "on the fly".
@@ -359,7 +362,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_5  Load a De Bruijn graph from a graph file
+ * \subsection snippets_kmer_dbg_5  Load a De Bruijn graph from a graph file
  *
  * Once we have built a graph, it is saved as a file (likely a HDF5 file).
  *
@@ -368,8 +371,11 @@
  * \snippet debruijn5.cpp  snippet1
  * \n
  *
+ ************************************************************************************
+ * \section snippets_dbg_2  Iterating nodes
+ *
  *************************************************************************************
- * \section snippets_kmer_dbg_6  Iterate the nodes of a De Bruijn graph
+ * \subsection snippets_kmer_dbg_6  Iterate the nodes of a De Bruijn graph
  *
  * This snippet shows how to iterate all the nodes of a graph (the graph is loaded
  * from a graph file).
@@ -382,7 +388,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_7  Iterate the nodes of a De Bruijn graph in a multithread way
+ * \subsection snippets_kmer_dbg_7  Iterate the nodes of a De Bruijn graph in a multithread way
  *
  * As the previous example, this snippet shows how to iterate all the nodes of a graph.
  *
@@ -400,7 +406,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_8  Iterate the branching nodes of a De Bruijn graph
+ * \subsection snippets_kmer_dbg_8  Iterate the branching nodes of a De Bruijn graph
  *
  * This snippet shows how to iterate the branching nodes of a graph (the graph is loaded
  * from a graph file).
@@ -411,7 +417,30 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_9  Working with neighborhoods of nodes in the De Bruijn graph
+ * \subsection snippets_kmer_dbg_14  Iterating simple path from a node
+ *
+ * First, a simple node is defined as having indegree==1 and outdegree==1. It is often useful
+ * to iterate successive simple nodes in order to build some path in the De Bruijn graph.
+ *
+ * This snippet shows how to iterate such a simple path. Here, the iterated items are the
+ * successive nodes of the path.
+ *
+ * \snippet debruijn14.cpp  snippet1
+ * \n
+ *************************************************************************************
+ * \subsection snippets_kmer_dbg_15  Iterating simple path from a node (continued)
+ *
+ * Like the previous example, this snippet shows how to iterate a simple path.
+ * Here, the iterated items are the successive edges of the path.
+ *
+ * \snippet debruijn15.cpp  snippet1
+ * \n
+ *
+ ************************************************************************************
+ * \section snippets_dbg_3  Neighborhoods
+ *
+ *************************************************************************************
+ * \subsection snippets_kmer_dbg_9  Working with neighborhoods of nodes in the De Bruijn graph
  *
  * This snippet shows how to use some methods related to neighbors in a graph.
  *
@@ -429,7 +458,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_10  Working with neighborhoods of nodes in the De Bruijn graph (continued)
+ * \subsection snippets_kmer_dbg_10  Working with neighborhoods of nodes in the De Bruijn graph (continued)
  *
  * This snippet shows how to use some methods related to neighbors in a graph.
  *
@@ -443,7 +472,7 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_11  Working with a specific neighbor for a specific node
+ * \subsection snippets_kmer_dbg_11  Working with a specific neighbor for a specific node
  *
  * This snippet shows how to get a specific neighbor for a specific node.
  *
@@ -458,7 +487,24 @@
  * \n
  *
  *************************************************************************************
- * \section snippets_kmer_dbg_12  Playing with node strands
+ * \subsection snippets_kmer_dbg_16  Working with branching neighbors of a node
+ *
+ * This snippet shows how to get the branching neighbors of a node. Such neighbors are
+ * computed as follow:
+ *      - the 'direct' neighbors of the node are retrieved
+ *      - a simple path is done from each neighbor in order to reach the first non simple node
+ *
+ * Here, we use directly the Graph::successors<BranchingNode> method that encapsulates
+ * this behavior.
+ *
+ * \snippet debruijn16.cpp  snippet1
+ * \n
+ *
+ ************************************************************************************
+ * \section snippets_dbg_4  Miscellanous
+ *
+ *************************************************************************************
+ * \subsection snippets_kmer_dbg_12  Playing with node strands
  *
  * A Node object is fully defined by a kmer value and a strand that disambiguates how to
  * interpret the kmer.
@@ -469,7 +515,7 @@
  * \snippet debruijn12.cpp  snippet1
  * \n
  *************************************************************************************
- * \section snippets_kmer_dbg_13  Playing with fake nodes
+ * \subsection snippets_kmer_dbg_13  Playing with fake nodes
  *
  * Sometimes, it is useful to build "fake" nodes from a simple sequence, without having
  * a graph holding true data.
@@ -478,24 +524,5 @@
  * and then use the Graph::buildNode to get a node based on a Data object.
  *
  * \snippet debruijn13.cpp  snippet1
- * \n
- *************************************************************************************
- * \section snippets_kmer_dbg_14  Iterating simple path from a node
- *
- * First, a simple node is defined as having indegree==1 and outdegree==1. It is often useful
- * to iterate successive simple nodes in order to build some path in the De Bruijn graph.
- *
- * This snippet shows how to iterate such a simple path. Here, the iterated items are the
- * successive nodes of the path.
- *
- * \snippet debruijn14.cpp  snippet1
- * \n
- *************************************************************************************
- * \section snippets_kmer_dbg_15  Iterating simple path from a node (continued)
- *
- * Like the previous example, this snippet shows how to iterate a simple path.
- * Here, the iterated items are the successive edges of the path.
- *
- * \snippet debruijn15.cpp  snippet1
  * \n
  */
