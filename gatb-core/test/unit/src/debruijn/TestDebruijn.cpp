@@ -87,6 +87,8 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test7);
         CPPUNIT_TEST_GATB (debruijn_test8);
         CPPUNIT_TEST_GATB (debruijn_test9);
+        CPPUNIT_TEST_GATB (debruijn_test10);
+        CPPUNIT_TEST_GATB (debruijn_test11);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -525,6 +527,63 @@ public:
 
         /** We check that we stopped at the first difference between the two sequences. */
         CPPUNIT_ASSERT (path.rank() == 4);   // 4 = diffOffset - kmerSize
+    }
+
+    /********************************************************************************/
+    void debruijn_test10 ()
+    {
+        size_t kmerSize = 7;
+
+        char* seq1 = (char*) "AGGCGCTAGGGAGAGGATGATGAAA";
+        char* seq2 = (char*) "AGGCGCTAGGGTGAGGATGATGAAA";
+        //                    000000000011111111112222
+        //                    012345678901234567890123
+        //  difference here              ^
+
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -nks 1", kmerSize);
+
+        /** We get the first node. */
+        Node node = graph.buildNode (seq1);
+        CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
+
+        /** We retrieve the branching neighbors for the node. */
+        Graph::Vector<BranchingNode> branchingNeighbors = graph.successors <BranchingNode> (node);
+
+        /** In our example, we should have only one branching neighbor. */
+        CPPUNIT_ASSERT (branchingNeighbors.size() == 1);
+
+        /** We check this branching neighbor. */
+        CPPUNIT_ASSERT (graph.toString(branchingNeighbors[0]) == "GCTAGGG");
+    }
+
+    /********************************************************************************/
+    void debruijn_test11 ()
+    {
+        size_t kmerSize = 7;
+
+        // We define some sequences used for building our test graph.
+        // Note that the sequences have a difference at index==kmerSize
+        const char* sequences[] =
+        {
+            //      x <- difference here
+            "AGGCGCTAGGGAGAGGATGATGAAA",
+            "AGGCGCTCGGGAGAGGATGATGAAA",
+            "AGGCGCTTGGGAGAGGATGATGAAA"
+        };
+
+        // We create the graph.
+        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -nks 1", kmerSize);
+
+        // We get the first node (should be AGGCGCT); this is a branching node.
+        Node node = graph.buildNode ((char*)sequences[0]);
+        CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
+
+        /** We retrieve the branching neighbors for the node. */
+        Graph::Vector<BranchingNode> branchingNeighbors = graph.successors <BranchingNode> (node);
+
+        /** In our example, we should have 3 branching neighbors. */
+        CPPUNIT_ASSERT (branchingNeighbors.size() == 3);
     }
 };
 
