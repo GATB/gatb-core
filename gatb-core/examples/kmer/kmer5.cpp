@@ -9,6 +9,7 @@ using namespace std;
 
 typedef LargeInt<1> kmer_type;
 
+/********************************************************************************/
 // We need a functor that links two iterators; it updates the inner loop iterator (on kmers)
 // with the data of the outer iterator (on sequences).
 struct Update { void operator() (Iterator<kmer_type>* itKmer, Sequence* seq)
@@ -17,6 +18,7 @@ struct Update { void operator() (Iterator<kmer_type>* itKmer, Sequence* seq)
     static_cast<Model<kmer_type>::Iterator*> (itKmer)->setData (seq->getData());
 }};
 
+/********************************************************************************/
 // We need a functor that shows some iteration progress
 struct ProgressFunctor : public IteratorListener
 {
@@ -26,7 +28,9 @@ struct ProgressFunctor : public IteratorListener
     u_int64_t total;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+/********************************************************************************/
+/*                              Kmer management                                 */
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We define a try/catch block in case some method fails (bad filename for instance)

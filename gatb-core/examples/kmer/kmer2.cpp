@@ -2,9 +2,9 @@
 // We include what we need for the test
 #include <gatb/gatb_core.hpp>
 
-// We use the required packages
-using namespace std;
-
+/********************************************************************************/
+/*                              Kmer management                                 */
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We declare a kmer model with a given span size.
@@ -12,6 +12,6 @@ int main (int argc, char* argv[])
 
     // We compute the kmer for a given sequence
     LargeInt<1> kmer = model.codeSeed ("CAT", Data::ASCII);
-    cout << "kmer is " << kmer << endl;
+    std::cout << "kmer is " << kmer << std::endl;
 }
 //! [snippet1]

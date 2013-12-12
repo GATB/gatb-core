@@ -1,29 +1,28 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/tools/designpattern/impl/IteratorWrappers.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+#include <gatb/gatb_core.hpp>
+#include <list>
 #include <iostream>
-
-// We use the required packages
-using namespace std;
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
 
 //! [snippet1_SubjectIterator]
 
+/********************************************************************************/
 // We a define a functor that will be called during iteration
 struct ProgressFunctor : public IteratorListener
 {
     // we receive 'current' amount of done iterations since last call
-    void inc  (u_int64_t current)   {  cout << ".";  }
+    void inc  (u_int64_t current)   {  std::cout << ".";  }
 };
 
+/********************************************************************************/
+/*                     Iteration with progress information                      */
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We declare a STL list with some values.
     int values[] = {1,2,3,5,8,13,21,34};
     int valuesLen = sizeof(values)/sizeof(values[0]);
-    list<int> l (values, values + valuesLen);
+    std::list<int> l (values, values + valuesLen);
 
     // We create an iterator on the list.
     ListIterator<int>* itList = new ListIterator<int> (l);
