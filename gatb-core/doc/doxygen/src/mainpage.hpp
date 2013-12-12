@@ -60,6 +60,7 @@
  * \section other Other material
  *
  * You can also read the related pages:
+ *      - \ref download_page
  *      - \ref design_page
  *      - \ref tests_page
  */
