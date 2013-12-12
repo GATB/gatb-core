@@ -1,12 +1,11 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 
-// We use the required packages
-using namespace std;
-using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
+/********************************************************************************/
+/*                    Bank iteration with a functor                             */
+/********************************************************************************/
 
 // We define a functor that will be called for every iterated sequence.
 // The advantages are:
@@ -18,12 +17,13 @@ using namespace gatb::core::bank::impl;
 struct Functor {  void operator ()  (Sequence& s)  const
 {
     // We dump the data size and the comment
-    cout << "[" << s.getDataSize() << "] " << s.getComment()  << endl;
+    std::cout << "[" << s.getDataSize() << "] " << s.getComment()  << std::endl;
 
     // We dump the data
-    cout << s.getDataBuffer () << endl;
+    std::cout << s.getDataBuffer () << std::endl;
 }};
 
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We declare a Bank instance defined by a list of filenames

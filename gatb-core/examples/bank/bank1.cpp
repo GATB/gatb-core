@@ -1,12 +1,12 @@
 //! [snippet1]
+
 // We include what we need for the test
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 
-// We use the required packages
-using namespace std;
-using namespace gatb::core::bank::impl;
-
+/********************************************************************************/
+/*                              Bank management                                 */
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We get the file name from the user arguments
@@ -26,10 +26,10 @@ int main (int argc, char* argv[])
         // the -> operator of the iterator
 
         // We dump the data size and the comment
-        cout << "[" << it->getDataSize() << "] " << it->getComment()  << endl;
+        std::cout << "[" << it->getDataSize() << "] " << it->getComment()  << std::endl;
 
         // We dump the data
-        cout << it->getDataBuffer() << endl;
+        std::cout << it->getDataBuffer() << std::endl;
     }
 //! [snippet1_bank]
 }

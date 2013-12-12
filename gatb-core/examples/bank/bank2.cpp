@@ -1,13 +1,11 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/system/impl/System.hpp>
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 
-// We use the required packages
-using namespace std;
-using namespace gatb::core::bank::impl;
-
+/********************************************************************************/
+/*                    Bank with exception management                            */
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We define a try/catch block in case some method fails (bad filename for instance)
@@ -23,15 +21,15 @@ int main (int argc, char* argv[])
         for (it.first(); !it.isDone(); it.next())
         {
             // We dump the data size and the comment
-            cout << "[" << it->getDataSize() << "] " << it->getComment()  << endl;
+            std::cout << "[" << it->getDataSize() << "] " << it->getComment()  << std::endl;
 
             // We dump the data
-            cout << it->getDataBuffer() << endl;
+            std::cout << it->getDataBuffer() << std::endl;
         }
     }
     catch (gatb::core::system::Exception& e)
     {
-        cerr << "EXCEPTION: " << e.getMessage() << endl;
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 }
 //! [snippet1]

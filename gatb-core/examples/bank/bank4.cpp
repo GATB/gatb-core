@@ -1,20 +1,16 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/system/impl/System.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 
-// We use the required packages
-using namespace std;
-using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
+/********************************************************************************/
+/*                    Bank iteration with progress information                  */
+/********************************************************************************/
 
 // We a define a functor that will be called during bank parsing
-struct ProgressFunctor : public IteratorListener  {  void udpate (u_int64_t current)   {  printf (".");  } };
+struct ProgressFunctor : public IteratorListener  {  void inc (u_int64_t current)   {  std::cout << ".";  } };
 
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We define a try/catch block in case some method fails
@@ -47,7 +43,7 @@ int main (int argc, char* argv[])
     }
     catch (gatb::core::system::Exception& e)
     {
-        cerr << "EXCEPTION: " << e.getMessage() << endl;
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 }
 //! [snippet1]

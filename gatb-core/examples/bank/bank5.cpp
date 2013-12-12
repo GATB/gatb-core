@@ -1,18 +1,11 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/system/impl/System.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 
-// We use the required packages
-using namespace std;
-using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
-using namespace gatb::core::tools::dp::impl;
-using namespace gatb::core::tools::misc::impl;
-
+/********************************************************************************/
+/*                    Bank iteration with progress information                  */
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We define a try/catch block in case some method fails
@@ -42,7 +35,7 @@ int main (int argc, char* argv[])
     }
     catch (gatb::core::system::Exception& e)
     {
-        cerr << "EXCEPTION: " << e.getMessage() << endl;
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 }
 //! [snippet1]

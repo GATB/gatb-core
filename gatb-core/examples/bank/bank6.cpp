@@ -1,20 +1,16 @@
 //! [snippet1]
 // We include what we need for the test
-#include <gatb/system/impl/System.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <stdio.h>
-
+#include <gatb/gatb_core.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
 
 // We use the required packages
 using namespace std;
-using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
-using namespace gatb::core::tools::dp::impl;
 
+/********************************************************************************/
+/*                                Bank copy                                     */
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     if (argc < 2)
