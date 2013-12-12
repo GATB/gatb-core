@@ -944,8 +944,10 @@ Graph::Vector<BranchingNode> Graph::getBranchingNodeNeighbors (const Node& sourc
     {
         Graph::Iterator<Edge> path = this->simplePath<Edge> (neighbors[i].to, direction);
 
+        /** We iterate all the simple path. Inside this loop, all the node are simple. */
         for (path.first(); !path.isDone(); path.next())  {}
 
+        /** NOTE: after the loop, the current path item points to the first found non simple node. */
         Node& last = path.item().to;
 
         result[i].set (last.kmer, last.strand);
@@ -1469,11 +1471,13 @@ int Graph::simplePathAvance (const Node& node, Direction dir, Edge& output) cons
     /** We check we have no outbranching. */
     if (neighbors.size() == 1)
     {
-        /** We check whether the neighbor has an inbranching or not. */
-        if (this->degree (neighbors[0].to, impl::reverse(dir)) > 1)  { return -2; }
-
+        /** We set the output result. */
         output = neighbors[0];
 
+        /** We check whether the neighbor has an inbranching or not. */
+        if (this->degree (neighbors[0].to, impl::reverse(dir)) > 1)  {  return -2;  }
+
+        /** We have a simple node here. */
         return 1;
     }
 
@@ -1574,16 +1578,15 @@ Graph::Iterator<Node> Graph::getSimpleNodeIterator (const Node& node, Direction 
     ) const
     {
         Edge output;
-        if (graph.simplePathAvance (item, dir, output) > 0)
-        {
-            /** We update the currently iterated node. */
-            item = output.to;
-        }
-        else
-        {
-            /** We can't have a non branching node in the wanted direction => iteration is finished. */
-            isDone = true;
-        }
+
+        /** We check if we have a simple node. */
+        int res = graph.simplePathAvance (item, dir, output);
+
+        /** We update the currently iterated node. */
+        item = output.to;
+
+        /** We can't have a non branching node in the wanted direction => iteration is finished. */
+        if (res <= 0)  {  isDone = true;  }
     }};
 
     return Graph::Iterator<Node> (new NodeSimplePathIterator <Functor> (*this, node, dir, Functor()));
@@ -1608,16 +1611,15 @@ Graph::Iterator<Edge> Graph::getSimpleEdgeIterator (const Node& node, Direction 
     ) const
     {
         Edge output;
-        if (graph.simplePathAvance (item.to, dir, output) > 0)
-        {
-            /** We update the currently iterated node. */
-            item = output;
-        }
-        else
-        {
-            /** We can't have a non branching node in the wanted direction => iteration is finished. */
-            isDone = true;
-        }
+
+        /** We check if we have a simple node. */
+        int res = graph.simplePathAvance (item.to, dir, output);
+
+        /** We update the currently iterated node. */
+        item = output;
+
+        /** We can't have a non branching node in the wanted direction => iteration is finished. */
+        if (res <= 0)  {  isDone = true;  }
     }};
 
     return Graph::Iterator<Edge> (new EdgeSimplePathIterator<Functor>(*this, node, dir, Functor()));

@@ -491,7 +491,7 @@
  *
  * This snippet shows how to get the branching neighbors of a node. Such neighbors are
  * computed as follow:
- *      - the 'direct' neighbors of the node are retrieved
+ *      - the immediate neighbors of the node are retrieved
  *      - a simple path is done from each neighbor in order to reach the first non simple node
  *
  * Here, we use directly the Graph::successors<BranchingNode> method that encapsulates

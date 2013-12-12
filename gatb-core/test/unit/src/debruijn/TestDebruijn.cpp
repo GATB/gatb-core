@@ -80,14 +80,14 @@ class TestDebruijn : public Test
 //        CPPUNIT_TEST_GATB (debruijn_test1);
 //        CPPUNIT_TEST_GATB (debruijn_test2);
 
-        CPPUNIT_TEST_GATB (debruijn_test3);
-        CPPUNIT_TEST_GATB (debruijn_test4);
-        CPPUNIT_TEST_GATB (debruijn_test5);
-        CPPUNIT_TEST_GATB (debruijn_test6);
-        CPPUNIT_TEST_GATB (debruijn_test7);
-        CPPUNIT_TEST_GATB (debruijn_test8);
-        CPPUNIT_TEST_GATB (debruijn_test9);
-        CPPUNIT_TEST_GATB (debruijn_test10);
+//        CPPUNIT_TEST_GATB (debruijn_test3);
+//        CPPUNIT_TEST_GATB (debruijn_test4);
+//        CPPUNIT_TEST_GATB (debruijn_test5);
+//        CPPUNIT_TEST_GATB (debruijn_test6);
+//        CPPUNIT_TEST_GATB (debruijn_test7);
+//        CPPUNIT_TEST_GATB (debruijn_test8);
+//        CPPUNIT_TEST_GATB (debruijn_test9);
+//        CPPUNIT_TEST_GATB (debruijn_test10);
         CPPUNIT_TEST_GATB (debruijn_test11);
 
     CPPUNIT_TEST_SUITE_GATB_END();
@@ -536,8 +536,6 @@ public:
 
         char* seq1 = (char*) "AGGCGCTAGGGAGAGGATGATGAAA";
         char* seq2 = (char*) "AGGCGCTAGGGTGAGGATGATGAAA";
-        //                    000000000011111111112222
-        //                    012345678901234567890123
         //  difference here              ^
 
         /** We create the graph. */
@@ -555,6 +553,15 @@ public:
 
         /** We check this branching neighbor. */
         CPPUNIT_ASSERT (graph.toString(branchingNeighbors[0]) == "GCTAGGG");
+
+        for (size_t i=0; i<branchingNeighbors.size(); i++)
+        {
+            /** Shortcut. */
+            BranchingNode& current = branchingNeighbors[i];
+
+            /** We check the in/out degree. */
+            CPPUNIT_ASSERT (graph.indegree(current)!=1 || graph.outdegree(current)!=1 );
+        }
     }
 
     /********************************************************************************/
@@ -584,6 +591,17 @@ public:
 
         /** In our example, we should have 3 branching neighbors. */
         CPPUNIT_ASSERT (branchingNeighbors.size() == 3);
+
+        for (size_t i=0; i<branchingNeighbors.size(); i++)
+        {
+            /** Shortcut. */
+            BranchingNode& current = branchingNeighbors[i];
+
+            cout << graph.toString(current) << " " << graph.indegree(current) << " " << graph.outdegree(current) << endl;
+
+            /** We check the in/out degree. */
+            CPPUNIT_ASSERT (graph.indegree(current)!=1 || graph.outdegree(current)!=1 );
+        }
     }
 };
 

@@ -31,8 +31,7 @@ int main (int argc, char* argv[])
 
     std::cout << "We found " << branchingNeighbors.size() << " branching neighbors from node " << graph.toString(node) << std::endl;
 
-    // We loop over the branching neighbors. Here, we should have 3 branching neighbors:
-    //       AGGGAGA, CGGGAGAG and TGGGAGAG
+    // We loop over the branching neighbors. Here, we should have 3 branching neighbors, being the same GGGAGAG
     for (size_t i=0; i<branchingNeighbors.size(); i++)
     {
         std::cout << graph.toString (branchingNeighbors[i])  << std::endl;
