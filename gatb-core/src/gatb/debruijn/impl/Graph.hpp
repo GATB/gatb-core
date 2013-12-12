@@ -765,6 +765,9 @@ private:
     Graph::Vector<Node> getNodes (const Node& source, Direction direction) const;
 
     /** */
+    Graph::Vector<BranchingNode> getBranchingNodeNeighbors (const Node& source, Direction direction) const;
+
+    /** */
     Graph::Vector<Edge> getEdgeValues (const Node::Value& kmer) const;
 
     /** */
@@ -814,6 +817,17 @@ template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) c
 template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
+
+/** */
+template <>  inline Graph::Vector<BranchingNode> Graph::successors (const Node& node) const
+{ return getBranchingNodeNeighbors (node, DIR_OUTCOMING);  }
+
+template <>  inline Graph::Vector<BranchingNode> Graph::predecessors (const Node& node) const
+{ return getBranchingNodeNeighbors (node, DIR_INCOMING);  }
+
+/** */
+template <>  inline Graph::Vector<BranchingNode> Graph::neighbors (const Node& node, Direction direction) const
+{ return getBranchingNodeNeighbors (node, direction);  }
 
 /** */
 template<> inline Graph::Iterator<Node> Graph::simplePath (const Node& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }

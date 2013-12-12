@@ -929,6 +929,39 @@ Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  c
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+Graph::Vector<BranchingNode> Graph::getBranchingNodeNeighbors (const Node& source, Direction direction) const
+{
+    Graph::Vector<BranchingNode>  result;
+
+    /** We get the neighbors of the source node. */
+    Graph::Vector<Edge> neighbors = this->neighbors<Edge> (source, direction);
+
+    /** We resize the result vector. */
+    result.resize (neighbors.size());
+
+    /** We loop over all the neighbors. */
+    for (size_t i=0; i<neighbors.size(); i++)
+    {
+        Graph::Iterator<Edge> path = this->simplePath<Edge> (neighbors[i].to, direction);
+
+        for (path.first(); !path.isDone(); path.next())  {}
+
+        Node& last = path.item().to;
+
+        result[i].set (last.kmer, last.strand);
+    }
+
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<typename Item, typename Functor>
 struct getItem_visitor : public boost::static_visitor<Item>    {
 
