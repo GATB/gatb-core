@@ -11,7 +11,9 @@ int main (int argc, char* argv[])
     size_t kmerSize = 7;
 
     // We define some sequences used for building our test graph.
-    // Note that the sequences have a difference at index==kmerSize
+    // Note that the sequences have a difference at index==kmerSize,
+    // so the initial node AGGCGCT has 3 outcoming neighbors (and
+    // therefore is a branching node)
     const char* sequences[] =
     {
         //      x <- difference here
