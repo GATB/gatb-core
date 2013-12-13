@@ -61,9 +61,6 @@
  * \code
  * g++ examples/debruijn/debruijn15.cpp -Iinclude -Llib -lgatbcore -ldl -lpthread -lz -lhdf5 -std=c++0x
  * \endcode
- *
- * where the GATB environment variable should point to the GATB core directory and where snippetX.cpp is
- * one of the provided snippets.
  * \n
  *
  ************************************************************************************
@@ -525,6 +522,8 @@
  *  - the source branching node
  *  - the target branching node
  *  - the direction of the neighbors (in/out coming)
+ *  - the nucleotide of the transition between the initial branching node and the first neighbor
+ *    on the simple path between the two branching nodes.
  *  - the number of transitions that link the two branching nodes.
  *
  * \snippet debruijn17.cpp  snippet1
