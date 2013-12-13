@@ -1006,8 +1006,8 @@ Graph::Vector<BranchingEdge> Graph::getBranchingEdgeNeighbors (const Node& sourc
         /** Note the trick here: we get the current path node, even if the path iteration is done. */
         Node& last = path.item().to;
 
-        /** We set the ith branching neighbor node. */
-        result[i].set (source.kmer, source.strand, last.kmer, last.strand, direction, path.rank()+1);
+        /** We set the ith branching neighbor node. By convention, we memorize the nucleotide of the initial transition. */
+        result[i].set (source.kmer, source.strand, last.kmer, last.strand, neighbors[i].nt, direction, path.rank()+1);
     }
 
     return result;
@@ -1477,8 +1477,8 @@ std::string Graph::toString (const BranchingEdge& edge) const
     std::stringstream ss;
 
     ss << "["  << this->toString (edge.from)  << " ";
-    if (edge.direction == DIR_OUTCOMING)  {  ss <<  "-- "  << edge.distance << " -->";  }
-    else                                  {  ss <<  "<-- " << edge.distance << " --";   }
+    if (edge.direction == DIR_OUTCOMING)  {  ss <<  "--"  << ascii(edge.nt) << "," << edge.distance << "-->";  }
+    else                                  {  ss <<  "<--" << ascii(edge.nt) << "," << edge.distance << "--";   }
     ss << " "  << this->toString (edge.to)  << "]";
 
     return ss.str();

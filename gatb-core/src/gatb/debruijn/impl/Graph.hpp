@@ -261,10 +261,10 @@ struct BranchingEdge : Edge
     void set (
         const Node::Value& kmer_from, kmer::Strand strand_from,
         const Node::Value& kmer_to,   kmer::Strand strand_to,
-        Direction dir, size_t distance
+        kmer::Nucleotide nt, Direction dir, size_t distance
     )
     {
-        Edge::set (kmer_from, strand_from, kmer_to, strand_to, kmer::NUCL_UNKNOWN, dir);
+        Edge::set (kmer_from, strand_from, kmer_to, strand_to, nt, dir);
         this->distance = distance;
     }
 
