@@ -59,7 +59,7 @@
  *
  * Then, you can use the following command for compiling one snippet:
  * \code
- * g++ examples/debruijn/debruijn15.cpp -Iinclude -Llib -lgatbcore -ldl -lpthread -lz -lhdf5 -std=c++0x
+ * g++ examples/debruijn/debruijn15.cpp -Iinclude -Llib -lgatbcore -ldl -lpthread -lz -lhdf5 -std=c++0x -O3
  * \endcode
  * \n
  *
