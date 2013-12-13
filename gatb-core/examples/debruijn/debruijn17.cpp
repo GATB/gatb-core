@@ -36,7 +36,8 @@ int main (int argc, char* argv[])
     // We loop over the branching neighbors. Here, we should have 3 branching neighbors, being the same GGGAGAG
     for (size_t i=0; i<branchingNeighbors.size(); i++)
     {
-        // Note: we don't display all the transition nucleotides, but only the number of transition nucleotides
+        // Note: we don't display all the transition nucleotides, only the first transition nucleotide.
+        // We also display the number of transitions needed to link the two branching nodes.
         std::cout << graph.toString (branchingNeighbors[i])  << std::endl;
     }
 
