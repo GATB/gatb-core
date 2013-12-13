@@ -584,4 +584,45 @@
  * \snippet debruijn13.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
+ *
+ ************************************************************************************
+ * \section snippets_dbg_7  To go further...
+ *************************************************************************************
+ *
+ * \subsection snippets_kmer_dbg_18  Getting branching nodes statistics in a parallel way
+ *
+ * This example is a little bit harder than the previous ones. Its purpose is to show how
+ * to use the graph API for extracting some information. In particular, we will try to
+ * take care about time execution by using available cores.
+ *
+ * The idea here is to compute information about branching nodes and their in and out degrees.
+ * For instance, we want to know how many branching nodes have indegree==2 and outdegree=3.
+ * We compute therefore the number of branching nodes having indegree==X and outdegree==Y,
+ * with X and Y in [0..4] and the constraint that we can't have X==Y==1 (otherwise the node
+ * wouldn't be a branching one).
+ *
+ * We can do it easily by using the methods:
+ *  - Graph::successors<BranchingNode>
+ *  - Graph::predecessors<BranchingNode>
+ *
+ * Moreover, we want to do it in a parallel way in order to speed up the computation. The idea is
+ * to get an iterator over the branching nodes and iterate it through a Dispatcher object; such a
+ * dispatcher will create as many threads as wanted and will feed each threads with branching nodes.
+ * Note that this scheme can work here because the processing of one branching node is independant of
+ * the others.
+ *
+ * We need also some container for the in/out degrees statistics. A natural choice is to use a map,
+ * with the key being an unique identifier for a couple (indegree/outdegree) and the value the number
+ * of occurrences for the key. The idea is to use one map per thread and to merge the N maps into a global
+ * one after the parallel iteration of the branching nodes. We use here a ThreadObject object
+ * that allows to do it in a simple way. This object clones N time the global map and each clone is used in
+ * a specific thread. The ThreadObject class allows to hide many cumbersome technical points for the
+ * parallelization.
+ *
+ * In this example, we also use progress notification feature (with ProgressIterator) in order to have
+ * some user feedback during the iteration of the branching nodes.
+ *
+ * \snippet debruijn18.cpp  snippet1
+ * [go back to \ref snippets_graph "top"]
+ *
  */
