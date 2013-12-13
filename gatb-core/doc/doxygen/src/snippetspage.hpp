@@ -612,12 +612,11 @@
  * the others.
  *
  * We need also some container for the in/out degrees statistics. A natural choice is to use a map,
- * with the key being an unique identifier for a couple (indegree/outdegree) and the value the number
+ * with the key being a unique identifier for a couple (indegree/outdegree) and the value the number
  * of occurrences for the key. The idea is to use one map per thread and to merge the N maps into a global
  * one after the parallel iteration of the branching nodes. We use here a ThreadObject object
  * that allows to do it in a simple way. This object clones N time the global map and each clone is used in
- * a specific thread. The ThreadObject class allows to hide many cumbersome technical points for the
- * parallelization.
+ * a specific thread. The ThreadObject class allows to hide many cumbersome points for the parallelization.
  *
  * In this example, we also use progress notification feature (with ProgressIterator) in order to have
  * some user feedback during the iteration of the branching nodes.
