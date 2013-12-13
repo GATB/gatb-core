@@ -656,6 +656,19 @@ bool Graph::isBranching (const Node& node) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+bool Graph::isSimple (const Edge& edge) const
+{
+    return this->outdegree(edge.from)==1  &&  this->indegree(edge.to)==1;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 bool Graph::isEdge (const Node& u, const Node& v) const
 {
     bool result = false;
@@ -942,15 +955,59 @@ Graph::Vector<BranchingNode> Graph::getBranchingNodeNeighbors (const Node& sourc
     /** We loop over all the neighbors. */
     for (size_t i=0; i<neighbors.size(); i++)
     {
+        /** We get a simple path iterator from the current neighbor. */
         Graph::Iterator<Edge> path = this->simplePath<Edge> (neighbors[i].to, direction);
 
-        /** We iterate all the simple path. Inside this loop, all the node are simple. */
+        /** We iterate this simple path from the current neighbor. */
         for (path.first(); !path.isDone(); path.next())  {}
 
-        /** NOTE: after the loop, the current path item points to the first found non simple node. */
+        /** Note the trick here: we get the current path node, even if the path iteration is done. */
         Node& last = path.item().to;
 
+        /** We set the ith branching neighbor node. */
         result[i].set (last.kmer, last.strand);
+    }
+
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Vector<BranchingEdge> Graph::getBranchingEdgeNeighbors (const Node& source, Direction direction) const
+{
+    Graph::Vector<BranchingEdge>  result;
+
+    /** We get the neighbors of the source node. */
+    Graph::Vector<Edge> neighbors = this->neighbors<Edge> (source, direction);
+
+    /** We resize the result vector. */
+    result.resize (neighbors.size());
+
+    /** We loop over all the neighbors. */
+    for (size_t i=0; i<neighbors.size(); i++)
+    {
+        DEBUG ((cout << "neighbor[" << i << "] " << this->toString(neighbors[i]) << endl));
+
+        /** We get a simple path iterator from the current neighbor. */
+        Graph::Iterator<Edge> path = this->simplePath<Edge> (neighbors[i].to, direction);
+
+        /** We iterate this simple path from the current neighbor. */
+        for (path.first(); !path.isDone(); path.next())
+        {
+            DEBUG ((cout << "===> " << this->toString(*path) << endl));
+        }
+
+        /** Note the trick here: we get the current path node, even if the path iteration is done. */
+        Node& last = path.item().to;
+
+        /** We set the ith branching neighbor node. */
+        result[i].set (source.kmer, source.strand, last.kmer, last.strand, direction, path.rank()+1);
     }
 
     return result;
@@ -1415,6 +1472,26 @@ std::string Graph::toString (const Edge& edge) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+std::string Graph::toString (const BranchingEdge& edge) const
+{
+    std::stringstream ss;
+
+    ss << "["  << this->toString (edge.from)  << " ";
+    if (edge.direction == DIR_OUTCOMING)  {  ss <<  "-- "  << edge.distance << " -->";  }
+    else                                  {  ss <<  "<-- " << edge.distance << " --";   }
+    ss << " "  << this->toString (edge.to)  << "]";
+
+    return ss.str();
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void Graph::executeAlgorithm (Algorithm& algorithm, IProperties* props, IProperties& info)
 {
     string bargraph = props->get(STR_VERBOSE) ?  "2" : "0";
@@ -1580,13 +1657,16 @@ Graph::Iterator<Node> Graph::getSimpleNodeIterator (const Node& node, Direction 
         Edge output;
 
         /** We check if we have a simple node. */
-        int res = graph.simplePathAvance (item, dir, output);
-
-        /** We update the currently iterated node. */
-        item = output.to;
-
-        /** We can't have a non branching node in the wanted direction => iteration is finished. */
-        if (res <= 0)  {  isDone = true;  }
+        if (graph.simplePathAvance (item, dir, output) > 0)
+        {
+            /** We update the currently iterated node. */
+            item = output.to;
+        }
+        else
+        {
+            /** We can't have a non branching node in the wanted direction => iteration is finished. */
+            isDone = true;
+        }
     }};
 
     return Graph::Iterator<Node> (new NodeSimplePathIterator <Functor> (*this, node, dir, Functor()));
@@ -1602,7 +1682,6 @@ Graph::Iterator<Node> Graph::getSimpleNodeIterator (const Node& node, Direction 
 *********************************************************************/
 Graph::Iterator<Edge> Graph::getSimpleEdgeIterator (const Node& node, Direction dir) const
 {
-
     struct Functor {  void operator() (
         const Graph&         graph,
         Edge&                item,
@@ -1615,11 +1694,12 @@ Graph::Iterator<Edge> Graph::getSimpleEdgeIterator (const Node& node, Direction 
         /** We check if we have a simple node. */
         int res = graph.simplePathAvance (item.to, dir, output);
 
-        /** We update the currently iterated node. */
-        item = output;
+        /** NOTE: we update the item in case we have outdegree==1 (case>0 and case==-2) */
+        if (res > 0  ||  res == -2)  {  item = output;  }
 
         /** We can't have a non branching node in the wanted direction => iteration is finished. */
         if (res <= 0)  {  isDone = true;  }
+
     }};
 
     return Graph::Iterator<Edge> (new EdgeSimplePathIterator<Functor>(*this, node, dir, Functor()));

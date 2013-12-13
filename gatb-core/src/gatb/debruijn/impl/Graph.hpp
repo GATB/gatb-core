@@ -244,6 +244,34 @@ struct Edge
     }
 };
 
+/********************************************************************************/
+
+/** \brief Specific Edge structure representing a transition between two branching nodes
+ *
+ * The BranchingEdge inherits from the Edge structure.
+ *
+ * Note that we don't want here to get the whole simple nodes between the two branching nodes
+ * (or all the transition nucleotides required to go from source branching node to target branching node).
+ *
+ * However, we add a 'distance' attribute that counts the number of transition nucleotides between the two
+ * branching nodes.
+ */
+struct BranchingEdge : Edge
+{
+    void set (
+        const Node::Value& kmer_from, kmer::Strand strand_from,
+        const Node::Value& kmer_to,   kmer::Strand strand_to,
+        Direction dir, size_t distance
+    )
+    {
+        Edge::set (kmer_from, strand_from, kmer_to, strand_to, kmer::NUCL_UNKNOWN, dir);
+        this->distance = distance;
+    }
+
+    // number of simple nodes between the two branching nodes
+    size_t distance;
+};
+
 /********************************************************************************
                     ######      #     #######  #     #
                     #     #    # #       #     #     #
@@ -686,6 +714,16 @@ public:
      * \return the string representation for the provided edge . */
     std::string toString (const Edge& edge) const;
 
+    /** Get the ascii string for the branching edge
+     * \param[in] edge : the edge to get the string from
+     * \return the string representation for the provided edge . */
+    std::string toString (const BranchingEdge& edge) const;
+
+    /** Tells whether the provided edge is simple: outdegree(from)==1 and indegree(to)==1
+     * \param[in] edge : the edge to be asked
+     * \return true if the edge is simple, false otherwise. */
+    bool isSimple (const Edge& edge) const;
+
     /**********************************************************************/
     /*                         MISC METHODS                               */
     /**********************************************************************/
@@ -768,6 +806,9 @@ private:
     Graph::Vector<BranchingNode> getBranchingNodeNeighbors (const Node& source, Direction direction) const;
 
     /** */
+    Graph::Vector<BranchingEdge> getBranchingEdgeNeighbors (const Node& source, Direction direction) const;
+
+    /** */
     Graph::Vector<Edge> getEdgeValues (const Node::Value& kmer) const;
 
     /** */
@@ -828,6 +869,18 @@ template <>  inline Graph::Vector<BranchingNode> Graph::predecessors (const Node
 /** */
 template <>  inline Graph::Vector<BranchingNode> Graph::neighbors (const Node& node, Direction direction) const
 { return getBranchingNodeNeighbors (node, direction);  }
+
+/** */
+template <>  inline Graph::Vector<BranchingEdge> Graph::successors (const Node& node) const
+{ return getBranchingEdgeNeighbors (node, DIR_OUTCOMING);  }
+
+template <>  inline Graph::Vector<BranchingEdge> Graph::predecessors (const Node& node) const
+{ return getBranchingEdgeNeighbors (node, DIR_INCOMING);  }
+
+/** */
+template <>  inline Graph::Vector<BranchingEdge> Graph::neighbors (const Node& node, Direction direction) const
+{ return getBranchingEdgeNeighbors (node, direction);  }
+
 
 /** */
 template<> inline Graph::Iterator<Node> Graph::simplePath (const Node& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }
