@@ -1,3 +1,5 @@
+//! [snippet1]
+
 // We include what we need for the test
 #include <gatb/gatb_core.hpp>
 #include <map>
@@ -65,7 +67,8 @@ int main (int argc, char* argv[])
         for_each (t.begin(), t.end(), [&] (const pair<InOut_t, size_t>& p) { (*topology)[p.first] += p.second;  });
     });
 
-    // We sort the statistics by decreasing occurrence numbers.
+    // We sort the statistics by decreasing occurrence numbers. Since map have its own ordering, we need to put all
+    // the data into a vector and sort it with our own sorting criteria.
     vector < pair<InOut_t,size_t> >  stats;
     for (auto it = topology->begin(); it != topology->end(); it++)  { stats.push_back (*it); }
     sort (stats.begin(), stats.end(), [=] (const pair<InOut_t,size_t>& a, const pair<InOut_t,size_t>& b) { return a.second > b.second; });
@@ -90,3 +93,4 @@ int main (int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
+//! [snippet1]
