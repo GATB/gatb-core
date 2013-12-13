@@ -80,15 +80,16 @@ class TestDebruijn : public Test
 //        CPPUNIT_TEST_GATB (debruijn_test1);
 //        CPPUNIT_TEST_GATB (debruijn_test2);
 
-//        CPPUNIT_TEST_GATB (debruijn_test3);
-//        CPPUNIT_TEST_GATB (debruijn_test4);
-//        CPPUNIT_TEST_GATB (debruijn_test5);
-//        CPPUNIT_TEST_GATB (debruijn_test6);
-//        CPPUNIT_TEST_GATB (debruijn_test7);
-//        CPPUNIT_TEST_GATB (debruijn_test8);
-//        CPPUNIT_TEST_GATB (debruijn_test9);
-//        CPPUNIT_TEST_GATB (debruijn_test10);
+        CPPUNIT_TEST_GATB (debruijn_test3);
+        CPPUNIT_TEST_GATB (debruijn_test4);
+        CPPUNIT_TEST_GATB (debruijn_test5);
+        CPPUNIT_TEST_GATB (debruijn_test6);
+        CPPUNIT_TEST_GATB (debruijn_test7);
+        CPPUNIT_TEST_GATB (debruijn_test8);
+        CPPUNIT_TEST_GATB (debruijn_test9);
+        CPPUNIT_TEST_GATB (debruijn_test10);
         CPPUNIT_TEST_GATB (debruijn_test11);
+        CPPUNIT_TEST_GATB (debruijn_test12);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -522,6 +523,7 @@ public:
 
         for (path.first(); !path.isDone(); path.next())
         {
+            CPPUNIT_ASSERT (graph.isSimple (path.item()));
             CPPUNIT_ASSERT (ascii(path.item().nt) == seq1 [graph.getKmerSize() + path.rank()]);
         }
 
@@ -556,11 +558,8 @@ public:
 
         for (size_t i=0; i<branchingNeighbors.size(); i++)
         {
-            /** Shortcut. */
-            BranchingNode& current = branchingNeighbors[i];
-
-            /** We check the in/out degree. */
-            CPPUNIT_ASSERT (graph.indegree(current)!=1 || graph.outdegree(current)!=1 );
+            /** We check the in/out degree to be sure that it is indeed a branching node. */
+            CPPUNIT_ASSERT (graph.isBranching(branchingNeighbors[i]));
         }
     }
 
@@ -594,15 +593,63 @@ public:
 
         for (size_t i=0; i<branchingNeighbors.size(); i++)
         {
-            /** Shortcut. */
-            BranchingNode& current = branchingNeighbors[i];
+            /** We should close the bubble, ie all the branching neighbors are identical. */
+            CPPUNIT_ASSERT (graph.toString(branchingNeighbors[i]) == "GGGAGAG");
 
-            cout << graph.toString(current) << " " << graph.indegree(current) << " " << graph.outdegree(current) << endl;
-
-            /** We check the in/out degree. */
-            CPPUNIT_ASSERT (graph.indegree(current)!=1 || graph.outdegree(current)!=1 );
+            /** We check the in/out degree to be sure that it is indeed a branching node. */
+            CPPUNIT_ASSERT (graph.isBranching(branchingNeighbors[i]));
         }
     }
+
+    /********************************************************************************/
+    void debruijn_test12 ()
+    {
+        size_t kmerSize = 7;
+
+        // We define some sequences used for building our test graph.
+        // Note that the sequences have a difference at index==kmerSize
+        const char* sequences[] =
+        {
+            //      x <- difference here
+            "AGGCGCTAGGGAGAGGATGATGAAA",
+            "AGGCGCTCGGGAGAGGATGATGAAA",
+            "AGGCGCTTGGGAGAGGATGATGAAA"
+        };
+
+        // We create the graph.
+        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -nks 1", kmerSize);
+
+        // We get the first node (should be AGGCGCT); this is a branching node.
+        Node node = graph.buildNode ((char*)sequences[0]);
+        CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
+
+        /** We retrieve the branching neighbors for the node. */
+        Graph::Vector<BranchingEdge> branchingNeighbors = graph.successors <BranchingEdge> (node);
+
+        /** In our example, we should have 3 branching neighbors. */
+        CPPUNIT_ASSERT (branchingNeighbors.size() == 3);
+
+        for (size_t i=0; i<branchingNeighbors.size(); i++)
+        {
+            /** We should close the bubble, ie all the branching neighbors are identical. */
+            CPPUNIT_ASSERT (graph.toString(branchingNeighbors[i].to) == "GGGAGAG");
+
+            /** We check the path length. */
+            CPPUNIT_ASSERT (branchingNeighbors[i].distance == 7);
+
+            /** We check the simple path between the two branching nodes.
+             *  We need first to retrieve the first (simple) neighbor from the origin. */
+            Node simpleNeighbor = graph.successor<Node> (branchingNeighbors[i].from, branchingNeighbors[i].nt);
+
+            Graph::Iterator<Edge> path = graph.simplePath<Edge> (simpleNeighbor, branchingNeighbors[i].direction);
+            for (path.first(); !path.isDone(); path.next())
+            {
+                CPPUNIT_ASSERT (graph.toString(path->from) == string (sequences[i], path.rank()+1, kmerSize));
+                CPPUNIT_ASSERT (graph.isSimple(*path));
+            }
+        }
+    }
+
 };
 
 /********************************************************************************/
