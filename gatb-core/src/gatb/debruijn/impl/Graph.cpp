@@ -518,7 +518,7 @@ Graph::Graph (tools::misc::IProperties* params)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (const std::string& uri)
-    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
+    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
 {
     size_t precision = 0;
 
@@ -565,7 +565,7 @@ Graph::Graph () : _product(0), _variant(new DataVariant()), _kmerSize(0), _info(
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Graph::Graph (const Graph& graph) : _product(0), _variant(new DataVariant()), _kmerSize(graph._kmerSize), _info("graph")
+Graph::Graph (const Graph& graph) : _product(0), _variant(new DataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name)
 {
     setProduct (graph._product);
 

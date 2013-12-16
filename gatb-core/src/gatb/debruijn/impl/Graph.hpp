@@ -728,6 +728,10 @@ public:
     /*                         MISC METHODS                               */
     /**********************************************************************/
 
+    /** Return the name of the graph.
+     * \return the name. */
+    std::string getName() const { return _name; }
+
     /** Get the size of the kmers.
      * \return the kmer size. */
     size_t getKmerSize() const { return _kmerSize; }
@@ -774,6 +778,9 @@ private:
     tools::collections::impl::Product<ProductFactoryLocal>* _product;
     void setProduct (tools::collections::impl::Product<ProductFactoryLocal>* product)  { SP_SETATTR(product); }
     tools::collections::impl::Group<ProductFactoryLocal>& getProduct(const std::string name="")  { return (*_product) (name); }
+
+    /** */
+    std::string _name;
 
     /** */
     size_t _kmerSize;
@@ -900,8 +907,8 @@ template<class Type, class Listener>
 class ProgressIterator : public tools::dp::impl::SubjectIterator<Type>
 {
 public:
-    ProgressIterator (const Graph::Iterator<Type>& items, const char* msg = "compute")
-        : tools::dp::impl::SubjectIterator<Type> (items.get(), items.size()/100, new Listener (items.size(), msg)), _size(items.size()) {}
+    ProgressIterator (const Graph::Iterator<Type>& items, const char* msg = "compute", size_t divide=100)
+        : tools::dp::impl::SubjectIterator<Type> (items.get(), items.size()/divide, new Listener (items.size(), msg)), _size(items.size()) {}
 
     u_int64_t size () const  { return _size; }
 

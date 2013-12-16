@@ -122,6 +122,7 @@ void BranchingAlgorithm<ProductFactory,T>::execute ()
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
     getInfo()->add (2, "nb_branching", "%ld", *count);
+    getInfo()->add (2, "percentage",   "%.1f", (itNodes.size() > 0 ? 100.0*(float)*count/(float)itNodes.size() : 0));
 
     getInfo()->add (1, "time");
     getInfo()->add (2, "build", "%.3f", status.time / 1000.0);
