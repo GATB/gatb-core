@@ -624,4 +624,11 @@
  * \snippet debruijn18.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  *
+ *************************************************************************************
+ *
+ * \subsection snippets_kmer_dbg_19  Computing connected components of the branching nodes sub graph
+ *
+ * \snippet debruijn19.cpp  snippet1
+ * [go back to \ref snippets_graph "top"]
+ *
  */
