@@ -28,4 +28,6 @@
  *  - some binaries
  *  - some snippets
  *
+ * \remark
+ * The archive does NOT contain the source code.
  */
