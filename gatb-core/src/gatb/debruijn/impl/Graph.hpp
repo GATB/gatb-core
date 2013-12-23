@@ -33,6 +33,7 @@
 #include <gatb/tools/misc/impl/Property.hpp>
 
 #include <vector>
+#include <set>
 
 /********************************************************************************/
 namespace gatb      {
@@ -585,6 +586,13 @@ public:
      */
     template <typename T>  Graph::Vector<T> neighbors (const Node::Value& kmer) const;
 
+    /** Returns a set of neighbors for each node iterated with the provided two iterators
+     * \param[in] first : beginning of the iteration
+     * \param[in] last : end of the iteration
+     * \return all the neighbors computed for each iterated node. */
+    template <typename T, typename IteratorInput>
+    std::set<T> neighbors (IteratorInput first, IteratorInput last) const;
+
     /**********************************************************************/
     /*                     ONE NEIGHBOR METHODS                           */
     /**********************************************************************/
@@ -822,6 +830,12 @@ private:
     Graph::Vector<Node> getNodeValues (const Node::Value& kmer) const;
 
     /** */
+    Graph::Vector<BranchingEdge> getBranchingEdgeValues (const Node::Value& kmer) const;
+
+    /** */
+    Graph::Vector<BranchingNode> getBranchingNodeValues (const Node::Value& kmer) const;
+
+    /** */
     Node getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
 
     /** */
@@ -878,6 +892,13 @@ template <>  inline Graph::Vector<BranchingNode> Graph::neighbors (const Node& n
 { return getBranchingNodeNeighbors (node, direction);  }
 
 /** */
+template <>  inline Graph::Vector<BranchingNode> Graph::neighbors (const Node::Value& kmer) const
+{ return getBranchingNodeValues (kmer);  }
+
+/** */
+template <> std::set<BranchingNode> Graph::neighbors (std::set<BranchingNode>::iterator first, std::set<BranchingNode>::iterator last) const;
+
+/** */
 template <>  inline Graph::Vector<BranchingEdge> Graph::successors (const Node& node) const
 { return getBranchingEdgeNeighbors (node, DIR_OUTCOMING);  }
 
@@ -888,6 +909,9 @@ template <>  inline Graph::Vector<BranchingEdge> Graph::predecessors (const Node
 template <>  inline Graph::Vector<BranchingEdge> Graph::neighbors (const Node& node, Direction direction) const
 { return getBranchingEdgeNeighbors (node, direction);  }
 
+/** */
+template <>  inline Graph::Vector<BranchingEdge> Graph::neighbors (const Node::Value& kmer) const
+{ return getBranchingEdgeValues (kmer);  }
 
 /** */
 template<> inline Graph::Iterator<Node> Graph::simplePath (const Node& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }

@@ -165,7 +165,7 @@ public:
 
         string output = props->get(STR_URI_OUTPUT) ?
             props->getStr(STR_URI_OUTPUT)   :
-            system::impl::System::file().getBaseName (bank->getId());
+            (props->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (bank->getId()));
 
         string binaryBankUri = System::file().getCurrentDirectory() + "/bank.bin";
 
@@ -366,10 +366,15 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
         parser.add (new tools::misc::impl::OptionOneParam (STR_URI_INPUT, "reads file", true ));
     }
 
-    parser.add (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,  "size of a kmer",                       false,  "27"    ));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_NKS,        "abundance threshold for solid kmers",  false,  "3"     ));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT, "output file",                          false));
-    parser.add (new tools::misc::impl::OptionNoParam  (STR_VERBOSE,    "verbose",                              false));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       false,  "31"    ));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,      "output file",                          false));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,  "output directory",                     false,  "."));
+    parser.add (new tools::misc::impl::OptionNoParam  (STR_VERBOSE,         "verbose",                              false));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "1000"));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
+    parser.add (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
+    parser.add (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
 
     return parser;
 }
@@ -1185,6 +1190,50 @@ Graph::Vector<Node> Graph::getNodeValues (const Node::Value& kmer) const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+Graph::Vector<BranchingEdge> Graph::getBranchingEdgeValues (const Node::Value& kmer) const
+{
+    Node source (kmer);
+
+    Graph::Vector<BranchingEdge> v1 = getBranchingEdgeNeighbors (source,          DIR_OUTCOMING);
+    Graph::Vector<BranchingEdge> v2 = getBranchingEdgeNeighbors (reverse(source), DIR_OUTCOMING);
+#if 0
+    v1.insert (v1.end(), v2.begin(), v2.end());
+#else
+    size_t n1=v1.size(), n2=v2.size();
+    v1.resize (n1+n2);
+    for (size_t i=0; i<n2; i++)  { v1[i+n1] = v2[i];  }
+#endif
+
+    return v1;
+}
+
+/********************************************************************************/
+Graph::Vector<BranchingNode> Graph::getBranchingNodeValues (const Node::Value& kmer) const
+{
+    Node source (kmer);
+
+    Graph::Vector<BranchingNode> v1 = getBranchingNodeNeighbors (source,          DIR_OUTCOMING);
+    Graph::Vector<BranchingNode> v2 = getBranchingNodeNeighbors (reverse(source), DIR_OUTCOMING);
+
+#if 0
+    v1.insert (v1.end(), v2.begin(), v2.end());
+#else
+    size_t n1=v1.size(), n2=v2.size();
+    v1.resize (n1+n2);
+    for (size_t i=0; i<n2; i++)  { v1[i+n1] = v2[i];  }
+#endif
+
+    return v1;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 struct contains_visitor : public boost::static_visitor<bool>    {
 
     const Node& node;
@@ -1703,6 +1752,26 @@ Graph::Iterator<Edge> Graph::getSimpleEdgeIterator (const Node& node, Direction 
     }};
 
     return Graph::Iterator<Edge> (new EdgeSimplePathIterator<Functor>(*this, node, dir, Functor()));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template <>
+std::set<BranchingNode> Graph::neighbors (std::set<BranchingNode>::iterator first, std::set<BranchingNode>::iterator last) const
+{
+    std::set<BranchingNode> result;
+    for (auto it=first; it!=last; ++it)
+    {
+        Graph::Vector<BranchingNode> neighbors = this->neighbors<BranchingNode> (it->kmer);
+        for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
+    }
+    return result;
 }
 
 /********************************************************************************/
