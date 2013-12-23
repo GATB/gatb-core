@@ -131,13 +131,20 @@ private:
         {
             if (deleteIfExist)  {  system::impl::System::file().remove (getActualName());  }
 
-            /** We create a new file using default properties. */
-            if (system::impl::System::file().doesExist(getActualName()))
+            std::string usedName;
+
+            /** We test the actual name. */
+                 if (system::impl::System::file().doesExist(getActualName()))  { usedName = getActualName(); }
+            else if (system::impl::System::file().doesExist(getName()))        { usedName = getName();       }
+
+            if (usedName.empty()==false)
             {
-                _fileId = H5Fopen (getActualName().c_str(), H5P_DEFAULT, H5P_DEFAULT);
+                /** We open the existing file. */
+                _fileId = H5Fopen (usedName.c_str(), H5P_DEFAULT, H5P_DEFAULT);
             }
             else
             {
+                /** We create a new file using default properties. */
                 _fileId = H5Fcreate (getActualName().c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
             }
         }
@@ -159,7 +166,8 @@ private:
         hid_t       _fileId;
         std::string _name;
 
-        std::string getActualName ()  { return _name + ".h5"; }
+        std::string getActualName () const  { return _name + ".h5"; }
+        std::string getName       () const  { return _name;         }
 
     };
 };
