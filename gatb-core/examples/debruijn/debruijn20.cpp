@@ -196,7 +196,7 @@ int main (int argc, char* argv[])
                 if (inter.size()!=0)  { printf ("ERROR, intersection should be empty...\n");  exit(EXIT_FAILURE); }
             }
 
-            if (++cc % 500000 == 0)
+            if (++cc % 50 == 0)
             {
                 cc = 0;
                 printf ("[check] %.1f  %.1f\r", 100.0*(float)idx1/(float)components.size(), 100.0*(float)idx2/(float)components.size());
