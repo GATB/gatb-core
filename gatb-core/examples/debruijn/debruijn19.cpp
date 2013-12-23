@@ -3,20 +3,14 @@
 // We include what we need for the test
 #include <gatb/gatb_core.hpp>
 #include <map>
-#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <queue>
-#include <deque>
 #include <set>
-#include <algorithm>
-
 
 #undef NDEBUG
 #include <cassert>
 
 using namespace std;
-
 
 /********************************************************************************/
 
@@ -34,7 +28,10 @@ public:
 
     void mark (const T& item)  {  markMap [item] = true;  }
 
-    void mark (const set<T>& items)   {   for (typename set<T>::const_iterator it=items.begin(); it != items.end(); ++it)  {  mark (*it); }  }
+    void mark (const set<T>& items)
+    {
+        for (typename set<T>::const_iterator it=items.begin(); it != items.end(); ++it)  {  mark (*it); }
+    }
 
     bool isMarked (const T& item) const  {  return markMap.find(item)->second;  }
 
