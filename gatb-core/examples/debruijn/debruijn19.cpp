@@ -7,26 +7,34 @@
 #include <cstdio>
 #include <cstdlib>
 #include <queue>
+#include <deque>
 #include <set>
+#include <algorithm>
+
 
 #undef NDEBUG
 #include <cassert>
 
 using namespace std;
 
+
 /********************************************************************************/
 
-template<typename T>
-class GraphMarker
+// We define a class that marks nodes in a graph and call tell whether a given node is marked or not.
+// We use a map for the implementation (could be not optimal).
+template<typename T>  class GraphMarker
 {
 public:
 
     GraphMarker (const Graph& graph) : graph(graph)
     {
+        // We insert all the nodes into our map.
         graph.iterator<T>().iterate ([&] (const T& item)  {  this->markMap[item] = false;  });
     }
 
     void mark (const T& item)  {  markMap [item] = true;  }
+
+    void mark (const set<T>& items)   {   for (typename set<T>::const_iterator it=items.begin(); it != items.end(); ++it)  {  mark (*it); }  }
 
     bool isMarked (const T& item) const  {  return markMap.find(item)->second;  }
 
@@ -37,75 +45,73 @@ private:
 
 /********************************************************************************/
 
-template<typename T>
-class BFS
+// We define a class that performs a breadth first search in a graph from a starting node.
+// We need a marker to globally mark the visited nodes from one call to another.
+// The nodes visit is handled by a std::queue object.
+template<typename T>  class BFS
 {
 public:
 
-    BFS (const Graph& graph, GraphMarker<T>& marker, Direction dir) : graph(graph), marker(marker), direction(dir)  {}
+    BFS (const Graph& graph) : graph(graph) {}
 
-    u_int64_t run (const T& node)
+    // Process the BFS started from the provided node. As a result, we get the nodes number in the
+    // found connected component.
+    const set<T>& run (const T& node)
     {
-        // We initialize the queue used for the recursion
-        while (!frontline.empty())  { frontline.pop(); }
-        frontline.push (node);
+        // ALGORITHM (recursion on n)
+        //    We define as C(n) the set of nodes of the connected component to be computed.
+        //    We define as F(n) the set of nodes for which we get neighbors for extending the BFS
+        //    We use the function N(E) that returns the set of neighbors nodes of items in set E
+        //
+        //  Init:
+        //      C(0)={b} and F(0)={b},  where b is the initial node
+        //  Recursion:
+        //      F(n+1) = N(F(n)) - C(n)
+        //      C(n+1) = N(F(n)) + C(n)
+        //  End criteria:
+        //      card(F(n)) = 0
 
-        // We reset the already seen nodes.
-        alreadyFrontlined.clear();
+        // We set the initial state for F(0)
+        set<T> frontline;
+        frontline.insert (node);
 
-        // We add the initial node to the set of seen nodes.
-        alreadyFrontlined.insert(node.kmer);
+        // We set the initial state for C(0)
+        connectedComponent.clear();
+        connectedComponent.insert (node);
 
-        // We launch the BFS visit.
-        while (nextDepth() == true)  {}
-
-        // We return the number of nodes for this connected component
-        return alreadyFrontlined.size();
-    }
-
-private:
-    const Graph&     graph;
-    GraphMarker<T>&  marker;
-    Direction        direction;
-    queue<T>         frontline;
-    set<Node::Value> alreadyFrontlined;
-
-    bool nextDepth ()
-    {
-        queue<T> newFrontline;
-
+        // We launch the recursion.
         while (!frontline.empty())
         {
-            T current = frontline.front();
-            frontline.pop();
+            // We get the neighbors for the current front line, ie. we get N(F(n))
+            set<T> neighbors = graph.neighbors<T> (frontline.begin(), frontline.end());
 
-            // We mark the node
-            marker.mark (current);
+            // We reset the current front line => we reuse it for computing F(n+1)
+            frontline.clear();
 
-            /** We loop the neighbors of the current node. */
-            Graph::Vector<T> neighbors = graph.neighbors<T> (current, direction);
-
-            for (size_t i=0; i<neighbors.size(); i++)
+            // We compute the recursion for F(n+1) and C(n+1)
+            for (typename set<T>::iterator it = neighbors.begin(); it != neighbors.end(); it++)
             {
-                // if this bubble contains a marked (branching) kmer, stop everyone at once (to avoid redundancy)
-                if (marker.isMarked (neighbors[i]))  {  continue;  }
+                if (connectedComponent.find (*it) == connectedComponent.end())
+                {
+                    // F(n+1) = N(F(n)) - C(n)
+                    frontline.insert (*it);
 
-                // test if that node hasn't already been explored
-                if (alreadyFrontlined.find (neighbors[i].kmer) != alreadyFrontlined.end())  { continue; }
-
-                /** We add the new node to the new front line. */
-                newFrontline.push (neighbors[i]);
-
-                /** We memorize the new node. */
-                alreadyFrontlined.insert (neighbors[i].kmer);
+                    // C(n+1) = N(F(n)) + C(n)
+                    connectedComponent.insert (*it);
+                }
             }
         }
 
-        frontline = newFrontline;
-
-        return frontline.empty() == false;
+        // We return the number of nodes for this connected component
+        return connectedComponent;
     }
 
+    // We provide an accessor to the nodes of the found connected component
+    const set<T>& get() const { return connectedComponent; }
+
+private:
+    const Graph& graph;
+    set<T>       connectedComponent;
 };
 
 /********************************************************************************/
@@ -129,7 +135,7 @@ int main (int argc, char* argv[])
     GraphMarker<BranchingNode> marker (graph);
 
     // We create an object for Breadth First Search for the de Bruijn graph.
-    BFS<BranchingNode> bfs (graph, marker, DIR_OUTCOMING);
+    BFS<BranchingNode> bfs (graph);
 
     // We want to compute the distribution of connected components of the branching nodes.
     //    - key is a connected component class (for a given number of branching nodes for this component)
@@ -139,21 +145,30 @@ int main (int argc, char* argv[])
     // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
     ProgressIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
 
+    // We want time duration of the iteration
+    TimeInfo ti;
+    ti.start ("compute");
+
     // We loop the branching nodes
     for (itBranching.first(); !itBranching.isDone(); itBranching.next())
     {
         // We skip already visited nodes.
         if (marker.isMarked (*itBranching))  { continue; }
 
-        // We launch the breadth first search; we get as a result the number of branching nodes in this component
-        u_int64_t res = bfs.run (*itBranching);
+        // We launch the breadth first search; we get as a result the set of branching nodes in this component
+        const set<BranchingNode>& component = bfs.run (*itBranching);
+
+        // We mark the nodes for this connected component
+        marker.mark (component);
 
         // We update our distribution
-        distrib[res] ++;
+        distrib[component.size()] ++;
     }
 
+    ti.stop ("compute");
+
     // We compute the total number of branching nodes in all connected components.
-    size_t sum = 0;   for (auto it = distrib.begin(); it != distrib.end(); it++)  {  sum += it->first*it->second; }
+    size_t sum = 0;   for (map<size_t,size_t>::iterator it = distrib.begin(); it != distrib.end(); it++)  {  sum += it->first*it->second; }
 
     // Note: it must be equal to the number of branching nodes of the graph
     assert (sum == itBranching.size());
@@ -171,6 +186,7 @@ int main (int argc, char* argv[])
         props.add (3, "freq_nodes",  "%f", 100.0*(float)(it->first*it->second) / (float)sum);
         props.add (3, "freq_occurs", "%f", 100.0*(float)it->second / (float)sum);
     }
+    props.add (1, ti.getProperties("time"));
 
     // We dump the results in a XML file in the current directory
     XmlDumpPropertiesVisitor v (graph.getName() + ".xml", false);
