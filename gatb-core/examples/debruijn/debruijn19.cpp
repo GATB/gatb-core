@@ -142,6 +142,9 @@ int main (int argc, char* argv[])
     // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
     ProgressIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
 
+    // We want to know the number of connected components
+    size_t nbConnectedComponents = 0;
+
     // We want time duration of the iteration
     TimeInfo ti;
     ti.start ("compute");
@@ -160,6 +163,9 @@ int main (int argc, char* argv[])
 
         // We update our distribution
         distrib[component.size()] ++;
+
+        // We update the number of connected components.
+        nbConnectedComponents++;
     }
 
     ti.stop ("compute");
@@ -174,7 +180,8 @@ int main (int argc, char* argv[])
     Properties props ("connected_components");
     props.add (1, "graph_name",              "%s", graph.getName().c_str());
     props.add (1, "nb_branching_nodes",      "%d", sum);
-    props.add (1, "nb_connected_components", "%d", distrib.size());
+    props.add (1, "nb_connected_classes",    "%d", distrib.size());
+    props.add (1, "nb_connected_components", "%d", nbConnectedComponents);
     for (map<size_t,size_t>::iterator it = distrib.begin(); it!=distrib.end(); it++)
     {
         props.add (2, "component");
