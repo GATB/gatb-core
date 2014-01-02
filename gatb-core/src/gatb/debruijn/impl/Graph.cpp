@@ -1765,6 +1765,7 @@ Graph::Iterator<Edge> Graph::getSimpleEdgeIterator (const Node& node, Direction 
 template <>
 std::set<BranchingNode> Graph::neighbors (std::set<BranchingNode>::iterator first, std::set<BranchingNode>::iterator last) const
 {
+#if 0
     std::set<BranchingNode> result;
     for (auto it=first; it!=last; ++it)
     {
@@ -1772,6 +1773,86 @@ std::set<BranchingNode> Graph::neighbors (std::set<BranchingNode>::iterator firs
         for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
     }
     return result;
+#else
+
+    static const size_t nbThread = 8;
+    static const size_t nbThreshold = nbThread*1;
+
+    std::set<BranchingNode> result;
+
+    size_t nb = std::distance (first, last);
+
+    if (nb >= nbThreshold)
+    {
+        std::set<BranchingNode>::iterator begin = first;
+        std::set<BranchingNode>::iterator end;
+
+
+        int nbPerThread = nb/nbThread;
+
+        vector<pair<std::set<BranchingNode>::iterator,std::set<BranchingNode>::iterator> > iteratorPairs;
+
+        class Cmd : public tools::dp::ICommand, public system::SmartPointer
+        {
+        public:
+            Cmd (const Graph& graph, const pair<std::set<BranchingNode>::iterator,std::set<BranchingNode>::iterator>& range)
+                : graph(graph), range(range)
+            {
+                result.reserve (std::distance(range.first,range.second)*8);
+            }
+
+            void execute ()
+            {
+                for (auto it=range.first; it!=range.second; ++it)
+                {
+                    Graph::Vector<BranchingNode> neighbors = graph.neighbors<BranchingNode> (it->kmer);
+                    for (size_t i=0; i<neighbors.size(); i++)  { result.push_back (neighbors[i]); }
+                }
+            }
+
+            vector<BranchingNode>& get() { return result; }
+
+        private:
+            const Graph& graph;
+            pair<std::set<BranchingNode>::iterator,std::set<BranchingNode>::iterator> range;
+            vector<BranchingNode> result;
+        };
+
+        vector<tools::dp::ICommand*> cmds;
+
+        while (end != last)
+        {
+            end = begin;
+            advance (end, std::min (nbPerThread, (int)distance(end,last)));
+            iteratorPairs.push_back (std::make_pair(begin, end) );
+
+			tools::dp::ICommand* cmd = new Cmd (*this, std::make_pair(begin, end));
+			cmd->use();
+			cmds.push_back (cmd);
+            begin = end;
+        }
+
+        tools::dp::impl::Dispatcher().dispatchCommands(cmds, 0);
+
+        for (size_t i=0; i<cmds.size(); i++)
+        {
+            vector<BranchingNode>& current = ((Cmd*)cmds[i])->get();
+
+            result.insert (current.begin(), current.end());
+            cmds[i]->forget();
+        }
+    }
+    else
+    {
+        for (auto it=first; it!=last; ++it)
+        {
+            Graph::Vector<BranchingNode> neighbors = this->neighbors<BranchingNode> (it->kmer);
+            for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
+        }
+    }
+
+    return result;
+#endif
 }
 
 /********************************************************************************/
