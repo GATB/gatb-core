@@ -43,7 +43,7 @@ namespace impl      {
  * Sample of use:
  * \snippet bank1.cpp  snippet1_bank
  */
-class Bank : public AbstractBank
+class BankFasta : public AbstractBank
 {
 public:
 
@@ -52,20 +52,20 @@ public:
 
     /** Constructor.
      * \param[in] filenames : uri list of the banks. */
-    Bank (const std::vector<std::string>& filenames);
+    BankFasta (const std::vector<std::string>& filenames);
 
     /** Constructor.
      * \param[in] argc : number of filenames
      * \param[in] argv : filenames
      */
-    Bank (int argc, char* argv[]);
+    BankFasta (int argc, char* argv[]);
 
     /** Constructor.
      * \param[in] filename : uri of the bank. */
-    Bank (const std::string& filename);
+    BankFasta (const std::string& filename);
 
     /** Destructor. */
-    ~Bank ();
+    ~BankFasta ();
 
     /** \copydoc IBank::getId. */
     std::string getId ()  { return _filenames[0]; }
@@ -134,7 +134,7 @@ public:
          * \param[in] ref : the associated iterable instance.
          * \param[in] commentMode : kind of comments we want to retrieve
          */
-        Iterator (Bank& ref, CommentMode_e commentMode = FULL);
+        Iterator (BankFasta& ref, CommentMode_e commentMode = FULL);
 
         /** Destructor */
         ~Iterator ();
@@ -157,7 +157,7 @@ public:
     private:
 
         /** Reference to the underlying Iterable instance. */
-        Bank&    _ref;
+        BankFasta&    _ref;
 
         /** Tells what kind of comments we want as a client of the iterator. */
         CommentMode_e  _commentsMode;
@@ -209,11 +209,11 @@ protected:
 /********************************************************************************/
 
 /** */
-class BankFactory : public IBankFactory
+class BankFastaFactory : public IBankFactory
 {
 public:
 
-    IBank* createBank (const std::string& uri) { return new Bank (uri); }
+    IBank* createBank (const std::string& uri) { return new BankFasta (uri); }
 };
 
 /********************************************************************************/

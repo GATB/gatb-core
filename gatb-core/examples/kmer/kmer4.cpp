@@ -30,13 +30,13 @@ int main (int argc, char* argv[])
         u_int64_t nbKmers     = 0;
 
         // We declare a Bank instance defined by a list of filenames
-        Bank b (argc-2, argv+2);
+        BankFasta b (argc-2, argv+2);
 
         // We declare a kmer model with a given span size.
         Model<LargeInt<1> > model (kmerSize);
 
         // We create an iterator over this bank.
-        Bank::Iterator itSeq (b);
+        BankFasta::Iterator itSeq (b);
 
         // We declare an iterator on a given sequence.
         Model<LargeInt<1> >::Iterator itKmer (model);

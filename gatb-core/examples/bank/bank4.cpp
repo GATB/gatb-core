@@ -17,10 +17,10 @@ int main (int argc, char* argv[])
     try
     {
         // We declare a Bank instance defined by a list of filenames
-        Bank b (argc-1, argv+1);
+        BankFasta b (argc-1, argv+1);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator* itSeq = new Bank::Iterator (b);
+        BankFasta::Iterator* itSeq = new BankFasta::Iterator (b);
 
         // Note how we create a Sequence iterator with b.iterator() and give it to the
         // SubjectIterator that will add a notification feature to the Sequence iterator.

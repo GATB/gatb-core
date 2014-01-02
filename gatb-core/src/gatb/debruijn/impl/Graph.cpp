@@ -497,7 +497,7 @@ Graph::Graph (tools::misc::IProperties* params)
     _kmerSize = params->getInt (STR_KMER_SIZE);
 
     /** We build a Bank instance for the provided reads uri. */
-    bank::IBank* bank = new Bank (params->getStr(STR_URI_INPUT));
+    bank::IBank* bank = new BankFasta (params->getStr(STR_URI_INPUT));
 
     /** We get the Integer precision. */
     int precision = 1 + _kmerSize / 32;

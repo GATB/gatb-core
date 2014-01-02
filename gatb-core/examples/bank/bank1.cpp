@@ -14,10 +14,10 @@ int main (int argc, char* argv[])
 
 //! [snippet1_bank]
     // We declare a Bank instance.
-    Bank b (filename);
+    BankFasta b (filename);
 
     // We create an iterator over this bank.
-    Bank::Iterator it (b);
+    BankFasta::Iterator it (b);
 
     // We loop over sequences.
     for (it.first(); !it.isDone(); it.next())

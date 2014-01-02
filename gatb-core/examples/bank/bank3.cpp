@@ -27,10 +27,10 @@ struct Functor {  void operator ()  (Sequence& s)  const
 int main (int argc, char* argv[])
 {
     // We declare a Bank instance defined by a list of filenames
-    Bank b (argc-1, argv+1);
+    BankFasta b (argc-1, argv+1);
 
     // We create an iterator over this bank.
-    Bank::Iterator it (b);
+    BankFasta::Iterator it (b);
 
     // We loop over sequences in a "push" fashion (a functor is called for each sequence)
     Functor fct;    it.iterate (fct);

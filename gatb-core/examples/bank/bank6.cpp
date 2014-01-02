@@ -30,12 +30,12 @@ int main (int argc, char* argv[])
     size_t dataLineSize = argc >= 3 ?  atoi(argv[2]) : 60;
 
     // We define the kind of output comments
-    Bank::Iterator::CommentMode_e mode = Bank::Iterator::FULL;
+    BankFasta::Iterator::CommentMode_e mode = BankFasta::Iterator::FULL;
     if (argc >= 4)
     {
         int m = atoi (argv[3]);
-             if (m==0)  { mode = Bank::Iterator::NONE;   }
-        else if (m==1)  { mode = Bank::Iterator::IDONLY; }
+             if (m==0)  { mode = BankFasta::Iterator::NONE;   }
+        else if (m==1)  { mode = BankFasta::Iterator::IDONLY; }
     }
 
     // We set the number of sequences to be kept.
@@ -43,10 +43,10 @@ int main (int argc, char* argv[])
 
     try  {
         // We declare a Bank instance.
-        Bank b (filename);
+        BankFasta b (filename);
 
         // We create an iterator over this bank.
-        Bank::Iterator itSeq (b, mode);
+        BankFasta::Iterator itSeq (b, mode);
 
         // We encapsulate it with a truncation iterator
         TruncateIterator<Sequence> it (itSeq, nbSequences);

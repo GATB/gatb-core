@@ -80,7 +80,7 @@ public:
     void tearDown ()  {}
 
     /********************************************************************************/
-    void bank_checkSample1_aux (const string& filename, Bank::Iterator::CommentMode_e mode)
+    void bank_checkSample1_aux (const string& filename, BankFasta::Iterator::CommentMode_e mode)
     {
         const char* text = "ARNDCQEGHILKMFPSTWYV";
 
@@ -88,10 +88,10 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a Bank instance. */
-        Bank b (filename);
+        BankFasta b (filename);
 
         /** We create an iterator over this bank. */
-        Bank::Iterator it (b, mode);
+        BankFasta::Iterator it (b, mode);
 
         size_t i=0;
 
@@ -100,7 +100,7 @@ public:
         {
             /** We prepare the sequence string to be matched according to the provided mode. */
             char buffer[32];
-            snprintf (buffer, sizeof(buffer), "seq%ld%s", i+1,  (mode == Bank::Iterator::FULL ? " generic" : ""));
+            snprintf (buffer, sizeof(buffer), "seq%ld%s", i+1,  (mode == BankFasta::Iterator::FULL ? " generic" : ""));
 
             /** We check that we got a comment and that it is like 'seqX' where X is the
              * index from 1 to 20. */
@@ -143,12 +143,12 @@ public:
     void bank_checkSample1 ()
     {
         /** We launch the test with uncompressed sample bank. */
-        bank_checkSample1_aux (DBPATH("sample1.fa"), Bank::Iterator::IDONLY);
-        bank_checkSample1_aux (DBPATH("sample1.fa"), Bank::Iterator::FULL);
+        bank_checkSample1_aux (DBPATH("sample1.fa"), BankFasta::Iterator::IDONLY);
+        bank_checkSample1_aux (DBPATH("sample1.fa"), BankFasta::Iterator::FULL);
 
         /** We launch the test with compressed sample bank. */
-        bank_checkSample1_aux (DBPATH("sample1.fa.gz"), Bank::Iterator::IDONLY);
-        bank_checkSample1_aux (DBPATH("sample1.fa.gz"), Bank::Iterator::FULL);
+        bank_checkSample1_aux (DBPATH("sample1.fa.gz"), BankFasta::Iterator::IDONLY);
+        bank_checkSample1_aux (DBPATH("sample1.fa.gz"), BankFasta::Iterator::FULL);
     }
 
     /********************************************************************************/
@@ -158,10 +158,10 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a Bank instance. */
-        Bank b (filename);
+        BankFasta b (filename);
 
         /** We create an iterator over this bank with only id comments. */
-        Bank::Iterator it (b, Bank::Iterator::IDONLY);
+        BankFasta::Iterator it (b, BankFasta::Iterator::IDONLY);
 
         size_t nbSeq=0;
 
@@ -206,30 +206,30 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a Bank instance. */
-        Bank b1 (filename);
+        BankFasta b1 (filename);
 
         /** We iterate without comments. */
-        for (Bank::Iterator it (b1, Bank::Iterator::NONE); !it.isDone(); it.next())
+        for (BankFasta::Iterator it (b1, BankFasta::Iterator::NONE); !it.isDone(); it.next())
         {
             CPPUNIT_ASSERT (it->getComment().empty());
         }
 
         /** We iterate with only id comments. */
-        for (Bank::Iterator it (b1, Bank::Iterator::IDONLY); !it.isDone(); it.next())
+        for (BankFasta::Iterator it (b1, BankFasta::Iterator::IDONLY); !it.isDone(); it.next())
         {
             CPPUNIT_ASSERT (it->getComment().empty() == false);
             CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") == 0);
         }
 
         /** We iterate with only full comments. */
-        for (Bank::Iterator it (b1, Bank::Iterator::FULL); !it.isDone(); it.next())
+        for (BankFasta::Iterator it (b1, BankFasta::Iterator::FULL); !it.isDone(); it.next())
         {
             CPPUNIT_ASSERT (it->getComment().empty() == false);
             CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
         }
 
         /** We iterate with default value (should be FULL). */
-        for (Bank::Iterator it (b1); !it.isDone(); it.next())
+        for (BankFasta::Iterator it (b1); !it.isDone(); it.next())
         {
             CPPUNIT_ASSERT (it->getComment().empty()==false);
             CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
@@ -271,14 +271,14 @@ public:
      */
     void bank_checkBadUri ()
     {
-        Bank bankKO ("_dummy_bank_name_");
-        Bank bankOK (DBPATH("sample1.fa"));
+        BankFasta bankKO ("_dummy_bank_name_");
+        BankFasta bankOK (DBPATH("sample1.fa"));
 
         /** We check that we can't get a valid iterator on it. */
-        CPPUNIT_ASSERT_THROW (Bank::Iterator it(bankKO), gatb::core::system::Exception);
+        CPPUNIT_ASSERT_THROW (BankFasta::Iterator it(bankKO), gatb::core::system::Exception);
 
         /** We check that the bank does exist. */
-        CPPUNIT_ASSERT_NO_THROW (Bank::Iterator it(bankOK));
+        CPPUNIT_ASSERT_NO_THROW (BankFasta::Iterator it(bankOK));
     }
 
     /********************************************************************************/
@@ -292,7 +292,7 @@ public:
     void bank_checkSize ()
     {
         /** We declare a Bank instance. */
-        Bank b1 (DBPATH("sample1.fa"));
+        BankFasta b1 (DBPATH("sample1.fa"));
 
         /** We check the size of the bank. */
         CPPUNIT_ASSERT (b1.getSize() == 710);
@@ -312,18 +312,18 @@ public:
         vector<string> filenames;
 
         /** We check that we can't use a Bank without at least one filename. */
-        CPPUNIT_ASSERT_THROW (Bank b (filenames), gatb::core::system::Exception);
+        CPPUNIT_ASSERT_THROW (BankFasta b (filenames), gatb::core::system::Exception);
 
-        while (filenames.size() < Bank::getMaxNbFiles())
+        while (filenames.size() < BankFasta::getMaxNbFiles())
         {
             filenames.push_back(DBPATH("sample1.fa"));
 
-            CPPUNIT_ASSERT_NO_THROW (Bank b (filenames));
+            CPPUNIT_ASSERT_NO_THROW (BankFasta b (filenames));
         }
 
         /** We check that we can't use a Bank with with too many filenames. */
         filenames.push_back(DBPATH("sample1.fa"));
-        CPPUNIT_ASSERT_THROW (Bank b (filenames), gatb::core::system::Exception);
+        CPPUNIT_ASSERT_THROW (BankFasta b (filenames), gatb::core::system::Exception);
     }
 
     /********************************************************************************/
@@ -341,19 +341,19 @@ public:
     void bank_checkEstimateNbSequences ()
     {
         /** We declare a Bank instance. */
-        Bank b1 (DBPATH("sample1.fa"));
+        BankFasta b1 (DBPATH("sample1.fa"));
 
         /** We check the estimation of sequences number. */
         u_int64_t estim1 = b1.estimateNbSequences();
         CPPUNIT_ASSERT (estim1 == 20);
 
         /** We build another bank holding several time the same bank. */
-        for (size_t i=1; i<=Bank::getMaxNbFiles(); i++)
+        for (size_t i=1; i<=BankFasta::getMaxNbFiles(); i++)
         {
             vector<string> filenames;
             for (size_t j=1; j<=i; j++)  { filenames.push_back(DBPATH("sample1.fa")); }
 
-            Bank b2 (filenames);
+            BankFasta b2 (filenames);
 
             CPPUNIT_ASSERT (b2.estimateNbSequences() == i * estim1);
         }
@@ -373,7 +373,7 @@ public:
     };
 
     /** */
-    void bank_checkProgress_aux (Bank& b, size_t modulo)
+    void bank_checkProgress_aux (BankFasta& b, size_t modulo)
     {
         /** We create an iterator for tha provided bank. */
         Iterator<Sequence>* itSeq = b.iterator();
@@ -439,22 +439,22 @@ public:
 
         /** We build a bank holding x1 the same bank.*/
         while (filenames.size() < 1)   {  filenames.push_back (filename);  }
-        Bank b1 (filenames);
+        BankFasta b1 (filenames);
         for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b1, tableMod[i]);  }
 
         /** We build a bank holding x2 the same bank.*/
         while (filenames.size() < 2)   {  filenames.push_back (filename);  }
-        Bank b2 (filenames);
+        BankFasta b2 (filenames);
         for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b2, tableMod[i]);  }
 
         /** We build a bank holding x10 the same bank.*/
         while (filenames.size() < 10)   {  filenames.push_back (filename);  }
-        Bank b10 (filenames);
+        BankFasta b10 (filenames);
         for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b10, tableMod[i]);  }
 
         /** We build a bank holding x20 the same bank.*/
         while (filenames.size() < 20)   {  filenames.push_back (filename);  }
-        Bank b20 (filenames);
+        BankFasta b20 (filenames);
         for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b20, tableMod[i]);  }
     }
 
@@ -470,27 +470,27 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a Bank instance. */
-        Bank b1 (filename);
+        BankFasta b1 (filename);
 
         /** We gather some information about this (single) bank. */
         Info i1;
-        for (Bank::Iterator it (b1); !it.isDone(); it.next())   {  i1.nbseq++;   i1.datasize += it->getDataSize(); }
+        for (BankFasta::Iterator it (b1); !it.isDone(); it.next())   {  i1.nbseq++;   i1.datasize += it->getDataSize(); }
 
         /** We build a bank holding x2 the same bank.*/
         while (filenames.size() < 2)   {  filenames.push_back (filename);  }
-        Bank b2 (filenames);
+        BankFasta b2 (filenames);
 
         /** We gather some information about this x2 bank. */
         Info i2;
-        for (Bank::Iterator it (b2); !it.isDone(); it.next())   {  i2.nbseq++;   i2.datasize += it->getDataSize(); }
+        for (BankFasta::Iterator it (b2); !it.isDone(); it.next())   {  i2.nbseq++;   i2.datasize += it->getDataSize(); }
 
         /** We build a bank holding x4 the same bank.*/
         while (filenames.size() < 4)   {  filenames.push_back (filename);  }
-        Bank b4 (filenames);
+        BankFasta b4 (filenames);
 
         /** We gather some information about this x4 bank. */
         Info i4;
-        for (Bank::Iterator it (b4); !it.isDone(); it.next())   {  i4.nbseq++;   i4.datasize += it->getDataSize(); }
+        for (BankFasta::Iterator it (b4); !it.isDone(); it.next())   {  i4.nbseq++;   i4.datasize += it->getDataSize(); }
 
         CPPUNIT_ASSERT (i1.nbseq   * 2 == i2.nbseq);
         CPPUNIT_ASSERT (i1.datasize* 2 == i2.datasize);
@@ -532,11 +532,11 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare the two banks. */
-        Bank       bank1 (filename);
+        BankFasta       bank1 (filename);
         BankBinary bank2 (filenameBin);
 
         /** We convert the fasta bank in binary format. */
-        Bank::Iterator itSeq1 (bank1);
+        BankFasta::Iterator itSeq1 (bank1);
         for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         /** We check that the binary bank exists. */
@@ -576,10 +576,10 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a Bank instance. */
-        Bank b (filename);
+        BankFasta b (filename);
 
         /** We create an iterator over this bank. */
-        Bank::Iterator it (b);
+        BankFasta::Iterator it (b);
 
         ITime::Value t0 = System::time().getTimeStamp();
 
@@ -624,7 +624,7 @@ public:
     /********************************************************************************/
     void bank_checkRegistery1 ()
     {
-        bank_checkRegistery_aux (Bank::name(), "sample1.fa", 20);
+        bank_checkRegistery_aux (BankFasta::name(), "sample1.fa", 20);
     }
 
     /********************************************************************************/

@@ -25,13 +25,13 @@ int main (int argc, char* argv[])
     try
     {
         // We declare an input Bank
-        Bank inputBank (argv[1]);
+        BankFasta inputBank (argv[1]);
 
         // We declare an output Bank
         BankBinary outputBank (argv[2]);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator* itInput = new Bank::Iterator (inputBank);
+        BankFasta::Iterator* itInput = new BankFasta::Iterator (inputBank);
 
         // We create an iterator over the input bank and encapsulate it with progress notification.
         SubjectIterator<Sequence> itSeq (itInput, 100000);

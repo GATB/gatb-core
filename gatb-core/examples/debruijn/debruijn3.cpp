@@ -16,7 +16,7 @@ int main (int argc, char* argv[])
     }
 
     // We get a handle on a FASTA bank.
-    IBank* bank = new Bank (argv[1]);
+    IBank* bank = new BankFasta (argv[1]);
 
     // We create the graph with the bank and other options
     Graph graph = Graph::create (bank, "-nks 3");

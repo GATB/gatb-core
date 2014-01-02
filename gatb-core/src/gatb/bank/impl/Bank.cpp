@@ -83,7 +83,7 @@ struct buffered_strings_t
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Bank::Bank (const std::vector<std::string>& filenames)
+BankFasta::BankFasta (const std::vector<std::string>& filenames)
     : _filenames(filenames), filesizes(0), nb_files(0), _insertHandle(0)
 {
     init ();
@@ -97,7 +97,7 @@ Bank::Bank (const std::vector<std::string>& filenames)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Bank::Bank (int argc, char* argv[])
+BankFasta::BankFasta (int argc, char* argv[])
     : filesizes(0), nb_files(0), _insertHandle(0)
 {
     for (size_t i=0; i<argc; i++)  { _filenames.push_back (argv[i]); }
@@ -113,7 +113,7 @@ Bank::Bank (int argc, char* argv[])
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Bank::Bank (const std::string& filename)
+BankFasta::BankFasta (const std::string& filename)
     : filesizes(0), nb_files(0), _insertHandle(0)
 {
     _filenames.push_back (filename);
@@ -128,7 +128,7 @@ Bank::Bank (const std::string& filename)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Bank::~Bank ()
+BankFasta::~BankFasta ()
 {
     if (_insertHandle != 0)  { fclose (_insertHandle); }
 }
@@ -141,7 +141,7 @@ Bank::~Bank ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::init ()
+void BankFasta::init ()
 {
     /** We check that we don't exceed the number of allowed files. */
     if (_filenames.empty() || _filenames.size() > getMaxNbFiles())
@@ -185,10 +185,10 @@ void Bank::init ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
+void BankFasta::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
     /** We create an iterator for the bank. */
-    Bank::Iterator it (*this, Iterator::NONE);
+    BankFasta::Iterator it (*this, Iterator::NONE);
 
     /** We delegate the computation to the iterator. */
     return it.estimate (number, totalSize, maxSize);
@@ -202,7 +202,7 @@ void Bank::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::insert (const Sequence& item)
+void BankFasta::insert (const Sequence& item)
 {
     /** We open the last file if needed. */
     if (_insertHandle == 0  &&  _filenames.empty()==false)
@@ -247,7 +247,7 @@ void Bank::insert (const Sequence& item)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Bank::Iterator::Iterator (Bank& ref, CommentMode_e commentMode)
+BankFasta::Iterator::Iterator (BankFasta& ref, CommentMode_e commentMode)
     : _ref(ref), _commentsMode(commentMode), _isDone(true), index_file(0), buffered_file(0), buffered_strings(0), _index(0)
 {
     DEBUG (("Bank::Iterator::Iterator\n"));
@@ -267,7 +267,7 @@ Bank::Iterator::Iterator (Bank& ref, CommentMode_e commentMode)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Bank::Iterator::~Iterator ()
+BankFasta::Iterator::~Iterator ()
 {
     DEBUG (("Bank::Iterator::~Iterator\n"));
     finalize ();
@@ -281,7 +281,7 @@ Bank::Iterator::~Iterator ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::Iterator::first()
+void BankFasta::Iterator::first()
 {
     for (int i = 0; i < _ref.nb_files; i++)
     {
@@ -305,7 +305,7 @@ void Bank::Iterator::first()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::Iterator::next()
+void BankFasta::Iterator::next()
 {
     if (_isDone)  { return; }
 
@@ -422,7 +422,7 @@ inline signed int buffered_gets (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, string& comment, int file_id, CommentMode_e mode)
+bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, string& comment, int file_id, CommentMode_e mode)
 {
     buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
 
@@ -514,7 +514,7 @@ bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, string& comment
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, int file_id)
+bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, int file_id)
 {
     string dummy;
     return get_next_seq_from_file (data, dummy, file_id, NONE);
@@ -528,7 +528,7 @@ bool Bank::Iterator::get_next_seq_from_file (Vector<char>& data, int file_id)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq (Vector<char>& data, string& comment, CommentMode_e mode)
+bool BankFasta::Iterator::get_next_seq (Vector<char>& data, string& comment, CommentMode_e mode)
 {
     bool success = get_next_seq_from_file (data, comment, index_file, mode);
     if (success) return true;
@@ -550,7 +550,7 @@ bool Bank::Iterator::get_next_seq (Vector<char>& data, string& comment, CommentM
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Bank::Iterator::get_next_seq (Vector<char>& data)
+bool BankFasta::Iterator::get_next_seq (Vector<char>& data)
 {
     string  dummy;
     return get_next_seq (data, dummy, NONE);
@@ -564,7 +564,7 @@ bool Bank::Iterator::get_next_seq (Vector<char>& data)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::Iterator::init ()
+void BankFasta::Iterator::init ()
 {
     /** We initialize the array of files. */
     buffered_file = (void**) calloc (getMaxNbFiles(), sizeof(void*));
@@ -609,7 +609,7 @@ void Bank::Iterator::init ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::Iterator::finalize ()
+void BankFasta::Iterator::finalize ()
 {
     buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
 
@@ -644,7 +644,7 @@ void Bank::Iterator::finalize ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
+void BankFasta::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
     Vector<char> data;
 

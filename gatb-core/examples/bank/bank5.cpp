@@ -12,10 +12,10 @@ int main (int argc, char* argv[])
     try
     {
         // We declare a Bank instance defined by a list of filenames
-        Bank b (argc-1, argv+1);
+        BankFasta b (argc-1, argv+1);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator* itSeq = new Bank::Iterator (b);
+        BankFasta::Iterator* itSeq = new BankFasta::Iterator (b);
 
         //  We create a sequence iterator that notifies listeners every N sequences
         SubjectIterator<Sequence> iter (itSeq, 1000);

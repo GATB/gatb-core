@@ -32,7 +32,7 @@ int main (int argc, char* argv[])
     try
     {
         // We declare a Bank instance defined by a list of filenames
-        Bank b (argc-2, argv+2);
+        BankFasta b (argc-2, argv+2);
 
         // We declare a functor for filtering items.
         FilterFunctor filter;

@@ -71,7 +71,7 @@ IBankFactory* BankRegistery::getFactory (const std::string& name)
 BankRegistery::BankRegistery ()
 {
     /** We register most known factories. */
-    registerFactory ("fasta",  new BankFactory());
+    registerFactory ("fasta",  new BankFastaFactory());
     registerFactory ("binary", new BankBinaryFactory());
 
     /** We set the default one. */

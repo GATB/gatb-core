@@ -12,10 +12,10 @@ int main (int argc, char* argv[])
     try
     {
         // We declare a Bank instance defined by a list of filenames
-        Bank b (argc-1, argv+1);
+        BankFasta b (argc-1, argv+1);
 
         // We create an iterator over this bank.
-        Bank::Iterator it (b);
+        BankFasta::Iterator it (b);
 
         // We loop over sequences.
         for (it.first(); !it.isDone(); it.next())

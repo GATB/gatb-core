@@ -82,11 +82,11 @@ public:
         /** We declare the two banks.
          *  WARNING! we don't remove the bad characters (param 'false') in the binary bank,
          *  otherwise the two bank won't be comparable anymore. */
-        Bank       bank1 (filename);
+        BankFasta       bank1 (filename);
         BankBinary bank2 (filenameBin, false);
 
         /** We convert the fasta bank in binary format. */
-        Bank::Iterator itSeq1 (bank1);
+        BankFasta::Iterator itSeq1 (bank1);
         for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         /** We declare two kmer iterators for the two banks and a paired one that links them. */

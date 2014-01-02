@@ -306,7 +306,7 @@ int main (int argc, char* argv[])
         KmerModel model (kmerSize);
 
         // We declare the FASTA bank
-        Bank bank (filename);
+        BankFasta bank (filename);
 
         // We declare a binary bank
         BankBinary bankBin (filenameBin);

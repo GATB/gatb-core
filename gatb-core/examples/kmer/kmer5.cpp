@@ -39,13 +39,13 @@ int main (int argc, char* argv[])
         u_int64_t nbKmers = 0;
 
         // We declare a Bank instance defined by a list of filenames
-        Bank bank (argc-1, argv+1);
+        BankFasta bank (argc-1, argv+1);
 
         // We declare a kmer model with a given span size.
         Model<kmer_type> model (27);
 
         // We create a sequence iterator for the bank
-        Bank::Iterator* itBank = new Bank::Iterator (bank);
+        BankFasta::Iterator* itBank = new BankFasta::Iterator (bank);
 
         // We create a sequences iterator and makes it launch progression notif every N iterations.
         SubjectIterator<Sequence> itSeq (itBank, 100);
