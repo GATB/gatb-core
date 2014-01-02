@@ -37,7 +37,7 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Class performing the kmer counting.
+/** \brief Class performing the kmer counting (also known as 'DSK')
  *
  * This class does the real job of counting the kmers from a reads database.
  *
