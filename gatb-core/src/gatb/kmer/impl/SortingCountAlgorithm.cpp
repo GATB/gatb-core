@@ -260,8 +260,8 @@ void SortingCountAlgorithm<ProductFactory,T>::execute ()
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
     getInfo()->add (2, "kmers_nb_valid",     "%ld", _totalKmerNb);
-    getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
     getInfo()->add (2, "kmers_nb_solid",     "%ld", nbSolids);
+    getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
     if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
 
     getInfo()->add (1, getTimeInfo().getProperties("time"));
