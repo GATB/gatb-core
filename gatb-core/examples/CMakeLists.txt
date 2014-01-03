@@ -21,3 +21,5 @@ FOREACH (program ${PROGRAMS_FILES})
       
 ENDFOREACH (program)
 
+# We add a custom target for making all examples
+add_custom_target (examples ALL DEPENDS ${PROGRAMS_NAMES})
