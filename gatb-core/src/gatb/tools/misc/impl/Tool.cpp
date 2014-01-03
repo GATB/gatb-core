@@ -40,15 +40,16 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     _info->add (0, _name);
 
     /** We create an options parser. */
-    setParser (new OptionsParser ());
+    setParser (new OptionsParser (_name));
 
     /** We configure this parser with some options useful for each tool. */
-    _parser->add (new OptionOneParam (STR_NB_CORES,       "number of cores",                      false, "0"  ));
-    _parser->add (new OptionNoParam  (STR_VERBOSE,        "dump execution information",           false       ));
-    _parser->add (new OptionOneParam (STR_PREFIX,         "prefix to be appended to temp files",  false, ""   ));
-    _parser->add (new OptionNoParam  (STR_HELP,           "display help about possible options",  false       ));
-    _parser->add (new OptionOneParam (STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
-    //_parser->add (new OptionOneParam (STR_STATS_XML,      "dump exec info into a XML file",       false       ));
+    _parser->push_back (new OptionOneParam (STR_NB_CORES,       "number of cores",                      false, "0"  ));
+    _parser->push_back (new OptionNoParam  (STR_VERBOSE,        "dump execution information",           false       ));
+    _parser->push_back (new OptionNoParam  (STR_HELP,           "display help about possible options",  false       ));
+    _parser->push_back (new OptionOneParam (STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
+
+    // _parser->push_back (new OptionOneParam (STR_PREFIX,         "prefix to be appended to temp files",  false, ""   ));
+    // _parser->push_back (new OptionOneParam (STR_STATS_XML,      "dump exec info into a XML file",       false       ));
 }
 
 /*********************************************************************
@@ -80,7 +81,29 @@ IProperties* Tool::run (int argc, char* argv[])
 {
     DEBUG (("Tool::run(argc,argv) => tool='%s'  \n", getName().c_str() ));
 
-    return run (getParser()->parse (argc, argv));
+    try
+    {
+        /** We parse the user parameters. */
+        IProperties* params = getParser()->parse (argc, argv);
+
+        if (getParser()->saw (STR_HELP))
+        {
+            /** We just display the help for the tool. */
+            getParser()->displayHelp (stdout);
+            return NULL;
+        }
+        else
+        {
+            /** We run the tool. */
+            return run (params);
+        }
+    }
+    catch (OptionFailure& e)
+    {
+        e.getParser().displayErrors (stdout);
+        e.getParser().displayHelp   (stdout);
+        return NULL;
+    }
 }
 
 /*********************************************************************
@@ -136,7 +159,7 @@ void Tool::preExecute ()
     _input->add (1, new Properties (/*System::info().getHomeDirectory() + "/." + getName() */));
 
     /** We may have to add a default prefix for temporary files. */
-    if (_input->get(STR_PREFIX)==0)  { _input->add (1, STR_PREFIX, "tmp.");  }
+//    if (_input->get(STR_PREFIX)==0)  { _input->add (1, STR_PREFIX, "tmp.");  }
 
     /** We may have to add a default prefix for temporary files. */
     if (_input->getInt(STR_NB_CORES)<=0)  { _input->setInt (STR_NB_CORES, System::info().getNbCores());  }
@@ -238,11 +261,32 @@ IProperties* ToolComposite::run (int argc, char* argv[])
     /** We first parse the options for all tools. */
     for (list<Tool*>::iterator it = _tools.begin(); it != _tools.end(); it++)
     {
+#if 0
         /** We get the parameters from the current parser. */
         IProperties* input = (*it)->getParser()->parse (argc, argv);
 
         /** We add the input into the vector that gather the tools inputs. */
         inputs.push_back (input);
+#else
+
+        try
+        {
+            /** We parse the user parameters. */
+            IProperties* input = (*it)->getParser()->parse (argc, argv);
+
+            /** We may display the help for the tool. */
+            if (getParser()->saw (STR_HELP))  {  (*it)->getParser()->displayHelp (stdout);  }
+
+            /** We add the input into the vector that gather the tools inputs. */
+            inputs.push_back (input);
+        }
+        catch (OptionFailure& e)
+        {
+            e.getParser().displayErrors (stdout);
+            e.getParser().displayHelp   (stdout);
+            return NULL;
+        }
+#endif
     }
 
     IProperties* output = 0;
