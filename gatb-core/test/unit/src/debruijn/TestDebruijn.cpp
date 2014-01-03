@@ -32,6 +32,8 @@
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/bank/impl/BankStrings.hpp>
+#include <gatb/bank/impl/BankSplitter.hpp>
+#include <gatb/bank/impl/BankRandom.hpp>
 
 #include <gatb/tools/collections/impl/Product.hpp>
 #include <gatb/tools/collections/impl/ProductFile.hpp>
@@ -90,6 +92,7 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test10);
         CPPUNIT_TEST_GATB (debruijn_test11);
         CPPUNIT_TEST_GATB (debruijn_test12);
+        CPPUNIT_TEST_GATB (debruijn_test13);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -650,6 +653,46 @@ public:
         }
     }
 
+    /********************************************************************************/
+    void debruijn_test13 ()
+    {
+        size_t   readSize = 80;
+        u_int8_t coverage = 5;
+        size_t   kmerSize = 31;
+        size_t   nks      = coverage;
+
+        const char* seq =
+            "GAATTCCAGGAGGACCAGGAGAACGTCAATCCCGAGAAGGCGGCGCCCGCCCAGCAGCCCCGGACCCGGGCTGGACTGGC"
+            "GGTACTGAGGGCCGGAAACTCGCGGGGTCCAGCTCCCCAGAGGCCTAAGACGCGACGGGTTGCACCTCTTAAGGATCTTC"
+            "CTATAAATGATGAGTATGTCCCTGTTCCTCCCTGGAAAGCAAACAATAAACAGCCTGCATTTACCATACATGTGGATGAA"
+            "GCAGAAGAAATTCAAAAGAGGCCAACTGAATCTAAAAAATCAGAAAGTGAAGATGTCTTGGCCTTTAATTCAGCTGTTAC"
+            "TTTACCAGGACCAAGAAAGCCACTGGCACCTCTTGATTACCCAATGGATGGTAGTTTTGAGTCTCCACATACTATGGAAA"
+            "TGTCAGTTGTATTGGAAGATGAAAAGCCAGTGAGTGTTAATGAAGTACCAGACTACCATGAGGACATTCACACGTACCTT"
+            "AGGGAAATGGAGGTTAAATGTAAGCCTAAAGTGGGTTACATGAAGAAACAGCCAGACATTACTAACAGTATGAGGGCTAT"
+            "CCTCGTGGACTGGTTAGTTGAAGTAGGAGAAGAATATAAACTGCAGAACGAGACCCTGCATTTGGCTGTGAACTACATTG"
+            "ATAGGTTTCTTTCATCCATGTCTGTGTTGAGAGGAAAACTTCAACTTGTGGGCACTGCTGCTATGCTTTTAGCCTCAAAG"
+            "TTTGAAGAGATATACCCGCCAGAAGTAGCAGAGTTTGTATACATTACAGATGACACTTATACCAAGAAACAAGTTCTAAG"
+            "GATGGAGCACCTAGTCTTGAAAGTCCTGGCTTTTGACTTAGCTGCACCAACAATAAATCAGTTTCTTACCCAGTACTTTT"
+            "TGCATCAGCAGCCTGCAAACTGCAAAGTTGAAAGTTTAGCAATGTTTTTGGGAGAGTTAAGTTTGATAGATGCTGACCCA"
+            "TATCTAAAGTATTTGCCGTCAGTTATCGCTGCAGCAGCCTTTCATTTAGCACTCTACACAGTCACAGGACAAAGCTGGCC"
+            "TGAATCATTAGTACAGAAGACTGGATATACTCTGGAAACTCTAAAGCCTTGTCTCCTGGACCTTCACCAGACCTACCTCA"
+            "GAGCACCACAGCACGCACAACAGTCAATAAGAGAGAAGTACAAAAATTCAAAGTATCATGGTGTTTCTCTCCTCAACCCA"
+            "CCAGAGACACTAAATGTGTAACAGTGAAAAGACTGCCTTTGTTTTCTAAGACTGTAAATCACATGCAATGTATATGGTGT"
+            "ACAGATTTTATCTTAGGTTTTAATTTTACAACATTTCTGAATAAGAAGAGTTATGGTCCAGTACAAATTATGGTATCTAT"
+            "TACTTTTTAAATGGTTTTAATTTGTATATCTTTTGTAAATGTAACTATCTTAGATATTTGGCTAATTTTAAGTGGTTTCT";
+
+        // We create a bank of reads from a given long sequence
+        IBank* bank = new BankSplitter (new BankStrings (seq, NULL), readSize, kmerSize-1, coverage);
+
+        // We create the graph.
+        Graph graph = Graph::create (bank,  "-kmer-size %d  -nks %d", kmerSize, nks);
+
+        // We check we got the correct number of solid kmers.
+        CPPUNIT_ASSERT (graph.getInfo().getInt ("kmers_nb_valid") == strlen(seq) - kmerSize + 1);
+
+        // We check that we have only two branching nodes.
+        CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching") == 2);
+    }
 };
 
 /********************************************************************************/
