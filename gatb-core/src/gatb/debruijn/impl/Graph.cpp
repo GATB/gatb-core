@@ -363,18 +363,18 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
 
     if (includeMandatory == true)
     {
-        parser.add (new tools::misc::impl::OptionOneParam (STR_URI_INPUT, "reads file", true ));
+        parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_INPUT, "reads file", true ));
     }
 
-    parser.add (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       false,  "31"    ));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,      "output file",                          false));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,  "output directory",                     false,  "."));
-    parser.add (new tools::misc::impl::OptionNoParam  (STR_VERBOSE,         "verbose",                              false));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "1000"));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
-    parser.add (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
-    parser.add (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,       "size of a kmer",                       false,  "31"    ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,      "output file",                          false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,  "output directory",                     false,  "."));
+    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERBOSE,         "verbose",                              false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "1000"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
+    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
 
     return parser;
 }
