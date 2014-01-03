@@ -19,6 +19,8 @@
 #include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankStrings.hpp>
+#include <gatb/bank/impl/BankSplitter.hpp>
+#include <gatb/bank/impl/BankRandom.hpp>
 
 #include <gatb/bank/impl/BankRegistery.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
@@ -70,6 +72,8 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_checkRegistery2);
         CPPUNIT_TEST_GATB (bank_strings1);
         CPPUNIT_TEST_GATB (bank_sequence);
+        CPPUNIT_TEST_GATB (bank_splitter_1);
+        CPPUNIT_TEST_GATB (bank_random_1);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -705,6 +709,72 @@ public:
         Sequence s1 (buf);
         CPPUNIT_ASSERT (s1.getDataSize() == 15);
         CPPUNIT_ASSERT (strcmp (s1.getDataBuffer(), buf) == 0);
+    }
+
+    /********************************************************************************/
+    void bank_random_aux (size_t nbSequences, size_t length)
+    {
+        BankRandom bank (nbSequences, length);
+
+        Iterator<Sequence>* it = bank.iterator ();
+        LOCAL (it);
+
+        size_t foundSequences = 0;
+        for (it->first(); !it->isDone(); it->next(), foundSequences++)
+        {
+            CPPUNIT_ASSERT ((*it)->getDataSize() == length);
+        }
+
+        CPPUNIT_ASSERT (foundSequences == nbSequences);
+    }
+
+    /** */
+    void bank_random_1 ()
+    {
+        size_t nbTable[]  = {1, 5, 10, 100, 1000};
+        size_t lenTable[] = {10, 100, 1000, 10*1000, 100*1000, 1000*1000};
+
+        for (size_t i=0; i<ARRAY_SIZE(nbTable); i++)
+        {
+            for (size_t j=0; j<ARRAY_SIZE(lenTable); j++)
+            {
+                bank_random_aux (nbTable[i], lenTable[j]);
+            }
+        }
+    }
+
+    /********************************************************************************/
+    void bank_splitter_1 ()
+    {
+        size_t   readSize = 20;
+        u_int8_t coverage = 1;
+        size_t   overlap  = 5;
+
+        BankSplitter bank (
+            new BankStrings ("ATCCTCCCCAGGCCCCTACACCCAATGTGGAACCGGGGTCCCGAATGAAAATGCTGCTGTTCCCTGGAGGTGTTCT", NULL),
+            readSize, overlap, coverage
+        );
+
+        const char* check[] = {
+          // ATCCTCCCCAGGCCCCTACACCCAATGTGGAACCGGGGTCCCGAATGAAAATGCTGCTGTTCCCTGGAGGTGTTCT
+            "ATCCTCCCCAGGCCCCTACA",
+                           "CTACACCCAATGTGGAACCG",
+                                          "AACCGGGGTCCCGAATGAAA",
+                                                         "TGAAAATGCTGCTGTTCCCT",
+                                                                        "TCCCTGGAGGTGTTCT"
+          // 0000000000111111111122222222223333333333444444444455555555556666666666777777
+          // 0123456789012345678901234567890123456789012345678901234567890123456789012345
+        };
+
+        size_t nbIter = 0;
+        Iterator<Sequence>* it = bank.iterator();  LOCAL (it);
+        for (it->first(); !it->isDone(); it->next(), nbIter++)
+        {
+            string current = string ((*it)->getDataBuffer(), (*it)->getDataSize());
+            CPPUNIT_ASSERT (current == check[nbIter]);
+        }
+
+        CPPUNIT_ASSERT (nbIter == ARRAY_SIZE(check));
     }
 };
 
