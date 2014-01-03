@@ -242,6 +242,9 @@ public:
         /************************************************************/
         BranchingAlgorithm<ProductFactoryLocal, T> branchingAlgo (graph, & graph.getProduct("graph").getCollection<kmer::Kmer<T> > ("branching"));
         graph.executeAlgorithm (branchingAlgo, props, graph._info);
+
+        /** We update the metadata. */
+        metadata->addProperty ("properties", graph.getInfo().getXML());
     }
 
     /********************************************************************************/
@@ -259,6 +262,13 @@ public:
             & (*product) ("debloom").getCollection<NativeInt8>     ("bloom"),
             & (*product) ("graph").  getCollection<kmer::Kmer<T> > ("branching")
         );
+
+        /** We retrieve the information as a XML string in the "metadata.properties" attribute. */
+        string xmlString = graph.getProduct().getCollection<NativeInt8> ("metadata").getProperty ("properties");
+
+        /** We set the info of the graph. */
+        stringstream ss; ss << xmlString;
+        graph.getInfo().readXML (ss);
     }
 
     /********************************************************************************/
