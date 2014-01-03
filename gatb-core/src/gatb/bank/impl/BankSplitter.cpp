@@ -39,14 +39,11 @@ BankSplitter::BankSplitter (
     IBank*   reference,
     size_t   readMeanSize,
     size_t   overlap,
-    u_int8_t coverage,
-    bool     random
+    u_int8_t coverage
 )
-    : _reference (0), _readMeanSize(readMeanSize), _coverage(coverage), _overlap(overlap), _random(random)
+    : _reference (0), _readMeanSize(readMeanSize), _coverage(coverage), _overlap(overlap)
 {
     setReference (reference);
-
-    if (_random)  {  srand (time(NULL));  }
 }
 
 /*********************************************************************
@@ -84,7 +81,7 @@ void BankSplitter::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t&
 *********************************************************************/
 BankSplitter::Iterator::Iterator(const BankSplitter& bank)
     : _dataRef (0), _rank(0), _nbMax(0), _isDone(true), _itRef(0),
-      _readMeanSize (bank._readMeanSize), _random(bank._random), _overlap(bank._overlap)
+      _readMeanSize (bank._readMeanSize), _overlap(bank._overlap)
 {
     assert (bank._readMeanSize > 0);
     assert (bank._readMeanSize > bank._overlap);
@@ -160,11 +157,8 @@ void BankSplitter::Iterator::next()
     _isDone = (++_rank >= _nbMax);
     if (!_isDone)
     {
-        //size_t offset = _random ? rand() % _offsetMax : _offsets[_rank % (_offsets.size())];
         size_t offset = _offsets[_rank % (_offsets.size())].first;
         size_t size   = _offsets[_rank % (_offsets.size())].second;
-
-//cout << "rank=" << _rank << "  len=" << _reference->size() << "  offset=" << offset << endl;
 
         _item->getData().setRef (_dataRef, offset, size);
     }

@@ -53,8 +53,7 @@ public:
         IBank* reference,
         size_t readMeanSize,
         size_t   overlap,
-        u_int8_t coverage,
-        bool random
+        u_int8_t coverage
     );
 
     /** Destructor. */
@@ -119,7 +118,6 @@ public:
         int64_t   _rank;
         int64_t   _nbMax;
         size_t    _offsetMax;
-        bool      _random;
         size_t    _overlap;
         bool      _isDone;
     };
@@ -132,7 +130,6 @@ protected:
     size_t      _readMeanSize;
     u_int8_t    _coverage;
     size_t      _overlap;
-    bool        _random;
 
     friend class Iterator;
 };
