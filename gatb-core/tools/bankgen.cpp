@@ -47,8 +47,8 @@ int main (int argc, char* argv[])
     const char* COVERAGE      = "-coverage";
 
     parser.push_back (new OptionOneParam (OUTPUT_PREFIX,  "output prefix",               true));
-    parser.push_back (new OptionOneParam (SEQ_LEN,        "sequence length",             false,  "1000"));
-    parser.push_back (new OptionOneParam (READ_LEN,       "read length",                 false,  "100" ));
+    parser.push_back (new OptionOneParam (SEQ_LEN,        "sequence length",             false,  "1000000"));
+    parser.push_back (new OptionOneParam (READ_LEN,       "read length",                 false,  "150" ));
     parser.push_back (new OptionOneParam (OVERLAP_LEN,    "overlap between two reads",   false,  "50" ));
     parser.push_back (new OptionOneParam (COVERAGE,       "coverage",                    false,  "3" ));
 
