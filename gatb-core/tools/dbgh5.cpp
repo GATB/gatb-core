@@ -11,7 +11,16 @@
 int main (int argc, char* argv[])
 {
     /** We create a command line parser. */
-    OptionsParser parser = Graph::getOptionsParser();
+    OptionsParser parser;
+    parser.push_back (new OptionOneParam (STR_URI_INPUT,  "reads input",              true));
+    parser.push_back (new OptionOneParam (STR_URI_OUTPUT, "graph output",             false));
+    parser.push_back (new OptionOneParam (STR_KMER_SIZE,  "kmer size",                false, "27"));
+    parser.push_back (new OptionOneParam (STR_NKS,        "kmer abundance threshold", false, "3" ));
+    parser.push_back (new OptionOneParam (STR_MAX_MEMORY, "max memory",               false, "1000"));
+    parser.push_back (new OptionOneParam (STR_MAX_DISK,   "max disk",                 false, "0"));
+    parser.push_back (new OptionOneParam (STR_NB_CORES,   "nb cores (0 for all)",     false, "0"));
+    parser.push_back (new OptionNoParam  (STR_VERBOSE,    "verbosity",                false));
+    parser.push_back (new OptionNoParam  (STR_HELP,       "help",                     false));
 
     try
     {

@@ -44,7 +44,7 @@ int main (int argc, char* argv[])
 {
     /** We create a command line parser. */
     OptionsParser parser;
-    parser.add (new OptionOneParam (STR_URI_INPUT,  "graph file", true));
+    parser.push_back (new OptionOneParam (STR_URI_INPUT,  "graph file", true));
 
     try
     {
