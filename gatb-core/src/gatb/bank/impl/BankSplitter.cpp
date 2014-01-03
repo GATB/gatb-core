@@ -24,9 +24,6 @@ using namespace gatb::core::tools::misc;
 namespace gatb {  namespace core {  namespace bank {  namespace impl {
 /********************************************************************************/
 
-typedef pair<size_t,size_t> Offset;
-vector<Offset> _offsets;
-
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -69,6 +66,9 @@ BankSplitter::~BankSplitter ()
 *********************************************************************/
 void BankSplitter::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
+    number    = 0;
+    totalSize = 0;
+    maxSize   = 0;
 }
 
 /*********************************************************************
@@ -89,10 +89,11 @@ BankSplitter::Iterator::Iterator(const BankSplitter& bank)
     /** We get the first sequence of the referred bank. */
     setItRef (bank._reference->iterator());
     _itRef->first();
-    assert (!_itRef->isDone());
+    assert (_itRef->isDone() == false);
 
     /** We create the reference Data object (that references the provided string). */
-    setDataRef (new Data ((*_itRef)->getDataBuffer()));
+    setDataRef (new Data ());
+    *_dataRef = (*_itRef)->getData();
 
     _offsetMax = _dataRef->size() - _readMeanSize;
 

@@ -120,6 +120,9 @@ public:
         size_t    _offsetMax;
         size_t    _overlap;
         bool      _isDone;
+
+        typedef std::pair<size_t,size_t> Offset;
+        std::vector<Offset> _offsets;
     };
 
 protected:
