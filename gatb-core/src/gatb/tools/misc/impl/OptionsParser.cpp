@@ -31,7 +31,7 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-OptionsParser::OptionsParser ()  : _properties(0)
+OptionsParser::OptionsParser (const string& name)  : _name(name), _properties(0)
 {
     _proceed=0;
     setProperties (new Properties());
@@ -63,7 +63,7 @@ OptionsParser::~OptionsParser ()
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-int OptionsParser::add (Option* option)
+int OptionsParser::push_back (Option* option)
 {
     DEBUG (("OptionsParser::add  this=%p  option=%s\n", this, option->getLabel().c_str()));
 
@@ -73,6 +73,29 @@ int OptionsParser::add (Option* option)
 
         /* We add the option in the list. */
         _options.push_back (option);
+    }
+
+    return _options.size();
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+int OptionsParser::push_front (Option* option)
+{
+    DEBUG (("OptionsParser::add  this=%p  option=%s\n", this, option->getLabel().c_str()));
+
+    if (option != 0)
+    {
+        option->use ();
+
+        /* We add the option in the list. */
+        _options.push_front (option);
     }
 
     return _options.size();
@@ -311,7 +334,7 @@ void OptionsParser::getOptionArgs (const Option* option, std::list<std::string>&
     if (i<=n)
     {
         char buffer [128];
-        snprintf (buffer, sizeof(buffer), "To few arguments for the %s option...", option->getLabel().c_str());
+        snprintf (buffer, sizeof(buffer), "Too few arguments for the %s option...", option->getLabel().c_str());
         _errors.push_back (buffer);
     }
 }
@@ -358,11 +381,36 @@ void OptionsParser::displayWarnings (FILE* fp)
  *********************************************************************/
 void OptionsParser::displayHelp (FILE* fp)
 {
+    /** We first look for the longest option name. */
+    size_t maxLen=0;
+    for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
+    {
+        if (!(*it)->getLabel().empty())  {  maxLen = std::max (maxLen, (*it)->getLabel().size());  }
+    }
+
+    fprintf (fp, "USAGE for '%s'\n", _name.c_str());
+
     for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
     {
         if (!(*it)->getLabel().empty())
         {
-            fprintf (fp, "\t%s :\t %s\n",  (*it)->getLabel().c_str(),  (*it)->getHelp().c_str());
+            if ((*it)->getNbArgs() > 0)
+            {
+                fprintf (fp, "    %-*s (%d arg) :    %s  [default '%s']\n",  maxLen,
+                    (*it)->getLabel().c_str(),
+                    (*it)->getNbArgs(),
+                    (*it)->getHelp().c_str(),
+                    (*it)->getParam().c_str()
+                );
+            }
+            else
+            {
+                fprintf (fp, "    %-*s (%d arg) :    %s\n",  maxLen,
+                    (*it)->getLabel().c_str(),
+                    (*it)->getNbArgs(),
+                    (*it)->getHelp().c_str()
+                );
+            }
         }
     }
 }

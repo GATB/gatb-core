@@ -245,7 +245,7 @@ class OptionsParser : public system::SmartPointer
 public:
 
     /** Constructor. */
-    OptionsParser ();
+    OptionsParser (const std::string& name="");
 
     /** Destructor. */
     ~OptionsParser ();
@@ -254,7 +254,13 @@ public:
      * \param[in] opt : option to be registered to the parser.
      * \return the number of known options
      */
-    int add (Option* opt);
+    int push_back (Option* opt);
+
+    /** Add an option to the pool of recognized options.
+     * \param[in] opt : option to be registered to the parser.
+     * \return the number of known options
+     */
+    int push_front (Option* opt);
 
     /** Perform the analyze of the arguments.
      * \param[in] argc : number of command line arguments.
@@ -311,6 +317,9 @@ public:
     const std::list<Option*>& getOptions ()  { return _options; }
 
 private:
+
+    /** */
+    std::string _name;
 
     /** */
     misc::IProperties* _properties;
