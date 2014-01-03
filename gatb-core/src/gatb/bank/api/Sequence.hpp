@@ -65,6 +65,7 @@ struct Sequence
     void setIndex (size_t index)  { _index = index; }
 
     std::string _comment;
+    void setComment (const std::string& cmt)  { _comment = cmt; }
 
 private:
     tools::misc::Data _data;
