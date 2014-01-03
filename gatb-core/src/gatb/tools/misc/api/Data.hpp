@@ -65,6 +65,13 @@ public:
     /** Constructor. */
     Data (size_t len)  : Vector<char>(len), encoding(BINARY)  {}
 
+    /** */
+    Data& operator= (const Data& d)
+    {
+        if (this != &d)  {  this->set (d.getBuffer(), d.size());  }
+        return *this;
+    }
+
     /**  */
     void setRef (Data* ref, size_t offset, size_t length)
     {
