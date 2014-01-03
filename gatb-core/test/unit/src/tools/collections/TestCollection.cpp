@@ -312,7 +312,7 @@ public:
     void collection_HDF5_check_collection_aux (T* values, size_t len)
     {
         /** We create a product. */
-        Product<ProductHDF5Factory>* product = ProductHDF5Factory::createProduct ("test", true, false);
+        Product<ProductHDF5Factory>* product = ProductHDF5Factory::createProduct ("aProduct", true, false);
         LOCAL (product);
 
         /** We get a collection from the product. */
@@ -352,7 +352,7 @@ public:
     void collection_HDF5_check_partition_aux (T* values, size_t len, size_t nbParts)
     {
         /** We create a product. */
-        Product<ProductHDF5Factory>* product = ProductHDF5Factory::createProduct ("test", true, false);
+        Product<ProductHDF5Factory>* product = ProductHDF5Factory::createProduct ("aProduct", true, false);
         LOCAL (product);
 
         /** We create a partition. */
