@@ -27,7 +27,7 @@
 namespace gatb      {
 /** \brief Core package of the GATP project.
  *
- * The gatb::core package holds all the fundamental packages needed for writting
+ * The gatb::core package holds all the fundamental packages needed for writing
  * assembly algorithms.
  *
  * It holds some generic tools, like operating system abstraction, collections management or design patterns
@@ -88,10 +88,15 @@ namespace system    {
     {
         va_list args;  va_start (args, format);  init (format, args);  va_end (args);
 
-        char* buffer       = (char*) malloc (BUFSIZ);
-        strerror_r (errno, buffer, BUFSIZ);
-        {  _message += std::string(" (") + std::string(buffer) + std::string(")");  }
-        free(buffer);
+        char* buffer = (char*) malloc (BUFSIZ);
+        if (buffer != NULL)
+        {
+            *buffer = 0;
+
+            strerror_r (errno, buffer, BUFSIZ);
+            {  _message += std::string(" (") + std::string(buffer) + std::string(")");  }
+            free(buffer);
+        }
     }
  };
 
