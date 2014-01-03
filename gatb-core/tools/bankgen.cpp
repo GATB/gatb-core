@@ -50,7 +50,7 @@ int main (int argc, char* argv[])
     parser.push_back (new OptionOneParam (SEQ_LEN,        "sequence length",             false,  "1000"));
     parser.push_back (new OptionOneParam (READ_LEN,       "read length",                 false,  "100" ));
     parser.push_back (new OptionOneParam (OVERLAP_LEN,    "overlap between two reads",   false,  "50" ));
-    parser.push_back (new OptionOneParam (COVERAGE,       "coverage",                    false,  "1" ));
+    parser.push_back (new OptionOneParam (COVERAGE,       "coverage",                    false,  "3" ));
 
     try
     {
