@@ -731,7 +731,7 @@ public:
     /** */
     void bank_random_1 ()
     {
-        size_t nbTable[]  = {1, 5, 10, 100, 1000};
+        size_t nbTable[]  = {1, 5, 10, 100};
         size_t lenTable[] = {10, 100, 1000, 10*1000, 100*1000, 1000*1000};
 
         for (size_t i=0; i<ARRAY_SIZE(nbTable); i++)
