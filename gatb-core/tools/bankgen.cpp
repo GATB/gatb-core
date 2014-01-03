@@ -66,8 +66,7 @@ int main (int argc, char* argv[])
             randomBank,
             options->getInt(READ_LEN),
             options->getInt(OVERLAP_LEN),
-            options->getInt(COVERAGE),
-            false
+            options->getInt(COVERAGE)
         );
         LOCAL (readsBank);
 
