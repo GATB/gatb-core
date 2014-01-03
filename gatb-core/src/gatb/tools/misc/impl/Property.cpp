@@ -454,6 +454,10 @@ void Properties::readXML (std::istream& stream)
         IProperty*  _currentProperty;
     };
 
+    /** We remove all existing properties. */
+    for (std::list<IProperty*>::iterator it = _properties.begin(); it != _properties.end(); it++)  {  delete *it;  }
+    _properties.clear ();
+
     /** We attach this kind of observer to the reader. */
     XmlObserver observer (this);
     reader.addObserver (&observer);

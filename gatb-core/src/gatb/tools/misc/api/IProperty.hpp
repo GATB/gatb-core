@@ -221,6 +221,10 @@ public:
     /** */
     virtual std::string getXML () = 0;
 
+    /** Fill a Properties instance from an XML stream.
+     * \param[in] stream: the stream to be read (file, string...) */
+    virtual void readXML (std::istream& stream) = 0;
+
 protected:
 
     /** */
