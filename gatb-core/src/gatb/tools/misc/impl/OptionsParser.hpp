@@ -316,6 +316,9 @@ public:
      */
     const std::list<Option*>& getOptions ()  { return _options; }
 
+    /** */
+    void setName (const std::string& name)  { _name = name; }
+
 private:
 
     /** */
