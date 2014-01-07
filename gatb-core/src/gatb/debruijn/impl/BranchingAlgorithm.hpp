@@ -27,7 +27,7 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
-template <typename ProductFactory, size_t span>
+template <typename ProductFactory, size_t span=KMER_DEFAULT_SPAN>
 class BranchingAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:

@@ -49,7 +49,7 @@ namespace impl      {
  * to choose dynamically the correct class according to the user choice for kmer size
  * (remember that initial Minia version had to be re-compiled for different kmer size).
  */
-template<typename ProductFactory, size_t span>
+template<typename ProductFactory, size_t span=KMER_DEFAULT_SPAN>
 class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:

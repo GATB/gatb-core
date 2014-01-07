@@ -41,7 +41,7 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-template<typename ProductFactory, size_t span>
+template<typename ProductFactory, size_t span=KMER_DEFAULT_SPAN>
 class DebloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:

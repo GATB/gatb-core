@@ -39,7 +39,7 @@ namespace impl      {
  *
  * This class is a builder of a bloom filter in which we insert kmers.
  */
-template<size_t span> class BloomBuilder
+template<size_t span=KMER_DEFAULT_SPAN> class BloomBuilder
 {
 public:
 

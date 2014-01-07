@@ -43,6 +43,10 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+#define KMER_DEFAULT_SPAN 32
+
+/********************************************************************************/
+
 /** \brief Entry point for kmer management.
  *
  * This structure is only a container for other types defined inside. The specificity is
@@ -60,7 +64,7 @@ namespace impl      {
  * A default value of 32 is defined for the template parameter, so writing 'Kmer<>::Model'
  * represents a model that supports kmers of size up to 31 (included).
  */
-template <size_t span=32>
+template <size_t span=KMER_DEFAULT_SPAN>
 struct Kmer
 {
     /************************************************************/
