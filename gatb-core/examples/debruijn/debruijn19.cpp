@@ -188,7 +188,7 @@ int main (int argc, char* argv[])
         props.add (3, "nb_nodes",    "%d", it->first);
         props.add (3, "nb_occurs",   "%d", it->second);
         props.add (3, "freq_nodes",  "%f", 100.0*(float)(it->first*it->second) / (float)sum);
-        props.add (3, "freq_occurs", "%f", 100.0*(float)it->second / (float)sum);
+        //props.add (3, "freq_occurs", "%f", 100.0*(float)it->second / (float)sum);
     }
     props.add (1, ti.getProperties("time"));
 
