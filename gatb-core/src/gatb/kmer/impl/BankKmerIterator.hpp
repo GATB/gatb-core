@@ -165,7 +165,7 @@ public:
      * \param[in] bank : the bank whose sequences are to be iterated.
      * \param[in] model : kmer model
      */
-    BankVectorKmerIterator (bank::IBank& bank, Model<kmer_type>& model)
+    BankVectorKmerIterator (bank::IBank& bank, KmerModel<kmer_type>& model)
         : _model(model), _itSeq(0), _isDone(true),  _moduloMask(1), _idx(0)
     {
         /** We create an iterator over the sequences of the provided bank.
@@ -249,7 +249,7 @@ public:
 
 private:
 
-    Model<kmer_type>& _model;
+    KmerModel<kmer_type>& _model;
 
     /** Outer loop iterator on Sequence. */
     tools::dp::Iterator<bank::Sequence>* _itSeq;

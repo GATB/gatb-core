@@ -8,7 +8,7 @@
 /** \file Model.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Basic implementation of the IModel interface
+ *  \brief Kmer management
  */
 
 #ifndef _GATB_CORE_KMER_IMPL_MODEL_HPP_
@@ -18,21 +18,21 @@
 
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/kmer/api/IModel.hpp>
-#include <gatb/kmer/impl/ModelAbstract.hpp>
 
-#include <gatb/bank/api/IAlphabet.hpp>
-#include <gatb/bank/impl/Alphabet.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
 
+#include <gatb/tools/math/LargeInt.hpp>
+
 #include <vector>
 #include <algorithm>
-
 #include <iostream>
 
 extern const char bin2NT[] ;
 extern const char binrev[] ;
+extern const unsigned char revcomp_4NT[];
+extern const unsigned char comp_NT    [];
 
 /********************************************************************************/
 namespace gatb      {
@@ -43,162 +43,312 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-extern const unsigned char revcomp_4NT[];
-extern const unsigned char comp_NT    [];
-
-    
-/** \brief TO BE DONE
+/** \brief Entry point for kmer management.
+ *
+ * This structure is only a container for other types defined inside. The specificity is
+ * that this structure is templated by a 'span' integer that represents the maximal kmer
+ * size supported (actually, the max value is 'span-1').
+ *
+ * Inside this structure, we have the following main elements:
+ *      - 'Type'  : this is the integer type representing kmer values
+ *      - 'Model' : provides many services for managing kmers
+ *      - 'Count' : roughly speaking, this a kmer value with an associated abundance
+ *
+ * This structure must be used only with for 4 values (32,64,96,128, see Model.cpp), otherwise
+ * a compilation error occurs (more values could be added in the future).
+ *
+ * A default value of 32 is defined for the template parameter, so writing 'Kmer<>::Model'
+ * represents a model that supports kmers of size up to 31 (included).
  */
-template <typename kmer_type> class Model : public ModelAbstract<kmer_type>
+template <size_t span=32>
+struct Kmer
 {
-public:
+    /************************************************************/
+    /***********************     TYPE     ***********************/
+    /************************************************************/
 
-    /** Constructor.
-     * \param[in] span : size of the kmers for this model
-     * \param[in] alphabet : underlying alphabet
+    /** Alias type for the integer value of a kmer. We use the LargeInt class for supporting big integers.
+     * Note that the template parameter 'span' represents the maximal kmer size supported by the Kmer class.
+     * A conversion to the template parameter of LargeInt is done.
      */
-    Model (size_t span, bank::IAlphabet& alphabet= bank::impl::AlphabetNucleic::singleton()) : ModelAbstract<kmer_type> (span, alphabet)  {}
+    typedef tools::math::LargeInt<(span+31)/32> Type;
 
-    /** \copydoc IModel::codeSeed */
-    kmer_type codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding)
+    /************************************************************/
+    /***********************     MODEL    ***********************/
+    /************************************************************/
+
+    /** \brief Class providing services for kmer management.
+     *
+     * The Model class provides means to generate kmers, for instance from a sequence of nucleotides.
+     *
+     * It is defined by the kmer size (provided at construction). If the provided kmer size is not compatible
+     * with the 'span' template parameter, an exception is thrown.
+     *
+     * The way kmers are generated through the Model class is defined by a KmerMode; an integer value of
+     * type 'Type' is associated to a kmer, an this integer value may be computed differently according to
+     * the chosen KmerMode.
+     */
+    class Model : public system::SmartPointer
     {
-        return ModelAbstract<kmer_type>::codeSeed (seq, encoding, KMER_MINIMUM);
-    }
+    public:
 
-    /** \copydoc IModel::codeSeedRight */
-    kmer_type codeSeedRight (const kmer_type& val_seed, char nucleotide, tools::misc::Data::Encoding_e encoding,KmerMode mode = KMER_MINIMUM)
-    {
-        return ModelAbstract<kmer_type>::codeSeedRight (val_seed, nucleotide, encoding, mode);
-    }
-
-    /** */
-    kmer_type reverse (const kmer_type& kmer)  { return revcomp (kmer, this->_sizeKmer); }
-
-    /** */
-    std::string toString (const kmer_type& kmer)  {  return kmer.toString (this->_sizeKmer);  }
-
-    /** */
-    std::pair<kmer_type, bool> getKmer (const tools::misc::Data& data, size_t idx=0, KmerMode mode = KMER_MINIMUM)
-    {
-        /** We compute the first kmer as a polynomial value. */
-        kmer_type graine  = ModelAbstract<kmer_type>::codeSeed (data.getBuffer()+idx, data.getEncoding(), KMER_DIRECT);
-        kmer_type revcomp = ModelAbstract<kmer_type>::codeSeed (data.getBuffer()+idx, data.getEncoding(), KMER_REVCOMP);
-
-        bool      isForward = graine < revcomp;
-        kmer_type value     = isForward ? graine : revcomp;
-
-             if (mode == KMER_MINIMUM)  {  return std::make_pair (value, isForward); }
-        else if (mode == KMER_DIRECT)   {  return std::make_pair (graine, true); }
-        else  {  throw system::Exception ("BAD KMER MODE");  }
-    }
-
-    /** */
-    bool build (tools::misc::Data& data, std::vector<kmer_type>& kmersBuffer,KmerMode mode = KMER_MINIMUM)
-    {
-        /** We compute the number of kmers for the provided data. Note that we have to check that we have
-         * enough nucleotides according to the current kmer size. */
-        int32_t nbKmers = data.size() - this->getSpan() + 1;
-        if (nbKmers <= 0)  { return false; }
-
-        /** We resize the resulting kmers vector. */
-        kmersBuffer.resize (nbKmers);
-
-        /** Shortcut used for computing kmers recursively. */
-        char* buffer = data.getBuffer() + this->getSpan() - 1;
-
-        /** We compute the first kmer as a polynomial value. */
-        kmer_type graine  = ModelAbstract<kmer_type>::codeSeed (data.getBuffer(), data.getEncoding(), KMER_DIRECT);
-        kmer_type revcomp = ModelAbstract<kmer_type>::codeSeed (data.getBuffer(), data.getEncoding(), KMER_REVCOMP);
-        if(mode == KMER_MINIMUM)
-        {
-            kmersBuffer[0]    = std::min (graine, revcomp);
-        }
-        else if (mode == KMER_DIRECT)
-        {
-            kmersBuffer[0]    = graine;
-        }
-        else  {  throw system::Exception ("BAD KMER MODE");  }
-
-        /** NOTE: we have some kind of duplicated code here: the only difference is the way we retrieve the 'c'
-         *  character according toe the encoding mode. We could have some function pointer for factorizing this.
-         *
-         *  BUT, using function pointer would lead to many function calls with bad performance. We prefer therefore
-         *  duplicate code and let inline work when needed.
+        /** Constructor.
+         * \param[in] sizeKmer : size of the kmers for this model. If not set, use the maximum size allowed by the template parameter
+         * \param[in] mode : tell how to compute kmer; default mode is 'minimum', ie min(forward,revcomp)
          */
-        if (data.getEncoding() == tools::misc::Data::ASCII && mode == KMER_MINIMUM)
-        {
-            /** We compute the next kmers in a recursive way. */
-            for (size_t i=1; i<nbKmers; i++)
-            {
-                char c = ModelAbstract<kmer_type>::NT2int(buffer[i]);
-                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
-                revcomp = ( (revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
-                kmersBuffer[i] = std::min (graine, revcomp);
-            }
-        }
-        else if (data.getEncoding() == tools::misc::Data::INTEGER && mode == KMER_MINIMUM)
-        {
-            /** We compute the next kmers in a recursive way. */
-            for (size_t i=1; i<nbKmers; i++)
-            {
-                char c = ModelAbstract<kmer_type>::NTidentity(buffer[i]);
-                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
-                revcomp = ( (revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
-                kmersBuffer[i] = std::min (graine, revcomp);
-            }
-        }
-        else if (data.getEncoding() == tools::misc::Data::BINARY && mode == KMER_MINIMUM)
-        {
-            buffer = data.getBuffer();
+        Model (size_t sizeKmer=span-1, KmerMode mode=KMER_MINIMUM);
 
-            size_t i0 = this->getSpan();
-            size_t i1 = data.size();
+        /** Gives the span, ie the maximum size of kmers allowed by this model. For instance, for span=32, the kmer size
+         * can be as large as 31 (included). Actually, only a few values of span are allowed (32, 64, 96 and 128), otherwise
+         * a compilation error will happen.
+         * \return the span of this model.
+         * */
+        size_t getSpan () const { return span; }
 
-            /** We compute the next kmers in a recursive way. */
-            for (size_t i=i0; i<i1; i++)
-            {
-                char c = ((buffer[i>>2] >> ((3-(i&3))*2)) & 3);
+        /** Gives the kmer size for this model.
+         * \return the kmer size. */
+        size_t getKmerSize () const { return _kmerSize; }
 
-                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
-                revcomp = ( (revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
-                kmersBuffer[i-i0+1] = std::min (graine, revcomp);
-            }
-        }
-        else if (data.getEncoding() == tools::misc::Data::ASCII && mode == KMER_DIRECT) //GR modif, check this with erwan
-        {
-            /** We compute the next kmers in a recursive way. */
-            for (size_t i=1; i<nbKmers; i++)
-            {
-                char c = ModelAbstract<kmer_type>::NT2int(buffer[i]);
-                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
-                kmersBuffer[i] = graine;
-            }
-        }
-        else if (data.getEncoding() == tools::misc::Data::INTEGER && mode == KMER_DIRECT)
-        {
-            /** We compute the next kmers in a recursive way. */
-            for (size_t i=1; i<nbKmers; i++)
-            {
-                char c = ModelAbstract<kmer_type>::NTidentity(buffer[i]);
-                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
-                kmersBuffer[i] = graine;
-            }
-        }
-        else if (data.getEncoding() == tools::misc::Data::BINARY && mode == KMER_DIRECT)
-        {
-            /** We compute the next kmers in a recursive way. */
-            for (size_t i=1; i<nbKmers; i++)
-            {
-                char c = ((buffer[i>>2] >> ((3-(i&3))*2)) & 3);
-                graine  = ( (graine  << 2) +  c                     ) & this->_kmerMask;
-                kmersBuffer[i] = graine;
-            }
-        }
-        else  {  throw system::Exception ("BAD DATA FORMAT TO BE CONVERTED IN KMERS...");  }
+        /** Returns the maximum kmer value allowed for this model according to the provided kmer size.
+         * For instance, if kmersize=31, the mask will be (1 << 2*kmersize) - 1
+         * \return the kmer mask for the model, ie for the model kmer size. */
+        Type getMask ()  const { return _kmerMask; }
 
-        return true;
-    }
-};
+        /**  Returns the kmer mode for this model.
+         * \return the kmer mask for the model, ie for the model kmer size. */
+        KmerMode getMode ()  const  { return _mode; }
+
+        /** Get the memory size (in bytes) of a Kmer<span>::Type object.
+         * \return the memory size of a kmer. */
+        size_t getMemorySize ()  const  { return sizeof (Type); }
+
+        /** Get a human readable string for the kmer (provided as an integer of type Type).
+         * \return the string as a sequence of nucleotides. */
+        std::string toString (const Type& kmer) const  {  return kmer.toString(_kmerSize);  }
+
+        /** Compute the kmer given some nucleotide data.
+         *  Note that we don't check if we have enough nucleotides in the provided data.
+         * \param[in] seq : the sequence
+         * \param[in] encoding : encoding mode of the sequence
+         * \return the kmer for the given nucleotides. */
+        Type codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding)   const  {  return codeSeed (seq, encoding, _mode);  }
+
+        /** Compute the next right kmer given a current kmer and a nucleotide.
+         * \param[in] seed : the current kmer as a starting point
+         * \param[in] nucl : the next nucleotide
+         * \param[in] encoding : encoding mode of the sequence
+         * \return the kmer on the right of the given kmer. */
+        Type codeSeedRight (const Type& seed, char nucl, tools::misc::Data::Encoding_e encoding)  const  {  return codeSeedRight (seed, nucl, encoding, _mode);  }
+
+        /** Compute the reverse complement of a kmer.
+         * \param[in] kmer : the kmer to be reverse-completed.
+         * \return the reverse complement. */
+        Type reverse (const Type& kmer)  const  { return revcomp (kmer, this->_kmerSize); }
+
+        /** Build a kmer from a Data object (ie a sequence of nucleotides), starting at an index in the nucleotides sequence.
+         * The result is a pair holding the built kmer and a boolean set to yes if the built kmer has to be understood in
+         * the forward sense, false otherwise.
+         * \param[in] data : the data from which we extract a kmer
+         * \param[in] idx : start index in the data object (default to 0)
+         * \return a pair with the built kmer and a boolean set to yes if the kmer is understood in the forward strand
+         */
+        std::pair<Type, bool> getKmer (const tools::misc::Data& data, size_t idx=0)  const  {  return getKmer (data, idx, _mode);  }
+
+        /** Build a vector of successive kmers from a given sequence of nucleotides provided as a Data object.
+         * \param[in] data : the sequence of nucleotides.
+         * \param[out] kmersBuffer : the successive kmers built from the data object.
+         * \return true if kmers have been extracted, false otherwise. */
+        bool build (tools::misc::Data& data, std::vector<Type>& kmersBuffer)  const  {  return build (data, kmersBuffer, _mode);  }
+
+        /** Iterate the neighbors of a given kmer; these neighbors are:
+         *  - 4 outcoming neighbors
+         *  - 4 incoming neighbors.
+         *  This method uses a functor that will be called for each possible neighbor of the source kmer.
+         *  \param[in] source : the kmer from which we want neighbors.
+         *  \param[in] fct : a functor called for each neighbor.*/
+        template<typename Functor>
+        void iterateNeighbors (const Type& source, const Functor& fct)  const
+        {
+            Type rev = core::tools::math::revcomp (source, getKmerSize());
+
+            /** We compute the 8 possible neighbors. */
+            for (size_t nt=0; nt<4; nt++)
+            {
+                {
+                    Type next1 = (((source) * 4 )  + nt) & getMask();
+                    Type next2 = revcomp (next1, getKmerSize());
+                    fct (std::min (next1, next2));
+                }
+                {
+                    Type next1 = (((rev) * 4 )  + nt) & getMask();
+                    Type next2 = revcomp (next1, getKmerSize());
+                    fct (std::min (next1, next2));
+                }
+            }
+        }
+
+        /************************************************************/
+        /** \brief Iterator on successive kmers
+         *
+         * This class will iterate successive kmers extracted from a Data object.
+         * It is similar to the Model::build, except that here we don't have a container
+         * holding all the successive kmers (ie. we have here only sequential access and
+         * not direct access).
+         *
+         * To be used, such an iterator must be initialized with some sequence of nucleotides,
+         * which is done with the 'setData' method.
+         */
+        class Iterator : public tools::dp::impl::VectorIterator<Type>
+        {
+        public:
+            /** Constructor.
+             * \param[in] ref : the associated model instance.
+             */
+            Iterator (Model& ref)  : _ref(ref)   {}
+
+            /** Set the data to be iterated.
+             * \param[in] d : the data as information source for the iterator
+             */
+            void setData (tools::misc::Data& d);
+
+        private:
+            /** Reference on the underlying model; called for its 'build' method. */
+            Model& _ref;
+        };
+
+        /************************************************************/
+        /** \brief Iterator on neighbors kmers of a given kmer.
+         *
+         * This class will iterate the 8 neighbors kmers from a given source kmer.
+         * It is similar to the Model::iterateNeighbors, except that here we don't have a container
+         * holding all the successive kmers (ie. we have here only sequential access and
+         * not direct access).
+         *
+         * To be used, such an iterator must be initialized with a source kmer,
+         * which is done with the 'setSource' method.
+         */
+        class NeighborIterator : public tools::dp::impl::VectorIterator<Type>
+        {
+        public:
+
+            /** Constructor.
+             * \param[in] ref : the associated model instance. */
+            NeighborIterator (Model& ref)  : _ref(ref) {  this->_items.resize(8);   this->_nb = 8; }
+
+            /** Set the source kmer from which we want to iterate the neighbors.
+             * \param[in] source : the source kmer. */
+            void setSource (const Type& source);
+
+        private:
+            /** Reference on the underlying model; called for its 'build' method. */
+            Model& _ref;
+        };
+
+    protected:
+
+        /** Size of a kmer for this model. */
+        size_t  _kmerSize;
+
+        /** Mask for the kmer. Used for computing recursively kmers. */
+        Type  _kmerMask;
+
+        /** Shortcut for easing/speeding up the recursive revcomp computation. */
+        Type _revcompTable[4];
+
+        /** Mode for computing the kmers. */
+        KmerMode _mode;
+
+        /** Functor that returns the provided nucleotide.
+         * \param[in] nt : the nucleotide in ASCII
+         * \return the same value as input. */
+        static int NTidentity(char nt)  { return nt; }
+
+        /** Transform a nucleotide in ASCII form into an integer form as:
+         *     - A=0
+         *     - C=1
+         *     - T=2
+         *     - G=3
+         * \param[in] nt : the nucleotide in ASCII
+         * \return the translated nucleotide */
+        static int NT2int(char nt)  {  return (nt>>1)&3;  }
+
+        /** Generic function that computes a kmer from a sequence.
+         * \param[in] seq : source data from which the kmer is computed.
+         * \param[in] encoding : encoding of the source data
+         * \param[in] mode : tells how to compute the kmer.
+         * \return the computed kmer.
+         */
+        Type codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding, KmerMode mode)  const ;
+
+        /** Compute the successor of a kmer in a recursive way.
+         *  WARNING ! we can't compute the minimum of direct and revcomp with this function since we need to know
+         *  both current direct and revcomp for computing the next one.
+         * \param[in] seed : initial kmer from which we want to compute the successor
+         * \param[in] nucl : the nucleotide to be appended to the current kmer
+         * \param[in] encoding : encoding of the source data
+         * \param[in] mode : tells how to compute the kmer.
+         */
+        Type codeSeedRight (const Type& seed, char nucl, tools::misc::Data::Encoding_e encoding, KmerMode mode)  const ;
+
+        /** Build a kmer from a Data object (ie a sequence of nucleotides), starting at an index in the nucleotides sequence.
+         * The result is a pair holding the built kmer and a boolean set to yes if the built kmer has to be understood in
+         * the forward sense, false otherwise.
+         * \param[in] data : the data from which we extract a kmer
+         * \param[in] idx : start index in the data object (default to 0)
+         * \param[in] mode : the mode for building kmers
+         * \return a pair with the built kmer and a boolean set to yes if the kmer is understood in the forward strand
+         */
+        std::pair<Type, bool> getKmer (const tools::misc::Data& data, size_t idx, KmerMode mode)  const ;
+
+        /** Build a vector of successive kmers from a given sequence of nucleotides provided as a Data object.
+         * \param[in] data : the sequence of nucleotides.
+         * \param[out] kmersBuffer : the successive kmers built from the data object.
+         * \param[in] mode : the mode for building kmers
+         * \return true if kmers have been extracted, false otherwise. */
+        bool build (tools::misc::Data& data, std::vector<Type>& kmersBuffer, KmerMode mode)  const ;
+
+    };  // class Model
+
+
+    /************************************************************/
+    /***********************     COUNT    ***********************/
+    /************************************************************/
+    /** \brief Structure associating a kmer value with an abundance value.
+     *
+     * This structure is useful for methods that counts kmer, such as the SortingCount algorithm.
+     * It is also interesting to save [kmer,abundance] in a HDF5 format.
+     *
+     * By default, the abundance value is coded on 16 bits, so abundance up to 1<<16 can be used.
+     */
+    struct Count : Abundance<Type,u_int16_t>
+    {
+        /** Shortcut. */
+        typedef u_int16_t Number;
+
+        /** Constructor.
+         * \param[in] val : integer value of the kmer
+         * \param[in] abund : abundance for the kmer */
+        Count(const Type& val, const Number& abund) : Abundance<Type,Number>(val, abund) {}
+
+        /** Default constructor. */
+        Count() : Abundance<Type,Number>(Type(), 0) {}
+
+        /** Copy constructor. */
+        Count(const Count& val) : Abundance<Type,Number>(val.value, 0) {}
+
+        /** Comparison operator
+         * \param[in] other : object to be compared to
+         * \return true if the provided kmer value is greater than the current one. */
+        bool operator< (const Count& other) const {  return this->value < other.value; }
+
+        /** Creates a HDF5 type identifier for the [kmer,abundance] structure. This type will be used
+         * for dumping Count instances in a HDF5 file (like SortingCount algorithm does).
+         * \param[in] isCompound : tells whether the structure is compound (SHOULD BE OBSOLETE IN THE FUTURE)
+         * \return the HDF5 identifier for the type. */
+        static hid_t hdf5 (bool& isCompound);
+    };
+
+};  // class Kmer
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -7,7 +7,7 @@
 // We use the required packages
 using namespace std;
 
-typedef LargeInt<1> kmer_type;
+typedef Kmer<>::Type kmer_type;
 
 /********************************************************************************/
 // We need a functor that links two iterators; it updates the inner loop iterator (on kmers)
@@ -15,7 +15,7 @@ typedef LargeInt<1> kmer_type;
 struct Update { void operator() (Iterator<kmer_type>* itKmer, Sequence* seq)
 {
     // We have to recover the real type of the iterator (lost due to genericity of InnerIterator)
-    static_cast<Model<kmer_type>::Iterator*> (itKmer)->setData (seq->getData());
+//    static_cast<Kmer<>::Model::Iterator*> (itKmer)->setData (seq->getData());
 }};
 
 /********************************************************************************/
@@ -42,7 +42,7 @@ int main (int argc, char* argv[])
         BankFasta bank (argc-1, argv+1);
 
         // We declare a kmer model with a given span size.
-        Model<kmer_type> model (27);
+        Kmer<>::Model model;
 
         // We create a sequence iterator for the bank
         BankFasta::Iterator* itBank = new BankFasta::Iterator (bank);
@@ -54,13 +54,13 @@ int main (int argc, char* argv[])
         itSeq.addObserver (new ProgressFunctor (bank.estimateNbSequences()));
 
         // We declare a kmer iterator for the model
-        Model<kmer_type>::Iterator itKmer (model);
+        Kmer<>::Model ::Iterator itKmer (model);
 
-        // We create a compound iterator that iterates kmer from sequences
-        CompoundIterator<Sequence,kmer_type,Update> it (itSeq, itKmer, Update());
-
-        // We iterate the kmers.
-        for (it.first(); !it.isDone(); it.next())   {  nbKmers++;  }
+//        // We create a compound iterator that iterates kmer from sequences
+//        CompoundIterator<Sequence,kmer_type,Update> it (itSeq, itKmer, Update());
+//
+//        // We iterate the kmers.
+//        for (it.first(); !it.isDone(); it.next())   {  nbKmers++;  }
 
         // We dump some information about the iterations
         cout << "FOUND " << nbKmers << " kmers" << endl;

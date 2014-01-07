@@ -41,15 +41,20 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-template<typename ProductFactory, typename T>
+template<typename ProductFactory, size_t span>
 class DebloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
+    /** Shortcuts. */
+    typedef typename kmer::impl::Kmer<span>::Model Model;
+    typedef typename kmer::impl::Kmer<span>::Type  Type;
+    typedef typename kmer::impl::Kmer<span>::Count Count;
+
     /** */
     DebloomAlgorithm (
         tools::collections::impl::Product<ProductFactory>& product,
-        tools::collections::Iterable<Kmer<T> >* solidIterable,
+        tools::collections::Iterable<Count>* solidIterable,
         size_t                      kmerSize,
         size_t                      max_memory = 1000,
         size_t                      nb_cores   = 0,
@@ -66,20 +71,20 @@ public:
 
     /** Get the collection for the computed critical FP kmers.
      * \return the cFP  kmers collection. */
-    tools::collections::Collection<T>* getCriticalKmers ()  { return _criticalCollection; }
+    tools::collections::Collection<Type>* getCriticalKmers ()  { return _criticalCollection; }
 
 private:
 
     /** */
-    virtual gatb::core::tools::collections::impl::Bloom<T>* createBloom (
-        tools::collections::Iterable<Kmer<T> >* solidIterable,
+    virtual gatb::core::tools::collections::impl::Bloom<Type>* createBloom (
+        tools::collections::Iterable<Count>* solidIterable,
         tools::misc::IProperties* props
     );
 
     void end_debloom_partition (
-        gatb::core::tools::collections::impl::Hash16<T>& set,
-        gatb::core::tools::dp::Iterator<T>*              inputIterator,
-        gatb::core::tools::collections::Bag<T>*          outputBag
+        gatb::core::tools::collections::impl::Hash16<Type>& set,
+        gatb::core::tools::dp::Iterator<Type>*              inputIterator,
+        gatb::core::tools::collections::Bag<Type>*          outputBag
     );
 
     /** */
@@ -90,12 +95,12 @@ private:
     std::string  _debloomUri;
     size_t       _max_memory;
 
-    tools::collections::Iterable<Kmer<T> >* _solidIterable;
-    void setSolidIterable (tools::collections::Iterable<Kmer<T> >* solidIterable)  {  SP_SETATTR(solidIterable); }
+    tools::collections::Iterable<Count>* _solidIterable;
+    void setSolidIterable (tools::collections::Iterable<Count>* solidIterable)  {  SP_SETATTR(solidIterable); }
 
     /** */
-    tools::collections::impl::CollectionNode<T>* _criticalCollection;
-    void setCriticalCollection (tools::collections::impl::CollectionNode<T>* criticalCollection)
+    tools::collections::impl::CollectionNode<Type>* _criticalCollection;
+    void setCriticalCollection (tools::collections::impl::CollectionNode<Type>* criticalCollection)
     { _criticalCollection = criticalCollection; }
 };
 

@@ -22,7 +22,7 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/IProperty.hpp>
 #include <gatb/tools/math/Integer.hpp>
-#include <gatb/kmer/api/IModel.hpp>
+#include <gatb/kmer/impl/Model.hpp>
 
 #include <gatb/bank/api/IBank.hpp>
 
@@ -748,9 +748,6 @@ public:
      * \return a property object holding graph information. */
     tools::misc::IProperties& getInfo () const { return (tools::misc::IProperties&)_info; }
 
-    /** */
-    void getNearestBranchingRange (const Node& node, Node& begin, Node& end) const;
-
     /** Remove physically a graph. */
     void remove ();
 
@@ -842,7 +839,7 @@ private:
     void executeAlgorithm (tools::misc::impl::Algorithm& algorithm, tools::misc::IProperties* props, tools::misc::IProperties& info);
 
     /** Friends. */
-    template<typename T> friend class GraphFactoryImpl;
+    template<size_t ss> friend class GraphFactoryImpl;
 };
 
 /********************************************************************************/

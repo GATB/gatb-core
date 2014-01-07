@@ -80,10 +80,10 @@ static const char* progressFormat3 = "Debloom: finalization                  ";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-DebloomAlgorithm<ProductFactory,T>::DebloomAlgorithm (
+template<typename ProductFactory, size_t span>
+DebloomAlgorithm<ProductFactory,span>::DebloomAlgorithm (
     Product<ProductFactory>& product,
-    Iterable<Kmer<T> >* solidIterable,
+    Iterable<Count>*    solidIterable,
     size_t              kmerSize,
     size_t              max_memory,
     size_t              nb_cores,
@@ -101,7 +101,7 @@ DebloomAlgorithm<ProductFactory,T>::DebloomAlgorithm (
     setSolidIterable    (solidIterable);
 
     /** We get a collection for the cFP from the product. */
-    setCriticalCollection (& group.template getCollection<T> ("cfp"));
+    setCriticalCollection (& group.template getCollection<Type> ("cfp"));
 }
 
 /*********************************************************************
@@ -112,8 +112,8 @@ DebloomAlgorithm<ProductFactory,T>::DebloomAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-DebloomAlgorithm<ProductFactory,T>::~DebloomAlgorithm ()
+template<typename ProductFactory, size_t span>
+DebloomAlgorithm<ProductFactory,span>::~DebloomAlgorithm ()
 {
     setSolidIterable      (0);
     setCriticalCollection (0);
@@ -127,10 +127,10 @@ DebloomAlgorithm<ProductFactory,T>::~DebloomAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-void DebloomAlgorithm<ProductFactory,T>::execute ()
+template<typename ProductFactory, size_t span>
+void DebloomAlgorithm<ProductFactory,span>::execute ()
 {
-    Model<T> model (_kmerSize);
+    Model model (_kmerSize);
 
     /** We get a group for deblooming. */
     Group<ProductFactory>& group = _product().getGroup ("debloom");
@@ -139,7 +139,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     /** We create a bloom and insert solid kmers into. */
     /***************************************************/
     IProperties* bloomProps = new Properties();  LOCAL (bloomProps);
-    Bloom<T>* bloom = createBloom (_solidIterable, bloomProps);
+    Bloom<Type>* bloom = createBloom (_solidIterable, bloomProps);
     bloom->use ();
 
     /*************************************************/
@@ -149,7 +149,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         TIME_INFO (getTimeInfo(), "fill_debloom_file");
 
         /** We create an iterator over the solid kmers. */
-        Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
+        Iterator<Count>* itKmers = createIterator<Count> (
             _solidIterable->iterator(),
             _solidIterable->getNbItems(),
             progressFormat2
@@ -157,20 +157,20 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         LOCAL (itKmers);
 
         /** We create a synchronized cache on the debloom output. This cache will be cloned by the dispatcher. */
-        ThreadObject<BagCache<T> > extendBag = BagCache<T> (new BagFile<T>(_debloomUri), 50*1000, System::thread().newSynchronizer());
+        ThreadObject<BagCache<Type> > extendBag = BagCache<Type> (new BagFile<Type>(_debloomUri), 50*1000, System::thread().newSynchronizer());
 
         /** We iterate the solid kmers. */
-        getDispatcher()->iterate (itKmers, [&] (const Kmer<T>& kmer)
+        getDispatcher()->iterate (itKmers, [&] (const Count& kmer)
         {
             /** We iterate the neighbors of the current solid kmer. */
-            model.iterateNeighbors (kmer.value, [&] (const T& k)
+            model.iterateNeighbors (kmer.value, [&] (const Type& k)
             {
                 if (bloom->contains (k))  {  extendBag().insert (k);  }
             });
         });
 
         /** We have to flush each bag cache used during iteration. */
-        extendBag.foreach ([] (BagCache<T>& bag)  { bag.flush(); });
+        extendBag.foreach ([] (BagCache<Type>& bag)  { bag.flush(); });
     }
 
     /** We save the bloom. */
@@ -188,12 +188,12 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
     string outputUri = _debloomUri + "2";
 
     /** We need a hash that will hold solid kmers. */
-    Hash16<T> partition (_max_memory);
+    Hash16<Type> partition (_max_memory);
 
     {
         TIME_INFO (getTimeInfo(), "finalize_debloom_file");
 
-        Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
+        Iterator<Count>* itKmers = createIterator<Count> (
             _solidIterable->iterator(),
             _solidIterable->getNbItems(),
             progressFormat3
@@ -212,8 +212,8 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
                 /** We exclude the partition content from the critical false positive file. */
                 end_debloom_partition (
                     partition,
-                    new IteratorFile <T> (inputUri),
-                    new BagFile      <T> (outputUri)
+                    new IteratorFile <Type> (inputUri),
+                    new BagFile      <Type> (outputUri)
                 );
 
                 /** We swap the filenames. */
@@ -224,7 +224,7 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
         /** We finally write into the dedicated bag. */
         end_debloom_partition (
             partition,
-            new IteratorFile <T> (inputUri),
+            new IteratorFile <Type> (inputUri),
             _criticalCollection->bag()
         );
     }
@@ -249,18 +249,18 @@ void DebloomAlgorithm<ProductFactory,T>::execute ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-void DebloomAlgorithm<ProductFactory,T>::end_debloom_partition (
-    Hash16<T>&    partition,
-    Iterator<T>*  debloomInput,
-    Bag<T>*       debloomOutput
+template<typename ProductFactory, size_t span>
+void DebloomAlgorithm<ProductFactory,span>::end_debloom_partition (
+    Hash16<Type>&    partition,
+    Iterator<Type>*  debloomInput,
+    Bag<Type>*       debloomOutput
 )
 {
     LOCAL (debloomInput);
     LOCAL (debloomOutput);
 
     /** We create a synchronized cache on the debloom output. This cache will be cloned by the dispatcher. */
-    ThreadObject<BagCache<T> > finalizeBag = BagCache<T> (debloomOutput, 8*1024, System::thread().newSynchronizer());
+    ThreadObject<BagCache<Type> > finalizeBag = BagCache<Type> (debloomOutput, 8*1024, System::thread().newSynchronizer());
 
     /** The following functor builds the critical false positive file by excluding
      *  kmers from a current cFP file if they are solid kmers.
@@ -276,13 +276,13 @@ void DebloomAlgorithm<ProductFactory,T>::end_debloom_partition (
      *  we have to protect the output cFP file against concurrent access, which is
      *  achieved by encapsulating the actual output file by a BagCache instance.
      */
-    getDispatcher()->iterate (debloomInput, [&] (const T& extensionKmer)
+    getDispatcher()->iterate (debloomInput, [&] (const Type& extensionKmer)
     {
         if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
     });
 
     /** We have to flush each bag cache used during iteration. */
-    finalizeBag.foreach ([] (BagCache<T>& bag)  { bag.flush(); });
+    finalizeBag.foreach ([] (BagCache<Type>& bag)  { bag.flush(); });
 
     /** We clear the set. */
     partition.clear ();
@@ -296,9 +296,9 @@ void DebloomAlgorithm<ProductFactory,T>::end_debloom_partition (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
-    tools::collections::Iterable<Kmer<T> >* solidIterable,
+template<typename ProductFactory, size_t span>
+Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<ProductFactory,span>::createBloom (
+    tools::collections::Iterable<Count>* solidIterable,
     tools::misc::IProperties* bloomProps
 )
 {
@@ -315,7 +315,7 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
     if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
 
     /** We create the kmers iterator from the solid file. */
-    Iterator<Kmer<T> >* itKmers = createIterator<Kmer<T> > (
+    Iterator <Count>* itKmers = createIterator<Count> (
         solidIterable->iterator(),
         solidKmersNb,
         progressFormat1
@@ -323,10 +323,10 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
     LOCAL (itKmers);
 
     /** We use a bloom builder. */
-    BloomBuilder<T> builder (estimatedBloomSize, nbHash, _bloomKind, getDispatcher()->getExecutionUnitsNumber());
+    BloomBuilder<span> builder (estimatedBloomSize, nbHash, _bloomKind, getDispatcher()->getExecutionUnitsNumber());
 
     /** We instantiate the bloom object. */
-    Bloom<T>* bloom = builder.build (itKmers, bloomProps);
+    Bloom<Type>* bloom = builder.build (itKmers, bloomProps);
     bloomProps->add (0, "nbits_per_kmer", "%f", NBITS_PER_KMER);
 
     /** We return the created bloom filter. */
@@ -338,17 +338,17 @@ Bloom<T>* DebloomAlgorithm<ProductFactory,T>::createBloom (
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DebloomAlgorithm <ProductFileFactory, LargeInt<1> >;
-template class DebloomAlgorithm <ProductFileFactory, LargeInt<2> >;
-template class DebloomAlgorithm <ProductFileFactory, LargeInt<3> >;
-template class DebloomAlgorithm <ProductFileFactory, LargeInt<4> >;
+template class DebloomAlgorithm <ProductFileFactory, 32*1>;
+template class DebloomAlgorithm <ProductFileFactory, 32*2>;
+template class DebloomAlgorithm <ProductFileFactory, 32*3>;
+template class DebloomAlgorithm <ProductFileFactory, 32*4>;
 
 /********************************************************************************/
 
-template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<1> >;
-template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<2> >;
-template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<3> >;
-template class DebloomAlgorithm <ProductHDF5Factory, LargeInt<4> >;
+template class DebloomAlgorithm <ProductHDF5Factory, 32*1>;
+template class DebloomAlgorithm <ProductHDF5Factory, 32*2>;
+template class DebloomAlgorithm <ProductHDF5Factory, 32*3>;
+template class DebloomAlgorithm <ProductHDF5Factory, 32*4>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

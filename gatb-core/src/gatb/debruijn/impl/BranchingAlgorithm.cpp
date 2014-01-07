@@ -36,10 +36,10 @@ static const char* progressFormat1 = "Graph: build branching nodes           ";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-BranchingAlgorithm<ProductFactory,T>::BranchingAlgorithm (
+template<typename ProductFactory, size_t span>
+BranchingAlgorithm<ProductFactory,span>::BranchingAlgorithm (
     const Graph& graph,
-    tools::collections::Bag<kmer::Kmer<T> >* branchingBag,
+    tools::collections::Bag<Count>* branchingBag,
     size_t                      nb_cores,
     tools::misc::IProperties*   options
 )
@@ -56,8 +56,8 @@ BranchingAlgorithm<ProductFactory,T>::BranchingAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-BranchingAlgorithm<ProductFactory,T>::~BranchingAlgorithm ()
+template<typename ProductFactory, size_t span>
+BranchingAlgorithm<ProductFactory,span>::~BranchingAlgorithm ()
 {
     setBranchingBag(0);
 }
@@ -70,14 +70,11 @@ BranchingAlgorithm<ProductFactory,T>::~BranchingAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, typename T>
-void BranchingAlgorithm<ProductFactory,T>::execute ()
+template<typename ProductFactory, size_t span>
+void BranchingAlgorithm<ProductFactory,span>::execute ()
 {
-    /** Shortcut. */
-    typedef kmer::Kmer<T>  Kmer;
-
     /** We get a synchronized cache on the branching bag to be built. */
-    ThreadObject<BagCache<Kmer> > branching = BagCache<Kmer> (_branchingBag, 8*1024, System::thread().newSynchronizer());
+    ThreadObject<BagCache<Count> > branching = BagCache<Count> (_branchingBag, 8*1024, System::thread().newSynchronizer());
     ThreadObject<u_int64_t> count;
 
     /** We get an iterator over all graph nodes. */
@@ -91,7 +88,7 @@ void BranchingAlgorithm<ProductFactory,T>::execute ()
     );
     LOCAL (iter);
 
-    ThreadObject <vector<Kmer> > branchingNodes;
+    ThreadObject <vector<Count> > branchingNodes;
 
     /** We iterate the nodes. */
     tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (const Node& node)
@@ -99,12 +96,12 @@ void BranchingAlgorithm<ProductFactory,T>::execute ()
         if (this->_graph.isBranching(node))
         {
             count() ++;
-            branchingNodes().push_back (kmer::Kmer<T> (node.kmer.get<T>(), node.abundance));
+            branchingNodes().push_back (Count (node.kmer.get<Type>(), node.abundance));
         }
     });
 
     /** We concate the kmers. */
-    branchingNodes.foreach ([&] (vector<Kmer>& v)
+    branchingNodes.foreach ([&] (vector<Count>& v)
     {
         branchingNodes->insert (branchingNodes->end(), v.begin(), v.end());
         v.clear ();
@@ -134,17 +131,17 @@ void BranchingAlgorithm<ProductFactory,T>::execute ()
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class BranchingAlgorithm <ProductFileFactory, LargeInt<1> >;
-template class BranchingAlgorithm <ProductFileFactory, LargeInt<2> >;
-template class BranchingAlgorithm <ProductFileFactory, LargeInt<3> >;
-template class BranchingAlgorithm <ProductFileFactory, LargeInt<4> >;
+template class BranchingAlgorithm <ProductFileFactory, 32*1>;
+template class BranchingAlgorithm <ProductFileFactory, 32*2>;
+template class BranchingAlgorithm <ProductFileFactory, 32*3>;
+template class BranchingAlgorithm <ProductFileFactory, 32*4>;
 
 /********************************************************************************/
 
-template class BranchingAlgorithm <ProductHDF5Factory, LargeInt<1> >;
-template class BranchingAlgorithm <ProductHDF5Factory, LargeInt<2> >;
-template class BranchingAlgorithm <ProductHDF5Factory, LargeInt<3> >;
-template class BranchingAlgorithm <ProductHDF5Factory, LargeInt<4> >;
+template class BranchingAlgorithm <ProductHDF5Factory, 32*1>;
+template class BranchingAlgorithm <ProductHDF5Factory, 32*2>;
+template class BranchingAlgorithm <ProductHDF5Factory, 32*3>;
+template class BranchingAlgorithm <ProductHDF5Factory, 32*4>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

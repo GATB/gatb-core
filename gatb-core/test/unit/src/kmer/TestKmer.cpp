@@ -44,10 +44,6 @@ using namespace gatb::core::tools::misc;
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
 
-typedef LargeInt<1>    Integer;
-typedef Model<Integer> KmerModel;
-typedef Integer        kmer_type;
-
 /** \brief Test class for genomic databases management
  */
 class TestKmer : public Test
@@ -69,60 +65,64 @@ public:
     void tearDown ()  {}
 
     /********************************************************************************/
-    template<typename kmer_type> class Check
+    template<size_t span> class Check
     {
     public:
+
+        typedef typename Kmer<span>::Model Model;
+        typedef typename Kmer<span>::Type  Type;
 
         /********************************************************************************/
         static void kmer_checkInfo ()
         {
-            size_t span = 27;
+            size_t aSpan = 27;
 
             /** We declare a kmer model with a given span size. */
-            Model<kmer_type> model (span);
+            Model model (aSpan);
 
             /** We check some information. */
-            CPPUNIT_ASSERT (model.getSpan()               == span);
-            CPPUNIT_ASSERT (model.getAlphabet().getKind() == IAlphabet::NUCLEIC_ACID);
-            CPPUNIT_ASSERT (model.getMemorySize()         == sizeof(kmer_type));
+            CPPUNIT_ASSERT (model.getKmerSize()    == aSpan);
+            CPPUNIT_ASSERT (model.getMemorySize()  == sizeof(Type));
         }
 
         /********************************************************************************/
+        static void kmer_checkCompute_aux (const char* seq, long* check, size_t len, KmerMode mode)
+        {
+            Type kmer;
+
+            /** We declare a kmer model with a given span size. */
+            Model model (3, mode);
+
+            /** We compute the kmer for a given sequence */
+            kmer = model.codeSeed (seq, Data::ASCII);
+            CPPUNIT_ASSERT (kmer == check[0]);
+
+            /** We compute some of the next kmers. */
+            kmer = model.codeSeedRight (kmer, seq[3], Data::ASCII);
+            CPPUNIT_ASSERT (kmer == check[1]);
+
+            kmer = model.codeSeedRight (kmer, seq[4], Data::ASCII);
+            CPPUNIT_ASSERT (kmer == check[2]);
+
+            kmer = model.codeSeedRight (kmer, seq[5], Data::ASCII);
+            CPPUNIT_ASSERT (kmer == check[3]);
+        }
+
+        /** */
         static void kmer_checkCompute ()
         {
             const char* seq = "CATTGATAGTGG";
             long directKmers [] = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
             long reverseKmers[] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
-            long minimuKmers [] = {11,  2, 16, 36,  9,  8, 24,  6, 17, 20};
 
-            kmer_type kmer;
-            size_t span = 3;
-
-            /** We declare a kmer model with a given span size. */
-            Model<kmer_type> model (span);
-
-            /** We compute the kmer for a given sequence */
-            kmer = model.codeSeed (seq, Data::ASCII);
-            CPPUNIT_ASSERT (kmer == minimuKmers[0]);
-
-#if 0
-            /** We compute some of the next kmers. */
-            kmer = model.codeSeedRight (kmer, seq[3], Data::ASCII);
-            CPPUNIT_ASSERT (kmer == minimuKmers[1]);
-
-            kmer = model.codeSeedRight (kmer, seq[4], Data::ASCII);
-            CPPUNIT_ASSERT (kmer == minimuKmers[2]);
-
-            kmer = model.codeSeedRight (kmer, seq[5], Data::ASCII);
-            CPPUNIT_ASSERT (kmer == minimuKmers[3]);
-#endif
+            kmer_checkCompute_aux (seq, directKmers,  ARRAY_SIZE(directKmers),  KMER_DIRECT);
         }
 
         /********************************************************************************/
-        static void kmer_checkIterator_aux (Model<kmer_type>& model, const char* seq, KmerMode mode, long* kmersTable, size_t lenTable)
+        static void kmer_checkIterator_aux (Model& model, const char* seq, KmerMode mode, long* kmersTable, size_t lenTable)
         {
             /** We declare an iterator. */
-            typename Model<kmer_type>::Iterator it (model);
+            typename Model::Iterator it (model);
 
             /** We set the data from which we want to extract kmers. */
             Data data (Data::ASCII);
@@ -145,7 +145,7 @@ public:
         static void kmer_checkIterator ()
         {
             /** We declare a kmer model with a given span size. */
-            Model<kmer_type> model (3);
+            typename Kmer<span>::Model model (3);
 
             const char* seq = "CATTGATAGTGG";
 
@@ -164,48 +164,39 @@ public:
     void kmer_checkInfo ()
     {
         /** We check with the native 64 bits type. */
-        Check <LargeInt<1> >::kmer_checkInfo();
+        Check<32>::kmer_checkInfo();
 
         /** We check with the native 128 bits type. */
-        Check <LargeInt<2> >::kmer_checkInfo();
+        Check<64>::kmer_checkInfo();
 
         /** We check with the LargeInt type. */
-        Check < LargeInt<KMER_PRECISION> >::kmer_checkInfo();
-
-        /** We check with the default integer type */
-        Check <Integer>::kmer_checkInfo();
+        Check<96>::kmer_checkInfo();
     }
 
     /********************************************************************************/
     void kmer_checkCompute ()
     {
         /** We check with the native 64 bits type. */
-        Check <LargeInt<1> >::kmer_checkCompute();
+        Check<32>::kmer_checkCompute();
 
         /** We check with the native 128 bits type. */
-        Check <LargeInt<2> >::kmer_checkCompute();
+        Check<64>::kmer_checkCompute();
 
         /** We check with the LargeInt type. */
-        Check < LargeInt<KMER_PRECISION> >::kmer_checkCompute();
-
-        /** We check with the default integer type */
-        Check <Integer>::kmer_checkCompute();
+        Check<96>::kmer_checkCompute();
     }
 
     /********************************************************************************/
     void kmer_checkIterator ()
     {
         /** We check with the native 64 bits type. */
-        Check<LargeInt<1> >::kmer_checkIterator();
+        Check<32>::kmer_checkIterator();
 
         /** We check with the native 128 bits type. */
-        Check <LargeInt<2> >::kmer_checkIterator();
+        Check<64>::kmer_checkIterator();
 
         /** We check with the LargeInt type. */
-        Check < LargeInt<KMER_PRECISION> >::kmer_checkIterator();
-
-        /** We check with the default integer type */
-        Check <Integer>::kmer_checkIterator();
+        Check<96>::kmer_checkIterator();
     }
 
     /********************************************************************************/
@@ -215,11 +206,12 @@ public:
 
         Sequence s1 (buf);
 
-        Model<Integer> model (5);
+        Kmer<>::Model model (5);
 
-        Integer check[] = {0x61, 0x187, 0x21c, 0x72, 0x1c9, 0x1c9, 0x9c, 0x9c, 0x127, 0x49, 0xb8};
+        Kmer<>::Type check[] = {0x61, 0x187, 0x21c, 0x72, 0x1c9, 0x1c9, 0x9c, 0x9c, 0x127, 0x49, 0xb8};
 
-        vector<Integer> kmers;
+        vector<Kmer<>::Type> kmers;
+
         model.build (s1.getData(), kmers);
         CPPUNIT_ASSERT (kmers.size() == 11);
 
@@ -233,7 +225,7 @@ public:
         for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer (Data(buf), i).first == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
 
-        Integer kmer = model.getKmer (Data(buf)).first;
+        Kmer<>::Type kmer = model.getKmer (Data(buf)).first;
         CPPUNIT_ASSERT (kmer == check[0]);
     }
 };

@@ -33,13 +33,13 @@ int main (int argc, char* argv[])
         BankFasta b (argc-2, argv+2);
 
         // We declare a kmer model with a given span size.
-        Model<LargeInt<1> > model (kmerSize);
+        Kmer<>::Model model (kmerSize);
 
         // We create an iterator over this bank.
         BankFasta::Iterator itSeq (b);
 
         // We declare an iterator on a given sequence.
-        Model<LargeInt<1> >::Iterator itKmer (model);
+        Kmer<>::Model::Iterator itKmer (model);
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())

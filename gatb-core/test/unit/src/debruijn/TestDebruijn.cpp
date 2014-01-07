@@ -66,7 +66,7 @@ using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::collections::impl;
 
-typedef LargeInt<1>  LocalInteger;
+static const size_t SPAN = 32;
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
@@ -221,6 +221,12 @@ public:
     }
 
     /********************************************************************************/
+    void getNearestBranchingRange (const Graph& graph, const Node& node, Node& begin, Node& end) const
+    {
+        begin = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.predecessors<Node> (begin)).size() == 1;  begin = nodes[0])  {}
+        end   = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.successors  <Node> (end  )).size() == 1;  end   = nodes[0])  {}
+    }
+
     void debruijn_check_sequence (const Graph& graph, size_t kmerSize, const char* seq)
     {
         size_t seqLen = strlen (seq);
@@ -232,7 +238,7 @@ public:
         Node node = nodes.item();
 
         /** We compute the branching range for the node. */
-        Node begin, end;     graph.getNearestBranchingRange (node, begin, end);
+        Node begin, end;     getNearestBranchingRange (graph, node, begin, end);
 
         /** We check that the begin kmer matches the beginning of the sequence. */
         bool check1 =
@@ -271,7 +277,7 @@ public:
         LOCAL (product);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFactory, LocalInteger> sortingCount (product, bank, kmerSize, nks);
+        SortingCountAlgorithm<ProductFactory, SPAN> sortingCount (product, bank, kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -280,7 +286,7 @@ public:
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidKmers()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFactory, LocalInteger> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<ProductFactory, SPAN> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();

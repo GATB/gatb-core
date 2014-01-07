@@ -39,9 +39,13 @@ namespace impl      {
  *
  * This class is a builder of a bloom filter in which we insert kmers.
  */
-template<typename T> class BloomBuilder
+template<size_t span> class BloomBuilder
 {
 public:
+
+    /** Shortcuts. */
+    typedef typename Kmer<span>::Type  Type;
+    typedef typename Kmer<span>::Count Count;
 
     /** */
     BloomBuilder (
@@ -55,8 +59,8 @@ public:
     }
 
     /** */
-    tools::collections::impl::Bloom<T>*  build (
-        tools::dp::Iterator<Kmer<T> >* itKmers,
+    tools::collections::impl::Bloom<Type>*  build (
+        tools::dp::Iterator<Count>* itKmers,
         tools::misc::IProperties* stats=0
     )
     {
@@ -66,8 +70,8 @@ public:
         LOCAL (itKmers);
 
         /** We instantiate the bloom object. */
-        tools::collections::impl::Bloom<T>* bloom =
-            tools::collections::impl::BloomFactory::singleton().createBloom<T> (_bloomKind, _bloomSize, _nbHash);
+        tools::collections::impl::Bloom<Type>* bloom =
+            tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
         tools::dp::impl::Dispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom));
@@ -85,7 +89,7 @@ public:
     }
 
     /** */
-    tools::collections::impl::Bloom<T>*  load (
+    tools::collections::impl::Bloom<Type>*  load (
         tools::collections::Iterable<tools::math::NativeInt8>* bloomIterable,
         tools::misc::IProperties* stats = 0)
     {
@@ -95,8 +99,8 @@ public:
         LOCAL (bloomIterable);
 
         /** We instantiate the bloom object. */
-        tools::collections::impl::Bloom<T>* bloom =
-            tools::collections::impl::BloomFactory::singleton().createBloom<T> (_bloomKind, _bloomSize, _nbHash);
+        tools::collections::impl::Bloom<Type>* bloom =
+            tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash);
 
         /** We set the bloom with the provided array given as an iterable of NativeInt8 objects. */
         bloomIterable->getItems ((tools::math::NativeInt8*&)bloom->getArray());
@@ -125,9 +129,9 @@ private:
     class BuildKmerBloom
     {
     public:
-        void operator() (const Kmer<T>& kmer)  {  _bloom.insert(kmer.value); }
-        BuildKmerBloom (tools::collections::impl::Bloom<T>& bloom)  : _bloom(bloom) {}
-        tools::collections::impl::Bloom<T>& _bloom;
+        void operator() (const Count& kmer)  {  _bloom.insert(kmer.value); }
+        BuildKmerBloom (tools::collections::impl::Bloom<Type>& bloom)  : _bloom(bloom) {}
+        tools::collections::impl::Bloom<Type>& _bloom;
     };
 };
 

@@ -49,9 +49,15 @@ namespace impl      {
  * to choose dynamically the correct class according to the user choice for kmer size
  * (remember that initial Minia version had to be re-compiled for different kmer size).
  */
-template<typename ProductFactory, typename T> class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
+template<typename ProductFactory, size_t span>
+class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
+
+    /** Shortcuts. */
+    typedef typename kmer::impl::Kmer<span>::Model Model;
+    typedef typename kmer::impl::Kmer<span>::Type  Type;
+    typedef typename kmer::impl::Kmer<span>::Count Count;
 
     /** Constructor.*/
     SortingCountAlgorithm ();
@@ -84,7 +90,7 @@ public:
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
-    tools::collections::Collection<Kmer<T> >* getSolidKmers ()  { return _solidKmers; }
+    tools::collections::Collection<Count>* getSolidKmers ()  { return _solidKmers; }
 
 private:
 
@@ -102,7 +108,7 @@ private:
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
      */
-    void fillSolidKmers (gatb::core::tools::collections::Bag<Kmer<T> >*  solidKmers);
+    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>*  solidKmers);
 
     /** */
     std::vector <size_t> getNbCoresList ();
@@ -115,8 +121,8 @@ private:
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
 
     /** */
-    tools::collections::impl::CollectionNode<Kmer<T> >* _solidKmers;
-    void setSolidKmers (tools::collections::impl::CollectionNode<Kmer<T> >* solidKmers)
+    tools::collections::impl::CollectionNode<Count>* _solidKmers;
+    void setSolidKmers (tools::collections::impl::CollectionNode<Count>* solidKmers)
     {  _solidKmers = solidKmers;  }
 
     /** Shortcuts for the user input parameters. . */
@@ -161,12 +167,12 @@ private:
         SP_SETATTR(partitionsProduct);
     }
 
-    tools::collections::impl::Partition<PartitionFactory, T>* _partitions;
-    void setPartitions (tools::collections::impl::Partition<PartitionFactory, T>* partitions)  {  SP_SETATTR(partitions);  }
+    tools::collections::impl::Partition<PartitionFactory, Type>* _partitions;
+    void setPartitions (tools::collections::impl::Partition<PartitionFactory, Type>* partitions)  {  SP_SETATTR(partitions);  }
 
     u_int64_t _totalKmerNb;
 
-    template<typename T1, typename T2> friend class PartitionsCommand;
+    template<typename TT, size_t kk> friend class PartitionsCommand;
 };
 
 /********************************************************************************/

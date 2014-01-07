@@ -49,7 +49,7 @@ using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 
-typedef LargeInt<1>  LocalInteger;
+static const size_t SPAN = 32;
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
@@ -88,7 +88,7 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory, LocalInteger> sortingCount (&product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory, SPAN> sortingCount (&product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -96,7 +96,7 @@ public:
         CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFileFactory, LocalInteger> debloom (product, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
+        DebloomAlgorithm<ProductFileFactory, SPAN> debloom (product, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
 
         /** We launch the debloom. */
         debloom.execute();
@@ -107,18 +107,18 @@ public:
             0xc0620,    0x288f40,   0x188f40,   0x2aaa29,   0x8000b,    0x200881,   0x288081,   0x820db,    0x52e23,    0x2888f,
             0xaaa8b,    0x28838d,   0x20000,    0xa93ab,    0x2c18d,    0x2ba89,    0x183600,   0xea00b,    0x1a4ea0,   0xf8585
         };
-        set<LocalInteger> okValues (values, values + ARRAY_SIZE(values));
+        set<Kmer<>::Type> okValues (values, values + ARRAY_SIZE(values));
 
         CPPUNIT_ASSERT (debloom.getCriticalKmers()->getNbItems() == ARRAY_SIZE(values));
 
         /** We iterate the cFP kmers. */
-        set<LocalInteger> checkValues;
-        Iterator<LocalInteger>* iter = debloom.getCriticalKmers()->iterator();
+        set<Kmer<>::Type> checkValues;
+        Iterator<Kmer<>::Type>* iter = debloom.getCriticalKmers()->iterator();
         LOCAL (iter);
 
         for (iter->first(); !iter->isDone(); iter->next())
         {
-            set<LocalInteger>::iterator lookup = okValues.find (iter->item());
+            set<Kmer<>::Type>::iterator lookup = okValues.find (iter->item());
             CPPUNIT_ASSERT (lookup != okValues.end());
 
             checkValues.insert (iter->item());

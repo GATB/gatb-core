@@ -46,10 +46,6 @@ extern std::string DBPATH (const string& a);
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
 
-typedef NativeInt64         LocalInteger;
-typedef Model<LocalInteger> KmerModel;
-typedef LocalInteger        kmer_type;
-
 /** \brief Test class for genomic databases management
  */
 class TestKmerBank : public Test
@@ -77,7 +73,7 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a kmer model with a given span size. */
-        KmerModel model (span);
+        Kmer<>::Model model (span);
 
         /** We declare the two banks.
          *  WARNING! we don't remove the bad characters (param 'false') in the binary bank,
@@ -90,9 +86,9 @@ public:
         for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         /** We declare two kmer iterators for the two banks and a paired one that links them. */
-        KmerModel::Iterator itKmer1 (model);
-        KmerModel::Iterator itKmer2 (model);
-        PairedIterator<Iterator, LocalInteger,LocalInteger> itKmer (itKmer1, itKmer2);
+        Kmer<>::Model::Iterator itKmer1 (model);
+        Kmer<>::Model::Iterator itKmer2 (model);
+        PairedIterator<Iterator, Kmer<>::Type,Kmer<>::Type> itKmer (itKmer1, itKmer2);
 
         /** We loop the two banks with a paired iterator. */
         BankBinary::Iterator itSeq2 (bank2);

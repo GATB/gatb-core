@@ -7,11 +7,16 @@
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We declare a kmer model with a given span size.
-    Model <LargeInt<1> > model (3);
+    // We define some nucleotides sequence.
+    const char* seq = "CTACGAATA";
+
+    // We declare a kmer model with kmer size big enough to represent our sequence.
+    Kmer<>::Model model (strlen(seq));
 
     // We compute the kmer for a given sequence
-    LargeInt<1> kmer = model.codeSeed ("CAT", Data::ASCII);
-    std::cout << "kmer is " << kmer << std::endl;
+    Kmer<>::Type kmer = model.codeSeed (seq, Data::ASCII);
+
+    std::cout << "kmer  value is: " << kmer                 << std::endl;
+    std::cout << "kmer string is: " << model.toString(kmer) << std::endl;
 }
 //! [snippet1]

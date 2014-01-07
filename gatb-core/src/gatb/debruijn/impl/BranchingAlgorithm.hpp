@@ -27,15 +27,20 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
-template <typename ProductFactory, typename T>
+template <typename ProductFactory, size_t span>
 class BranchingAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
+    /** Shortcuts. */
+    typedef typename kmer::impl::Kmer<span>::Model Model;
+    typedef typename kmer::impl::Kmer<span>::Type  Type;
+    typedef typename kmer::impl::Kmer<span>::Count Count;
+
     /** Constructor. */
     BranchingAlgorithm (
         const Graph& graph,
-        tools::collections::Bag<kmer::Kmer<T> >* branchingBag,
+        tools::collections::Bag<Count>* branchingBag,
         size_t                      nb_cores = 0,
         tools::misc::IProperties*   options  = 0
     );
@@ -50,8 +55,8 @@ private:
 
     const Graph& _graph;
 
-    tools::collections::Bag<kmer::Kmer<T> >* _branchingBag;
-    void setBranchingBag (tools::collections::Bag<kmer::Kmer<T> >* branchingBag)  {  SP_SETATTR(branchingBag); }
+    tools::collections::Bag<Count>* _branchingBag;
+    void setBranchingBag (tools::collections::Bag<Count>* branchingBag)  {  SP_SETATTR(branchingBag); }
 };
 
 /********************************************************************************/

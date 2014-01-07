@@ -63,10 +63,10 @@ struct Functor_getValue : public boost::static_visitor<Integer>    {
     template<typename T>  Integer operator() (const T& a) const  { return Integer(a.getValue());  }};
 
 typedef boost::variant <
-    Kmer<LargeInt<1> >,
-    Kmer<LargeInt<2> >,
-    Kmer<LargeInt<3> >,
-    Kmer<LargeInt<4> >
+    Kmer<32>::Count,
+    Kmer<64>::Count,
+    Kmer<96>::Count,
+    Kmer<128>::Count
 >  KmerVariant;
 
 /** \brief Test class for genomic databases management
@@ -95,7 +95,7 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory,LargeInt<1> > dsk (&product, new BankStrings (sequences, nbSequences), kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory,32> dsk (&product, new BankStrings (sequences, nbSequences), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
@@ -201,9 +201,13 @@ public:
     }
 
     /********************************************************************************/
-    template<typename T>
+    template<size_t span>
     void DSK_check2_aux ()
     {
+        /** Shortcut. */
+        typedef typename Kmer<span>::Type  Type;
+        typedef typename Kmer<span>::Count Count;
+
         size_t kmerSize = 31;
         size_t nks      = 1;
 
@@ -213,33 +217,33 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory,T> sortingCount (&product, new BankStrings (s1, 0), kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory,span> sortingCount (&product, new BankStrings (s1, 0), kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
 
         /** We iterate the solid kmers. */
-        Iterator<Kmer<T> >* iter = sortingCount.getSolidKmers()->iterator();
+        Iterator<Count>* iter = sortingCount.getSolidKmers()->iterator();
         LOCAL (iter);
 
         /** The following values have been computed with the original DSK.
          *  Note: we use a set and check that the solid iterator items are in this trustful set.
          *  -> we have to do this because we are not sure about the order of the iterated items.
          */
-        set<T> okValues;
+        set<Type> okValues;
         okValues.insert (0x1CA68D1E55561150);
         okValues.insert (0x09CA68D1E5556115);
         okValues.insert (0x2729A34795558454);
         okValues.insert (0x32729A3479555845);
         okValues.insert (0x0AFEE3FFF1ED8309);
 
-        set<T> checkValues;
-        T checksum = 0;
+        set<Type> checkValues;
+        Type checksum = 0;
 
         size_t idx=0;
         for (iter->first(); !iter->isDone(); iter->next(), idx++)
         {
-            typename set<T>::iterator lookup = okValues.find (iter->item().value);
+            typename set<Type>::iterator lookup = okValues.find (iter->item().value);
             CPPUNIT_ASSERT (lookup != okValues.end());
 
             checkValues.insert (iter->item().value);
@@ -251,15 +255,15 @@ public:
         CPPUNIT_ASSERT (checkValues.size() == okValues.size());
 
         /** We check the result through the variant type. */
-        IteratorVariant <IteratorFile, Kmer<LargeInt<1> >, Kmer<LargeInt<2> >, Kmer<LargeInt<3> >, Kmer<LargeInt<4> > > itVariant;
+        IteratorVariant <IteratorFile, Kmer<32>::Count, Kmer<64>::Count, Kmer<96>::Count, Kmer<128>::Count > itVariant;
 
-        IteratorFile<Kmer<T> >* solid = dynamic_cast<IteratorFile<Kmer<T> >*> (iter);
+        IteratorFile<Count>* solid = dynamic_cast<IteratorFile<Count>*> (iter);
         CPPUNIT_ASSERT (solid != 0);
 
         /** We set the variant with the current T type. */
         itVariant = *solid;
 
-        Integer checksumGeneric (T(0));
+        Integer checksumGeneric (Type(0));
 
         for (itVariant.first(); !itVariant.isDone(); itVariant.next())
         {
@@ -269,26 +273,30 @@ public:
 
             checksumGeneric += val;
         }
-        CPPUNIT_ASSERT (checksumGeneric == Integer(T(0x8b0c176c3b43d207)));
+        CPPUNIT_ASSERT (checksumGeneric == Integer(Type(0x8b0c176c3b43d207)));
     }
 
     /********************************************************************************/
     void DSK_check2 ()
     {
-        DSK_check2_aux<LargeInt<1> > ();
-        DSK_check2_aux<LargeInt<2> > ();
-        DSK_check2_aux<LargeInt<3> > ();
+        DSK_check2_aux<32> ();
+        DSK_check2_aux<64> ();
+        DSK_check2_aux<96> ();
     }
 
     /********************************************************************************/
 
-    template<typename T>
+    template<size_t span>
     void DSK_check3_aux (IBank* bank, size_t kmerSize, size_t nks)
     {
+        /** Shortcut. */
+        typedef typename Kmer<span>::Type  Type;
+        typedef typename Kmer<span>::Count Count;
+
         LOCAL (bank);
 
         /** We set the default Integer precision. */
-        Integer::setType (sizeof(T)/8);
+        Integer::setType (sizeof(Type)/8);
 
         TimeInfo ti;
 
@@ -296,37 +304,37 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory,T> sortingCount (&product, bank, kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory,span> sortingCount (&product, bank, kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
 
         /** We iterate the solid kmers. */
-        Iterator<Kmer<T> >* iter = sortingCount.getSolidKmers()->iterator();
+        Iterator<Count>* iter = sortingCount.getSolidKmers()->iterator();
         LOCAL (iter);
 
         // cout << "----------------------------------------------------------" << endl;
 
         /** We check the result through the variant type. */
-        IteratorVariant <IteratorFile, Kmer<LargeInt<1> >, Kmer<LargeInt<2> >, Kmer<LargeInt<3> >, Kmer<LargeInt<4> > > itVar;
+        IteratorVariant <IteratorFile, Kmer<32>::Count, Kmer<64>::Count, Kmer<96>::Count, Kmer<128>::Count > itVar;
 
-        IteratorFile<Kmer<T> >* solid = dynamic_cast<IteratorFile<Kmer<T> >*> (iter);
+        IteratorFile<Count>* solid = dynamic_cast<IteratorFile<Count>*> (iter);
         CPPUNIT_ASSERT (solid != 0);
 
         /** We set the variant with the current T type. */
         itVar = *solid;
 
-        T       checksum1 = 0;
-        Integer checksum2 = Integer(T(0));
+        Type    checksum1 = 0;
+        Integer checksum2 = Integer(Type(0));
 
-        PairedIterator <IteratorFile, Kmer<T>, KmerVariant> itBoth (*solid, itVar);
+        PairedIterator <IteratorFile, Count, KmerVariant> itBoth (*solid, itVar);
         for (itBoth.first(); !itBoth.isDone(); itBoth.next())
         {
-            T       v1 = itBoth.item().first.getValue();
+            Type    v1 = itBoth.item().first.getValue();
             Integer v2 = boost::apply_visitor (Functor_getValue(),  itBoth.item().second);
 
             checksum1 += (hash1 (v1,0) & 0x11111);
-            checksum2 += Integer(T((hash1 (v2,0) & 0x11111)));
+            checksum2 += Integer(Type((hash1 (v2,0) & 0x11111)));
 
              //cout << "["  << (Integer(v1) == v2 ? 'X' : ' ')  << "] "  << v1 << "  " <<  v2 << endl;
         }
@@ -338,7 +346,7 @@ public:
         size_t idx2 = 0;
         size_t idx1 = 0;
 
-        { TIME_INFO(ti,"1");  iter->iterate ([&idx1](const Kmer<T>&     k) { idx1++; });  }
+        { TIME_INFO(ti,"1");  iter->iterate ([&idx1](const Count&       k) { idx1++; });  }
         { TIME_INFO(ti,"2");  itVar.iterate ([&idx2](const KmerVariant& k) { idx2++; });  }
     }
 
@@ -362,9 +370,9 @@ public:
         );
         LOCAL (bank);
 
-        DSK_check3_aux<LargeInt<1> > (bank, kmerSize, nks);
-        DSK_check3_aux<LargeInt<2> > (bank, kmerSize, nks);
-        DSK_check3_aux<LargeInt<3> > (bank, kmerSize, nks);
+        DSK_check3_aux<32> (bank, kmerSize, nks);
+        DSK_check3_aux<64> (bank, kmerSize, nks);
+        DSK_check3_aux<96> (bank, kmerSize, nks);
     }
 };
 
