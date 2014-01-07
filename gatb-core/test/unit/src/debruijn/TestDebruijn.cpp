@@ -66,8 +66,6 @@ using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::collections::impl;
 
-static const size_t SPAN = 32;
-
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
@@ -277,7 +275,7 @@ public:
         LOCAL (product);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFactory, SPAN> sortingCount (product, bank, kmerSize, nks);
+        SortingCountAlgorithm<ProductFactory> sortingCount (product, bank, kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -286,7 +284,7 @@ public:
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidKmers()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFactory, SPAN> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<ProductFactory> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();

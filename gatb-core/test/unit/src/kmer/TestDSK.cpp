@@ -95,7 +95,7 @@ public:
         Product<ProductFileFactory> product ("test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory,32> dsk (&product, new BankStrings (sequences, nbSequences), kmerSize, nks);
+        SortingCountAlgorithm<ProductFileFactory> dsk (&product, new BankStrings (sequences, nbSequences), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
