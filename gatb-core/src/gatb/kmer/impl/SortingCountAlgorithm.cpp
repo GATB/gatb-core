@@ -35,10 +35,6 @@
 #include <math.h>
 #include <algorithm>
 
-#ifdef OMP
-#include <omptl/omptl_algorithm>
-#endif
-
 #define DEBUG(a)  //printf a
 
 /********************************************************************************/
@@ -585,11 +581,7 @@ public:
         kmers[partitionLen] = ~0;
 
         /** We sort the vector. */
-#ifdef OMP
-        omptl::sort (kmers.begin (), kmers.end ());
-#else
         std::sort (kmers.begin (), kmers.end ());
-#endif
 
         u_int32_t abundance = 0;
         Type previous_kmer = kmers.front();

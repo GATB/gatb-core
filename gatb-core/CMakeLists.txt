@@ -18,7 +18,6 @@ find_package (Boost REQUIRED)
 ################################################################################
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-
 ################################################################################
 # Include external cmake files
 ################################################################################
@@ -26,14 +25,6 @@ include (DefineInteger)
 include (CppUnit)
 
 DefineInteger (k)
-
-################################################################################
-# OPENMP MANAGEMENT
-################################################################################
-#find_package(OpenMP)
-#if (OPENMP_FOUND AND NOT (omp EQUAL 0))
-#    set (COMPILE_DEFINITIONS    "${COMPILE_DEFINITIONS}    ${OpenMP_C_FLAGS} -DOMP")
-#endif()
 
 ################################################################################
 # GENERAL DEFINITIONS
