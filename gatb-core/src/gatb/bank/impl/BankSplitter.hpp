@@ -48,7 +48,11 @@ public:
     static const char* name()  { return "splitter"; }
 
     /** Constructor.
-     * \param[in] filenames : uri list of the banks. */
+     * \param[in] reference : reference bank that provides the sequences to be split
+     * \param[in] readMeanSize : size of a read
+     * \param[in] overlap : nucleotides number that overlap between two consecutive reads
+     * \param[in] coverage : number of occurrences for the reads
+     */
     BankSplitter (
         IBank* reference,
         size_t readMeanSize,

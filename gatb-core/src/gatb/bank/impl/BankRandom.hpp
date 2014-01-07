@@ -38,7 +38,8 @@ public:
     static const char* name()  { return "random"; }
 
     /** Constructor.
-     * \param[in] filenames : uri list of the banks. */
+     * \param[in] nbSequences : number of sequences of the random bank
+     * \param[in] length : length of a sequence. */
     BankRandom (size_t nbSequences, size_t length);
 
     /** Destructor. */
