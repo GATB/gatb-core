@@ -17,6 +17,7 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
+#include <gatb/bank/impl/Banks.hpp>
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>

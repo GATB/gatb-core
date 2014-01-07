@@ -24,7 +24,6 @@
 #include <gatb/tools/misc/api/Range.hpp>
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
-#include <gatb/tools/designpattern/impl/IteratorWrappers.hpp>
 
 #include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>

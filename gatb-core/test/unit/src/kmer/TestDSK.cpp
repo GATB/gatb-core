@@ -16,8 +16,7 @@
 
 #include <gatb/system/impl/System.hpp>
 
-#include <gatb/bank/impl/BankStrings.hpp>
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/Banks.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 

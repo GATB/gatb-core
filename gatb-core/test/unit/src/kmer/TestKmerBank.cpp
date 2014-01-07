@@ -18,8 +18,7 @@
 #include <gatb/tools/misc/api/Data.hpp>
 #include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/kmer/impl/Model.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankBinary.hpp>
+#include <gatb/bank/impl/Banks.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
 #include <iostream>

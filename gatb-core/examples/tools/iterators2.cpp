@@ -23,7 +23,7 @@ int main (int argc, char* argv[])
     ListIterator<float> it2 (l2);
 
     // We declare a Cartesian iterator on the two iterators.
-    CartesianIterator<int,float> it (it1, it2);
+    ProductIterator<int,float> it (it1, it2);
 
     // We iterate the Cartesian product of the two lists
     for (it.first(); !it.isDone(); it.next())

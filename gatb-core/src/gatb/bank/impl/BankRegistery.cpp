@@ -7,7 +7,7 @@
 
 #include <gatb/bank/impl/BankRegistery.hpp>
 
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/BankFasta.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
 
 #include <gatb/system/api/Exception.hpp>

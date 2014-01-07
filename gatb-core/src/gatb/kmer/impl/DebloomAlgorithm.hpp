@@ -23,8 +23,6 @@
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/collections/impl/Bloom.hpp>

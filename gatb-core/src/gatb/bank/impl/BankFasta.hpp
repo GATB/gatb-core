@@ -5,14 +5,14 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file Bank.hpp
+/** \file BankFasta.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Interface definition for genomic databases management
  */
 
-#ifndef _GATB_CORE_BANK__IMPL_BANK_HPP_
-#define _GATB_CORE_BANK__IMPL_BANK_HPP_
+#ifndef _GATB_CORE_BANK_IMPL_BANK_FASTA_HPP_
+#define _GATB_CORE_BANK_IMPL_BANK_FASTA_HPP_
 
 /********************************************************************************/
 
@@ -220,4 +220,4 @@ public:
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _GATB_CORE_BANK__IMPL_BANK_HPP_ */
+#endif /* _GATB_CORE_BANK_IMPL_BANK_FASTA_HPP_ */

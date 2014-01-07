@@ -11,11 +11,12 @@
  *  \brief Some helper classes for iteration
  */
 
-#ifndef _GATB_CORE_DP_ITERATOR_IMPL_ITERATOR_HELPERSHPP_
-#define _GATB_CORE_DP_ITERATOR_IMPL_ITERATOR_HELPERSHPP_
+#ifndef _GATB_CORE_DP_ITERATOR_IMPL_ITERATOR_HELPERS_HPP_
+#define _GATB_CORE_DP_ITERATOR_IMPL_ITERATOR_HELPERS_HPP_
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <set>
+#include <list>
 #include <boost/variant.hpp>
 
 /********************************************************************************/
@@ -71,7 +72,7 @@ public:
  *  Bank::Iterator it2 (b);
  *
  *  // We build a product iterator from the two iterators
- *  CartesianIterator<Sequence,Sequence> prodIt (it1, it2);
+ *  ProductIterator<Sequence,Sequence> prodIt (it1, it2);
  *
  *  for (prodIt.first(); !prodIt.isDone(); prodIt.next())
  *  {
@@ -79,7 +80,7 @@ public:
  *  }
  *  \endcode
  */
-template <class T1, class T2> class CartesianIterator : public Iterator < std::pair<T1,T2> >
+template <class T1, class T2> class ProductIterator : public Iterator < std::pair<T1,T2> >
 {
 public:
 
@@ -87,10 +88,10 @@ public:
      * \param[in] it1 : first iterator.
      * \param[in] it2 : second iterator.
      */
-    CartesianIterator (Iterator<T1>& it1, Iterator<T2>& it2)  : _it1(it1), _it2(it2), _isDone(false)  {  first(); }
+    ProductIterator (Iterator<T1>& it1, Iterator<T2>& it2)  : _it1(it1), _it2(it2), _isDone(false)  {  first(); }
 
     /** Destructor. */
-    virtual ~CartesianIterator ()  {}
+    virtual ~ProductIterator ()  {}
 
     /** \copydoc Iterator::first */
     void first()
@@ -641,7 +642,91 @@ public:
 };
 
 /********************************************************************************/
+
+/** \brief TO BE DONE...
+ */
+template <class Container, typename Type> class STLIterator : public Iterator<Type>
+{
+public:
+    /** Constructor.
+     * \param[in]  l : the list to be iterated
+     */
+    STLIterator (const Container& l)  : _l(l),_isDone(true) {}
+
+    /** Destructor (here because of virtual methods). */
+    virtual ~STLIterator ()  {}
+
+    /** */
+    void first()
+    {
+        _iter = _l.begin();
+        _isDone = _iter == _l.end ();
+        if (!_isDone)  { * this->_item = *_iter; }
+    }
+
+    /** */
+    void next()
+    {
+        _iter++;
+        _isDone = _iter == _l.end ();
+        if (!_isDone)  { * this->_item = *_iter; }
+    }
+
+    /** */
+    bool isDone() { return _isDone; }
+
+    /** */
+    Type& item()  { return * this->_item; }
+
+private:
+
+    /** List to be iterated. */
+    Container _l;
+
+    /** STL iterator we are going to wrap. */
+    typename Container::iterator _iter;
+
+    bool _isDone;
+};
+
+/********************************************************************************/
+
+/** \brief Iterator that loops over std::list
+ *
+ *  This class is a wrapper between the STL list implementation and our own Iterator
+ *  abstraction.
+ *
+ *  Note that the class is still a template one since we can iterate on list of anything.
+ *
+ *  \code
+ *  void foo ()
+ *  {
+ *      list<int> l;
+ *      l.push_back (1);
+ *      l.push_back (2);
+ *      l.push_back (4);
+ *
+ *      ListIterator<int> it (l);
+ *      for (it.first(); !it.isDone(); it.next())       {   cout << it.currentItem() << endl;   }
+ *  }
+ *  \endcode
+ */
+template <class Type> class ListIterator : public STLIterator<std::list<Type>, Type>
+{
+public:
+    ListIterator (const std::list<Type>& l)  :  STLIterator<std::list<Type>, Type> (l)  {}
+};
+
+/********************************************************************************/
+
+template <class Type> class VecIterator : public STLIterator<std::vector<Type>, Type>
+{
+public:
+    VecIterator (const std::vector<Type>& l)  :  STLIterator<std::vector<Type>, Type> (l)  {}
+};
+
+/********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _GATB_CORE_DP_ITERATOR_IMPL_ITERATOR_HELPERSHPP_ */
+#endif /* _GATB_CORE_DP_ITERATOR_IMPL_ITERATOR_HELPERS_HPP_ */

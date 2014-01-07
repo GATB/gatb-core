@@ -25,9 +25,7 @@
 
 #include <gatb/tools/math/Integer.hpp>
 
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankBinary.hpp>
-#include <gatb/bank/impl/BankHelpers.hpp>
+#include <gatb/bank/impl/Banks.hpp>
 
 #include <gatb/tools/collections/impl/ProductFile.hpp>
 #include <gatb/tools/collections/impl/ProductHDF5.hpp>

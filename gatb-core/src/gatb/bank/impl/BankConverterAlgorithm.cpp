@@ -9,8 +9,7 @@
 
 #include <gatb/system/impl/System.hpp>
 
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankBinary.hpp>
+#include <gatb/bank/impl/Banks.hpp>
 
 #include <gatb/kmer/impl/Model.hpp>
 

@@ -14,7 +14,6 @@
 
 #include <CppunitCommon.hpp>
 
-#include <gatb/tools/designpattern/impl/IteratorWrappers.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
 #include <gatb/tools/math/Integer.hpp>
@@ -131,7 +130,7 @@ public:
         ListIterator<float> it2 (l2);
 
         /** We declare a Cartesian iterator on the two iterators. */
-        CartesianIterator<int,float> it (it1, it2);
+        ProductIterator<int,float> it (it1, it2);
         for (it.first(); !it.isDone(); it.next())
         {
             CPPUNIT_ASSERT (it->first  == pairsCheck[nbItems].first);

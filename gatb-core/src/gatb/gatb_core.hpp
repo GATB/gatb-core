@@ -20,7 +20,6 @@
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/tools/designpattern/impl/IteratorWrappers.hpp>
 
 #include <gatb/tools/collections/impl/BagCache.hpp>
 #include <gatb/tools/collections/impl/BagFile.hpp>
@@ -46,7 +45,7 @@
 #include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/BankFasta.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankStrings.hpp>
 #include <gatb/bank/impl/BankSplitter.hpp>

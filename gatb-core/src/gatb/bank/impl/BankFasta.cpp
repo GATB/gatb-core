@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/BankFasta.hpp>
 
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/api/StringsRepository.hpp>
