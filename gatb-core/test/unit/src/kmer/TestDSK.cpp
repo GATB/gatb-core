@@ -28,8 +28,7 @@
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/math/Integer.hpp>
 
-#include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/storage/impl/Product.hpp>
 
 #include <boost/variant.hpp>
 
@@ -49,6 +48,9 @@ using namespace gatb::core::tools::dp::impl;
 
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
+
+using namespace gatb::core::tools::storage;
+using namespace gatb::core::tools::storage::impl;
 
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
@@ -91,10 +93,10 @@ public:
     void DSK_check1_aux (const char* sequences[], size_t nbSequences, size_t kmerSize, size_t nks, size_t checkNbSolids)
     {
         /** We create a product instance. */
-        Product<ProductFileFactory> product ("test");
+        Product product (PRODUCT_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory> dsk (&product, new BankStrings (sequences, nbSequences), kmerSize, nks);
+        SortingCountAlgorithm<> dsk (&product, new BankStrings (sequences, nbSequences), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
@@ -213,10 +215,10 @@ public:
         const char* s1 = "GATCGATTCTTAGCACGTCCCCCCCTACACCCAAT" ;
 
         /** We create a product instance. */
-        Product<ProductFileFactory> product ("test");
+        Product product (PRODUCT_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory,span> sortingCount (&product, new BankStrings (s1, 0), kmerSize, nks);
+        SortingCountAlgorithm<span> sortingCount (&product, new BankStrings (s1, 0), kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -300,10 +302,10 @@ public:
         TimeInfo ti;
 
         /** We create a product instance. */
-        Product<ProductFileFactory> product ("test");
+        Product product (PRODUCT_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory,span> sortingCount (&product, bank, kmerSize, nks);
+        SortingCountAlgorithm<span> sortingCount (&product, bank, kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();

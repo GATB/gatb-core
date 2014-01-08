@@ -26,8 +26,7 @@
 
 #include <gatb/tools/math/LargeInt.hpp>
 
-#include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/ProductFile.hpp>
+#include <gatb/tools/storage/impl/Product.hpp>
 
 using namespace std;
 
@@ -44,6 +43,9 @@ using namespace gatb::core::tools::dp;
 
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
+
+using namespace gatb::core::tools::storage;
+using namespace gatb::core::tools::storage::impl;
 
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
@@ -83,10 +85,10 @@ public:
         } ;
 
         /** We create a product instance. */
-        Product<ProductFileFactory> product ("test");
+        Product product (PRODUCT_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFileFactory> sortingCount (&product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        SortingCountAlgorithm<> sortingCount (&product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -94,7 +96,7 @@ public:
         CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFileFactory> debloom (product, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
+        DebloomAlgorithm<> debloom (product, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
 
         /** We launch the debloom. */
         debloom.execute();

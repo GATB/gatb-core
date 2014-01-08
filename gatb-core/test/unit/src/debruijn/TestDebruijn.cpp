@@ -35,9 +35,7 @@
 #include <gatb/bank/impl/BankSplitter.hpp>
 #include <gatb/bank/impl/BankRandom.hpp>
 
-#include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/ProductFile.hpp>
-#include <gatb/tools/collections/impl/ProductHDF5.hpp>
+#include <gatb/tools/storage/impl/Product.hpp>
 
 #include <iostream>
 #include <memory>
@@ -65,6 +63,9 @@ using namespace gatb::core::system::impl;
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::collections::impl;
+
+using namespace gatb::core::tools::storage;
+using namespace gatb::core::tools::storage::impl;
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
@@ -260,8 +261,7 @@ public:
     }
 
     /********************************************************************************/
-    template<typename ProductFactory>
-    void debruijn_test2_aux (size_t kmerSize, size_t nks, const char* seq)
+    void debruijn_test2_aux (ProductMode_e mode, size_t kmerSize, size_t nks, const char* seq)
     {
         size_t seqLen   = strlen (seq);
 
@@ -271,11 +271,11 @@ public:
         IBank* bank = new BankStrings (seq, 0);
 
         /** We create a product instance. */
-        Product<ProductFactory>* product  = ProductFactory::createProduct ("test", true, true);
+        Product* product  = ProductFactory(mode).createProduct ("test", true, true);
         LOCAL (product);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<ProductFactory> sortingCount (product, bank, kmerSize, nks);
+        SortingCountAlgorithm<> sortingCount (product, bank, kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -284,7 +284,7 @@ public:
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidKmers()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<ProductFactory> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();
@@ -312,7 +312,7 @@ public:
         {
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
-                debruijn_test2_aux <ProductHDF5Factory> (kmerSizes[j], nks, sequences[i]);
+                debruijn_test2_aux (PRODUCT_HDF5, kmerSizes[j], nks, sequences[i]);
             }
         }
     }
