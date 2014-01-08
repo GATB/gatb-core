@@ -13,10 +13,10 @@ install (FILES ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp DESTINAT
 ################################################################################
 file (COPY ${PROJECT_SOURCE_DIR}/src/
     DESTINATION ${PROJECT_BINARY_DIR}/include
-    FILES_MATCHING PATTERN "*.hpp"  PATTERN "*.pri"
+    FILES_MATCHING PATTERN "*.hpp"  PATTERN "*.tpp"  PATTERN "*.pri"
 )
 
-install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.pri")
+install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.tpp" PATTERN "*.pri")
 
 ################################################################################
 #  LIBRARY GENERATION 
