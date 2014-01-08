@@ -65,6 +65,9 @@ using namespace gatb::core::tools::dp::impl;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
+using namespace gatb::core::tools::storage;
+using namespace gatb::core::tools::storage::impl;
+
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 
