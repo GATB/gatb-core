@@ -23,7 +23,6 @@
 #include <gatb/tools/collections/api/Collection.hpp>
 #include <gatb/tools/collections/impl/CollectionAbstract.hpp>
 #include <gatb/tools/collections/impl/CollectionCache.hpp>
-#include <gatb/tools/collections/impl/CollectionFile.hpp>
 
 #include <gatb/tools/misc/api/IProperty.hpp>
 
