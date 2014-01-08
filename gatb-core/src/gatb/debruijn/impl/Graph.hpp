@@ -16,20 +16,17 @@
 
 /********************************************************************************/
 
-//#include <gatb/debruijn/api/IGraph.hpp>
+#include <gatb/bank/api/IBank.hpp>
+#include <gatb/kmer/impl/Model.hpp>
+
+#include <gatb/tools/math/Integer.hpp>
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/tools/misc/api/IProperty.hpp>
-#include <gatb/tools/math/Integer.hpp>
-#include <gatb/kmer/impl/Model.hpp>
-
-#include <gatb/bank/api/IBank.hpp>
-
-#include <gatb/tools/storage/impl/Product.hpp>
-
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
+
+#include <gatb/tools/storage/impl/Product.hpp>
 
 #include <vector>
 #include <set>
@@ -412,7 +409,7 @@ public:
      * \param[in] kmerSize: kmer size
      * \return the created graph.
      */
-    static Graph  create (size_t kmerSize=27)  {  return  Graph (kmerSize);  }
+    static Graph  create (size_t kmerSize)  {  return  Graph (kmerSize);  }
 
     /** Build a graph from a given bank.
      * \param[in] bank : bank to get the reads from
