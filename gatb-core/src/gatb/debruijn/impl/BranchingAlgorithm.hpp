@@ -18,7 +18,7 @@
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/debruijn/impl/Graph.hpp>
-#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Product.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -27,7 +27,7 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
-template <typename ProductFactory, size_t span=KMER_DEFAULT_SPAN>
+template <size_t span=KMER_DEFAULT_SPAN>
 class BranchingAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:

@@ -38,11 +38,10 @@ using namespace gatb::core::kmer::impl;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
+using namespace gatb::core::tools::storage::impl;
+
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
-
-//using namespace gatb::core::tools::dp;
-//using namespace gatb::core::tools::dp::impl;
 
 #undef NDEBUG
 #include <cassert>
@@ -51,14 +50,6 @@ using namespace gatb::core::tools::misc::impl;
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
-/********************************************************************************/
-
-#if 0
-#define ProductFactoryLocal tools::collections::impl::ProductFileFactory
-#else
-#define ProductFactoryLocal tools::collections::impl::ProductHDF5Factory
-#endif
-
 /********************************************************************************/
 
 /* We define a structure that holds all the necessary stuff for implementing the graph API.
@@ -190,7 +181,7 @@ public:
         /************************************************************/
         /*                       Product creation                   */
         /************************************************************/
-        graph.setProduct (ProductFactoryLocal::createProduct (output, true, false));
+        graph.setProduct (ProductFactory(PRODUCT_HDF5).createProduct (output, true, false));
 
         /************************************************************/
         /*                         Bank conversion                  */
@@ -203,7 +194,7 @@ public:
         /*                         Sorting count                    */
         /************************************************************/
         /** We create a DSK instance and execute it. */
-        SortingCountAlgorithm<ProductFactoryLocal, span> sortingCount (
+        SortingCountAlgorithm<span> sortingCount (
             graph._product,
             converter.getResult(),
             kmerSize,
@@ -221,7 +212,7 @@ public:
         /*                         Debloom                          */
         /************************************************************/
         /** We create a debloom instance and execute it. */
-        DebloomAlgorithm<ProductFactoryLocal, span> debloom (
+        DebloomAlgorithm<span> debloom (
             *graph._product,
             sortingCount.getSolidKmers(),
             kmerSize,
@@ -251,7 +242,7 @@ public:
         /************************************************************/
         /*                         Branching                        */
         /************************************************************/
-        BranchingAlgorithm<ProductFactoryLocal, span> branchingAlgo (graph, & graph.getProduct("graph").getCollection<Count> ("branching"));
+        BranchingAlgorithm<span> branchingAlgo (graph, & graph.getProduct("graph").getCollection<Count> ("branching"));
         graph.executeAlgorithm (branchingAlgo, props, graph._info);
 
         /** We update the metadata. */
@@ -262,7 +253,7 @@ public:
     static void loadGraph (Graph& graph, const std::string uri, size_t kmerSize)
     {
         /** We create a product instance. */
-        Product<ProductFactoryLocal>* product = graph._product;
+        Product* product = graph._product;
 
         /** We configure the graph with the aggregated information. */
         configureVariant (
@@ -548,7 +539,7 @@ Graph::Graph (const std::string& uri)
     size_t precision = 0;
 
     /** We create a product instance. */
-    setProduct (ProductFactoryLocal::createProduct (uri, false, false));
+    setProduct (ProductFactory(PRODUCT_HDF5).createProduct (uri, false, false));
 
     /** We retrieve the type of kmers to be used from the product. */
     Collection<NativeInt8>* metadata = & getProduct().getCollection<NativeInt8> ("metadata");

@@ -27,9 +27,6 @@
 
 #include <gatb/bank/impl/Banks.hpp>
 
-#include <gatb/tools/collections/impl/ProductFile.hpp>
-#include <gatb/tools/collections/impl/ProductHDF5.hpp>
-
 #include <math.h>
 #include <algorithm>
 
@@ -48,6 +45,8 @@ using namespace gatb::core::bank::impl;
 
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
+
+using namespace gatb::core::tools::storage::impl;
 
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
@@ -76,8 +75,8 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  "
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-SortingCountAlgorithm<ProductFactory,span>::SortingCountAlgorithm ()
+template<size_t span>
+SortingCountAlgorithm<span>::SortingCountAlgorithm ()
     : Algorithm("dsk", 0, 0),
       _product(0),
       _bank(0),
@@ -99,9 +98,9 @@ SortingCountAlgorithm<ProductFactory,span>::SortingCountAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-SortingCountAlgorithm<ProductFactory,span>::SortingCountAlgorithm (
-    Product<ProductFactory>* product,
+template<size_t span>
+SortingCountAlgorithm<span>::SortingCountAlgorithm (
+    Product* product,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
     size_t      nks,
@@ -127,10 +126,10 @@ SortingCountAlgorithm<ProductFactory,span>::SortingCountAlgorithm (
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& (*_product)("dsk").template getCollection<Count> ("solid"));
+    setSolidKmers (& (*_product)("dsk").getCollection<Count> ("solid"));
 
     /** We set the histogram instance. */
-    setHistogram (new Histogram  (10000, & (*_product)("dsk").template getCollection<Histogram::Entry>("histogram") ));
+    setHistogram (new Histogram  (10000, & (*_product)("dsk").getCollection<Histogram::Entry>("histogram") ));
 }
 
 /*********************************************************************
@@ -141,8 +140,8 @@ SortingCountAlgorithm<ProductFactory,span>::SortingCountAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-SortingCountAlgorithm<ProductFactory,span>::~SortingCountAlgorithm ()
+template<size_t span>
+SortingCountAlgorithm<span>::~SortingCountAlgorithm ()
 {
     setProgress          (0);
     setBank              (0);
@@ -160,8 +159,8 @@ SortingCountAlgorithm<ProductFactory,span>::~SortingCountAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-SortingCountAlgorithm<ProductFactory,span>& SortingCountAlgorithm<ProductFactory,span>::operator= (const SortingCountAlgorithm& s)
+template<size_t span>
+SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const SortingCountAlgorithm& s)
 {
     if (this != &s)
     {
@@ -201,8 +200,8 @@ SortingCountAlgorithm<ProductFactory,span>& SortingCountAlgorithm<ProductFactory
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-void SortingCountAlgorithm<ProductFactory,span>::execute ()
+template<size_t span>
+void SortingCountAlgorithm<span>::execute ()
 {
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
@@ -229,7 +228,7 @@ void SortingCountAlgorithm<ProductFactory,span>::execute ()
     /** We loop N times the bank. For each pass, we will consider a subset of the whole kmers set of the bank. */
     for (_current_pass=0; _current_pass<_nb_passes; _current_pass++)
     {
-        DEBUG (("SortingCountAlgorithm<ProductFactory,span>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
+        DEBUG (("SortingCountAlgorithm<span>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
 
         /** 1) We fill the partition files. */
         fillPartitions (_current_pass, itSeq);
@@ -269,8 +268,8 @@ void SortingCountAlgorithm<ProductFactory,span>::execute ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-void SortingCountAlgorithm<ProductFactory,span>::configure (IBank* bank)
+template<size_t span>
+void SortingCountAlgorithm<span>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
@@ -332,7 +331,7 @@ void SortingCountAlgorithm<ProductFactory,span>::configure (IBank* bank)
 
 /********************************************************************************/
 
-template<typename ProductFactory, size_t span>
+template<size_t span>
 class FillPartitions
 {
 public:
@@ -369,7 +368,7 @@ public:
         if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
 
-    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<ProductFactory, Type>* partition, IteratorListener* progress)
+    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, IteratorListener* progress)
         : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0),
           _partition (*partition,1<<12,System::thread().newSynchronizer()),
           _progress  (progress,System::thread().newSynchronizer())  {}
@@ -386,7 +385,7 @@ private:
     vector<Type> kmers;
 
     /** Shared resources (must support concurrent accesses). */
-    PartitionCache<ProductFactory,Type> _partition;
+    PartitionCache<Type> _partition;
     ProgressSynchro      _progress;
 };
 
@@ -398,12 +397,12 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-void SortingCountAlgorithm<ProductFactory,span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
+template<size_t span>
+void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
 {
     TIME_INFO (getTimeInfo(), "fill_partitions");
 
-    DEBUG (("SortingCountAlgorithm<ProductFactory,span>::fillPartitions  pass \n", pass));
+    DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
     Model model (_kmerSize);
@@ -412,14 +411,14 @@ void SortingCountAlgorithm<ProductFactory,span>::fillPartitions (size_t pass, It
     if (_partitionsProduct)  { _partitionsProduct->remove (); }
 
     /** We create the partition files for the current pass. */
-    setPartitionsProduct (PartitionFactory::createProduct ("partitions", true, false));
-    setPartitions        ( & (*_partitionsProduct)().template getPartition<Type> ("parts", _nb_partitions));
+    setPartitionsProduct (ProductFactory(PRODUCT_FILE).createProduct ("partitions", true, false));
+    setPartitions        ( & (*_partitionsProduct)().getPartition<Type> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<PartitionFactory,span> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
+    getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
 }
 
 /*********************************************************************
@@ -430,7 +429,7 @@ void SortingCountAlgorithm<ProductFactory,span>::fillPartitions (size_t pass, It
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
+template<size_t span>
 class PartitionsCommand : public ICommand, public system::SmartPointer
 {
 public:
@@ -440,7 +439,7 @@ public:
     typedef typename Kmer<span>::Count Count;
 
     PartitionsCommand (
-        SortingCountAlgorithm<ProductFactory,span>& algo,
+        SortingCountAlgorithm<span>& algo,
         Bag<Count>* solidKmers,
         Iterable<Type>&   partition,
         IHistogram*    histogram,
@@ -482,8 +481,8 @@ protected:
 
 /********************************************************************************/
 /** */
-template<typename ProductFactory, size_t span>
-class PartitionsByHashCommand : public PartitionsCommand<ProductFactory, span>
+template<size_t span>
+class PartitionsByHashCommand : public PartitionsCommand<span>
 {
 public:
 
@@ -492,7 +491,7 @@ public:
     typedef typename Kmer<span>::Count Count;
 
     PartitionsByHashCommand (
-        SortingCountAlgorithm<ProductFactory,span>& algo,
+        SortingCountAlgorithm<span>& algo,
         Bag<Count>*      solidKmers,
         Iterable<Type>&  partition,
         IHistogram*     histogram,
@@ -500,7 +499,7 @@ public:
         u_int64_t&      totalKmerNbRef,
         u_int64_t       hashMemory
     )
-        : PartitionsCommand<ProductFactory, span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef), _hashMemory(hashMemory)  {}
+        : PartitionsCommand<span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef), _hashMemory(hashMemory)  {}
 
     void execute ()
     {
@@ -537,8 +536,8 @@ private:
 
 /********************************************************************************/
 /** */
-template<typename ProductFactory, size_t span>
-class PartitionsByVectorCommand : public PartitionsCommand<ProductFactory, span>
+template<size_t span>
+class PartitionsByVectorCommand : public PartitionsCommand<span>
 {
 public:
 
@@ -547,14 +546,14 @@ public:
     typedef typename Kmer<span>::Count Count;
 
     PartitionsByVectorCommand (
-        SortingCountAlgorithm<ProductFactory,span>& algo,
+        SortingCountAlgorithm<span>& algo,
         Bag<Count>*  solidKmers,
         Iterable<Type>&    partition,
         IHistogram*     histogram,
         ISynchronizer*  synchro,
         u_int64_t&      totalKmerNbRef
     )
-        : PartitionsCommand<ProductFactory, span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef)
+        : PartitionsCommand<span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef)
           {}
 
     void execute ()
@@ -614,8 +613,8 @@ private:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-std::vector<size_t> SortingCountAlgorithm<ProductFactory,span>::getNbCoresList ()
+template<size_t span>
+std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 {
     std::vector<size_t> result;
 
@@ -636,12 +635,12 @@ std::vector<size_t> SortingCountAlgorithm<ProductFactory,span>::getNbCoresList (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-void SortingCountAlgorithm<ProductFactory,span>::fillSolidKmers (Bag<Count>*  solidKmers)
+template<size_t span>
+void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
-    DEBUG (("SortingCountAlgorithm<ProductFactory,span>::fillSolidKmers\n"));
+    DEBUG (("SortingCountAlgorithm<span>::fillSolidKmers\n"));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
@@ -672,11 +671,11 @@ void SortingCountAlgorithm<ProductFactory,span>::fillSolidKmers (Bag<Count>*  so
 
             if (_partitionType == 0)
             {
-                cmd = new PartitionsByHashCommand<ProductFactory, span>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, mem);
+                cmd = new PartitionsByHashCommand<span>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, mem);
             }
             else
             {
-                cmd = new PartitionsByVectorCommand<ProductFactory, span> (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb);
+                cmd = new PartitionsByVectorCommand<span> (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb);
             }
 
             cmds.push_back (cmd);
@@ -691,17 +690,10 @@ void SortingCountAlgorithm<ProductFactory,span>::fillSolidKmers (Bag<Count>*  so
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class SortingCountAlgorithm <ProductFileFactory, 32>;
-template class SortingCountAlgorithm <ProductFileFactory, 64>;
-template class SortingCountAlgorithm <ProductFileFactory, 96>;
-template class SortingCountAlgorithm <ProductFileFactory, 128>;
-
-/********************************************************************************/
-
-template class SortingCountAlgorithm <ProductHDF5Factory, 32>;
-template class SortingCountAlgorithm <ProductHDF5Factory, 64>;
-template class SortingCountAlgorithm <ProductHDF5Factory, 96>;
-template class SortingCountAlgorithm <ProductHDF5Factory, 128>;
+template class SortingCountAlgorithm <32>;
+template class SortingCountAlgorithm <64>;
+template class SortingCountAlgorithm <96>;
+template class SortingCountAlgorithm <128>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

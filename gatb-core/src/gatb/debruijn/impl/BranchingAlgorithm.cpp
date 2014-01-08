@@ -36,8 +36,8 @@ static const char* progressFormat1 = "Graph: build branching nodes           ";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-BranchingAlgorithm<ProductFactory,span>::BranchingAlgorithm (
+template<size_t span>
+BranchingAlgorithm<span>::BranchingAlgorithm (
     const Graph& graph,
     tools::collections::Bag<Count>* branchingBag,
     size_t                      nb_cores,
@@ -56,8 +56,8 @@ BranchingAlgorithm<ProductFactory,span>::BranchingAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-BranchingAlgorithm<ProductFactory,span>::~BranchingAlgorithm ()
+template<size_t span>
+BranchingAlgorithm<span>::~BranchingAlgorithm ()
 {
     setBranchingBag(0);
 }
@@ -70,8 +70,8 @@ BranchingAlgorithm<ProductFactory,span>::~BranchingAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-void BranchingAlgorithm<ProductFactory,span>::execute ()
+template<size_t span>
+void BranchingAlgorithm<span>::execute ()
 {
     /** We get a synchronized cache on the branching bag to be built. */
     ThreadObject<BagCache<Count> > branching = BagCache<Count> (_branchingBag, 8*1024, System::thread().newSynchronizer());
@@ -131,17 +131,10 @@ void BranchingAlgorithm<ProductFactory,span>::execute ()
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class BranchingAlgorithm <ProductFileFactory, 32*1>;
-template class BranchingAlgorithm <ProductFileFactory, 32*2>;
-template class BranchingAlgorithm <ProductFileFactory, 32*3>;
-template class BranchingAlgorithm <ProductFileFactory, 32*4>;
-
-/********************************************************************************/
-
-template class BranchingAlgorithm <ProductHDF5Factory, 32*1>;
-template class BranchingAlgorithm <ProductHDF5Factory, 32*2>;
-template class BranchingAlgorithm <ProductHDF5Factory, 32*3>;
-template class BranchingAlgorithm <ProductHDF5Factory, 32*4>;
+template class BranchingAlgorithm <32>;
+template class BranchingAlgorithm <64>;
+template class BranchingAlgorithm <96>;
+template class BranchingAlgorithm <128>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

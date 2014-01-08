@@ -28,7 +28,7 @@
 #include <gatb/tools/collections/impl/Bloom.hpp>
 #include <gatb/tools/collections/impl/Hash16.hpp>
 
-#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Product.hpp>
 
 #include <string>
 
@@ -39,7 +39,7 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-template<typename ProductFactory, size_t span=KMER_DEFAULT_SPAN>
+template<size_t span=KMER_DEFAULT_SPAN>
 class DebloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
@@ -51,7 +51,7 @@ public:
 
     /** */
     DebloomAlgorithm (
-        tools::collections::impl::Product<ProductFactory>& product,
+        tools::storage::impl::Product& product,
         tools::collections::Iterable<Count>* solidIterable,
         size_t                      kmerSize,
         size_t                      max_memory = 1000,
@@ -86,7 +86,7 @@ private:
     );
 
     /** */
-    tools::collections::impl::Product<ProductFactory>& _product;
+    tools::storage::impl::Product& _product;
 
     size_t       _kmerSize;
     tools::collections::impl::BloomFactory::Kind _bloomKind;
@@ -97,8 +97,8 @@ private:
     void setSolidIterable (tools::collections::Iterable<Count>* solidIterable)  {  SP_SETATTR(solidIterable); }
 
     /** */
-    tools::collections::impl::CollectionNode<Type>* _criticalCollection;
-    void setCriticalCollection (tools::collections::impl::CollectionNode<Type>* criticalCollection)
+    tools::storage::impl::CollectionNode<Type>* _criticalCollection;
+    void setCriticalCollection (tools::storage::impl::CollectionNode<Type>* criticalCollection)
     { _criticalCollection = criticalCollection; }
 };
 

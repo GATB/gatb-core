@@ -22,9 +22,6 @@
 #include <gatb/tools/collections/impl/BagCache.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 
-#include <gatb/tools/collections/impl/ProductFile.hpp>
-#include <gatb/tools/collections/impl/ProductHDF5.hpp>
-
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
@@ -59,6 +56,8 @@ using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
+using namespace gatb::core::tools::storage::impl;
+
 using namespace gatb::core::tools::math;
 
 #define DEBUG(a)  printf a
@@ -79,9 +78,9 @@ static const char* progressFormat3 = "Debloom: finalization                  ";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-DebloomAlgorithm<ProductFactory,span>::DebloomAlgorithm (
-    Product<ProductFactory>& product,
+template<size_t span>
+DebloomAlgorithm<span>::DebloomAlgorithm (
+    Product& product,
     Iterable<Count>*    solidIterable,
     size_t              kmerSize,
     size_t              max_memory,
@@ -95,7 +94,7 @@ DebloomAlgorithm<ProductFactory,span>::DebloomAlgorithm (
        _solidIterable(0)
 {
     /** We get a group for deblooming. */
-    Group<ProductFactory>& group = _product().getGroup ("debloom");
+    Group& group = _product().getGroup ("debloom");
 
     setSolidIterable    (solidIterable);
 
@@ -111,8 +110,8 @@ DebloomAlgorithm<ProductFactory,span>::DebloomAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-DebloomAlgorithm<ProductFactory,span>::~DebloomAlgorithm ()
+template<size_t span>
+DebloomAlgorithm<span>::~DebloomAlgorithm ()
 {
     setSolidIterable      (0);
     setCriticalCollection (0);
@@ -126,13 +125,13 @@ DebloomAlgorithm<ProductFactory,span>::~DebloomAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-void DebloomAlgorithm<ProductFactory,span>::execute ()
+template<size_t span>
+void DebloomAlgorithm<span>::execute ()
 {
     Model model (_kmerSize);
 
     /** We get a group for deblooming. */
-    Group<ProductFactory>& group = _product().getGroup ("debloom");
+    Group& group = _product().getGroup ("debloom");
 
     /***************************************************/
     /** We create a bloom and insert solid kmers into. */
@@ -248,8 +247,8 @@ void DebloomAlgorithm<ProductFactory,span>::execute ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-void DebloomAlgorithm<ProductFactory,span>::end_debloom_partition (
+template<size_t span>
+void DebloomAlgorithm<span>::end_debloom_partition (
     Hash16<Type>&    partition,
     Iterator<Type>*  debloomInput,
     Bag<Type>*       debloomOutput
@@ -295,8 +294,8 @@ void DebloomAlgorithm<ProductFactory,span>::end_debloom_partition (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename ProductFactory, size_t span>
-Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<ProductFactory,span>::createBloom (
+template<size_t span>
+Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
     tools::collections::Iterable<Count>* solidIterable,
     tools::misc::IProperties* bloomProps
 )
@@ -337,17 +336,10 @@ Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<ProductFactory,span>::create
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DebloomAlgorithm <ProductFileFactory, 32*1>;
-template class DebloomAlgorithm <ProductFileFactory, 32*2>;
-template class DebloomAlgorithm <ProductFileFactory, 32*3>;
-template class DebloomAlgorithm <ProductFileFactory, 32*4>;
-
-/********************************************************************************/
-
-template class DebloomAlgorithm <ProductHDF5Factory, 32*1>;
-template class DebloomAlgorithm <ProductHDF5Factory, 32*2>;
-template class DebloomAlgorithm <ProductHDF5Factory, 32*3>;
-template class DebloomAlgorithm <ProductHDF5Factory, 32*4>;
+template class DebloomAlgorithm <32>;
+template class DebloomAlgorithm <64>;
+template class DebloomAlgorithm <96>;
+template class DebloomAlgorithm <128>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

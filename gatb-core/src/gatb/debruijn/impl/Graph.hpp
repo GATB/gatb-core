@@ -26,8 +26,7 @@
 
 #include <gatb/bank/api/IBank.hpp>
 
-#include <gatb/tools/collections/impl/ProductFile.hpp>
-#include <gatb/tools/collections/impl/ProductHDF5.hpp>
+#include <gatb/tools/storage/impl/Product.hpp>
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -42,14 +41,6 @@ namespace core      {
 namespace debruijn  {
 /** \brief Implementation package for De Bruijn graph management. */
 namespace impl      {
-
-/********************************************************************************/
-
-#if 0
-#define ProductFactoryLocal tools::collections::impl::ProductFileFactory
-#else
-#define ProductFactoryLocal tools::collections::impl::ProductHDF5Factory
-#endif
 
 /********************************************************************************/
 
@@ -780,9 +771,9 @@ private:
     Graph (const std::string& uri);
 
     /** Product. */
-    tools::collections::impl::Product<ProductFactoryLocal>* _product;
-    void setProduct (tools::collections::impl::Product<ProductFactoryLocal>* product)  { SP_SETATTR(product); }
-    tools::collections::impl::Group<ProductFactoryLocal>& getProduct(const std::string name="")  { return (*_product) (name); }
+    tools::storage::impl::Product* _product;
+    void setProduct (tools::storage::impl::Product* product)  { SP_SETATTR(product); }
+    tools::storage::impl::Group& getProduct(const std::string name="")  { return (*_product) (name); }
 
     /** */
     std::string _name;

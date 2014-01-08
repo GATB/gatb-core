@@ -22,11 +22,8 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
-#include <gatb/tools/collections/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Product.hpp>
 #include <string>
-
-#include <gatb/tools/collections/impl/ProductFile.hpp>
-#include <gatb/tools/collections/impl/ProductHDF5.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -49,7 +46,7 @@ namespace impl      {
  * to choose dynamically the correct class according to the user choice for kmer size
  * (remember that initial Minia version had to be re-compiled for different kmer size).
  */
-template<typename ProductFactory, size_t span=KMER_DEFAULT_SPAN>
+template<size_t span=KMER_DEFAULT_SPAN>
 class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
@@ -64,7 +61,7 @@ public:
 
     /** Constructor.*/
     SortingCountAlgorithm (
-        tools::collections::impl::Product<ProductFactory>* product,
+        tools::storage::impl::Product* product,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
         size_t              nks,
@@ -94,8 +91,6 @@ public:
 
 private:
 
-    typedef tools::collections::impl::ProductFileFactory  PartitionFactory;
-
     /** Compute several values, in particular the number of passes and partitions. */
     void configure (gatb::core::bank::IBank* bank);
 
@@ -114,15 +109,15 @@ private:
     std::vector <size_t> getNbCoresList ();
 
     /** */
-    tools::collections::impl::Product<ProductFactory>* _product;
+    tools::storage::impl::Product* _product;
 
     /** */
     gatb::core::bank::IBank* _bank;
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
 
     /** */
-    tools::collections::impl::CollectionNode<Count>* _solidKmers;
-    void setSolidKmers (tools::collections::impl::CollectionNode<Count>* solidKmers)
+    tools::storage::impl::CollectionNode<Count>* _solidKmers;
+    void setSolidKmers (tools::storage::impl::CollectionNode<Count>* solidKmers)
     {  _solidKmers = solidKmers;  }
 
     /** Shortcuts for the user input parameters. . */
@@ -161,18 +156,18 @@ private:
     void setHistogram (gatb::core::tools::misc::IHistogram* histogram)  { SP_SETATTR(histogram); }
 
     /** Partitions management. */
-    tools::collections::impl::Product<PartitionFactory>* _partitionsProduct;
-    void setPartitionsProduct (tools::collections::impl::Product<PartitionFactory>* partitionsProduct)
+    tools::storage::impl::Product* _partitionsProduct;
+    void setPartitionsProduct (tools::storage::impl::Product* partitionsProduct)
     {
         SP_SETATTR(partitionsProduct);
     }
 
-    tools::collections::impl::Partition<PartitionFactory, Type>* _partitions;
-    void setPartitions (tools::collections::impl::Partition<PartitionFactory, Type>* partitions)  {  SP_SETATTR(partitions);  }
+    tools::storage::impl::Partition<Type>* _partitions;
+    void setPartitions (tools::storage::impl::Partition<Type>* partitions)  {  SP_SETATTR(partitions);  }
 
     u_int64_t _totalKmerNb;
 
-    template<typename TT, size_t kk> friend class PartitionsCommand;
+    template<size_t kk> friend class PartitionsCommand;
 };
 
 /********************************************************************************/
