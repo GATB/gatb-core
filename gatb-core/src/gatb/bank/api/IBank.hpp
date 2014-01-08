@@ -37,8 +37,18 @@ namespace bank      {
 
 /** \brief Interface for what we need to read genomic databases.
  *
- * The IBank interface is a essentially a short name for an Iterable over Sequence
- * instances.
+ * The IBank interface provides means to:
+ *  - read sequences from some container.
+ *  - insert sequences into some container.
+ *
+ * Typical implementation of this interface is a FASTA bank parser.
+ *
+ * The key point here is that clients should use this interface instead of specific
+ * implementations, wherever they need to get nucleotides sequences from some container.
+ *
+ * By doing this, such clients will support many bank formats (according to the fact that
+ * a IBank implementation provides such a service). They will also support "fake" banks, for
+ * instance random generated sequences or any kind of synthetic data.
  */
 class IBank : public tools::collections::Iterable<Sequence>, public tools::collections::Bag<Sequence>
 {
@@ -89,12 +99,20 @@ public:
 /********************************************************************************/
 
 /** \brief Factory for IBank.
+ *
+ * This interface provides a factory method that builds a IBank* instance given some
+ * identifier.
+ *
+ * Such an identifier can be an uri (FASTA banks for instance), or any mechanism allowing
+ * to retrieve enough information for creating instances of a specific IBank implementation.
  */
-
 class IBankFactory : public system::SmartPointer
 {
 public:
 
+    /** Create an instance of IBank for a given uri.
+     * \param[in] uri : the uri used for create the bank
+     * \return the IBank instance. */
     virtual IBank* createBank (const std::string& uri) = 0;
 };
 
