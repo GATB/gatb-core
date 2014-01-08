@@ -381,7 +381,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_NKS,             "abundance threshold for solid kmers",  false,  "3"     ));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,      "output file",                          false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,  "output directory",                     false,  "."));
-    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERBOSE,         "verbose",                              false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "1000"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
@@ -1552,9 +1552,7 @@ std::string Graph::toString (const BranchingEdge& edge) const
 *********************************************************************/
 void Graph::executeAlgorithm (Algorithm& algorithm, IProperties* props, IProperties& info)
 {
-    string bargraph = props->get(STR_VERBOSE) ?  "2" : "0";
-
-    algorithm.getInput()->add (0, STR_PROGRESS_BAR, bargraph);
+    algorithm.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
 
     algorithm.execute();
 

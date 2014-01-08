@@ -71,13 +71,13 @@ Algorithm::~Algorithm ()
 *********************************************************************/
 dp::IteratorListener* Algorithm::createIteratorListener (size_t nbIterations, const char* message)
 {
-    if (getInput()->get(STR_PROGRESS_BAR)==0)  { return new IteratorListener(); }
+    if (getInput()->get(STR_VERBOSE)==0)  { return new IteratorListener(); }
 
-    switch (getInput()->getInt(STR_PROGRESS_BAR))
+    switch (getInput()->getInt(STR_VERBOSE))
     {
         case 0: default:    return new IteratorListener ();
-        case 1:             return new Progress      (nbIterations, message);
-        case 2:             return new ProgressTimer (nbIterations, message);
+        case 1:             return new ProgressTimer (nbIterations, message);
+        case 2:             return new Progress      (nbIterations, message);
     }
 }
 
