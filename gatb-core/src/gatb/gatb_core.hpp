@@ -29,9 +29,8 @@
 #include <gatb/tools/collections/impl/Hash16.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
-#include <gatb/tools/collections/impl/Product.hpp>
-#include <gatb/tools/collections/impl/ProductFile.hpp>
-#include <gatb/tools/collections/impl/ProductHDF5.hpp>
+
+#include <gatb/tools/storage/impl/Product.hpp>
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
@@ -45,11 +44,7 @@
 #include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 
-#include <gatb/bank/impl/BankFasta.hpp>
-#include <gatb/bank/impl/BankBinary.hpp>
-#include <gatb/bank/impl/BankStrings.hpp>
-#include <gatb/bank/impl/BankSplitter.hpp>
-#include <gatb/bank/impl/BankRandom.hpp>
+#include <gatb/bank/impl/Banks.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 
