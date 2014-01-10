@@ -53,13 +53,13 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
 
 /* We define a structure that holds all the necessary stuff for implementing the graph API.
- *  Here, the structure is templated by the required Integer class.
+ *  Here, the structure is templated by the span (ie. the kmer max size).
  *
- *  This structure is the basis for defining a boost::variant with all required integer
+ *  This structure is the basis for defining a boost::variant with all required span
  *  template instantiations.
  */
 template<size_t span>
-struct Data
+struct GraphData
 {
     /** Shortcuts. */
     typedef typename Kmer<span>::Model Model;
@@ -67,10 +67,10 @@ struct Data
     typedef typename Kmer<span>::Count Count;
 
     /** Constructor. */
-    Data () : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0) {}
+    GraphData () : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0) {}
 
     /** Destructor. */
-    ~Data ()
+    ~GraphData ()
     {
         setModel     (0);
         setSolid     (0);
@@ -80,7 +80,7 @@ struct Data
     }
 
     /** Constructor (copy). */
-    Data (const Data& d) : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0)
+    GraphData (const GraphData& d) : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0)
     {
         setModel     (d._model);
         setSolid     (d._solid);
@@ -90,7 +90,7 @@ struct Data
     }
 
     /** Assignment operator. */
-    Data& operator= (const Data& d)
+    GraphData& operator= (const GraphData& d)
     {
         if (this != &d)
         {
@@ -105,17 +105,17 @@ struct Data
 
     /** Required attributes. */
     Model*               _model;
-    Collection<Count >*  _solid;
+    Collection<Count>*   _solid;
     Bloom<Type>*         _bloom;
     Container<Type>*     _cfp;
-    Collection<Count >*  _branching;
+    Collection<Count>*   _branching;
 
     /** Setters. */
-    void setModel       (Model* model)                   { SP_SETATTR (model);     }
-    void setSolid       (Collection<Count >* solid)      { SP_SETATTR (solid);     }
-    void setBloom       (Bloom<Type>* bloom)             { SP_SETATTR (bloom);     }
-    void setCfp         (Container<Type>* cfp)           { SP_SETATTR (cfp);       }
-    void setBranching   (Collection<Count >* branching)  { SP_SETATTR (branching); }
+    void setModel       (Model*             model)      { SP_SETATTR (model);     }
+    void setSolid       (Collection<Count>* solid)      { SP_SETATTR (solid);     }
+    void setBloom       (Bloom<Type>*       bloom)      { SP_SETATTR (bloom);     }
+    void setCfp         (Container<Type>*   cfp)        { SP_SETATTR (cfp);       }
+    void setBranching   (Collection<Count>* branching)  { SP_SETATTR (branching); }
 
     /** Shortcut. */
     bool contains (const Type& item)  const  {  return _bloom->contains (item) && !_cfp->contains(item);  }
@@ -127,39 +127,149 @@ struct Data
  * parameter.
  *
  * This is done through a boost::variant; actually, we use a limited number of variant, corresponding
- * to some maximum kmer size.
+ * to some maximum kmer sizes.
  */
 typedef boost::variant <
-    Data<32>,
-    Data<64>,
-    Data<96>,
-    Data<128>
->  DataVariant;
+    GraphData<32>,
+    GraphData<64>,
+    GraphData<96>,
+    GraphData<128>
+>  GraphDataVariant;
 
 /********************************************************************************/
 
-/* This class has 3 main parts:
+/** This function set a specific value to the given GraphDataVariant object,
+ * according to the provided kmer size.
  *
- *      1) buildGraph: Graph creation from user parameters and save in filesystem
+ * This method should be called in each Graph constructor in order to be sure to have
+ * its data variant attribute set with the correct type.
  *
- *      2) loadGraph:  Graph load from the filesystem for a given uri
- *
- *      3) configureVariant: set the variant attribute of the Graph class according
- *         to the real T template type.
+ * Many methods of the Graph class use the boost::static_visitor mechanism in order to
+ * retrieve the "correct" type pointed by the boost variant. So it is mandatory that
+ * each Graph instance has its data variant correctly set thanks to this "setVariant"
+ * function.
  */
-template<size_t span>
-class GraphFactoryImpl
+static void setVariant (GraphDataVariant& data, size_t kmerSize)
 {
-public:
+    /** We convert the kmer size chosen by the user to the precision value. */
+    size_t prec = 1 + kmerSize / 32;
+    Integer::setType (prec);
 
-    /** Shortcuts. */
-    typedef typename Kmer<span>::Model Model;
-    typedef typename Kmer<span>::Type  Type;
-    typedef typename Kmer<span>::Count Count;
-
-    /********************************************************************************/
-    static void buildGraph (Graph& graph, bank::IBank* bank, tools::misc::IProperties* props)
+    /** Here is the link between the kmer size (or precision) and the specific type
+     * to be used for the variant. */
+    switch (prec)
     {
+        case 1:     data = GraphData<32> ();  break;
+        case 2:     data = GraphData<64> ();  break;
+        case 3:     data = GraphData<96> ();  break;
+        case 4:     data = GraphData<128>();  break;
+        default:    throw system::Exception ("Graph failure because of unhandled kmer precision %d", prec);
+    }
+}
+
+/********************************************************************************/
+
+/** This visitor is used to configure a GraphDataVariant object (ie configure its attributes).
+ * The information source used to configure the variant is a kmer size and a product.
+ *
+ * If the product is null, only the kmer model is set.
+ *
+ * If the product is not null, it is likely coming from a previous graph building (dsk, debloom, ...); we can
+ * therefore configure the variant with the items coming from this product.
+ */
+struct configure_visitor : public boost::static_visitor<>    {
+
+    size_t   kmerSize;
+    Product* product;
+
+    configure_visitor (size_t kmerSize, Product* product)  : kmerSize(kmerSize), product(product) {}
+
+    template<size_t span>  void operator() (GraphData<span>& data) const
+    {
+        /** We create the kmer model. */
+        data.setModel (new typename Kmer<span>::Model (kmerSize));
+
+        if (product != NULL)
+        {
+            /** Shortcuts. */
+            typedef typename Kmer<span>::Type  Type;
+            typedef typename Kmer<span>::Count Count;
+
+            /** We retrieve the needed information from the product. */
+            Collection<Count>*    solidIterable = & (*product) ("dsk").    getCollection<Count >     ("solid");
+            Iterable<Type>*       cFPKmers      = & (*product) ("debloom").getCollection<Type>       ("cfp");
+            Iterable<NativeInt8>* bloomArray    = & (*product) ("debloom").getCollection<NativeInt8> ("bloom");
+            Collection<Count>*    branching     = & (*product) ("graph").  getCollection<Count >     ("branching");
+
+            /** Some checks. */
+            assert (solidIterable != 0);
+            assert (cFPKmers      != 0);
+            assert (bloomArray    != 0);
+            assert (branching     != 0);
+
+            /** We set the iterable for the solid kmers. */
+            data.setSolid (solidIterable);
+
+            /** We compute parameters for the Bloom filter. */
+            double lg2 = log(2);
+            float     NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
+            size_t    nbHash         = (int)floorf (0.7*NBITS_PER_KMER);
+            u_int64_t bloomSize      = (u_int64_t) (solidIterable->getNbItems() * NBITS_PER_KMER);
+
+            /** We need a bloom builder for creating the Bloom filter. */
+            kmer::impl::BloomBuilder<span> builder (bloomSize, nbHash);
+
+            /** We check whether we have a stored Bloom filter. */
+            if (bloomArray == 0)
+            {
+                /** We create Bloom filter and fill it with the solid kmers. */
+                data.setBloom (builder.build (solidIterable->iterator()));
+            }
+            else
+            {
+                /** We load the Bloom filter from the specific dataset. */
+                data.setBloom (builder.load (bloomArray));
+            }
+
+            /** We build the set of critical false positive kmers. */
+            data.setCfp (new tools::collections::impl::ContainerSet<Type> (cFPKmers->iterator()));
+
+            /** We set the branching container. */
+            data.setBranching (branching);
+        }
+    }
+};
+
+/********************************************************************************/
+
+/** This visitor is used to build a graph. In particular, the data variant of the graph will
+ * be configured through this boost visitor.
+ *
+ * The skeleton of the graph building is the following:
+ *  - conversion of the input reads into a binary format
+ *  - kmers counting
+ *  - deblooming
+ *  - branching nodes computation
+ *
+ *  The common source for storing results for these different parts is a Product instance, configured
+ *  at the beginning of this visitor. This common product is then provided to the different parts.
+ *
+ *  The data variant itself is configured after the debloom step. After that, the graph has enough
+ *  knowledge to provide all the services of the Graph API. In particular, the branching nodes computation
+ *  is based on the Graph API methods, and is therefore executed after the data variant configuration.
+ */
+struct build_visitor : public boost::static_visitor<>    {
+
+    Graph& graph; bank::IBank* bank; tools::misc::IProperties* props;
+
+    build_visitor (Graph& graph, bank::IBank* bank, tools::misc::IProperties* props)  : graph(graph), bank(bank), props(props) {}
+
+    template<size_t span>  void operator() (GraphData<span>& data) const
+    {
+        /** Shortcuts. */
+        typedef typename Kmer<span>::Type  Type;
+        typedef typename Kmer<span>::Count Count;
+
         LOCAL (bank);
 
         size_t kmerSize = props->get(STR_KMER_SIZE)  ? props->getInt(STR_KMER_SIZE) : 27;
@@ -181,14 +291,14 @@ public:
         /************************************************************/
         /*                       Product creation                   */
         /************************************************************/
-        graph.setProduct (ProductFactory(PRODUCT_HDF5).createProduct (output, true, false));
+        graph.setProduct (ProductFactory(graph._productMode).createProduct (output, true, false));
 
         /************************************************************/
         /*                         Bank conversion                  */
         /************************************************************/
         /** We create the binary bank. */
         BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
-        graph.executeAlgorithm (converter, props, graph._info);
+        executeAlgorithm (converter, props, graph._info);
 
         /************************************************************/
         /*                         Sorting count                    */
@@ -203,7 +313,7 @@ public:
             props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
         );
-        graph.executeAlgorithm (sortingCount, props, graph._info);
+        executeAlgorithm (sortingCount, props, graph._info);
 
         /** We check that we got solid kmers. */
         if (sortingCount.getSolidKmers()->getNbItems() == 0)  {  throw "NO SOLID KMERS FOUND...";  }
@@ -219,17 +329,26 @@ public:
             props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 1000,
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
         );
-        graph.executeAlgorithm (debloom, props, graph._info);
+        executeAlgorithm (debloom, props, graph._info);
 
         /** We retrieve the bloom raw data. */
         Iterable<NativeInt8>* bloomArray = & graph.getProduct("debloom").getCollection<NativeInt8> ("bloom");
 
+        /************************************************************/
+        /*                 Variant configuration                    */
+        /************************************************************/
         /** We configure the graph from the result of DSK and debloom. */
-        configureVariant (graph, kmerSize, sortingCount.getSolidKmers(), debloom.getCriticalKmers(), bloomArray, 0);
+        boost::apply_visitor (configure_visitor (graph._kmerSize, graph._product),  *(GraphDataVariant*)graph._variant);
 
-        /** We can get rid of the binary bank. */
-        System::file().remove (binaryBankUri);
+        /************************************************************/
+        /*                         Branching                        */
+        /************************************************************/
+        BranchingAlgorithm<span> branchingAlgo (graph, & graph.getProduct("graph").getCollection<Count> ("branching"));
+        executeAlgorithm (branchingAlgo, props, graph._info);
 
+        /************************************************************/
+        /*                    Post processing                       */
+        /************************************************************/
         /** We add metadata to some collections. */
         sortingCount.getSolidKmers()->addProperty ("properties", sortingCount.getInfo()->getXML());
         debloom.getCriticalKmers()  ->addProperty ("properties", debloom.     getInfo()->getXML());
@@ -239,116 +358,26 @@ public:
         NativeInt8 kmerSizeData[] = { kmerSize };
         metadata->insert (kmerSizeData, 1);
 
-        /************************************************************/
-        /*                         Branching                        */
-        /************************************************************/
-        BranchingAlgorithm<span> branchingAlgo (graph, & graph.getProduct("graph").getCollection<Count> ("branching"));
-        graph.executeAlgorithm (branchingAlgo, props, graph._info);
-
-        /** We update the metadata. */
         metadata->addProperty ("properties", graph.getInfo().getXML());
+
+        /************************************************************/
+        /*                        Clean up                          */
+        /************************************************************/
+        /** We can get rid of the binary bank. */
+        System::file().remove (binaryBankUri);
     }
 
-    /********************************************************************************/
-    static void loadGraph (Graph& graph, const std::string uri, size_t kmerSize)
+    /** Algorithm configuration. */
+    void executeAlgorithm (Algorithm& algorithm, IProperties* props, IProperties& info) const
     {
-        /** We create a product instance. */
-        Product* product = graph._product;
+        algorithm.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
 
-        /** We configure the graph with the aggregated information. */
-        configureVariant (
-            graph,
-            kmerSize,
-            & (*product) ("dsk").    getCollection<Count >     ("solid"),
-            & (*product) ("debloom").getCollection<Type>       ("cfp"),
-            & (*product) ("debloom").getCollection<NativeInt8> ("bloom"),
-            & (*product) ("graph").  getCollection<Count >     ("branching")
-        );
+        algorithm.execute();
 
-        /** We retrieve the information as a XML string in the "metadata.properties" attribute. */
-        string xmlString = graph.getProduct().getCollection<NativeInt8> ("metadata").getProperty ("properties");
-
-        /** We set the info of the graph. */
-        stringstream ss; ss << xmlString;
-        graph.getInfo().readXML (ss);
-    }
-
-    /********************************************************************************/
-    static void configureVariant (
-        Graph& graph,
-        size_t kmerSize,
-        tools::collections::Collection<Count>*    solidIterable,
-        tools::collections::Iterable<Type>*       cFPKmers,
-        tools::collections::Iterable<NativeInt8>* bloomArray,
-        tools::collections::Collection<Count>*    branching
-    )
-    {
-        /** We set the kmer size. */
-        graph._kmerSize = kmerSize;
-
-        /** We create a templated data and configure it with instances needed for
-         * implementing the graph API. */
-        Data<span> data;
-
-        /** We create the kmer model. */
-        data.setModel (new Model (kmerSize));
-
-        /** We set the iterable for the solid kmers. */
-        data.setSolid (solidIterable);
-
-        /** We compute parameters for the Bloom filter. */
-        double lg2 = log(2);
-        float     NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
-        size_t    nbHash         = (int)floorf (0.7*NBITS_PER_KMER);
-        u_int64_t bloomSize      = (u_int64_t) (solidIterable->getNbItems() * NBITS_PER_KMER);
-
-        /** We need a bloom builder for creating the Bloom filter. */
-        kmer::impl::BloomBuilder<span> builder (bloomSize, nbHash);
-
-        /** We check whether we have a stored Bloom filter. */
-        if (bloomArray == 0)
-        {
-            /** We create Bloom filter and fill it with the solid kmers. */
-            data.setBloom (builder.build (solidIterable->iterator()));
-        }
-        else
-        {
-            /** We load the Bloom filter from the specific dataset. */
-            data.setBloom (builder.load (bloomArray));
-        }
-
-        /** We build the set of critical false positive kmers. */
-        data.setCfp (new tools::collections::impl::ContainerSet<Type> (cFPKmers->iterator()));
-
-        /** We set the branching container. */
-        data.setBranching (branching);
-
-        /** THE BIG IDEA IS HERE... We set the Graph variant with the specific T data we just configured.
-         *  From this moment, the Graph instance has the needed resources for providing the services,
-         *  without any explicit reference to a LargeInt<T> type. Actually, the "lost" T type information
-         *  will be retrieved through the use of boost::static_visitor class.
-         */
-        *((DataVariant*)graph._variant) = data;
-    }
-
-    /********************************************************************************/
-    static void configureVariant (Graph& graph, size_t kmerSize)
-    {
-        /** We create a templated data and configure it with instances needed for
-         * implementing the graph API. */
-        Data<span> data;
-
-        /** We create the kmer model. */
-        data.setModel (new Model (kmerSize));
-
-        /** THE BIG IDEA IS HERE... We set the Graph variant with the specific T data we just configured.
-         *  From this moment, the Graph instance has the needed resources for providing the services,
-         *  without any explicit reference to a LargeInt<T> type. Actually, the "lost" T type information
-         *  will be retrieved through the use of boost::static_visitor class.
-         */
-        *((DataVariant*)graph._variant) = data;
+        info.add (1, algorithm.getInfo());
     }
 };
+
 
 /********************************************************************************
                  #####   ######      #     ######   #     #
@@ -447,82 +476,14 @@ Graph  Graph::create (const char* fmt, ...)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (size_t kmerSize)
-: _product(0), _variant(new DataVariant()), _kmerSize(kmerSize), _info("graph")
+    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+      _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph")
 {
-    /** We get the Integer precision. */
-    int precision = 1 + _kmerSize / 32;
-    Integer::setType (precision);
+    /** We configure the data variant according to the provided kmer size. */
+    setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
-    /** We build the graph according to the wanted precision. */
-    switch (precision)
-    {
-        case 1: GraphFactoryImpl<32> ::configureVariant (*this, kmerSize);  break;
-        case 2: GraphFactoryImpl<64> ::configureVariant (*this, kmerSize);  break;
-        case 3: GraphFactoryImpl<96> ::configureVariant (*this, kmerSize);  break;
-        case 4: GraphFactoryImpl<128>::configureVariant (*this, kmerSize);  break;
-        default:   throw system::Exception ("Graph failure because of unhandled kmer precision %d", precision);
-    }
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
-    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
-{
-    /** We get the kmer size from the user parameters. */
-    _kmerSize = params->getInt (STR_KMER_SIZE);
-
-    /** We get the Integer precision. */
-    int precision = 1 + _kmerSize / 32;
-    Integer::setType (precision);
-
-    /** We build the graph according to the wanted precision. */
-    switch (precision)
-    {
-        case 1: GraphFactoryImpl<32> ::buildGraph (*this, bank, params);  break;
-        case 2: GraphFactoryImpl<64> ::buildGraph (*this, bank, params);  break;
-        case 3: GraphFactoryImpl<96> ::buildGraph (*this, bank, params);  break;
-        case 4: GraphFactoryImpl<128>::buildGraph (*this, bank, params);  break;
-        default:   throw system::Exception ("Graph failure because of unhandled kmer precision %d", precision);
-    }
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-Graph::Graph (tools::misc::IProperties* params)
-    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
-{
-    /** We get the kmer size from the user parameters. */
-    _kmerSize = params->getInt (STR_KMER_SIZE);
-
-    /** We build a Bank instance for the provided reads uri. */
-    bank::IBank* bank = new BankFasta (params->getStr(STR_URI_INPUT));
-
-    /** We get the Integer precision. */
-    int precision = 1 + _kmerSize / 32;
-    Integer::setType (precision);
-
-    /** We build the graph according to the wanted precision. */
-    switch (precision)
-    {
-        case 1: GraphFactoryImpl<32> ::buildGraph (*this, bank, params);  break;
-        case 2: GraphFactoryImpl<64> ::buildGraph (*this, bank, params);  break;
-        case 3: GraphFactoryImpl<96> ::buildGraph (*this, bank, params);  break;
-        case 4: GraphFactoryImpl<128>::buildGraph (*this, bank, params);  break;
-        default:   throw system::Exception ("Graph failure because of unhandled kmer precision %d", precision);
-    }
+    /** We configure the graph data from the product content. */
+    boost::apply_visitor (configure_visitor (_kmerSize, _product),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -534,31 +495,24 @@ Graph::Graph (tools::misc::IProperties* params)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (const std::string& uri)
-    : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
+    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
 {
     size_t precision = 0;
 
     /** We create a product instance. */
-    setProduct (ProductFactory(PRODUCT_HDF5).createProduct (uri, false, false));
+    setProduct (ProductFactory(_productMode).createProduct (uri, false, false));
 
     /** We retrieve the type of kmers to be used from the product. */
     Collection<NativeInt8>* metadata = & getProduct().getCollection<NativeInt8> ("metadata");
     gatb::core::tools::dp::Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
     itData->first(); if (!itData->isDone())  { _kmerSize = itData->item(); }
 
-    /** We set the precision of Integer to be used. */
-    precision = 1 + _kmerSize / 32;
-    Integer::setType (precision);
+    /** We configure the data variant according to the provided kmer size. */
+    setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
-    /** We load the graph. */
-    switch (precision)
-    {
-        case 1: GraphFactoryImpl<32> ::loadGraph (*this, uri, _kmerSize);  break;
-        case 2: GraphFactoryImpl<64> ::loadGraph (*this, uri, _kmerSize);  break;
-        case 3: GraphFactoryImpl<96> ::loadGraph (*this, uri, _kmerSize);  break;
-        case 4: GraphFactoryImpl<128>::loadGraph (*this, uri, _kmerSize);  break;
-        default:   throw system::Exception ("Graph failure because of unhandled kmer precision %d", precision);
-    }
+    /** We configure the graph data from the product content. */
+    boost::apply_visitor (configure_visitor (_kmerSize, _product),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -569,7 +523,56 @@ Graph::Graph (const std::string& uri)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Graph::Graph () : _product(0), _variant(new DataVariant()), _kmerSize(0), _info("graph")
+Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
+    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
+{
+    /** We get the kmer size from the user parameters. */
+    _kmerSize = params->getInt (STR_KMER_SIZE);
+
+    /** We configure the data variant according to the provided kmer size. */
+    setVariant (*((GraphDataVariant*)_variant), _kmerSize);
+
+    /** We build the graph according to the wanted precision. */
+    boost::apply_visitor (build_visitor (*this, bank,params),  *(GraphDataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Graph (tools::misc::IProperties* params)
+    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
+{
+    /** We get the kmer size from the user parameters. */
+    _kmerSize = params->getInt (STR_KMER_SIZE);
+
+    /** We configure the data variant according to the provided kmer size. */
+    setVariant (*((GraphDataVariant*)_variant), _kmerSize);
+
+    /** We build a Bank instance for the provided reads uri. */
+    bank::IBank* bank = new BankFasta (params->getStr(STR_URI_INPUT));
+
+    /** We build the graph according to the wanted precision. */
+    boost::apply_visitor (build_visitor (*this, bank,params),  *(GraphDataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Graph::Graph ()
+    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
 {
 }
 
@@ -581,11 +584,13 @@ Graph::Graph () : _product(0), _variant(new DataVariant()), _kmerSize(0), _info(
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Graph::Graph (const Graph& graph) : _product(0), _variant(new DataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name)
+Graph::Graph (const Graph& graph)
+    : _productMode(graph._productMode), _product(0),
+      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name)
 {
     setProduct (graph._product);
 
-    if (graph._variant)  {  *((DataVariant*)_variant) = *((DataVariant*)graph._variant);  }
+    if (graph._variant)  {  *((GraphDataVariant*)_variant) = *((GraphDataVariant*)graph._variant);  }
 }
 
 /*********************************************************************
@@ -602,9 +607,10 @@ Graph& Graph::operator= (const Graph& graph)
     {
         _kmerSize = graph._kmerSize;
 
+        _productMode = graph._productMode;
         setProduct (graph._product);
 
-        if (graph._variant)  {  *((DataVariant*)_variant) = *((DataVariant*)graph._variant);  }
+        if (graph._variant)  {  *((GraphDataVariant*)_variant) = *((GraphDataVariant*)graph._variant);  }
     }
     return *this;
 }
@@ -621,7 +627,7 @@ Graph::~Graph ()
 {
     /** We release resources. */
     setProduct (0);
-    if (_variant)  {  delete (DataVariant*)_variant;  }
+    if (_variant)  {  delete (GraphDataVariant*)_variant;  }
 }
 
 /*********************************************************************
@@ -773,7 +779,7 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
 
     getItems_visitor (const Node& source, Direction direction, Functor fct) : source(source), direction(direction), fct(fct) {}
 
-    template<size_t span>  Graph::Vector<Item> operator() (const Data<span>& data) const
+    template<size_t span>  Graph::Vector<Item> operator() (const GraphData<span>& data) const
     {
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
@@ -871,7 +877,7 @@ Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  c
         items[idx++].set (kmer_from, strand_from, kmer_to, strand_to, nt, dir);
     }};
 
-    return boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+    return boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(GraphDataVariant*)_variant);
 }
 
 /********************************************************************************/
@@ -891,7 +897,7 @@ Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  c
         items[idx++].set (kmer_to, strand_to);
     }};
 
-    return boost::apply_visitor (getItems_visitor<Node,Functor>(source, direction, Functor()),  *(DataVariant*)_variant);
+    return boost::apply_visitor (getItems_visitor<Node,Functor>(source, direction, Functor()),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -908,7 +914,7 @@ struct buildNode_visitor : public boost::static_visitor<Node>    {
 
     buildNode_visitor (const tools::misc::Data& data, size_t offset) : data(data), offset(offset)  {}
 
-    template<size_t span>  Node operator() (const Data<span>& graphData) const
+    template<size_t span>  Node operator() (const GraphData<span>& graphData) const
     {
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
@@ -928,7 +934,7 @@ struct buildNode_visitor : public boost::static_visitor<Node>    {
 *********************************************************************/
 Node Graph::buildNode (const tools::misc::Data& data, size_t offset)  const
 {
-    return boost::apply_visitor (buildNode_visitor(data,offset),  *(DataVariant*)_variant);
+    return boost::apply_visitor (buildNode_visitor(data,offset),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1026,7 +1032,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
     getItem_visitor (const Node& source, Direction direction, Nucleotide nt, bool& exists, Functor fct)
         : source(source), direction(direction), nt(nt), exists(exists), fct(fct) {}
 
-    template<size_t span>  Item operator() (const Data<span>& data) const
+    template<size_t span>  Item operator() (const GraphData<span>& data) const
     {
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
@@ -1130,7 +1136,7 @@ Node Graph::getNode (const Node& source, Direction dir, kmer::Nucleotide nt, boo
         item.set (kmer_to, strand_to);
     }};
 
-    return boost::apply_visitor (getItem_visitor<Node,Functor>(source, dir, nt, exists, Functor()),  *(DataVariant*)_variant);
+    return boost::apply_visitor (getItem_visitor<Node,Functor>(source, dir, nt, exists, Functor()),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1234,7 +1240,7 @@ struct contains_visitor : public boost::static_visitor<bool>    {
     const Node& node;
     contains_visitor (const Node& node) : node(node) {}
 
-    template<size_t span>  size_t operator() (const Data<span>& data) const
+    template<size_t span>  size_t operator() (const GraphData<span>& data) const
     {
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
@@ -1246,7 +1252,7 @@ struct contains_visitor : public boost::static_visitor<bool>    {
 /********************************************************************************/
 bool Graph::contains (const Node& item) const
 {
-    return boost::apply_visitor (contains_visitor(item),  *(DataVariant*)_variant);
+    return boost::apply_visitor (contains_visitor(item),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1260,7 +1266,7 @@ bool Graph::contains (const Node& item) const
 template<typename NodeType>
 struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<NodeType>*>    {
 
-    template<size_t span>  tools::dp::ISmartIterator<NodeType>* operator() (const Data<span>& data) const
+    template<size_t span>  tools::dp::ISmartIterator<NodeType>* operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
         typedef typename Kmer<span>::Model Model;
@@ -1350,7 +1356,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
 *********************************************************************/
 Graph::Iterator<Node> Graph::getNodes () const
 {
-    return Graph::Iterator<Node> (boost::apply_visitor (nodes_visitor<Node>(),  *(DataVariant*)_variant));
+    return Graph::Iterator<Node> (boost::apply_visitor (nodes_visitor<Node>(),  *(GraphDataVariant*)_variant));
 }
 
 /*********************************************************************
@@ -1363,7 +1369,7 @@ Graph::Iterator<Node> Graph::getNodes () const
 *********************************************************************/
 Graph::Iterator<BranchingNode> Graph::getBranchingNodes () const
 {
-    return Graph::Iterator<BranchingNode> (boost::apply_visitor (nodes_visitor<BranchingNode>(),  *(DataVariant*)_variant));
+    return Graph::Iterator<BranchingNode> (boost::apply_visitor (nodes_visitor<BranchingNode>(),  *(GraphDataVariant*)_variant));
 }
 
 /*********************************************************************
@@ -1379,7 +1385,7 @@ struct toString_node_visitor : public boost::static_visitor<std::string>    {
     const Node& node;
     toString_node_visitor (const Node& node) : node(node) {}
 
-    template<size_t span>  std::string operator() (const Data<span>& data) const
+    template<size_t span>  std::string operator() (const GraphData<span>& data) const
     {
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
@@ -1392,7 +1398,7 @@ struct toString_node_visitor : public boost::static_visitor<std::string>    {
 
 std::string Graph::toString (const Node& node) const
 {
-    return boost::apply_visitor (toString_node_visitor(node),  *(DataVariant*)_variant);
+    return boost::apply_visitor (toString_node_visitor(node),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1408,7 +1414,7 @@ struct debugString_node_visitor : public boost::static_visitor<std::string>    {
     const Node& node;  kmer::Strand& strand; int& mode;
     debugString_node_visitor (const Node& node, kmer::Strand strand, int mode) : node(node), strand(strand), mode(mode) {}
 
-    template<size_t span>  std::string operator() (const Data<span>& data) const
+    template<size_t span>  std::string operator() (const GraphData<span>& data) const
     {
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
@@ -1444,7 +1450,7 @@ struct debugString_node_visitor : public boost::static_visitor<std::string>    {
 
 std::string Graph::debugString (const Node& node, kmer::Strand strand, int mode) const
 {
-    return boost::apply_visitor (debugString_node_visitor(node,strand,mode),  *(DataVariant*)_variant);
+    return boost::apply_visitor (debugString_node_visitor(node,strand,mode),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1460,7 +1466,7 @@ struct debugString_edge_visitor : public boost::static_visitor<std::string>    {
     const Edge& edge;  Strand strand;  int mode;
     debugString_edge_visitor (const Edge& edge, Strand strand, int mode=0) : edge(edge), strand(strand), mode(mode) {}
 
-    template<size_t span>  std::string operator() (const Data<span>& data) const
+    template<size_t span>  std::string operator() (const GraphData<span>& data) const
     {
         std::stringstream ss;
 
@@ -1507,7 +1513,7 @@ struct debugString_edge_visitor : public boost::static_visitor<std::string>    {
 
 std::string Graph::debugString (const Edge& edge, kmer::Strand strand, int mode) const
 {
-    return boost::apply_visitor (debugString_edge_visitor(edge, strand, mode),  *(DataVariant*)_variant);
+    return boost::apply_visitor (debugString_edge_visitor(edge, strand, mode),  *(GraphDataVariant*)_variant);
 }
 
 std::string Graph::toString (const Edge& edge) const
@@ -1541,24 +1547,6 @@ std::string Graph::toString (const BranchingEdge& edge) const
 
     return ss.str();
 }
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-void Graph::executeAlgorithm (Algorithm& algorithm, IProperties* props, IProperties& info)
-{
-    algorithm.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
-
-    algorithm.execute();
-
-    info.add (1, algorithm.getInfo());
-}
-
 
 /*********************************************************************
 ** METHOD  :

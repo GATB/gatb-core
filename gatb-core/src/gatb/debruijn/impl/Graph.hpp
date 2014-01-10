@@ -767,6 +767,12 @@ private:
     /** Constructor. Use for reading from filesystem. */
     Graph (const std::string& uri);
 
+    /** Kind of storage for the graph. */
+    tools::storage::impl::ProductMode_e _productMode;
+
+    /** Default storage kind. */
+    static const tools::storage::impl::ProductMode_e PRODUCT_MODE_DEFAULT = tools::storage::impl::PRODUCT_HDF5;
+
     /** Product. */
     tools::storage::impl::Product* _product;
     void setProduct (tools::storage::impl::Product* product)  { SP_SETATTR(product); }
@@ -823,11 +829,8 @@ private:
     /** */
     Node getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
 
-    /** */
-    void executeAlgorithm (tools::misc::impl::Algorithm& algorithm, tools::misc::IProperties* props, tools::misc::IProperties& info);
-
     /** Friends. */
-    template<size_t ss> friend class GraphFactoryImpl;
+    friend struct build_visitor;
 };
 
 /********************************************************************************/
