@@ -23,7 +23,7 @@ namespace gatb  {  namespace core  {  namespace tools  {  namespace storage  {  
 *********************************************************************/
 template <class Item>
 inline CollectionNode<Item>::CollectionNode (
-    ProductFactory* factory, 
+    StorageFactory* factory, 
     ICell* parent, 
     const std::string& id, 
     collections::Collection<Item>* ref
@@ -88,7 +88,7 @@ inline collections::Collection<Item>* CollectionNode<Item>::getRef ()
 
 /*********************************************************************
 *********************************************************************/
-inline Group::Group (ProductFactory* factory, ICell* parent, const std::string& name) 
+inline Group::Group (StorageFactory* factory, ICell* parent, const std::string& name) 
     : _factory(factory), Cell(parent, name) 
 {
 }
@@ -171,7 +171,7 @@ inline void Group::remove ()
 /*********************************************************************
 *********************************************************************/
 template<typename Type>
-inline Partition<Type>::Partition (ProductFactory* factory, ICell* parent, const std::string& id, size_t nbCollections)
+inline Partition<Type>::Partition (StorageFactory* factory, ICell* parent, const std::string& id, size_t nbCollections)
     : Group (factory, parent, id), _factory(factory), _typedCollections(nbCollections), _synchro(0)
 {
     /** We create a synchronizer to be shared by the collections. */
@@ -319,13 +319,13 @@ inline void PartitionCache<Type>::remove ()
 
 /*********************************************************************
 *********************************************************************/
-inline Product::Product (ProductMode_e mode, const std::string& name, bool autoRemove)
+inline Storage::Storage (StorageMode_e mode, const std::string& name, bool autoRemove)
     : Cell(0, ""), _factory(0), _root(0), _autoRemove(autoRemove)  
 {
-    setFactory (new ProductFactory (mode));
+    setFactory (new StorageFactory (mode));
 }
 
-inline Product::~Product ()
+inline Storage::~Storage ()
 {
     setRoot    (0);
     setFactory (0);
@@ -333,7 +333,7 @@ inline Product::~Product ()
 
 /*********************************************************************
 *********************************************************************/
-inline Group* Product::getRoot ()
+inline Group* Storage::getRoot ()
 {
     if (_root == 0)  { setRoot    (_factory->createGroup (this, "")); }
     return _root;
@@ -341,7 +341,7 @@ inline Group* Product::getRoot ()
 
 /*********************************************************************
 *********************************************************************/
-inline Group& Product::operator() (const std::string name)
+inline Group& Storage::operator() (const std::string name)
 {
     if (name.empty())  { return *getRoot(); }
     else               { return getRoot ()->getGroup (name);  }
@@ -349,14 +349,14 @@ inline Group& Product::operator() (const std::string name)
 
 /*********************************************************************
 *********************************************************************/
-inline void Product::remove ()  
+inline void Storage::remove ()  
 {  
     getRoot()->remove(); 
 }
 
 /*********************************************************************
 *********************************************************************/
-inline void Product::setFactory (ProductFactory* factory)  
+inline void Storage::setFactory (StorageFactory* factory)  
 { 
     SP_SETATTR(factory); 
 }
@@ -366,8 +366,8 @@ inline void Product::setFactory (ProductFactory* factory)
 /********************************************************************************/
 
 
-#include <gatb/tools/storage/impl/ProductHDF5.hpp>
-#include <gatb/tools/storage/impl/ProductFile.hpp>
+#include <gatb/tools/storage/impl/StorageHDF5.hpp>
+#include <gatb/tools/storage/impl/StorageFile.hpp>
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {  namespace tools  {  namespace storage  {  namespace impl {
@@ -385,51 +385,51 @@ namespace gatb  {  namespace core  {  namespace tools  {  namespace storage  {  
 
 /*********************************************************************
 *********************************************************************/
-inline Product* ProductFactory::createProduct (const std::string& name, bool deleteIfExist, bool autoRemove)
+inline Storage* StorageFactory::createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
 {
     switch (_mode)
     {
-        case PRODUCT_HDF5:  return ProductHDF5Factory::createProduct (name, deleteIfExist, autoRemove);
-        case PRODUCT_FILE:  return ProductFileFactory::createProduct (name, deleteIfExist, autoRemove);
-        default:            throw system::Exception ("Unknown mode in ProductFactory::createProduct");
+        case STORAGE_HDF5:  return StorageHDF5Factory::createStorage (name, deleteIfExist, autoRemove);
+        case STORAGE_FILE:  return StorageFileFactory::createStorage (name, deleteIfExist, autoRemove);
+        default:            throw system::Exception ("Unknown mode in StorageFactory::createStorage");
     }
 }
 
 /*********************************************************************
 *********************************************************************/
-inline Group* ProductFactory::createGroup (ICell* parent, const std::string& name)
+inline Group* StorageFactory::createGroup (ICell* parent, const std::string& name)
 {
     switch (_mode)
     {
-        case PRODUCT_HDF5:  return ProductHDF5Factory::createGroup (parent, name);
-        case PRODUCT_FILE:  return ProductFileFactory::createGroup (parent, name);
-        default:            throw system::Exception ("Unknown mode in ProductFactory::createGroup");
-    }
-}
-
-/*********************************************************************
-*********************************************************************/
-template<typename Type>
-inline Partition<Type>* ProductFactory::createPartition (ICell* parent, const std::string& name, size_t nb)
-{
-    switch (_mode)
-    {
-        case PRODUCT_HDF5:  return ProductHDF5Factory::createPartition<Type> (parent, name, nb);
-        case PRODUCT_FILE:  return ProductFileFactory::createPartition<Type> (parent, name, nb);
-        default:            throw system::Exception ("Unknown mode in ProductFactory::createPartition");
+        case STORAGE_HDF5:  return StorageHDF5Factory::createGroup (parent, name);
+        case STORAGE_FILE:  return StorageFileFactory::createGroup (parent, name);
+        default:            throw system::Exception ("Unknown mode in StorageFactory::createGroup");
     }
 }
 
 /*********************************************************************
 *********************************************************************/
 template<typename Type>
-inline CollectionNode<Type>* ProductFactory::createCollection (ICell* parent, const std::string& name, system::ISynchronizer* synchro)
+inline Partition<Type>* StorageFactory::createPartition (ICell* parent, const std::string& name, size_t nb)
 {
     switch (_mode)
     {
-        case PRODUCT_HDF5:  return ProductHDF5Factory::createCollection<Type> (parent, name, synchro);
-        case PRODUCT_FILE:  return ProductFileFactory::createCollection<Type> (parent, name, synchro);
-        default:            throw system::Exception ("Unknown mode in ProductFactory::createCollection");
+        case STORAGE_HDF5:  return StorageHDF5Factory::createPartition<Type> (parent, name, nb);
+        case STORAGE_FILE:  return StorageFileFactory::createPartition<Type> (parent, name, nb);
+        default:            throw system::Exception ("Unknown mode in StorageFactory::createPartition");
+    }
+}
+
+/*********************************************************************
+*********************************************************************/
+template<typename Type>
+inline CollectionNode<Type>* StorageFactory::createCollection (ICell* parent, const std::string& name, system::ISynchronizer* synchro)
+{
+    switch (_mode)
+    {
+        case STORAGE_HDF5:  return StorageHDF5Factory::createCollection<Type> (parent, name, synchro);
+        case STORAGE_FILE:  return StorageFileFactory::createCollection<Type> (parent, name, synchro);
+        default:            throw system::Exception ("Unknown mode in StorageFactory::createCollection");
     }
 }
 

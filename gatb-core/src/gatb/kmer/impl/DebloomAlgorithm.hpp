@@ -28,7 +28,7 @@
 #include <gatb/tools/collections/impl/Bloom.hpp>
 #include <gatb/tools/collections/impl/Hash16.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <string>
 
@@ -51,7 +51,7 @@ public:
 
     /** */
     DebloomAlgorithm (
-        tools::storage::impl::Product& product,
+        tools::storage::impl::Storage& storage,
         tools::collections::Iterable<Count>* solidIterable,
         size_t                      kmerSize,
         size_t                      max_memory = 1000,
@@ -86,7 +86,7 @@ private:
     );
 
     /** */
-    tools::storage::impl::Product& _product;
+    tools::storage::impl::Storage& _storage;
 
     size_t       _kmerSize;
     tools::collections::impl::BloomFactory::Kind _bloomKind;

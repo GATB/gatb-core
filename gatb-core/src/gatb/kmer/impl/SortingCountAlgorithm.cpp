@@ -78,7 +78,7 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  "
 template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm ()
     : Algorithm("dsk", 0, 0),
-      _product(0),
+      _storage(0),
       _bank(0),
       _kmerSize(0), _nks(0),
       _partitionType(0), _nbCores(0), _prefix(""),
@@ -86,7 +86,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0), _histogramUri(""),
-      _partitionsProduct(0), _partitions(0), _totalKmerNb(0), _solidKmers(0)
+      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidKmers(0)
 {
 }
 
@@ -100,7 +100,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
 *********************************************************************/
 template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (
-    Product* product,
+    Storage* storage,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
     size_t      nks,
@@ -113,7 +113,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     gatb::core::tools::misc::IProperties* options
 )
   : Algorithm("dsk", nbCores, options),
-    _product(product),
+    _storage(storage),
     _bank(0),
     _kmerSize(kmerSize), _nks(nks),
     _partitionType(partitionType), _nbCores(nbCores), _prefix(prefix),
@@ -121,15 +121,15 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(histogramUri),
-    _partitionsProduct(0), _partitions(0), _totalKmerNb(0)
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0)
 {
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& (*_product)("dsk").getCollection<Count> ("solid"));
+    setSolidKmers (& (*_storage)("dsk").getCollection<Count> ("solid"));
 
     /** We set the histogram instance. */
-    setHistogram (new Histogram  (10000, & (*_product)("dsk").getCollection<Histogram::Entry>("histogram") ));
+    setHistogram (new Histogram  (10000, & (*_storage)("dsk").getCollection<Histogram::Entry>("histogram") ));
 }
 
 /*********************************************************************
@@ -145,7 +145,7 @@ SortingCountAlgorithm<span>::~SortingCountAlgorithm ()
 {
     setProgress          (0);
     setBank              (0);
-    setPartitionsProduct (0);
+    setPartitionsStorage (0);
     setPartitions        (0);
     setSolidKmers        (0);
     setHistogram         (0);
@@ -164,7 +164,7 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
 {
     if (this != &s)
     {
-        _product                = s._product;
+        _storage                = s._storage;
         _kmerSize               = s._kmerSize;
         _nks                    = s._nks;
         _partitionType          = s._partitionType;
@@ -185,7 +185,7 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         setBank                 (s._bank);
         setProgress             (s._progress);
         setHistogram            (s._histogram);
-        setPartitionsProduct    (s._partitionsProduct);
+        setPartitionsStorage    (s._partitionsStorage);
         setPartitions           (s._partitions);
         setSolidKmers           (s._solidKmers);
     }
@@ -407,12 +407,12 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We create a kmer model. */
     Model model (_kmerSize);
 
-    /** We delete the previous partitions product. */
-    if (_partitionsProduct)  { _partitionsProduct->remove (); }
+    /** We delete the previous partitions storage. */
+    if (_partitionsStorage)  { _partitionsStorage->remove (); }
 
     /** We create the partition files for the current pass. */
-    setPartitionsProduct (ProductFactory(PRODUCT_FILE).createProduct ("partitions", true, false));
-    setPartitions        ( & (*_partitionsProduct)().getPartition<Type> ("parts", _nb_partitions));
+    setPartitionsStorage (StorageFactory(STORAGE_FILE).createStorage ("partitions", true, false));
+    setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);

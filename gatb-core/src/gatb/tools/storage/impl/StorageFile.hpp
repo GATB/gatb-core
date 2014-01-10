@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file ProductFile.hpp
+/** \file StorageFile.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Collection interface
@@ -13,8 +13,8 @@
  *  This file holds interfaces related to the Collection interface
  */
 
-#ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_FILE_HPP_
-#define _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_FILE_HPP_
+#ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_FILE_HPP_
+#define _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_FILE_HPP_
 
 /********************************************************************************/
 
@@ -29,24 +29,24 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
-class ProductFileFactory
+class StorageFileFactory
 {
 public:
 
     /** */
-    static Product* createProduct (const std::string& name, bool deleteIfExist, bool autoRemove)
+    static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
     {
-        return new Product (PRODUCT_FILE, name, autoRemove);
+        return new Storage (STORAGE_FILE, name, autoRemove);
     }
 
     /** */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
         ICell* root = ICell::getRoot (parent);
-        Product* product = dynamic_cast<Product*> (root);
-        assert (product != 0);
+        Storage* storage = dynamic_cast<Storage*> (root);
+        assert (storage != 0);
 
-        return new Group (product->getFactory(), parent, name);
+        return new Group (storage->getFactory(), parent, name);
     }
 
     /** */
@@ -54,10 +54,10 @@ public:
     static Partition<Type>* createPartition (ICell* parent, const std::string& name, size_t nb)
     {
         ICell* root = ICell::getRoot (parent);
-        Product* product = dynamic_cast<Product*> (root);
-        assert (product != 0);
+        Storage* storage = dynamic_cast<Storage*> (root);
+        assert (storage != 0);
 
-        Partition<Type>* result = new Partition<Type> (product->getFactory(), parent, name, nb);
+        Partition<Type>* result = new Partition<Type> (storage->getFactory(), parent, name, nb);
         return result;
     }
 
@@ -69,10 +69,10 @@ public:
         std::string actualName = std::string("tmp.") + name;
 
         ICell* root = ICell::getRoot (parent);
-        Product* product = dynamic_cast<Product*> (root);
-        assert (product != 0);
+        Storage* storage = dynamic_cast<Storage*> (root);
+        assert (storage != 0);
 
-        return new CollectionNode<Type> (product->getFactory(), parent, name, new CollectionFile<Type>(actualName));
+        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionFile<Type>(actualName));
     }
 };
 
@@ -80,4 +80,4 @@ public:
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_FILE_HPP_ */
+#endif /* _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_FILE_HPP_ */

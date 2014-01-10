@@ -80,7 +80,7 @@ static const char* progressFormat3 = "Debloom: finalization                  ";
 *********************************************************************/
 template<size_t span>
 DebloomAlgorithm<span>::DebloomAlgorithm (
-    Product& product,
+    Storage& storage,
     Iterable<Count>*    solidIterable,
     size_t              kmerSize,
     size_t              max_memory,
@@ -89,16 +89,16 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
     const std::string&  debloomUri,
     IProperties*        options
 )
-    :  Algorithm("debloom", nb_cores, options), _product(product), _kmerSize(kmerSize), _bloomKind(bloomKind), _debloomUri("debloom"),
+    :  Algorithm("debloom", nb_cores, options), _storage(storage), _kmerSize(kmerSize), _bloomKind(bloomKind), _debloomUri("debloom"),
        _max_memory(max_memory),
        _solidIterable(0)
 {
     /** We get a group for deblooming. */
-    Group& group = _product().getGroup ("debloom");
+    Group& group = _storage().getGroup ("debloom");
 
     setSolidIterable    (solidIterable);
 
-    /** We get a collection for the cFP from the product. */
+    /** We get a collection for the cFP from the storage. */
     setCriticalCollection (& group.template getCollection<Type> ("cfp"));
 }
 
@@ -131,7 +131,7 @@ void DebloomAlgorithm<span>::execute ()
     Model model (_kmerSize);
 
     /** We get a group for deblooming. */
-    Group& group = _product().getGroup ("debloom");
+    Group& group = _storage().getGroup ("debloom");
 
     /***************************************************/
     /** We create a bloom and insert solid kmers into. */

@@ -170,36 +170,36 @@ static void setVariant (GraphDataVariant& data, size_t kmerSize)
 /********************************************************************************/
 
 /** This visitor is used to configure a GraphDataVariant object (ie configure its attributes).
- * The information source used to configure the variant is a kmer size and a product.
+ * The information source used to configure the variant is a kmer size and a storage.
  *
- * If the product is null, only the kmer model is set.
+ * If the storage is null, only the kmer model is set.
  *
- * If the product is not null, it is likely coming from a previous graph building (dsk, debloom, ...); we can
- * therefore configure the variant with the items coming from this product.
+ * If the storage is not null, it is likely coming from a previous graph building (dsk, debloom, ...); we can
+ * therefore configure the variant with the items coming from this storage.
  */
 struct configure_visitor : public boost::static_visitor<>    {
 
     size_t   kmerSize;
-    Product* product;
+    Storage* storage;
 
-    configure_visitor (size_t kmerSize, Product* product)  : kmerSize(kmerSize), product(product) {}
+    configure_visitor (size_t kmerSize, Storage* storage)  : kmerSize(kmerSize), storage(storage) {}
 
     template<size_t span>  void operator() (GraphData<span>& data) const
     {
         /** We create the kmer model. */
         data.setModel (new typename Kmer<span>::Model (kmerSize));
 
-        if (product != NULL)
+        if (storage != NULL)
         {
             /** Shortcuts. */
             typedef typename Kmer<span>::Type  Type;
             typedef typename Kmer<span>::Count Count;
 
-            /** We retrieve the needed information from the product. */
-            Collection<Count>*    solidIterable = & (*product) ("dsk").    getCollection<Count >     ("solid");
-            Iterable<Type>*       cFPKmers      = & (*product) ("debloom").getCollection<Type>       ("cfp");
-            Iterable<NativeInt8>* bloomArray    = & (*product) ("debloom").getCollection<NativeInt8> ("bloom");
-            Collection<Count>*    branching     = & (*product) ("graph").  getCollection<Count >     ("branching");
+            /** We retrieve the needed information from the storage. */
+            Collection<Count>*    solidIterable = & (*storage) ("dsk").    getCollection<Count >     ("solid");
+            Iterable<Type>*       cFPKmers      = & (*storage) ("debloom").getCollection<Type>       ("cfp");
+            Iterable<NativeInt8>* bloomArray    = & (*storage) ("debloom").getCollection<NativeInt8> ("bloom");
+            Collection<Count>*    branching     = & (*storage) ("graph").  getCollection<Count >     ("branching");
 
             /** Some checks. */
             assert (solidIterable != 0);
@@ -251,8 +251,8 @@ struct configure_visitor : public boost::static_visitor<>    {
  *  - deblooming
  *  - branching nodes computation
  *
- *  The common source for storing results for these different parts is a Product instance, configured
- *  at the beginning of this visitor. This common product is then provided to the different parts.
+ *  The common source for storing results for these different parts is a Storage instance, configured
+ *  at the beginning of this visitor. This common storage is then provided to the different parts.
  *
  *  The data variant itself is configured after the debloom step. After that, the graph has enough
  *  knowledge to provide all the services of the Graph API. In particular, the branching nodes computation
@@ -289,9 +289,9 @@ struct build_visitor : public boost::static_visitor<>    {
         ));
 
         /************************************************************/
-        /*                       Product creation                   */
+        /*                       Storage creation                   */
         /************************************************************/
-        graph.setProduct (ProductFactory(graph._productMode).createProduct (output, true, false));
+        graph.setStorage (StorageFactory(graph._storageMode).createStorage (output, true, false));
 
         /************************************************************/
         /*                         Bank conversion                  */
@@ -305,7 +305,7 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /** We create a DSK instance and execute it. */
         SortingCountAlgorithm<span> sortingCount (
-            graph._product,
+            graph._storage,
             converter.getResult(),
             kmerSize,
             nks,
@@ -323,7 +323,7 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /** We create a debloom instance and execute it. */
         DebloomAlgorithm<span> debloom (
-            *graph._product,
+            *graph._storage,
             sortingCount.getSolidKmers(),
             kmerSize,
             props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 1000,
@@ -332,18 +332,18 @@ struct build_visitor : public boost::static_visitor<>    {
         executeAlgorithm (debloom, props, graph._info);
 
         /** We retrieve the bloom raw data. */
-        Iterable<NativeInt8>* bloomArray = & graph.getProduct("debloom").getCollection<NativeInt8> ("bloom");
+        Iterable<NativeInt8>* bloomArray = & graph.getStorage("debloom").getCollection<NativeInt8> ("bloom");
 
         /************************************************************/
         /*                 Variant configuration                    */
         /************************************************************/
         /** We configure the graph from the result of DSK and debloom. */
-        boost::apply_visitor (configure_visitor (graph._kmerSize, graph._product),  *(GraphDataVariant*)graph._variant);
+        boost::apply_visitor (configure_visitor (graph._kmerSize, graph._storage),  *(GraphDataVariant*)graph._variant);
 
         /************************************************************/
         /*                         Branching                        */
         /************************************************************/
-        BranchingAlgorithm<span> branchingAlgo (graph, & graph.getProduct("graph").getCollection<Count> ("branching"));
+        BranchingAlgorithm<span> branchingAlgo (graph, & graph.getStorage("graph").getCollection<Count> ("branching"));
         executeAlgorithm (branchingAlgo, props, graph._info);
 
         /************************************************************/
@@ -354,7 +354,7 @@ struct build_visitor : public boost::static_visitor<>    {
         debloom.getCriticalKmers()  ->addProperty ("properties", debloom.     getInfo()->getXML());
 
         /** We add a special collection for global metadata (in particular the kmer size). */
-        Collection<NativeInt8>* metadata = & graph.getProduct().getCollection<NativeInt8> ("metadata");
+        Collection<NativeInt8>* metadata = & graph.getStorage().getCollection<NativeInt8> ("metadata");
         NativeInt8 kmerSizeData[] = { kmerSize };
         metadata->insert (kmerSizeData, 1);
 
@@ -476,14 +476,14 @@ Graph  Graph::create (const char* fmt, ...)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (size_t kmerSize)
-    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+    : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph")
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
-    /** We configure the graph data from the product content. */
-    boost::apply_visitor (configure_visitor (_kmerSize, _product),  *(GraphDataVariant*)_variant);
+    /** We configure the graph data from the storage content. */
+    boost::apply_visitor (configure_visitor (_kmerSize, _storage),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -495,24 +495,24 @@ Graph::Graph (size_t kmerSize)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (const std::string& uri)
-    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+    : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
 {
     size_t precision = 0;
 
-    /** We create a product instance. */
-    setProduct (ProductFactory(_productMode).createProduct (uri, false, false));
+    /** We create a storage instance. */
+    setStorage (StorageFactory(_storageMode).createStorage (uri, false, false));
 
-    /** We retrieve the type of kmers to be used from the product. */
-    Collection<NativeInt8>* metadata = & getProduct().getCollection<NativeInt8> ("metadata");
+    /** We retrieve the type of kmers to be used from the storage. */
+    Collection<NativeInt8>* metadata = & getStorage().getCollection<NativeInt8> ("metadata");
     gatb::core::tools::dp::Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
     itData->first(); if (!itData->isDone())  { _kmerSize = itData->item(); }
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
-    /** We configure the graph data from the product content. */
-    boost::apply_visitor (configure_visitor (_kmerSize, _product),  *(GraphDataVariant*)_variant);
+    /** We configure the graph data from the storage content. */
+    boost::apply_visitor (configure_visitor (_kmerSize, _storage),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -524,7 +524,7 @@ Graph::Graph (const std::string& uri)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
-    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+    : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
 {
     /** We get the kmer size from the user parameters. */
@@ -546,7 +546,7 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (tools::misc::IProperties* params)
-    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+    : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
 {
     /** We get the kmer size from the user parameters. */
@@ -571,7 +571,7 @@ Graph::Graph (tools::misc::IProperties* params)
 ** REMARKS :
 *********************************************************************/
 Graph::Graph ()
-    : _productMode(PRODUCT_MODE_DEFAULT), _product(0),
+    : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
 {
 }
@@ -585,10 +585,10 @@ Graph::Graph ()
 ** REMARKS :
 *********************************************************************/
 Graph::Graph (const Graph& graph)
-    : _productMode(graph._productMode), _product(0),
+    : _storageMode(graph._storageMode), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name)
 {
-    setProduct (graph._product);
+    setStorage (graph._storage);
 
     if (graph._variant)  {  *((GraphDataVariant*)_variant) = *((GraphDataVariant*)graph._variant);  }
 }
@@ -607,8 +607,8 @@ Graph& Graph::operator= (const Graph& graph)
     {
         _kmerSize = graph._kmerSize;
 
-        _productMode = graph._productMode;
-        setProduct (graph._product);
+        _storageMode = graph._storageMode;
+        setStorage (graph._storage);
 
         if (graph._variant)  {  *((GraphDataVariant*)_variant) = *((GraphDataVariant*)graph._variant);  }
     }
@@ -626,7 +626,7 @@ Graph& Graph::operator= (const Graph& graph)
 Graph::~Graph ()
 {
     /** We release resources. */
-    setProduct (0);
+    setStorage (0);
     if (_variant)  {  delete (GraphDataVariant*)_variant;  }
 }
 

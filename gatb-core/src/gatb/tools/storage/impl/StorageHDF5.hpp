@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file ProductHDF5.hpp
+/** \file StorageHDF5.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Collection interface
@@ -13,8 +13,8 @@
  *  This file holds interfaces related to the Collection interface
  */
 
-#ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HDF5_HPP_
-#define _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HDF5_HPP_
+#ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_HDF5_HPP_
+#define _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_HDF5_HPP_
 
 /********************************************************************************/
 
@@ -31,24 +31,24 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
-class ProductHDF5Factory
+class StorageHDF5Factory
 {
 public:
 
     /** */
-    static Product* createProduct (const std::string& name, bool deleteIfExist, bool autoRemove)
+    static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
     {
-        return new ProductHDF5 (PRODUCT_HDF5, name, deleteIfExist, autoRemove);
+        return new StorageHDF5 (STORAGE_HDF5, name, deleteIfExist, autoRemove);
     }
 
     /** */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
-        ProductHDF5* product = dynamic_cast<ProductHDF5*> (ICell::getRoot (parent));
-        assert (product != 0);
+        StorageHDF5* storage = dynamic_cast<StorageHDF5*> (ICell::getRoot (parent));
+        assert (storage != 0);
 
         /** We create the instance. */
-        Group* result = new Group (product->getFactory(), parent, name);
+        Group* result = new Group (storage->getFactory(), parent, name);
 
         /** We may need to create the HDF5 group. Empty name means root group, which is constructed by default. */
         if (name.empty() == false)
@@ -56,11 +56,11 @@ public:
             std::string actualName = result->getFullId('/');
 
             /** We create the HDF5 group if needed. */
-            htri_t doesExist = H5Lexists (product->getId(), actualName.c_str(), H5P_DEFAULT);
+            htri_t doesExist = H5Lexists (storage->getId(), actualName.c_str(), H5P_DEFAULT);
 
             if (doesExist <= 0)
             {
-                hid_t group = H5Gcreate (product->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                hid_t group = H5Gcreate (storage->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                 H5Gclose (group);
             }
         }
@@ -73,20 +73,20 @@ public:
     template<typename Type>
     static Partition<Type>* createPartition (ICell* parent, const std::string& name, size_t nb)
     {
-        ProductHDF5* product = dynamic_cast<ProductHDF5*> (ICell::getRoot (parent));
-        assert (product != 0);
+        StorageHDF5* storage = dynamic_cast<StorageHDF5*> (ICell::getRoot (parent));
+        assert (storage != 0);
 
         std::string actualName = parent->getFullId('/') + "/" + name;
 
         /** We create the HDF5 group if needed. */
-        htri_t doesExist = H5Lexists (product->getId(), actualName.c_str(), H5P_DEFAULT);
+        htri_t doesExist = H5Lexists (storage->getId(), actualName.c_str(), H5P_DEFAULT);
         if (doesExist <= 0)
         {
-            hid_t group = H5Gcreate (product->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            hid_t group = H5Gcreate (storage->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
             H5Gclose (group);
         }
 
-        return new Partition<Type> (product->getFactory(), parent, name, nb);
+        return new Partition<Type> (storage->getFactory(), parent, name, nb);
     }
 
     /** */
@@ -97,12 +97,12 @@ public:
         synchro = GlobalSynchro::singleton();
 #endif
 
-        ProductHDF5* product = dynamic_cast<ProductHDF5*> (ICell::getRoot (parent));
-        assert (product != 0);
+        StorageHDF5* storage = dynamic_cast<StorageHDF5*> (ICell::getRoot (parent));
+        assert (storage != 0);
 
         std::string actualName = parent->getFullId('/') + "/" + name;
 
-        return new CollectionNode<Type> (product->getFactory(), parent, name, new CollectionHDF5<Type>(product->getId(), actualName, synchro));
+        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionHDF5<Type>(storage->getId(), actualName, synchro));
     }
 
 private:
@@ -123,11 +123,11 @@ private:
     };
 
     /** */
-    class ProductHDF5 : public Product
+    class StorageHDF5 : public Storage
     {
     public:
-        ProductHDF5 (ProductMode_e mode, const std::string& name, bool deleteIfExist, bool autoRemove)
-            : Product (mode, name, autoRemove), _fileId(0), _name(name)
+        StorageHDF5 (StorageMode_e mode, const std::string& name, bool deleteIfExist, bool autoRemove)
+            : Storage (mode, name, autoRemove), _fileId(0), _name(name)
         {
             if (deleteIfExist)  {  system::impl::System::file().remove (getActualName());  }
 
@@ -149,7 +149,7 @@ private:
             }
         }
 
-        virtual ~ProductHDF5 ()
+        virtual ~StorageHDF5 ()
         {
             if (_autoRemove)  { remove(); }
             H5Fclose(_fileId);
@@ -176,4 +176,4 @@ private:
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HDF5_HPP_ */
+#endif /* _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_HDF5_HPP_ */

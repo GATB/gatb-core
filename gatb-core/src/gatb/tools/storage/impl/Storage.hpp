@@ -5,7 +5,7 @@
  *   Copyright (c) INRIA, CeCILL license, 2013                               *
  *****************************************************************************/
 
-/** \file Product.hpp
+/** \file Storage.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Collection interface
@@ -42,7 +42,7 @@ namespace impl      {
 /********************************************************************************/
 
 /** */
-enum ProductMode_e { PRODUCT_FILE, PRODUCT_HDF5 };
+enum StorageMode_e { STORAGE_FILE, STORAGE_HDF5 };
 
 /********************************************************************************/
 
@@ -51,7 +51,7 @@ class Group;
 template <typename Type>  class Partition;
 template <typename Type>  class CollectionNode;
 
-class ProductFactory;
+class StorageFactory;
 
 /********************************************************************************
      #####   #######  #        #        #######   #####   #######
@@ -85,7 +85,7 @@ public:
      * \param[in] id  : identifier of the collection to be created
      * \param[in] ref : referred collection.
      */
-    CollectionNode (ProductFactory* factory, ICell* parent, const std::string& id, collections::Collection<Item>* ref);
+    CollectionNode (StorageFactory* factory, ICell* parent, const std::string& id, collections::Collection<Item>* ref);
 
     /** Destructor. */
     virtual ~CollectionNode();
@@ -104,7 +104,7 @@ public:
 
 private:
 
-    ProductFactory* _factory;
+    StorageFactory* _factory;
 
     collections::Collection<Item>* _ref;
     void setRef (collections::Collection<Item>* ref)  { SP_SETATTR(ref); }
@@ -126,7 +126,7 @@ class Group : public Cell
 public:
 
     /** Constructor. */
-    Group (ProductFactory* factory, ICell* parent, const std::string& name);
+    Group (StorageFactory* factory, ICell* parent, const std::string& name);
 
     /** Destructor. */
     ~Group();
@@ -145,7 +145,7 @@ public:
 
 protected:
 
-    ProductFactory* _factory;
+    StorageFactory* _factory;
     std::vector<ICell*> _collections;
     std::vector<ICell*> _partitions;
     std::vector<Group*> _groups;
@@ -178,7 +178,7 @@ public:
      * \param[in] id : the identifier of the instance to be created
      * \param[in] nbCollections : number of collections for this partition
      */
-    Partition (ProductFactory* factory, ICell* parent, const std::string& id, size_t nbCollections);
+    Partition (StorageFactory* factory, ICell* parent, const std::string& id, size_t nbCollections);
 
     /** Destructor. */
     ~Partition ();
@@ -201,7 +201,7 @@ public:
 
 protected:
 
-    ProductFactory* _factory;
+    StorageFactory* _factory;
     std::vector <CollectionNode<Type>* > _typedCollections;
     system::ISynchronizer* _synchro;
 };
@@ -267,13 +267,13 @@ private:
         #        #     #  #######  ######    #####    #####      #
 ********************************************************************************/
 
-/** \brief Product class
+/** \brief Storage class
  *
- * The Product class is the entry point for managing collections and groups.
+ * The Storage class is the entry point for managing collections and groups.
  *
  * It delegates all the actions to a root group (retrievable through an operator overload).
  *
- * Such a product is supposed to gather several information sets in a single environment,
+ * Such a storage is supposed to gather several information sets in a single environment,
  * with possible hierarchical composition.
  *
  * It is a template class: one should provide the actual type of the collections containers.
@@ -282,32 +282,32 @@ private:
  *   - HDF5 files
  *   - memory
  */
-class Product : public Cell
+class Storage : public Cell
 {
 public:
 
     /** Constructor.
-     * \param[in] name : name of the product.
-     * \param[in] autoRemove : tells whether the product has to be physically deleted when this object is deleted. */
-    Product (ProductMode_e mode, const std::string& name, bool autoRemove=false);
+     * \param[in] name : name of the storage.
+     * \param[in] autoRemove : tells whether the storage has to be physically deleted when this object is deleted. */
+    Storage (StorageMode_e mode, const std::string& name, bool autoRemove=false);
 
     /** Destructor */
-    ~Product ();
+    ~Storage ();
 
     /** Facility for retrieving the root group.
      * \return the root group. */
     Group& operator() (const std::string name="");
 
-    /** Remove physically the product. */
+    /** Remove physically the storage. */
     virtual void remove ();
 
     /** */
-    ProductFactory* getFactory() const { return _factory; }
+    StorageFactory* getFactory() const { return _factory; }
 
 protected:
 
-    ProductFactory* _factory;
-    void setFactory (ProductFactory* factory);
+    StorageFactory* _factory;
+    void setFactory (StorageFactory* factory);
 
     /** Root group. */
     Group* _root;
@@ -327,15 +327,15 @@ protected:
         #        #     #   #####      #     #######  #     #     #
 ********************************************************************************/
 
-class ProductFactory : public system::SmartPointer
+class StorageFactory : public system::SmartPointer
 {
 public:
 
     /** Constructor */
-    ProductFactory (ProductMode_e mode) : _mode(mode)  {}
+    StorageFactory (StorageMode_e mode) : _mode(mode)  {}
 
     /** */
-    Product* createProduct (const std::string& name, bool deleteIfExist, bool autoRemove);
+    Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove);
 
     /** */
     Group* createGroup (ICell* parent, const std::string& name);
@@ -350,7 +350,7 @@ public:
 
 private:
 
-    ProductMode_e _mode;
+    StorageMode_e _mode;
 };
 
 /********************************************************************************/
@@ -359,7 +359,7 @@ private:
 
 /********************************************************************************/
 /** WE INCLUDE THE 'IMPLEMENTATION' of the templates. */
-#include <gatb/tools/storage/impl/Product.tpp>
+#include <gatb/tools/storage/impl/Storage.tpp>
 /********************************************************************************/
 
 #endif /* _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HPP_ */

@@ -26,7 +26,7 @@
 
 #include <gatb/tools/math/LargeInt.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 using namespace std;
 
@@ -84,11 +84,11 @@ public:
             "ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAG"
         } ;
 
-        /** We create a product instance. */
-        Product product (PRODUCT_FILE, "test");
+        /** We create a storage instance. */
+        Storage storage (STORAGE_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (&product, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        SortingCountAlgorithm<> sortingCount (&storage, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -96,7 +96,7 @@ public:
         CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (product, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
+        DebloomAlgorithm<> debloom (storage, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::Synchronized);
 
         /** We launch the debloom. */
         debloom.execute();

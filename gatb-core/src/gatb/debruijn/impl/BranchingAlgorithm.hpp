@@ -18,7 +18,7 @@
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/debruijn/impl/Graph.hpp>
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 /********************************************************************************/
 namespace gatb      {

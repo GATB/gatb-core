@@ -26,7 +26,7 @@
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <vector>
 #include <set>
@@ -768,15 +768,15 @@ private:
     Graph (const std::string& uri);
 
     /** Kind of storage for the graph. */
-    tools::storage::impl::ProductMode_e _productMode;
+    tools::storage::impl::StorageMode_e _storageMode;
 
     /** Default storage kind. */
-    static const tools::storage::impl::ProductMode_e PRODUCT_MODE_DEFAULT = tools::storage::impl::PRODUCT_HDF5;
+    static const tools::storage::impl::StorageMode_e PRODUCT_MODE_DEFAULT = tools::storage::impl::STORAGE_HDF5;
 
-    /** Product. */
-    tools::storage::impl::Product* _product;
-    void setProduct (tools::storage::impl::Product* product)  { SP_SETATTR(product); }
-    tools::storage::impl::Group& getProduct(const std::string name="")  { return (*_product) (name); }
+    /** Storage. */
+    tools::storage::impl::Storage* _storage;
+    void setStorage (tools::storage::impl::Storage* storage)  { SP_SETATTR(storage); }
+    tools::storage::impl::Group& getStorage(const std::string name="")  { return (*_storage) (name); }
 
     /** */
     std::string _name;

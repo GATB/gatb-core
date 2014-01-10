@@ -30,7 +30,7 @@
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>

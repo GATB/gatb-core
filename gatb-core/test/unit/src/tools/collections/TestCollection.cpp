@@ -16,7 +16,7 @@
 
 #include <gatb/system/impl/System.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/collections/impl/CollectionCache.hpp>
 
 #include <gatb/tools/misc/api/Range.hpp>

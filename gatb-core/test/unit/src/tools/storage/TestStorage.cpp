@@ -16,7 +16,7 @@
 
 #include <gatb/system/impl/System.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/collections/impl/CollectionCache.hpp>
 
 #include <gatb/tools/misc/api/Range.hpp>
@@ -77,11 +77,11 @@ public:
     /********************************************************************************/
     void storage_check1 ()
     {
-        /** We create a product. */
-        Product product (PRODUCT_FILE, "dsk");
+        /** We create a storage. */
+        Storage storage (STORAGE_FILE, "dsk");
 
-        /** We get a collection from the product. */
-        Collection<NativeInt64>& solidKmers = product().getCollection<NativeInt64> ("solid");
+        /** We get a collection from the storage. */
+        Collection<NativeInt64>& solidKmers = storage().getCollection<NativeInt64> ("solid");
 
         NativeInt64 table[] = { 12354684684, 6876436549, 87654351, 6843516877, 68435434874};
         vector<NativeInt64> items (table, table + ARRAY_SIZE(table));
@@ -95,8 +95,8 @@ public:
         /** We check we inserted the correct number of items. */
         CPPUNIT_ASSERT (solidKmers.getNbItems() == ARRAY_SIZE(table));
 
-        /** We delete the product. */
-        product.remove ();
+        /** We delete the storage. */
+        storage.remove ();
     }
 
     /********************************************************************************/
@@ -104,11 +104,11 @@ public:
     {
         size_t nbParts = 10;
 
-        /** We create a product. */
-        Product product (PRODUCT_FILE, "graph");
+        /** We create a storage. */
+        Storage storage (STORAGE_FILE, "graph");
 
         /** We create a partition. */
-        Partition<NativeInt64>& partition = product().getPartition<NativeInt64> ("parts", nbParts);
+        Partition<NativeInt64>& partition = storage().getPartition<NativeInt64> ("parts", nbParts);
 
         CPPUNIT_ASSERT (partition.size() == nbParts);
 
@@ -149,8 +149,8 @@ public:
             CPPUNIT_ASSERT (nbIter == 2);
         }
 
-        /** We delete the product. */
-        product.remove ();
+        /** We delete the storage. */
+        storage.remove ();
     }
 
     /********************************************************************************/
@@ -159,11 +159,11 @@ public:
         size_t nbParts = 10;
         size_t nbItems = nbParts * 1000;
 
-        /** We create a product. */
-        Product product (PRODUCT_FILE, "graph");
+        /** We create a storage. */
+        Storage storage (STORAGE_FILE, "graph");
 
         /** We create a partition. */
-        Partition<NativeInt64>& partition = product().getPartition<NativeInt64> ("parts", nbParts);
+        Partition<NativeInt64>& partition = storage().getPartition<NativeInt64> ("parts", nbParts);
 
         /** We add items in partitions. */
         for (size_t i=0; i<nbItems; i++)  {  partition[i%nbParts].insert (i);  }
@@ -184,8 +184,8 @@ public:
             CPPUNIT_ASSERT (nbIter == nbItems / nbParts);
         }
 
-        /** We delete the product. */
-        product.remove ();
+        /** We delete the storage. */
+        storage.remove ();
     }
 
     /********************************************************************************/
@@ -216,11 +216,11 @@ public:
         size_t nbItems  = nbParts * 1000;
         size_t nbRepeat = 500;
 
-        /** We create a product. */
-        Product product (PRODUCT_FILE, "graph");
+        /** We create a storage. */
+        Storage storage (STORAGE_FILE, "graph");
 
         /** We create a partition. */
-        Partition<NativeInt64>& partition = product().getPartition<NativeInt64> ("parts", nbParts);
+        Partition<NativeInt64>& partition = storage().getPartition<NativeInt64> ("parts", nbParts);
 
         /** We build a Range. */
         Range<size_t>::Iterator it (0, nbItems-1);
@@ -247,20 +247,20 @@ public:
         /** We check the total number of items. */
         CPPUNIT_ASSERT (nbIterTotal == nbRepeat * nbItems);
 
-        /** We delete the product. */
-        product.remove ();
+        /** We delete the storage. */
+        storage.remove ();
     }
 
     /********************************************************************************/
     template<typename T>
     void collection_HDF5_check_collection_aux (T* values, size_t len)
     {
-        /** We create a product. */
-        Product* product = ProductFactory(PRODUCT_HDF5).createProduct ("aProduct", true, false);
-        LOCAL (product);
+        /** We create a storage. */
+        Storage* storage = StorageFactory(STORAGE_HDF5).createStorage ("aStorage", true, false);
+        LOCAL (storage);
 
-        /** We get a collection from the product. */
-        Collection<T>& collection = (*product)().getCollection<T> ("foo");
+        /** We get a collection from the storage. */
+        Collection<T>& collection = (*storage)().getCollection<T> ("foo");
 
         /** We insert the values into the bag. */
         collection.insert (values, len);
@@ -277,8 +277,8 @@ public:
 
         CPPUNIT_ASSERT (idx == len);
 
-        /** We remove physically the product. */
-        product->remove ();
+        /** We remove physically the storage. */
+        storage->remove ();
     }
 
     /********************************************************************************/
@@ -295,12 +295,12 @@ public:
     template<typename T>
     void collection_HDF5_check_partition_aux (T* values, size_t len, size_t nbParts)
     {
-        /** We create a product. */
-        Product* product = ProductFactory(PRODUCT_HDF5).createProduct ("aProduct", true, false);
-        LOCAL (product);
+        /** We create a storage. */
+        Storage* storage = StorageFactory(STORAGE_HDF5).createStorage ("aStorage", true, false);
+        LOCAL (storage);
 
         /** We create a partition. */
-        Partition<T>& partition = (*product)().getPartition <T> ("foo", nbParts);
+        Partition<T>& partition = (*storage)().getPartition <T> ("foo", nbParts);
 
         /** We cache the partition. */
         PartitionCache<T> cache (partition, 1<<10, 0);
@@ -325,8 +325,8 @@ public:
             CPPUNIT_ASSERT (idx == len/4);
         }
 
-        /** We remove physically the product. */
-        product->remove ();
+        /** We remove physically the storage. */
+        storage->remove ();
     }
 
     /********************************************************************************/

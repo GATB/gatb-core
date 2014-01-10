@@ -28,7 +28,7 @@
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/math/Integer.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <boost/variant.hpp>
 
@@ -92,11 +92,11 @@ public:
     /********************************************************************************/
     void DSK_check1_aux (const char* sequences[], size_t nbSequences, size_t kmerSize, size_t nks, size_t checkNbSolids)
     {
-        /** We create a product instance. */
-        Product product (PRODUCT_FILE, "test");
+        /** We create a storage instance. */
+        Storage storage (STORAGE_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> dsk (&product, new BankStrings (sequences, nbSequences), kmerSize, nks);
+        SortingCountAlgorithm<> dsk (&storage, new BankStrings (sequences, nbSequences), kmerSize, nks);
 
         /** We launch DSK. */
         dsk.execute();
@@ -214,11 +214,11 @@ public:
 
         const char* s1 = "GATCGATTCTTAGCACGTCCCCCCCTACACCCAAT" ;
 
-        /** We create a product instance. */
-        Product product (PRODUCT_FILE, "test");
+        /** We create a storage instance. */
+        Storage storage (STORAGE_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> sortingCount (&product, new BankStrings (s1, 0), kmerSize, nks);
+        SortingCountAlgorithm<span> sortingCount (&storage, new BankStrings (s1, 0), kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -301,11 +301,11 @@ public:
 
         TimeInfo ti;
 
-        /** We create a product instance. */
-        Product product (PRODUCT_FILE, "test");
+        /** We create a storage instance. */
+        Storage storage (STORAGE_FILE, "test");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> sortingCount (&product, bank, kmerSize, nks);
+        SortingCountAlgorithm<span> sortingCount (&storage, bank, kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();

@@ -35,7 +35,7 @@
 #include <gatb/bank/impl/BankSplitter.hpp>
 #include <gatb/bank/impl/BankRandom.hpp>
 
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <iostream>
 #include <memory>
@@ -261,7 +261,7 @@ public:
     }
 
     /********************************************************************************/
-    void debruijn_test2_aux (ProductMode_e mode, size_t kmerSize, size_t nks, const char* seq)
+    void debruijn_test2_aux (StorageMode_e mode, size_t kmerSize, size_t nks, const char* seq)
     {
         size_t seqLen   = strlen (seq);
 
@@ -270,12 +270,12 @@ public:
         /** We create a bank with one sequence. */
         IBank* bank = new BankStrings (seq, 0);
 
-        /** We create a product instance. */
-        Product* product  = ProductFactory(mode).createProduct ("test", true, true);
-        LOCAL (product);
+        /** We create a storage instance. */
+        Storage* storage  = StorageFactory(mode).createStorage ("test", true, true);
+        LOCAL (storage);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (product, bank, kmerSize, nks);
+        SortingCountAlgorithm<> sortingCount (storage, bank, kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -284,7 +284,7 @@ public:
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidKmers()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*product, sortingCount.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<> debloom (*storage, sortingCount.getSolidKmers(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();
@@ -312,7 +312,7 @@ public:
         {
             for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
             {
-                debruijn_test2_aux (PRODUCT_HDF5, kmerSizes[j], nks, sequences[i]);
+                debruijn_test2_aux (STORAGE_HDF5, kmerSizes[j], nks, sequences[i]);
             }
         }
     }

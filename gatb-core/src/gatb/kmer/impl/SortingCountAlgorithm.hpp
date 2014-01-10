@@ -22,7 +22,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
-#include <gatb/tools/storage/impl/Product.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 #include <string>
 
 /********************************************************************************/
@@ -61,7 +61,7 @@ public:
 
     /** Constructor.*/
     SortingCountAlgorithm (
-        tools::storage::impl::Product* product,
+        tools::storage::impl::Storage* storage,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
         size_t              nks,
@@ -109,7 +109,7 @@ private:
     std::vector <size_t> getNbCoresList ();
 
     /** */
-    tools::storage::impl::Product* _product;
+    tools::storage::impl::Storage* _storage;
 
     /** */
     gatb::core::bank::IBank* _bank;
@@ -156,10 +156,10 @@ private:
     void setHistogram (gatb::core::tools::misc::IHistogram* histogram)  { SP_SETATTR(histogram); }
 
     /** Partitions management. */
-    tools::storage::impl::Product* _partitionsProduct;
-    void setPartitionsProduct (tools::storage::impl::Product* partitionsProduct)
+    tools::storage::impl::Storage* _partitionsStorage;
+    void setPartitionsStorage (tools::storage::impl::Storage* partitionsStorage)
     {
-        SP_SETATTR(partitionsProduct);
+        SP_SETATTR(partitionsStorage);
     }
 
     tools::storage::impl::Partition<Type>* _partitions;
