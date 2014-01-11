@@ -71,7 +71,7 @@ int main (int argc, char* argv[])
         LOCAL (readsBank);
 
         /** We save the random bank. */
-        SaveAsFasta (randomBank, options->getStr(OUTPUT_PREFIX) + "_random.fa");
+        SaveAsFasta (randomBank, options->getStr(OUTPUT_PREFIX) + "_sequence.fa");
 
         /** We save the reads bank. */
         SaveAsFasta (readsBank, options->getStr(OUTPUT_PREFIX) + "_reads.fa");
