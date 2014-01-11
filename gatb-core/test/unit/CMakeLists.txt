@@ -2,6 +2,9 @@
 #  CPPUNIT 
 ################################################################################
 
+# We add the compilation options for the library
+add_definitions (${gatb-core-flags})
+
 file (GLOB_RECURSE  GatbCoreTestFiles  src/*)
 
 include_directories (${gatb-core-includes}  ${gatb-core_SOURCE_DIR}/test/unit/src  ${CPPUNIT_INCLUDE_DIR})

@@ -30,24 +30,21 @@ DefineInteger (k)
 # GENERAL DEFINITIONS
 ################################################################################
 if (debug)
-    #set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS} -g -p -pg")
-    set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS} -g -p")
+    #set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p -pg")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p")
     message("-- COMPILATION IN DEBUG MODE")
 else()
-    set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS} -O3")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -O3")
 endif()
-
-set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -DINTEGER_KIND=${INTEGER_KIND}  -DKMER_PRECISION=${KMER_PRECISION}")
 
 if (INT128_FOUND)
-    set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -DINT128_FOUND")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DINT128_FOUND")
 endif()
 
-set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -std=c++0x")
+# We use lambda expressions, so we need to use the correct compiler option
+set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=c++11")
 
-message("-- Options: ${COMPILE_DEFINITIONS}")
-
-add_definitions (${COMPILE_DEFINITIONS})
+message("-- Options: ${LIBRARY_COMPILE_DEFINITIONS}")
 
 ################################################################################
 #  DIRECTORIES MANAGEMENT 
@@ -61,7 +58,7 @@ set (EXECUTABLE_OUTPUT_PATH    ${PROJECT_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
 ################################################################################
 
 # We define the compilation flags used for compiling binary based on gatb core
-set (gatb-core-flags ${COMPILE_DEFINITIONS})
+set (gatb-core-flags ${LIBRARY_COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
 set (gatb-core-includes ${PROJECT_BINARY_DIR}/include)

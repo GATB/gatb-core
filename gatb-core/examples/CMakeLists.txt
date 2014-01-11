@@ -2,6 +2,9 @@
 #  EXAMPLES 
 ################################################################################
 
+# We add the compilation options for the library
+add_definitions (${gatb-core-flags})
+
 include_directories (${gatb-core-includes})
 
 file (GLOB_RECURSE  PROGRAMS_FILES  *.cpp)
