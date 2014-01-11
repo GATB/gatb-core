@@ -60,6 +60,6 @@ MACRO(DefineInteger K)
         set (KMER_PRECISION "1")
     endif()
 
-    message("-- Parameter k=${k} => INTEGER_KIND=${INTEGER_KIND} and KMER_PRECISION=${KMER_PRECISION}")
+    #message("-- Parameter k=${k} => INTEGER_KIND=${INTEGER_KIND} and KMER_PRECISION=${KMER_PRECISION}")
 
 endmacro()
