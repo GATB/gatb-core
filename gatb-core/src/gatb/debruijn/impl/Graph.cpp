@@ -792,18 +792,18 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
         const Type& sourceVal = source.kmer.get<Type>();
 
         /** Shortcuts. */
-        size_t   span = data._model->getKmerSize();
-        const Type& mask = data._model->getMask();
+        size_t      kmerSize = data._model->getKmerSize();
+        const Type& mask     = data._model->getMask();
 
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
-        Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, span) );
+        Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, kmerSize) );
 
         if (direction & DIR_OUTCOMING)
         {
             for (u_int64_t nt=0; nt<4; nt++)
             {
                 Type forward = ( (graine << 2 )  + nt) & mask;
-                Type reverse = revcomp (forward, span);
+                Type reverse = revcomp (forward, kmerSize);
 
                 if (forward < reverse)
                 {
@@ -827,13 +827,13 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
             /** IMPORTANT !!! Since we have hugely shift the nt value, we make sure to use a long enough integer. */
             for (u_int64_t nt=0; nt<4; nt++)
             {
-                Type forward = ((graine >> 2 )  + ( Type(nt) << ((span-1)*2)) ) & mask; // previous kmer
-                Type reverse = revcomp (forward, span);
+                Type forward = ((graine >> 2 )  + ( Type(nt) << ((kmerSize-1)*2)) ) & mask; // previous kmer
+                Type reverse = revcomp (forward, kmerSize);
 
                 Nucleotide NT;
 
                 if (source.strand == STRAND_FORWARD)  {  NT = (Nucleotide) (source.kmer[0]);  }
-                else                                  {  NT = kmer::reverse ((Nucleotide) (source.kmer[(span-1)]));  }
+                else                                  {  NT = kmer::reverse ((Nucleotide) (source.kmer[(kmerSize-1)]));  }
 
                 if (forward < reverse)
                 {
@@ -1043,16 +1043,16 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
         const Type& sourceVal = source.kmer.get<Type>();
 
         /** Shortcuts. */
-        size_t      span = data._model->getKmerSize();
-        const Type& mask = data._model->getMask();
+        size_t      kmerSize = data._model->getKmerSize();
+        const Type& mask     = data._model->getMask();
 
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
-        Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, span) );
+        Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, kmerSize) );
 
         if (direction & DIR_OUTCOMING)
         {
             Type forward = ( (graine << 2 )  + nt) & mask;
-            Type reverse = revcomp (forward, span);
+            Type reverse = revcomp (forward, kmerSize);
 
             if (forward < reverse)
             {
@@ -1082,13 +1082,13 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
 
         if (direction & DIR_INCOMING)
         {
-            Type forward = ((graine >> 2 )  + ( Type(nt) << ((span-1)*2)) ) & mask; // previous kmer
-            Type reverse = revcomp (forward, span);
+            Type forward = ((graine >> 2 )  + ( Type(nt) << ((kmerSize-1)*2)) ) & mask; // previous kmer
+            Type reverse = revcomp (forward, kmerSize);
 
             Nucleotide NT;
 
             if (source.strand == STRAND_FORWARD)  {  NT = (Nucleotide) (source.kmer[0]);  }
-            else                                  {  NT = kmer::reverse ((Nucleotide) (source.kmer[(span-1)]));  }
+            else                                  {  NT = kmer::reverse ((Nucleotide) (source.kmer[(kmerSize-1)]));  }
 
             if (forward < reverse)
             {
