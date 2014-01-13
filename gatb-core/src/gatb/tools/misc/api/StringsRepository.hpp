@@ -82,6 +82,7 @@ public:
     const char* uri_output_dir ()  { return "-out-dir";        }
     const char* verbose        ()  { return "-verbose";        }
     const char* help           ()  { return "-help";           }
+    const char* output_format  ()  { return "-outfmt";         }
 };
 
 /********************************************************************************/
@@ -105,6 +106,7 @@ public:
 #define STR_URI_OUTPUT_DIR      gatb::core::tools::misc::StringRepository::singleton().uri_output_dir ()
 #define STR_VERBOSE             gatb::core::tools::misc::StringRepository::singleton().verbose ()
 #define STR_HELP                gatb::core::tools::misc::StringRepository::singleton().help ()
+#define STR_OUTPUT_FORMAT       gatb::core::tools::misc::StringRepository::singleton().output_format ()
 
 /********************************************************************************/
 
