@@ -41,6 +41,9 @@ struct Sequence
     /** \return description of the sequence */
     virtual const std::string& getComment ()  const  { return _comment; }
 
+    /** \return quality of the sequence */
+    virtual const std::string& getQuality ()  const  { return _quality; }
+    
     /** \return the data as a Data structure. */
     virtual tools::misc::Data& getData () { return _data; }
 
@@ -66,6 +69,7 @@ struct Sequence
 
     std::string _comment;
     void setComment (const std::string& cmt)  { _comment = cmt; }
+    std::string _quality;
 
 private:
     tools::misc::Data _data;
