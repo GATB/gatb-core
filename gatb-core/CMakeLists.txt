@@ -1,6 +1,8 @@
 project(gatb-core)
 
-cmake_minimum_required (VERSION 2.6)
+# We set the required version
+# note: string(TIMESTAMP...) needs a not too old version
+ cmake_minimum_required (VERSION 2.8.11.2)
 
 ################################################################################
 # The version number.
