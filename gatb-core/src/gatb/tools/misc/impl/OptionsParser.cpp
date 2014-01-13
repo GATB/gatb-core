@@ -398,7 +398,7 @@ void OptionsParser::displayHelp (FILE* fp)
             {
                 fprintf (fp, "    %-*s (%d arg) :    %s  [default '%s']\n",  (int)maxLen,
                     (*it)->getLabel().c_str(),
-                    (*it)->getNbArgs(),
+                    (int)(*it)->getNbArgs(),
                     (*it)->getHelp().c_str(),
                     (*it)->getParam().c_str()
                 );
@@ -407,7 +407,7 @@ void OptionsParser::displayHelp (FILE* fp)
             {
                 fprintf (fp, "    %-*s (%d arg) :    %s\n",  (int)maxLen,
                     (*it)->getLabel().c_str(),
-                    (*it)->getNbArgs(),
+                    (int)(*it)->getNbArgs(),
                     (*it)->getHelp().c_str()
                 );
             }
