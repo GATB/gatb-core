@@ -7,6 +7,10 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 set (gatb-core_VERSION_MAJOR 1)
 set (gatb-core_VERSION_MINOR 0)
+set (gatb-core_VERSION_PATCH 0)
+set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${gatb-core_VERSION_PATCH})
+
+string (TIMESTAMP gatb-core-date "%Y-%m-%d %H:%M:%S")
 
 ################################################################################
 # Boost
@@ -41,11 +45,17 @@ if (INT128_FOUND)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DINT128_FOUND")
 endif()
 
-# We use lambda expressions, so we need to use the correct compiler option
-set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=c++11")
+# We determine what kind of c++ standard we should use according to the compiler
+# This should work for gcc and clang
+set (CXX_STD_VERSION "c++11")
 
-# We need to add boost include dependency (not working otherwise with clang)
-include_directories(${Boost_INCLUDE_DIRS})
+# In case we use an "old" version of gcc, we can still do something with the c++0x standard
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"  AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.7")
+    set (CXX_STD_VERSION "c++0x")
+endif()
+
+# We use lambda expressions, so we need to use the correct compiler option
+set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
 
 message("-- Options: ${LIBRARY_COMPILE_DEFINITIONS}")
 
@@ -64,16 +74,16 @@ set (EXECUTABLE_OUTPUT_PATH    ${PROJECT_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
 set (gatb-core-flags ${LIBRARY_COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
-set (gatb-core-includes ${PROJECT_BINARY_DIR}/include)
+# Note that we need to add boost include dependency (not working otherwise with clang)
+set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${Boost_INCLUDE_DIRS})
 
 # We define the libraries used for linking binary based on gatb core
-set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5  ${OpenMP_C_FLAGS} )
+set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5)
 
 # NOTE... we have to duplicate the variables for the other scopes (in particular for sub directories)
 set (gatb-core-flags     ${gatb-core-flags}     PARENT_SCOPE)
 set (gatb-core-includes  ${gatb-core-includes}  PARENT_SCOPE)
 set (gatb-core-libraries ${gatb-core-libraries} PARENT_SCOPE)
-
 
 ################################################################################
 #  LIBRARY GENERATION 
@@ -126,5 +136,7 @@ SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY  "gatb-core project")
 SET (CPACK_PACKAGE_VENDOR               "Genscale team (INRIA)")
 SET (CPACK_PACKAGE_VERSION_MAJOR        "${gatb-core_VERSION_MAJOR}")
 SET (CPACK_PACKAGE_VERSION_MINOR        "${gatb-core_VERSION_MINOR}")
-include (CPack)
+SET (CPACK_PACKAGE_VERSION_PATCH        "${gatb-core_VERSION_PATCH}")
+SET (CPACK_PACKAGE_VERSION              "${gatb-core-version}")  
 
+include (CPack)
