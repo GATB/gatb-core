@@ -1411,7 +1411,7 @@ std::string Graph::toString (const Node& node) const
 *********************************************************************/
 struct debugString_node_visitor : public boost::static_visitor<std::string>    {
 
-    const Node& node;  kmer::Strand& strand; int& mode;
+    const Node& node;  kmer::Strand strand; int mode;
     debugString_node_visitor (const Node& aNode, kmer::Strand aStrand, int aMode) : node(aNode), strand(aStrand), mode(aMode) {}
 
     template<size_t span>  std::string operator() (const GraphData<span>& data) const
