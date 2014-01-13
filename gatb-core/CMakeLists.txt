@@ -44,6 +44,9 @@ endif()
 # We use lambda expressions, so we need to use the correct compiler option
 set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=c++11")
 
+# We need to add boost include dependency (not working otherwise with clang)
+include_directories(${Boost_INCLUDE_DIRS})
+
 message("-- Options: ${LIBRARY_COMPILE_DEFINITIONS}")
 
 ################################################################################
