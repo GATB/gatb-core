@@ -64,7 +64,7 @@ struct variable_string_t
 /********************************************************************************/
 struct buffered_strings_t
 {
-     buffered_strings_t () : read(new variable_string_t), dummy(new variable_string_t), header(new variable_string_t)  {}
+     buffered_strings_t () : read(new variable_string_t), dummy(new variable_string_t), header(new variable_string_t), quality(new variable_string_t)   {}
     ~buffered_strings_t ()
     {
         delete read;
@@ -72,7 +72,7 @@ struct buffered_strings_t
         delete header;
     }
 
-    variable_string_t *read, *dummy, *header;
+    variable_string_t *read, *dummy, *header, *quality;
 };
 
 /*********************************************************************
@@ -113,9 +113,10 @@ BankFasta::BankFasta (int argc, char* argv[])
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankFasta::BankFasta (const std::string& filename)
+BankFasta::BankFasta (const std::string& filename, bool output_fastq)
     : filesizes(0), nb_files(0), _insertHandle(0)
 {
+    _output_fastq = output_fastq;
     _filenames.push_back (filename);
     init ();
 }
@@ -212,6 +213,16 @@ void BankFasta::insert (const Sequence& item)
 
     if (_insertHandle != 0)
     {
+        if(_output_fastq)
+        {
+            fprintf (_insertHandle, "@%s\n", item.getComment().c_str());
+            fprintf (_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
+            fprintf (_insertHandle, "+\n");
+            fprintf (_insertHandle, "%s\n", item.getQuality().c_str());
+
+        }
+        else
+        {
         /** We add the sequence into the bag. */
         fprintf (_insertHandle, ">%s\n", item.getComment().c_str());
 
@@ -236,6 +247,7 @@ void BankFasta::insert (const Sequence& item)
             fprintf (_insertHandle, "%s\n", line);
         }
 #endif
+        }
     }
 }
 
@@ -315,7 +327,7 @@ void BankFasta::Iterator::next()
     }
     else
     {
-        _isDone = get_next_seq (_item->getData(), _item->_comment, _commentsMode) == false;
+        _isDone = get_next_seq (_item->getData(), _item->_comment,_item->_quality, _commentsMode) == false;
     }
     _item->setIndex (_index++);
     DEBUG (("Bank::Iterator::next  _isDone=%d\n", _isDone));
@@ -422,9 +434,11 @@ inline signed int buffered_gets (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, string& comment, int file_id, CommentMode_e mode)
+bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, string& comment, string& quality, int file_id, CommentMode_e mode)
 {
+    
     buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
+   // printf("%i -\n",bs->header->length);
 
     signed char c;
     buffered_file_t *bf = (buffered_file_t *) buffered_file[file_id];
@@ -435,7 +449,7 @@ bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, string& co
         if (c == -1) return false; // eof
         bf->last_char = c;
     }
-    bs->read->length = bs->dummy->length = 0;
+    bs->quality->length = bs->read->length = bs->dummy->length = 0;
 
     if (buffered_gets (bf, bs->header, (char *) &c, false, false) < 0) //ici
         return false; // eof
@@ -479,16 +493,19 @@ bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, string& co
     bs->read->string[bs->read->length] = '\0';
     if (c == '+') // fastq
     {
-        if (bs->dummy->max < bs->read->max) // resize quality to match read length
+        if (bs->quality->max < bs->read->max) // resize quality to match read length
         {
-            bs->dummy->max = bs->read->max;
-            bs->dummy->string = (char*)  REALLOC (bs->dummy->string, bs->dummy->max);
+            bs->quality->max = bs->read->max;
+            bs->quality->string = (char*)  REALLOC (bs->quality->string, bs->quality->max);
         }
         while ((c = buffered_getc (bf)) != -1 && c != '\n')
             ; // read rest of quality comment
-        while (buffered_gets (bf, bs->dummy, NULL, true, true) >= 0 && bs->dummy->length < bs->read->length)
+        while (buffered_gets (bf, bs->quality, NULL, true, true) >= 0 && bs->quality->length < bs->read->length)
             ; // read rest of quality
         bf->last_char = 0;
+        
+        quality.assign (bs->quality->string, bs->quality->length);
+       // printf("%i  %i\n",bs->quality->length,bs->header->length);
     }
 
     /** We update the data of the sequence. */
@@ -517,7 +534,7 @@ bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, string& co
 bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, int file_id)
 {
     string dummy;
-    return get_next_seq_from_file (data, dummy, file_id, NONE);
+    return get_next_seq_from_file (data, dummy,dummy, file_id, NONE);
 }
 
 /*********************************************************************
@@ -528,16 +545,17 @@ bool BankFasta::Iterator::get_next_seq_from_file (Vector<char>& data, int file_i
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool BankFasta::Iterator::get_next_seq (Vector<char>& data, string& comment, CommentMode_e mode)
+bool BankFasta::Iterator::get_next_seq (Vector<char>& data, string& comment,string& quality, CommentMode_e mode)
+
 {
-    bool success = get_next_seq_from_file (data, comment, index_file, mode);
+    bool success = get_next_seq_from_file (data, comment,quality, index_file, mode);
     if (success) return true;
 
     // cycle to next file if possible
     if (index_file < _ref.nb_files - 1)
     {
         index_file++;
-        return get_next_seq (data, comment, mode);
+        return get_next_seq (data, comment,quality, mode);
     }
     return false;
 }
@@ -553,7 +571,7 @@ bool BankFasta::Iterator::get_next_seq (Vector<char>& data, string& comment, Com
 bool BankFasta::Iterator::get_next_seq (Vector<char>& data)
 {
     string  dummy;
-    return get_next_seq (data, dummy, NONE);
+    return get_next_seq (data, dummy,dummy, NONE);
 }
 
 /*********************************************************************

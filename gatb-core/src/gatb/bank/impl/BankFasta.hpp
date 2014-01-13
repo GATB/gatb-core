@@ -62,7 +62,8 @@ public:
 
     /** Constructor.
      * \param[in] filename : uri of the bank. */
-    BankFasta (const std::string& filename);
+    BankFasta (const std::string& filename, bool output_fastq = false);
+
 
     /** Destructor. */
     ~BankFasta ();
@@ -181,10 +182,10 @@ public:
         void*  buffered_strings;   // variable_string_t *read, *dummy, *header;
 
         bool get_next_seq           (tools::misc::Vector<char>& data);
-        bool get_next_seq           (tools::misc::Vector<char>& data, std::string& comment, CommentMode_e mode);
+        bool get_next_seq           (tools::misc::Vector<char>& data, std::string& comment, std::string& quality, CommentMode_e mode);
 
         bool get_next_seq_from_file (tools::misc::Vector<char>& data, int file_id);
-        bool get_next_seq_from_file (tools::misc::Vector<char>& data, std::string& comment, int file_id, CommentMode_e mode);
+        bool get_next_seq_from_file (tools::misc::Vector<char>& data, std::string& comment, std::string& quality, int file_id, CommentMode_e mode);
 
         size_t _index;
     };
@@ -193,6 +194,7 @@ protected:
 
     friend class Iterator;
 
+    bool _output_fastq;
     /** List of URI of the banks. */
     std::vector<std::string> _filenames;
 
