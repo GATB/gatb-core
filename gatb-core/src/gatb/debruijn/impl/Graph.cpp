@@ -182,7 +182,7 @@ struct configure_visitor : public boost::static_visitor<>    {
     size_t   kmerSize;
     Storage* storage;
 
-    configure_visitor (size_t kmerSize, Storage* storage)  : kmerSize(kmerSize), storage(storage) {}
+    configure_visitor (size_t aKmerSize, Storage* aStorage)  : kmerSize(aKmerSize), storage(aStorage) {}
 
     template<size_t span>  void operator() (GraphData<span>& data) const
     {
@@ -262,7 +262,7 @@ struct build_visitor : public boost::static_visitor<>    {
 
     Graph& graph; bank::IBank* bank; tools::misc::IProperties* props;
 
-    build_visitor (Graph& graph, bank::IBank* bank, tools::misc::IProperties* props)  : graph(graph), bank(bank), props(props) {}
+    build_visitor (Graph& aGraph, bank::IBank* aBank, tools::misc::IProperties* aProps)  : graph(aGraph), bank(aBank), props(aProps) {}
 
     template<size_t span>  void operator() (GraphData<span>& data) const
     {
@@ -777,7 +777,7 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
 
     const Node& source;  Direction direction;  Functor fct;
 
-    getItems_visitor (const Node& source, Direction direction, Functor fct) : source(source), direction(direction), fct(fct) {}
+    getItems_visitor (const Node& aSource, Direction aDirection, Functor aFct) : source(aSource), direction(aDirection), fct(aFct) {}
 
     template<size_t span>  Graph::Vector<Item> operator() (const GraphData<span>& data) const
     {
@@ -912,7 +912,7 @@ struct buildNode_visitor : public boost::static_visitor<Node>    {
 
     const tools::misc::Data& data;  size_t offset;
 
-    buildNode_visitor (const tools::misc::Data& data, size_t offset) : data(data), offset(offset)  {}
+    buildNode_visitor (const tools::misc::Data& aData, size_t aOffset) : data(aData), offset(aOffset)  {}
 
     template<size_t span>  Node operator() (const GraphData<span>& graphData) const
     {
@@ -1029,8 +1029,8 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
 
     const Node& source;  Direction direction;  Nucleotide nt; bool& exists; Functor fct;
 
-    getItem_visitor (const Node& source, Direction direction, Nucleotide nt, bool& exists, Functor fct)
-        : source(source), direction(direction), nt(nt), exists(exists), fct(fct) {}
+    getItem_visitor (const Node& aSource, Direction aDirection, Nucleotide aNt, bool& aExists, Functor aFct)
+        : source(aSource), direction(aDirection), nt(aNt), exists(aExists), fct(aFct) {}
 
     template<size_t span>  Item operator() (const GraphData<span>& data) const
     {
@@ -1238,7 +1238,7 @@ Graph::Vector<BranchingNode> Graph::getBranchingNodeValues (const Node::Value& k
 struct contains_visitor : public boost::static_visitor<bool>    {
 
     const Node& node;
-    contains_visitor (const Node& node) : node(node) {}
+    contains_visitor (const Node& aNode) : node(aNode) {}
 
     template<size_t span>  size_t operator() (const GraphData<span>& data) const
     {
@@ -1383,7 +1383,7 @@ Graph::Iterator<BranchingNode> Graph::getBranchingNodes () const
 struct toString_node_visitor : public boost::static_visitor<std::string>    {
 
     const Node& node;
-    toString_node_visitor (const Node& node) : node(node) {}
+    toString_node_visitor (const Node& aNode) : node(aNode) {}
 
     template<size_t span>  std::string operator() (const GraphData<span>& data) const
     {
@@ -1412,7 +1412,7 @@ std::string Graph::toString (const Node& node) const
 struct debugString_node_visitor : public boost::static_visitor<std::string>    {
 
     const Node& node;  kmer::Strand& strand; int& mode;
-    debugString_node_visitor (const Node& node, kmer::Strand strand, int mode) : node(node), strand(strand), mode(mode) {}
+    debugString_node_visitor (const Node& aNode, kmer::Strand aStrand, int aMode) : node(aNode), strand(aStrand), mode(aMode) {}
 
     template<size_t span>  std::string operator() (const GraphData<span>& data) const
     {
@@ -1464,7 +1464,7 @@ std::string Graph::debugString (const Node& node, kmer::Strand strand, int mode)
 struct debugString_edge_visitor : public boost::static_visitor<std::string>    {
 
     const Edge& edge;  Strand strand;  int mode;
-    debugString_edge_visitor (const Edge& edge, Strand strand, int mode=0) : edge(edge), strand(strand), mode(mode) {}
+    debugString_edge_visitor (const Edge& aEdge, Strand aStrand, int aMode=0) : edge(aEdge), strand(aStrand), mode(aMode) {}
 
     template<size_t span>  std::string operator() (const GraphData<span>& data) const
     {

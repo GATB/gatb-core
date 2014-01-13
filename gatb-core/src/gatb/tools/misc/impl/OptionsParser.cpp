@@ -396,7 +396,7 @@ void OptionsParser::displayHelp (FILE* fp)
         {
             if ((*it)->getNbArgs() > 0)
             {
-                fprintf (fp, "    %-*s (%d arg) :    %s  [default '%s']\n",  maxLen,
+                fprintf (fp, "    %-*s (%d arg) :    %s  [default '%s']\n",  (int)maxLen,
                     (*it)->getLabel().c_str(),
                     (*it)->getNbArgs(),
                     (*it)->getHelp().c_str(),
@@ -405,7 +405,7 @@ void OptionsParser::displayHelp (FILE* fp)
             }
             else
             {
-                fprintf (fp, "    %-*s (%d arg) :    %s\n",  maxLen,
+                fprintf (fp, "    %-*s (%d arg) :    %s\n",  (int)maxLen,
                     (*it)->getLabel().c_str(),
                     (*it)->getNbArgs(),
                     (*it)->getHelp().c_str()
