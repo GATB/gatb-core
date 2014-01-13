@@ -1,8 +1,7 @@
 project(gatb-core)
 
 # We set the required version
-# note: string(TIMESTAMP...) needs a not too old version
- cmake_minimum_required (VERSION 2.8.11.2)
+cmake_minimum_required (VERSION 2.6)
 
 ################################################################################
 # The version number.
@@ -11,8 +10,13 @@ set (gatb-core_VERSION_MAJOR 1)
 set (gatb-core_VERSION_MINOR 0)
 set (gatb-core_VERSION_PATCH 0)
 set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${gatb-core_VERSION_PATCH})
+set (gatb-core-date "2014-01-13")
 
-string (TIMESTAMP gatb-core-date "%Y-%m-%d %H:%M:%S")
+# For the moment, we can't use string(timestamp...) for getting the current date,
+# because it needs a 2.8.11 version for cmake. Since we may have to compile the 
+# stuff on servers where we are not admin, we may face too old cmake versions for
+# supporting this feature. 
+#string (TIMESTAMP gatb-core-date "%Y-%m-%d %H:%M:%S")
 
 ################################################################################
 # Boost
