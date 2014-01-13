@@ -18,6 +18,7 @@
 
 #include <gatb/system/api/ISystemInfo.hpp>
 #include <gatb/system/api/Exception.hpp>
+#include <gatb/system/api/config.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -32,10 +33,19 @@ class SystemInfoCommon : public ISystemInfo
 public:
 
     /** \copydoc ISystemInfo::version */
-    std::string version ()  { return std::string(__DATE__); }
+    std::string getVersion () const  { return STR_LIBRARY_VERSION; }
+
+    /** \copydoc ISystemInfo::buildDate */
+    std::string getBuildDate () const { return STR_COMPILATION_DATE; }
+
+    /** \copydoc ISystemInfo::buildOptions */
+    std::string getBuildOptions () const { return STR_COMPILATION_FLAGS; }
+
+    /** \copydoc ISystemInfo::getOsName */
+    std::string getOsName () const { return STR_OPERATING_SYSTEM; }
 
     /** \copydoc ISystemInfo::getHomeDirectory */
-    std::string getHomeDirectory ()  {  return getenv("HOME") ? getenv("HOME") : ".";  }
+    std::string getHomeDirectory ()  const {  return getenv("HOME") ? getenv("HOME") : ".";  }
 };
 
 /********************************************************************************/
@@ -45,19 +55,19 @@ class SystemInfoLinux : public SystemInfoCommon
 public:
 
     /** \copydoc ISystemInfo::getNbCores */
-    size_t getNbCores ();
+    size_t getNbCores () const ;
 
     /** \copydoc ISystemInfo::getHostName */
-    std::string getHostName ();
+    std::string getHostName () const ;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalTotal */
-    u_int64_t getMemoryPhysicalTotal ();
+    u_int64_t getMemoryPhysicalTotal () const ;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalUsed */
-    u_int64_t getMemoryPhysicalUsed ();
+    u_int64_t getMemoryPhysicalUsed () const ;
 
     /** \copydoc ISystemInfo::getMemoryBuffers */
-    u_int64_t getMemoryBuffers ();
+    u_int64_t getMemoryBuffers () const ;
 };
 
 /********************************************************************************/
@@ -67,19 +77,19 @@ class SystemInfoMacos : public SystemInfoCommon
 public:
 
     /** \copydoc ISystemInfo::getNbCores */
-    size_t getNbCores ();
+    size_t getNbCores () const ;
 
     /** \copydoc ISystemInfo::getHostName */
-    std::string getHostName ();
+    std::string getHostName () const ;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalTotal */
-    u_int64_t getMemoryPhysicalTotal ()  { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalTotal () const  { throw ExceptionNotImplemented(); }
 
     /** \copydoc ISystemInfo::getMemoryPhysicalUsed */
-    u_int64_t getMemoryPhysicalUsed ()   { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalUsed () const   { throw ExceptionNotImplemented(); }
 
     /** \copydoc ISystemInfo::getMemoryBuffers */
-    u_int64_t getMemoryBuffers ()        { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryBuffers () const        { throw ExceptionNotImplemented(); }
 };
 
 /********************************************************************************/
@@ -95,13 +105,13 @@ public:
     std::string getHostName ();
 
     /** \copydoc ISystemInfo::getMemoryPhysicalTotal */
-    u_int64_t getMemoryPhysicalTotal ()  { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalTotal () const  { throw ExceptionNotImplemented(); }
 
     /** \copydoc ISystemInfo::getMemoryPhysicalUsed */
-    u_int64_t getMemoryPhysicalUsed ()   { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalUsed ()  const   { throw ExceptionNotImplemented(); }
 
     /** \copydoc ISystemInfo::getMemoryBuffers */
-    u_int64_t getMemoryBuffers ()        { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryBuffers ()       const  { throw ExceptionNotImplemented(); }
 };
 
 /********************************************************************************/

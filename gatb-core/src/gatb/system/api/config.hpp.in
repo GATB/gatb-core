@@ -1,1 +1,7 @@
-#define INT128_FOUND ${INT128_FOUND}
+#define INT128_FOUND            ${INT128_FOUND}
+
+#define STR_LIBRARY_VERSION     "${gatb-core-version}"
+#define STR_COMPILATION_DATE    "${gatb-core-date}"
+#define STR_COMPILATION_FLAGS   "${gatb-core-flags}"
+
+#define STR_OPERATING_SYSTEM    "${CMAKE_SYSTEM}"

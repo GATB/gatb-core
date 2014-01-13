@@ -31,7 +31,7 @@ namespace gatb { namespace core { namespace system { namespace impl {
 #include "sys/sysinfo.h"
 
 /********************************************************************************/
-size_t SystemInfoLinux::getNbCores ()
+size_t SystemInfoLinux::getNbCores () const
 {
     size_t result = 0;
 
@@ -50,7 +50,7 @@ size_t SystemInfoLinux::getNbCores ()
 }
 
 /********************************************************************************/
-string SystemInfoLinux::getHostName ()
+string SystemInfoLinux::getHostName () const
 {
     string result;
 
@@ -63,7 +63,7 @@ string SystemInfoLinux::getHostName ()
 }
 
 /********************************************************************************/
-u_int64_t SystemInfoLinux::getMemoryPhysicalTotal ()
+u_int64_t SystemInfoLinux::getMemoryPhysicalTotal () const
 {
     struct sysinfo memInfo;
     sysinfo (&memInfo);
@@ -73,7 +73,7 @@ u_int64_t SystemInfoLinux::getMemoryPhysicalTotal ()
 }
 
 /********************************************************************************/
-u_int64_t SystemInfoLinux::getMemoryPhysicalUsed ()
+u_int64_t SystemInfoLinux::getMemoryPhysicalUsed () const
 {
     struct sysinfo memInfo;
     sysinfo (&memInfo);
@@ -83,7 +83,7 @@ u_int64_t SystemInfoLinux::getMemoryPhysicalUsed ()
 }
 
 /********************************************************************************/
-u_int64_t SystemInfoLinux::getMemoryBuffers ()
+u_int64_t SystemInfoLinux::getMemoryBuffers () const
 {
     struct sysinfo memInfo;
     sysinfo (&memInfo);
@@ -110,7 +110,7 @@ u_int64_t SystemInfoLinux::getMemoryBuffers ()
 #include <sys/sysctl.h>
 
 /********************************************************************************/
-size_t SystemInfoMacos::getNbCores ()
+size_t SystemInfoMacos::getNbCores () const
 {
     int numCPU = 0;
 
@@ -136,7 +136,7 @@ size_t SystemInfoMacos::getNbCores ()
 }
 
 /********************************************************************************/
-string SystemInfoMacos::getHostName ()
+string SystemInfoMacos::getHostName () const
 {
     string result;
 
@@ -165,7 +165,7 @@ string SystemInfoMacos::getHostName ()
 #include <windows.h>
 
 /********************************************************************************/
-size_t SystemInfoWindows::getNbCores ()
+size_t SystemInfoWindows::getNbCores () const
 {
     size_t result = 0;
 
@@ -179,7 +179,7 @@ size_t SystemInfoWindows::getNbCores ()
 }
 
 /********************************************************************************/
-string SystemInfoWindows::getHostName ()
+string SystemInfoWindows::getHostName () const
 {
     string result;
 

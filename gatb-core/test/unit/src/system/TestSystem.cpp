@@ -106,7 +106,7 @@ public:
     {
         CPPUNIT_ASSERT (System::info().getNbCores() >= 1);
         CPPUNIT_ASSERT (System::info().getHostName().empty() == false);
-        CPPUNIT_ASSERT (System::info().version().empty() == false);
+        CPPUNIT_ASSERT (System::info().getVersion().empty() == false);
     }
 
     /********************************************************************************/

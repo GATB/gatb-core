@@ -31,31 +31,43 @@ public:
 
     /** Returns the version of the library.
      * \return the version. */
-    virtual std::string version () = 0;
+    virtual std::string getVersion () const = 0;
+
+    /** Returns the date of the library generation.
+     * \return the generation date. */
+    virtual std::string getBuildDate () const = 0;
+
+    /** Returns the compilation options
+     * \return the compilation options. */
+    virtual std::string getBuildOptions () const = 0;
+
+    /** Returns the operating system name
+     * \return the os name. */
+    virtual std::string getOsName () const = 0;
 
     /** Returns the number of available cores.
      * \return the number of cores. */
-    virtual size_t getNbCores () = 0;
+    virtual size_t getNbCores () const = 0;
 
     /** Returns the host name.
      * \return the host name. */
-    virtual std::string getHostName () = 0;
+    virtual std::string getHostName () const = 0;
 
     /** Returns home directory.
      * \return the home directory uri. */
-    virtual std::string getHomeDirectory () = 0;
+    virtual std::string getHomeDirectory () const = 0;
 
     /** Get the size (in bytes) of the physical memory
      * \return the physical memory size */
-    virtual u_int64_t getMemoryPhysicalTotal () = 0;
+    virtual u_int64_t getMemoryPhysicalTotal () const = 0;
 
     /** Get the size (in bytes) of the used physical memory
      * \return the used physical memory size */
-    virtual u_int64_t getMemoryPhysicalUsed () = 0;
+    virtual u_int64_t getMemoryPhysicalUsed () const = 0;
 
     /** Get the size (in bytes) of the buffers memory
      * \return the buffers memory size */
-    virtual u_int64_t getMemoryBuffers () = 0;
+    virtual u_int64_t getMemoryBuffers () const = 0;
 
     /** Destructor. */
     virtual ~ISystemInfo ()  {}
