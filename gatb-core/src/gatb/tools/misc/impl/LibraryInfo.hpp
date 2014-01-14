@@ -44,23 +44,24 @@ class LibraryInfo
 {
 public:
 
-    static LibraryInfo& singleton()  { static LibraryInfo instance; return instance; }
-
-    Properties& getInfo() { return _props; }
-
-private:
-
-    LibraryInfo ()
+    static Properties& getInfo()
     {
-        _props.add (0, "gatb-core-library");
-        _props.add (1, "version",        "%s", system::impl::System::info().getVersion().c_str());
-        _props.add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
-        _props.add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
-        _props.add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());
-        _props.add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
-    }
+        static Properties props;
 
-    Properties _props;
+        static bool first = true;
+        if (first)
+        {
+            props.add (0, "gatb-core-library");
+            props.add (1, "version",        "%s", system::impl::System::info().getVersion().c_str());
+            props.add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
+            props.add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
+            props.add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());
+            props.add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
+
+            first = false;
+        }
+        return props;
+    }
 };
 
 /********************************************************************************/
