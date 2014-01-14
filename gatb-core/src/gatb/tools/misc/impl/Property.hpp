@@ -144,6 +144,9 @@ private:
     void readFile (const std::string& file);
 };
 
+/** Overload output stream operator. */
+inline std::ostream& operator<< (std::ostream& os, Properties& props)  { props.dump(os); return os; }
+
 /********************************************************************************/
 
 class AbstractOutputPropertiesVisitor : public IPropertiesVisitor
