@@ -10,17 +10,14 @@ set (gatb-core_VERSION_MAJOR 1)
 set (gatb-core_VERSION_MINOR 0)
 set (gatb-core_VERSION_PATCH 0)
 set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${gatb-core_VERSION_PATCH})
-set (gatb-core-date "2014-01-13")
-
-# For the moment, we can't use string(timestamp...) for getting the current date,
-# because it needs a 2.8.11 version for cmake. Since we may have to compile the 
-# stuff on servers where we are not admin, we may face too old cmake versions for
-# supporting this feature. 
-#string (TIMESTAMP gatb-core-date "%Y-%m-%d %H:%M:%S")
+set (gatb-core-date "xxxx-xx-xx")
 
 ################################################################################
 # Boost
 ################################################################################
+
+# We need boost for its "variant" part. It could be worthy to estimate a custom
+# (and possibly optimized) version of our own in order to avoid the boost dependency.
 find_package (Boost REQUIRED)
 
 ################################################################################
@@ -33,8 +30,13 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ################################################################################
 include (DefineInteger)
 include (CppUnit)
+include (GetDate)
 
+# We check whether we have native 128 bits integers
 DefineInteger (k)
+
+# We get the current date
+GetCurrentDate (gatb-core-date) 
 
 ################################################################################
 # GENERAL DEFINITIONS
