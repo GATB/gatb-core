@@ -52,9 +52,9 @@ public:
      * \return the compilation options. */
     virtual std::string getBuildOptions () const = 0;
 
-    /** Returns the operating system name
+    /** Returns the operating system name used for the library generation
      * \return the os name. */
-    virtual std::string getOsName () const = 0;
+    virtual std::string getBuildSystem () const = 0;
 
     /** Returns the number of available cores.
      * \return the number of cores. */

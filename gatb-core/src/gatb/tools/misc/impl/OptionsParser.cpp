@@ -379,7 +379,7 @@ void OptionsParser::displayVersion (FILE* fp)
     fprintf (fp, "version %s (%s), built on %s, with options '%s'\n",
         System::info().getVersion().c_str(),
         System::info().getBuildDate().c_str(),
-        System::info().getOsName().c_str(),
+        System::info().getBuildSystem().c_str(),
         System::info().getBuildOptions().c_str()
     );
 }

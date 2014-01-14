@@ -53,7 +53,7 @@ public:
     std::string getBuildOptions () const { return STR_COMPILATION_FLAGS; }
 
     /** \copydoc ISystemInfo::getOsName */
-    std::string getOsName () const { return STR_OPERATING_SYSTEM; }
+    std::string getBuildSystem () const { return STR_OPERATING_SYSTEM; }
 
     /** \copydoc ISystemInfo::getHomeDirectory */
     std::string getHomeDirectory ()  const {  return getenv("HOME") ? getenv("HOME") : ".";  }
