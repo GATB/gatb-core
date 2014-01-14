@@ -48,6 +48,10 @@ public:
      * \return the generation date. */
     virtual std::string getBuildDate () const = 0;
 
+    /** Returns the compiler name
+     * \return the compiler name. */
+    virtual std::string getBuildCompiler () const = 0;
+
     /** Returns the compilation options
      * \return the compilation options. */
     virtual std::string getBuildOptions () const = 0;

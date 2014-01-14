@@ -43,11 +43,14 @@ class SystemInfoCommon : public ISystemInfo
 {
 public:
 
-    /** \copydoc ISystemInfo::version */
+    /** \copydoc ISystemInfo::getVersion */
     std::string getVersion () const  { return STR_LIBRARY_VERSION; }
 
-    /** \copydoc ISystemInfo::buildDate */
+    /** \copydoc ISystemInfo::getBuildDate */
     std::string getBuildDate () const { return STR_COMPILATION_DATE; }
+
+    /** \copydoc ISystemInfo::getBuildCompiler */
+    std::string getBuildCompiler () const  { return STR_COMPILER; }
 
     /** \copydoc ISystemInfo::buildOptions */
     std::string getBuildOptions () const { return STR_COMPILATION_FLAGS; }
