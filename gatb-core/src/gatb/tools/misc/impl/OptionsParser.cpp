@@ -363,6 +363,24 @@ void OptionsParser::displayErrors (FILE* fp)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
+void OptionsParser::displayVersion (FILE* fp)
+{
+    fprintf (fp, "version %s (%s), built on %s, with options '%s'\n",
+        System::info().getVersion().c_str(),
+        System::info().getBuildDate().c_str(),
+        System::info().getOsName().c_str(),
+        System::info().getBuildOptions().c_str()
+    );
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
 void OptionsParser::displayWarnings (FILE* fp)
 {
     for (list<string>::iterator it = _warnings.begin();  it != _warnings.end();  it++)

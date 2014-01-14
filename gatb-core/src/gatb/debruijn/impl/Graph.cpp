@@ -415,6 +415,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
+    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,         "version",                              false));
 
     return parser;
 }

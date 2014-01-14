@@ -290,6 +290,11 @@ public:
      */
     void displayHelp (FILE* fp = stdout);
 
+    /** Display version and other information
+     * \param[in] fp : the file descriptor where to dump the information
+     */
+    void displayVersion (FILE* fp = stdout);
+
     /** Tells (after Proceed) if one option whose name is given has been seen or not.
      * \param[in] txt : the option name to be checked
      * \return true if option was seen, false otherwise.

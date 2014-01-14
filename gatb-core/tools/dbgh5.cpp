@@ -29,6 +29,7 @@ int main (int argc, char* argv[])
     {
         e.getParser().displayErrors (stdout);
         e.getParser().displayHelp   (stdout);
+        e.getParser().displayVersion(stdout);
         return EXIT_FAILURE;
     }
     catch (Exception& e)

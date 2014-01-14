@@ -83,6 +83,7 @@ public:
     const char* verbose        ()  { return "-verbose";        }
     const char* help           ()  { return "-help";           }
     const char* output_format  ()  { return "-outfmt";         }
+    const char* version        ()  { return "-version";        }
 };
 
 /********************************************************************************/
@@ -107,6 +108,7 @@ public:
 #define STR_VERBOSE             gatb::core::tools::misc::StringRepository::singleton().verbose ()
 #define STR_HELP                gatb::core::tools::misc::StringRepository::singleton().help ()
 #define STR_OUTPUT_FORMAT       gatb::core::tools::misc::StringRepository::singleton().output_format ()
+#define STR_VERSION             gatb::core::tools::misc::StringRepository::singleton().version ()
 
 /********************************************************************************/
 
