@@ -17,4 +17,4 @@ ENDFOREACH (program)
 ################################################################################
 #  INSTALLATION 
 ################################################################################
-install (TARGETS dbgh5   DESTINATION bin)
+install (TARGETS dbgh5 dbginfo  DESTINATION bin)
