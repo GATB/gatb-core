@@ -38,7 +38,7 @@ file (GLOB headerfiles ${PROJECT_SOURCE_DIR}/thirdparty/hdf5/src/*.h ${PROJECT_B
 
 # We copy each header file
 foreach (header ${headerfiles})
-  add_custom_command (TARGET hdf5_postbuild POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy ${header} ${HDF5_INSTALL_INCLUDE_DIR}  )
+  add_custom_command (TARGET hdf5_postbuild POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header} ${HDF5_INSTALL_INCLUDE_DIR}  )
 endforeach()
 
 
