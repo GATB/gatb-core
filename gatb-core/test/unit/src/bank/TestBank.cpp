@@ -799,6 +799,7 @@ public:
             CPPUNIT_ASSERT ( data == table[i++]);
         }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(table));
+        CPPUNIT_ASSERT (bankComposite.getNbItems()==ARRAY_SIZE(table));
     }
 };
 
