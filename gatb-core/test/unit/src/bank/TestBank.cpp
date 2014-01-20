@@ -74,6 +74,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_sequence);
         CPPUNIT_TEST_GATB (bank_splitter_1);
         CPPUNIT_TEST_GATB (bank_random_1);
+        CPPUNIT_TEST_GATB (bank_composite);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -775,6 +776,29 @@ public:
         }
 
         CPPUNIT_ASSERT (nbIter == ARRAY_SIZE(check));
+    }
+
+    /********************************************************************************/
+    void bank_composite ()
+    {
+        const char* table[] =  {  "ACTACGATCGATGTA",  "TTAGAGCAGCGAG",  "AGGGGCCCATTTCATCTATC" };
+
+        /** We create a composite bank. */
+        vector<IBank*> banks;
+        for (size_t i=0; i<ARRAY_SIZE(table); i++)  {  banks.push_back (new BankStrings (table[i], 0));  }
+
+        /** We iterate the composite bank. */
+        BankComposite bankComposite (banks);
+        Iterator<Sequence>* it = bankComposite.iterator();
+        LOCAL (it);
+
+        size_t i=0;
+        for (it->first(); !it->isDone(); it->next())
+        {
+            string data = string ((*it)->getDataBuffer(), (*it)->getDataSize());
+            CPPUNIT_ASSERT ( data == table[i++]);
+        }
+        CPPUNIT_ASSERT (i==ARRAY_SIZE(table));
     }
 };
 
