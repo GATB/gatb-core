@@ -737,6 +737,85 @@ public:
 };
 
 /********************************************************************************/
+
+/** \brief Composite iterator
+ */
+template <class Item>
+class CompositeIterator : public Iterator <Item>
+{
+public:
+
+    /** Constructor.
+     * \param[in] iterators : the iterators vector
+     */
+    CompositeIterator (std::vector <Iterator<Item>*>&  iterators)
+        : _iterators(iterators), _currentIdx(0), _currentIt(0), _isDone(true)
+    {
+        for (size_t i=0; i<_iterators.size(); i++)  { _iterators[i]->use(); }
+    }
+
+    /** Destructor. */
+    virtual ~CompositeIterator ()
+    {
+        for (size_t i=0; i<_iterators.size(); i++)  { _iterators[i]->forget(); }
+    }
+
+    /** \copydoc Iterator::first */
+    void first()
+    {
+        /** We initialize attributes. */
+        _currentIdx = 0;
+        _isDone     = true;
+
+        /** We look for the first non finished iterator. */
+        update (true);
+    }
+
+    /** \copydoc Iterator::next */
+    void next()
+    {
+        _currentIt->next();
+        _isDone = _currentIt->isDone();
+
+        if (_isDone == true)  {  update (false);  }
+    }
+
+    /** \copydoc Iterator::isDone */
+    bool isDone() { return _isDone; }
+
+    /** \copydoc Iterator::item */
+    Item& item ()  {  return _currentIt->item(); }
+
+private:
+
+    std::vector <Iterator<Item>*>  _iterators;
+
+    size_t          _currentIdx;
+    Iterator<Item>* _currentIt;
+
+    bool _isDone;
+
+    void update (bool isFirst)
+    {
+        if (!isFirst)  { _currentIdx++; }
+
+        while (_currentIdx<(int)_iterators.size() && _isDone == true)
+        {
+            /** We get the next iterator. */
+            _currentIt = _iterators[_currentIdx];
+            assert (_currentIt != 0);
+
+            /** We have to "first" this iterator. */
+            _currentIt->first();
+
+            /** We update the 'isDone' status. */
+            _isDone = _currentIt->isDone();
+
+        }
+    }
+};
+
+/********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
