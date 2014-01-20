@@ -80,6 +80,8 @@ struct Sequence
 
     std::string _comment;
     void setComment (const std::string& cmt)  { _comment = cmt; }
+    void setQuality (const std::string& qual)  { _quality = qual; }
+
     std::string _quality;
 
 private:
