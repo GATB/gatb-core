@@ -17,9 +17,11 @@
 *****************************************************************************/
 
 #include <gatb/bank/impl/BankFasta.hpp>
+#include <gatb/bank/impl/BankComposite.hpp>
 
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/api/StringsRepository.hpp>
+#include <gatb/tools/misc/impl/Tokenizer.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
 #include <algorithm>
@@ -714,6 +716,43 @@ void BankFasta::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_i
         number    = (number    * _ref.getSize()) / actualPosition;
         maxSize   = (maxSize   * _ref.getSize()) / actualPosition;
         totalSize = (totalSize * _ref.getSize()) / actualPosition;
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IBank* BankFastaFactory::createBank (const std::string& uri)
+{
+    vector<IBank*> banks;
+
+    /** We check whether the uri is a "multiple" bank, i.e. a list (comma separated) of FASTA banks URIs. */
+    tools::misc::impl::TokenizerIterator it (uri.c_str(), ",");
+
+    /** We build each FASTA bank object. */
+    for (it.first(); !it.isDone(); it.next())
+    {
+        banks.push_back (new BankFasta (it.item()));
+    }
+
+    if (banks.size() == 1)
+    {
+        return banks.front ();
+    }
+    else if (banks.size() > 1)
+    {
+        /** We the composite IBank. */
+
+        return new BankComposite (banks);
+    }
+    else
+    {
+        throw Exception ("BAD URI '%s'", uri.c_str());
     }
 }
 
