@@ -7,7 +7,7 @@ add_definitions (${gatb-core-flags})
 
 include_directories (${gatb-core-includes})
 
-list (APPEND PROGRAMS dbgh5 dbginfo bankgen)
+list (APPEND PROGRAMS dbgh5 dbginfo dbgtopology bankgen)
 
 FOREACH (program ${PROGRAMS})
   add_executable(${program} ${program}.cpp)
@@ -17,4 +17,4 @@ ENDFOREACH (program)
 ################################################################################
 #  INSTALLATION 
 ################################################################################
-install (TARGETS dbgh5 dbginfo  DESTINATION bin)
+install (TARGETS dbgh5 dbginfo dbgtopology DESTINATION bin)
