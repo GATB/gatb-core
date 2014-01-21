@@ -76,9 +76,15 @@ public:
         connectedComponent.clear();
         connectedComponent.insert (node);
 
+        // We clear the statistics
+        bfsInfo.clear ();
+
         // We launch the recursion.
         while (!frontline.empty())
         {
+            // We add statistics information for the current depth in the BFS.
+            bfsInfo.push_back (make_pair(frontline.size(), connectedComponent.size()));
+
             // We get the neighbors for the current front line, ie. we get N(F(n))
             set<T> neighbors = graph.neighbors<T> (frontline.begin(), frontline.end());
 
@@ -106,9 +112,14 @@ public:
     // We provide an accessor to the nodes of the found connected component
     const set<T>& get() const { return connectedComponent; }
 
+    // Statistics
+    const list<pair<size_t,size_t> >& getStatistics() const { return bfsInfo; }
+
 private:
     const Graph& graph;
     set<T>       connectedComponent;
+
+    list<pair<size_t,size_t> > bfsInfo;
 };
 
 /********************************************************************************/
@@ -159,6 +170,10 @@ int main (int argc, char* argv[])
     typedef pair<size_t,size_t> InOut_t;
     map <InOut_t, size_t> topology;
 
+    size_t simplePathSizeMin = ~0;
+    size_t simplePathSizeMax =  0;
+
+
     // We want time duration of the iteration
     TimeInfo ti;
     ti.start ("compute");
@@ -172,6 +187,18 @@ int main (int argc, char* argv[])
 
         // We increase the occurrences number for the current couple (in/out) neighbors
         topology [make_pair(predecessors.size(), successors.size())] ++;
+
+        // We loop the in/out neighbors and update min/max simple path size
+        for (size_t i=0; i<successors.size(); i++)
+        {
+            simplePathSizeMax = std::max (simplePathSizeMax, successors[i].distance);
+            simplePathSizeMin = std::min (simplePathSizeMin, successors[i].distance);
+        }
+        for (size_t i=0; i<predecessors.size(); i++)
+        {
+            simplePathSizeMax = std::max (simplePathSizeMax, predecessors[i].distance);
+            simplePathSizeMin = std::min (simplePathSizeMin, predecessors[i].distance);
+        }
 
         // We skip already visited nodes.
         if (marker.isMarked (*itBranching))  { continue; }
@@ -210,7 +237,7 @@ int main (int argc, char* argv[])
     assert (sumOccurs == itBranching.size());
 
     // We aggregate the computed information
-    Properties props ("connected_components");
+    Properties props ("topology");
 
     props.add (1, "graph");
     props.add (2, "name",                    "%s", graph.getName().c_str());
@@ -226,7 +253,11 @@ int main (int argc, char* argv[])
         100.0 * (float)graph.getInfo().getInt("nb_branching") / (float) graph.getInfo().getInt("kmers_nb_solid") : 0
     );
 
-    props.add (1, "graph_branchging_nodes");
+    props.add (1, "branching_nodes");
+
+    props.add (2, "simple_path");
+    props.add (3, "size_min", "%d", simplePathSizeMin);
+    props.add (3, "size_max", "%d", simplePathSizeMax);
 
     props.add (2, "neighborhoods");
     for (size_t i=0; i<stats.size(); i++)
