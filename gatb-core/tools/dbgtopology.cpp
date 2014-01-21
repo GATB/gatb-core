@@ -211,26 +211,44 @@ int main (int argc, char* argv[])
 
     // We aggregate the computed information
     Properties props ("connected_components");
-    props.add (1, "graph_name",              "%s", graph.getName().c_str());
-    props.add (1, "nb_branching_nodes",      "%d", sumOccurs);
-    props.add (1, "nb_connected_classes",    "%d", distrib.size());
-    props.add (1, "nb_connected_components", "%d", nbConnectedComponents);
 
-    props.add (1, "neighborhoods");
+    props.add (1, "graph");
+    props.add (2, "name",                    "%s", graph.getName().c_str());
+    props.add (2, "db_input",                "%s", graph.getInfo().getStr("input").c_str());
+    props.add (2, "db_nb_seq",               "%d", graph.getInfo().getInt("sequences_number"));
+    props.add (2, "db_size",                 "%d", graph.getInfo().getInt("sequences_size"));
+    props.add (2, "kmer_size",               "%d", graph.getInfo().getInt("kmer_size"));
+    props.add (2, "kmer_nks",                "%d", graph.getInfo().getInt("nks"));
+    props.add (2, "nb_nodes",                "%d", graph.getInfo().getInt("kmers_nb_solid"));
+    props.add (2, "nb_branching_nodes",      "%d", graph.getInfo().getInt("nb_branching"));
+    props.add (2, "percent_branching_nodes", "%.1f",
+        graph.getInfo().getInt("kmers_nb_solid") > 0 ?
+        100.0 * (float)graph.getInfo().getInt("nb_branching") / (float) graph.getInfo().getInt("kmers_nb_solid") : 0
+    );
+
+    props.add (1, "graph_branchging_nodes");
+
+    props.add (2, "neighborhoods");
     for (size_t i=0; i<stats.size(); i++)
     {
-        props.add (2, "neighborhood", "in=%d out=%d", stats[i].first.first, stats[i].first.second);
-        props.add (3, "nb_bnodes",     "%d",    stats[i].second);
-        props.add (3, "percentage",   "%5.2f", 100.0*(float)stats[i].second / (float)itBranching.size());
+        props.add (3, "neighborhood", "in=%d out=%d", stats[i].first.first, stats[i].first.second);
+        props.add (4, "nb_bnodes",     "%d",    stats[i].second);
+        props.add (4, "percentage",   "%5.2f", itBranching.size() > 0 ?
+            100.0*(float)stats[i].second / (float)itBranching.size() : 0
+        );
     }
 
-    props.add (1, "connected_components");
+    props.add (2, "connected_components");
+    props.add (3, "nb_classes",    "%d", distrib.size());
+    props.add (3, "nb_components", "%d", nbConnectedComponents);
     for (map<size_t,Entry>::iterator it = distrib.begin(); it!=distrib.end(); it++)
     {
-        props.add (2, "component_class");
-        props.add (3, "nb_occurs",    "%d", it->second.nbOccurs);
-        props.add (3, "nb_bnodes",    "%d", it->first);
-        props.add (3, "freq_bnodes",  "%f", 100.0*(float)(it->first*it->second.nbOccurs) / (float)sumOccurs);
+        props.add (3, "component_class");
+        props.add (4, "nb_occurs",    "%d", it->second.nbOccurs);
+        props.add (4, "nb_bnodes",    "%d", it->first);
+        props.add (4, "freq_bnodes",  "%f", sumOccurs > 0 ?
+            100.0*(float)(it->first*it->second.nbOccurs) / (float)sumOccurs : 0
+        );
     }
     props.add (1, ti.getProperties("time"));
 
