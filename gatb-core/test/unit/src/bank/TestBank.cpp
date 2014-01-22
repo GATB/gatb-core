@@ -75,6 +75,8 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_splitter_1);
         CPPUNIT_TEST_GATB (bank_random_1);
         CPPUNIT_TEST_GATB (bank_composite);
+        CPPUNIT_TEST_GATB (bank_album1);
+        CPPUNIT_TEST_GATB (bank_album2);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -800,6 +802,60 @@ public:
         }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(table));
         CPPUNIT_ASSERT (bankComposite.getNbItems()==ARRAY_SIZE(table));
+    }
+
+    /********************************************************************************/
+    void bank_album1 (void)
+    {
+        string albumUri = System::file().getTemporaryDirectory() + "/test_album.txt";
+
+        /** We remove the album file (just to be sure). */
+        System::file().remove (albumUri);
+
+        /** We create an album. */
+        BankAlbum album (albumUri);
+
+        CPPUNIT_ASSERT (System::file().doesExist(albumUri) == true);
+
+        /** We add a few files in the album. */
+        album.add (System::file().getRealPath(DBPATH("reads1.fa")));
+        album.add (System::file().getRealPath(DBPATH("reads2.fa")));
+
+        /** We iterate the sequences. */
+        Iterator<Sequence>* itSeq = album.iterator();
+        LOCAL (itSeq);
+
+        size_t nbSeq = 0;
+        for (itSeq->first(); !itSeq->isDone(); itSeq->next())  { nbSeq++; }
+
+        CPPUNIT_ASSERT (nbSeq == (100 + 1000) );  // reads1.fa has 100 seq, reads2.fa has 1000 seq
+
+        /** We remove the album file. */
+        System::file().remove (albumUri);
+
+        CPPUNIT_ASSERT (System::file().doesExist(albumUri) == false);
+    }
+
+    /********************************************************************************/
+    void bank_album2 (void)
+    {
+        /** We get the "album.txt" uri. */
+        string albumUri = System::file().getRealPath(DBPATH("album.txt"));
+
+        /** We check that the file exists. */
+        CPPUNIT_ASSERT (System::file().doesExist(albumUri) == true);
+
+        /** We create an album. */
+        BankAlbum album (albumUri);
+
+        /** We iterate the sequences. */
+        Iterator<Sequence>* itSeq = album.iterator();
+        LOCAL (itSeq);
+
+        size_t nbSeq = 0;
+        for (itSeq->first(); !itSeq->isDone(); itSeq->next())  { nbSeq++; }
+
+        CPPUNIT_ASSERT (nbSeq == (100 + 1000) );  // reads1.fa has 100 seq, reads2.fa has 1000 seq
     }
 };
 
