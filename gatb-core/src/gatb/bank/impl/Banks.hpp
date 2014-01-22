@@ -30,3 +30,4 @@
 #include <gatb/bank/impl/BankSplitter.hpp>
 #include <gatb/bank/impl/BankRandom.hpp>
 #include <gatb/bank/impl/BankComposite.hpp>
+#include <gatb/bank/impl/BankAlbum.hpp>
