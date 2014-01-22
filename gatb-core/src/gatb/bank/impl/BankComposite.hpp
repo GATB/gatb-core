@@ -48,11 +48,15 @@ public:
     /** Returns the name of the bank format. */
     static const char* name()  { return "composite"; }
 
+    /** Default constructor.
+     * \param[in] filenames : uri list of the banks. */
+    BankComposite () : _nbItems(0), _size(0)  {}
+
     /** Constructor.
      * \param[in] filenames : uri list of the banks. */
-    BankComposite (const std::vector<IBank*>& banks) : _banks(banks), _nbItems(0), _size(0)
+    BankComposite (const std::vector<IBank*>& banks) : _nbItems(0), _size(0)
     {
-        for (size_t i=0; i<_banks.size(); i++)  { _banks[i]->use(); }
+        for (size_t i=0; i<banks.size(); i++)  {  this->addBank (banks[i]); }
     }
 
     /** Destructor. */
@@ -116,6 +120,9 @@ protected:
 
     /** List of the banks. */
     std::vector<IBank*> _banks;
+
+    /** */
+    void addBank (IBank* bank)  { bank->use();  _banks.push_back(bank); }
 
     u_int64_t _nbItems;
     u_int64_t _size;
