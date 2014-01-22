@@ -83,6 +83,7 @@ struct buffered_strings_t
         delete read;
         delete dummy;
         delete header;
+        delete quality;
     }
 
     variable_string_t *read, *dummy, *header, *quality;
