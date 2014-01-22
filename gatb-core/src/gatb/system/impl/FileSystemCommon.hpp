@@ -162,6 +162,9 @@ public:
     /** \copydoc IFileSystem::getCurrentDirectory */
     Path getCurrentDirectory ();
 
+    /** \copydoc IFileSystem::getDirectory */
+    Path getDirectory (const Path& path);
+
     /** \copydoc IFileSystem::getTemporaryDirectory */
     Path getTemporaryDirectory ();
 

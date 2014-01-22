@@ -158,6 +158,11 @@ public:
       */
      virtual Path getCurrentDirectory () = 0;
 
+     /** Retrieve the directory of the provided name.
+      * \return the directory
+      */
+     virtual Path getDirectory (const Path& path) = 0;
+
      /** Retrieve the default temporary directory absolute path.
       * \return the temporary directory to be retrieved.
       */
