@@ -61,6 +61,8 @@ public:
 private:
 
     system::IFile* _file;
+
+    bool isOnlyFilename (const std::string& path);
 };
 
 /********************************************************************************/

@@ -60,10 +60,19 @@ BankAlbum::BankAlbum (const std::string& name) : _file(0)
             if (len > 1)
             {
                 /** We remove the end of line. */
-                buffer[len-1] = 0;
+                if (buffer[len-1] == '\n')  {  buffer[len-1] = 0; }
+
+                string bankUri = buffer;
+
+                /** We check whether it is a mere file name or there is also a directory name. */
+                if (isOnlyFilename(buffer) == true)
+                {
+                    /** We add the path name of the album file. */
+                    bankUri = System::file().getDirectory (name) + "/" + bankUri;
+                }
 
                 /** We add a new bank. */
-                addBank (BankRegistery::singleton().getFactory()->createBank(buffer));
+                addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
             }
         }
     }
@@ -107,6 +116,22 @@ void BankAlbum::add (const std::string& bankUri)
         /** We add a new bank. */
         addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+bool BankAlbum::isOnlyFilename (const std::string& path)
+{
+    if (path.empty())  { throw Exception ("Bad '%s' path in isOnlyFilename", path.c_str());  }
+
+    /** It may not be bullet proof... */
+    return (path[0]!='/' && path[0]!='.');
 }
 
 /********************************************************************************/
