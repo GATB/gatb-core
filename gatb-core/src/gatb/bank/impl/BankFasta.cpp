@@ -318,6 +318,7 @@ void BankFasta::Iterator::first()
     _isDone = false;
     
     _nIters = 0;
+    _index  = 0;
     
     next();
 }
