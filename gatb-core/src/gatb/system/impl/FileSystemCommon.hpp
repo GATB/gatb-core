@@ -168,6 +168,9 @@ public:
     /** \copydoc IFileSystem::getBaseName */
     Path getBaseName (const Path& path);
 
+    /** \copydoc IFileSystem::getRealPath */
+    Path getRealPath (const Path& file);
+
     /** \copydoc IFileSystem::doesExist */
     bool doesExist (const Path& path);
 

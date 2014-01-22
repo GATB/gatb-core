@@ -169,6 +169,11 @@ public:
       */
      virtual Path getBaseName (const Path& path) = 0;
 
+     /** Return the canonical path to the given file, ie replace symbolic links or relative path.
+      * \param[in] file : the file we want the canonical path.
+      * \return the real path. */
+     virtual Path getRealPath (const Path& file) = 0;
+
      /** Tells whether a path exists or not.
       * \return true if path exists, false otherwise
       */
