@@ -807,6 +807,8 @@ public:
     /********************************************************************************/
     void bank_album1 (void)
     {
+        /** The idea is to create an album bank from scratch and add some banks into. */
+
         string albumUri = System::file().getTemporaryDirectory() + "/test_album.txt";
 
         /** We remove the album file (just to be sure). */
