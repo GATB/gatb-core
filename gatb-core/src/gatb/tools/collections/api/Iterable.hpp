@@ -57,6 +57,14 @@ public:
      * \return the new iterator. */
     virtual dp::Iterator<Item>* iterator () = 0;
 
+    /** Direct iteration through a functor.
+     * \param[in] f : the functor to be applied on each sequence of the bank. */
+    template<typename Functor> void iterate (Functor f)
+    {
+        tools::dp::Iterator<Item>* it = this->iterator();  LOCAL (it);
+        for (it->first(); !it->isDone(); it->next())  { f((*it).item()); }
+    }
+
     /** Return the number of items. If a specific implementation doesn't know the value,
      * it should return -1 by convention.
      * \return the number of items if known, -1 otherwise. */

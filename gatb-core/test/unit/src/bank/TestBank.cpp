@@ -77,6 +77,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_composite);
         CPPUNIT_TEST_GATB (bank_album1);
         CPPUNIT_TEST_GATB (bank_album2);
+        CPPUNIT_TEST_GATB (bank_iteration);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -858,6 +859,18 @@ public:
         for (itSeq->first(); !itSeq->isDone(); itSeq->next())  { nbSeq++; }
 
         CPPUNIT_ASSERT (nbSeq == (100 + 1000) );  // reads1.fa has 100 seq, reads2.fa has 1000 seq
+    }
+
+    struct Fct { void operator() (Sequence& s) { cout << s.getComment() << endl;} };
+
+    /********************************************************************************/
+    void bank_iteration (void)
+    {
+        BankFasta bank (DBPATH("reads1.fa"));
+
+        size_t count = 0;
+        bank.iterate ([&] (Sequence& s) { count ++; } );
+        CPPUNIT_ASSERT (count == 100);
     }
 };
 
