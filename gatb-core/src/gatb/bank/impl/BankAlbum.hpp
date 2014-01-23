@@ -60,7 +60,9 @@ public:
 
 private:
 
-    system::IFile* _file;
+    std::string _name;
+
+    system::IFile* getFile (const std::string& name);
 
     bool isOnlyFilename (const std::string& path);
 };

@@ -40,22 +40,23 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankAlbum::BankAlbum (const std::string& name) : _file(0)
+BankAlbum::BankAlbum (const std::string& name) : _name(name)
 {
-    _file = System::file().newFile (name, "a+");
+    /** We get a handle on the file given its name. */
+    system::IFile* file = getFile (name);
 
     /** We check that the provided name exists in filesystem. */
-    if (_file != 0)
+    if (file != 0)
     {
         char buffer[256];
 
-        while (_file->isEOF() == false)
+        while (file->isEOF() == false)
         {
             /** We init the buffer. */
             *buffer = 0;
 
             /** We get the current line. */
-            int len = _file->gets (buffer, sizeof(buffer));
+            int len = file->gets (buffer, sizeof(buffer));
 
             if (len > 1)
             {
@@ -75,6 +76,8 @@ BankAlbum::BankAlbum (const std::string& name) : _file(0)
                 addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
             }
         }
+
+        delete file;
     }
     else
     {
@@ -92,7 +95,6 @@ BankAlbum::BankAlbum (const std::string& name) : _file(0)
 *********************************************************************/
 BankAlbum::~BankAlbum ()
 {
-    if (_file != 0)  { delete _file; }
 }
 
 /*********************************************************************
@@ -108,14 +110,36 @@ void BankAlbum::add (const std::string& bankUri)
     DEBUG (("BankAlbum::add '%s'\n", bankUri.c_str() ));
 
     /** We add the uri into the album file. */
-    if (_file != 0)
+    system::IFile* file = getFile (_name);
+
+    if (file != 0)
     {
         /** We write the uri in the file. */
-        _file->print ("%s\n", bankUri.c_str());
+        file->print ("%s\n", bankUri.c_str());
 
         /** We add a new bank. */
         addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
+
+        /** Cleanup. */
+        delete file;
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+system::IFile* BankAlbum::getFile (const std::string& name)
+{
+    /** We check whether the file already exists or not. */
+    const char* mode = System::file().doesExist(name) == true ? "r+" : "w+";
+
+    /** We create a handle on the file. */
+    return System::file().newFile (name, mode);
 }
 
 /*********************************************************************
