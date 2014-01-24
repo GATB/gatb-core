@@ -175,6 +175,22 @@ struct Kmer
          * \return true if kmers have been extracted, false otherwise. */
         bool build (tools::misc::Data& data, std::vector<Type>& kmersBuffer)  const  {  return build (data, kmersBuffer, _mode);  }
 
+        /** Iteration of the kmers from a data object through a functor (so lambda expressions can be used).
+         * \param[in] data : the sequence of nucleotides.
+         * \param[in] fct  : functor that handles one kmer */
+        template<typename Functor> void iterate (tools::misc::Data& data, Functor fct)
+        {
+            int32_t nbKmers = data.size() - this->getKmerSize() + 1;
+            if (nbKmers <= 0)  { return; }
+
+            std::vector<Type> kmers (nbKmers);
+
+            if (build (data, kmers) == true)
+            {
+                for (size_t i=0; i<nbKmers; i++)  { fct (kmers[i]); }
+            }
+        }
+
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 outcoming neighbors
          *  - 4 incoming neighbors.
