@@ -304,6 +304,117 @@ private:
 
 /********************************************************************************/
 
+template <typename Item> class BloomGroup : public system::SmartPointer
+{
+public:
+
+    /** */
+    BloomGroup (u_int64_t size, size_t nbHash=4)
+        : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
+    {
+        _blooma = (u_int64_t*) system::impl::System::memory().malloc (_size*sizeof(u_int64_t));
+        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(u_int64_t));
+    }
+
+    /** */
+    BloomGroup (const std::string& uri)
+        : _hash(0), _nbHash(0), _size(0), _blooma(0)
+    {
+        load (uri);
+    }
+
+    /** */
+    ~BloomGroup ()  {  system::impl::System::memory().free (_blooma); }
+
+    /** */
+    void insert (const Item& item, size_t idx)
+    {
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            this->_blooma[h1] |= (ONE << idx);
+        }
+    }
+
+    /** */
+    void save (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "wb+");
+        if (file != 0)
+        {
+            /** We write the nb of hash functions. */
+            file->fwrite (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We write the size of the blooms. */
+            file->fwrite (&_size, sizeof(_size), 1);
+
+            /** We write the blooms info. */
+            file->fwrite (_blooma, sizeof(u_int64_t), _size);
+
+            delete file;
+        }
+    }
+
+    /** */
+    void load (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "rb+");
+        if (file != 0)
+        {
+            /** We read the nb of hash functions. */
+            file->fread (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We read the size of the blooms. */
+            file->fread (&_size, sizeof(_size), 1);
+
+            /** We allocate the array. */
+            _blooma = (u_int64_t*) system::impl::System::memory().malloc (_size*sizeof(u_int64_t));
+            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(u_int64_t));
+
+            /** We read the blooms info. */
+            file->fread (_blooma, sizeof(u_int64_t), _size);
+
+            delete file;
+        }
+    }
+
+    /** */
+    bool contains (const Item& item, size_t idx)
+    {
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            if ( (_blooma[h1] & (ONE << idx)) != (ONE << idx) )  {  return false;  }
+        }
+        return true;
+    }
+
+    /** */
+    u_int64_t contains (const Item& item)
+    {
+        u_int64_t res = ~ZERO;
+
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            res &= _blooma [h1];
+        }
+        return res;
+    }
+
+private:
+
+    HashFunctors<Item> _hash;
+    size_t             _nbHash;
+    u_int64_t          _size;
+    u_int64_t*         _blooma;
+
+    static const u_int64_t ZERO = (u_int64_t) 0;
+    static const u_int64_t ONE  = (u_int64_t) 1;
+};
+
+/********************************************************************************/
+
 /** */
 class BloomFactory
 {
