@@ -81,7 +81,7 @@ IFileSystem::Path FileSystemCommon::getCurrentDirectory ()
 IFileSystem::Path FileSystemCommon::getDirectory (const Path& path)
 {
      size_t pos = path.find_last_of("\\/");
-     return (std::string::npos == pos)  ? ""  : path.substr(0, pos);
+     return (std::string::npos == pos)  ? "."  : path.substr(0, pos);
 }
 
 /*********************************************************************

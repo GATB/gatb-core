@@ -43,7 +43,7 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 BankAlbum::BankAlbum (const std::string& name) : _name(name)
 {
     /** We get a handle on the file given its name. */
-    system::IFile* file = getFile (name);
+    system::IFile* file = getFile (name, "w+");
 
     /** We check that the provided name exists in filesystem. */
     if (file != 0)
@@ -74,6 +74,9 @@ BankAlbum::BankAlbum (const std::string& name) : _name(name)
 
                 /** We add a new bank. */
                 addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
+
+                /** We memorize the uri of this bank. */
+                _banksUri.push_back (bankUri);
             }
         }
 
@@ -120,6 +123,9 @@ void BankAlbum::add (const std::string& bankUri)
         /** We add a new bank. */
         addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
 
+        /** We memorize the uri of this bank. */
+        _banksUri.push_back (bankUri);
+
         /** Cleanup. */
         delete file;
     }
@@ -133,10 +139,10 @@ void BankAlbum::add (const std::string& bankUri)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-system::IFile* BankAlbum::getFile (const std::string& name)
+system::IFile* BankAlbum::getFile (const std::string& name, const char* mode)
 {
     /** We check whether the file already exists or not. */
-    const char* mode = System::file().doesExist(name) == true ? "r+" : "w+";
+    if (mode==NULL) { mode = System::file().doesExist(name) == true ? "a+" : "w+"; }
 
     /** We create a handle on the file. */
     return System::file().newFile (name, mode);

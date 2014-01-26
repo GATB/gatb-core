@@ -29,6 +29,7 @@
 
 #include <gatb/tools/collections/api/Container.hpp>
 #include <gatb/tools/collections/api/Bag.hpp>
+#include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/system/api/types.hpp>
 
@@ -304,16 +305,18 @@ private:
 
 /********************************************************************************/
 
-template <typename Item> class BloomGroup : public system::SmartPointer
+template <typename Item, size_t prec=1> class BloomGroup : public system::SmartPointer
 {
 public:
+
+    typedef tools::math::LargeInt<prec> Result;
 
     /** */
     BloomGroup (u_int64_t size, size_t nbHash=4)
         : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
     {
-        _blooma = (u_int64_t*) system::impl::System::memory().malloc (_size*sizeof(u_int64_t));
-        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(u_int64_t));
+        _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
     }
 
     /** */
@@ -329,12 +332,21 @@ public:
     /** */
     void insert (const Item& item, size_t idx)
     {
+        static const Result ONE (1);
+
         for (size_t i=0; i<this->_nbHash; i++)
         {
             u_int64_t h1 = this->_hash (item, i) % this->_size;
+#if 0
             this->_blooma[h1] |= (ONE << idx);
+#else
+            this->_blooma[h1] = this->_blooma[h1] | (ONE << idx);
+#endif
         }
     }
+
+    /** Return the size (in bytes). */
+    u_int64_t getMemSize () const { return _size*sizeof(Result); }
 
     /** */
     void save (const std::string& uri)
@@ -349,7 +361,7 @@ public:
             file->fwrite (&_size, sizeof(_size), 1);
 
             /** We write the blooms info. */
-            file->fwrite (_blooma, sizeof(u_int64_t), _size);
+            file->fwrite (_blooma, _size*sizeof(Result), 1);
 
             delete file;
         }
@@ -368,11 +380,11 @@ public:
             file->fread (&_size, sizeof(_size), 1);
 
             /** We allocate the array. */
-            _blooma = (u_int64_t*) system::impl::System::memory().malloc (_size*sizeof(u_int64_t));
-            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(u_int64_t));
+            _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
 
             /** We read the blooms info. */
-            file->fread (_blooma, sizeof(u_int64_t), _size);
+            file->fread (_blooma, _size*sizeof(Result), 1);
 
             delete file;
         }
@@ -381,6 +393,7 @@ public:
     /** */
     bool contains (const Item& item, size_t idx)
     {
+        static const Result ONE (1);
         for (size_t i=0; i<this->_nbHash; i++)
         {
             u_int64_t h1 = this->_hash (item, i) % this->_size;
@@ -390,14 +403,19 @@ public:
     }
 
     /** */
-    u_int64_t contains (const Item& item)
+    Result contains (const Item& item)
     {
-        u_int64_t res = ~ZERO;
+        static const Result ZERO (0);
+        Result res = ~ZERO;
 
         for (size_t i=0; i<this->_nbHash; i++)
         {
             u_int64_t h1 = this->_hash (item, i) % this->_size;
+#if 0
             res &= _blooma [h1];
+#else
+            res = res & _blooma [h1];
+#endif
         }
         return res;
     }
@@ -407,10 +425,7 @@ private:
     HashFunctors<Item> _hash;
     size_t             _nbHash;
     u_int64_t          _size;
-    u_int64_t*         _blooma;
-
-    static const u_int64_t ZERO = (u_int64_t) 0;
-    static const u_int64_t ONE  = (u_int64_t) 1;
+    Result*            _blooma;
 };
 
 /********************************************************************************/

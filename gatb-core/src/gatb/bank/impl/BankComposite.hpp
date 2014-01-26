@@ -116,6 +116,9 @@ public:
     /** \return maximum number of files. */
     static const size_t getMaxNbFiles ()  { return 30; }
 
+    /** */
+    const std::vector<IBank*>& getBanks() const { return _banks; }
+
 protected:
 
     /** List of the banks. */

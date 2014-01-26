@@ -55,14 +55,22 @@ public:
     /** Destructor */
     ~BankAlbum ();
 
+    /** \copydoc IBank::getId. */
+    std::string getId ()  { return _name; }
+
     /** Add a bank to the album. */
     void add (const std::string& bankUri);
+
+    /** Direct iteration of the IBank instances. */
+    template<typename Functor> void iterate (Functor fct)  {  for (size_t i=0; i<_banks.size(); i++)  { fct (_banks[i]); }  }
 
 private:
 
     std::string _name;
 
-    system::IFile* getFile (const std::string& name);
+    std::vector<std::string> _banksUri;
+
+    system::IFile* getFile (const std::string& name, const char* mode=NULL);
 
     bool isOnlyFilename (const std::string& path);
 };
