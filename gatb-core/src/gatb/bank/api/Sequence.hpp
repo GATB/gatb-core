@@ -78,6 +78,9 @@ struct Sequence
     /** Set the index of the sequence. Should be called by a IBank iterator. */
     void setIndex (size_t index)  { _index = index; }
 
+    /** */
+    std::string toString () const { return std::string (this->getDataBuffer(), this->getDataSize()); }
+
     std::string _comment;
     void setComment (const std::string& cmt)  { _comment = cmt; }
     void setQuality (const std::string& qual)  { _quality = qual; }
