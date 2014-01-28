@@ -178,18 +178,11 @@ struct Kmer
         /** Iteration of the kmers from a data object through a functor (so lambda expressions can be used).
          * \param[in] data : the sequence of nucleotides.
          * \param[in] fct  : functor that handles one kmer */
-        template<typename Functor> void iterate (tools::misc::Data& data, Functor fct)
-        {
-            int32_t nbKmers = data.size() - this->getKmerSize() + 1;
-            if (nbKmers <= 0)  { return; }
+        template<typename Functor> bool iterate (tools::misc::Data& data, Functor fct) const { return iterate (data, fct, _mode); }
 
-            std::vector<Type> kmers (nbKmers);
-
-            if (build (data, kmers) == true)
-            {
-                for (size_t i=0; i<nbKmers; i++)  { fct (kmers[i]); }
-            }
-        }
+        /** Iteration of all possible kmers through a functor (so lambda expressions can be used).
+         * \param[in] fct  : functor that handles one kmer */
+        template<typename Functor> bool iterate (Functor fct) const;
 
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 outcoming neighbors
@@ -198,25 +191,7 @@ struct Kmer
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
         template<typename Functor>
-        void iterateNeighbors (const Type& source, const Functor& fct)  const
-        {
-            Type rev = core::tools::math::revcomp (source, getKmerSize());
-
-            /** We compute the 8 possible neighbors. */
-            for (size_t nt=0; nt<4; nt++)
-            {
-                {
-                    Type next1 = (((source) * 4 )  + nt) & getMask();
-                    Type next2 = revcomp (next1, getKmerSize());
-                    fct (std::min (next1, next2));
-                }
-                {
-                    Type next1 = (((rev) * 4 )  + nt) & getMask();
-                    Type next2 = revcomp (next1, getKmerSize());
-                    fct (std::min (next1, next2));
-                }
-            }
-        }
+        void iterateNeighbors (const Type& source, const Functor& fct)  const;
 
         /************************************************************/
         /** \brief Iterator on successive kmers
@@ -338,6 +313,12 @@ struct Kmer
          * \return true if kmers have been extracted, false otherwise. */
         bool build (tools::misc::Data& data, std::vector<Type>& kmersBuffer, KmerMode mode)  const ;
 
+        /** Iteration of the kmers from a data object through a functor (so lambda expressions can be used).
+         * \param[in] data : the sequence of nucleotides.
+         * \param[in] fct  : functor that handles one kmer
+         * \return true if kmers have been extracted, false otherwise. */
+        template<typename Functor> bool iterate (tools::misc::Data& data, Functor fct, KmerMode mode) const;
+
     };  // class Model
 
 
@@ -384,5 +365,8 @@ struct Kmer
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
+
+/** We include template definitions. */
+#include <gatb/kmer/impl/Model.tpp>
 
 #endif /* _GATB_CORE_KMER_IMPL_MODEL_HPP_ */
