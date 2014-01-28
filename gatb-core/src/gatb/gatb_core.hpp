@@ -65,6 +65,7 @@
 #include <gatb/kmer/impl/BloomBuilder.hpp>
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
+#include <gatb/kmer/impl/BankKmers.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/GraphHelpers.hpp>
