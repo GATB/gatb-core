@@ -40,10 +40,10 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankAlbum::BankAlbum (const std::string& name) : _name(name)
+BankAlbum::BankAlbum (const std::string& name, bool deleteIfExists) : _name(name)
 {
     /** We get a handle on the file given its name. */
-    system::IFile* file = getFile (name, "w+");
+    system::IFile* file = getFile (name, deleteIfExists ? "w+" : NULL);
 
     /** We check that the provided name exists in filesystem. */
     if (file != 0)

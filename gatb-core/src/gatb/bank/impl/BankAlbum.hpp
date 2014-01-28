@@ -50,7 +50,7 @@ public:
 
     /** Constructor.
      * \param[in] name : uri of the album. */
-    BankAlbum (const std::string& name);
+    BankAlbum (const std::string& name, bool deleteIfExists=false);
 
     /** Destructor */
     ~BankAlbum ();
