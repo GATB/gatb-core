@@ -22,6 +22,7 @@
 #include <gatb/tools/misc/api/Data.hpp>
 #include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/kmer/impl/BankKmers.hpp>
 #include <gatb/bank/impl/Banks.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
@@ -57,6 +58,7 @@ class TestKmerBank : public Test
     CPPUNIT_TEST_SUITE_GATB (TestKmerBank);
 
         CPPUNIT_TEST_GATB (kmerbank_checkKmersFromBankAndBankBinary);
+        CPPUNIT_TEST_GATB (kmers_bankiterate);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -132,6 +134,17 @@ public:
                     kmerbank_checkKmersFromBankAndBankBinary_aux (files[i], spans[j], modes[k]);
                 }
             }
+        }
+    }
+
+    /********************************************************************************/
+    void kmers_bankiterate ()
+    {
+        for (size_t i=0; i<12; i++)
+        {
+            u_int64_t nbKmers = 0;
+            BankKmers (i).iterate ([&] (Sequence& seq)   {  nbKmers++; });
+            CPPUNIT_ASSERT (nbKmers == ((u_int64_t)1<<(2*i)));
         }
     }
 };
