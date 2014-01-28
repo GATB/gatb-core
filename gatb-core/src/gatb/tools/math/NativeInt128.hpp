@@ -81,6 +81,24 @@ public:
 
     NativeInt128& operator+=  (const NativeInt128& other)    {  value[0] += other.value[0]; return *this; }
     NativeInt128& operator^=  (const NativeInt128& other)    {  value[0] ^= other.value[0]; return *this; }
+    NativeInt128& operator&=  (const NativeInt128& other)    {  value[0] &= other.value[0]; return *this; }
+    NativeInt128& operator|=  (const NativeInt128& other)    {  value[0] |= other.value[0]; return *this; }
+    NativeInt128& operator<<= (const int& coeff)             {  value[0] <<= coeff;         return *this; }
+    NativeInt128& operator>>= (const int& coeff)             {  value[0] >>= coeff;         return *this; }
+
+    /********************************************************************************/
+    NativeInt128& sync_fetch_and_or (const NativeInt128& other)
+    {
+        for (int i=0 ; i < 2 ; i++)  {  __sync_fetch_and_or ((u_int64_t*)(value + i), other.value[i]); }
+        return *this;
+    }
+
+    /********************************************************************************/
+    NativeInt128& sync_fetch_and_and (const NativeInt128& other)
+    {
+        for (int i=0 ; i < 2 ; i++)  {  __sync_fetch_and_and (this->value + i, other.value[i]); }
+        return *this;
+    }
 
     /** Output stream overload. NOTE: for easier process, dump the value in hexadecimal.
      * \param[in] os : the output stream

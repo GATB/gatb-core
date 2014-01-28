@@ -65,7 +65,7 @@ namespace math  {
 
 /** \brief Large integer class
  */
-template<int precision>  class LargeInt : private ArrayData<u_int64_t, precision>
+template<int precision>  class LargeInt : public ArrayData<u_int64_t, precision>
 {
 public:
 
@@ -351,6 +351,46 @@ public:
     LargeInt& operator^=  (const LargeInt& other)
     {
         for (int i=0 ; i < precision ; i++)  {  this->value[i] ^= other.value[i];  }
+        return *this;
+    }
+
+    /********************************************************************************/
+    LargeInt& operator&=  (const LargeInt& other)
+    {
+        for (int i=0 ; i < precision ; i++)  {  this->value[i] &= other.value[i];  }
+        return *this;
+    }
+
+    /********************************************************************************/
+    LargeInt& operator|=  (const LargeInt& other)
+    {
+        for (int i=0 ; i < precision ; i++)  {  this->value[i] |= other.value[i];  }
+        return *this;
+    }
+
+    /********************************************************************************/
+    LargeInt& operator<<=  (const int& coeff)
+    {
+        *(this) = (*this) << coeff;  return *this;
+    }
+
+    /********************************************************************************/
+    LargeInt& operator>>=  (const int& coeff)
+    {
+        *(this) = (*this) >> coeff;  return *this;
+    }
+
+    /********************************************************************************/
+    LargeInt& sync_fetch_and_or (const LargeInt& other)
+    {
+        for (int i=0 ; i < precision ; i++)  {  __sync_fetch_and_or (this->value + i, other.value[i]); }
+        return *this;
+    }
+
+    /********************************************************************************/
+    LargeInt& sync_fetch_and_and (const LargeInt& other)
+    {
+        for (int i=0 ; i < precision ; i++)  {  __sync_fetch_and_and (this->value + i, other.value[i]); }
         return *this;
     }
 

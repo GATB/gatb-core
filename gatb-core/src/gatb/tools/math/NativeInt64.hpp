@@ -79,6 +79,13 @@ public:
 
     NativeInt64& operator+=  (const NativeInt64& other)    {  value[0] += other.value[0]; return *this; }
     NativeInt64& operator^=  (const NativeInt64& other)    {  value[0] ^= other.value[0]; return *this; }
+    NativeInt64& operator&=  (const NativeInt64& other)    {  value[0] &= other.value[0]; return *this; }
+    NativeInt64& operator|=  (const NativeInt64& other)    {  value[0] |= other.value[0]; return *this; }
+    NativeInt64& operator<<= (const int& coeff)            {  value[0] <<= coeff;         return *this; }
+    NativeInt64& operator>>= (const int& coeff)            {  value[0] >>= coeff;         return *this; }
+
+    NativeInt64& sync_fetch_and_or  (const NativeInt64& other)  { __sync_fetch_and_or  (&(value[0]), other.value[0]); return *this; }
+    NativeInt64& sync_fetch_and_and (const NativeInt64& other)  { __sync_fetch_and_and (&(value[0]), other.value[0]); return *this; }
 
     u_int8_t  operator[]  (size_t idx)    {  return (value[0] >> (2*idx)) & 3; }
 
