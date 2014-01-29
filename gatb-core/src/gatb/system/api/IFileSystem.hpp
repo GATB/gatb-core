@@ -158,6 +158,11 @@ public:
       */
      virtual Path getCurrentDirectory () = 0;
 
+     /** Retrieve the directory of the provided name.
+      * \return the directory
+      */
+     virtual Path getDirectory (const Path& path) = 0;
+
      /** Retrieve the default temporary directory absolute path.
       * \return the temporary directory to be retrieved.
       */
@@ -168,6 +173,11 @@ public:
       * \return the base name of the uri
       */
      virtual Path getBaseName (const Path& path) = 0;
+
+     /** Return the canonical path to the given file, ie replace symbolic links or relative path.
+      * \param[in] file : the file we want the canonical path.
+      * \return the real path. */
+     virtual Path getRealPath (const Path& file) = 0;
 
      /** Tells whether a path exists or not.
       * \return true if path exists, false otherwise

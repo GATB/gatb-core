@@ -78,6 +78,20 @@ IFileSystem::Path FileSystemCommon::getCurrentDirectory ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+IFileSystem::Path FileSystemCommon::getDirectory (const Path& path)
+{
+     size_t pos = path.find_last_of("\\/");
+     return (std::string::npos == pos)  ? "."  : path.substr(0, pos);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 IFileSystem::Path FileSystemCommon::getTemporaryDirectory ()
 {
     const char* dir = 0;
@@ -115,6 +129,25 @@ IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
 
     /** We return the base name, without suffix. */
     return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IFileSystem::Path FileSystemCommon::getRealPath (const Path& file)
+{
+    char buf[1024];
+
+    if (realpath (file.c_str(), buf) != 0)
+    {
+        return buf;
+    }
+    throw Exception ("Unable to get the real path for '%s'", file.c_str());
 }
 
 /*********************************************************************

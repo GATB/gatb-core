@@ -29,6 +29,7 @@
 
 #include <gatb/tools/collections/api/Container.hpp>
 #include <gatb/tools/collections/api/Bag.hpp>
+#include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/system/api/types.hpp>
 
@@ -300,6 +301,280 @@ private:
     u_int64_t _mask_block;
     size_t _nbits_BlockSize;
     u_int64_t _reduced_tai;
+};
+
+/********************************************************************************/
+
+template <typename Item, size_t prec=1> class BloomGroup : public system::SmartPointer
+{
+public:
+
+    typedef tools::math::LargeInt<prec> Result;
+
+    /** */
+    BloomGroup (u_int64_t size, size_t nbHash=4)
+        : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
+    {
+        _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
+    }
+
+    /** */
+    BloomGroup (const std::string& uri)
+        : _hash(0), _nbHash(0), _size(0), _blooma(0)
+    {
+        load (uri);
+    }
+
+    /** */
+    ~BloomGroup ()  {  system::impl::System::memory().free (_blooma); }
+
+    /** */
+    std::string getName () const { return "BloomGroup"; }
+
+    /** */
+    void insert (const Item& item, size_t idx)
+    {
+        static const Result ONE (1);
+
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            this->_blooma[h1] |= (ONE << idx);
+        }
+    }
+
+    /** Return the size (in bytes). */
+    u_int64_t getMemSize () const { return _size*sizeof(Result); }
+
+    /** */
+    void save (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "wb+");
+        if (file != 0)
+        {
+            /** We write the nb of hash functions. */
+            file->fwrite (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We write the size of the blooms. */
+            file->fwrite (&_size, sizeof(_size), 1);
+
+            /** We write the blooms info. */
+            file->fwrite (_blooma, _size*sizeof(Result), 1);
+
+            delete file;
+        }
+    }
+
+    /** */
+    void load (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "rb+");
+        if (file != 0)
+        {
+            /** We read the nb of hash functions. */
+            file->fread (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We read the size of the blooms. */
+            file->fread (&_size, sizeof(_size), 1);
+
+            /** We allocate the array. */
+            _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
+
+            /** We read the blooms info. */
+            file->fread (_blooma, _size*sizeof(Result), 1);
+
+            delete file;
+        }
+    }
+
+    /** */
+    bool contains (const Item& item, size_t idx)
+    {
+        static const Result ONE (1);
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            if ( (_blooma[h1] & (ONE << idx)) != (ONE << idx) )  {  return false;  }
+        }
+        return true;
+    }
+
+    /** */
+    Result contains (const Item& item)
+    {
+        static const Result ZERO (0);
+        Result res = ~ZERO;
+
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            res &= _blooma [h1];
+        }
+        return res;
+    }
+
+private:
+
+    HashFunctors<Item> _hash;
+    size_t             _nbHash;
+    u_int64_t          _size;
+    Result*            _blooma;
+};
+
+
+/********************************************************************************/
+
+template <typename Item, size_t prec=1> class BloomGroupCacheCoherent : public system::SmartPointer
+{
+public:
+
+    typedef tools::math::LargeInt<prec> Result;
+
+    /** */
+    BloomGroupCacheCoherent (u_int64_t size, size_t nbHash=4, size_t block_nbits=12)
+        : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0), _nbits_BlockSize(block_nbits)
+    {
+        _size += (1<<_nbits_BlockSize);
+
+        _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
+
+        _mask_block   = (1<<_nbits_BlockSize) - 1;
+        _reduced_size = this->_size -  (1<<_nbits_BlockSize) ;
+    }
+
+    /** */
+    BloomGroupCacheCoherent (const std::string& uri)
+        : _hash(0), _nbHash(0), _size(0), _blooma(0)
+    {
+        load (uri);
+
+        _mask_block   = (1<<_nbits_BlockSize) - 1;
+        _reduced_size = this->_size -  (1<<_nbits_BlockSize) ;
+    }
+
+    /** */
+    ~BloomGroupCacheCoherent ()  {  system::impl::System::memory().free (_blooma); }
+
+    /** */
+    std::string getName () const { return "BloomGroupCacheCoherent"; }
+
+    /** Return the size (in bytes). */
+    u_int64_t getMemSize () const { return _size*sizeof(Result); }
+
+    /** */
+    void save (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "wb+");
+        if (file != 0)
+        {
+            /** We write the nb of hash functions. */
+            file->fwrite (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We write the size of the blooms. */
+            file->fwrite (&_size, sizeof(_size), 1);
+
+            /** We write block size information. */
+            file->fwrite (&_nbits_BlockSize, sizeof(_nbits_BlockSize), 1);
+
+            /** We write the blooms info. */
+            file->fwrite (_blooma, _size*sizeof(Result), 1);
+
+            delete file;
+        }
+    }
+
+    /** */
+    void load (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "rb+");
+        if (file != 0)
+        {
+            /** We read the nb of hash functions. */
+            file->fread (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We read the size of the blooms. */
+            file->fread (&_size, sizeof(_size), 1);
+
+            /** We read block size information. */
+            file->fread (&_nbits_BlockSize, sizeof(_nbits_BlockSize), 1);
+
+            /** We allocate the array. */
+            _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
+
+            /** We read the blooms info. */
+            file->fread (_blooma, _size*sizeof(Result), 1);
+
+            delete file;
+        }
+    }
+
+    /** */
+    void insert (const Item& item, size_t idx)
+    {
+        static const Result ONE (1);
+
+        /** First hash. */
+        u_int64_t h0 = this->_hash (item,0) % _reduced_size;
+        this->_blooma[h0] |= (ONE << idx);
+
+        for (size_t i=1; i<this->_nbHash; i++)
+        {
+            /** Other hash. */
+            u_int64_t h1 = h0  + (simplehash16 (item,i) & _mask_block);
+            this->_blooma[h1] |= (ONE << idx);
+        }
+    }
+
+    /** */
+    bool contains (const Item& item, size_t idx)
+    {
+        static const Result ONE  (1);
+
+        /** First hash. */
+        u_int64_t h0 = this->_hash (item,0) % _reduced_size;
+        if ((this->_blooma[h0] & (ONE << idx)) != (ONE << idx))  {  return false;  }
+
+        for (size_t i=1; i<this->_nbHash; i++)
+        {
+            /** Other hash. */
+            u_int64_t h1 = h0  + (simplehash16 (item,i) & _mask_block);
+            if ((this->_blooma[h1] & (ONE << idx)) != (ONE << idx))  {  return false;  }
+        }
+        return true;
+    }
+
+    /** */
+    Result contains (const Item& item)
+    {
+        static const Result ZERO (0);
+        Result res = ~ZERO;
+
+        u_int64_t h0 = this->_hash (item,0) % _reduced_size;
+        res &= _blooma [h0];
+
+        for (size_t i=1; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = h0 + (simplehash16(item,i) & _mask_block);
+            res &= _blooma [h1];
+        }
+        return res;
+    }
+
+private:
+
+    HashFunctors<Item> _hash;
+    size_t             _nbHash;
+    u_int64_t          _size;
+    Result*            _blooma;
+
+    u_int64_t  _mask_block;
+    size_t     _nbits_BlockSize;
+    u_int64_t  _reduced_size;
+
 };
 
 /********************************************************************************/

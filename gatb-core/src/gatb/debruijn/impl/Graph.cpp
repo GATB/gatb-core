@@ -29,6 +29,7 @@
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
 #include <gatb/bank/impl/Banks.hpp>
+#include <gatb/bank/impl/BankRegistery.hpp>
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
@@ -520,6 +521,10 @@ Graph::Graph (const std::string& uri)
     gatb::core::tools::dp::Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
     itData->first(); if (!itData->isDone())  { _kmerSize = itData->item(); }
 
+    /** We retrieve the information as a XML string in the "metadata.properties" attribute. */
+    string xmlString = metadata->getProperty ("properties");
+    stringstream ss; ss << xmlString;   getInfo().readXML (ss);
+
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
@@ -568,7 +573,7 @@ Graph::Graph (tools::misc::IProperties* params)
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
     /** We build a Bank instance for the provided reads uri. */
-    bank::IBank* bank = new BankFasta (params->getStr(STR_URI_INPUT));
+    bank::IBank* bank = BankRegistery::singleton().getFactory()->createBank (params->getStr(STR_URI_INPUT));
 
     /** We build the graph according to the wanted precision. */
     boost::apply_visitor (build_visitor (*this, bank,params),  *(GraphDataVariant*)_variant);

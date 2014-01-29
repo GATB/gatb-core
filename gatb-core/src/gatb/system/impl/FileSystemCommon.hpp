@@ -162,11 +162,17 @@ public:
     /** \copydoc IFileSystem::getCurrentDirectory */
     Path getCurrentDirectory ();
 
+    /** \copydoc IFileSystem::getDirectory */
+    Path getDirectory (const Path& path);
+
     /** \copydoc IFileSystem::getTemporaryDirectory */
     Path getTemporaryDirectory ();
 
     /** \copydoc IFileSystem::getBaseName */
     Path getBaseName (const Path& path);
+
+    /** \copydoc IFileSystem::getRealPath */
+    Path getRealPath (const Path& file);
 
     /** \copydoc IFileSystem::doesExist */
     bool doesExist (const Path& path);

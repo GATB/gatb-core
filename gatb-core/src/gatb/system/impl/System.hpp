@@ -206,6 +206,8 @@ public:
     ~ThreadObject()
     {
         if (_synchro)  { delete _synchro; }
+
+        for (typename std::map<IThread::Id,T*>::iterator it = _map.begin(); it != _map.end(); it++)  { delete it->second; }
     }
 
     T& operator () ()
@@ -221,7 +223,7 @@ public:
 
                 if (group)
                 {
-                    group->foreach ([this] (IThread* thread)  {  this->_map.insert (std::pair<IThread::Id,T>(thread->getId(),this->_object)); });
+                    group->foreach ([this] (IThread* thread)  {  this->_map[thread->getId()] = new T(this->_object); });
                 }
                 else
                 {
@@ -231,20 +233,20 @@ public:
             }
         }
 
-        return _map[System::thread().getThreadSelf()];
+        return *(_map[System::thread().getThreadSelf()]);
     }
 
     void terminate ()  { foreach (_endFct); }
 
     void foreach (const std::function<void (T&)>& fct)
-    {  for (typename std::map<IThread::Id,T>::iterator it = _map.begin(); it != _map.end(); it++)  { fct (it->second); } }
+    {  for (typename std::map<IThread::Id,T*>::iterator it = _map.begin(); it != _map.end(); it++)  { fct (*(it->second)); } }
 
     T* operator-> ()  { return &_object; }
 
     T& operator* ()  { return _object; }
 
 private:
-    std::map<IThread::Id,T> _map;
+    std::map<IThread::Id,T*> _map;
 
     const std::function<void (const T&)> _endFct;
     T _object;

@@ -231,7 +231,7 @@ class BankFastaFactory : public IBankFactory
 {
 public:
 
-    IBank* createBank (const std::string& uri) { return new BankFasta (uri); }
+    IBank* createBank (const std::string& uri);
 };
 
 /********************************************************************************/

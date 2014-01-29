@@ -51,6 +51,7 @@
 #include <gatb/tools/misc/impl/Tool.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/tools/misc/impl/LibraryInfo.hpp>
+#include <gatb/tools/misc/impl/Tokenizer.hpp>
 
 #include <gatb/tools/math/NativeInt64.hpp>
 #include <gatb/tools/math/NativeInt128.hpp>
@@ -64,6 +65,7 @@
 #include <gatb/kmer/impl/BloomBuilder.hpp>
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
+#include <gatb/kmer/impl/BankKmers.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/GraphHelpers.hpp>

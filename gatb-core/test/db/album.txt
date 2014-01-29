@@ -1,0 +1,2 @@
+reads1.fa
+reads2.fa
