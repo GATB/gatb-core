@@ -26,6 +26,7 @@
 #define _GATB_CORE_BANK_IMPL_BANK_FASTA_HPP_
 
 /********************************************************************************/
+#include <zlib.h>
 
 #include <gatb/bank/impl/AbstractBank.hpp>
 
@@ -73,7 +74,7 @@ public:
 
     /** Constructor.
      * \param[in] filename : uri of the bank. */
-    BankFasta (const std::string& filename, bool output_fastq = false);
+    BankFasta (const std::string& filename, bool output_fastq = false, bool output_gz = false);
 
 
     /** Destructor. */
@@ -206,6 +207,8 @@ protected:
     friend class Iterator;
 
     bool _output_fastq;
+    bool _output_gz;
+    
     /** List of URI of the banks. */
     std::vector<std::string> _filenames;
 
@@ -215,6 +218,8 @@ protected:
     /** File handle for inserting sequences into the bank. */
     FILE* _insertHandle;
 
+    gzFile _gz_insertHandle;
+    
     /** Initialization method (compute the file sizes). */
     void init ();
 };
