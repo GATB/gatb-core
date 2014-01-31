@@ -821,8 +821,8 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist(albumUri) == true);
 
         /** We add a few files in the album. */
-        album.add (System::file().getRealPath(DBPATH("reads1.fa")));
-        album.add (System::file().getRealPath(DBPATH("reads2.fa")));
+        album.addBank (System::file().getRealPath(DBPATH("reads1.fa")));
+        album.addBank (System::file().getRealPath(DBPATH("reads2.fa")));
 
         /** We iterate the sequences. */
         Iterator<Sequence>* itSeq = album.iterator();
