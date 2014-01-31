@@ -98,7 +98,7 @@ struct buffered_strings_t
 ** REMARKS :
 *********************************************************************/
 BankFasta::BankFasta (const std::vector<std::string>& filenames)
-    : _filenames(filenames), filesizes(0), nb_files(0), _insertHandle(0)
+    : _filenames(filenames), filesizes(0), nb_files(0), _insertHandle(0), _gz_insertHandle(0)
 {
     init ();
 }
@@ -127,10 +127,11 @@ BankFasta::BankFasta (int argc, char* argv[])
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankFasta::BankFasta (const std::string& filename, bool output_fastq)
-    : filesizes(0), nb_files(0), _insertHandle(0)
+BankFasta::BankFasta (const std::string& filename, bool output_fastq, bool output_gz)
+    : filesizes(0), nb_files(0), _insertHandle(0), _gz_insertHandle(0)
 {
     _output_fastq = output_fastq;
+    _output_gz= output_gz;
     _filenames.push_back (filename);
     init ();
 }
@@ -146,6 +147,8 @@ BankFasta::BankFasta (const std::string& filename, bool output_fastq)
 BankFasta::~BankFasta ()
 {
     if (_insertHandle != 0)  { fclose (_insertHandle); }
+    if (_gz_insertHandle != 0)  { gzclose (_gz_insertHandle); }
+    
 }
 
 /*********************************************************************
@@ -219,20 +222,37 @@ void BankFasta::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& ma
 *********************************************************************/
 void BankFasta::insert (const Sequence& item)
 {
+
     /** We open the last file if needed. */
     if (_insertHandle == 0  &&  _filenames.empty()==false)
     {
+
         _insertHandle = fopen (_filenames[_filenames.size()-1].c_str(), "w");
     }
 
+    if (_output_gz && _gz_insertHandle == 0  &&  _filenames.empty()==false)
+    {
+        _gz_insertHandle =  gzopen (_filenames[_filenames.size()-1].c_str(), "w");
+    }
+    
     if (_insertHandle != 0)
     {
         if(_output_fastq)
         {
-            fprintf (_insertHandle, "@%s\n", item.getComment().c_str());
-            fprintf (_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
-            fprintf (_insertHandle, "+\n");
-            fprintf (_insertHandle, "%s\n", item.getQuality().c_str());
+            if(_output_gz)
+            {
+                gzprintf (_gz_insertHandle, "@%s\n", item.getComment().c_str());
+                gzprintf (_gz_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
+                gzprintf (_gz_insertHandle, "+\n");
+                gzprintf (_gz_insertHandle, "%s\n", item.getQuality().c_str());
+            }
+            else
+            {
+                fprintf (_insertHandle, "@%s\n", item.getComment().c_str());
+                fprintf (_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
+                fprintf (_insertHandle, "+\n");
+                fprintf (_insertHandle, "%s\n", item.getQuality().c_str());
+            }
 
         }
         else
