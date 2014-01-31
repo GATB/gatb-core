@@ -60,7 +60,7 @@ public:
     }
 
     /** Destructor. */
-    ~BankComposite ()
+    virtual ~BankComposite ()
     {
         for (size_t i=0; i<_banks.size(); i++)  { _banks[i]->forget(); }
     }
@@ -109,7 +109,7 @@ public:
         for (size_t i=0; i<_banks.size(); i++)
         {
             _banks[i]->estimate (numberIth, totalSizeIth, maxSizeIth);
-            numberIth += number;  totalSize += totalSizeIth;  maxSize += maxSizeIth;
+            number += numberIth;  totalSize += totalSizeIth;  maxSize += maxSizeIth;
         }
     }
 
@@ -118,6 +118,15 @@ public:
 
     /** */
     const std::vector<IBank*>& getBanks() const { return _banks; }
+
+    /** */
+    size_t getNbBanks () const { return _banks.size();  }
+
+    /** Direct iteration of the IBank instances. */
+    template<typename Functor> void iterateBanks (Functor fct)  {  for (size_t i=0; i<_banks.size(); i++)  { fct (*_banks[i], i); }  }
+
+    /** */
+    tools::dp::Iterator<IBank*>* iteratorBanks ()  { return new tools::dp::impl::VectorIterator<IBank*> (_banks); }
 
 protected:
 

@@ -206,7 +206,7 @@ void BankFasta::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& ma
     BankFasta::Iterator it (*this, Iterator::NONE);
 
     /** We delegate the computation to the iterator. */
-    return it.estimate (number, totalSize, maxSize);
+    it.estimate (number, totalSize, maxSize);
 }
 
 /*********************************************************************

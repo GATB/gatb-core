@@ -73,7 +73,7 @@ BankAlbum::BankAlbum (const std::string& name, bool deleteIfExists) : _name(name
                 }
 
                 /** We add a new bank. */
-                addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
+                BankComposite::addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
 
                 /** We memorize the uri of this bank. */
                 _banksUri.push_back (bankUri);
@@ -108,8 +108,10 @@ BankAlbum::~BankAlbum ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void BankAlbum::add (const std::string& bankUri)
+IBank* BankAlbum::addBank (const std::string& bankUri)
 {
+    IBank* result = 0;
+
     DEBUG (("BankAlbum::add '%s'\n", bankUri.c_str() ));
 
     /** We add the uri into the album file. */
@@ -120,8 +122,11 @@ void BankAlbum::add (const std::string& bankUri)
         /** We write the uri in the file. */
         file->print ("%s\n", bankUri.c_str());
 
-        /** We add a new bank. */
-        addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
+        /** We create a new bank. */
+        result = BankRegistery::singleton().getFactory()->createBank(bankUri);
+
+        /** We put it into the album. */
+        BankComposite::addBank (result);
 
         /** We memorize the uri of this bank. */
         _banksUri.push_back (bankUri);
@@ -129,6 +134,49 @@ void BankAlbum::add (const std::string& bankUri)
         /** Cleanup. */
         delete file;
     }
+
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IBank* BankAlbum::addBank (const std::string& directory, const std::string& bankName)
+{
+    IBank* result = 0;
+
+    DEBUG (("BankAlbum::add '%s'\n", bankName.c_str() ));
+
+    /** We add the uri into the album file. */
+    system::IFile* file = getFile (_name);
+
+    if (file != 0)
+    {
+        /** We build the bank uri. */
+        string bankUri = directory + "/" + bankName;
+
+        /** We write the uri in the file. */
+        file->print ("%s\n", bankName.c_str());
+
+        /** We add a new bank. */
+        result = BankRegistery::singleton().getFactory()->createBank(bankUri);
+
+        /** We put it into the album. */
+        BankComposite::addBank (result);
+
+        /** We memorize the uri of this bank. */
+        _banksUri.push_back (bankUri);
+
+        /** Cleanup. */
+        delete file;
+    }
+
+    return result;
 }
 
 /*********************************************************************

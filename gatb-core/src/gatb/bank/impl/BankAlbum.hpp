@@ -53,16 +53,16 @@ public:
     BankAlbum (const std::string& name, bool deleteIfExists=false);
 
     /** Destructor */
-    ~BankAlbum ();
+    virtual ~BankAlbum ();
 
     /** \copydoc IBank::getId. */
     std::string getId ()  { return _name; }
 
     /** Add a bank to the album. */
-    void add (const std::string& bankUri);
+    IBank* addBank (const std::string& bankUri);
 
-    /** Direct iteration of the IBank instances. */
-    template<typename Functor> void iterate (Functor fct)  {  for (size_t i=0; i<_banks.size(); i++)  { fct (_banks[i]); }  }
+    /** Add a bank to the album. */
+    IBank* addBank (const std::string& directory, const std::string& bankName);
 
 private:
 
