@@ -305,14 +305,14 @@ private:
 
 /********************************************************************************/
 
-template <typename Item, size_t prec=1> class BloomGroup : public system::SmartPointer
+template <typename Item, size_t prec=1> class BloomGroupOld : public system::SmartPointer
 {
 public:
 
     typedef tools::math::LargeInt<prec> Result;
 
     /** */
-    BloomGroup (u_int64_t size, size_t nbHash=4)
+    BloomGroupOld (u_int64_t size, size_t nbHash=4)
         : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
     {
         _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
@@ -320,17 +320,17 @@ public:
     }
 
     /** */
-    BloomGroup (const std::string& uri)
+    BloomGroupOld (const std::string& uri)
         : _hash(0), _nbHash(0), _size(0), _blooma(0)
     {
         load (uri);
     }
 
     /** */
-    ~BloomGroup ()  {  system::impl::System::memory().free (_blooma); }
+    ~BloomGroupOld ()  {  system::impl::System::memory().free (_blooma); }
 
     /** */
-    std::string getName () const { return "BloomGroup"; }
+    std::string getName () const { return "BloomGroupOld"; }
 
     /** */
     void insert (const Item& item, size_t idx)
@@ -340,7 +340,11 @@ public:
         for (size_t i=0; i<this->_nbHash; i++)
         {
             u_int64_t h1 = this->_hash (item, i) % this->_size;
+#if 1
             this->_blooma[h1] |= (ONE << idx);
+#else
+            this->_blooma[h1].sync_fetch_and_or (ONE << idx);
+#endif
         }
     }
 
@@ -361,6 +365,17 @@ public:
 
             /** We write the blooms info. */
             file->fwrite (_blooma, _size*sizeof(Result), 1);
+
+#if 1
+for (size_t i=0; i<10; i++)
+{
+    for (size_t j=0; j<prec; j++)
+    {
+        printf ("%8x ", _blooma[i].value[j]);
+    }
+    printf ("\n");
+}
+#endif
 
             delete file;
         }
@@ -421,6 +436,160 @@ private:
     size_t             _nbHash;
     u_int64_t          _size;
     Result*            _blooma;
+};
+
+/********************************************************************************/
+
+template <typename Item, size_t prec=1> class BloomGroup : public system::SmartPointer
+{
+public:
+
+    class Result
+    {
+    public:
+        Result (u_int64_t v=0)  { memset (v); }
+
+              u_int64_t& operator[] (size_t idx)       { return value[idx]; }
+        const u_int64_t& operator[] (size_t idx) const { return value[idx]; }
+
+        const u_int64_t* array () const { return value; }
+
+        Result& operator&= (const Result& r)
+        {
+            for (size_t j=0; j<prec; j++)  { (*this)[j] &=  r[j]; }
+            return *this;
+        }
+
+    private:
+        u_int64_t value[prec];
+        void memset (u_int64_t v)  {  system::impl::System::memory().memset (value, v, prec*sizeof(u_int64_t));  }
+
+        friend class BloomGroup<Item,prec>;
+    };
+
+    /** */
+    BloomGroup (u_int64_t size, size_t nbHash=4)
+        : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
+    {
+        _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
+    }
+
+    /** */
+    BloomGroup (const std::string& uri)
+        : _hash(0), _nbHash(0), _size(0), _blooma(0)
+    {
+        load (uri);
+    }
+
+    /** */
+    ~BloomGroup ()  {  system::impl::System::memory().free (_blooma); }
+
+    /** */
+    std::string getName () const { return "BloomGroup"; }
+
+    /** Return the size (in bytes). */
+    u_int64_t getMemSize () const { return _size*sizeof(Result); }
+
+    /** */
+    void save (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "wb+");
+        if (file != 0)
+        {
+            /** We write the nb of hash functions. */
+            file->fwrite (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We write the size of the blooms. */
+            file->fwrite (&_size, sizeof(_size), 1);
+
+            /** We write the blooms info. */
+            file->fwrite (_blooma, _size*sizeof(Result), 1);
+
+            delete file;
+        }
+    }
+
+    /** */
+    void load (const std::string& uri)
+    {
+        system::IFile* file = system::impl::System::file().newFile (uri, "rb+");
+        if (file != 0)
+        {
+            /** We read the nb of hash functions. */
+            file->fread (&_nbHash, sizeof(_nbHash), 1);
+
+            /** We read the size of the blooms. */
+            file->fread (&_size, sizeof(_size), 1);
+
+            /** We allocate the array. */
+            _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
+
+            /** We read the blooms info. */
+            file->fread (_blooma, _size*sizeof(Result), 1);
+
+            delete file;
+        }
+    }
+
+    /** Insert an item in the 'idx'th Bloom filter
+     * \param[in] item : item to be inserted into the filter
+     * \param[in] idx : index of the filter */
+    void insert (const Item& item, size_t idx)
+    {
+        u_int64_t q,mask;  euclidian(idx,q,mask);
+
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+
+#if 1
+            this->_blooma[h1][q] |= mask;
+#else
+            __sync_fetch_and_or (this->_blooma[h1].value + q, mask);
+#endif
+        }
+    }
+
+    /** */
+    bool contains (const Item& item, size_t idx)
+    {
+        u_int64_t q,mask;  euclidian(idx,q,mask);
+
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            if ( (_blooma[h1][q] & mask) != mask )  {  return false;  }
+        }
+        return true;
+    }
+
+    /** */
+    Result contains (const Item& item)
+    {
+        Result res (~0);
+
+        for (size_t i=0; i<this->_nbHash; i++)
+        {
+            u_int64_t h1 = this->_hash (item, i) % this->_size;
+            res &=  _blooma [h1];
+        }
+        return res;
+    }
+
+private:
+
+    HashFunctors<Item> _hash;
+    size_t             _nbHash;
+    u_int64_t          _size;
+    Result*            _blooma;
+
+    void euclidian (size_t idx, u_int64_t& dividend, u_int64_t& mask) const
+    {
+        dividend = idx / (8*sizeof(u_int64_t));
+        mask     = ((u_int64_t) 1) << (idx % (8*sizeof(u_int64_t)));
+    }
 };
 
 
