@@ -87,6 +87,11 @@ public:
      */
     long                getInt    ()  { return atol (value.c_str()); }
 
+    /** Returns the value of the property as a float (it supposes that the string represents an float).
+     * \return the value
+     */
+    double              getDouble    ()  { return atof (value.c_str()); }
+
     /** Returns the value of the property as a C string.
      * \return the value
      */
@@ -199,12 +204,14 @@ public:
     virtual IProperty* get (const std::string& key) = 0;
 
     /** */
-    virtual std::string getStr (const std::string& key) = 0;
-    virtual int64_t     getInt (const std::string& key) = 0;
+    virtual std::string getStr    (const std::string& key) = 0;
+    virtual int64_t     getInt    (const std::string& key) = 0;
+    virtual double      getDouble (const std::string& key) = 0;
 
     /** */
-    virtual void setStr (const std::string& key, const std::string& value) = 0;
-    virtual void setInt (const std::string& key, const int64_t& value) = 0;
+    virtual void setStr    (const std::string& key, const std::string& value) = 0;
+    virtual void setInt    (const std::string& key, const int64_t& value) = 0;
+    virtual void setDouble (const std::string& key, const double& value) = 0;
 
     /** Clone the instance
      * \return the cloned instance.

@@ -104,12 +104,13 @@ public:
     IProperty* get (const std::string& key);
 
     /** */
-    std::string getStr (const std::string& key);
-    int64_t     getInt (const std::string& key);
-
+    std::string getStr    (const std::string& key);
+    int64_t     getInt    (const std::string& key);
+    double      getDouble (const std::string& key);
     /** */
-    void setStr (const std::string& key, const std::string& value);
-    void setInt (const std::string& key, const int64_t& value);
+    void setStr    (const std::string& key, const std::string& value);
+    void setInt    (const std::string& key, const int64_t& value);
+    void setDouble (const std::string& key, const double& value);
 
     /** \copydoc IProperties::clone  */
     IProperties* clone ();

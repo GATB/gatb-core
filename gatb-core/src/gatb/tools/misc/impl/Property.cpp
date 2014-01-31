@@ -316,6 +316,23 @@ int64_t Properties::getInt (const std::string& key)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+double Properties::getDouble (const std::string& key)
+{
+    IProperty* prop = get (key);
+
+    if (prop == 0)  {  throw Exception ("Empty property '%s'", key.c_str());  }
+
+    return prop->getDouble();
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void Properties::setStr (const std::string& key, const std::string& value)
 {
     IProperty* prop = get (key);
@@ -341,6 +358,26 @@ void Properties::setInt (const std::string& key, const int64_t& value)
 
     char buffer[64];
     snprintf (buffer, sizeof(buffer), "%lld", value);
+
+    prop->value = buffer;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Properties::setDouble (const std::string& key, const double& value)
+{
+    IProperty* prop = get (key);
+
+    if (prop == 0)  {  throw Exception ("Empty property '%s'", key.c_str());  }
+
+    char buffer[64];
+    snprintf (buffer, sizeof(buffer), "%f", value);
 
     prop->value = buffer;
 }
