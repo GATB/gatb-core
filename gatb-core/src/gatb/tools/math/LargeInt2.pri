@@ -38,6 +38,8 @@ public:
      * \param[in] c : initial value of the large integer. */
     LargeInt<2> (const __uint128_t& c=0)  {  value[0] = c;  }
 
+     u_int64_t getVal ()  { return *value; }
+
     static const char* getName ()  { return "LargeInt<2>"; }
 
     static const size_t getSize ()  { return 8*sizeof(__uint128_t); }
