@@ -18,7 +18,10 @@ SET (HDF5_INSTALL_LIB_DIR           lib)
 SET (HDF5_INSTALL_INCLUDE_DIR       ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5)
 SET (HDF5_INSTALL_DATA_DIR          ${PROJECT_BINARY_DIR}/share/${CMAKE_BUILD_TYPE})
 SET (HDF5_INSTALL_CMAKE_DIR         ${PROJECT_BINARY_DIR}/share/${CMAKE_BUILD_TYPE})
-SET (HDF5_EXPORTED_TARGETS          "gatb-hdf5")
+
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    SET (HDF5_EXPORTED_TARGETS          "gatb-hdf5")
+ENDIF()
 
 # We don't want warnings from HDF5 compilation
 set (COMPILE_DEFINITIONS  "${COMPILE_DEFINITIONS}  -w")
@@ -45,4 +48,6 @@ endforeach()
 ################################################################################
 #  INSTALL 
 ################################################################################
-INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5 DESTINATION include)
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5 DESTINATION include)
+ENDIF ()

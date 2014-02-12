@@ -124,7 +124,7 @@ ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
 ################################################################################
 #  DOCUMENTATION GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(doc)
+ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
 
 ################################################################################
 #  EXAMPLES GENERATION 
@@ -134,8 +134,10 @@ ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
 ################################################################################
 #  INSTALL 
 ################################################################################
-INSTALL (FILES ${PROJECT_SOURCE_DIR}/doc/misc/README.txt  DESTINATION .)
-INSTALL (DIRECTORY ${PROJECT_SOURCE_DIR}/examples DESTINATION . FILES_MATCHING PATTERN "*.cpp")
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    INSTALL (FILES ${PROJECT_SOURCE_DIR}/doc/misc/README.txt  DESTINATION . OPTIONAL)
+    INSTALL (DIRECTORY ${PROJECT_SOURCE_DIR}/examples DESTINATION . OPTIONAL  FILES_MATCHING PATTERN "*.cpp")
+ENDIF()
 
 ################################################################################
 #  INSTALLER 
@@ -146,5 +148,6 @@ SET (CPACK_PACKAGE_VERSION_MAJOR        "${gatb-core_VERSION_MAJOR}")
 SET (CPACK_PACKAGE_VERSION_MINOR        "${gatb-core_VERSION_MINOR}")
 SET (CPACK_PACKAGE_VERSION_PATCH        "${gatb-core_VERSION_PATCH}")
 SET (CPACK_PACKAGE_VERSION              "${gatb-core-version}")  
+SET (CPACK_GENERATOR                    "TGZ")
 
 include (CPack)
