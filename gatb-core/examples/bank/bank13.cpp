@@ -1,0 +1,67 @@
+//! [snippet1]
+// We include what we need for the test
+#include <gatb/gatb_core.hpp>
+#include <iostream>
+
+// We use the required packages
+using namespace std;
+
+static const char* STR_FILTER_RATIO = "-filter-ratio";
+
+/********************************************************************************/
+/*                  Filter sequences having too many bad letters.               */
+/********************************************************************************/
+int main (int argc, char* argv[])
+{
+    /** We create a command line parser. */
+    OptionsParser parser ("BankFilter");
+    parser.push_back (new OptionOneParam (STR_URI_INPUT,     "bank input",   true));
+    parser.push_back (new OptionOneParam (STR_FILTER_RATIO,  "skip a sequence if 'good letters number / seq.len > X'",   false, "0.8"));
+
+    try
+    {
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+        /** Shortcuts. */
+        double percentThreshold = options->getDouble(STR_FILTER_RATIO);
+
+        /** We open the input bank. */
+        IBank* inBank = BankRegistery::singleton().getFactory()->createBank (options->getStr(STR_URI_INPUT));
+        LOCAL (inBank);
+
+        /** We create the output inBank. */
+        IBank* outBank = BankRegistery::singleton().getFactory()->createBank (options->getStr(STR_URI_INPUT) + "_filtered");
+        LOCAL (outBank);
+
+        /** We iterate the inBank. */
+        inBank->iterate ([&] (Sequence& s)
+        {
+            /** Shortcut. */
+            char* data = s.getDataBuffer();
+
+            size_t nbOK = 0;
+            for (size_t i=0; i<s.getDataSize(); i++)
+            {
+                if (data[i]=='A' || data[i]=='C' || data[i]=='G' || data[i]=='T')  { nbOK++; }
+            }
+
+            if ((double)nbOK / (double)s.getDataSize() > percentThreshold)  {  outBank->insert (s);  }
+        });
+
+        /** We flush the output bank. */
+        outBank->flush();
+    }
+
+    catch (OptionFailure& e)
+    {
+        e.getParser().displayErrors (stdout);
+        e.getParser().displayHelp   (stdout);
+        return EXIT_FAILURE;
+    }
+    catch (gatb::core::system::Exception& e)
+    {
+        cerr << "EXCEPTION: " << e.getMessage() << endl;
+    }
+}
+//! [snippet1]
