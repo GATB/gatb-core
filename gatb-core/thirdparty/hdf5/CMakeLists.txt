@@ -246,9 +246,9 @@ ENDIF (NOT HDF5_EXTERNALLY_CONFIGURED)
 # Targets built within this project are exported at Install time for use
 # by other projects using FindHDF5. 
 #-----------------------------------------------------------------------------
-IF (NOT HDF5_EXPORTED_TARGETS)
-  SET (HDF5_EXPORTED_TARGETS "hdf5-targets")
-ENDIF (NOT HDF5_EXPORTED_TARGETS)
+#IF (NOT HDF5_EXPORTED_TARGETS)
+#  SET (HDF5_EXPORTED_TARGETS "hdf5-targets")
+#ENDIF (NOT HDF5_EXPORTED_TARGETS)
 
 #-----------------------------------------------------------------------------
 # To include a library in the list exported by the project AT BUILD TIME,
