@@ -468,9 +468,20 @@ public:
     };
 
     /** */
-    BloomGroup (u_int64_t size, size_t nbHash=4)
+    BloomGroup (u_int64_t size, u_int64_t maxMemory, size_t nbHash=4)
         : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
     {
+        printf ("BloomGroup:  size=%ld   sizeof(Result)=%d  maxMemory=%ld\n", size, sizeof(Result), maxMemory);
+        if (_size*sizeof(Result) > maxMemory)
+        {
+            _size = maxMemory /sizeof (Result);
+        }
+        else
+        {
+            maxMemory = _size*sizeof(Result);
+        }
+        printf ("===> size=%ld   allocMemory=%ld\n", _size, sizeof(Result)*_size);
+
         _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
         system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
     }
