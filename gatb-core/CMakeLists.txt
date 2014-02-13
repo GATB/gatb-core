@@ -88,10 +88,14 @@ set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${Boost_INCLUDE_DIRS})
 # We define the libraries used for linking binary based on gatb core
 set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5)
 
+# We define the directory where to find cmake helpers
+set (gatb-core-cmake  ${CMAKE_MODULE_PATH})
+
 # NOTE... we have to duplicate the variables for the other scopes (in particular for sub directories)
 set (gatb-core-flags     ${gatb-core-flags}     PARENT_SCOPE)
 set (gatb-core-includes  ${gatb-core-includes}  PARENT_SCOPE)
 set (gatb-core-libraries ${gatb-core-libraries} PARENT_SCOPE)
+set (gatb-core-cmake     ${gatb-core-cmake}     PARENT_SCOPE)
 
 ################################################################################
 #  LIBRARY GENERATION 
