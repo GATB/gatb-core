@@ -22,6 +22,9 @@ the server (see below to know what are the existing releases). If you provide an
 already existing version number, the previous release on the server will be replaced
 by the new one.
 
+You can have the list of available targets for delivery with:
+
+    make delivery_help
 
 --------------------------------------------------------------------------------
 # HOW TO KNOW THE EXISTING RELEASES ?
