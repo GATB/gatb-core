@@ -63,12 +63,15 @@ add_custom_target (delivery_help
 
 # We add a custom target for dumping existing deliveries
 add_custom_target (delivery_dump 
+    COMMAND echo ""
     COMMAND echo "-----------------------------------------------------------"
     COMMAND echo "EXISTING BINARIES..."
     COMMAND ssh  ${CPACK_SERVER_ADDRESS} "ls ${CPACK_SERVER_DIR_BIN}"
+    COMMAND echo "-----------------------------------------------------------"
     COMMAND echo ""
     COMMAND echo "-----------------------------------------------------------"
     COMMAND echo "EXISTING SOURCES..."
     COMMAND ssh  ${CPACK_SERVER_ADDRESS} "ls ${CPACK_SERVER_DIR_SRC}"
+    COMMAND echo "-----------------------------------------------------------"
     COMMAND echo ""
 )
