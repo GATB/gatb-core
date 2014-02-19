@@ -177,7 +177,7 @@ SET (CPACK_SOURCE_IGNORE_FILES
 include (CPack)
 
 # We get the user name
-SET (CPACK_USER_NAME  $ENV{USERNAME})
+SET (CPACK_USER_NAME  $ENV{USER})
 
 # We set the server URI
 SET (CPACK_SERVER_ADDRESS    "${CPACK_USER_NAME}@scm.gforge.inria.fr")
