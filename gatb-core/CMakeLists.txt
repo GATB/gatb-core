@@ -6,9 +6,20 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 # The version number.
 ################################################################################
-set (gatb-core_VERSION_MAJOR 1)
-set (gatb-core_VERSION_MINOR 0)
-set (gatb-core_VERSION_PATCH 0)
+SET (gatb-core_VERSION_MAJOR 1)
+SET (gatb-core_VERSION_MINOR 0)
+SET (gatb-core_VERSION_PATCH 0)
+
+IF (DEFINED MAJOR)
+    SET (gatb-core_VERSION_MAJOR ${MAJOR})
+ENDIF()
+IF (DEFINED MINOR)
+    SET (gatb-core_VERSION_MINOR ${MINOR})
+ENDIF()
+IF (DEFINED PATCH)
+    SET (gatb-core_VERSION_PATCH ${PATCH})
+ENDIF()
+
 set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${gatb-core_VERSION_PATCH})
 set (gatb-core-date "xxxx-xx-xx")
 
@@ -144,7 +155,7 @@ IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
 ENDIF()
 
 ################################################################################
-#  INSTALLER 
+#  DELIVERY 
 ################################################################################
 SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY  "gatb-core project")
 SET (CPACK_PACKAGE_VENDOR               "Genscale team (INRIA)")
@@ -153,5 +164,52 @@ SET (CPACK_PACKAGE_VERSION_MINOR        "${gatb-core_VERSION_MINOR}")
 SET (CPACK_PACKAGE_VERSION_PATCH        "${gatb-core_VERSION_PATCH}")
 SET (CPACK_PACKAGE_VERSION              "${gatb-core-version}")  
 SET (CPACK_GENERATOR                    "TGZ")
+SET (CPACK_SOURCE_GENERATOR             "TGZ")
+SET (CPACK_SOURCE_IGNORE_FILES          
+    "^${PROJECT_SOURCE_DIR}/build/"  
+    "^${PROJECT_SOURCE_DIR}/.project"
+    "^${PROJECT_SOURCE_DIR}/.gitignore"
+    "^${PROJECT_SOURCE_DIR}/doc/design"
+    "^${PROJECT_SOURCE_DIR}/DELIVERY.md"
+)
 
+# We get the 'package' and 'package_source' targets
 include (CPack)
+
+# We get the user name
+SET (CPACK_USER_NAME  $ENV{USERNAME})
+
+# We set the server URI
+SET (CPACK_SERVER_ADDRESS    "${CPACK_USER_NAME}@scm.gforge.inria.fr")
+SET (CPACK_SERVER_DIR_BIN "/home/groups/gatb-core/versions/bin/")
+SET (CPACK_SERVER_DIR_SRC "/home/groups/gatb-core/versions/src/")
+
+# We define the name of the bin and src targets
+SET (CPACK_URI_BIN "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}.tar.gz")
+SET (CPACK_URI_SRC "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Source.tar.gz")
+
+# We define the location where the bin and src targets have to be uploaded
+SET (CPACK_UPLOAD_URI_BIN "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}")
+SET (CPACK_UPLOAD_URI_SRC "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_SRC}")
+
+# We add a custom target for delivery
+add_custom_target (delivery 
+    COMMAND echo "-----------------------------------------------------------"
+    COMMAND echo "DELIVERY FOR ${PROJECT_NAME}, VERSION ${CPACK_PACKAGE_VERSION}"
+    COMMAND echo "-----------------------------------------------------------"
+    COMMAND make -j8 package package_source
+    COMMAND scp ${CPACK_URI_BIN} ${CPACK_UPLOAD_URI_BIN}
+    COMMAND scp ${CPACK_URI_SRC} ${CPACK_UPLOAD_URI_SRC}
+)
+
+# We add a custom target for dumping existing deliveries
+add_custom_target (delivery_dump 
+    COMMAND echo "-----------------------------------------------------------"
+    COMMAND echo "EXISTING BINARIES..."
+    COMMAND ssh  ${CPACK_SERVER_ADDRESS} "ls ${CPACK_SERVER_DIR_BIN}"
+    COMMAND echo ""
+    COMMAND echo "-----------------------------------------------------------"
+    COMMAND echo "EXISTING SOURCES..."
+    COMMAND ssh  ${CPACK_SERVER_ADDRESS} "ls ${CPACK_SERVER_DIR_SRC}"
+    COMMAND echo ""
+)
