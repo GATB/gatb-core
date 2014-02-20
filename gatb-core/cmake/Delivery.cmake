@@ -8,46 +8,75 @@ include (CPack)
 # We get the user name
 SET (CPACK_USER_NAME  $ENV{USER})
 
+# We get the date
+GetCurrentDateShort (CPACK_DATE) 
+
+# We set the name of the versions file.
+SET (CPACK_VERSIONS_FILENAME  "versions.txt")
+
 # We set the server URI
-SET (CPACK_SERVER_ADDRESS    "${CPACK_USER_NAME}@scm.gforge.inria.fr")
-SET (CPACK_SERVER_DIR_BIN "/home/groups/${PROJECT_NAME}/versions/bin/")
-SET (CPACK_SERVER_DIR_SRC "/home/groups/${PROJECT_NAME}/versions/src/")
+SET (CPACK_SERVER_ADDRESS   "${CPACK_USER_NAME}@scm.gforge.inria.fr")
+SET (CPACK_SERVER_DIR       "/home/groups/${PROJECT_NAME}/versions/")
+SET (CPACK_SERVER_DIR_BIN   "${CPACK_SERVER_DIR}/bin/")
+SET (CPACK_SERVER_DIR_SRC   "${CPACK_SERVER_DIR}/src/")
+SET (CPACK_SERVER_VERSIONS  "${CPACK_SERVER_DIR}/${CPACK_VERSIONS_FILENAME}")
 
 # We define the name of the bin and src targets
 SET (CPACK_URI_BIN "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}.tar.gz")
 SET (CPACK_URI_SRC "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Source.tar.gz")
 
 # We define the location where the bin and src targets have to be uploaded
-SET (CPACK_UPLOAD_URI_BIN "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}")
-SET (CPACK_UPLOAD_URI_SRC "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_SRC}")
+SET (CPACK_UPLOAD_URI_BIN  "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}")
+SET (CPACK_UPLOAD_URI_SRC  "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_SRC}")
+SET (CPACK_UPLOAD_VERSIONS "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_VERSIONS}")
+
+# We set the text holding all the information about the delivery.
+SET (CPACK_INFO_BIN ${CMAKE_PROJECT_NAME} bin ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} ${CPACK_SYSTEM_NAME} ${CPACK_USER_NAME} ${CPACK_URI_BIN})
+SET (CPACK_INFO_SRC ${CMAKE_PROJECT_NAME} src ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} ${CPACK_SYSTEM_NAME} ${CPACK_USER_NAME} ${CPACK_URI_SRC})
+
+
+################################################################################
+# MAIN TARGET 
+################################################################################
 
 # We add a custom target for delivery
-add_custom_target (delivery 
+add_custom_target (delivery     
+
+    DEPENDS delivery_bin  delivery_src 
+    
     COMMAND echo "-----------------------------------------------------------"
     COMMAND echo "DELIVERY FOR ${PROJECT_NAME}, VERSION ${CPACK_PACKAGE_VERSION}"
     COMMAND echo "-----------------------------------------------------------"
-    COMMAND make -j8 package package_source
-    COMMAND scp ${CPACK_URI_BIN} ${CPACK_UPLOAD_URI_BIN}
-    COMMAND scp ${CPACK_URI_SRC} ${CPACK_UPLOAD_URI_SRC}
+
+    # We dump the known versions
+    COMMAND make delivery_dump
 )
+
+################################################################################
+# TARGETS 'bin'
+################################################################################
 
 # We add a custom target for delivery binaries
 add_custom_target (delivery_bin 
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo "DELIVERY BIN FOR ${PROJECT_NAME}, VERSION ${CPACK_PACKAGE_VERSION}"
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND make -j8 package
-    COMMAND scp ${CPACK_URI_BIN} ${CPACK_UPLOAD_URI_BIN}
+
+    # We get the versions.txt file from the server
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "BIN" ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_BIN}\"  ${CPACK_URI_BIN}   ${CPACK_UPLOAD_URI_BIN}
 )
 
+################################################################################
+# TARGETS 'src'
+################################################################################
+
 # We add a custom target for delivery sources
-add_custom_target (delivery_src
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo "DELIVERY SRC FOR ${PROJECT_NAME}, VERSION ${CPACK_PACKAGE_VERSION}"
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND make -j8 package_source
-    COMMAND scp ${CPACK_URI_SRC} ${CPACK_UPLOAD_URI_SRC}
+add_custom_target (delivery_src 
+
+    # We get the versions.txt file from the server
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "SRC" ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_SRC}\"  ${CPACK_URI_SRC}   ${CPACK_UPLOAD_URI_SRC}
 )
+
+################################################################################
+# TARGET 'help'
+################################################################################
 
 # We add a custom target for delivery sources
 add_custom_target (delivery_help
@@ -61,17 +90,22 @@ add_custom_target (delivery_help
     COMMAND echo ""
 )
 
+################################################################################
+# TARGET 'dump'
+################################################################################
+
 # We add a custom target for dumping existing deliveries
-add_custom_target (delivery_dump 
+add_custom_target (delivery_dump
+
+    # We get the versions.txt file from the server
+    COMMAND scp ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}
+
+    # We dump the versions file.
     COMMAND echo ""
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo "EXISTING BINARIES..."
-    COMMAND ssh  ${CPACK_SERVER_ADDRESS} "ls ${CPACK_SERVER_DIR_BIN}"
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo ""
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo "EXISTING SOURCES..."
-    COMMAND ssh  ${CPACK_SERVER_ADDRESS} "ls ${CPACK_SERVER_DIR_SRC}"
-    COMMAND echo "-----------------------------------------------------------"
+    COMMAND echo "-------------------------------------------------------------------------------------------------"
+    COMMAND echo "LIST OF DELIVERIES FOR " ${CMAKE_PROJECT_NAME}
+    COMMAND echo "-------------------------------------------------------------------------------------------------"
+    COMMAND cat ${CPACK_VERSIONS_FILENAME}
+    COMMAND echo "-------------------------------------------------------------------------------------------------"
     COMMAND echo ""
 )
