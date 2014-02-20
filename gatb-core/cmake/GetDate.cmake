@@ -22,3 +22,14 @@ MACRO (GetCurrentDate dateString)
         )
     ENDIF (PERL_FOUND)
 ENDMACRO()
+
+
+MACRO (GetCurrentDateShort dateString)
+    # We execute a command that retrieves the current date.
+    IF (PERL_FOUND)
+        EXECUTE_PROCESS (
+            COMMAND "${PERL_EXECUTABLE}" "-le" "@T=localtime; printf (\"%04d%02d%02d\",$T[5]+1900,$T[4]+1,$T[3])"
+            OUTPUT_VARIABLE ${dateString}
+        )
+    ENDIF (PERL_FOUND)
+ENDMACRO()
