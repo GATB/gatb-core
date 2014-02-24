@@ -348,7 +348,7 @@ bool Kmer<span>::Model::build (tools::misc::Data& data, std::vector<Kmer<span>::
 #ifdef WITH_LAMBDA_EXPRESSIONS
     this->iterate (data, [&] (const Type& kmer, size_t idx)  {  kmersBuffer[idx] = kmer;  });
 #else
-    this->iterate (data, ModelKmerIterateFct<Kmer<span>::Type>(kmersBuffer));
+    this->iterate (data, ModelKmerIterateFct<Type>(kmersBuffer));
 #endif
 
     return true;
