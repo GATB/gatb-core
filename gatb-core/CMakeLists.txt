@@ -73,8 +73,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"  AND CMAKE_CXX_COMPILER_VERSION VERSION
     set (CXX_STD_VERSION "c++0x")
 endif()
 
-# We use lambda expressions, so we need to use the correct compiler option
-set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
+# We may use lambda expressions, so we need to use the correct compiler option
+if (WITH_LAMBDA_EXPRESSIONS)
+    message ("-- LAMBDA EXPRESSIONS REQUIRED... we will use option -std=${CXX_STD_VERSION}")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
+endif()
 
 message("-- Options: ${LIBRARY_COMPILE_DEFINITIONS}")
 
