@@ -9,6 +9,18 @@ include_directories (${gatb-core-includes})
 
 file (GLOB_RECURSE  PROGRAMS_FILES  *.cpp)
 
+file (GLOB_RECURSE  PROGRAMS_FILES_EXTRA  
+    bank9.cpp bank11.cpp bank12.cpp bank13.cpp 
+    debruijn7.cpp debruijn18.cpp debruijn19.cpp debruijn20.cpp
+)
+
+# Some examples may require lambda expressions. If this option is not activated, we
+# don't compile such examples.
+if (NOT WITH_LAMBDA_EXPRESSIONS)
+    message ("-- WARNING !!! Some examples won't be compiled (use of lambda expressions)")
+    LIST (REMOVE_ITEM PROGRAMS_FILES ${PROGRAMS_FILES_EXTRA})
+endif()
+
 FOREACH (program ${PROGRAMS_FILES})
 
     # we get the base name of the current example
