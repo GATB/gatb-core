@@ -23,7 +23,7 @@ public:
     GraphMarker (const Graph& graph) : graph(graph)
     {
         // We insert all the nodes into our map.
-        graph.iterator<T>().iterate ([&] (const T& item)  {  this->markMap[item] = false;  });
+        graph.iterator<T>().iterate (IterateNodes(this));
     }
 
     void mark (const T& item)  {  markMap [item] = true;  }
@@ -38,6 +38,13 @@ public:
 private:
     const Graph& graph;
     map<T,bool>  markMap;
+
+    struct IterateNodes
+    {
+        IterateNodes (GraphMarker* marker) : marker(marker) {}
+        GraphMarker* marker;
+        void operator() (const T& item) const  {  marker->markMap[item] = false;  }
+    };
 };
 
 /********************************************************************************/
@@ -122,6 +129,13 @@ private:
     list<pair<size_t,size_t> > bfsInfo;
 };
 
+/** */
+struct Entry   {  size_t nbOccurs;  size_t nbKmers;    Entry() : nbOccurs(0), nbKmers(0) {} };
+
+/** */
+typedef pair<size_t,size_t> InOut_t;
+bool CompareFct (const pair<InOut_t,size_t>& a, const pair<InOut_t,size_t>& b) { return a.second > b.second; }
+
 /********************************************************************************/
 /*        Computing connected components of the branching nodes subgraph.       */
 /********************************************************************************/
@@ -153,8 +167,6 @@ int main (int argc, char* argv[])
     // We create an object for Breadth First Search for the de Bruijn graph.
     BFS<BranchingNode> bfs (graph);
 
-    struct Entry   {  size_t nbOccurs;  size_t nbKmers;    Entry() : nbOccurs(0), nbKmers(0) {} };
-
     // We want to compute the distribution of connected components of the branching nodes.
     //    - key is a connected component class (for a given number of branching nodes for this component)
     //    - value is the number of times this component class occurs in the branching sub graph
@@ -167,7 +179,6 @@ int main (int argc, char* argv[])
     size_t nbConnectedComponents = 0;
 
     // We define some kind of unique identifier for a couple (indegree,outdegree)
-    typedef pair<size_t,size_t> InOut_t;
     map <InOut_t, size_t> topology;
 
     size_t simplePathSizeMin = ~0;
@@ -230,8 +241,9 @@ int main (int argc, char* argv[])
     // We sort the statistics by decreasing occurrence numbers. Since map have its own ordering, we need to put all
     // the data into a vector and sort it with our own sorting criteria.
     vector < pair<InOut_t,size_t> >  stats;
-    for (auto it = topology.begin(); it != topology.end(); it++)  { stats.push_back (*it); }
-    sort (stats.begin(), stats.end(), [=] (const pair<InOut_t,size_t>& a, const pair<InOut_t,size_t>& b) { return a.second > b.second; });
+    for (map <InOut_t, size_t>::iterator it = topology.begin(); it != topology.end(); it++)  { stats.push_back (*it); }
+
+    sort (stats.begin(), stats.end(), CompareFct);
 
     // Note: it must be equal to the number of branching nodes of the graph
     assert (sumOccurs == itBranching.size());
