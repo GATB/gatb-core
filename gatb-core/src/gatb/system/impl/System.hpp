@@ -180,7 +180,9 @@ public:
 
     ISynchronizer* getSynchro()  { return _startSynchro; }
 
-    void foreach (const std::function<void (IThread*)>& fct);
+    size_t size() const { return _threads.size(); }
+
+    IThread* operator[] (size_t idx)  { return _threads[idx]; }
 
 private:
 
@@ -223,7 +225,11 @@ public:
 
                 if (group)
                 {
-                    group->foreach ([this] (IThread* thread)  {  this->_map[thread->getId()] = new T(this->_object); });
+                    for (size_t i=0; i<group->size(); i++)
+                    {
+                        IThread* thread = (*group)[i];
+                        this->_map[thread->getId()] = new T(this->_object);
+                    }
                 }
                 else
                 {
@@ -236,9 +242,10 @@ public:
         return *(_map[System::thread().getThreadSelf()]);
     }
 
-    void terminate ()  { foreach (_endFct); }
+    void terminate ()  { }
 
-    void foreach (const std::function<void (T&)>& fct)
+    /** */
+    template<typename Functor> void foreach (const Functor& fct)
     {  for (typename std::map<IThread::Id,T*>::iterator it = _map.begin(); it != _map.end(); it++)  { fct (*(it->second)); } }
 
     T* operator-> ()  { return &_object; }
@@ -247,8 +254,6 @@ public:
 
 private:
     std::map<IThread::Id,T*> _map;
-
-    const std::function<void (const T&)> _endFct;
     T _object;
 
     bool _isInit;

@@ -28,7 +28,6 @@
 #include <gatb/system/api/types.hpp>
 #include <gatb/system/api/ISmartPointer.hpp>
 #include <string>
-#include <functional>
 
 /********************************************************************************/
 namespace gatb      {
@@ -76,7 +75,9 @@ public:
 
     virtual ISynchronizer* getSynchro() = 0;
 
-    virtual void foreach (const std::function<void (IThread*)>& fct) = 0;
+    virtual size_t size() const = 0;
+
+    virtual IThread* operator[] (size_t idx) = 0;
 };
 
 /********************************************************************************/

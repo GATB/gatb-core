@@ -17,7 +17,6 @@
 *****************************************************************************/
 
 #include <gatb/system/impl/System.hpp>
-#include <algorithm>
 
 /********************************************************************************/
 namespace gatb { namespace core { namespace system { namespace impl {
@@ -152,19 +151,6 @@ IThreadGroup* ThreadGroup::find (IThread::Id id)
         }
     }
     return 0;
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-void ThreadGroup::foreach (const std::function<void (IThread*)>& fct)
-{
-    std::for_each (_threads.begin(), _threads.end(), fct);
 }
 
 /********************************************************************************/
