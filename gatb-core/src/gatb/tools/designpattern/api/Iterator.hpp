@@ -29,6 +29,7 @@
 
 /********************************************************************************/
 
+#include <gatb/system/api/types.hpp>
 #include <gatb/system/api/ISmartPointer.hpp>
 
 #include <vector>
