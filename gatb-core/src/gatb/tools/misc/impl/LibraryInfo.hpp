@@ -51,7 +51,7 @@ public:
         static bool first = true;
         if (first)
         {
-            props.add (0, "gatb-core-library");
+            props.add (0, "gatb-core-library", "");
             props.add (1, "version",        "%s", system::impl::System::info().getVersion().c_str());
             props.add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
             props.add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
