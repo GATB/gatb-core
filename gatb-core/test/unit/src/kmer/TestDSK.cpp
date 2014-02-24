@@ -272,7 +272,7 @@ public:
 
         for (itVariant.first(); !itVariant.isDone(); itVariant.next())
         {
-            auto current = itVariant.item();
+            boost::variant<Kmer<32>::Count, Kmer<64>::Count, Kmer<96>::Count, Kmer<128>::Count> current = itVariant.item();
 
             Integer val = boost::apply_visitor (Functor_getValue(),  current);
 
@@ -351,8 +351,9 @@ public:
         size_t idx2 = 0;
         size_t idx1 = 0;
 
-        { TIME_INFO(ti,"1");  iter->iterate ([&idx1](const Count&       k) { idx1++; });  }
-        { TIME_INFO(ti,"2");  itVar.iterate ([&idx2](const KmerVariant& k) { idx2++; });  }
+        {   TIME_INFO(ti,"1");  for (iter->first(); !iter->isDone(); iter->next()) { idx1++; }  }
+
+        {   TIME_INFO(ti,"2");  for (iter->first(); !iter->isDone(); iter->next()) { idx2++; }  }
     }
 
     /** */

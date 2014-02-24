@@ -389,14 +389,12 @@ public:
     }
 
     /********************************************************************************/
-    void debruijn_test6 ()
+    struct debruijn_test6_fct
     {
-        char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
+        debruijn_test6_fct (const Graph& graph) : graph(graph) {}
+        const Graph& graph;
 
-        /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -nks 1  -verbose 0");
-
-        graph.iterator<Node>().iterate ([&] (const Node& node)
+        void operator() (const Node& node) const
         {
             string snode = graph.toString (node);
 
@@ -410,28 +408,28 @@ public:
             /** We reverse the reversed node. */
             Node node2 = graph.reverse (rev2);
             CPPUNIT_ASSERT (graph.toString(node2) == snode);
-        });
+        }
+    };
+
+    void debruijn_test6 ()
+    {
+        char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
+
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -nks 1  -verbose 0");
+
+        graph.iterator<Node>().iterate (debruijn_test6_fct(graph));
     }
 
     /********************************************************************************/
-    void debruijn_test7 ()
+    struct debruijn_test7_fct
     {
-        /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings ("AGGCGC", 0),  "-kmer-size 5  -nks 1  -verbose 0");
+        debruijn_test7_fct (const Graph& graph, Node& n1, Node& n2) : graph(graph), n1(n1), n2(n2) {}
+        const Graph& graph;
+        Node& n1;
+        Node& n2;
 
-        /** We should get two kmers:
-         *      - AGGCG / CGCCT
-         *      - GCGCC / GGCGC
-         */
-        Node n1 = graph.buildNode ((char*)"AGGCG");
-        Node n2 = graph.buildNode ((char*)"GCGCC");
-
-        // We should get as neighborhood
-        // GCGCC  [GCGCC --T--> CGCCT]
-        // GCGCC  [GGCGC --C--> GCGCC]
-        // AGGCG  [AGGCG --C--> GGCGC]
-
-        graph.iterator<Node>().iterate ([&] (const Node& current)
+        void operator() (const Node& current) const
         {
             string currentStr = graph.toString(current);
 
@@ -477,7 +475,27 @@ public:
                     }
                 }
             }
-        });
+        }
+    };
+
+    void debruijn_test7 ()
+    {
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings ("AGGCGC", 0),  "-kmer-size 5  -nks 1  -verbose 0");
+
+        /** We should get two kmers:
+         *      - AGGCG / CGCCT
+         *      - GCGCC / GGCGC
+         */
+        Node n1 = graph.buildNode ((char*)"AGGCG");
+        Node n2 = graph.buildNode ((char*)"GCGCC");
+
+        // We should get as neighborhood
+        // GCGCC  [GCGCC --T--> CGCCT]
+        // GCGCC  [GGCGC --C--> GCGCC]
+        // AGGCG  [AGGCG --C--> GGCGC]
+
+        graph.iterator<Node>().iterate (debruijn_test7_fct (graph, n1, n2));
     }
 
     /********************************************************************************/
@@ -507,7 +525,7 @@ public:
         /** This sequence should not have branching nodes for kmer size big enough. */
         char* seq = (char*) "AGGCGCTAGGGTAGAGGATGATGA";
 
-        size_t kmerSizes[] {7, 9, 11, 13, 15, 17};
+        size_t kmerSizes[] = {7, 9, 11, 13, 15, 17};
 
         for (size_t i=0; i<ARRAY_SIZE(kmerSizes); i++)  { debruijn_test8_aux (seq, kmerSizes[i]); }
     }

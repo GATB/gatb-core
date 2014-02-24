@@ -864,12 +864,23 @@ public:
     struct Fct { void operator() (Sequence& s) { cout << s.getComment() << endl;} };
 
     /********************************************************************************/
+    struct Fct_bank_iteration
+    {
+        Fct_bank_iteration (size_t& count) : count(count) {}
+        size_t& count;
+        void operator() (Sequence& s)  { count++; }
+    };
+
     void bank_iteration (void)
     {
         BankFasta bank (DBPATH("reads1.fa"));
 
         size_t count = 0;
+#ifdef WITH_LAMBDA_EXPRESSIONS
         bank.iterate ([&] (Sequence& s) { count ++; } );
+#else
+        bank.iterate (Fct_bank_iteration(count));
+#endif
         CPPUNIT_ASSERT (count == 100);
     }
 };
