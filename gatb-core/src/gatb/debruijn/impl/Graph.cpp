@@ -878,43 +878,45 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
 };
 
 /********************************************************************************/
+
+struct Functor_getEdges {  void operator() (
+    Graph::Vector<Edge>& items,
+    size_t               idx,
+    const Node::Value&   kmer_from,
+    kmer::Strand         strand_from,
+    const Node::Value&   kmer_to,
+    kmer::Strand         strand_to,
+    kmer::Nucleotide     nt,
+    Direction            dir
+) const
+{
+    items[idx++].set (kmer_from, strand_from, kmer_to, strand_to, nt, dir);
+}};
+
 Graph::Vector<Edge> Graph::getEdges (const Node& source, Direction direction)  const
 {
-    struct Functor {  void operator() (
-        Graph::Vector<Edge>& items,
-        size_t               idx,
-        const Node::Value&   kmer_from,
-        kmer::Strand         strand_from,
-        const Node::Value&   kmer_to,
-        kmer::Strand         strand_to,
-        kmer::Nucleotide     nt,
-        Direction            dir
-    ) const
-    {
-        items[idx++].set (kmer_from, strand_from, kmer_to, strand_to, nt, dir);
-    }};
 
-    return boost::apply_visitor (getItems_visitor<Edge,Functor>(source, direction, Functor()),  *(GraphDataVariant*)_variant);
+    return boost::apply_visitor (getItems_visitor<Edge,Functor_getEdges>(source, direction, Functor_getEdges()),  *(GraphDataVariant*)_variant);
 }
 
 /********************************************************************************/
+struct Functor_getNodes {  void operator() (
+    Graph::Vector<Node>&   items,
+    size_t               idx,
+    const Node::Value&   kmer_from,
+    kmer::Strand         strand_from,
+    const Node::Value&   kmer_to,
+    kmer::Strand         strand_to,
+    kmer::Nucleotide     nt,
+    Direction            dir
+) const
+{
+    items[idx++].set (kmer_to, strand_to);
+}};
+
 Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
 {
-    struct Functor {  void operator() (
-        Graph::Vector<Node>&   items,
-        size_t               idx,
-        const Node::Value&   kmer_from,
-        kmer::Strand         strand_from,
-        const Node::Value&   kmer_to,
-        kmer::Strand         strand_to,
-        kmer::Nucleotide     nt,
-        Direction            dir
-    ) const
-    {
-        items[idx++].set (kmer_to, strand_to);
-    }};
-
-    return boost::apply_visitor (getItems_visitor<Node,Functor>(source, direction, Functor()),  *(GraphDataVariant*)_variant);
+    return boost::apply_visitor (getItems_visitor<Node,Functor_getNodes>(source, direction, Functor_getNodes()),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1138,22 +1140,23 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
     }
 };
 
+struct Functor_getNode {  void operator() (
+    Node&                item,
+    const Node::Value&   kmer_from,
+    kmer::Strand         strand_from,
+    const Node::Value&   kmer_to,
+    kmer::Strand         strand_to,
+    kmer::Nucleotide     nt,
+    Direction            dir
+) const
+{
+    item.set (kmer_to, strand_to);
+}};
+
+
 Node Graph::getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
 {
-    struct Functor {  void operator() (
-        Node&                item,
-        const Node::Value&   kmer_from,
-        kmer::Strand         strand_from,
-        const Node::Value&   kmer_to,
-        kmer::Strand         strand_to,
-        kmer::Nucleotide     nt,
-        Direction            dir
-    ) const
-    {
-        item.set (kmer_to, strand_to);
-    }};
-
-    return boost::apply_visitor (getItem_visitor<Node,Functor>(source, dir, nt, exists, Functor()),  *(GraphDataVariant*)_variant);
+    return boost::apply_visitor (getItem_visitor<Node,Functor_getNode>(source, dir, nt, exists, Functor_getNode()),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1706,31 +1709,31 @@ public:
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+struct Functor_getSimpleNodeIterator {  void operator() (
+    const Graph&         graph,
+    Node&                item,
+    Direction            dir,
+    bool&                isDone
+) const
+{
+    Edge output;
+
+    /** We check if we have a simple node. */
+    if (graph.simplePathAvance (item, dir, output) > 0)
+    {
+        /** We update the currently iterated node. */
+        item = output.to;
+    }
+    else
+    {
+        /** We can't have a non branching node in the wanted direction => iteration is finished. */
+        isDone = true;
+    }
+}};
+
 Graph::Iterator<Node> Graph::getSimpleNodeIterator (const Node& node, Direction dir) const
 {
-    struct Functor {  void operator() (
-        const Graph&         graph,
-        Node&                item,
-        Direction            dir,
-        bool&                isDone
-    ) const
-    {
-        Edge output;
-
-        /** We check if we have a simple node. */
-        if (graph.simplePathAvance (item, dir, output) > 0)
-        {
-            /** We update the currently iterated node. */
-            item = output.to;
-        }
-        else
-        {
-            /** We can't have a non branching node in the wanted direction => iteration is finished. */
-            isDone = true;
-        }
-    }};
-
-    return Graph::Iterator<Node> (new NodeSimplePathIterator <Functor> (*this, node, dir, Functor()));
+    return Graph::Iterator<Node> (new NodeSimplePathIterator <Functor_getSimpleNodeIterator> (*this, node, dir, Functor_getSimpleNodeIterator()));
 }
 
 /*********************************************************************
@@ -1741,29 +1744,29 @@ Graph::Iterator<Node> Graph::getSimpleNodeIterator (const Node& node, Direction 
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+struct Functor_getSimpleEdgeIterator {  void operator() (
+    const Graph&         graph,
+    Edge&                item,
+    Direction            dir,
+    bool&                isDone
+) const
+{
+    Edge output;
+
+    /** We check if we have a simple node. */
+    int res = graph.simplePathAvance (item.to, dir, output);
+
+    /** NOTE: we update the item in case we have outdegree==1 (case>0 and case==-2) */
+    if (res > 0  ||  res == -2)  {  item = output;  }
+
+    /** We can't have a non branching node in the wanted direction => iteration is finished. */
+    if (res <= 0)  {  isDone = true;  }
+
+}};
+
 Graph::Iterator<Edge> Graph::getSimpleEdgeIterator (const Node& node, Direction dir) const
 {
-    struct Functor {  void operator() (
-        const Graph&         graph,
-        Edge&                item,
-        Direction            dir,
-        bool&                isDone
-    ) const
-    {
-        Edge output;
-
-        /** We check if we have a simple node. */
-        int res = graph.simplePathAvance (item.to, dir, output);
-
-        /** NOTE: we update the item in case we have outdegree==1 (case>0 and case==-2) */
-        if (res > 0  ||  res == -2)  {  item = output;  }
-
-        /** We can't have a non branching node in the wanted direction => iteration is finished. */
-        if (res <= 0)  {  isDone = true;  }
-
-    }};
-
-    return Graph::Iterator<Edge> (new EdgeSimplePathIterator<Functor>(*this, node, dir, Functor()));
+    return Graph::Iterator<Edge> (new EdgeSimplePathIterator<Functor_getSimpleEdgeIterator>(*this, node, dir, Functor_getSimpleEdgeIterator()));
 }
 
 /*********************************************************************
@@ -1815,7 +1818,7 @@ std::set<BranchingNode> Graph::neighbors (std::set<BranchingNode>::iterator firs
 
             void execute ()
             {
-                for (auto it=range.first; it!=range.second; ++it)
+                for (std::set<BranchingNode>::iterator it=range.first; it!=range.second; ++it)
                 {
                     Graph::Vector<BranchingNode> neighbors = graph.neighbors<BranchingNode> (it->kmer);
                     for (size_t i=0; i<neighbors.size(); i++)  { result.push_back (neighbors[i]); }
@@ -1856,7 +1859,7 @@ std::set<BranchingNode> Graph::neighbors (std::set<BranchingNode>::iterator firs
     }
     else
     {
-        for (auto it=first; it!=last; ++it)
+        for (std::set<BranchingNode>::iterator it=first; it!=last; ++it)
         {
             Graph::Vector<BranchingNode> neighbors = this->neighbors<BranchingNode> (it->kmer);
             for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
