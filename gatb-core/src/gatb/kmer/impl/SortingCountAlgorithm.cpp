@@ -687,7 +687,13 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
         {
             ICommand* cmd = 0;
 
-            if (_partitionType == 0)
+            /** We get the length of the current partition file. */
+            size_t partitionLen = (*_partitions)[p].getNbItems();
+
+            /* Get the memory taken by this partition if loaded for sorting */
+            uint64_t memoryPartition = partitionLen * sizeof(Type);
+
+            if (memoryPartition >= mem)
             {
                 cmd = new PartitionsByHashCommand<span>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, mem);
             }
