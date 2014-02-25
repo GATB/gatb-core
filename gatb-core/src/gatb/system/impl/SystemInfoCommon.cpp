@@ -120,6 +120,11 @@ u_int64_t SystemInfoLinux::getMemoryBuffers () const
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
+#include <mach/vm_statistics.h>
+#include <mach/mach_types.h>
+#include <mach/mach_init.h>
+#include <mach/mach_host.h>
+
 /********************************************************************************/
 size_t SystemInfoMacos::getNbCores () const
 {
@@ -157,6 +162,52 @@ string SystemInfoMacos::getHostName () const
     result.assign (hostname, strlen(hostname));
 
     return result;
+}
+
+/********************************************************************************/
+u_int64_t SystemInfoMacos::getMemoryPhysicalTotal () const
+{
+	int mib[2] = { CTL_HW, HW_MEMSIZE };
+	size_t namelen = sizeof(mib) / sizeof(mib[0]);
+	u_int64_t size;
+	size_t len = sizeof(size);
+
+	if (sysctl(mib, namelen, &size, &len, NULL, 0) < 0)
+	{
+		throw Exception ("Unable to get physical memory");
+	}
+	else
+	{
+		return size;
+	}
+}
+
+/********************************************************************************/
+u_int64_t SystemInfoMacos::getMemoryPhysicalUsed () const
+{
+	// see http://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+	vm_size_t page_size;
+	mach_port_t mach_port;
+	mach_msg_type_number_t count;
+	vm_statistics_data_t vm_stats;
+
+	mach_port = mach_host_self();
+	count = sizeof(vm_stats) / sizeof(natural_t);
+	if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
+	    KERN_SUCCESS == host_statistics(mach_port, HOST_VM_INFO,
+	                                    (host_info_t)&vm_stats, &count))
+	{
+		int64_t myFreeMemory = (int64_t)vm_stats.free_count * (int64_t)page_size;
+
+		int64_t used_memory = ((int64_t)vm_stats.active_count +
+	                   (int64_t)vm_stats.inactive_count +
+	                   (int64_t)vm_stats.wire_count) *  (int64_t)page_size;
+		return myFreeMemory + used_memory;
+	}
+	else
+	{
+		throw Exception ("Unable to get free memory");
+	}
 }
 
 #endif

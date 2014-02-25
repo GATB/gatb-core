@@ -104,10 +104,10 @@ public:
     std::string getHostName () const ;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalTotal */
-    u_int64_t getMemoryPhysicalTotal () const  { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalTotal () const;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalUsed */
-    u_int64_t getMemoryPhysicalUsed () const   { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalUsed () const;
 
     /** \copydoc ISystemInfo::getMemoryBuffers */
     u_int64_t getMemoryBuffers () const        { throw ExceptionNotImplemented(); }
