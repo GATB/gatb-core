@@ -119,7 +119,7 @@ public:
         /** We gather some statistics. */
         if (stats != 0)
         {
-            stats->add (0, "bloom");
+            stats->add (0, "bloom", "");
             stats->add (1, "filter_size", "%lld", _bloomSize);
             stats->add (1, "nb_hash_fct", "%d",   _nbHash);
         }

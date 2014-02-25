@@ -79,7 +79,7 @@ int main (int argc, char* argv[])
                 if (currentBank != 0)  { currentBank->flush(); }
 
                 nbBanksOutput ++;
-                if (nbBanksOutput > nbBanks)  { break; }
+                if (nbBanksOutput >= nbBanks)  { break; }
 
                 /** We build the uri of the current bank. */
                 stringstream ss;  ss << inputBasename << "_" << nbBanksOutput;

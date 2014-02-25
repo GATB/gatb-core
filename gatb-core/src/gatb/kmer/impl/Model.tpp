@@ -314,6 +314,22 @@ void Kmer<span>::Model::iterateNeighbors (const Type& source, const Functor& fct
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+template<typename Type>
+struct ModelKmerIterateFct
+{
+    std::vector<Type>& kmersBuffer;
+    ModelKmerIterateFct (std::vector<Type>& kmersBuffer) : kmersBuffer(kmersBuffer) {}
+    void operator() (const Type& kmer, size_t idx)  {  kmersBuffer[idx] = kmer;  }
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<size_t span>
 bool Kmer<span>::Model::build (tools::misc::Data& data, std::vector<Kmer<span>::Type>& kmersBuffer, KmerMode mode)  const
 {
@@ -329,10 +345,11 @@ bool Kmer<span>::Model::build (tools::misc::Data& data, std::vector<Kmer<span>::
     char* buffer = data.getBuffer() + this->getKmerSize() - 1;
 
     /** We fill the vector through a functor. */
-    this->iterate (data, [&] (const Type& kmer, size_t idx)
-    {
-        kmersBuffer[idx] = kmer;
-    });
+#ifdef WITH_LAMBDA_EXPRESSIONS
+    this->iterate (data, [&] (const Type& kmer, size_t idx)  {  kmersBuffer[idx] = kmer;  });
+#else
+    this->iterate (data, ModelKmerIterateFct<Type>(kmersBuffer));
+#endif
 
     return true;
 }

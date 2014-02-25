@@ -6,9 +6,20 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 # The version number.
 ################################################################################
-set (gatb-core_VERSION_MAJOR 1)
-set (gatb-core_VERSION_MINOR 0)
-set (gatb-core_VERSION_PATCH 0)
+SET (gatb-core_VERSION_MAJOR 1)
+SET (gatb-core_VERSION_MINOR 0)
+SET (gatb-core_VERSION_PATCH 0)
+
+IF (DEFINED MAJOR)
+    SET (gatb-core_VERSION_MAJOR ${MAJOR})
+ENDIF()
+IF (DEFINED MINOR)
+    SET (gatb-core_VERSION_MINOR ${MINOR})
+ENDIF()
+IF (DEFINED PATCH)
+    SET (gatb-core_VERSION_PATCH ${PATCH})
+ENDIF()
+
 set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${gatb-core_VERSION_PATCH})
 set (gatb-core-date "xxxx-xx-xx")
 
@@ -62,8 +73,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"  AND CMAKE_CXX_COMPILER_VERSION VERSION
     set (CXX_STD_VERSION "c++0x")
 endif()
 
-# We use lambda expressions, so we need to use the correct compiler option
-set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
+# We may use lambda expressions, so we need to use the correct compiler option
+if (WITH_LAMBDA_EXPRESSIONS)
+    message ("-- LAMBDA EXPRESSIONS REQUIRED... we will use option -std=${CXX_STD_VERSION}")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
+endif()
 
 message("-- Options: ${LIBRARY_COMPILE_DEFINITIONS}")
 
@@ -88,10 +102,14 @@ set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${Boost_INCLUDE_DIRS})
 # We define the libraries used for linking binary based on gatb core
 set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5)
 
+# We define the directory where to find cmake helpers
+set (gatb-core-cmake  ${CMAKE_MODULE_PATH})
+
 # NOTE... we have to duplicate the variables for the other scopes (in particular for sub directories)
 set (gatb-core-flags     ${gatb-core-flags}     PARENT_SCOPE)
 set (gatb-core-includes  ${gatb-core-includes}  PARENT_SCOPE)
 set (gatb-core-libraries ${gatb-core-libraries} PARENT_SCOPE)
+set (gatb-core-cmake     ${gatb-core-cmake}     PARENT_SCOPE)
 
 ################################################################################
 #  LIBRARY GENERATION 
@@ -124,7 +142,7 @@ ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
 ################################################################################
 #  DOCUMENTATION GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(doc)
+ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
 
 ################################################################################
 #  EXAMPLES GENERATION 
@@ -134,11 +152,13 @@ ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
 ################################################################################
 #  INSTALL 
 ################################################################################
-INSTALL (FILES ${PROJECT_SOURCE_DIR}/doc/misc/README.txt  DESTINATION .)
-INSTALL (DIRECTORY ${PROJECT_SOURCE_DIR}/examples DESTINATION . FILES_MATCHING PATTERN "*.cpp")
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    INSTALL (FILES ${PROJECT_SOURCE_DIR}/doc/misc/README.txt  DESTINATION . OPTIONAL)
+    INSTALL (DIRECTORY ${PROJECT_SOURCE_DIR}/examples DESTINATION . OPTIONAL  FILES_MATCHING PATTERN "*.cpp")
+ENDIF()
 
 ################################################################################
-#  INSTALLER 
+#  DELIVERY 
 ################################################################################
 SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY  "gatb-core project")
 SET (CPACK_PACKAGE_VENDOR               "Genscale team (INRIA)")
@@ -146,5 +166,16 @@ SET (CPACK_PACKAGE_VERSION_MAJOR        "${gatb-core_VERSION_MAJOR}")
 SET (CPACK_PACKAGE_VERSION_MINOR        "${gatb-core_VERSION_MINOR}")
 SET (CPACK_PACKAGE_VERSION_PATCH        "${gatb-core_VERSION_PATCH}")
 SET (CPACK_PACKAGE_VERSION              "${gatb-core-version}")  
+SET (CPACK_GENERATOR                    "TGZ")
+SET (CPACK_SOURCE_GENERATOR             "TGZ")
+SET (CPACK_SOURCE_IGNORE_FILES          
+    "^${PROJECT_SOURCE_DIR}/build/"  
+    "^${PROJECT_SOURCE_DIR}/.project"
+    "^${PROJECT_SOURCE_DIR}/.gitignore"
+    "^${PROJECT_SOURCE_DIR}/doc/design"
+    "^${PROJECT_SOURCE_DIR}/DELIVERY.md"
+)
 
-include (CPack)
+# We include the module and get all the delivery targets
+include (Delivery)
+

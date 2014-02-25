@@ -17,4 +17,6 @@ ENDFOREACH (program)
 ################################################################################
 #  INSTALLATION 
 ################################################################################
-install (TARGETS dbgh5 dbginfo dbgtopology DESTINATION bin)
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    install (TARGETS dbgh5 dbginfo dbgtopology DESTINATION bin)
+ENDIF ()

@@ -141,7 +141,9 @@ IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
 *********************************************************************/
 IFileSystem::Path FileSystemCommon::getRealPath (const Path& file)
 {
-    char buf[1024];
+    /** We must use a big buffer. Previously was 1024 but we got crashes on
+     * the CI server with this value... */
+    char buf [4*1024];
 
     if (realpath (file.c_str(), buf) != 0)
     {

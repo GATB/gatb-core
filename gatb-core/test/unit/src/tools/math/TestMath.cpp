@@ -44,7 +44,7 @@ public:
     void tearDown ()  {}
 
     /********************************************************************************/
-    template <typename T, typename U=T> void math_checkBasicTemplate ()
+    template <typename T, typename U> void math_checkBasicTemplate ()
     {
 #define CST(a) T(U(a))
 
@@ -97,7 +97,7 @@ public:
     }
 
     /********************************************************************************/
-    template <typename T, typename U=T> void math_checkFiboTemplate ()
+    template <typename T, typename U> void math_checkFiboTemplate ()
     {
         static u_int64_t table[] =
         {
@@ -108,13 +108,13 @@ public:
             165580141, 267914296, 433494437, 701408733, 1134903170, 1836311903, 2971215073, 4807526976u, 7778742049u, 12586269025u
         };
 
-        T u0(0), u1(1);
+        T u0(CST(0)), u1(CST(1));
 
         for (size_t i=0; i<sizeof(table)/sizeof(table[0]); i++)
         {
-            T u2(0);
+            T u2(CST(0));
             u2 = u1 + u0;
-            CPPUNIT_ASSERT (u2 == T(table[i]));
+            CPPUNIT_ASSERT (u2 == T(CST(table[i])));
 
             u0 = u1;
             u1 = u2;
@@ -124,12 +124,12 @@ public:
     /********************************************************************************/
     void math_checkBasic ()
     {
-        math_checkBasicTemplate < LargeInt<1> >     ();
-        math_checkBasicTemplate < LargeInt<2> >     ();
-        math_checkBasicTemplate < LargeInt<3> >     ();
-        math_checkBasicTemplate < LargeInt<4> >     ();
-        math_checkBasicTemplate < LargeInt<5> >     ();
-        math_checkBasicTemplate < LargeInt<6> >     ();
+        math_checkBasicTemplate < LargeInt<1>, LargeInt<1> >     ();
+        math_checkBasicTemplate < LargeInt<2>, LargeInt<2> >     ();
+        math_checkBasicTemplate < LargeInt<3>, LargeInt<3> >     ();
+        math_checkBasicTemplate < LargeInt<4>, LargeInt<4> >     ();
+        math_checkBasicTemplate < LargeInt<5>, LargeInt<5> >     ();
+        math_checkBasicTemplate < LargeInt<6>, LargeInt<6> >     ();
 
         math_checkBasicTemplate <Integer, LargeInt<1> > ();
         math_checkBasicTemplate <Integer, LargeInt<2> > ();
@@ -140,15 +140,15 @@ public:
     /********************************************************************************/
     void math_checkFibo ()
     {
-        math_checkBasicTemplate < LargeInt<1> >     ();
-        math_checkBasicTemplate < LargeInt<2> >     ();
-        math_checkBasicTemplate < LargeInt<3> >     ();
-        math_checkBasicTemplate < LargeInt<4> >     ();
+        math_checkFiboTemplate < LargeInt<1>, LargeInt<1> >     ();
+        math_checkFiboTemplate < LargeInt<2>, LargeInt<2> >     ();
+        math_checkFiboTemplate < LargeInt<3>, LargeInt<3> >     ();
+        math_checkFiboTemplate < LargeInt<4>, LargeInt<4> >     ();
 
-        math_checkBasicTemplate <Integer, LargeInt<1> > ();
-        math_checkBasicTemplate <Integer, LargeInt<2> > ();
-        math_checkBasicTemplate <Integer, LargeInt<3> > ();
-        math_checkBasicTemplate <Integer, LargeInt<4> > ();
+        math_checkFiboTemplate <Integer, LargeInt<1> > ();
+        math_checkFiboTemplate <Integer, LargeInt<2> > ();
+        math_checkFiboTemplate <Integer, LargeInt<3> > ();
+        math_checkFiboTemplate <Integer, LargeInt<4> > ();
     }
 };
 

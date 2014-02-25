@@ -81,6 +81,70 @@ BranchingAlgorithm<span>::~BranchingAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+template<typename Count, typename Type>
+struct IterNodeFct
+{
+    IterNodeFct (const Graph& graph, ThreadObject <vector<Count> >& branchingNodes, ThreadObject<u_int64_t>& count)
+        : graph(graph), branchingNodes(branchingNodes), count(count) {}
+    const Graph& graph;
+    ThreadObject <vector<Count> >& branchingNodes;
+    ThreadObject<u_int64_t>& count;
+
+    void operator() (const Node& node)
+    {
+        if (graph.isBranching(node))
+        {
+            count() ++;
+            branchingNodes().push_back (Count (node.kmer.get<Type>(), node.abundance));
+        }
+    }
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename Count>
+struct BranchingFct
+{
+    BranchingFct (ThreadObject <vector<Count> >& branchingNodes) : branchingNodes(branchingNodes) {}
+    ThreadObject <vector<Count> >& branchingNodes;
+
+    void operator() (vector<Count>& v)  const
+    {
+        branchingNodes->insert (branchingNodes->end(), v.begin(), v.end());
+        v.clear ();
+    }
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename Count>
+struct CountFct
+{
+    CountFct (ThreadObject<u_int64_t>& count) : count(count) {}
+    ThreadObject<u_int64_t>& count;
+    void operator() (u_int64_t n)  const  {  *count += n;  }
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<size_t span>
 void BranchingAlgorithm<span>::execute ()
 {
@@ -101,6 +165,7 @@ void BranchingAlgorithm<span>::execute ()
 
     ThreadObject <vector<Count> > branchingNodes;
 
+#ifdef WITH_LAMBDA_EXPRESSIONS
     /** We iterate the nodes. */
     tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (const Node& node)
     {
@@ -117,6 +182,13 @@ void BranchingAlgorithm<span>::execute ()
         branchingNodes->insert (branchingNodes->end(), v.begin(), v.end());
         v.clear ();
     });
+#else
+    /** We iterate the nodes. */
+    tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, IterNodeFct<Count,Type> (_graph, branchingNodes, count));
+
+    /** We concate the kmers. */
+    branchingNodes.foreach (BranchingFct<Count>(branchingNodes));
+#endif
 
     /** We sort the kmers. */
     sort (branchingNodes->begin(), branchingNodes->end());
@@ -124,8 +196,12 @@ void BranchingAlgorithm<span>::execute ()
     /** We put the kmers into the final bag. */
     _branchingBag->insert (branchingNodes->data(), branchingNodes->size());
 
+#ifdef WITH_LAMBDA_EXPRESSIONS
     /** We gather the information collected during iteration. */
     count.foreach    ([&] (u_int64_t n) { *count += n; } );
+#else
+    count.foreach  (CountFct<Count>(count));
+#endif
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");

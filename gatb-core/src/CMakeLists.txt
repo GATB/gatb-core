@@ -6,7 +6,9 @@ configure_file (
     ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp
 )
 
-install (FILES ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp DESTINATION include/gatb/system/api/)
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    install (FILES ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp DESTINATION include/gatb/system/api/)
+ENDIF ()
 
 ################################################################################
 #  HEADERS COPY
@@ -16,7 +18,9 @@ file (COPY ${PROJECT_SOURCE_DIR}/src/
     FILES_MATCHING PATTERN "*.hpp"  PATTERN "*.tpp"  PATTERN "*.pri"
 )
 
-install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.tpp" PATTERN "*.pri")
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.tpp" PATTERN "*.pri")
+ENDIF ()
 
 ################################################################################
 #  LIBRARY GENERATION 
@@ -43,5 +47,6 @@ set_target_properties  (gatbcore-static   PROPERTIES OUTPUT_NAME  gatbcore  clea
 ################################################################################
 
 # We install the libraries
-install (TARGETS gatbcore-static DESTINATION lib)
-#install (TARGETS gatbcore-dynamic DESTINATION lib)
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    install (TARGETS gatbcore-static DESTINATION lib)
+ENDIF ()
