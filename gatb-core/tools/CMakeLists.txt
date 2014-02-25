@@ -18,5 +18,5 @@ ENDFOREACH (program)
 #  INSTALLATION 
 ################################################################################
 IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
-    install (TARGETS dbgh5 dbginfo dbgtopology DESTINATION bin)
+    install (TARGETS dbgh5 dbginfo DESTINATION bin)
 ENDIF ()
