@@ -429,7 +429,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
 
     /** We create the partition files for the current pass. */
-    setPartitionsStorage (StorageFactory(STORAGE_FILE).createStorage ("partitions", true, false));
+    setPartitionsStorage (StorageFactory(STORAGE_FILE).create ("partitions", true, false));
     setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
@@ -580,7 +580,7 @@ public:
         size_t partitionLen = this->_partition.getNbItems();
 
         /** We check that we got something. */
-        if (partitionLen == 0)  { throw Exception ("DSK: no solid kmers found"); }
+        if (partitionLen == 0)  {  return;  /*throw Exception ("DSK: no solid kmers found");*/  }
 
         /** We resize our vector that will be filled with the partition file content.
          * NOTE: we add an extra item and we will set it to the maximum kmer value. */

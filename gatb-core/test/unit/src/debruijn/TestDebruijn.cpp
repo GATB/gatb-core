@@ -275,7 +275,7 @@ public:
         IBank* bank = new BankStrings (seq, 0);
 
         /** We create a storage instance. */
-        Storage* storage  = StorageFactory(mode).createStorage ("test", true, true);
+        Storage* storage  = StorageFactory(mode).create ("test", true, true);
         LOCAL (storage);
 
         /** We create a DSK instance. */

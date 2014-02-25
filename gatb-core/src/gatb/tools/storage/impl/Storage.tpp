@@ -396,7 +396,7 @@ namespace gatb  {  namespace core  {  namespace tools  {  namespace storage  {  
 
 /*********************************************************************
 *********************************************************************/
-inline Storage* StorageFactory::createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
+inline Storage* StorageFactory::create (const std::string& name, bool deleteIfExist, bool autoRemove)
 {
     switch (_mode)
     {

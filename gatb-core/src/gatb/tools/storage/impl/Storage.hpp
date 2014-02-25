@@ -305,6 +305,8 @@ public:
     /** Destructor */
     ~Storage ();
 
+    Group& root () { return *getRoot(); }
+
     /** Facility for retrieving the root group.
      * \return the root group. */
     Group& operator() (const std::string name="");
@@ -346,7 +348,10 @@ public:
     StorageFactory (StorageMode_e mode) : _mode(mode)  {}
 
     /** */
-    Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove);
+    Storage* create (const std::string& name, bool deleteIfExist, bool autoRemove);
+
+    /** */
+    Storage* load (const std::string& name) { return create (name, false, false); }
 
     /** */
     Group* createGroup (ICell* parent, const std::string& name);

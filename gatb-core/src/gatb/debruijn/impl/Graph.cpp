@@ -303,7 +303,7 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                       Storage creation                   */
         /************************************************************/
-        graph.setStorage (StorageFactory(graph._storageMode).createStorage (output, true, false));
+        graph.setStorage (StorageFactory(graph._storageMode).create (output, true, false));
 
         /************************************************************/
         /*                         Bank conversion                  */
@@ -514,7 +514,7 @@ Graph::Graph (const std::string& uri)
     size_t precision = 0;
 
     /** We create a storage instance. */
-    setStorage (StorageFactory(_storageMode).createStorage (uri, false, false));
+    setStorage (StorageFactory(_storageMode).create (uri, false, false));
 
     /** We retrieve the type of kmers to be used from the storage. */
     Collection<NativeInt8>* metadata = & getStorage().getCollection<NativeInt8> ("metadata");
