@@ -10,7 +10,7 @@ file (GLOB_RECURSE  GatbCoreTestFiles  src/*)
 include_directories (${gatb-core-includes}  ${gatb-core_SOURCE_DIR}/test/unit/src  ${CPPUNIT_INCLUDE_DIR})
 
 add_executable        (gatb-core-cppunit    ${GatbCoreTestFiles})
-target_link_libraries (gatb-core-cppunit    ${gatb-core-libraries} ${CPPUNIT_LIBRARY})
+target_link_libraries (gatb-core-cppunit    ${gatb-core-libraries} ${CPPUNIT_LIBRARY_STATIC})
 
 #################################################
 #  LAUNCH 
