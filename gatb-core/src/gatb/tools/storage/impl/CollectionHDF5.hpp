@@ -61,7 +61,8 @@ public:
 
     /** Insert an item into the bag.
      * \param[in] item : the item to be inserted. */
-    void insert (const Item& item)                                 {  throw "BagHDF5::insert (1)";  }
+    void insert (const Item& item) {  insert (&item, 1);  }
+
     void insert (const std::vector<Item>& items, size_t length=0)  {  throw "BagHDF5::insert (2)";  }
 
     /** Insert items into the bag.
