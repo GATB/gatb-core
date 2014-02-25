@@ -65,7 +65,7 @@ public:
         tools::storage::impl::Storage& storage,
         tools::collections::Iterable<Count>* solidIterable,
         size_t                      kmerSize,
-        size_t                      max_memory = 1000,
+        size_t                      max_memory = 0,
         size_t                      nb_cores   = 0,
         tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
         const std::string&          debloomUri = "debloom",

@@ -218,9 +218,6 @@ void SortingCountAlgorithm<span>::execute ()
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
     assert (_nbCores > 0);
 
-    /** We set the max memory according to the number of used cores. */
-    _max_memory /= _nbCores;
-
     /** We configure dsk by computing the number of passes and partitions we will have
      * according to the allowed disk and memory space. */
     configure (_bank);
@@ -284,6 +281,10 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
+    // optimism == 1 mean that we guarantee worst case the memory usage,
+    // any value above assumes that, on average, a k-mer will be seen 'optimism' times
+    int optimism = 1;
+
     /** We get some information about the bank. */
     bank->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
 
@@ -299,21 +300,27 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, bankSize);  }
     if (_max_disk_space == 0)  { _max_disk_space = 10000; }
 
+    if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
     if (_max_memory == 0)  {  _max_memory = 1000; }
 
+    assert (_max_disk_space > 0);
     _nb_passes = ( _volume / _max_disk_space ) + 1;
 
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
     u_int64_t volume_per_pass;
 
     do  {
+        assert (_nb_passes > 0);
         volume_per_pass = _volume / _nb_passes;
-        _nb_partitions  = ( volume_per_pass / _max_memory ) + 1;
+
+        assert (_max_memory > 0);
+        _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
 
         if (_partitionType == 0)
         {
             _nb_partitions = (u_int32_t) ceil((float) _nb_partitions / load_factor);
             _nb_partitions = ((_nb_partitions * OAHash<Type>::size_entry()) + sizeof(Type)-1) / sizeof(Type); // also adjust for hash overhead
+            _nb_partitions = std::max ((_nb_partitions/(optimism+1)), (u_int32_t)1);
         }
 
         if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
@@ -671,7 +678,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
 
         /** We correct the number of memory per map according to the max allowed memory.
          * Note that _max_memory has initially been divided by the user provided cores number. */
-        u_int64_t mem = (_max_memory*MBYTE*_nbCores)/currentNbCores;
+        u_int64_t mem = (_max_memory*MBYTE)/currentNbCores;
 
         ISynchronizer* synchro = System::thread().newSynchronizer();
         LOCAL (synchro);

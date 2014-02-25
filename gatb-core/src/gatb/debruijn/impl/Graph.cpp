@@ -321,7 +321,7 @@ struct build_visitor : public boost::static_visitor<>    {
             converter.getResult(),
             kmerSize,
             nks,
-            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 1000,
+            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
             props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
         );
@@ -338,7 +338,7 @@ struct build_visitor : public boost::static_visitor<>    {
             *graph._storage,
             sortingCount.getSolidKmers(),
             kmerSize,
-            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 1000,
+            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
         );
         executeAlgorithm (debloom, props, graph._info);
@@ -423,7 +423,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,      "output file",                          false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,  "output directory",                     false,  "."));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "1000"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));

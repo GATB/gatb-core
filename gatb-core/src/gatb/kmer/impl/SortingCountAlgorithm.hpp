@@ -76,7 +76,7 @@ public:
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
         size_t              nks,
-        u_int32_t           max_memory     = 1000,
+        u_int32_t           max_memory     = 0,
         u_int64_t           max_disk_space = 0,
         size_t              nbCores        = 0,
         size_t              partitionType  = 0,

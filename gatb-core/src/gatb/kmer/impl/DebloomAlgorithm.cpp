@@ -111,6 +111,9 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
 
     /** We get a collection for the cFP from the storage. */
     setCriticalCollection (& group.template getCollection<Type> ("cfp"));
+
+    /** We set the max memory to a default project value if not set. */
+    if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
 }
 
 /*********************************************************************
