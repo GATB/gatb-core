@@ -13,9 +13,6 @@ int main (int argc, char* argv[])
     // We load a Storage product "foo" in HDF5 format
     // It should have been created with the storage1 snippet
     Storage* storage = StorageFactory(STORAGE_HDF5).load ("foo");
-
-    // We use locally this object (means that it should be automatically deleted when
-    // leaving the enclosing instructions block).
     LOCAL (storage);
 
     // Shortcut: we get the root of this Storage object

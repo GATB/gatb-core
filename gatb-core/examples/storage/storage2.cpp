@@ -12,9 +12,6 @@ int main (int argc, char* argv[])
 {
     // We create a Storage product "foo" in HDF5 format
     Storage* storage = StorageFactory(STORAGE_HDF5).create ("foo", true, false);
-
-    // We use locally this object (means that it should be automatically deleted when
-    // leaving the enclosing instructions block).
     LOCAL (storage);
 
     // Shortcut: we get the root of this Storage object
