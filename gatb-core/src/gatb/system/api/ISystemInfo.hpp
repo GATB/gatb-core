@@ -80,6 +80,15 @@ public:
      * \return the used physical memory size */
     virtual u_int64_t getMemoryPhysicalUsed () const = 0;
 
+    /** Get the size (in bytes) of the free physical memory
+     * \return the free physical memory size */
+    virtual u_int64_t getMemoryPhysicalFree () const = 0;
+
+    /** Get a memory size (NOTE: in MBytes) for executing a program.
+     * It may be the whole physical memory, some part of it or a constant size.
+     * \return the project memory size */
+    virtual u_int64_t getMemoryProject () const = 0;
+
     /** Get the size (in bytes) of the buffers memory
      * \return the buffers memory size */
     virtual u_int64_t getMemoryBuffers () const = 0;

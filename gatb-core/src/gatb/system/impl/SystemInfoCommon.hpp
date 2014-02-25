@@ -28,6 +28,7 @@
 /********************************************************************************/
 
 #include <gatb/system/api/ISystemInfo.hpp>
+#include <gatb/system/api/IMemory.hpp>
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/system/api/config.hpp>
 
@@ -60,6 +61,12 @@ public:
 
     /** \copydoc ISystemInfo::getHomeDirectory */
     std::string getHomeDirectory ()  const {  return getenv("HOME") ? getenv("HOME") : ".";  }
+
+    /** \copydoc ISystemInfo::getMemoryProject */
+    u_int64_t getMemoryPhysicalFree () const  { return getMemoryPhysicalTotal()-getMemoryPhysicalUsed(); }
+
+    /** \copydoc ISystemInfo::getMemoryProject */
+    u_int64_t getMemoryProject () const  {  return std::min (getMemoryPhysicalFree() / (2*MBYTE), (u_int64_t)(5*1024)); }
 };
 
 /********************************************************************************/
