@@ -12,6 +12,7 @@ file (GLOB_RECURSE  PROGRAMS_FILES  *.cpp)
 file (GLOB_RECURSE  PROGRAMS_FILES_EXTRA  
     bank9.cpp bank11.cpp bank12.cpp bank13.cpp 
     debruijn7.cpp debruijn18.cpp debruijn19.cpp debruijn20.cpp
+    storage4.cpp
 )
 
 # Some examples may require lambda expressions. If this option is not activated, we
