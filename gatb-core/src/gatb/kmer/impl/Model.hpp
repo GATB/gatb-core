@@ -346,7 +346,7 @@ struct Kmer
         Count() : Abundance<Type,Number>(Type(), 0) {}
 
         /** Copy constructor. */
-        Count(const Count& val) : Abundance<Type,Number>(val.value, 0) {}
+        Count(const Count& val) : Abundance<Type,Number>(val.value, val.abundance) {}
 
         /** Comparison operator
          * \param[in] other : object to be compared to
