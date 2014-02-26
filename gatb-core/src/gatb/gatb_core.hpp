@@ -68,7 +68,6 @@
 #include <gatb/kmer/impl/BankKmers.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
-#include <gatb/debruijn/impl/GraphHelpers.hpp>
 
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
