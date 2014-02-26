@@ -133,11 +133,11 @@ class System
      static IMemory&         memory  ()
      {
 #ifdef __linux__
-        static MemorySizeStore instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
+        static MemoryCommon instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
 #endif
 
 #ifdef __APPLE__
-        static MemorySizeStore instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
+        static MemoryCommon instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
 #endif
 
 #ifdef __WINDOWS__
