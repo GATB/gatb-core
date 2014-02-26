@@ -3,7 +3,7 @@
 ################################################################################
 
 # We add the compilation options for the library
-add_definitions (${gatb-core-flags})
+add_definitions (${gatb-core-flags} " -Wno-ambiguous-member-template")
 
 include_directories (${gatb-core-includes})
 
