@@ -190,7 +190,7 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
 system::IFile* BankAlbum::getFile (const std::string& name, const char* mode)
 {
     /** We check whether the file already exists or not. */
-    if (mode==NULL) { mode = System::file().doesExist(name) == true ? "a+" : "w+"; }
+    if (mode==NULL) { mode = System::file().doesExist(name) == true ? "r+" : "w+"; }
 
     /** We create a handle on the file. */
     return System::file().newFile (name, mode);
