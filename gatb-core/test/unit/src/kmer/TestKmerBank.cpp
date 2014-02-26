@@ -138,23 +138,12 @@ public:
     }
 
     /********************************************************************************/
-    struct Fct_kmers_bankiterate
-    {
-        Fct_kmers_bankiterate (u_int64_t& nbKmers) : nbKmers(nbKmers) {}
-        u_int64_t& nbKmers;
-        void operator() (Sequence& seq)  {  nbKmers ++;  }
-    };
-
     void kmers_bankiterate ()
     {
         for (size_t i=0; i<12; i++)
         {
             u_int64_t nbKmers = 0;
-#ifdef WITH_LAMBDA_EXPRESSIONS
             BankKmers (i).iterate ([&] (Sequence& seq)   {  nbKmers++; });
-#else
-            BankKmers (i).iterate (Fct_kmers_bankiterate(nbKmers));
-#endif
             CPPUNIT_ASSERT (nbKmers == ((u_int64_t)1<<(2*i)));
         }
     }
