@@ -27,6 +27,10 @@ For documentation, please have a look at doc/html/index.html
 You can check the library by launching unit tests on your system. Just go into 'test' directory 
 and run 'gatb-core-cppunit'. 
 
-You can try the library by compiling a snippet from the 'examples' directory, for instance:
+You can try the library by compiling a snippet from the 'examples' directory:
+
+for Linux:
     g++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3
     
+for MacOs:
+    clang++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3 -DBOOST_NO_CXX11_RVALUE_REFERENCES=1
