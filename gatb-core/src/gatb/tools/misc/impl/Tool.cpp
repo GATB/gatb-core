@@ -57,8 +57,7 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     _parser->push_back (new OptionOneParam (STR_NB_CORES,       "number of cores",                      false, "0"  ));
     _parser->push_back (new OptionNoParam  (STR_VERBOSE,        "dump execution information",           false       ));
     _parser->push_back (new OptionNoParam  (STR_HELP,           "display help about possible options",  false       ));
-    _parser->push_back (new OptionOneParam (STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
-
+    // _parser->push_back (new OptionOneParam (STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
     // _parser->push_back (new OptionOneParam (STR_PREFIX,         "prefix to be appended to temp files",  false, ""   ));
     // _parser->push_back (new OptionOneParam (STR_STATS_XML,      "dump exec info into a XML file",       false       ));
 }
@@ -221,7 +220,7 @@ void Tool::postExecute ()
 *********************************************************************/
 dp::IteratorListener* Tool::createIteratorListener (size_t nbIterations, const char* message)
 {
-    switch (getInput()->getInt(STR_PROGRESS_BAR))
+    switch (getInput()->getInt(STR_VERBOSE))
     {
         case 0: default:    return new IteratorListener ();
         case 1:             return new Progress      (nbIterations, message);
