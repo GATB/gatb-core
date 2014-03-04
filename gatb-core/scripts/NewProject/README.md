@@ -47,7 +47,7 @@ For instance:
 
 After the project build, some gatb-core binaries are available here 'ext/gatb-core/bin'
 
-As gatb-core use HDF5, you will have here some H5xxx tools from the HDF5 distribution.
+As gatb-core uses HDF5, you will have here some H5xxx tools from the HDF5 distribution.
 
 You will also find two gatb-core binaries:
 
