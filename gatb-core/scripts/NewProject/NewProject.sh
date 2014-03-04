@@ -36,6 +36,7 @@ cp -r $_gatb_core_dir/src               $_project_dir/thirdparty/gatb-core/
 cp -r $_gatb_core_dir/tools             $_project_dir/thirdparty/gatb-core/
 cp -r $_gatb_core_dir/thirdparty        $_project_dir/thirdparty/gatb-core/
 cp -r $_gatb_core_dir/examples          $_project_dir/thirdparty/gatb-core/
+cp -r $_gatb_core_dir/doc               $_project_dir/thirdparty/gatb-core/
 cp -r $_gatb_core_dir/CMakeLists.txt    $_project_dir/thirdparty/gatb-core/
 
 # We init the CMakeLists.txt
