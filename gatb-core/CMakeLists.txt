@@ -117,7 +117,9 @@ ADD_SUBDIRECTORY(src)
 #  UNIT TESTS GENERATION 
 ################################################################################
 IF (DEFINED CPPUNIT_FOUND)
-    ADD_SUBDIRECTORY (test)
+    IF (EXISTS "${PROJECT_SOURCE_DIR}/test")
+        ADD_SUBDIRECTORY (test)
+    ENDIF()
 ENDIF()
 
 ################################################################################
@@ -139,12 +141,16 @@ ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
 ################################################################################
 #  DOCUMENTATION GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
+IF (EXISTS "${PROJECT_SOURCE_DIR}/doc")
+    ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
+ENDIF()
 
 ################################################################################
 #  EXAMPLES GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
+IF (EXISTS "${PROJECT_SOURCE_DIR}/examples")
+    ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
+ENDIF()
 
 ################################################################################
 #  INSTALL 
