@@ -26,6 +26,9 @@ if [[ "$1" = "SRC" ]]
     else make -j8 package  
 fi
 
+# We set the file rights
+chmod a+r $7
+
 # We copy the archive to the server
 scp -q $7 $8
 
