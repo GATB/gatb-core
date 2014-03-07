@@ -179,6 +179,7 @@ SET (CPACK_SOURCE_IGNORE_FILES
     "^${PROJECT_SOURCE_DIR}/DELIVERY.md"
 )
 
-# We include the module and get all the delivery targets
-include (Delivery)
-
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    # We include the module and get all the delivery targets
+    include (Delivery)
+ENDIF ()
