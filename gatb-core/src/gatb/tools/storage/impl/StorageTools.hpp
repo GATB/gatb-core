@@ -32,6 +32,7 @@
 
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/collections/impl/Bloom.hpp>
+#include <gatb/tools/collections/impl/ContainerSet.hpp>
 
 /********************************************************************************/
 namespace gatb      {
