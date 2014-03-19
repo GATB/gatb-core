@@ -30,6 +30,8 @@
 
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/kmer/impl/BloomBuilder.hpp>
+#include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/tools/math/Integer.hpp>
 
@@ -798,6 +800,10 @@ private:
 
     /** Creation information. */
     tools::misc::impl::Properties _info;
+
+    /** */
+    tools::collections::impl::BloomFactory::Kind _bloomKind;
+    kmer::impl::DebloomKind                      _cascadingKind;
 
     /** Defined as a void* for hiding implementation in cpp file. */
     void* _variant;

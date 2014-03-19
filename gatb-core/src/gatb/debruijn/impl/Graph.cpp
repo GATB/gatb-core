@@ -19,6 +19,7 @@
 
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/BranchingAlgorithm.hpp>
+#include <gatb/debruijn/api/IContainerNode.hpp>
 
 #include <gatb/system/impl/System.hpp>
 
@@ -80,25 +81,23 @@ struct GraphData
     typedef typename Kmer<span>::Count Count;
 
     /** Constructor. */
-    GraphData () : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0) {}
+    GraphData () : _model(0), _solid(0), _container(0), _branching(0) {}
 
     /** Destructor. */
     ~GraphData ()
     {
         setModel     (0);
         setSolid     (0);
-        setBloom     (0);
-        setCfp       (0);
+        setContainer (0);
         setBranching (0);
     }
 
     /** Constructor (copy). */
-    GraphData (const GraphData& d) : _model(0), _solid(0), _bloom(0), _cfp(0), _branching(0)
+    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0)
     {
         setModel     (d._model);
         setSolid     (d._solid);
-        setBloom     (d._bloom);
-        setCfp       (d._cfp);
+        setContainer (d._container);
         setBranching (d._branching);
     }
 
@@ -109,29 +108,26 @@ struct GraphData
         {
             setModel     (d._model);
             setSolid     (d._solid);
-            setBloom     (d._bloom);
-            setCfp       (d._cfp);
+            setContainer (d._container);
             setBranching (d._branching);
         }
         return *this;
     }
 
     /** Required attributes. */
-    Model*               _model;
-    Collection<Count>*   _solid;
-    Bloom<Type>*         _bloom;
-    Container<Type>*     _cfp;
-    Collection<Count>*   _branching;
+    Model*                _model;
+    Collection<Count>*    _solid;
+    IContainerNode<Type>* _container;
+    Collection<Count>*    _branching;
 
     /** Setters. */
-    void setModel       (Model*             model)      { SP_SETATTR (model);     }
-    void setSolid       (Collection<Count>* solid)      { SP_SETATTR (solid);     }
-    void setBloom       (Bloom<Type>*       bloom)      { SP_SETATTR (bloom);     }
-    void setCfp         (Container<Type>*   cfp)        { SP_SETATTR (cfp);       }
-    void setBranching   (Collection<Count>* branching)  { SP_SETATTR (branching); }
+    void setModel       (Model*                 model)      { SP_SETATTR (model);     }
+    void setSolid       (Collection<Count>*     solid)      { SP_SETATTR (solid);     }
+    void setContainer   (IContainerNode<Type>*  container)  { SP_SETATTR (container); }
+    void setBranching   (Collection<Count>*     branching)  { SP_SETATTR (branching); }
 
     /** Shortcut. */
-    bool contains (const Type& item)  const  {  return _bloom->contains (item) && !_cfp->contains(item);  }
+    bool contains (const Type& item)  const  {  return _container->contains (item);  }
 };
 
 /********************************************************************************/
@@ -192,63 +188,31 @@ static void setVariant (GraphDataVariant& data, size_t kmerSize)
  */
 struct configure_visitor : public boost::static_visitor<>    {
 
-    size_t   kmerSize;
-    Storage* storage;
+    const Graph& graph;
+    Storage*     storage;
 
-    configure_visitor (size_t aKmerSize, Storage* aStorage)  : kmerSize(aKmerSize), storage(aStorage) {}
+    configure_visitor (const Graph& graph, Storage* storage)  : graph(graph), storage(storage) {}
 
     template<size_t span>  void operator() (GraphData<span>& data) const
     {
+        size_t   kmerSize = graph.getKmerSize();
+
         /** We create the kmer model. */
         data.setModel (new typename Kmer<span>::Model (kmerSize));
 
         if (storage != NULL)
         {
-            /** Shortcuts. */
-            typedef typename Kmer<span>::Type  Type;
-            typedef typename Kmer<span>::Count Count;
-
-            /** We retrieve the needed information from the storage. */
-            Collection<Count>*    solidIterable = & (*storage) ("dsk").    getCollection<Count >     ("solid");
-            Iterable<Type>*       cFPKmers      = & (*storage) ("debloom").getCollection<Type>       ("cfp");
-            Iterable<NativeInt8>* bloomArray    = & (*storage) ("debloom").getCollection<NativeInt8> ("bloom");
-            Collection<Count>*    branching     = & (*storage) ("graph").  getCollection<Count >     ("branching");
-
-            /** Some checks. */
-            assert (solidIterable != 0);
-            assert (cFPKmers      != 0);
-            assert (bloomArray    != 0);
-            assert (branching     != 0);
-
             /** We set the iterable for the solid kmers. */
-            data.setSolid (solidIterable);
+            SortingCountAlgorithm<span> sortingCount (*storage);
+            data.setSolid (sortingCount.getSolidKmers());
 
-            /** We compute parameters for the Bloom filter. */
-            double lg2 = log(2);
-            float     NBITS_PER_KMER = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
-            size_t    nbHash         = (int)floorf (0.7*NBITS_PER_KMER);
-            u_int64_t bloomSize      = (u_int64_t) (solidIterable->getNbItems() * NBITS_PER_KMER);
-
-            /** We need a bloom builder for creating the Bloom filter. */
-            kmer::impl::BloomBuilder<span> builder (bloomSize, nbHash);
-
-            /** We check whether we have a stored Bloom filter. */
-            if (bloomArray == 0)
-            {
-                /** We create Bloom filter and fill it with the solid kmers. */
-                data.setBloom (builder.build (solidIterable->iterator()));
-            }
-            else
-            {
-                /** We load the Bloom filter from the specific dataset. */
-                data.setBloom (builder.load (bloomArray));
-            }
-
-            /** We build the set of critical false positive kmers. */
-            data.setCfp (new tools::collections::impl::ContainerSet<Type> (cFPKmers->iterator()));
+            /** We set the container. */
+            DebloomAlgorithm<span> debloom (*storage);
+            data.setContainer (debloom.getContainerNode());
 
             /** We set the branching container. */
-            data.setBranching (branching);
+            BranchingAlgorithm<span> branching (*storage);
+            data.setBranching (branching.getBranchingCollection());
         }
     }
 };
@@ -334,29 +298,29 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                         Debloom                          */
         /************************************************************/
+
         /** We create a debloom instance and execute it. */
         DebloomAlgorithm<span> debloom (
             *graph._storage,
             sortingCount.getSolidKmers(),
             kmerSize,
             props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
-            props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
+            props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
+            graph._bloomKind,
+            graph._cascadingKind
         );
         executeAlgorithm (debloom, props, graph._info);
-
-        /** We retrieve the bloom raw data. */
-        Iterable<NativeInt8>* bloomArray = & graph.getStorage("debloom").getCollection<NativeInt8> ("bloom");
 
         /************************************************************/
         /*                 Variant configuration                    */
         /************************************************************/
         /** We configure the graph from the result of DSK and debloom. */
-        boost::apply_visitor (configure_visitor (graph._kmerSize, graph._storage),  *(GraphDataVariant*)graph._variant);
+        boost::apply_visitor (configure_visitor (graph, graph._storage),  *(GraphDataVariant*)graph._variant);
 
         /************************************************************/
         /*                         Branching                        */
         /************************************************************/
-        BranchingAlgorithm<span> branchingAlgo (graph, & graph.getStorage("graph").getCollection<Count> ("branching"));
+        BranchingAlgorithm<span> branchingAlgo (graph, *graph._storage);
         executeAlgorithm (branchingAlgo, props, graph._info);
 
         /************************************************************/
@@ -368,8 +332,8 @@ struct build_visitor : public boost::static_visitor<>    {
 
         /** We add a special collection for global metadata (in particular the kmer size). */
         Collection<NativeInt8>* metadata = & graph.getStorage().getCollection<NativeInt8> ("metadata");
-        NativeInt8 kmerSizeData[] = { kmerSize };
-        metadata->insert (kmerSizeData, 1);
+        NativeInt8 kmerSizeData[] = { kmerSize, graph._bloomKind, graph._cascadingKind };
+        metadata->insert (kmerSizeData, ARRAY_SIZE(kmerSizeData));
 
         metadata->addProperty ("properties", graph.getInfo().getXML());
 
@@ -429,6 +393,8 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,         "version",                              false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,      "bloom type ('basic' or 'cache')",      false, "cache"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,    "false positives type ('original' or 'cascading')", false, "cascading"));
 
     return parser;
 }
@@ -491,13 +457,14 @@ Graph  Graph::create (const char* fmt, ...)
 *********************************************************************/
 Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
-      _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph")
+      _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
+      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DebloomKind::DEFAULT)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
     /** We configure the graph data from the storage content. */
-    boost::apply_visitor (configure_visitor (_kmerSize, _storage),  *(GraphDataVariant*)_variant);
+    boost::apply_visitor (configure_visitor (*this, _storage),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -520,7 +487,9 @@ Graph::Graph (const std::string& uri)
     /** We retrieve the type of kmers to be used from the storage. */
     Collection<NativeInt8>* metadata = & getStorage().getCollection<NativeInt8> ("metadata");
     gatb::core::tools::dp::Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
-    itData->first(); if (!itData->isDone())  { _kmerSize = itData->item(); }
+    itData->first(); if (!itData->isDone())  { _kmerSize      = itData->item(); }
+    itData->next();  if (!itData->isDone())  { _bloomKind     = (BloomFactory::Kind) (u_int8_t) itData->item(); }
+    itData->next();  if (!itData->isDone())  { _cascadingKind = (DebloomKind)        (u_int8_t)itData->item(); }
 
     /** We retrieve the information as a XML string in the "metadata.properties" attribute. */
     string xmlString = metadata->getProperty ("properties");
@@ -530,7 +499,7 @@ Graph::Graph (const std::string& uri)
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
     /** We configure the graph data from the storage content. */
-    boost::apply_visitor (configure_visitor (_kmerSize, _storage),  *(GraphDataVariant*)_variant);
+    boost::apply_visitor (configure_visitor (*this, _storage),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -547,6 +516,10 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
 {
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
+
+    /** We get other user parameters. */
+    BloomFactory::parse (params->getStr(STR_BLOOM_TYPE), _bloomKind);
+    parse (params->getStr(STR_DEBLOOM_TYPE), _cascadingKind);
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -570,6 +543,10 @@ Graph::Graph (tools::misc::IProperties* params)
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
 
+    /** We get other user parameters. */
+    BloomFactory::parse (params->getStr(STR_BLOOM_TYPE), _bloomKind);
+    parse (params->getStr(STR_DEBLOOM_TYPE), _cascadingKind);
+
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
@@ -590,7 +567,8 @@ Graph::Graph (tools::misc::IProperties* params)
 *********************************************************************/
 Graph::Graph ()
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
-      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
+      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
+      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DebloomKind::DEFAULT)
 {
 }
 
