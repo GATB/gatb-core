@@ -142,6 +142,24 @@ public:
 };
 
 /********************************************************************************/
+
+/** \brief Interface providing methods for getting memory usage by a component
+ *
+ *  This interface provides getters to know the amount of memory used by some object.*/
+class IMemoryComponent
+{
+public:
+
+    /** Get the number of bytes used by the component.
+     * \return the memory size in bytes. */
+    virtual u_int64_t getMemorySize () = 0;
+
+    /************************************************************/
+    /** Destructor. */
+    virtual ~IMemoryComponent () {}
+};
+
+/********************************************************************************/
 } } } /* end of namespaces. */
 /********************************************************************************/
 
