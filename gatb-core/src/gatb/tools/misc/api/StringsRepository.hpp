@@ -97,6 +97,8 @@ public:
     const char* help           ()  { return "-help";           }
     const char* output_format  ()  { return "-outfmt";         }
     const char* version        ()  { return "-version";        }
+    const char* bloom_type     ()  { return "-bloom-type";     }
+    const char* cfp_type       ()  { return "-cfp-type";       }
 };
 
 /********************************************************************************/
@@ -123,6 +125,8 @@ public:
 #define STR_HELP                gatb::core::tools::misc::StringRepository::singleton().help ()
 #define STR_OUTPUT_FORMAT       gatb::core::tools::misc::StringRepository::singleton().output_format ()
 #define STR_VERSION             gatb::core::tools::misc::StringRepository::singleton().version ()
+#define STR_BLOOM_TYPE          gatb::core::tools::misc::StringRepository::singleton().bloom_type()
+#define STR_CFP_TYPE            gatb::core::tools::misc::StringRepository::singleton().cfp_type()
 
 /********************************************************************************/
 
