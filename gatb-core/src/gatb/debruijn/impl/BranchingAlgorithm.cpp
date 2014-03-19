@@ -51,13 +51,28 @@ static const char* progressFormat1 = "Graph: build branching nodes           ";
 template<size_t span>
 BranchingAlgorithm<span>::BranchingAlgorithm (
     const Graph& graph,
-    tools::collections::Bag<Count>* branchingBag,
+    tools::storage::impl::Storage& storage,
     size_t                      nb_cores,
     tools::misc::IProperties*   options
 )
-    : Algorithm("branching", nb_cores, options), _graph (graph),  _branchingBag(0)
+    : Algorithm("branching", nb_cores, options), _graph (&graph),  _branchingCollection(0)
 {
-    setBranchingBag(branchingBag);
+    setBranchingCollection (& storage("graph").getCollection<Count> ("branching"));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+BranchingAlgorithm<span>::BranchingAlgorithm (tools::storage::impl::Storage& storage)
+    : Algorithm("branching", 0, 0), _graph(0), _branchingCollection(0)
+{
+    setBranchingCollection (& storage("graph").getCollection<Count> ("branching"));
 }
 
 /*********************************************************************
@@ -71,7 +86,7 @@ BranchingAlgorithm<span>::BranchingAlgorithm (
 template<size_t span>
 BranchingAlgorithm<span>::~BranchingAlgorithm ()
 {
-    setBranchingBag(0);
+    setBranchingCollection(0);
 }
 
 /*********************************************************************
@@ -86,11 +101,11 @@ template<size_t span>
 void BranchingAlgorithm<span>::execute ()
 {
     /** We get a synchronized cache on the branching bag to be built. */
-    ThreadObject<BagCache<Count> > branching = BagCache<Count> (_branchingBag, 8*1024, System::thread().newSynchronizer());
+    ThreadObject<BagCache<Count> > branching = BagCache<Count> (_branchingCollection, 8*1024, System::thread().newSynchronizer());
     ThreadObject<u_int64_t> count;
 
     /** We get an iterator over all graph nodes. */
-    Graph::Iterator<Node> itNodes = _graph.iterator<Node>();
+    Graph::Iterator<Node> itNodes = _graph->iterator<Node>();
 
     /** We encapsulate this iterator with a potentially decorated iterated (for progress information). */
     tools::dp::Iterator<Node>* iter = createIterator<Node> (
@@ -105,7 +120,7 @@ void BranchingAlgorithm<span>::execute ()
     /** We iterate the nodes. */
     tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (const Node& node)
     {
-        if (this->_graph.isBranching(node))
+        if (this->_graph->isBranching(node))
         {
             count() ++;
             branchingNodes().push_back (Count (node.kmer.get<Type>(), node.abundance));
@@ -123,7 +138,7 @@ void BranchingAlgorithm<span>::execute ()
     sort (branchingNodes->begin(), branchingNodes->end());
 
     /** We put the kmers into the final bag. */
-    _branchingBag->insert (branchingNodes->data(), branchingNodes->size());
+    _branchingCollection->insert (branchingNodes->data(), branchingNodes->size());
 
     /** We gather the information collected during iteration. */
     count.foreach    ([&] (u_int64_t n) { *count += n; } );

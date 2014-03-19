@@ -52,10 +52,13 @@ public:
     /** Constructor. */
     BranchingAlgorithm (
         const Graph& graph,
-        tools::collections::Bag<Count>* branchingBag,
+        tools::storage::impl::Storage& storage,
         size_t                      nb_cores = 0,
         tools::misc::IProperties*   options  = 0
     );
+
+    /** Constructor. */
+    BranchingAlgorithm (tools::storage::impl::Storage& storage);
 
     /** Destructor. */
     ~BranchingAlgorithm ();
@@ -63,12 +66,15 @@ public:
     /** */
     void execute ();
 
+    /** */
+    tools::collections::Collection<Count>* getBranchingCollection() { return _branchingCollection; }
+
 private:
 
-    const Graph& _graph;
+    const Graph* _graph;
 
-    tools::collections::Bag<Count>* _branchingBag;
-    void setBranchingBag (tools::collections::Bag<Count>* branchingBag)  {  SP_SETATTR(branchingBag); }
+    tools::collections::Collection<Count>* _branchingCollection;
+    void setBranchingCollection (tools::collections::Collection<Count>* branchingCollection)  {  SP_SETATTR(branchingCollection); }
 };
 
 /********************************************************************************/
