@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -79,6 +80,15 @@ public:
     /** Get the size (in bytes) of the used physical memory
      * \return the used physical memory size */
     virtual u_int64_t getMemoryPhysicalUsed () const = 0;
+
+    /** Get the size (in bytes) of the free physical memory
+     * \return the free physical memory size */
+    virtual u_int64_t getMemoryPhysicalFree () const = 0;
+
+    /** Get a memory size (NOTE: in MBytes) for executing a program.
+     * It may be the whole physical memory, some part of it or a constant size.
+     * \return the project memory size */
+    virtual u_int64_t getMemoryProject () const = 0;
 
     /** Get the size (in bytes) of the buffers memory
      * \return the buffers memory size */

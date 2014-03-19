@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -28,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/system/api/ISystemInfo.hpp>
+#include <gatb/system/api/IMemory.hpp>
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/system/api/config.hpp>
 
@@ -60,6 +62,12 @@ public:
 
     /** \copydoc ISystemInfo::getHomeDirectory */
     std::string getHomeDirectory ()  const {  return getenv("HOME") ? getenv("HOME") : ".";  }
+
+    /** \copydoc ISystemInfo::getMemoryProject */
+    u_int64_t getMemoryPhysicalFree () const  { return getMemoryPhysicalTotal()-getMemoryPhysicalUsed(); }
+
+    /** \copydoc ISystemInfo::getMemoryProject */
+    u_int64_t getMemoryProject () const  {  return std::min (getMemoryPhysicalFree() / (2*MBYTE), (u_int64_t)(5*1024)); }
 };
 
 /********************************************************************************/
@@ -97,10 +105,10 @@ public:
     std::string getHostName () const ;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalTotal */
-    u_int64_t getMemoryPhysicalTotal () const  { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalTotal () const;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalUsed */
-    u_int64_t getMemoryPhysicalUsed () const   { throw ExceptionNotImplemented(); }
+    u_int64_t getMemoryPhysicalUsed () const;
 
     /** \copydoc ISystemInfo::getMemoryBuffers */
     u_int64_t getMemoryBuffers () const        { throw ExceptionNotImplemented(); }

@@ -260,7 +260,7 @@ public:
     void collection_HDF5_check_collection_aux (T* values, size_t len)
     {
         /** We create a storage. */
-        Storage* storage = StorageFactory(STORAGE_HDF5).createStorage ("aStorage", true, false);
+        Storage* storage = StorageFactory(STORAGE_HDF5).create ("aStorage", true, false);
         LOCAL (storage);
 
         /** We get a collection from the storage. */
@@ -300,7 +300,7 @@ public:
     void collection_HDF5_check_partition_aux (T* values, size_t len, size_t nbParts)
     {
         /** We create a storage. */
-        Storage* storage = StorageFactory(STORAGE_HDF5).createStorage ("aStorage", true, false);
+        Storage* storage = StorageFactory(STORAGE_HDF5).create ("aStorage", true, false);
         LOCAL (storage);
 
         /** We create a partition. */

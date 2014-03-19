@@ -66,18 +66,15 @@ endif()
 
 # We determine what kind of c++ standard we should use according to the compiler
 # This should work for gcc and clang
-set (CXX_STD_VERSION "c++11")
+set (CXX_STD_VERSION "c++0x")
 
-# In case we use an "old" version of gcc, we can still do something with the c++0x standard
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"  AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.7")
-    set (CXX_STD_VERSION "c++0x")
+# In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DBOOST_NO_CXX11_RVALUE_REFERENCES=1")
 endif()
 
 # We may use lambda expressions, so we need to use the correct compiler option
-if (WITH_LAMBDA_EXPRESSIONS)
-    message ("-- LAMBDA EXPRESSIONS REQUIRED... we will use option -std=${CXX_STD_VERSION}")
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
-endif()
+set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
 
 message("-- Options: ${LIBRARY_COMPILE_DEFINITIONS}")
 
@@ -120,7 +117,9 @@ ADD_SUBDIRECTORY(src)
 #  UNIT TESTS GENERATION 
 ################################################################################
 IF (DEFINED CPPUNIT_FOUND)
-    ADD_SUBDIRECTORY (test)
+    IF (EXISTS "${PROJECT_SOURCE_DIR}/test")
+        ADD_SUBDIRECTORY (test)
+    ENDIF()
 ENDIF()
 
 ################################################################################
@@ -142,12 +141,16 @@ ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
 ################################################################################
 #  DOCUMENTATION GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
+IF (EXISTS "${PROJECT_SOURCE_DIR}/doc")
+    ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
+ENDIF()
 
 ################################################################################
 #  EXAMPLES GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
+IF (EXISTS "${PROJECT_SOURCE_DIR}/examples")
+    ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
+ENDIF()
 
 ################################################################################
 #  INSTALL 
@@ -176,6 +179,7 @@ SET (CPACK_SOURCE_IGNORE_FILES
     "^${PROJECT_SOURCE_DIR}/DELIVERY.md"
 )
 
-# We include the module and get all the delivery targets
-include (Delivery)
-
+IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
+    # We include the module and get all the delivery targets
+    include (Delivery)
+ENDIF ()

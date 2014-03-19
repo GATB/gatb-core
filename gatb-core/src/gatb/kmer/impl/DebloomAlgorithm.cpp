@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -111,6 +112,9 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
 
     /** We get a collection for the cFP from the storage. */
     setCriticalCollection (& group.template getCollection<Type> ("cfp"));
+
+    /** We set the max memory to a default project value if not set. */
+    if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
 }
 
 /*********************************************************************
@@ -127,48 +131,6 @@ DebloomAlgorithm<span>::~DebloomAlgorithm ()
     setSolidIterable      (0);
     setCriticalCollection (0);
 }
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<typename Model, typename Type, typename Count>
-struct IterateKmersFct
-{
-    struct IterateNeighborsFct
-    {
-        IterateNeighborsFct (Bloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag) : bloom(bloom), extendBag(extendBag) {}
-        Bloom<Type>* bloom;
-        ThreadObject<BagCache<Type> >& extendBag;
-
-        void operator() (const Type& k) const  {  if (bloom->contains (k))  {  extendBag().insert (k);  }  }
-    };
-
-    IterateKmersFct (Model& model, Bloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)  : model(model), innerFct(bloom,extendBag) {}
-    Model& model;
-    IterateNeighborsFct innerFct;
-
-    void operator() (const Count& kmer)
-    {
-        /** We iterate the neighbors of the current solid kmer. */
-        model.iterateNeighbors (kmer.value, innerFct);
-    }
-};
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<typename Type>
-struct ForeachFct  {  void operator() (BagCache<Type>& bag)  const {  bag.flush();  }  };
 
 /*********************************************************************
 ** METHOD  :
@@ -210,7 +172,6 @@ void DebloomAlgorithm<span>::execute ()
         /** We create a synchronized cache on the debloom output. This cache will be cloned by the dispatcher. */
         ThreadObject<BagCache<Type> > extendBag = BagCache<Type> (new BagFile<Type>(_debloomUri), 50*1000, System::thread().newSynchronizer());
 
-#ifdef WITH_LAMBDA_EXPRESSIONS
         /** We iterate the solid kmers. */
         getDispatcher()->iterate (itKmers, [&] (const Count& kmer)
         {
@@ -223,15 +184,8 @@ void DebloomAlgorithm<span>::execute ()
 
         /** We have to flush each bag cache used during iteration. */
         extendBag.foreach ([] (BagCache<Type>& bag)  { bag.flush(); });
-
-#else
-        /** We iterate the solid kmers. */
-        getDispatcher()->iterate (itKmers, IterateKmersFct<Model,Type,Count>(model, bloom, extendBag));
-
-        /** We have to flush each bag cache used during iteration. */
-        extendBag.foreach (ForeachFct<Type>());
-#endif
     }
+
     /** We save the bloom. */
     Collection<NativeInt8>* bloomCollection = & group.template getCollection<NativeInt8> ("bloom");
     bloomCollection->insert ((NativeInt8*)bloom->getArray(), bloom->getSize());
@@ -308,19 +262,6 @@ void DebloomAlgorithm<span>::execute ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<typename Type>
-struct DebloomFct
-{
-    DebloomFct (Hash16<Type>& partition, ThreadObject<BagCache<Type> >& finalizeBag) : partition(partition), finalizeBag(finalizeBag) {}
-    Hash16<Type>&    partition;
-    ThreadObject<BagCache<Type> >& finalizeBag;
-
-    void operator() (const Type& extensionKmer)
-    {
-        if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
-    }
-};
-
 template<size_t span>
 void DebloomAlgorithm<span>::end_debloom_partition (
     Hash16<Type>&    partition,
@@ -348,7 +289,6 @@ void DebloomAlgorithm<span>::end_debloom_partition (
      *  we have to protect the output cFP file against concurrent access, which is
      *  achieved by encapsulating the actual output file by a BagCache instance.
      */
-#ifdef WITH_LAMBDA_EXPRESSIONS
     getDispatcher()->iterate (debloomInput, [&] (const Type& extensionKmer)
     {
         if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
@@ -356,13 +296,6 @@ void DebloomAlgorithm<span>::end_debloom_partition (
 
     /** We have to flush each bag cache used during iteration. */
     finalizeBag.foreach ([] (BagCache<Type>& bag)  { bag.flush(); });
-#else
-
-    getDispatcher()->iterate (debloomInput, DebloomFct<Type>(partition, finalizeBag));
-
-    /** We have to flush each bag cache used during iteration. */
-    finalizeBag.foreach (ForeachFct<Type>());
-#endif
 
     /** We clear the set. */
     partition.clear ();

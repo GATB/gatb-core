@@ -51,12 +51,14 @@ class TestSystem : public Test
 
         CPPUNIT_TEST_GATB (info_get);
 
+#ifdef WITH_MEMORY_SIZE_STORE
         CPPUNIT_TEST_GATB (memory_basicAlloc);
         CPPUNIT_TEST_GATB (memory_getMemUsage);
         CPPUNIT_TEST_GATB (memory_hugeAlloc);
         CPPUNIT_TEST_GATB (memory_realloc);
         CPPUNIT_TEST_GATB (memory_boundedAllocator);
         CPPUNIT_TEST_GATB (memory_perfAllocator);
+#endif
         CPPUNIT_TEST_GATB (memory_memset);
         CPPUNIT_TEST_GATB (memory_memcpy);
         CPPUNIT_TEST_GATB (memory_memcmp);

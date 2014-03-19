@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -190,7 +191,7 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
 system::IFile* BankAlbum::getFile (const std::string& name, const char* mode)
 {
     /** We check whether the file already exists or not. */
-    if (mode==NULL) { mode = System::file().doesExist(name) == true ? "a+" : "w+"; }
+    if (mode==NULL) { mode = System::file().doesExist(name) == true ? "r+" : "w+"; }
 
     /** We create a handle on the file. */
     return System::file().newFile (name, mode);

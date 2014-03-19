@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -63,6 +64,24 @@ OptionsParser::~OptionsParser ()
     for (std::list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
     {
         (*it)->forget();
+    }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParser::add (OptionsParser& parser)
+{
+    const std::list<Option*>& options = parser.getOptions ();
+
+    for (std::list<Option*>::const_iterator it = options.begin(); it != options.end(); it++)
+    {
+        this->push_back (*it);
     }
 }
 

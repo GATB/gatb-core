@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -303,7 +304,7 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                       Storage creation                   */
         /************************************************************/
-        graph.setStorage (StorageFactory(graph._storageMode).createStorage (output, true, false));
+        graph.setStorage (StorageFactory(graph._storageMode).create (output, true, false));
 
         /************************************************************/
         /*                         Bank conversion                  */
@@ -321,7 +322,7 @@ struct build_visitor : public boost::static_visitor<>    {
             converter.getResult(),
             kmerSize,
             nks,
-            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 1000,
+            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
             props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
         );
@@ -338,7 +339,7 @@ struct build_visitor : public boost::static_visitor<>    {
             *graph._storage,
             sortingCount.getSolidKmers(),
             kmerSize,
-            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 1000,
+            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
         );
         executeAlgorithm (debloom, props, graph._info);
@@ -423,7 +424,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,      "output file",                          false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,  "output directory",                     false,  "."));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "1000"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
@@ -514,7 +515,7 @@ Graph::Graph (const std::string& uri)
     size_t precision = 0;
 
     /** We create a storage instance. */
-    setStorage (StorageFactory(_storageMode).createStorage (uri, false, false));
+    setStorage (StorageFactory(_storageMode).create (uri, false, false));
 
     /** We retrieve the type of kmers to be used from the storage. */
     Collection<NativeInt8>* metadata = & getStorage().getCollection<NativeInt8> ("metadata");

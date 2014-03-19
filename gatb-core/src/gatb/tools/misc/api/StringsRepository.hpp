@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -78,6 +79,7 @@ public:
     static StringRepository& singleton()  { static StringRepository instance; return instance; }
 
     const char* db             ()  { return "-db";             }
+    const char* file           ()  { return "-file";           }
     const char* kmer_size      ()  { return "-kmer-size";      }
     const char* nks            ()  { return "-nks";            }
     const char* max_memory     ()  { return "-max-memory";     }
@@ -103,6 +105,7 @@ public:
 
 /** Shortcuts. */
 #define STR_URI_DB              gatb::core::tools::misc::StringRepository::singleton().db ()
+#define STR_URI_FILE            gatb::core::tools::misc::StringRepository::singleton().file ()
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
 #define STR_NKS                 gatb::core::tools::misc::StringRepository::singleton().nks ()
 #define STR_MAX_MEMORY          gatb::core::tools::misc::StringRepository::singleton().max_memory ()

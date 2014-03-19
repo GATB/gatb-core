@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -68,7 +69,6 @@
 #include <gatb/kmer/impl/BankKmers.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
-#include <gatb/debruijn/impl/GraphHelpers.hpp>
 
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;

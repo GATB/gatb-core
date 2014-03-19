@@ -32,7 +32,7 @@ file (GLOB_RECURSE  ComponentFiles  *)
 add_definitions (${gatb-core-flags})
 
 # WARNING !!! For the moment, we need to remove some warnings (on Macos) due to use of offsetof macro on non Plain Old Data
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-offsetof -Wno-ambiguous-member-template") 
 
 include_directories (${gatb-core-includes})
 

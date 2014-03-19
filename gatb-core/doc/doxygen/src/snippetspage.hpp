@@ -23,6 +23,7 @@
  * \subpage snippets_bank       \n
  * \subpage snippets_kmer       \n
  * \subpage snippets_iterators  \n
+ * \subpage snippets_storage    \n
  *
  *************************************************************************************
  *************************************************************************************
@@ -624,5 +625,44 @@
  *
  * \snippet debruijn19.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
+ *
+ *
+ * ************************************************************************************
+ ************************************************************************************
+ * \page snippets_storage Storage snippets
+ ************************************************************************************
+ *************************************************************************************
+ *
+ * These snippets show how to use the persistency layer used in gatb-core
+ *
+ * \section snippets_storage_snippet1 Create and save a collection with a Storage object
+ *
+ * This snippet shows how to use a Storage object for creating a collection of integers.
+ * We use the HDF5 format, so we can control the result of our snippet with HDF5 tools.
+ *
+ *\snippet storage1.cpp  snippet1
+ *
+ *************************************************************************************
+ * \section snippets_storage_snippet2 Create and save two collections with a Storage object
+ *
+ * This snippet shows how to use a Storage object for creating collections of integers.
+ * We use the HDF5 format, so we can control the result of our snippet with HDF5 tools.
+ *
+ *\snippet storage2.cpp  snippet1
+ *
+ *************************************************************************************
+ * \section snippets_storage_snippet3 Load a collection from a Storage object
+ *
+ * This snippet shows how to load a Storage object and get a saved collection from it.
+ *
+ *\snippet storage3.cpp  snippet1
+ *
+ *************************************************************************************
+ * \section snippets_storage_snippet4 Load collections from a Storage object
+ *
+ * This snippet shows how to load a Storage object and get saved collections from it.
+ * Note that we use lambda expressions in this example.
+ *
+ *\snippet storage4.cpp  snippet1
  *
  */

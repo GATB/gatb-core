@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -346,7 +347,7 @@ struct Kmer
         Count() : Abundance<Type,Number>(Type(), 0) {}
 
         /** Copy constructor. */
-        Count(const Count& val) : Abundance<Type,Number>(val.value, 0) {}
+        Count(const Count& val) : Abundance<Type,Number>(val.value, val.abundance) {}
 
         /** Comparison operator
          * \param[in] other : object to be compared to

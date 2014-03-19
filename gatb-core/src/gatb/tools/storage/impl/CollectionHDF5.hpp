@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -61,7 +62,8 @@ public:
 
     /** Insert an item into the bag.
      * \param[in] item : the item to be inserted. */
-    void insert (const Item& item)                                 {  throw "BagHDF5::insert (1)";  }
+    void insert (const Item& item) {  insert (&item, 1);  }
+
     void insert (const std::vector<Item>& items, size_t length=0)  {  throw "BagHDF5::insert (2)";  }
 
     /** Insert items into the bag.

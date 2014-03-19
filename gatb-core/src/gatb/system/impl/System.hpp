@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -133,11 +134,11 @@ class System
      static IMemory&         memory  ()
      {
 #ifdef __linux__
-        static MemorySizeStore instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
+        static MemoryCommon instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
 #endif
 
 #ifdef __APPLE__
-        static MemorySizeStore instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
+        static MemoryCommon instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
 #endif
 
 #ifdef __WINDOWS__

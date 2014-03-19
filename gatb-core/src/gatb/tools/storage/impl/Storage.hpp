@@ -1,6 +1,7 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
+ *   Copyright (C) 2014  INRIA
+ *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -305,6 +306,8 @@ public:
     /** Destructor */
     ~Storage ();
 
+    Group& root () { return *getRoot(); }
+
     /** Facility for retrieving the root group.
      * \return the root group. */
     Group& operator() (const std::string name="");
@@ -346,7 +349,10 @@ public:
     StorageFactory (StorageMode_e mode) : _mode(mode)  {}
 
     /** */
-    Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove);
+    Storage* create (const std::string& name, bool deleteIfExist, bool autoRemove);
+
+    /** */
+    Storage* load (const std::string& name) { return create (name, false, false); }
 
     /** */
     Group* createGroup (ICell* parent, const std::string& name);
