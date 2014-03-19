@@ -153,6 +153,31 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
+SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storage& storage)
+  : Algorithm("dsk", 0, 0),
+    _storage(0),
+    _bank(0),
+    _kmerSize(0), _nks(0),
+    _partitionType(0), _nbCores(0), _prefix(""),
+    _progress (0),
+    _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
+    _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
+    _histogram (0), _histogramUri(""),
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidKmers(0)
+{
+    /** We create the collection corresponding to the solid kmers output. */
+    setSolidKmers (& (storage)("dsk").getCollection<Count> ("solid"));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
 SortingCountAlgorithm<span>::~SortingCountAlgorithm ()
 {
     setProgress          (0);
