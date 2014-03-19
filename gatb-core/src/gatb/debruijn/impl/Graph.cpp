@@ -394,7 +394,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,         "version",                              false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,      "bloom type ('basic' or 'cache')",      false, "cache"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,    "false positives type ('original' or 'cascading')", false, "cascading"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,    "debloom type ('original' or 'cascading')", false, "cascading"));
 
     return parser;
 }
