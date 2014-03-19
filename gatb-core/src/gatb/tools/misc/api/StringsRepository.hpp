@@ -42,6 +42,8 @@ namespace misc      {
  *      - ease translation in different languages
  *      - entry point for strings obfuscation if needed
  *
+ * // rayan's remark: I respecfully disagree, this is not useful: we won't translate and we won't obfuscate
+ *
  * It could also be possible to read the strings from a configuration file.
  *
  * The class defines one (static) method per constant string to be used. Note that we
