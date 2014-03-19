@@ -30,6 +30,7 @@
 
 #include <gatb/kmer/impl/Model.hpp>
 
+#include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/collections/impl/Bloom.hpp>
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
@@ -63,7 +64,7 @@ public:
     BloomBuilder (
         u_int64_t   bloomSize,
         size_t      nbHash,
-        tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::CacheCoherent,
+        tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::DEFAULT,
         size_t      nbCores = 0
     )
         : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind)
@@ -92,8 +93,8 @@ public:
         if (stats != 0)
         {
             //stats->add (0, "bloom");
-            stats->add (0, "filter_size", "%lld", _bloomSize);
-            stats->add (0, "nb_hash_fct", "%d",   _nbHash);
+            stats->add (0, "size",    "%lld", _bloomSize);
+            stats->add (0, "nb_hash", "%d",   _nbHash);
         }
 
         /** We return the created bloom filter. */
