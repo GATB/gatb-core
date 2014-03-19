@@ -117,6 +117,9 @@ public:
         system::impl::System::memory().free (blooma);
     }
 
+    /** */
+    size_t getNbHash () const { return n_hash_func; }
+
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
@@ -140,8 +143,11 @@ public:
     }
 
     /** */
-    u_int8_t*& getArray ()  { return blooma; }
-    u_int64_t  getSize  ()  { return nchar;  }
+    virtual u_int8_t*& getArray     ()  { return blooma; }
+    virtual u_int64_t  getSize      ()  { return nchar;  }
+    virtual u_int64_t  getBitSize   ()  { return tai;    }
+
+    virtual std::string  getName    () const  = 0;
 
 protected:
 
@@ -189,6 +195,9 @@ public:
     void flush ()  {}
 
     /** */
+    std::string  getName () const { return "Bloom"; }
+
+    /** */
     void dump (const char* filename)
     {
         FILE* file = fopen(filename,"wb");
@@ -227,6 +236,9 @@ public:
             }
         }
     }
+
+    /** */
+    std::string  getName () const { return "basic"; }
 };
     
 
@@ -267,6 +279,11 @@ public:
         
     }
     
+    /** */
+    std::string  getName () const { return "cache"; }
+
+    /** */
+    u_int64_t  getBitSize   ()  { return _reduced_tai;    }
         
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
@@ -765,11 +782,26 @@ class BloomFactory
 {
 public:
 
-    enum Kind
+    enum Kind  {  BASIC, CACHE, DEFAULT };
+
+    static void parse (const std::string& s, Kind& kind)
     {
-        Synchronized,
-        CacheCoherent
-    };
+             if (s == "basic")    { kind = BASIC;  }
+        else if (s == "cache")    { kind = CACHE; }
+        else if (s == "default")  { kind = CACHE; }
+        else   { throw system::Exception ("bad Bloom kind '%s'", s.c_str()); }
+    }
+
+    static const char* toString (Kind kind)
+    {
+        switch (kind)
+        {
+            case BASIC:     return "basic";
+            case CACHE:     return "cache";
+            case DEFAULT:   return "cache";
+            default:        throw system::Exception ("bad Bloom kind %d", kind);
+        }
+    }
 
     /** */
     static BloomFactory& singleton()  { static BloomFactory instance; return instance; }
@@ -779,13 +811,18 @@ public:
     {
         switch (kind)
         {
-        case CacheCoherent:
-            return new BloomCacheCoherent<T> (tai_bloom, nbHash);
-
-        case Synchronized:
-        default:
-            return new BloomSynchronized<T> (tai_bloom, nbHash);
+            case BASIC:     return new BloomSynchronized<T>  (tai_bloom, nbHash);
+            case CACHE:     return new BloomCacheCoherent<T> (tai_bloom, nbHash);
+            case DEFAULT:   return new BloomCacheCoherent<T> (tai_bloom, nbHash);
+            default:        throw system::Exception ("bad Bloom kind %d in createBloom", kind);
         }
+    }
+
+    /** */
+    template<typename T> Bloom<T>* createBloom (std::string name, std::string sizeStr, std::string nbHashStr)
+    {
+        Kind kind;  parse (name, kind);
+        return createBloom<T> (kind, (u_int64_t)atol (sizeStr.c_str()), (size_t)atol (nbHashStr.c_str()));
     }
 };
 
