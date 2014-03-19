@@ -199,9 +199,11 @@ public:
 
     /** */
     template <typename Item, typename Functor>
-    Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000)
+    Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000, bool localIterator=true)
     {
         Status status;
+
+        if (localIterator) { iterator->use(); }
 
         /** We create N functors that are copies of the provided one. */
         std::vector<Functor*> functors (getExecutionUnitsNumber());
@@ -213,6 +215,8 @@ public:
         /** We get rid of the functors. */
         for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
 
+        if (localIterator) { iterator->forget(); }
+
         /** We return the status. */
         return status;
     }
@@ -221,7 +225,7 @@ public:
     template <typename Item, typename Functor>
     Status iterate (const Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
     {
-        return iterate ((Iterator<Item>*)&iterator, functor, groupSize);
+        return iterate ((Iterator<Item>*)&iterator, functor, groupSize, false);
     }
 
 protected:
