@@ -22,16 +22,7 @@
  ****************************************************************************************************
  * \section download Download archives
  *
- * You can download the gatb-core archive for your system:
- *  - <a href="https://gforge.inria.fr/frs/download.php/33247/gatb-core-1.0.1-Linux.tar.gz">gatb-core for linux</a>
- *  - <a href="https://gforge.inria.fr/frs/download.php/33248/gatb-core-1.0.1-Darwin.tar.gz">gatb-core for macos</a>
- *
- * This archive holds:
- *  - the library
- *  - the header files
- *  - some binaries
- *  - some snippets
- *
- * \remark
- * The archive does NOT contain the source code.
+ * You can go to the following links:
+ *  - <a href="http://gatb.inria.fr/gatb/binaries">gatb-core binaries</a>
+ *  - <a href="http://gatb.inria.fr/gatb/git">gatb-core sources</a>
  */
