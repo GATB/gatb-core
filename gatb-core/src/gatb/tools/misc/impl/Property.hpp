@@ -31,8 +31,9 @@
 #include <gatb/tools/misc/api/IProperty.hpp>
 
 #include <string>
+#include <sstream>
 #include <stack>
-#include <stdio.h>
+#include <cstdio>
 
 /********************************************************************************/
 namespace gatb      {
@@ -128,6 +129,10 @@ public:
     /** Fill a Properties instance from an XML stream.
      * \param[in] stream: the stream to be read (file, string...) */
     void readXML (std::istream& stream);
+
+    /** Fill a Properties instance from an XML string.
+     * \param[in] xmlString: the XML string to be read (file, string...) */
+    void readXML (const std::string& xmlString)  {  std::stringstream ss;  ss << xmlString; readXML (ss);  }
 
     /** */
     void dump (std::ostream& s);
