@@ -20,7 +20,7 @@ int main (int argc, char* argv[])
     Range<int>::Iterator it (1,nmax);
 
     // We open a file. This will be our shared resource between threads.
-    fstream file ("out", std::fstream::out );
+    fstream file ("out", std::fstream::out);
 
     // For our file, we can't use intrinsics like we did for integer addition,
     // so we need a general synchronization mechanism that will be shared by the threads.
