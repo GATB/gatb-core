@@ -32,14 +32,16 @@ int main (int argc, char* argv[])
     // We iterate the range
     dispatcher.iterate (it, [&] (int i)
     {
-        // We lock the synchronizer
-        synchro->lock ();
+        // We use a helper class that will protect the full containing instruction block
+        // against concurrent access. Note it uses our shared synchro object.
+        // We don't have to do the tandem lock/unlock, a single LocalSynchronizer
+        // declaration will protect the containing block. This may be useful because
+        // if the user forget to call the 'unlock' method, it would block the full
+        // program execution for ever.
+        LocalSynchronizer sync (synchro);
 
         // We dump the current integer into the file
         file << i << endl;
-
-        // We unlock the synchronizer
-        synchro->unlock ();
     });
 
     // We close the file

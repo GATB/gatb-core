@@ -3,11 +3,10 @@
 // We include what we need for the test
 #include <gatb/gatb_core.hpp>
 
-#include <fstream>
 using namespace std;
 
 /********************************************************************************/
-/*         Multithreaded iteration and modification of a shared resource.       */
+/*         Multithreaded iteration without modification of a shared resource.   */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -19,35 +18,43 @@ int main (int argc, char* argv[])
     int nmax = 1000;
     Range<int>::Iterator it (1,nmax);
 
-    // We open a file. This will be our shared resource between threads.
-    fstream file ("out", std::fstream::out );
-
-    // For our file, we can't use intrinsics like we did for integer addition,
-    // so we need a general synchronization mechanism that will be shared by the threads.
-    ISynchronizer* synchro = System::thread().newSynchronizer();
-
     // We create a dispatcher configured for 'nbCores' cores.
+    // The second argument tells how many consecutive values will be received by
+    // each thread.
     Dispatcher dispatcher (nbCores, 1);
 
-    // We iterate the range
+    // In this example, we have a different approach: we won't modify the same
+    // shared integer value. Instead, each thread will use its own local integer
+    // and at the end, all the local sums will be summed into the final one.
+    // By doing this, we don't have any more concurrent accesses issues.
+
+    // In order to ease this approach, we use a ThreadObject object. Such an object
+    // will provide local sums for each executing thread. After the iteration, it also
+    // provides a mean to get all the local sums and modify the global sum accordingly.
+    ThreadObject<int> sum;
+
+    // We iterate our range.
     dispatcher.iterate (it, [&] (int i)
     {
-        // We use a helper class that will protect the full containing instruction block
-        // against concurrent access. Note it uses our shared synchro object.
-        // We don't have to do the tandem lock/unlock, a single LocalSynchronizer
-        // declaration will protect the containing block. This may be useful because
-        // if the user forget to call the 'unlock' method, it would block the full
-        // program execution for ever.
-        LocalSynchronizer sync (synchro);
-
-        // We dump the current integer into the file
-        file << i << endl;
+        // We retrieve the local sum for the current executing thread with 'sum()'
+        // Note that this block instruction still doesn't refer explicit thread
+        // management; this is hidden through the () operator of the ThreadObject class.
+        sum() += i;
     });
 
-    // We close the file
-    file.close();
+    // We retrieve all local sums through the 'foreach' method.
+    // This loop is done 'nbCores' times.
+    sum.foreach ([&] (int localSum)
+    {
+        // Here, the *s expression represents the global integer; we add to it the
+        // current 'localSum' computed by one of the threads.
+        *sum += localSum;
+    });
 
-    // We get rid of the synchronizer
-    delete synchro;
+    cout << "sum=" << *sum << "  (result should be " << nmax*(nmax+1)/2 << ")" << endl;
+
+    // In brief, the ThreadObject is a facility to avoid concurrent accesses to a shared
+    // resource. It encapsulates all the tedious management of local resources and final
+    // result aggregation.
 }
 //! [snippet1]
