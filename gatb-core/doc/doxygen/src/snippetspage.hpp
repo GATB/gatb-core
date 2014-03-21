@@ -133,7 +133,10 @@
  ************************************************************************************
  * \page snippets_multithread Multithreading snippets
  ************************************************************************************
- *************************************************************************************
+ *
+ * \tableofcontents
+ *
+ * *************************************************************************************
  *
  * \section snippets_multithread_snippet1 Iteration in a multithreaded fashion
  *
@@ -201,6 +204,21 @@
  * may introduce time overheads.
  *
  *\snippet multithreading5.cpp  snippet1
+ *
+ *************************************************************************************
+ *
+ * \section snippets_multithread_snippet6 Multithreaded iteration of a bank
+ *
+ * This snippet shows how to iterate sequences of a bank and counts how many A,C,G,T it
+ * contains. The interesting part is to see that the Bank class can create Iterator instances
+ * that can be iterated through a Dispatcher instance.
+ *
+ * Note: iterating a bank from a disk makes a lot of I/O, so parallelizing such an iteration
+ * may not lead to significant better performance. However, if the snippet is launched
+ * once, the bank (if not too big) may be in the RAM cache, so it is interesting to
+ * relaunch the snippet with varying number of cores and see how execution time evolves.
+ *
+ *\snippet multithreading6.cpp  snippet1
  *
  ************************************************************************************
  ************************************************************************************
