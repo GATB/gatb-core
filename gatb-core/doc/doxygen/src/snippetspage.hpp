@@ -224,6 +224,9 @@
  ************************************************************************************
  * \page snippets_bank Bank snippets
  ************************************************************************************
+ *
+ * \tableofcontents
+ *
  ************************************************************************************
  *
  * \section snippets_bank_snippet1 Parsing a single FASTA bank without checks
@@ -315,6 +318,9 @@
  ************************************************************************************
  * \page snippets_kmer Kmer snippets
  ************************************************************************************
+ *
+ * \tableofcontents
+ *
  *************************************************************************************
  *
  * \section snippets_kmer_snippet1 Using a kmer model
@@ -723,6 +729,9 @@
  ************************************************************************************
  * \page snippets_storage Storage snippets
  ************************************************************************************
+ *
+ * \tableofcontents
+ *
  *************************************************************************************
  *
  * These snippets show how to use the persistency layer used in gatb-core
@@ -784,6 +793,6 @@
  * If you want to know the structure of the HDF5 file, you can use the h5dump utility,
  * for instance:  h5dump -H file.h5
  *
- *\snippet storage5.cpp  snippet1
+ *\snippet storage6.cpp  snippet1
  *
  */
