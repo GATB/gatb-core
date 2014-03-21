@@ -141,6 +141,7 @@ public:
     {
         size_t nbCores;
         size_t time;
+        size_t groupSize;
     };
 
     /** Dispatch commands execution in some separate contexts (threads for instance).
@@ -169,6 +170,9 @@ public:
      */
     template <typename Item, typename Functor> Status iterate (Iterator<Item>* iterator, std::vector<Functor*>& functors, size_t groupSize = 1000)
     {
+        /** If the dispatcher has a defined group size, we overwrite the one provided by the caller. */
+        if (getGroupSize() > 0)  { groupSize = getGroupSize(); }
+
         Status status;
 
         /** We create a common synchronizer. */
@@ -192,6 +196,9 @@ public:
 
         /** We set the status. */
         status.nbCores = commands.size();
+
+        /** We set the group size. */
+        status.groupSize = groupSize;
 
         /** We return the status. */
         return status;
@@ -227,6 +234,10 @@ public:
     {
         return iterate ((Iterator<Item>*)&iterator, functor, groupSize, false);
     }
+
+    /** */
+    virtual void   setGroupSize (size_t groupSize) = 0;
+    virtual size_t getGroupSize () const = 0;
 
 protected:
 

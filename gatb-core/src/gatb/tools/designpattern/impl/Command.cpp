@@ -113,7 +113,7 @@ system::ISynchronizer* SerialDispatcher::newSynchro ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Dispatcher::Dispatcher (size_t nbUnits) : _nbUnits(nbUnits)
+Dispatcher::Dispatcher (size_t nbUnits, size_t groupSize) : _nbUnits(nbUnits), _groupSize(groupSize)
 {
     if (_nbUnits==0)  { _nbUnits = system::impl::System::info().getNbCores(); }
 }

@@ -61,6 +61,12 @@ public:
     /** \copydoc IDispatcher::getExecutionUnitsNumber */
     size_t getExecutionUnitsNumber () { return 1; }
 
+    /** \copydoc IDispatcher::setGroupSize */
+    void setGroupSize (size_t groupSize)  { }
+
+    /** \copydoc IDispatcher::getGroupSize */
+    size_t getGroupSize () const  { return 1; }
+
 private:
 
     /** */
@@ -94,13 +100,19 @@ public:
     /** Constructor.
      * \param[in] nbUnits : number of threads to be used. If 0 is provided, one tries to guess the number of available cores.
      */
-    Dispatcher (size_t nbUnits=0);
+    Dispatcher (size_t nbUnits=0, size_t groupSize=0);
 
     /** \copydoc IDispatcher::dispatchCommands */
     size_t dispatchCommands (std::vector<ICommand*>& commands, ICommand* postTreatment=0);
 
     /** \copydoc IDispatcher::getExecutionUnitsNumber */
     size_t getExecutionUnitsNumber () { return _nbUnits; }
+
+    /** \copydoc IDispatcher::setGroupSize */
+    void setGroupSize (size_t groupSize)  { _groupSize = groupSize; }
+
+    /** \copydoc IDispatcher::getGroupSize */
+    size_t getGroupSize () const  { return _groupSize; }
 
 private:
 
@@ -115,6 +127,9 @@ private:
 
     /** Number of execution units to be used for command dispatching. */
     size_t _nbUnits;
+
+    /** Group size */
+    size_t _groupSize;
 };
 
 /********************************************************************************/
