@@ -49,7 +49,7 @@ int main (int argc, char* argv[])
         SubjectIterator<Sequence> itSeq (itFilter, 100000);
 
         // We create some listener to be notified every N iterations and attach it to the iterator.
-        itSeq.addObserver (new ProgressTimer (inputBank.estimateNbSequences(), "Filtering bank"));
+        itSeq.addObserver (new ProgressTimer (inputBank.estimateNbItems(), "Filtering bank"));
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())

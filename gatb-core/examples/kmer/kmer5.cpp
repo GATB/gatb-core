@@ -51,7 +51,7 @@ int main (int argc, char* argv[])
         SubjectIterator<Sequence> itSeq (itBank, 100);
 
         // We create some listener to be notified every N iterations and attach it to the iterator.
-        itSeq.addObserver (new ProgressFunctor (bank.estimateNbSequences()));
+        itSeq.addObserver (new ProgressFunctor (bank.estimateNbItems()));
 
         // We declare a kmer iterator for the model
         Kmer<>::Model ::Iterator itKmer (model);

@@ -37,7 +37,7 @@ int main (int argc, char* argv[])
         SubjectIterator<Sequence> itSeq (itInput, 100000);
 
         // We create some listener to be notified every N iterations and attach it to the iterator.
-        itSeq.addObserver (new ProgressTimer (inputBank.estimateNbSequences(), "Converting input file into binary format"));
+        itSeq.addObserver (new ProgressTimer (inputBank.estimateNbItems(), "Converting input file into binary format"));
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
