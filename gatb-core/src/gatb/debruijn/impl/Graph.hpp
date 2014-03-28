@@ -934,10 +934,10 @@ template<> inline Graph::Iterator<Edge> Graph::simplePath (const Node& node, Dir
 ********************************************************************************/
 
 template<class Type, class Listener>
-class ProgressIterator : public tools::dp::impl::SubjectIterator<Type>
+class ProgressGraphIterator : public tools::dp::impl::SubjectIterator<Type>
 {
 public:
-    ProgressIterator (const Graph::Iterator<Type>& items, const char* msg = "compute", size_t divide=100)
+    ProgressGraphIterator (const Graph::Iterator<Type>& items, const char* msg = "compute", size_t divide=100)
         : tools::dp::impl::SubjectIterator<Type> (items.get(), items.size()/divide, new Listener (items.size(), msg)), _size(items.size()) {}
 
     u_int64_t size () const  { return _size; }
