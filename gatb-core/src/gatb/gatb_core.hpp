@@ -41,6 +41,7 @@
 #include <gatb/tools/collections/impl/Hash16.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
+#include <gatb/tools/collections/impl/IterableHelpers.hpp>
 
 #include <gatb/tools/storage/impl/Storage.hpp>
 
