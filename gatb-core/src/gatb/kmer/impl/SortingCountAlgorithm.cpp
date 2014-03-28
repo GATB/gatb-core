@@ -292,6 +292,9 @@ void SortingCountAlgorithm<span>::execute ()
     if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
 
     getInfo()->add (1, getTimeInfo().getProperties("time"));
+
+    /** We save (as metadata) the sorting count information into the solid collection. */
+    _solidKmers->addProperty ("properties", getInfo()->getXML());
 }
 
 /*********************************************************************

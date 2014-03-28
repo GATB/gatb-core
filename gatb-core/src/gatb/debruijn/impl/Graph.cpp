@@ -326,9 +326,6 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                    Post processing                       */
         /************************************************************/
-        /** We add metadata to some collections. */
-        sortingCount.getSolidKmers()->addProperty ("properties", sortingCount.getInfo()->getXML());
-        debloom.getCriticalKmers()  ->addProperty ("properties", debloom.     getInfo()->getXML());
 
         /** We add a special collection for global metadata (in particular the kmer size). */
         Collection<NativeInt8>* metadata = & graph.getStorage().getCollection<NativeInt8> ("metadata");

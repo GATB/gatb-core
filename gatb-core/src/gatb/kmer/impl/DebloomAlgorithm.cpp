@@ -306,6 +306,9 @@ void DebloomAlgorithm<span>::execute ()
     getInfo()->add (2, cfpProps);
 
     getInfo()->add (1, getTimeInfo().getProperties("time"));
+
+    /** We save (as metadata) information into the critical collection. */
+    _criticalCollection->addProperty ("properties", getInfo()->getXML());
 }
 
 /*********************************************************************
