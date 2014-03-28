@@ -190,7 +190,7 @@ int main (int argc, char* argv[])
     map<size_t,Entry> distrib;
 
     // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
-    ProgressIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
+    ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
 
     // We want to know the number of connected components
     size_t nbConnectedComponents = 0;
