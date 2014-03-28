@@ -130,6 +130,15 @@ public:
         return result;
     }
     
+    /********************************************************************************/
+    template<typename Map>
+    static LargeInt<2> polynom (const char* data, size_t size, Map fct)
+    {
+        LargeInt<2> res (0);
+        for (size_t i=0; i<size; ++i)  {  res.value[0] = res.value[0] * 4 + fct(data[i]);  }
+        return res;
+    }
+
 private:
     friend LargeInt<2> revcomp (const LargeInt<2>& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const LargeInt<2>& key, u_int64_t  seed);

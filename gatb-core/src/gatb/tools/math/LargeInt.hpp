@@ -90,6 +90,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Returns lower 64 bits */
+    u_int64_t toInt () const  {  throw system::Exception ("LargeInt<%d> no support of toInt", precision);  }
+
+    /********************************************************************************/
     LargeInt operator+ (const LargeInt& other) const
     {
         LargeInt result;
@@ -423,6 +427,15 @@ public:
         hid_t result = H5Tcopy (H5T_NATIVE_INT);
         H5Tset_precision (result, 2*precision);
         return result;
+    }
+
+    /********************************************************************************/
+    template<typename Map>
+    static LargeInt polynom (const char* data, size_t size, Map fct)
+    {
+        LargeInt res (0);
+        for (size_t i=0; i<size; ++i)  {  res = res * 4 + fct(data[i]);  }
+        return res;
     }
 
     /********************************************************************************/

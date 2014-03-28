@@ -39,6 +39,9 @@ public:
 
     static const size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
+    /** Returns lower 64 bits */
+    u_int64_t toInt () const  {  return value[0];  }
+
     LargeInt<1> operator+  (const LargeInt<1>& other)   const   {  return value[0] + other.value[0];  }
     LargeInt<1> operator-  (const LargeInt<1>& other)   const   {  return value[0] - other.value[0];  }
     LargeInt<1> operator|  (const LargeInt<1>& other)   const   {  return value[0] | other.value[0];  }
@@ -173,6 +176,15 @@ public:
     static hid_t hdf5 (bool& isCompound)
     {
         return H5Tcopy (H5T_NATIVE_UINT64);
+    }
+
+    /********************************************************************************/
+    template<typename Map>
+    static LargeInt<1> polynom (const char* data, size_t size, Map fct)
+    {
+        LargeInt<1> res (0);
+        for (size_t i=0; i<size; ++i)  {  res.value[0] = 4 * res.value[0] + fct(data[i]);  }
+        return res;
     }
 
 private:

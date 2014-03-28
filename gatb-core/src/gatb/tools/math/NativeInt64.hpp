@@ -90,6 +90,8 @@ public:
 
     u_int8_t  operator[]  (size_t idx)    {  return (value[0] >> (2*idx)) & 3; }
 
+    u_int64_t toInt () const  {  return value[0]; }
+
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const NativeInt64 & l)
     {
