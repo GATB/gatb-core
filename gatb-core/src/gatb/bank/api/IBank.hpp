@@ -94,7 +94,7 @@ public:
 
     /** Shortcut to 'estimate' method.
      * \return estimation of the number of sequences */
-    virtual u_int64_t estimateNbSequences () = 0;
+    virtual int64_t estimateNbItems () = 0;
 
     /** Shortcut to 'estimate' method.
      * \return estimation of the size of sequences */

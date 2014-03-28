@@ -106,7 +106,7 @@ public:
 
     /** Shortcut to 'estimate' method.
      * \return estimation of the number of sequences */
-    u_int64_t estimateNbSequences () { return _ref->estimateNbSequences(); }
+    int64_t estimateNbItems () { return _ref->estimateNbItems(); }
 
     /** Shortcut to 'estimate' method.
      * \return estimation of the size of sequences */

@@ -47,7 +47,7 @@ public:
     AbstractBank () : _estimateThreshold(5000) {}
 
     /** \copydoc IBank::estimateNbSequences */
-    u_int64_t estimateNbSequences ()
+    int64_t estimateNbItems ()
     {
         u_int64_t number, totalSize, maxSize;    estimate (number, totalSize, maxSize);  return number;
     }
