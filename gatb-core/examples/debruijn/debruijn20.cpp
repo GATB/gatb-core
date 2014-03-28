@@ -143,7 +143,7 @@ int main (int argc, char* argv[])
     map<size_t,size_t> distrib;
 
     // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
-    ProgressIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
+    ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
 
     // We want time duration of the iteration
     TimeInfo ti;

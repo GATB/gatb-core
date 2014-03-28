@@ -31,7 +31,7 @@ int main (int argc, char* argv[])
 
     // We get an iterator for all nodes of the graph.
     // We use a progress iterator to get some progress feedback
-    ProgressIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
+    ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
 
     // We define some kind of unique identifier for a couple (indegree,outdegree)
     typedef pair<size_t,size_t> InOut_t;
