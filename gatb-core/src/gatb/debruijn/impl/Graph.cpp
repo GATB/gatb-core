@@ -1484,13 +1484,13 @@ struct debugString_edge_visitor : public boost::static_visitor<std::string>    {
         else if (mode==1)
         {
             ss << "["
-               << debugString_node_visitor (edge.from, strand, 0) (data)
+               << debugString_node_visitor (edge.from, strand, 1) (data)
                << " ";
             if (edge.direction == DIR_OUTCOMING)  {  ss <<  "--"  << ascii(edge.nt) << "-->";  }
             else                                  {  ss <<  "<--" << ascii(edge.nt) << "--";   }
 
             ss  << " "
-                    << debugString_node_visitor (edge.to, strand, 0) (data)
+                    << debugString_node_visitor (edge.to, strand, 1) (data)
                << "]";
         }
         else if (mode==2)
