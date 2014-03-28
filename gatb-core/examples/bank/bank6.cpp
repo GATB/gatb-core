@@ -29,6 +29,9 @@ int main (int argc, char* argv[])
     // We define the max size of a data line in the FASTA output file
     size_t dataLineSize = argc >= 3 ?  atoi(argv[2]) : 60;
 
+    // By convention, setting data line size to 0 will dump data on a single line
+    if (dataLineSize==0)  { dataLineSize = ~0; }
+
     // We define the kind of output comments
     BankFasta::Iterator::CommentMode_e mode = BankFasta::Iterator::FULL;
     if (argc >= 4)
