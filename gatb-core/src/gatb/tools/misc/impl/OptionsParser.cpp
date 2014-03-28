@@ -75,13 +75,31 @@ OptionsParser::~OptionsParser ()
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::add (OptionsParser& parser)
+void OptionsParser::push_back (OptionsParser& parser)
 {
     const std::list<Option*>& options = parser.getOptions ();
 
     for (std::list<Option*>::const_iterator it = options.begin(); it != options.end(); it++)
     {
         this->push_back (*it);
+    }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParser::push_front (OptionsParser& parser)
+{
+    const std::list<Option*>& options = parser.getOptions ();
+
+    for (std::list<Option*>::const_iterator it = options.begin(); it != options.end(); it++)
+    {
+        this->push_front (*it);
     }
 }
 

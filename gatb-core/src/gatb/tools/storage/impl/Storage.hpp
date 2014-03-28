@@ -310,11 +310,11 @@ public:
 
     /** Facility for retrieving the root group.
      * \return the root group. */
-    Group& operator() (const std::string name="");
+    Group& getGroup (const std::string name) { return this->operator() (name); }
 
     /** Facility for retrieving the root group.
      * \return the root group. */
-    Group& getGroup (const std::string name) { return this->operator() (name); }
+    Group& operator() (const std::string name="");
 
     /** Remove physically the storage. */
     virtual void remove ();
