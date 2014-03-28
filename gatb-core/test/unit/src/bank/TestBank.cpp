@@ -352,7 +352,7 @@ public:
         BankFasta b1 (DBPATH("sample1.fa"));
 
         /** We check the estimation of sequences number. */
-        u_int64_t estim1 = b1.estimateNbSequences();
+        u_int64_t estim1 = b1.estimateNbItems();
         CPPUNIT_ASSERT (estim1 == 20);
 
         /** We build another bank holding several time the same bank. */
@@ -363,7 +363,7 @@ public:
 
             BankFasta b2 (filenames);
 
-            CPPUNIT_ASSERT (b2.estimateNbSequences() == i * estim1);
+            CPPUNIT_ASSERT (b2.estimateNbItems() == i * estim1);
         }
     }
 
@@ -409,7 +409,7 @@ public:
         CPPUNIT_ASSERT (fct->nbCalls > 0);
 
         /** We have to check if we got the correct number of notifications. */
-        CPPUNIT_ASSERT (fct->nbCalls == (b.estimateNbSequences() + modulo - 1) / modulo);
+        CPPUNIT_ASSERT (fct->nbCalls == (b.estimateNbItems() + modulo - 1) / modulo);
 
         /** We keep the number of functor calls. */
         size_t keepNbCalls = fct->nbCalls;
