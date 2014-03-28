@@ -76,6 +76,9 @@ public:
     /** \copydoc Iterable::getNbItems */
     int64_t getNbItems ()  { return _iterable->getNbItems(); }
 
+    /** \copydoc Iterable::estimateNbItems */
+    int64_t estimateNbItems () { return _iterable->estimateNbItems(); }
+
     /** \copydoc Iterable::getItems */
     Item* getItems (Item*& buffer)  { return _iterable->getItems(buffer); }
 

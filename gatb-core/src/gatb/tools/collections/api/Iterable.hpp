@@ -71,6 +71,11 @@ public:
      * \return the number of items if known, -1 otherwise. */
     virtual int64_t getNbItems () = 0;
 
+    /** Return the (approximate) number of items. If a specific implementation doesn't know the value,
+     * it should return -1 by convention.
+     * \return the number of items if known, -1 otherwise. */
+    virtual int64_t estimateNbItems () = 0;
+
     /** Return a buffer of items.
      * \param[out] buffer : the buffer
      * \return the buffer */

@@ -165,6 +165,9 @@ public:
     /** */
     int64_t getNbItems ()   {  return system::impl::System::file().getSize(_filename) / sizeof(Item); }
 
+    /** */
+    int64_t estimateNbItems ()   {  return getNbItems(); }
+
 private:
     std::string     _filename;
     size_t          _cacheItemsNb;
