@@ -64,7 +64,7 @@ public:
      * \param[in] item : the item to be inserted. */
     void insert (const Item& item) {  insert (&item, 1);  }
 
-    void insert (const std::vector<Item>& items, size_t length=0)  {  throw "BagHDF5::insert (2)";  }
+    void insert (const std::vector<Item>& items, size_t length=0)  {  insert (items.data(), length==0 ? items.size() : length); }
 
     /** Insert items into the bag.
      * \param[in] items : items to be inserted. */
@@ -141,6 +141,12 @@ public:
     int64_t getNbItems ()
     {
         return _nbItems;
+    }
+
+    /** */
+    int64_t estimateNbItems ()
+    {
+        return getNbItems();
     }
 
     /** */
