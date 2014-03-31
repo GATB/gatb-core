@@ -294,6 +294,7 @@ void DebloomAlgorithm<span>::execute ()
     /** We remove the two temporary files. */
     System::file().remove (inputUri);
     System::file().remove (outputUri);
+    criticalCollection->remove ();
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
