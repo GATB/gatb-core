@@ -404,28 +404,6 @@ void Kmer<span>::Model::NeighborIterator::setSource (const Type& source)
     }
 }
 
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<size_t span>
-hid_t Kmer<span>::Count::hdf5 (bool& isCompound)
-{
-    hid_t abundanceType = H5Tcopy (H5T_NATIVE_UINT16);
-
-    hid_t result = H5Tcreate (H5T_COMPOUND, sizeof(Count));
-    H5Tinsert (result, "value",      HOFFSET(Count, value),     Type::hdf5(isCompound));
-    H5Tinsert (result, "abundance",  HOFFSET(Count, abundance), abundanceType);
-
-    isCompound = true;
-
-    return result;
-}
-
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

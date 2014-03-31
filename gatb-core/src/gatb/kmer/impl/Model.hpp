@@ -353,12 +353,6 @@ struct Kmer
          * \param[in] other : object to be compared to
          * \return true if the provided kmer value is greater than the current one. */
         bool operator< (const Count& other) const {  return this->value < other.value; }
-
-        /** Creates a HDF5 type identifier for the [kmer,abundance] structure. This type will be used
-         * for dumping Count instances in a HDF5 file (like SortingCount algorithm does).
-         * \param[in] isCompound : tells whether the structure is compound (SHOULD BE OBSOLETE IN THE FUTURE)
-         * \return the HDF5 identifier for the type. */
-        static hid_t hdf5 (bool& isCompound);
     };
 
 };  // class Kmer
