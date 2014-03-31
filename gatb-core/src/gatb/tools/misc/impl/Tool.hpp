@@ -30,6 +30,7 @@
 
 #include <gatb/tools/designpattern/api/ICommand.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+#include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/misc/api/IProperty.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
@@ -82,6 +83,13 @@ public:
     virtual OptionsParser*          getParser     ()  { return _parser;     }
     virtual dp::IDispatcher*        getDispatcher ()  { return _dispatcher; }
     virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
+
+    /** */
+    template<typename Item> dp::Iterator<Item>* createIterator (collections::Iterable<Item>& iterable, const char* message=0)
+    {
+        int64_t nbItems = (iterable.getNbItems() >= 0 ? iterable.getNbItems() : iterable.estimateNbItems());
+        return createIterator (iterable.iterator(), nbItems, message);
+    }
 
     /** */
     template<typename Item> dp::Iterator<Item>* createIterator (dp::Iterator<Item>* iter, size_t nbIterations=0, const char* message=0)
