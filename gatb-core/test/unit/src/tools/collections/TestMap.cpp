@@ -24,6 +24,7 @@
 #include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/misc/api/Macros.hpp>
+#include <gatb/tools/misc/api/Abundance.hpp>
 #include <gatb/system/api/Exception.hpp>
 
 #include <list>
@@ -37,6 +38,7 @@ using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 using namespace gatb::core::tools::math;
+using namespace gatb::core::tools::misc;
 using namespace gatb::core::system;
 
 /********************************************************************************/
