@@ -48,17 +48,15 @@ public:
         size_t totalNbKmers     = 0;
         size_t totalNbBranching = 0;
 
-        // We want to iterate the sequences in a parallel way.
-        Dispatcher dispatcher (getInput()->getInt(STR_NB_CORES));
+        // We create a sequences iterator
+        Iterator<Sequence>* iter = this->createIterator<Sequence> (*bank, "iterate bank");
+        LOCAL (iter);
 
-        // We want also to have progression information
-        ProgressIterator<Sequence> iter (*bank, "iterate bank");
-
-        // We need a map for building the distribution
+        // We need a map for building the distribution.
         ThreadObject<map<int,int> > distrib;
 
         // We iterate the bank
-        IDispatcher::Status status = dispatcher.iterate (iter, [&] (Sequence& seq)
+        IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (Sequence& seq)
         {
             // We get a reference on the local distribution for the current thread
             map<int,int>& localDistrib = distrib();
@@ -99,7 +97,8 @@ public:
         getInfo()->add (1, "stats");
         getInfo()->add (2, "nb_kmers",     "%ld", totalNbKmers);
         getInfo()->add (2, "nb_branching", "%ld", totalNbBranching);
-        getInfo()->add (2, "percentage",   "%.3f", 100 * (float)totalNbBranching / (float)totalNbKmers);
+        if (totalNbKmers > 0)  {  getInfo()->add (2, "percentage",   "%.3f", 100 * (float)totalNbBranching / (float)totalNbKmers);  }
+
         getInfo()->add (1, "exec");
         getInfo()->add (2, "time",     "%.3f", (float)status.time / 1000.0);
         getInfo()->add (2, "nb_cores", "%d", status.nbCores);
