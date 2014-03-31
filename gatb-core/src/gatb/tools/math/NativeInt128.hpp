@@ -36,6 +36,7 @@
 #include <hdf5/hdf5.h>
 
 #include <gatb/system/api/types.hpp>
+#include <gatb/tools/misc/api/Abundance.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>
 
 extern const unsigned char revcomp_4NT[];
@@ -51,7 +52,7 @@ namespace math  {
 
 /** \brief Large integer class
  */
-class NativeInt128 : private ArrayData<__uint128_t, 1>
+class NativeInt128 : private misc::ArrayData<__uint128_t, 1>
 {
 public:
 

@@ -32,6 +32,7 @@
 #include <gatb/tools/collections/api/Bag.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <gatb/tools/misc/api/Abundance.hpp>
 
 /********************************************************************************/
 namespace gatb          {
@@ -43,7 +44,7 @@ namespace impl          {
 
 template <typename Item> class OAHash
 {
-    typedef Abundance<Item> element_pair;
+    typedef misc::Abundance<Item> element_pair;
 
 public:
 
@@ -124,11 +125,11 @@ public:
     }
 
     /** */
-    dp::Iterator <Abundance<Item> >* iterator ()  {  return new Iterator (*this);  }
+    dp::Iterator <misc::Abundance<Item> >* iterator ()  {  return new Iterator (*this);  }
 
 
     /************************************************************/
-    class Iterator : public tools::dp::Iterator <Abundance<Item> >
+    class Iterator : public tools::dp::Iterator <misc::Abundance<Item> >
     {
     public:
 
@@ -162,7 +163,7 @@ public:
         bool isDone ()   {  return done; }
 
         /** \copydoc tools::dp::Iterator::item */
-        Abundance<Item>& item ()     { return *this->_item; }
+        misc::Abundance<Item>& item ()     { return *this->_item; }
 
     private:
         OAHash<Item>&  ref;

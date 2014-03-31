@@ -30,6 +30,7 @@
 
 #include <iostream>
 #include <gatb/system/api/types.hpp>
+#include <gatb/tools/misc/api/Abundance.hpp>
 #include <hdf5/hdf5.h>
 
 /********************************************************************************/
@@ -42,7 +43,7 @@ namespace math  {
 
 /** \brief Large integer class
  */
-class NativeInt8 : private ArrayData<u_int8_t, 1>
+class NativeInt8 : private misc::ArrayData<u_int8_t, 1>
 {
 public:
 

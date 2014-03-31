@@ -66,7 +66,7 @@ namespace math  {
 
 /** \brief Large integer class
  */
-template<int precision>  class LargeInt : public ArrayData<u_int64_t, precision>
+template<int precision>  class LargeInt : public misc::ArrayData<u_int64_t, precision>
 {
 public:
 

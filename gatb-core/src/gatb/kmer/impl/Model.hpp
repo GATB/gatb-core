@@ -34,6 +34,7 @@
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
+#include <gatb/tools/misc/api/Abundance.hpp>
 
 #include <gatb/tools/math/LargeInt.hpp>
 
@@ -333,7 +334,7 @@ struct Kmer
      *
      * By default, the abundance value is coded on 16 bits, so abundance up to 1<<16 can be used.
      */
-    struct Count : Abundance<Type,u_int16_t>
+    struct Count : tools::misc::Abundance<Type,u_int16_t>
     {
         /** Shortcut. */
         typedef u_int16_t Number;
@@ -341,13 +342,13 @@ struct Kmer
         /** Constructor.
          * \param[in] val : integer value of the kmer
          * \param[in] abund : abundance for the kmer */
-        Count(const Type& val, const Number& abund) : Abundance<Type,Number>(val, abund) {}
+        Count(const Type& val, const Number& abund) : tools::misc::Abundance<Type,Number>(val, abund) {}
 
         /** Default constructor. */
-        Count() : Abundance<Type,Number>(Type(), 0) {}
+        Count() : tools::misc::Abundance<Type,Number>(Type(), 0) {}
 
         /** Copy constructor. */
-        Count(const Count& val) : Abundance<Type,Number>(val.value, val.abundance) {}
+        Count(const Count& val) : tools::misc::Abundance<Type,Number>(val.value, val.abundance) {}
 
         /** Comparison operator
          * \param[in] other : object to be compared to

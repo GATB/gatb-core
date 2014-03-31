@@ -18,7 +18,7 @@
 *****************************************************************************/
 
 /** \file types.hpp
- *  \brief types definition for PLAST.
+ *  \brief types definition for GATB.
  *  \date 01/03/2013
  *  \author edrezen
  *
@@ -41,34 +41,6 @@
 /********************************************************************************/
 
 #include <sys/types.h>
-
-/********************************************************************************/
-
-template<typename Type, int precision>
-struct ArrayData
-{
-    Type value[precision];
-};
-
-/********************************************************************************/
-
-/** Define an abundance. */
-template<typename Type, typename Number=u_int16_t> struct Abundance
-{
-    Abundance (const Type& val=0, const Number& abund=0) : value(val), abundance(abund) {}
-
-    Abundance& operator=(const Abundance& a)
-    {
-        if (&a != this)  {  value = a.value;  abundance=a.abundance;  }
-        return *this;
-    }
-
-    const Number& getAbundance() const { return abundance; }
-    const Type&   getValue()     const { return value;     }
-
-    Type    value;
-    Number  abundance;
-};
 
 /********************************************************************************/
 

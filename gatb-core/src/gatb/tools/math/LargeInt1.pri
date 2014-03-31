@@ -25,7 +25,7 @@
 
 /** \brief Large integer class
  */
-template<>  class LargeInt<1> :  private ArrayData<u_int64_t, 1>
+template<>  class LargeInt<1> :  private misc::ArrayData<u_int64_t, 1>
 {
 public:
 
