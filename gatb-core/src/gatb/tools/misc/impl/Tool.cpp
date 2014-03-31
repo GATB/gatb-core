@@ -224,8 +224,8 @@ dp::IteratorListener* Tool::createIteratorListener (size_t nbIterations, const c
     switch (getInput()->getInt(STR_VERBOSE))
     {
         case 0: default:    return new IteratorListener ();
-        case 1:             return new Progress      (nbIterations, message);
-        case 2:             return new ProgressTimer (nbIterations, message);
+        case 1:             return new ProgressTimer (nbIterations, message);
+        case 2:             return new Progress      (nbIterations, message);
     }
 }
 
