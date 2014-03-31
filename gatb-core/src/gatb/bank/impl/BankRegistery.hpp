@@ -55,6 +55,11 @@ public:
     /** */
     IBankFactory* getFactory (const std::string& name = "");
 
+    /** Get a bank handle.
+     * \param[in] uri : uri of the bank.
+     * \return the bank handle. */
+    IBank* createBank (const std::string& uri)  {  return getFactory()->createBank(uri);  }
+
 private:
 
     /** Private due to singleton method. */
