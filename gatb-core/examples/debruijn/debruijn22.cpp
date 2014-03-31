@@ -6,69 +6,135 @@
 using namespace std;
 
 /********************************************************************************/
-/*               */
+/*            Count number of branching nodes in each read of a bank.           */
+/*                                                                              */
+/* This snippet maps the sequences of a bank on the de Bruijn graph for this    */
+/* bank. The idea is to know, for one sequence, how many branching nodes (BN)   */
+/* are present in the sequence.                                                 */
+/*                                                                              */
+/* As a result, we get a distribution <nb branching nodes per kmer, nb occurs>  */
+/*                                                                              */
+/* This distribution is saved as a HDF5 file. It is possible to extract data    */
+/* from it with the HDF5 tools (such as 'h5dump'). For instance, you can dump   */
+/* the distribution with gnuplot with the following line:                       */
+/*      h5dump -y -d distrib  output.h5  | grep "^\ *[0-9]" | tr -d " "  | paste - - | gnuplot -p -e 'plot  "-" with lines' */
+/*                                                                              */
+/********************************************************************************/
+class BranchingNodeMapping : public Tool
+{
+public:
+
+    BranchingNodeMapping () : Tool ("BranchingNodeMapping")
+    {
+        getParser()->push_back (new OptionOneParam (STR_URI_INPUT,  "graph file",  true));
+        getParser()->push_back (new OptionOneParam (STR_URI_OUTPUT, "output file", false, "output"));
+    }
+
+    void execute ()
+    {
+        // We load the graph with the provided graph uri.
+        Graph graph = Graph::load (getInput()->getStr(STR_URI_INPUT));
+
+        // We check that the sorting count got all the kmers
+        if (graph.getInfo().getInt("nks") != 1)  { throw Exception("min abundance must be 1"); }
+
+        // We retrieve a handle of the bank (we get the uri from the graph properties)
+        IBank* bank = BankRegistery::singleton().createBank (graph.getInfo().getStr("input"));
+        LOCAL (bank);
+
+        // We create a kmer model for iterating kmers of sequences.
+        Kmer<>::Model model (graph.getKmerSize(), KMER_DIRECT);
+
+        size_t totalNbKmers     = 0;
+        size_t totalNbBranching = 0;
+
+        // We want to iterate the sequences in a parallel way.
+        Dispatcher dispatcher (getInput()->getInt(STR_NB_CORES));
+
+        // We want also to have progression information
+        ProgressIterator<Sequence> iter (*bank, "iterate bank");
+
+        // We need a map for building the distribution
+        ThreadObject<map<int,int> > distrib;
+
+        // We iterate the bank
+        IDispatcher::Status status = dispatcher.iterate (iter, [&] (Sequence& seq)
+        {
+            // We get a reference on the local distribution for the current thread
+            map<int,int>& localDistrib = distrib();
+
+            // We compute the number of kmers in the current sequence
+            int nbKmers = seq.getDataSize() - graph.getKmerSize() + 1;
+
+            if (nbKmers > 0)
+            {
+                int nbBranching = 0;
+
+                // We iterate the kmers of the current sequence
+                model.iterate (seq.getData(), [&] (const Kmer<>::Type& kmer, size_t rank)
+                {
+                    // We count the branching nodes.
+                    if (graph.isBranching (Node::Value(kmer)))  {  nbBranching++;  }
+                });
+
+                // We increase the (local) distribution for this number of branching nodes per sequence
+                localDistrib[nbBranching] ++;
+
+                // We also increase the number of seen kmers (synchronization required).
+                __sync_fetch_and_add (&totalNbKmers, nbKmers);
+            }
+        });
+
+        // We merge the (local) distributions filled by each thread into the final distribution
+        distrib.foreach ([&] (map<int,int>& localDistrib)
+        {
+            for (map<int,int>::iterator it = localDistrib.begin(); it != localDistrib.end(); it++)
+            {
+                (*distrib)[it->first] += it->second;
+                totalNbBranching += it->first * it->second;
+            }
+        });
+
+        // We gather some statistics.
+        getInfo()->add (1, "stats");
+        getInfo()->add (2, "nb_kmers",     "%ld", totalNbKmers);
+        getInfo()->add (2, "nb_branching", "%ld", totalNbBranching);
+        getInfo()->add (2, "percentage",   "%.3f", 100 * (float)totalNbBranching / (float)totalNbKmers);
+        getInfo()->add (1, "exec");
+        getInfo()->add (2, "time",     "%.3f", (float)status.time / 1000.0);
+        getInfo()->add (2, "nb_cores", "%d", status.nbCores);
+
+        // We create the output file
+        Storage* storage = StorageFactory(STORAGE_HDF5).create(getInput()->getStr(STR_URI_OUTPUT), true, false);
+        LOCAL (storage);
+
+        // We create the collection in the output storage
+        typedef Abundance<NativeInt64, u_int32_t> DistribEntry;
+        Collection<DistribEntry>& outDistrib = storage->root().getCollection<DistribEntry>("distrib");
+
+        // We dump the distribution in the output file
+        for (map<int,int>::iterator it = (*distrib).begin(); it != (*distrib).end(); it++)
+        {
+            outDistrib.insert (DistribEntry(it->first, it->second));
+        }
+        outDistrib.flush();
+    }
+};
+
+/********************************************************************************/
+/*            Count number of branching nodes in each read of a bank.           */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We check that the user provides at least one option (supposed to be in HDF5 format).
-    if (argc < 2)
+    try
     {
-        cerr << "You must provide a HDF5 file." << endl;
+        // We run the branching node mapper
+        BranchingNodeMapping().run (argc, argv);
+    }
+    catch (Exception& e)
+    {
+        std::cout << "EXCEPTION: " << e.getMessage() << std::endl;
         return EXIT_FAILURE;
     }
-
-    // We create the graph with the bank and other options
-    Graph graph = Graph::load (argv[1]);
-
-    // We iterate the branching nodes
-    graph.iterator<BranchingNode> ().iterate ([&] (BranchingNode& node)
-    {
-        // We get the branching neighbors of the current node
-        Graph::Vector<BranchingEdge> neighbors = graph.successors<BranchingEdge> (node);
-
-        // We look for
-        for (size_t i=0; i<neighbors.size(); i++)
-        {
-            for (size_t j=i+1; j<neighbors.size(); j++)
-            {
-                if (neighbors[i].to == neighbors[j].to)
-                {
-                    cout << "BUBBLE" << endl;
-                    {
-                        cout << "   " << graph.toString (neighbors[i].from);
-                        Nucleotide nt = neighbors[i].nt;
-                        Node next = graph.successor<Node> (node, nt);
-
-                        while (1)
-                        {
-                            cout << ascii (nt);
-                            Graph::Vector<Edge> simpleNeighbors = graph.successors<Edge> (next);
-                            if (simpleNeighbors.size() != 1)  { break; }
-                            next = simpleNeighbors[0].to;
-                            nt = simpleNeighbors[0].nt;
-                        }
-                        cout << endl;
-                    }
-                    {
-                        cout << "   " << graph.toString (neighbors[j].from);
-                        Nucleotide nt = neighbors[j].nt;
-                        Node next = graph.successor<Node> (node, nt);
-
-                        while (1)
-                        {
-                            cout << ascii (nt);
-                            Graph::Vector<Edge> simpleNeighbors = graph.successors<Edge> (next);
-                            if (simpleNeighbors.size() != 1)  { break; }
-                            next = simpleNeighbors[0].to;
-                            nt = simpleNeighbors[0].nt;
-                        }
-                        cout << endl;
-                    }
-                }
-            }
-        }
-    });
-
-    return EXIT_SUCCESS;
 }
 //! [snippet1]
