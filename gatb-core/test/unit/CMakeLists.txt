@@ -22,10 +22,8 @@ add_custom_target (test gatb-core-cppunit  "All Tests"  ${gatb-core_SOURCE_DIR}/
 #################################################
 #  INSTALL 
 #################################################
-IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
-    install (TARGETS gatb-core-cppunit   DESTINATION test)
-    install (DIRECTORY ${gatb-core_SOURCE_DIR}/test/db DESTINATION test/)
-ENDIF ()
+install (TARGETS gatb-core-cppunit   DESTINATION test)
+install (DIRECTORY ${gatb-core_SOURCE_DIR}/test/db DESTINATION test/)
     
     
 

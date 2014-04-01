@@ -118,14 +118,18 @@ ADD_SUBDIRECTORY(src)
 ################################################################################
 IF (DEFINED CPPUNIT_FOUND)
     IF (EXISTS "${PROJECT_SOURCE_DIR}/test")
-        ADD_SUBDIRECTORY (test)
+        IF (NOT DEFINED GATB_CORE_EXCLUDE_TESTS)
+            ADD_SUBDIRECTORY (test)
+        ENDIF()
     ENDIF()
 ENDIF()
 
 ################################################################################
 #  TOOLS GENERATION 
 ################################################################################
-ADD_SUBDIRECTORY(tools)
+IF (NOT DEFINED GATB_CORE_EXCLUDE_TOOLS)
+    ADD_SUBDIRECTORY(tools)
+ENDIF()
 
 ################################################################################
 #  THIRD PARTY GENERATION (
@@ -149,14 +153,20 @@ ENDIF()
 #  EXAMPLES GENERATION 
 ################################################################################
 IF (EXISTS "${PROJECT_SOURCE_DIR}/examples")
-    ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
+    IF (NOT DEFINED GATB_CORE_EXCLUDE_EXAMPLES)
+        ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
+    ENDIF()
 ENDIF()
 
 ################################################################################
 #  INSTALL 
 ################################################################################
+
 IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     INSTALL (FILES ${PROJECT_SOURCE_DIR}/doc/misc/README.txt  DESTINATION . OPTIONAL)
+ENDIF()
+
+IF (NOT DEFINED GATB_CORE_EXCLUDE_EXAMPLES)
     INSTALL (DIRECTORY ${PROJECT_SOURCE_DIR}/examples DESTINATION . OPTIONAL  FILES_MATCHING PATTERN "*.cpp")
 ENDIF()
 
