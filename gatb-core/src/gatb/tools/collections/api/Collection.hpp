@@ -65,6 +65,12 @@ public:
      * \param[in] value  : value of the property. */
     virtual void addProperty (const std::string& key, const std::string value) = 0;
 
+    /** Add a property to the collection.
+     * \param[in] key : key of the property
+     * \param[in] format  : printf like arguments
+     * \param[in] ... : variable arguments. */
+    virtual void addProperty (const std::string& key, const char* format, ...) = 0;
+
     /** Retrieve a property for a given key
      * \param[in] key : key of the property to be retrieved
      * \return the value of the property. */

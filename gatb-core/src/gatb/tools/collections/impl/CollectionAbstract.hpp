@@ -31,6 +31,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/collections/api/Collection.hpp>
+#include <cstdarg>
 
 /********************************************************************************/
 namespace gatb          {
@@ -96,6 +97,19 @@ public:
 
     /** */
     void addProperty (const std::string& key, const std::string value) {}
+
+    /** */
+    void addProperty (const std::string& key, const char* fmt ...)
+    {
+        std::string value;
+        char* buffer = 0;
+        va_list args;
+        va_start (args, fmt);
+        vasprintf (&buffer, fmt, args);
+        va_end (args);
+        if (buffer != NULL)  {  value = buffer;  free (buffer);  }
+        this->addProperty (key, value);
+    }
 
     /** */
     std::string getProperty (const std::string& key)  {  return std::string("");  }
