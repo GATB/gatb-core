@@ -795,4 +795,14 @@
  *
  *\snippet storage6.cpp  snippet1
  *
+ *************************************************************************************
+ * \section snippets_storage_snippet7 Associate metadata to HDF5 collections
+ *
+ * This snippet shows how to associate metadata to HDF5 collections.
+ *
+ * You can dump such values with h5dump:
+ *      h5dump -a myIntegers/myData foo.h5
+ *
+ *\snippet storage7.cpp  snippet1
+ *
  */
