@@ -25,6 +25,7 @@
  * \subpage snippets_iterators    \n
  * \subpage snippets_multithread  \n
  * \subpage snippets_storage      \n
+ * \subpage snippets_tools        \n
  *
  *************************************************************************************
  *************************************************************************************
@@ -804,5 +805,24 @@
  *      h5dump -a myIntegers/myData foo.h5
  *
  *\snippet storage7.cpp  snippet1
+ *
+ ************************************************************************************
+ * \page snippets_tools  Tools snippets
+ ************************************************************************************
+ *
+ * \tableofcontents
+ *
+ *************************************************************************************
+ *
+ * These snippets provide several miscellaneous tools that ease the developper's life.
+ *
+ *************************************************************************************
+ * \section snippets_tools_snippet1  Using the Tool class for quick tool development
+ *
+ * This snippet shows how to quickly create a new tool by subclassing the Tool class.
+ *
+ * Using the Tool class will give to use some useful features for developing our toy tool.
+ *
+ *\snippet ToyTool.cpp  snippet1
  *
  */
