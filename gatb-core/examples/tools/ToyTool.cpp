@@ -45,7 +45,7 @@ public:
         getParser()->push_front (new OptionOneParam (STR_RANGE_MAX, "upper range bound",  true));
 
         // Hence our tool can get 5 arguments as input (3 default, 2 custom)
-        // One can get them by using "./ToyTool -h"
+        // One can get them by using "./ToyTool -help"
         // Note: if the mandatory argument is not provided, an error is dumped in console
     }
 
