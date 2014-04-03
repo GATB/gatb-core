@@ -57,7 +57,7 @@ echo ""                                                                         
 echo "################################################################################"             >> $_project_dir/CMakeLists.txt
 echo "# Define cmake modules directory"                                                             >> $_project_dir/CMakeLists.txt
 echo "################################################################################"             >> $_project_dir/CMakeLists.txt
-echo "FOREACH (path \"cmake\" \"../cmake\"  \"thirdparty/gatb-core/cmake\")"                        >> $_project_dir/CMakeLists.txt
+echo "FOREACH (path \"cmake\" \"../cmake\"  \"thirdparty/gatb-core/cmake\"  \"../../thirdparty/gatb-core/gatb-core/cmake\")"  >> $_project_dir/CMakeLists.txt
 echo "IF (EXISTS \"\${CMAKE_CURRENT_SOURCE_DIR}/${path}\")"                                         >> $_project_dir/CMakeLists.txt
 echo "SET (CMAKE_MODULE_PATH  \"\${CMAKE_MODULE_PATH}\" \"\${CMAKE_CURRENT_SOURCE_DIR}/\${path}\")" >> $_project_dir/CMakeLists.txt
 echo "ENDIF()"                                                                                      >> $_project_dir/CMakeLists.txt
