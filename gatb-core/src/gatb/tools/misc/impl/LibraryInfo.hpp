@@ -45,23 +45,24 @@ class LibraryInfo
 {
 public:
 
-    static Properties& getInfo()
+    static IProperties& getInfo()
     {
-        static Properties props;
+        static system::SmartObject singleton;
 
-        static bool first = true;
-        if (first)
+        if (singleton.hasRef() == false)
         {
-            props.add (0, "gatb-core-library", "");
-            props.add (1, "version",        "%s", system::impl::System::info().getVersion().c_str());
-            props.add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
-            props.add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
-            props.add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());
-            props.add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
+            IProperties* props = new Properties();
 
-            first = false;
+            props->add (0, "gatb-core-library", "");
+            props->add (1, "version",        "%s", system::impl::System::info().getVersion().c_str());
+            props->add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
+            props->add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
+            props->add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());
+            props->add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
+
+            singleton.setRef (props);
         }
-        return props;
+        return * (dynamic_cast<IProperties*>(singleton.getRef()));
     }
 };
 

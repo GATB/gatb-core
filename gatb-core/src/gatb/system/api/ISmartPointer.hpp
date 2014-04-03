@@ -245,7 +245,7 @@ class SmartObject
 {
 public:
 
-    SmartObject (ISmartPointer* ref) : _ref(0)  { setRef(ref); }
+    SmartObject (ISmartPointer* ref=0) : _ref(0)  { setRef(ref); }
 
     virtual ~SmartObject ()  { setRef(0); }
 
@@ -253,10 +253,14 @@ public:
 
     SmartObject& operator= (const SmartObject& o)  {  if (this != &o)  {  setRef (o._ref);  }  return *this; }
 
+    void setRef (ISmartPointer* ref)  {  SP_SETATTR(ref); }
+    ISmartPointer* getRef ()  {  return _ref; }
+
+    bool hasRef () const { return _ref != 0; }
+
 private:
 
     ISmartPointer* _ref;
-    void setRef (ISmartPointer* ref)  {  SP_SETATTR(ref); }
 };
 
 /********************************************************************************/
