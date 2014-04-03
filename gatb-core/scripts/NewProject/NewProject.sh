@@ -59,7 +59,9 @@ echo "add_subdirectory (thirdparty/gatb-core \"\${CMAKE_CURRENT_BINARY_DIR}/ext/
 cat $_scripts_dir/CMakeLists.txt | sed 's/__PROJECT_NAME__/'$1'/g' >> $_project_dir/CMakeLists.txt
 
 # We copy the default main.cpp file
-cp $_scripts_dir/main.cpp $_project_dir/src/main.cpp
+cat $_scripts_dir/main.cpp | sed s/XXX/$1/g  > $_project_dir/src/main.cpp
+cat $_scripts_dir/XXX.hpp  | sed s/XXX/$1/g  > $_project_dir/src/$1.hpp
+cat $_scripts_dir/XXX.cpp  | sed s/XXX/$1/g  > $_project_dir/src/$1.cpp
 
 # We copy the default README
 cp $_scripts_dir/README.md $_project_dir/README.md

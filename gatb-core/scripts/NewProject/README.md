@@ -1,4 +1,3 @@
---------------------------------------------------------------------------------
 # Welcome
 
 This project has been automically created with a gatb-core script.
@@ -11,17 +10,19 @@ The architecture of the project is:
     * a 'src' file holding a default main function
     * a 'thirdparty' directory holding the gatb-core resources
 
---------------------------------------------------------------------------------
+
 # Project build
 
 For building your project, you should do the following
+    
     mkdir build;  cd build;  cmake ..;  make
     
 Then, you should get a binary holding the name of the project.
 
 Note: the first compilation should take some time since the GATB-CORE library is generated.
 
---------------------------------------------------------------------------------
+
+
 # Documentation
 
 If doxygen is installed, you can generate the gatb-core documentation with 'make doc'
@@ -29,7 +30,7 @@ If doxygen is installed, you can generate the gatb-core documentation with 'make
 The documention is available in HTML, the entry point being 'ext/gatb-core/doc/html/index.html'
 
 
---------------------------------------------------------------------------------
+
 # Examples
 
 The project is created with a default 'main' function that dumps some information about the library.
@@ -42,7 +43,7 @@ For instance:
     cp thirdparty/gatb-core/examples/debruijn/debruijn4.cpp src/main.cpp
 
 
---------------------------------------------------------------------------------
+
 # Binaries from gatb-core
 
 After the project build, some gatb-core binaries are available here 'ext/gatb-core/bin'

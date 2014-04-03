@@ -16,14 +16,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-#include <gatb/gatb_core.hpp>
+// We include the header file for the tool
+#include <XXX.hpp>
 
 /********************************************************************************/
 
 int main (int argc, char* argv[])
 {
-    // We dump some information about the gatb core library
-    std::cout << LibraryInfo::getInfo();
+    try
+    {
+        // We run the tool with the provided command line arguments.
+        XXX().run (argc, argv);
+    }
+    catch (Exception& e)
+    {
+        std::cout << "EXCEPTION: " << e.getMessage() << std::endl;
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
