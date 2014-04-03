@@ -28,17 +28,23 @@ mkdir $_project_dir
 # We create the project source directory
 mkdir $_project_dir/src
 
-# We copy gatb-core as thirdparty
-mkdir $_project_dir/thirdparty
-mkdir $_project_dir/thirdparty/gatb-core
-cp -r $_gatb_core_dir/cmake             $_project_dir/thirdparty/gatb-core/
-cp -r $_gatb_core_dir/src               $_project_dir/thirdparty/gatb-core/
-cp -r $_gatb_core_dir/tools             $_project_dir/thirdparty/gatb-core/
-cp -r $_gatb_core_dir/thirdparty        $_project_dir/thirdparty/gatb-core/
-cp -r $_gatb_core_dir/examples          $_project_dir/thirdparty/gatb-core/
-cp -r $_gatb_core_dir/doc               $_project_dir/thirdparty/gatb-core/
-cp -r $_gatb_core_dir/CMakeLists.txt    $_project_dir/thirdparty/gatb-core/
-
+# If no $3 argument is provided, we copy GATB-CORE as thirdparty.
+# => in GATB-TOOLS context, we can provide a $3 argument and so
+#    we don't have a copy of GATB-CORE
+if test -z "$3"
+then
+    # We copy gatb-core as thirdparty
+    mkdir $_project_dir/thirdparty
+    mkdir $_project_dir/thirdparty/gatb-core
+    cp -r $_gatb_core_dir/cmake             $_project_dir/thirdparty/gatb-core/
+    cp -r $_gatb_core_dir/src               $_project_dir/thirdparty/gatb-core/
+    cp -r $_gatb_core_dir/tools             $_project_dir/thirdparty/gatb-core/
+    cp -r $_gatb_core_dir/thirdparty        $_project_dir/thirdparty/gatb-core/
+    cp -r $_gatb_core_dir/examples          $_project_dir/thirdparty/gatb-core/
+    cp -r $_gatb_core_dir/doc               $_project_dir/thirdparty/gatb-core/
+    cp -r $_gatb_core_dir/CMakeLists.txt    $_project_dir/thirdparty/gatb-core/
+fi
+    
 # We init the CMakeLists.txt
 touch $_project_dir/CMakeLists.txt
 
