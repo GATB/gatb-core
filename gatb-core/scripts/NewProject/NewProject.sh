@@ -44,16 +44,31 @@ touch $_project_dir/CMakeLists.txt
 
 # Note: we do it this way because it is cumbersome to do it with sed because of special characters in _gatb_core_dir
 
-echo "project($1)"                                                                          >> $_project_dir/CMakeLists.txt
-echo ""                                                                                     >> $_project_dir/CMakeLists.txt
-echo "cmake_minimum_required(VERSION 2.6)"                                                  >> $_project_dir/CMakeLists.txt
-echo ""                                                                                     >> $_project_dir/CMakeLists.txt
-echo "################################################################################"     >> $_project_dir/CMakeLists.txt
-echo "# GATB-CORE"                                                                          >> $_project_dir/CMakeLists.txt
-echo "################################################################################"     >> $_project_dir/CMakeLists.txt
-echo ""                                                                                     >> $_project_dir/CMakeLists.txt
-echo "# we depend on gatb-core; here, we define where to find all the required material"    >> $_project_dir/CMakeLists.txt
-echo "add_subdirectory (thirdparty/gatb-core \"\${CMAKE_CURRENT_BINARY_DIR}/ext/gatb-core\") "   >> $_project_dir/CMakeLists.txt
+echo "project($1)"                                                                                  >> $_project_dir/CMakeLists.txt
+echo ""                                                                                             >> $_project_dir/CMakeLists.txt
+echo "cmake_minimum_required(VERSION 2.6)"                                                          >> $_project_dir/CMakeLists.txt
+echo ""                                                                                             >> $_project_dir/CMakeLists.txt
+echo "################################################################################"             >> $_project_dir/CMakeLists.txt
+echo "# Define cmake modules directory"                                                             >> $_project_dir/CMakeLists.txt
+echo "################################################################################"             >> $_project_dir/CMakeLists.txt
+echo "FOREACH (path \"cmake\" \"../cmake\"  \"thirdparty/gatb-core/cmake\")"                        >> $_project_dir/CMakeLists.txt
+echo "IF (EXISTS \"\${CMAKE_CURRENT_SOURCE_DIR}/${path}\")"                                         >> $_project_dir/CMakeLists.txt
+echo "SET (CMAKE_MODULE_PATH  \"\${CMAKE_MODULE_PATH}\" \"\${CMAKE_CURRENT_SOURCE_DIR}/\${path}\")" >> $_project_dir/CMakeLists.txt
+echo "ENDIF()"                                                                                      >> $_project_dir/CMakeLists.txt
+echo "ENDFOREACH(path)"                                                                             >> $_project_dir/CMakeLists.txt
+echo ""                                                                                             >> $_project_dir/CMakeLists.txt
+echo "################################################################################"             >> $_project_dir/CMakeLists.txt
+echo "# THIRD PARTIES"                                                                              >> $_project_dir/CMakeLists.txt
+echo "################################################################################"             >> $_project_dir/CMakeLists.txt
+echo ""                                                                                             >> $_project_dir/CMakeLists.txt
+echo "# We don't want to install some GATB-CORE artifacts"                                          >> $_project_dir/CMakeLists.txt
+echo "#SET (GATB_CORE_EXCLUDE_TOOLS     1)"                                                         >> $_project_dir/CMakeLists.txt
+echo "#SET (GATB_CORE_EXCLUDE_TESTS     1)"                                                         >> $_project_dir/CMakeLists.txt
+echo "#SET (GATB_CORE_EXCLUDE_EXAMPLES  1)"                                                         >> $_project_dir/CMakeLists.txt
+echo ""                                                                                             >> $_project_dir/CMakeLists.txt
+echo "# GATB CORE"                                                                                  >> $_project_dir/CMakeLists.txt
+echo "include (GatbCore)"                                                                           >> $_project_dir/CMakeLists.txt
+echo ""                                                                                             >> $_project_dir/CMakeLists.txt
 
 # We copy the remaining of the file
 cat $_scripts_dir/CMakeLists.txt | sed 's/__PROJECT_NAME__/'$1'/g' >> $_project_dir/CMakeLists.txt
