@@ -29,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
+#include <gatb/tools/collections/api/Iterable.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -42,7 +43,7 @@ namespace misc      {
 /** \brief Definition of an interval (inspired by std::pair). It is possible to define
  * 'reversed' range, ie. with a beginning greater than the end.
  */
-template <class T> class Range
+template <class T> class Range : public collections::Iterable<T>, public system::SmartPointer
 {
 public:
 
@@ -88,6 +89,15 @@ public:
     {
         return begin!=r.begin || end!=r.end;
     }
+
+    /** */
+    dp::Iterator<T>* iterator ()  { return new Iterator(*this); }
+
+    /** */
+    int64_t getNbItems ()       { return getLength(); }
+
+    /** */
+    int64_t estimateNbItems ()  { return getLength(); }
 
     /* */
     class Iterator : public dp::Iterator<T>
