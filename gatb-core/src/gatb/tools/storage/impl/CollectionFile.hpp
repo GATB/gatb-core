@@ -72,6 +72,55 @@ private:
     std::string _name;
 };
 
+/** \brief Collection interface
+ */
+template <class Item> class CollectionGzFile : public collections::impl::CollectionAbstract<Item>, public system::SmartPointer
+{
+public:
+    
+    /** Constructor. */
+    CollectionGzFile (const std::string& filename, size_t cacheItemsNb=10000)
+    : collections::impl::CollectionAbstract<Item> (
+                                                   new collections::impl::BagGzFile<Item>(filename),
+                                                   new collections::impl::IterableGzFile<Item>(filename, cacheItemsNb)
+                                                   ),  _name(filename)
+    {}
+    
+    /** Destructor. */
+    virtual ~CollectionGzFile() {}
+    
+    /** \copydoc Collection::remove */
+    void remove ()  {  gatb::core::system::impl::System::file().remove (_name);  }
+    
+private:
+    
+    std::string _name;
+};
+  
+/** \brief Collection interface
+ */
+template <class Item> class CollectionCountFile : public collections::impl::CollectionAbstract<Item>, public system::SmartPointer
+{
+public:
+    
+    /** Constructor. */
+    CollectionCountFile (const std::string& filename, size_t cacheItemsNb=10000)
+    : collections::impl::CollectionAbstract<Item> (
+                                                   new collections::impl::BagCountCompressedFile<Item>(filename),
+                                                   new collections::impl::IterableCountCompressedFile<Item>(filename, cacheItemsNb)                                                    ),  _name(filename)
+    {}
+    
+    /** Destructor. */
+    virtual ~CollectionCountFile() {}
+    
+    /** \copydoc Collection::remove */
+    void remove ()  {  gatb::core::system::impl::System::file().remove (_name);  }
+    
+private:
+    
+    std::string _name;
+};
+    
 /********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/

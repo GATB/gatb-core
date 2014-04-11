@@ -354,6 +354,11 @@ struct Kmer
          * \param[in] other : object to be compared to
          * \return true if the provided kmer value is greater than the current one. */
         bool operator< (const Count& other) const {  return this->value < other.value; }
+        
+        /** Equal operator
+         * \param[in] other : object to be compared to
+         * \return true if the provided kmer value is greater than the current one. */
+        bool operator== (const Count& other) const {  return (this->value == other.value && this->abundance == other.abundance); }
     };
 
 };  // class Kmer

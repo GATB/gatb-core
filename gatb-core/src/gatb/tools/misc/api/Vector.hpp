@@ -125,10 +125,12 @@ public:
     void set (T* buffer, size_t length)
     {
         _size        = length;
+        if (_isAllocated == false)  { _buffer = 0; }
         _buffer      = (char*) realloc (_buffer, _size*sizeof(char));
         _isAllocated = true;
         memcpy (_buffer, buffer, _size*sizeof(char));
     }
+    
 
 private:
 

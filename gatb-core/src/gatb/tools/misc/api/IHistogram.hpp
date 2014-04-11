@@ -62,6 +62,16 @@ public:
             compound = true;
             return result;
         }
+        
+        /** Comparison operator
+         * \param[in] other : object to be compared to
+         * \return true if the provided kmer value is greater than the current one. */
+        bool operator< (const Entry& other) const {  return this->index < other.index; }
+        
+        /** Equal operator
+         * \param[in] other : object to be compared to
+         * \return true if the provided kmer value is greater than the current one. */
+        bool operator== (const Entry& other) const {  return (this->index == other.index && this->abundance == other.abundance); }
     };
 
     /** */

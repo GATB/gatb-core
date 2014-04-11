@@ -34,6 +34,7 @@
 
 #include <string>
 #include <vector>
+#include <zlib.h>
 
 /********************************************************************************/
 namespace gatb          {
@@ -146,6 +147,272 @@ private:
     bool            _isDone;
 };
 
+    
+    
+    
+/** \brief Iterator implementation for file
+ */
+template <class Item> class IteratorGzFile : public dp::Iterator<Item>
+{
+public:
+    
+    /** Constructor. */
+    IteratorGzFile () : _gzfile(0), _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(0), _isDone(true) {}
+    
+    IteratorGzFile (const IteratorGzFile& it):
+    _filename(it._filename), _gzfile(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(it._cacheItemsNb), _isDone(true)
+    {
+        _gzfile =   gzopen(_filename.c_str(),"rb");
+        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
+    }
+    
+    /** Constructor. */
+    IteratorGzFile (const std::string& filename, size_t cacheItemsNb=10000) :
+    _filename(filename), _gzfile(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(cacheItemsNb), _isDone(true)
+    
+    {
+        _gzfile =   gzopen(_filename.c_str(),"rb");
+        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
+    }
+    
+    /** Destructor. */
+    ~IteratorGzFile ()
+    {
+        if (_gzfile)  { gzclose(_gzfile);   }
+        if (_buffer) { free (_buffer); }
+    }
+    
+    /** Affectation. */
+    IteratorGzFile& operator= (const IteratorGzFile& it)
+    {
+        if (this != &it)
+        {
+            if (_gzfile)    {  gzclose(_gzfile);  }
+            if (_buffer)  { free(_buffer); }
+            
+            _filename     = it._filename;
+            _cpt_buffer   = it._cpt_buffer;
+            _idx          = it._idx;
+            _cacheItemsNb = it._cacheItemsNb;
+            _isDone       = it._isDone;
+            
+            _gzfile =   gzopen(_filename.c_str(),"r");
+            _buffer  = (Item*) malloc (sizeof(Item) * it._cacheItemsNb);
+        }
+        return *this;
+    }
+    
+    /** \copydoc dp::Iterator::first */
+    void first()
+    {
+        gzseek(_gzfile,0,SEEK_SET);
+        _cpt_buffer = 0;
+        _idx        = 0;
+        _isDone     = false;
+        next ();
+    }
+    
+    /** \copydoc dp::Iterator::next */
+    void next()
+    {
+        if (_cpt_buffer==0)
+        {
+            _idx = 0;
+            _cpt_buffer = (gzread(_gzfile,_buffer, sizeof(Item)*_cacheItemsNb)  /  sizeof(Item))  ;  // gzread returns number of bytes uncompressed returned in _buffer
+           // _cpt_buffer = _file->fread (_buffer, sizeof(Item), _cacheItemsNb);
+            if (_cpt_buffer==0)  { _isDone = true;  return; }
+        }
+        
+        *(this->_item) =  _buffer[_idx];
+        _cpt_buffer --;
+        _idx ++;
+    }
+    
+    /** \copydoc dp::Iterator::isDone */
+    bool isDone()  { return _isDone; }
+    
+    /** \copydoc dp::Iterator::item */
+    Item& item ()  { return *(this->_item); }
+    
+    /** */
+    size_t fill (std::vector<Item>& vec, size_t len=0)
+    {
+        if (len==0)  { len = vec.size(); }
+        
+        return (gzread(_gzfile,vec.data(), sizeof(Item)*len)  /  sizeof(Item));
+ 
+    }
+    
+private:
+    std::string     _filename;
+    gzFile  _gzfile;
+    Item*           _buffer;
+    int             _cpt_buffer;
+    int             _idx;
+    size_t          _cacheItemsNb;
+    bool            _isDone;
+};
+
+
+/** \brief Iterator implementation for file
+ */
+    //reading from a  sorted compressed file, read is buffered
+template <class Item> class IteratorCountCompressedFile : public dp::Iterator<Item>
+{
+public:
+    
+    /** Constructor. */
+    IteratorCountCompressedFile () : _file(0), _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(0), _isDone(true),_abundance(0) {}
+    
+    IteratorCountCompressedFile (const IteratorCountCompressedFile& it):
+    _filename(it._filename), _file(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(it._cacheItemsNb), _isDone(true),_abundance(0)
+    {
+        _file    = system::impl::System::file().newFile (_filename, "rb");
+        _buffer  = (u_int8_t*) malloc (sizeof(u_int8_t) * _cacheItemsNb);
+    }
+    
+    /** Constructor. */
+    IteratorCountCompressedFile (const std::string& filename, size_t cacheItemsNb=10000) :
+    _filename(filename), _file(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(cacheItemsNb), _isDone(true),_abundance(0)
+    
+    {
+        _file    = system::impl::System::file().newFile (filename, "rb");
+        _buffer  = (u_int8_t*) malloc (sizeof(u_int8_t) * _cacheItemsNb);
+    }
+    
+    /** Destructor. */
+    ~IteratorCountCompressedFile ()
+    {
+        if (_file)  { delete _file;  }
+        if (_buffer) { free (_buffer); }
+    }
+    
+    /** Affectation. */
+    IteratorCountCompressedFile& operator= (const IteratorCountCompressedFile& it)
+    {
+        if (this != &it)
+        {
+            if (_file)    { delete _file; }
+            if (_buffer)  { free(_buffer); }
+            
+            _filename     = it._filename;
+            _cpt_buffer   = it._cpt_buffer;
+            _idx          = it._idx;
+            _cacheItemsNb = it._cacheItemsNb;
+            _isDone       = it._isDone;
+            _abundance    = it._abundance;
+            _file    = system::impl::System::file().newFile (it._filename, "rb");
+            _buffer  = (u_int8_t*) malloc (sizeof(u_int8_t) * it._cacheItemsNb);
+        }
+        return *this;
+    }
+    
+    /** \copydoc dp::Iterator::first */
+    void first()
+    {
+        _file->seeko (0, SEEK_SET);
+        _cpt_buffer = 0;
+        _idx        = 0;
+        _abundance  = 0;
+        _isDone     = false;
+        next ();
+    }
+    
+    /** \copydoc dp::Iterator::next */
+    void next()
+    {
+
+        
+        if(_abundance)
+        {
+           // printf("rem abond %i \n",_abundance);
+
+            *(this->_item) =  _previous;
+            _abundance--;
+        }
+        else
+        
+        {
+
+            
+            if (!readChunkIfNeeded (1)) return;
+
+            //read a couple (byte, Item)
+            _abundance =  _buffer[_idx];
+            _cpt_buffer --;  _idx ++;
+          //  printf(" read new couple  %i  \n",_abundance);
+
+            if (!readChunkIfNeeded (sizeof(Item))) return; // this one should succeed (ie, in the file always a couple  (byte, elem))
+            _previous =  *((Item *) (_buffer + _idx ));
+            _cpt_buffer -= sizeof(Item); _idx += sizeof(Item);
+            
+
+            *(this->_item) =  _previous;
+            _abundance--;
+            
+
+        }
+        
+    }
+    
+    /** \copydoc dp::Iterator::isDone */
+    bool isDone()  { return _isDone; }
+    
+    /** \copydoc dp::Iterator::item */
+    Item& item ()  { return *(this->_item); }
+    
+    /** */
+    size_t fill (std::vector<Item>& vec, size_t len=0)
+    {
+        printf("Not yet implemented \n");
+//        if (len==0)  { len = vec.size(); }
+//        return _file->fread (vec.data(), sizeof(Item), len);
+    }
+    
+private:
+    std::string     _filename;
+    system::IFile*  _file;
+    u_int8_t*           _buffer;
+    int             _cpt_buffer; // how many unread bytes are remaining in the buffer
+    int             _idx; // where we should read the next elem in the buffer
+    size_t          _cacheItemsNb; //in bytes for this  compressed type file
+    bool            _isDone;
+    u_int8_t  _abundance ;
+    Item          _previous;
+
+    bool readChunkIfNeeded (size_t needNBytes)
+    {
+
+
+        if (_cpt_buffer < needNBytes)
+        {
+         //   printf("Read new chunk  _cacheItemsNb %zu B nedd %zu have %i  \n",_cacheItemsNb,needNBytes,_cpt_buffer);
+
+        //_idx = 0;
+         //   printf(" A new pos in file %p  %llu  \n",_file, _file->tell());
+
+            //deplacer ce quil reste au debut avant
+            memcpy (_buffer,_buffer + _idx,_cpt_buffer ); _idx = 0;
+            int remaining = _cpt_buffer;
+            _cpt_buffer += _file->fread (_buffer+ remaining , sizeof(u_int8_t), _cacheItemsNb - remaining  );
+          //  printf(" B new pos in file %p  %llu  \n",_file, _file->tell());
+
+            if (_cpt_buffer==0)  {
+                _isDone = true;
+                //printf("should end iterating file \n");
+            }
+         //   printf("end read have %i \n",_cpt_buffer);
+
+        }
+
+        return !_isDone;
+    }
+
+};
+
+
+
+    
 /********************************************************************************/
 
 template <class Item> class IterableFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
@@ -172,7 +439,57 @@ private:
     std::string     _filename;
     size_t          _cacheItemsNb;
 };
+    
+    
+template <class Item> class IterableGzFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
+{
+public:
+    
+    /** */
+    IterableGzFile (const std::string& filename, size_t cacheItemsNb=10000)
+    :   _filename(filename), _cacheItemsNb (cacheItemsNb)  {}
+    
+    /** */
+    ~IterableGzFile () {}
+    
+    /** */
+    dp::Iterator<Item>* iterator ()  { return new IteratorGzFile<Item> (_filename, _cacheItemsNb); }
+    
+    /** */
+    int64_t getNbItems ()   {  return -1; } // does not know value
+    
+    int64_t estimateNbItems ()   {  return 3.0* (system::impl::System::file().getSize(_filename) / sizeof(Item)); }
 
+private:
+    std::string     _filename;
+    size_t          _cacheItemsNb;
+};
+
+template <class Item> class IterableCountCompressedFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
+{
+public:
+    
+    /** */
+    IterableCountCompressedFile (const std::string& filename, size_t cacheItemsNb=10000)
+    :   _filename(filename), _cacheItemsNb (cacheItemsNb)  {}
+    
+    /** */
+    ~IterableCountCompressedFile () {}
+    
+    /** */
+    dp::Iterator<Item>* iterator ()  { return new IteratorCountCompressedFile<Item> (_filename, _cacheItemsNb); }
+    
+    /** */
+    int64_t getNbItems ()   {  return -1; } // does not know value
+    
+    int64_t estimateNbItems ()   {  return 2.0* (system::impl::System::file().getSize(_filename) / sizeof(Item)); }
+    
+private:
+    std::string     _filename;
+    size_t          _cacheItemsNb;
+};
+
+    
 /********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/

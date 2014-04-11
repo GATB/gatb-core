@@ -21,6 +21,7 @@
 // We include required definitions
 /********************************************************************************/
 
+//#define PROTO_COMP
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 
 #include <gatb/system/impl/System.hpp>
@@ -415,9 +416,13 @@ public:
         if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
 
-    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, IteratorListener* progress)
+    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress)
         : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0),
-          _partition (*partition,1<<12,System::thread().newSynchronizer()),
+#ifdef PROTO_COMP
+      _partition (*partition,1<<12,max_memory, 0),
+#else
+      _partition (*partition,1<<12,0),
+#endif
           _progress  (progress,System::thread().newSynchronizer())  {}
 
 private:
@@ -431,8 +436,13 @@ private:
     Data      binaryData;
     vector<Type> kmers;
 
-    /** Shared resources (must support concurrent accesses). */
+    /** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
+#ifdef PROTO_COMP
+    PartitionCacheSorted<Type> _partition;
+#else
     PartitionCache<Type> _partition;
+#endif
+    
     ProgressSynchro      _progress;
 };
 
@@ -458,14 +468,19 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
 
     /** We create the partition files for the current pass. */
+#ifdef PROTO_COMP
+    setPartitionsStorage (StorageFactory(STORAGE_COMPRESSED_FILE).create ("partitions", true, false));
+#else
     setPartitionsStorage (StorageFactory(STORAGE_FILE).create ("partitions", true, false));
+#endif
+    
     setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _progress), 15*1000);
+    getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _max_memory, _progress), 15*1000);
 }
 
 /*********************************************************************
@@ -501,7 +516,9 @@ public:
           _totalKmerNb(0),
           _totalKmerNbRef(totalKmerNbRef) {}
 
-    ~PartitionsCommand()  { _totalKmerNbRef += _totalKmerNb; }
+    ~PartitionsCommand()  {
+        __sync_fetch_and_add (&_totalKmerNbRef, _totalKmerNb);
+    }
 
 protected:
     size_t              _nks;
@@ -717,7 +734,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
             ICommand* cmd = 0;
 
             /** We get the length of the current partition file. */
-            size_t partitionLen = (*_partitions)[p].getNbItems();
+            size_t partitionLen = (*_partitions)[p].getNbItems(); // hmm this will be unknown for a gz file, maybe estimation possible du coup utilise le hash
 
             /* Get the memory taken by this partition if loaded for sorting */
             uint64_t memoryPartition = partitionLen * sizeof(Type);

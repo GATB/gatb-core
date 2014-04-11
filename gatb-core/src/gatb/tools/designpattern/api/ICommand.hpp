@@ -220,7 +220,7 @@ public:
         status = iterate (iterator, functors, groupSize);
 
         /** We get rid of the functors. */
-        for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
+     //   for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
 
         if (localIterator) { iterator->forget(); }
 
@@ -281,6 +281,9 @@ protected:
                   * with the retrieved items. */
                  for (size_t i=0; i<items.size(); i++)  {   (*_fct) (items[i]); }
             }
+            
+            /** We do not need the functor after that, delete it here to have parallel delete */
+            delete _fct;
         }
 
     private:

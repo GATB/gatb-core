@@ -70,6 +70,36 @@ private:
     Collection<Item>& _ref;
 };
 
+    
+/** \brief Collection interface
+ *
+ * The Collection interface is the union of a Bag and an Iterable interfaces
+ */
+template <class Item> class CollectionCacheSorted : public CollectionAbstract<Item>, public system::SmartPointer
+{
+public:
+    
+    /** Constructor. */
+    CollectionCacheSorted (Collection<Item>& ref,  size_t cacheSize, size_t sharedCacheSize,  system::ISynchronizer* synchro, system::ISynchronizer* outsynchro, Item* sharedBuffer, size_t * idxShared) //
+    : CollectionAbstract<Item> (
+                                new BagCacheSortedBuffered<Item> (ref.bag(), cacheSize,sharedBuffer,sharedCacheSize,idxShared, outsynchro,synchro),
+                                ref.iterable()
+                                ), _ref(ref)  {}
+    
+    /** Destructor. */
+    virtual ~CollectionCacheSorted() {}
+    
+    /** */
+    void remove ()  { _ref.remove(); }
+    
+    /** */
+    Collection<Item>& getRef ()  { return _ref; }
+    
+private:
+    Collection<Item>& _ref;
+};
+
+
 /********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/

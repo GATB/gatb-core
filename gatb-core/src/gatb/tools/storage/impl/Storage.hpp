@@ -54,7 +54,7 @@ namespace impl      {
 /********************************************************************************/
 
 /** */
-enum StorageMode_e { STORAGE_FILE, STORAGE_HDF5 };
+enum StorageMode_e { STORAGE_FILE, STORAGE_HDF5, STORAGE_GZFILE, STORAGE_COMPRESSED_FILE };
 
 /********************************************************************************/
 
@@ -262,13 +262,68 @@ public:
     /** Remove physically the partition (ie. remove each collection). */
     void remove ();
 
-private:
+protected:
     Partition<Type>& _ref;
     size_t                     _nbItemsCache;
     system::ISynchronizer*     _synchro;
+    std::vector <system::ISynchronizer*> _synchros;
     std::vector <collections::impl::CollectionCache<Type>* > _cachedCollections;
 };
 
+    
+    
+template<typename Type>
+class PartitionCacheSorted
+{
+public:
+    
+    /** Constructor */
+    PartitionCacheSorted (Partition<Type>& ref, size_t nbItemsCache, u_int32_t max_memory, system::ISynchronizer* synchro=0);
+    
+    /** Copy constructor. */
+    PartitionCacheSorted (const PartitionCacheSorted<Type>& p);
+    
+    /** Destructor. */
+    ~PartitionCacheSorted ();
+    
+    /** Return the number of collections for this partition.
+     * \return the number of collections. */
+    size_t size() const;
+    
+    /** Get the ith collection
+     * \param[in] idx : index of the collection to be retrieved
+     * \return the wanted collection.
+     */
+    collections::impl::CollectionCacheSorted<Type>& operator[] (size_t idx);
+    
+    /** Flush the whole partition (ie flush each collection). */
+    void flush ();
+    
+    /** Remove physically the partition (ie. remove each collection). */
+    void remove ();
+    
+protected:
+    Partition<Type>& _ref;
+    size_t                     _nbItemsCache;
+    system::ISynchronizer*     _synchro;
+    size_t _sharedBuffersSize;
+    u_int32_t _max_memory;
+    //only the model "parent" will have them, objects created with copy construc wont
+    std::vector <system::ISynchronizer*> _synchros;
+    std::vector <system::ISynchronizer*> _outsynchros;
+    std::vector <Type*> _sharedBuffers;
+    std::vector <size_t> _idxShared;
+    int  _numthread;
+    int  _nbliving;
+    bool _own_synchros;
+    bool _own_outsynchros;
+
+
+    std::vector <collections::impl::CollectionCacheSorted<Type>* > _cachedCollections;
+};
+    
+
+    
 /********************************************************************************
         ######   ######   #######  ######   #     #   #####   #######
         #     #  #     #  #     #  #     #  #     #  #     #     #

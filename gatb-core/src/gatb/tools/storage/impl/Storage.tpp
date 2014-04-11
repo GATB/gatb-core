@@ -253,12 +253,22 @@ inline void Partition<Type>::remove ()
 *********************************************************************/
 template<typename Type>
 inline PartitionCache<Type>::PartitionCache (Partition<Type>& ref, size_t nbItemsCache, system::ISynchronizer* synchro)
-    :  _ref(ref), _nbItemsCache(nbItemsCache), _synchro(synchro), _cachedCollections(ref.size())
+    :  _ref(ref), _nbItemsCache(nbItemsCache), _synchro(synchro), _cachedCollections(ref.size()) , _synchros(ref.size())
 {
     /** We create the partition files. */
     for (size_t i=0; i<_cachedCollections.size(); i++)
     {
-        _cachedCollections[i] = new collections::impl::CollectionCache<Type> (ref[i], nbItemsCache, synchro);
+        if(synchro==0)
+        {
+            _synchros[i] = system::impl::System::thread().newSynchronizer();
+        }
+        else
+        {
+            _synchros[i] = synchro;
+        }
+        _synchros[i]->use();
+
+        _cachedCollections[i] = new collections::impl::CollectionCache<Type> (ref[i], nbItemsCache, _synchros[i]);
         _cachedCollections[i]->use ();
     }
 }
@@ -267,14 +277,17 @@ inline PartitionCache<Type>::PartitionCache (Partition<Type>& ref, size_t nbItem
 *********************************************************************/
 template<typename Type>
 inline PartitionCache<Type>::PartitionCache (const PartitionCache<Type>& p)
-    : _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro), _cachedCollections(p.size())
+    : _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro), _cachedCollections(p.size()) , _synchros(p._synchros)
 {
     /** We create the partition files. */
     for (size_t i=0; i<_cachedCollections.size(); i++)
     {
         PartitionCache<Type>& pp = (PartitionCache<Type>&)p;
-        _cachedCollections[i] = new collections::impl::CollectionCache<Type> (pp[i].getRef(), p._nbItemsCache, p._synchro);
+
+        _cachedCollections[i] = new collections::impl::CollectionCache<Type> (pp[i].getRef(), p._nbItemsCache, p._synchros[i]);
         _cachedCollections[i]->use ();
+        _synchros[i]->use();
+
     }
 }
 
@@ -284,7 +297,10 @@ template<typename Type>
 inline PartitionCache<Type>::~PartitionCache ()
 {
     flush ();
-    for (size_t i=0; i<_cachedCollections.size(); i++)  {  _cachedCollections[i]->forget ();  }
+    for (size_t i=0; i<_cachedCollections.size(); i++)  {
+        _cachedCollections[i]->forget ();
+        _synchros[i]->forget();
+    }
 }
 
 /*********************************************************************
@@ -319,6 +335,138 @@ inline void PartitionCache<Type>::remove ()
     for (size_t i=0; i<_cachedCollections.size(); i++)  { _cachedCollections[i]->remove ();  } 
 }
 
+    
+    
+/*********************************************************************
+ *********************************************************************/
+template<typename Type>
+inline PartitionCacheSorted<Type>::PartitionCacheSorted (Partition<Type>& ref, size_t nbItemsCache, u_int32_t max_memory, system::ISynchronizer* synchro)
+:  _ref(ref), _nbItemsCache(nbItemsCache), _synchro(synchro), _cachedCollections(ref.size()) , _synchros(ref.size()) , _outsynchros(ref.size()), _sharedBuffers(ref.size()), _idxShared(ref.size()), _max_memory(max_memory),_numthread(-1),_nbliving(0)
+{
+
+    //todo should also take into account the temp buffer used for sorting, ie max nb threads * buffer, so should be
+   // _sharedBuffersSize = (_max_memory*system::MBYTE / (_cachedCollections.size()  + nbthreads) ) / sizeof(Type); //in nb elems
+    
+    _sharedBuffersSize = (_max_memory*system::MBYTE / _cachedCollections.size()  ) / sizeof(Type); //in nb elems
+    _sharedBuffersSize = std::max(2*nbItemsCache,_sharedBuffersSize);
+   // _sharedBuffersSize = 1*system::MBYTE  / sizeof(Type);
+
+    printf("sort cache of %zu elems \n",_sharedBuffersSize);
+    /** We create the partition files. */
+    for (size_t i=0; i<_cachedCollections.size(); i++)
+    {
+
+        if(synchro==0)
+        {
+            _synchros[i] = system::impl::System::thread().newSynchronizer();
+        }
+        else
+        {
+            _synchros[i] = synchro;
+        }
+        
+        _outsynchros[i] = system::impl::System::thread().newSynchronizer();
+        
+        _synchros[i]->use();
+        _outsynchros[i]->use();
+        
+       // printf("Creating outsync %p   \n",_outsynchros[i] );
+
+        _sharedBuffers[i] = (Type*) system::impl::System::memory().calloc (_sharedBuffersSize, sizeof(Type));
+        //system::impl::System::memory().memset (_sharedBuffers[i], 0, _sharedBuffersSize*sizeof(Type));
+       // printf("Creating shared buffer %p   \n",_sharedBuffers[i] );
+
+
+        
+        _cachedCollections[i] = new collections::impl::CollectionCacheSorted<Type> (ref[i], nbItemsCache,_sharedBuffersSize, _synchros[i],_outsynchros[i],_sharedBuffers[i],&_idxShared[i]);
+        //
+        _cachedCollections[i]->use ();
+    }
+}
+
+/*********************************************************************
+ *********************************************************************/
+template<typename Type>
+inline PartitionCacheSorted<Type>::PartitionCacheSorted (const PartitionCacheSorted<Type>& p)
+: _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro), _cachedCollections(p.size()) , _synchros(p._synchros), _outsynchros(p._outsynchros), _sharedBuffers(0),_idxShared(0)
+{
+
+   _numthread =  __sync_fetch_and_add (&p._nbliving, 1);
+
+    /** We create the partition files. */
+    for (size_t i=0; i<_cachedCollections.size(); i++)
+    {
+
+        _synchros[i]->use();
+        _outsynchros[i]->use();
+        
+        PartitionCacheSorted<Type>& pp = (PartitionCacheSorted<Type>&)p;
+        
+        _cachedCollections[i] = new collections::impl::CollectionCacheSorted<Type> (pp[i].getRef(), p._nbItemsCache,p._sharedBuffersSize, p._synchros[i],p._outsynchros[i],p._sharedBuffers[i],&(pp._idxShared[i]) ); //
+        _cachedCollections[i]->use ();
+    }
+}
+/*********************************************************************
+ *********************************************************************/
+template<typename Type>
+inline PartitionCacheSorted<Type>::~PartitionCacheSorted ()
+{
+    //printf("destruc parti cache sorted tid %i \n",_numthread);
+    flush ();
+
+    for (size_t i=0; i<_cachedCollections.size(); i++)  {
+        //destruction of collection will also flush the output bag (which is shared between all threads) , so need to lock it also
+        _outsynchros[i]->lock();
+        _cachedCollections[i]->forget ();
+        _outsynchros[i]->unlock();
+
+        
+        _synchros[i]->forget();
+        _outsynchros[i]->forget();
+    }
+    
+    for (typename std::vector<Type*>::iterator it = _sharedBuffers.begin() ; it != _sharedBuffers.end(); ++it)
+    {
+        //printf("destroying shared buffer %p \n",*it);
+        system::impl::System::memory().free (*it);
+    }
+
+}
+
+/*********************************************************************
+ *********************************************************************/
+template<typename Type>
+inline size_t  PartitionCacheSorted<Type>::size() const
+{
+    return _cachedCollections.size();
+}
+
+/*********************************************************************
+ *********************************************************************/
+template<typename Type>
+inline collections::impl::CollectionCacheSorted<Type>&   PartitionCacheSorted<Type>::operator[] (size_t idx)
+{
+    return * _cachedCollections[idx];
+}
+
+/*********************************************************************
+ *********************************************************************/
+template<typename Type>
+inline void PartitionCacheSorted<Type>::flush ()
+{
+    printf("PartitionCacheSorted flush  this %p \n",this);
+    for (size_t i=0; i<_cachedCollections.size(); i++)  { _cachedCollections[i]->flush();  }
+}
+
+/*********************************************************************
+ *********************************************************************/
+template<typename Type>
+inline void PartitionCacheSorted<Type>::remove ()
+{  
+    for (size_t i=0; i<_cachedCollections.size(); i++)  { _cachedCollections[i]->remove ();  } 
+}
+
+    
 /********************************************************************************
         ######   ######   #######  ######   #     #   #####   #######
         #     #  #     #  #     #  #     #  #     #  #     #     #
@@ -403,6 +551,8 @@ inline Storage* StorageFactory::create (const std::string& name, bool deleteIfEx
     {
         case STORAGE_HDF5:  return StorageHDF5Factory::createStorage (name, deleteIfExist, autoRemove);
         case STORAGE_FILE:  return StorageFileFactory::createStorage (name, deleteIfExist, autoRemove);
+        case STORAGE_GZFILE:  return StorageGzFileFactory::createStorage (name, deleteIfExist, autoRemove);
+        case STORAGE_COMPRESSED_FILE:  return StorageSortedFactory::createStorage (name, deleteIfExist, autoRemove);
         default:            throw system::Exception ("Unknown mode in StorageFactory::createStorage");
     }
 }
@@ -415,6 +565,9 @@ inline Group* StorageFactory::createGroup (ICell* parent, const std::string& nam
     {
         case STORAGE_HDF5:  return StorageHDF5Factory::createGroup (parent, name);
         case STORAGE_FILE:  return StorageFileFactory::createGroup (parent, name);
+        case STORAGE_GZFILE:  return StorageGzFileFactory::createGroup (parent, name);
+        case STORAGE_COMPRESSED_FILE:  return StorageSortedFactory::createGroup (parent, name);
+
         default:            throw system::Exception ("Unknown mode in StorageFactory::createGroup");
     }
 }
@@ -428,6 +581,9 @@ inline Partition<Type>* StorageFactory::createPartition (ICell* parent, const st
     {
         case STORAGE_HDF5:  return StorageHDF5Factory::createPartition<Type> (parent, name, nb);
         case STORAGE_FILE:  return StorageFileFactory::createPartition<Type> (parent, name, nb);
+        case STORAGE_GZFILE:  return StorageGzFileFactory::createPartition<Type> (parent, name, nb);
+        case STORAGE_COMPRESSED_FILE:  return StorageSortedFactory::createPartition<Type> (parent, name, nb);
+
         default:            throw system::Exception ("Unknown mode in StorageFactory::createPartition");
     }
 }
@@ -441,6 +597,9 @@ inline CollectionNode<Type>* StorageFactory::createCollection (ICell* parent, co
     {
         case STORAGE_HDF5:  return StorageHDF5Factory::createCollection<Type> (parent, name, synchro);
         case STORAGE_FILE:  return StorageFileFactory::createCollection<Type> (parent, name, synchro);
+        case STORAGE_GZFILE:  return StorageGzFileFactory::createCollection<Type> (parent, name, synchro);
+        case STORAGE_COMPRESSED_FILE:  return StorageSortedFactory::createCollection<Type> (parent, name, synchro);
+
         default:            throw system::Exception ("Unknown mode in StorageFactory::createCollection");
     }
 }

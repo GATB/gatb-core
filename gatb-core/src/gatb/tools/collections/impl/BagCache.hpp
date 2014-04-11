@@ -125,6 +125,143 @@ protected:
     }
 };
 
+    
+
+
+    
+/********************************************************************************/
+
+/** \brief Bag implementation as a cache to a referred Bag instance.
+ *
+ * The cache is sorted before sent to the reference
+ */
+template <typename Item> class BagCacheSortedBuffered : public BagCache<Item>
+{
+public:
+    
+    /** Constructor. */
+    BagCacheSortedBuffered (Bag<Item>* ref, size_t cacheSize, Item* sharedBuffer, size_t sharedCacheSize,  size_t * idxShared,  system::ISynchronizer* outsynchro=0, system::ISynchronizer* synchro=0
+)
+    : BagCache<Item>(ref, cacheSize, synchro), _outsynchro(0),_idxShared(idxShared)  {
+        _sharedBuffer = sharedBuffer;
+        setOutSynchro (outsynchro);
+        _sharedCacheSize = sharedCacheSize;
+      //  printf("BagCacheSortedBuffered created with _idxShared %p : %zu \n",_idxShared,*_idxShared);
+    }
+
+    
+    /** Destructor. */
+    virtual ~BagCacheSortedBuffered ()
+    {
+        /** We flush the potential remaining stuf. */
+        //flush ();
+        
+        /** We clean resources. */
+        setOutSynchro (0);
+    }
+    
+    /**  \copydoc Bag::insert */
+    void insert (const Item& item)
+    {
+        
+        if (this->_idx+1 > this->_nbMax)
+        {
+            if (this->_synchro)  {  this->_synchro->lock();    }
+            flushLocalCache ();
+            if (this->_synchro)  {  this->_synchro->unlock();  }
+        }
+        
+        this->_items[this->_idx++] = item;
+        
+
+    }
+    
+    /**  \copydoc Bag::flush */
+    void flush ()
+    {
+        //printf("main flush \n");
+        if (this->_synchro)  {  this->_synchro->lock();    }
+        
+        flushLocalCache ();
+
+        flushCache ();
+        if (this->_synchro)  {  this->_synchro->unlock();  }
+        
+
+        if (this->_outsynchro)  {  this->_outsynchro->lock();    }
+        this->_ref->flush();
+        if (this->_outsynchro)  {  this->_outsynchro->unlock();  }
+        
+        
+    }
+    
+    
+private:
+    Item * _sharedBuffer; // shared buffer for sorting, allocated from outside
+    system::ISynchronizer* _outsynchro;
+    void setOutSynchro (system::ISynchronizer* outsynchro)  { SP_SETATTR(outsynchro); }
+    size_t _sharedCacheSize;
+    size_t * _idxShared;
+    
+
+    
+    void flushLocalCache () //flush local cache to shared buffer
+    {
+      //  printf("flush local cache to %p  from %p  %zu \n",_sharedBuffer + *_idxShared,this->_items,this->_idx);
+        if (this->_idx > 0)  {
+            
+            while(*_idxShared + this->_idx > _sharedCacheSize)
+            // must be a while, not an 'if' : flushCache may release temporarily the lock, so must re-check when exiting flushcache
+            {
+                //sort and flush shared buffer to ref bag
+                flushCache ();
+            }
+
+            system::impl::System::memory().memcpy (_sharedBuffer + *_idxShared, this->_items, this->_idx*sizeof(Item));
+            *_idxShared += this->_idx;
+            
+            //this->_ref->insert (this->_items, this->_idx);
+
+        }
+        
+        this->_idx = 0;
+    }
+    
+    void flushCache () //flush shared buffer to ref bag
+    {
+     //   printf("flush  shared cache %zu  from  %p this %p\n",*_idxShared,_sharedBuffer,this);
+
+        if (*_idxShared > 0)
+        {
+        //first duplicate into temp vector
+            std::vector<Item> tempArray(_sharedBuffer, _sharedBuffer + *_idxShared);
+        *_idxShared = 0;
+        //here shared buffer is effectively flushed to temp array, safe to unlock
+        
+        if (this->_synchro)  {  this->_synchro->unlock();    }
+        std::sort (tempArray.begin(), tempArray.end());
+            
+        //flush to file using outsynchro
+        if (this->_outsynchro)  {  this->_outsynchro->lock();    }
+        this->_ref->insert (tempArray, tempArray.size());
+        if (this->_outsynchro)  {  this->_outsynchro->unlock();  }
+            
+        if (this->_synchro)  {  this->_synchro->lock();    }
+            
+        }
+        
+        
+        
+//        if (*_idxShared > 0)  { this->_ref->insert (_sharedBuffer, *_idxShared);  }
+//        *_idxShared = 0;
+        
+    }
+    
+};
+
+    
+    
+    
 /********************************************************************************/
 
 /** \brief Bag implementation as a cache to a referred Bag instance.
