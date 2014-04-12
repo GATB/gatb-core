@@ -391,7 +391,7 @@ inline PartitionCacheSorted<Type>::PartitionCacheSorted (const PartitionCacheSor
 : _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro), _cachedCollections(p.size()) , _synchros(p._synchros), _outsynchros(p._outsynchros), _sharedBuffers(0),_idxShared(0)
 {
 
-   _numthread =  __sync_fetch_and_add (&p._nbliving, 1);
+   //_numthread =  __sync_fetch_and_add (&p._nbliving, 1);
 
     /** We create the partition files. */
     for (size_t i=0; i<_cachedCollections.size(); i++)
@@ -454,7 +454,7 @@ inline collections::impl::CollectionCacheSorted<Type>&   PartitionCacheSorted<Ty
 template<typename Type>
 inline void PartitionCacheSorted<Type>::flush ()
 {
-    printf("PartitionCacheSorted flush  this %p \n",this);
+    //printf("PartitionCacheSorted flush  this %p \n",this);
     for (size_t i=0; i<_cachedCollections.size(); i++)  { _cachedCollections[i]->flush();  }
 }
 

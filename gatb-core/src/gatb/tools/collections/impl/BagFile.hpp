@@ -167,12 +167,16 @@ public:
         _bufferOut  = (u_int8_t*) malloc (sizeof(u_int8_t) * _buffer_size);
         _idx=0;
         _size_item = sizeof(Item);
+        _sizeOutput =0;
+        _sizeInput =0;
 
     }
     
     /** Destructor. */
     ~BagCountCompressedFile ()
     {
+        printf("In %llu B  (%llu MB ) Out %llu  B  (%llu MB ) ratio  %f \n",_sizeInput,_sizeInput/(1024LL*1024LL), _sizeOutput,_sizeOutput/(1024LL*1024LL), _sizeInput / (float) _sizeOutput);
+
         if (_file)  { delete _file; }
         free( _bufferOut );
     }
@@ -198,7 +202,9 @@ public:
     void insert (const Item* items, size_t length)
     {
       //  Item diff_to_prev ;
-        _sizeOutput =0;
+
+//        u_int64_t cpt = 0;
+//        u_int64_t diffmoy = 0;
         
         _previous = items[0];
         u_int8_t abundance = 0;
@@ -218,6 +224,9 @@ public:
             }
             else
             {
+                //diffmoy =  (diffmoy * cpt +  *((u_int64_t *) (&(items[ii]))) -  *((u_int64_t *) &_previous)   )/ (cpt+1) ;
+                //cpt++;
+                
                 write(abundance,_previous);
                 abundance     = 1;
                 _previous = items[ii];
@@ -227,8 +236,9 @@ public:
         write(abundance,_previous);
 
 
+        _sizeInput += length*sizeof(Item);
+        //printf("Cpt %lli diffmoy %lli \n",cpt,diffmoy);
         
-        //printf("In %lu B  Out %llu  B  ratio  %f \n",length*sizeof(Item), _sizeOutput, length*sizeof(Item) / (float) _sizeOutput);
     }
     
     /**  \copydoc Bag::flush */
@@ -262,15 +272,17 @@ private:
 
     }
     
+
+    
     std::string _filename;
     system::IFile* _file;
     Item _previous;
     u_int64_t _sizeOutput;
+    u_int64_t _sizeInput;
     u_int8_t*           _bufferOut;
     int             _idx;
     size_t _size_item;
     size_t _buffer_size;
-
 };
     
     
