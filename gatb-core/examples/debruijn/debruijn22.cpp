@@ -39,11 +39,17 @@ public:
         if (graph.getInfo().getInt("nks") != 1)  { throw Exception("min abundance must be 1"); }
 
         // We retrieve a handle of the bank (we get the uri from the graph properties)
-        IBank* bank = BankRegistery::singleton().createBank (graph.getInfo().getStr("input"));
+        IBank* ibank = BankRegistery::singleton().createBank (graph.getInfo().getStr("input"));
+        LOCAL (ibank);
+
+        // We convert the bank to binary form
+        BankConverterAlgorithm converter (ibank, graph.getKmerSize(), "bank.bin");
+        converter.execute();
+        IBank* bank = converter.getResult();
         LOCAL (bank);
 
         // We create a kmer model for iterating kmers of sequences.
-        Kmer<>::Model model (graph.getKmerSize(), KMER_DIRECT);
+        Kmer<>::Model model (graph.getKmerSize());
 
         size_t totalNbKmers     = 0;
         size_t totalNbBranching = 0;
@@ -95,9 +101,20 @@ public:
 
         // We gather some statistics.
         getInfo()->add (1, "stats");
-        getInfo()->add (2, "nb_kmers",     "%ld", totalNbKmers);
-        getInfo()->add (2, "nb_branching", "%ld", totalNbBranching);
-        if (totalNbKmers > 0)  {  getInfo()->add (2, "percentage",   "%.3f", 100 * (float)totalNbBranching / (float)totalNbKmers);  }
+
+        getInfo()->add (2, "nb_kmers", "");
+        getInfo()->add (3, "total",  "%ld", totalNbKmers);
+        getInfo()->add (3, "unique", "%ld", graph.getInfo().getInt("kmers_nb_solid"));
+        getInfo()->add (3, "ratio",  "%.3f", (float)totalNbKmers / (float)graph.getInfo().getInt("kmers_nb_solid"));
+
+        getInfo()->add (2, "nb_branching", "");
+        getInfo()->add (3, "total", "%ld", totalNbBranching);
+        getInfo()->add (3, "unique", "%ld", graph.getInfo().getInt("nb_branching"));
+        getInfo()->add (3, "ratio",  "%.3f", (float)totalNbBranching / (float)graph.getInfo().getInt("nb_branching"));
+
+        getInfo()->add (2, "percentage",   "");
+        getInfo()->add (3, "total",    "%.3f", 100 * (float)totalNbBranching / (float)totalNbKmers);
+        getInfo()->add (3, "unique",   "%.3f", 100 * (float)graph.getInfo().getInt("nb_branching") / (float)graph.getInfo().getInt("kmers_nb_solid"));
 
         getInfo()->add (1, "exec");
         getInfo()->add (2, "time",     "%.3f", (float)status.time / 1000.0);
