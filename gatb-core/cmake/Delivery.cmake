@@ -16,7 +16,7 @@ SET (CPACK_VERSIONS_FILENAME  "versions.txt")
 
 # We set the server URI
 SET (CPACK_SERVER_ADDRESS   "${CPACK_USER_NAME}@scm.gforge.inria.fr")
-SET (CPACK_SERVER_DIR       "/home/groups/${PROJECT_NAME}/versions/")
+SET (CPACK_SERVER_DIR       "/home/groups/${PROJECT_NAME}/htdocs/versions/")
 SET (CPACK_SERVER_DIR_BIN   "${CPACK_SERVER_DIR}/bin/")
 SET (CPACK_SERVER_DIR_SRC   "${CPACK_SERVER_DIR}/src/")
 SET (CPACK_SERVER_VERSIONS  "${CPACK_SERVER_DIR}/${CPACK_VERSIONS_FILENAME}")
