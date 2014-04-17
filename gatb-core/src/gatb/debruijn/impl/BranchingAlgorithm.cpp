@@ -97,6 +97,25 @@ BranchingAlgorithm<span>::~BranchingAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+#ifndef WITH_LAMBDA_EXPRESSION
+template<typename Count, typename Type>
+struct FunctorNodes
+{
+    const Graph* graph; ThreadObject<u_int64_t>& count; ThreadObject <vector<Count> >& branchingNodes;
+    FunctorNodes (const Graph* graph, ThreadObject<u_int64_t>& count, ThreadObject <vector<Count> >& branchingNodes)
+        : graph(graph), count(count), branchingNodes(branchingNodes)  {}
+    void operator() (const Node& node)
+    {
+        if (graph->isBranching(node))
+        {
+            count() ++;
+            branchingNodes().push_back (Count (node.kmer.get<Type>(), node.abundance));
+        }
+    }
+};
+#endif
+/*********************************************************************/
+
 template<size_t span>
 void BranchingAlgorithm<span>::execute ()
 {
@@ -117,22 +136,29 @@ void BranchingAlgorithm<span>::execute ()
 
     ThreadObject <vector<Count> > branchingNodes;
 
-    /** We iterate the nodes. */
-    tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (const Node& node)
+#ifdef WITH_LAMBDA_EXPRESSION
+    auto functorNodes = [&] (const Node& node)
     {
         if (this->_graph->isBranching(node))
         {
             count() ++;
             branchingNodes().push_back (Count (node.kmer.get<Type>(), node.abundance));
         }
-    });
+    };
+#else
+    FunctorNodes<Count,Type> functorNodes (this->_graph, count, branchingNodes);
+#endif
+
+    /** We iterate the nodes. */
+    tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, functorNodes);
 
     /** We concate the kmers. */
-    branchingNodes.foreach ([&] (vector<Count>& v)
+    for (size_t i=0; i<branchingNodes.size(); i++)
     {
+        vector<Count>& v = branchingNodes[i];
         branchingNodes->insert (branchingNodes->end(), v.begin(), v.end());
         v.clear ();
-    });
+    };
 
     /** We sort the kmers. */
     sort (branchingNodes->begin(), branchingNodes->end());
@@ -141,7 +167,7 @@ void BranchingAlgorithm<span>::execute ()
     _branchingCollection->insert (branchingNodes->data(), branchingNodes->size());
 
     /** We gather the information collected during iteration. */
-    count.foreach    ([&] (u_int64_t n) { *count += n; } );
+    for (size_t i=0; i<count.size(); i++)  {  *count += count[i];  }
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
@@ -158,10 +184,10 @@ void BranchingAlgorithm<span>::execute ()
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class BranchingAlgorithm <32>;
-template class BranchingAlgorithm <64>;
-template class BranchingAlgorithm <96>;
-template class BranchingAlgorithm <128>;
+template class BranchingAlgorithm <KSIZE_1>;
+template class BranchingAlgorithm <KSIZE_2>;
+template class BranchingAlgorithm <KSIZE_3>;
+template class BranchingAlgorithm <KSIZE_4>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

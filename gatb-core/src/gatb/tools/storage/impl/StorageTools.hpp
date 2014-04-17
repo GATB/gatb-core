@@ -55,7 +55,8 @@ public:
     {
         collections::Collection<T>* storageCollection = & group.getCollection<T> (name);
 
-        collection->iterate ([&] (const T& t)  { storageCollection->insert (t); });
+        tools::dp::Iterator<T>* it = collection->iterator();   LOCAL(it);
+        for (it->first(); !it->isDone(); it->next())  {  storageCollection->insert (it->item());  }
         storageCollection->flush ();
     }
 

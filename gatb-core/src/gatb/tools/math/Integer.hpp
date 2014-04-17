@@ -69,11 +69,11 @@ public:
     {
         switch (getType())
         {
-        case 1: v = T1(n); break;
-        case 2: v = T2(n); break;
-        case 3: v = T3(n); break;
-        case 4: v = T4(n); break;
-        default: throw "Integer not initialized";
+        case PREC_1: v = T1(n); break;
+        case PREC_2: v = T2(n); break;
+        case PREC_3: v = T3(n); break;
+        case PREC_4: v = T4(n); break;
+        default:  if (getType()<=PREC_4) { v = T4(n);  break; } else { throw "Integer not initialized"; }
         }
     }
 
@@ -246,7 +246,7 @@ private:
 
 /********************************************************************************/
 
-#define INTEGER_TYPES   LargeInt<1>,LargeInt<2>,LargeInt<3>,LargeInt<4>
+#define INTEGER_TYPES   LargeInt<PREC_1>,LargeInt<PREC_2>,LargeInt<PREC_3>,LargeInt<PREC_4>
 
 typedef IntegerTemplate <INTEGER_TYPES> Integer;
 

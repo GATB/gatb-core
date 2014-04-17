@@ -176,6 +176,30 @@ DebloomAlgorithm<span>::~DebloomAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+#ifndef WITH_LAMBDA_EXPRESSION
+template<typename Model, typename Count, typename Type>
+struct FunctorKmersExtension
+{
+    struct FunctorNeighbors
+    {
+        Bloom<Type>* bloom; ThreadObject<BagCache<Type> >& extendBag;
+        FunctorNeighbors (Bloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
+            : bloom(bloom), extendBag(extendBag) {}
+        void operator() (const Type& k)  const {  if (bloom->contains (k))  {  extendBag().insert (k);  }  }
+    } functorNeighbors;
+
+    Model& model;
+    FunctorKmersExtension (Model& model, Bloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
+        : model(model), functorNeighbors(bloom,extendBag) {}
+    void operator() (const Count& kmer) const
+    {
+        /** We iterate the neighbors of the current solid kmer. */
+        model.iterateNeighbors (kmer.value, functorNeighbors);
+    }
+};
+#endif
+/*********************************************************************/
+
 template<size_t span>
 void DebloomAlgorithm<span>::execute ()
 {
@@ -210,18 +234,23 @@ void DebloomAlgorithm<span>::execute ()
         /** We create a synchronized cache on the debloom output. This cache will be cloned by the dispatcher. */
         ThreadObject<BagCache<Type> > extendBag = BagCache<Type> (new BagFile<Type>(_debloomUri), 50*1000, System::thread().newSynchronizer());
 
-        /** We iterate the solid kmers. */
-        getDispatcher()->iterate (itKmers, [&] (const Count& kmer)
+#ifdef WITH_LAMBDA_EXPRESSION
+        auto functorKmers = [&] (const Count& kmer)
         {
             /** We iterate the neighbors of the current solid kmer. */
             model.iterateNeighbors (kmer.value, [&] (const Type& k)
             {
                 if (bloom->contains (k))  {  extendBag().insert (k);  }
             });
-        });
+        };
+#else
+        FunctorKmersExtension<Model,Count,Type> functorKmers (model, bloom, extendBag);
+#endif
+        /** We iterate the solid kmers. */
+        getDispatcher()->iterate (itKmers, functorKmers);
 
         /** We have to flush each bag cache used during iteration. */
-        extendBag.foreach ([] (BagCache<Type>& bag)  { bag.flush(); });
+        for (size_t i=0; i<extendBag.size(); i++)  {  extendBag[i].flush();  }
     }
 
     /** We save the bloom. */
@@ -320,6 +349,21 @@ void DebloomAlgorithm<span>::execute ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+#ifndef WITH_LAMBDA_EXPRESSION
+template<typename Type>
+struct FunctorKmersFinalize
+{
+    Hash16<Type>& partition; ThreadObject<BagCache<Type> >& finalizeBag;
+    FunctorKmersFinalize (Hash16<Type>& partition, ThreadObject<BagCache<Type> >& finalizeBag)
+        : partition(partition), finalizeBag(finalizeBag) {}
+    void operator() (const Type& extensionKmer)
+    {
+        if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
+    }
+};
+#endif
+/*********************************************************************/
+
 template<size_t span>
 void DebloomAlgorithm<span>::end_debloom_partition (
     Hash16<Type>&    partition,
@@ -347,13 +391,19 @@ void DebloomAlgorithm<span>::end_debloom_partition (
      *  we have to protect the output cFP file against concurrent access, which is
      *  achieved by encapsulating the actual output file by a BagCache instance.
      */
-    getDispatcher()->iterate (debloomInput, [&] (const Type& extensionKmer)
+#ifdef WITH_LAMBDA_EXPRESSION
+    auto functorKmers = [&] (const Type& extensionKmer)
     {
         if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
-    });
+    };
+#else
+    FunctorKmersFinalize<Type> functorKmers (partition, finalizeBag);
+#endif
+
+    getDispatcher()->iterate (debloomInput, functorKmers);
 
     /** We have to flush each bag cache used during iteration. */
-    finalizeBag.foreach ([] (BagCache<Type>& bag)  { bag.flush(); });
+    for (size_t i=0; i<finalizeBag.size(); i++) { finalizeBag[i].flush(); }
 
     /** We clear the set. */
     partition.clear ();
@@ -414,6 +464,47 @@ Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+
+#ifndef WITH_LAMBDA_EXPRESSION
+
+/*********************************************************************/
+template<typename Type>
+struct Functor0
+{
+    Bloom<Type>* bloom2;
+    Functor0 (Bloom<Type>* bloom2) : bloom2(bloom2) {}
+    void operator() (const Type& t)  {  bloom2->insert (t); };
+};
+/*********************************************************************/
+template<typename Count, typename Type>
+struct Functor1
+{
+    Iterable<Count>* solidIterable;  Bloom<Type>* bloom2;  Bloom<Type>* bloom3;  ThreadObject<BagCache<Type> >& T2Cache;
+    Functor1 (Iterable<Count>* solidIterable,  Bloom<Type>* bloom2, Bloom<Type>* bloom3, ThreadObject<BagCache<Type> >& T2Cache)
+        : solidIterable(solidIterable), bloom2(bloom2), bloom3(bloom3), T2Cache(T2Cache) {}
+    void operator() (const Count& t)
+    {
+        if (bloom2->contains(t.value))
+        {
+            T2Cache().insert (t.value);
+            bloom3->insert (t.value);
+        }
+    }
+};
+/*********************************************************************/
+template<typename Type>
+struct Functor2
+{
+    Bloom<Type>* bloom3;  Bloom<Type>* bloom4;
+    Functor2 (Bloom<Type>* bloom3, Bloom<Type>* bloom4) : bloom3(bloom3), bloom4(bloom4) {}
+    void operator() (const Type& t) { if (bloom3->contains(t))  {  bloom4->insert (t); }  }
+};
+/*********************************************************************/
+
+#endif  // ! WITH_LAMBDA_EXPRESSION
+
+/*********************************************************************/
+
 template<size_t span>
 void DebloomAlgorithm<span>::createCFP (
     Collection<Type>*  criticalCollection,
@@ -431,14 +522,14 @@ void DebloomAlgorithm<span>::createCFP (
 
     /** We may have to change the cascading kind if we have no false positives. */
     int64_t nbFP = criticalCollection->getNbItems();
-    if (nbFP == 0)  {  _cascadingKind = ORIGINAL; }
+    if (nbFP == 0)  {  _cascadingKind = DEBLOOM_ORIGINAL; }
 
     /*************************************************************/
     /** We code the critical FP according to the cascading type. */
     /*************************************************************/
     switch (_cascadingKind)
     {
-        case CASCADING:
+        case DEBLOOM_CASCADING:
         {
             float     nbBitsPerKmer = getNbBitsPerKmer();
             u_int64_t nbKmers       = _solidIterable->getNbItems();
@@ -462,7 +553,12 @@ void DebloomAlgorithm<span>::createCFP (
             LOCAL (bloom4);
 
             // **** Insert the false positives in B2 ****
-            getDispatcher()->iterate (criticalCollection->iterator(), [&] (const Type& t)  {  bloom2->insert (t); });
+#ifdef WITH_LAMBDA_EXPRESSION
+            auto functor0 = [&] (const Type& t)  {  bloom2->insert (t); };
+#else
+            Functor0<Type> functor0 (bloom2);
+#endif
+            getDispatcher()->iterate (criticalCollection->iterator(), functor0);
             itTask->next();
 
             //  **** Insert false positives in B3 and write T2
@@ -471,28 +567,41 @@ void DebloomAlgorithm<span>::createCFP (
 
             /** We need to protect the T2File against concurrent accesses, we use a ThreadObject for this. */
             ThreadObject<BagCache<Type> > T2Cache = BagCache<Type> (T2File, 8*1024, System::thread().newSynchronizer());
-            getDispatcher()->iterate (_solidIterable->iterator(), [&] (const Count& t)
+
+#ifdef WITH_LAMBDA_EXPRESSION
+            auto functor1 = [&] (const Count& t)
             {
                 if (bloom2->contains(t.value))
                 {
                     T2Cache().insert (t.value);
                     bloom3->insert (t.value);
                 }
-            });
+            };
+#else
+            Functor1<Count,Type> functor1 (_solidIterable, bloom2, bloom3, T2Cache);
+#endif
+            getDispatcher()->iterate (_solidIterable->iterator(), functor1);
+
             /** We have to flush each bag cache used during iteration. */
-            T2Cache.foreach ([] (BagCache<Type>& bag)  { bag.flush(); });
+            for (size_t i=0; i<T2Cache.size(); i++)  { T2Cache[i].flush(); }
             itTask->next();
 
             // **** Insert false positives in B4 (we could write T3, but it's not necessary)
-            getDispatcher()->iterate (criticalCollection->iterator(), [&] (const Type& t)
-            {
-                if (bloom3->contains(t))  {  bloom4->insert (t); }
-            });
+#ifdef WITH_LAMBDA_EXPRESSION
+            auto functor2 = [&] (const Type& t)  {  if (bloom3->contains(t))  {  bloom4->insert (t); }  };
+#else
+            Functor2<Type> functor2 (bloom3,bloom4);
+#endif
+            getDispatcher()->iterate (criticalCollection->iterator(), functor2);
             itTask->next();
 
             /** We build the final cfp set. */
             vector<Type> cfpItems;
-            T2File->iterate ([&] (const Type& item)  {  if (bloom4->contains(item))  {  cfpItems.push_back (item);  }  });
+            Iterator<Type>* T2It = T2File->iterator(); LOCAL(T2It);
+            for (T2It->first(); !T2It->isDone(); T2It->next())
+            {
+                if (bloom4->contains(T2It->item()))  {  cfpItems.push_back (T2It->item());  }
+            }
             std::sort (cfpItems.begin(), cfpItems.end());
             _criticalCollection->insert (cfpItems.data(), cfpItems.size());
             itTask->next();
@@ -518,12 +627,13 @@ void DebloomAlgorithm<span>::createCFP (
             break;
         }
 
-        case ORIGINAL:
-        case DEFAULT:
+        case DEBLOOM_ORIGINAL:
+        case DEBLOOM_DEFAULT:
         default:
         {
             /** We save the final cFP container into the storage. */
-            criticalCollection->iterate ([&] (const Type& t)  { this->_criticalCollection->insert (t); });
+            tools::dp::Iterator<Type>* it = criticalCollection->iterator();  LOCAL (it);
+            for (it->first(); !it->isDone(); it->next())  {  this->_criticalCollection->insert (it->item());  }
             _criticalCollection->flush ();
 
             totalSize_bits = 8*criticalCollection->getNbItems()*sizeof(Type);
@@ -552,16 +662,16 @@ float DebloomAlgorithm<span>::getNbBitsPerKmer () const
     static double lg2 = log(2);
     float nbitsPerKmer = 0;
 
-    if (_kmerSize > 128)  {  throw Exception ("kmer size %d too big for cascading bloom filters", _kmerSize); }
+    if (_kmerSize > 128 && _cascadingKind==DEBLOOM_CASCADING)  {  throw Exception ("kmer size %d too big for cascading bloom filters", _kmerSize); }
 
     switch (_cascadingKind)
     {
-    case CASCADING:
+    case DEBLOOM_CASCADING:
         nbitsPerKmer = rvalues[_kmerSize][1];
         break;
 
-    case ORIGINAL:
-    case DEFAULT:
+    case DEBLOOM_ORIGINAL:
+    case DEBLOOM_DEFAULT:
     default:
         nbitsPerKmer = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
         break;
@@ -582,8 +692,8 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
 {
     switch (_cascadingKind)
     {
-        case ORIGINAL:
-        case DEFAULT:
+        case DEBLOOM_ORIGINAL:
+        case DEBLOOM_DEFAULT:
         default:
         {
             Bloom<Type>*       bloom    = StorageTools::singleton().loadBloom<Type>     (_group, "bloom");
@@ -595,7 +705,7 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
             break;
         }
 
-        case CASCADING:
+        case DEBLOOM_CASCADING:
         {
             Bloom<Type>*     bloom   = StorageTools::singleton().loadBloom<Type>     (_group, "bloom");
             Bloom<Type>*     bloom2  = StorageTools::singleton().loadBloom<Type>     (_group, "bloom2");
@@ -616,10 +726,10 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class DebloomAlgorithm <32>;
-template class DebloomAlgorithm <64>;
-template class DebloomAlgorithm <96>;
-template class DebloomAlgorithm <128>;
+template class DebloomAlgorithm <KSIZE_1>;
+template class DebloomAlgorithm <KSIZE_2>;
+template class DebloomAlgorithm <KSIZE_3>;
+template class DebloomAlgorithm <KSIZE_4>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -53,13 +53,13 @@ namespace core      {
 namespace kmer      {
 namespace impl      {
 /********************************************************************************/
-enum DebloomKind  { ORIGINAL, CASCADING, DEFAULT };
+enum DebloomKind  { DEBLOOM_ORIGINAL, DEBLOOM_CASCADING, DEBLOOM_DEFAULT };
 
 static void parse (const std::string& s, DebloomKind& kind)
 {
-         if (s == "original")   { kind = ORIGINAL;  }
-    else if (s == "cascading")  { kind = CASCADING; }
-    else if (s == "default")    { kind = CASCADING; }
+         if (s == "original")   { kind = DEBLOOM_ORIGINAL;  }
+    else if (s == "cascading")  { kind = DEBLOOM_CASCADING; }
+    else if (s == "default")    { kind = DEBLOOM_CASCADING; }
     else   { throw system::Exception ("bad debloom kind '%s'", s.c_str()); }
 }
 
@@ -67,9 +67,9 @@ static std::string toString (DebloomKind kind)
 {
     switch (kind)
     {
-        case ORIGINAL:  return "original";
-        case CASCADING: return "cascading";
-        case DEFAULT:   return "cascading";
+        case DEBLOOM_ORIGINAL:  return "original";
+        case DEBLOOM_CASCADING: return "cascading";
+        case DEBLOOM_DEFAULT:   return "cascading";
         default:        throw system::Exception ("bad debloom kind %d", kind);
     }
 }
@@ -94,7 +94,7 @@ public:
         size_t                      max_memory = 0,
         size_t                      nb_cores   = 0,
         tools::collections::impl::BloomFactory::Kind   bloomKind     = tools::collections::impl::BloomFactory::DEFAULT,
-        DebloomKind                 cascadingKind = DEFAULT,
+        DebloomKind                 cascadingKind = DEBLOOM_DEFAULT,
         const std::string&          debloomUri = "debloom",
         tools::misc::IProperties*   options    = 0
     );

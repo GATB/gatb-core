@@ -71,7 +71,7 @@ namespace impl      {
  *      - 'Model' : provides many services for managing kmers
  *      - 'Count' : roughly speaking, this a kmer value with an associated abundance
  *
- * This structure must be used only with for 4 values (32,64,96,128, see Model.cpp), otherwise
+ * This structure must be used only with for 4 values (32,64,96,128 for instance, see Model.cpp), otherwise
  * a compilation error occurs (more values could be added in the future).
  *
  * A default value of 32 is defined for the template parameter, so writing 'Kmer<>::Model'

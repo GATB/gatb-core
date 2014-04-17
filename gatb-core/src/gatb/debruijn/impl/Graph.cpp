@@ -26,6 +26,7 @@
 #include <gatb/tools/collections/impl/ContainerSet.hpp>
 
 #include <gatb/tools/misc/impl/Property.hpp>
+#include <gatb/tools/misc/impl/LibraryInfo.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
@@ -139,10 +140,10 @@ struct GraphData
  * to some maximum kmer sizes.
  */
 typedef boost::variant <
-    GraphData<32>,
-    GraphData<64>,
-    GraphData<96>,
-    GraphData<128>
+    GraphData<KSIZE_1>,
+    GraphData<KSIZE_2>,
+    GraphData<KSIZE_3>,
+    GraphData<KSIZE_4>
 >  GraphDataVariant;
 
 /********************************************************************************/
@@ -160,20 +161,16 @@ typedef boost::variant <
  */
 static void setVariant (GraphDataVariant& data, size_t kmerSize)
 {
+    /** Here is the link between the kmer size (or precision) and the specific type to be used for the variant. */
+         if (kmerSize < KSIZE_1)  {  data = GraphData<KSIZE_1> (); }
+    else if (kmerSize < KSIZE_2)  {  data = GraphData<KSIZE_2> (); }
+    else if (kmerSize < KSIZE_3)  {  data = GraphData<KSIZE_3> (); }
+    else if (kmerSize < KSIZE_4)  {  data = GraphData<KSIZE_4> (); }
+    else { throw system::Exception ("Graph failure because of unhandled kmer size %d", kmerSize); }
+
     /** We convert the kmer size chosen by the user to the precision value. */
     size_t prec = 1 + kmerSize / 32;
     Integer::setType (prec);
-
-    /** Here is the link between the kmer size (or precision) and the specific type
-     * to be used for the variant. */
-    switch (prec)
-    {
-        case 1:     data = GraphData<32> ();  break;
-        case 2:     data = GraphData<64> ();  break;
-        case 3:     data = GraphData<96> ();  break;
-        case 4:     data = GraphData<128>();  break;
-        default:    throw system::Exception ("Graph failure because of unhandled kmer precision %d", prec);
-    }
 }
 
 /********************************************************************************/
@@ -327,6 +324,9 @@ struct build_visitor : public boost::static_visitor<>    {
         /*                    Post processing                       */
         /************************************************************/
 
+        /** We add library information. */
+        graph.getInfo().add (1, & LibraryInfo::getInfo());
+
         /** We add a special collection for global metadata (in particular the kmer size). */
         Collection<NativeInt8>* metadata = & graph.getStorage().getCollection<NativeInt8> ("metadata");
         NativeInt8 kmerSizeData[] = { kmerSize, graph._bloomKind, graph._cascadingKind };
@@ -455,7 +455,7 @@ Graph  Graph::create (const char* fmt, ...)
 Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
-      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DebloomKind::DEFAULT)
+      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DEBLOOM_DEFAULT)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -565,7 +565,7 @@ Graph::Graph (tools::misc::IProperties* params)
 Graph::Graph ()
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
-      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DebloomKind::DEFAULT)
+      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DEBLOOM_DEFAULT)
 {
 }
 
