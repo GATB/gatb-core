@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 # The version number.
 ################################################################################
-SET (gatb-core_VERSION_MAJOR 1)
+SET (gatb-core_VERSION_MAJOR 0)
 SET (gatb-core_VERSION_MINOR 0)
 SET (gatb-core_VERSION_PATCH 0)
 
@@ -50,6 +50,40 @@ DefineInteger (k)
 GetCurrentDate (gatb-core-date) 
 
 ################################################################################
+# COMPILER DEFINITIONS
+################################################################################
+# We try to find the best compiler config, in particular for C++ extension usage
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.5) 
+        message ("-------------------------------------------------------------------------------------")
+        message ("-- GCC VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
+        message ("-------------------------------------------------------------------------------------")
+    else()
+        set (use_new_cxx 1)
+        message ("-------------------------------------------------------------------------------------")
+        message ("-- C++ EXTENSIONS WILL BE USED...")
+        message ("-------------------------------------------------------------------------------------")
+    endif()
+    
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
+        message ("-------------------------------------------------------------------------------------")
+        message ("-- CLANG VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
+        message ("-------------------------------------------------------------------------------------")
+    else()
+        set (use_new_cxx 1)
+        message ("-------------------------------------------------------------------------------------")
+        message ("-- C++ EXTENSIONS WILL BE USED...")
+        message ("-------------------------------------------------------------------------------------")
+    endif()
+
+else()
+        message ("-------------------------------------------------------------------------------------")
+        message ("-- WARNING !!! YOU USE AN UNKNOWN COMPILER...")
+        message ("-------------------------------------------------------------------------------------")
+endif()
+
+################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
 if (debug)
@@ -65,16 +99,20 @@ if (INT128_FOUND)
 endif()
 
 # We determine what kind of c++ standard we should use according to the compiler
-# This should work for gcc and clang
-set (CXX_STD_VERSION "c++0x")
+# According to the CXX version, we have to activate some flags
+if (use_new_cxx)
+    # We set a flag for lambda expressions usage
+    set (CXX_STD_VERSION "-std=c++0x")
+    # We set a flag for lambda expressions
+    set (WITH_LAMBDA_EXPRESSION "1")
+    # We add compilation flags to the global flags
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION  ${CXX_STD_VERSION}")
+endif()
 
 # In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DBOOST_NO_CXX11_RVALUE_REFERENCES=1")
 endif()
-
-# We may use lambda expressions, so we need to use the correct compiler option
-set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -std=${CXX_STD_VERSION}")
 
 message("-- Options: ${LIBRARY_COMPILE_DEFINITIONS}")
 
@@ -94,7 +132,7 @@ set (gatb-core-flags ${LIBRARY_COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
 # Note that we need to add boost include dependency (not working otherwise with clang)
-set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${Boost_INCLUDE_DIRS})
+set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${PROJECT_SOURCE_DIR}/src  ${Boost_INCLUDE_DIRS})
 
 # We define the libraries used for linking binary based on gatb core
 set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5)
