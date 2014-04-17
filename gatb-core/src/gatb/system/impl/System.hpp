@@ -229,7 +229,9 @@ public:
                     for (size_t i=0; i<group->size(); i++)
                     {
                         IThread* thread = (*group)[i];
-                        this->_map[thread->getId()] = new T(this->_object);
+                        T* newObject = new T(this->_object);
+                        this->_map[thread->getId()] = newObject;
+                        this->_vec.push_back(newObject);
                     }
                 }
                 else
@@ -253,9 +255,17 @@ public:
 
     T& operator* ()  { return _object; }
 
+    /** */
+    size_t size() const { return _vec.size(); }
+
+    /** */
+    T& operator[] (size_t idx) { return *(_vec[idx]); }
+
 private:
     std::map<IThread::Id,T*> _map;
     T _object;
+
+    std::vector<T*> _vec;
 
     bool _isInit;
     system::ISynchronizer* _synchro;
