@@ -58,7 +58,7 @@ public:
             props->add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
             props->add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
             props->add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());
-            props->add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
+            //props->add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
             props->add (1, "build_kmer_size", "%d %d %d %d", KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4);
 
             singleton.setRef (props);
