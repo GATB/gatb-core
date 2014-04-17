@@ -68,10 +68,10 @@ struct Functor_getValue : public boost::static_visitor<Integer>    {
     template<typename T>  Integer operator() (const T& a) const  { return Integer(a.getValue());  }};
 
 typedef boost::variant <
-    Kmer<32>::Count,
-    Kmer<64>::Count,
-    Kmer<96>::Count,
-    Kmer<128>::Count
+    Kmer<KSIZE_1>::Count,
+    Kmer<KSIZE_2>::Count,
+    Kmer<KSIZE_3>::Count,
+    Kmer<KSIZE_4>::Count
 >  KmerVariant;
 
 /** \brief Test class for genomic databases management
@@ -260,7 +260,7 @@ public:
         CPPUNIT_ASSERT (checkValues.size() == okValues.size());
 
         /** We check the result through the variant type. */
-        IteratorVariant <IteratorFile, Kmer<32>::Count, Kmer<64>::Count, Kmer<96>::Count, Kmer<128>::Count > itVariant;
+        IteratorVariant <IteratorFile, Kmer<KSIZE_1>::Count, Kmer<KSIZE_2>::Count, Kmer<KSIZE_3>::Count, Kmer<KSIZE_4>::Count > itVariant;
 
         IteratorFile<Count>* solid = dynamic_cast<IteratorFile<Count>*> (iter);
         CPPUNIT_ASSERT (solid != 0);
@@ -272,7 +272,7 @@ public:
 
         for (itVariant.first(); !itVariant.isDone(); itVariant.next())
         {
-            boost::variant<Kmer<32>::Count, Kmer<64>::Count, Kmer<96>::Count, Kmer<128>::Count> current = itVariant.item();
+            boost::variant<Kmer<KSIZE_1>::Count, Kmer<KSIZE_2>::Count, Kmer<KSIZE_3>::Count, Kmer<KSIZE_4>::Count> current = itVariant.item();
 
             Integer val = boost::apply_visitor (Functor_getValue(),  current);
 
@@ -284,9 +284,9 @@ public:
     /********************************************************************************/
     void DSK_check2 ()
     {
-        DSK_check2_aux<32> ();
-        DSK_check2_aux<64> ();
-        DSK_check2_aux<96> ();
+        DSK_check2_aux<KSIZE_1> ();
+        DSK_check2_aux<KSIZE_2> ();
+        DSK_check2_aux<KSIZE_3> ();
     }
 
     /********************************************************************************/
@@ -321,7 +321,7 @@ public:
         // cout << "----------------------------------------------------------" << endl;
 
         /** We check the result through the variant type. */
-        IteratorVariant <IteratorFile, Kmer<32>::Count, Kmer<64>::Count, Kmer<96>::Count, Kmer<128>::Count > itVar;
+        IteratorVariant <IteratorFile, Kmer<KSIZE_1>::Count, Kmer<KSIZE_2>::Count, Kmer<KSIZE_3>::Count, Kmer<KSIZE_4>::Count > itVar;
 
         IteratorFile<Count>* solid = dynamic_cast<IteratorFile<Count>*> (iter);
         CPPUNIT_ASSERT (solid != 0);
@@ -376,9 +376,9 @@ public:
         );
         LOCAL (bank);
 
-        DSK_check3_aux<32> (bank, kmerSize, nks);
-        DSK_check3_aux<64> (bank, kmerSize, nks);
-        DSK_check3_aux<96> (bank, kmerSize, nks);
+        DSK_check3_aux<KSIZE_1> (bank, kmerSize, nks);
+        DSK_check3_aux<KSIZE_2> (bank, kmerSize, nks);
+        DSK_check3_aux<KSIZE_3> (bank, kmerSize, nks);
     }
 };
 

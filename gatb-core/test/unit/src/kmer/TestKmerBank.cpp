@@ -143,7 +143,11 @@ public:
         for (size_t i=0; i<12; i++)
         {
             u_int64_t nbKmers = 0;
-            BankKmers (i).iterate ([&] (Sequence& seq)   {  nbKmers++; });
+
+            Iterator<Sequence>* it = BankKmers (i).iterator();  LOCAL (it);
+
+            for (it->first(); !it->isDone(); it->next())  { nbKmers ++; }
+
             CPPUNIT_ASSERT (nbKmers == ((u_int64_t)1<<(2*i)));
         }
     }

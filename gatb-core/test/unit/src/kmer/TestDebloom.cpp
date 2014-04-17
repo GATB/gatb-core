@@ -100,7 +100,7 @@ public:
         CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (storage, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::BASIC, DebloomKind::ORIGINAL);
+        DebloomAlgorithm<> debloom (storage, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::BASIC, DEBLOOM_ORIGINAL);
 
         /** We launch the debloom. */
         debloom.execute();

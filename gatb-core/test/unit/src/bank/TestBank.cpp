@@ -869,7 +869,9 @@ public:
         BankFasta bank (DBPATH("reads1.fa"));
 
         size_t count = 0;
-        bank.iterate ([&] (Sequence& s) { count ++; } );
+
+        Iterator<Sequence>* it = bank.iterator();  LOCAL (it);
+        for (it->first(); !it->isDone(); it->next())  { count ++; }
         CPPUNIT_ASSERT (count == 100);
     }
 };
