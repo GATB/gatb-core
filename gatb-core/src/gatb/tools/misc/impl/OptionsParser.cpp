@@ -413,11 +413,10 @@ void OptionsParser::displayErrors (FILE* fp)
  *********************************************************************/
 void OptionsParser::displayVersion (FILE* fp)
 {
-    fprintf (fp, "* version %s (%s)\n* built on %s with options '%s' and compiler '%s'\n* supported kmer sizes %d %d %d %d\n",
+    fprintf (fp, "* version %s (%s)\n* built on %s with compiler '%s'\n* supported kmer sizes %d %d %d %d\n",
         System::info().getVersion().c_str(),
         System::info().getBuildDate().c_str(),
         System::info().getBuildSystem().c_str(),
-        System::info().getBuildOptions().c_str(),
         System::info().getBuildCompiler().c_str(),
         KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4
     );
