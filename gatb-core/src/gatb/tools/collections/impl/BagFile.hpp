@@ -33,7 +33,6 @@
 
 #include <string>
 
-
 #include <zlib.h>
 
 
@@ -215,7 +214,7 @@ public:
                 
                 abundance++;
 
-                if(abundance == UINT8_MAX)
+                if(abundance == ~((u_int8_t)0) )
                 {
                     write(abundance,_previous);
                     abundance     = 0;
