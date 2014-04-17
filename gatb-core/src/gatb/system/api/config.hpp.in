@@ -25,3 +25,13 @@
 #define STR_COMPILER            "${CMAKE_C_COMPILER}  (${CMAKE_CXX_COMPILER_VERSION})"
 
 #define STR_OPERATING_SYSTEM    "${CMAKE_SYSTEM}"
+
+#define KSIZE_1  ${KSIZE_1}
+#define KSIZE_2  ${KSIZE_2}
+#define KSIZE_3  ${KSIZE_3}   
+#define KSIZE_4  ${KSIZE_4}
+
+#define PREC_1  ((KSIZE_1+31)/32)
+#define PREC_2  ((KSIZE_2+31)/32)
+#define PREC_3  ((KSIZE_3+31)/32)
+#define PREC_4  ((KSIZE_4+31)/32)
