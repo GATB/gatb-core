@@ -154,7 +154,7 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
     DEBUG (("BankAlbum::add '%s'\n", bankName.c_str() ));
 
     /** We add the uri into the album file. */
-    system::IFile* file = getFile (_name);
+    system::IFile* file = getFile (_name, "a+");
 
     if (file != 0)
     {
