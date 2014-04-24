@@ -5,6 +5,9 @@
 
 /********************************************************************************/
 /*                          Branching nodes neighbors                           */
+/*                                                                              */
+/* This snippet shows how to detect a specific pattern in the graph.            */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -23,7 +26,7 @@ int main (int argc, char* argv[])
     };
 
     // We create the graph.
-    Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -nks 1", kmerSize);
+    Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
 
     // We get the first node (should be AGGCGCT); this is a branching node.
     Node node = graph.buildNode ((char*)sequences[0]);

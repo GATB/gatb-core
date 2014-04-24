@@ -10,6 +10,12 @@ static const char* STR_FILTER_RATIO = "-filter-ratio";
 
 /********************************************************************************/
 /*                  Filter sequences having too many bad letters.               */
+/*                                                                              */
+/* This snippet shows how to keep sequences that have enough "good" data.       */
+/*                                                                              */
+/* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
+/* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -34,7 +40,7 @@ int main (int argc, char* argv[])
         IBank* outBank = BankRegistery::singleton().getFactory()->createBank (options->getStr(STR_URI_INPUT) + "_filtered");
         LOCAL (outBank);
 
-        /** We iterate the inBank. */
+        /** We iterate the inBank. NOTE: WE USE A LAMBDA EXPRESSION HERE. */
         inBank->iterate ([&] (Sequence& s)
         {
             /** Shortcut. */

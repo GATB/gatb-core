@@ -6,17 +6,29 @@
 // We use the required packages
 using namespace std;
 
-static const char* STR_URI_BANK_IDS = "-bank-ids";
+static const char* STR_URI_SEQ_IDS = "-seq-ids";
+
+// We use a filtering functor that knows which sequence indexes have to be kept.
+struct FilterFunctor
+{
+    set<size_t>& indexes;
+    FilterFunctor (set<size_t>& indexes) : indexes(indexes) {}
+    bool operator ()  (Sequence& seq) const  {  return indexes.find (seq.getIndex()) != indexes.end();  }
+};
 
 /********************************************************************************/
 /*           Iterate a bank whose sequences are each kmer of a model.           */
+/*                                                                              */
+/* This snippet shows how to extract some sequences for a given list of indexes.*/
+/* These indexes are read from an input file, one index per line.               */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
     /** We create a command line parser. */
     OptionsParser parser ("BankFilter");
     parser.push_back (new OptionOneParam (STR_URI_INPUT,     "bank reference",   true));
-    parser.push_back (new OptionOneParam (STR_URI_BANK_IDS,  "file holding indexes of bank",   true));
+    parser.push_back (new OptionOneParam (STR_URI_SEQ_IDS,  "file holding indexes of bank",   true));
 
     try
     {
@@ -25,7 +37,7 @@ int main (int argc, char* argv[])
 
         /** We read the list of indexes. */
         set<size_t> indexes;
-        FILE* file = fopen (options->getStr(STR_URI_BANK_IDS).c_str(), "r");
+        FILE* file = fopen (options->getStr(STR_URI_SEQ_IDS).c_str(), "r");
         if (file != 0)
         {
             char buffer[128];
@@ -36,7 +48,7 @@ int main (int argc, char* argv[])
         cout << "found " << indexes.size() << " indexes" << endl;
 
         /** We open the output bank. */
-        string outputBankUri = options->getStr(STR_URI_INPUT) + "_" + System::file().getBaseName (options->getStr(STR_URI_BANK_IDS));
+        string outputBankUri = options->getStr(STR_URI_INPUT) + "_" + System::file().getBaseName (options->getStr(STR_URI_SEQ_IDS));
         IBank* outputBank = BankRegistery::singleton().getFactory()->createBank (outputBankUri);
         LOCAL (outputBank);
 
@@ -44,15 +56,14 @@ int main (int argc, char* argv[])
         IBank* inputBank = BankRegistery::singleton().getFactory()->createBank (options->getStr(STR_URI_INPUT));
         LOCAL (inputBank);
 
-        inputBank->iterate ([&] (Sequence& seq)
+        /** We use another iterator for filtering out some sequences. */
+        FilterIterator<Sequence,FilterFunctor> itSeq (inputBank->iterator(), FilterFunctor(indexes));
+
+        /** We loop the sequences. */
+        for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
-            set<size_t>::iterator lookup = indexes.find (seq.getIndex());
-            if (lookup != indexes.end())
-            {
-                /** The index is ok, we put the sequence into the output bank. */
-                outputBank->insert (seq);
-            }
-        });
+            outputBank->insert (itSeq.item());
+        }
 
         /** We flush the output bank. */
         outputBank->flush();

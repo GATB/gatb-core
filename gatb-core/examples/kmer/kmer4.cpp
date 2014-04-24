@@ -9,6 +9,9 @@ using namespace std;
 
 /********************************************************************************/
 /*                              Kmer management                                 */
+/*                                                                              */
+/* This snippet shows how to iterate the kmers of the sequences from a bank.    */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

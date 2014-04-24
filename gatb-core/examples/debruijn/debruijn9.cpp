@@ -11,8 +11,8 @@
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We create the graph with a bank holding one sequence, and use a specific kmer size and nks to 1
-    Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4 -nks 1");
+    // We create the graph with a bank holding one sequence, and use a specific kmer size and kmer solid abundance to 1
+    Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance 1  -verbose 0");
 
     // We get an iterator for all nodes of the graph.
     Graph::Iterator<Node> it = graph.iterator<Node> ();
@@ -47,6 +47,8 @@ int main (int argc, char* argv[])
             assert (graph.toString(neighbors[0]) == "ATGC");
         }
     }
+
+    std::cout << "Test OK" << std::endl;
 
     return EXIT_SUCCESS;
 }

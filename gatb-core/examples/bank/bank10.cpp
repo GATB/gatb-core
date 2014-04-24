@@ -11,16 +11,22 @@ static const char* STR_BANKS_NB       = "-split";
 static const char* STR_MAX_INPUT_SIZE = "-max-size";
 
 /********************************************************************************/
-/*                         Bank conversion to binary format                     */
+/*                         Bank split                                           */
+/*                                                                              */
+/* This snippet shows how to split a bank into smaller banks and how to create  */
+/* an album bank (ie a list of URL of banks). Such an album bank could be used  */
+/* as bank input by other tools.                                                */
+/* Note: all the generated files are put in a directory created by the snippet. */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
     /** We create a command line parser. */
     OptionsParser parser ("BankSplitter");
-    parser.push_back (new OptionOneParam (STR_URI_INPUT,      "bank reference",       true));
-    parser.push_back (new OptionOneParam (STR_BANKS_NB,       "number of sub banks",  true));
-    parser.push_back (new OptionOneParam (STR_MAX_INPUT_SIZE, "average db size per split", false, "10000000"));
-    parser.push_back (new OptionOneParam (STR_URI_OUTPUT_DIR, "output directory",     false, "."));
+    parser.push_back (new OptionOneParam (STR_URI_INPUT,      "bank reference",            true));
+    parser.push_back (new OptionOneParam (STR_MAX_INPUT_SIZE, "average db size per split", true));
+    parser.push_back (new OptionOneParam (STR_BANKS_NB,       "number max of sub banks",   false, "0"));
+    parser.push_back (new OptionOneParam (STR_URI_OUTPUT_DIR, "output directory",          false, "."));
 
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
@@ -39,7 +45,6 @@ int main (int argc, char* argv[])
         string inputBasename = System::file().getBaseName (options->getStr(STR_URI_INPUT));
 
         int nbBanks = options->getInt (STR_BANKS_NB);
-        if (nbBanks <= 0)  { throw Exception ("You should provide a positive number of splits"); }
 
         /** We set the name of the output directory. */
         stringstream ss;  ss << inputBasename << "_S" << maxDbSize << "_N" << nbBanks;
@@ -59,7 +64,7 @@ int main (int argc, char* argv[])
         u_int64_t number, totalSize, maxSize;
         inputBank->estimate (number, totalSize, maxSize);
 
-        u_int64_t estimationNbSeqToIterate = (number*maxDbSize*nbBanks) / totalSize;
+        u_int64_t estimationNbSeqToIterate = nbBanks <= 0 ? number  : (number*maxDbSize*nbBanks) / totalSize;
 
         // We create an iterator over the input bank and encapsulate it with progress notification.
         SubjectIterator<Sequence> itSeq (itInput, 1000);
@@ -79,7 +84,7 @@ int main (int argc, char* argv[])
                 if (currentBank != 0)  { currentBank->flush(); }
 
                 nbBanksOutput ++;
-                if (nbBanksOutput >= nbBanks)  { break; }
+                if (nbBanks > 0 && nbBanksOutput >= nbBanks)  { break; }
 
                 /** We build the uri of the current bank. */
                 stringstream ss;  ss << inputBasename << "_" << nbBanksOutput;

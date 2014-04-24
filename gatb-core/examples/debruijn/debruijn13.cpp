@@ -25,6 +25,8 @@ int main (int argc, char* argv[])
     Node n1 = graph.buildNode (seq, 1);
     assert (graph.toString(n1) == "TGCATCG");
 
+    std::cout << "Test OK" << std::endl;
+
     return EXIT_SUCCESS;
 }
 //! [snippet1]

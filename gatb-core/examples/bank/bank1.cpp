@@ -6,6 +6,10 @@
 
 /********************************************************************************/
 /*                              Bank management                                 */
+/*                                                                              */
+/* This snippet shows how to open a FASTA bank and iterate its sequences.       */
+/* Some attributes of the iterated Sequence objects are used.                   */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

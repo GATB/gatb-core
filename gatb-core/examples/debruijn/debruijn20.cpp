@@ -11,12 +11,10 @@
 #include <set>
 #include <algorithm>
 
-
 #undef NDEBUG
 #include <cassert>
 
 using namespace std;
-
 
 /********************************************************************************/
 
@@ -120,8 +118,6 @@ private:
 int main (int argc, char* argv[])
 {
     // We check that the user provides at least one option (supposed to be in HDF5 format).
-    // IMPORTANT: only the prefix of the file has to be given. For instance, if the graph
-    // file name is "foo.h5", one should provide "foo"
     if (argc < 2)
     {
         cerr << "You must provide a HDF5 file." << endl;

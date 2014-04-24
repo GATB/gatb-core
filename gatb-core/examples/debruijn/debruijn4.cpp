@@ -5,6 +5,10 @@
 
 /********************************************************************************/
 /*             Graph creation from a fake bank and command line options         */
+/*                                                                              */
+/* You can dump the result of this test with HDF5 tools (provided by GATB):     */
+/*      h5dump mygraph.h5                                                       */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -17,7 +21,7 @@ int main (int argc, char* argv[])
     );
 
     // We create the graph with the bank and other options
-    Graph graph = Graph::create (bank, "-kmer-size 5  -out mygraph");
+    Graph graph = Graph::create (bank, "-kmer-size 5  -abundance 1  -out mygraph");
 
     // We dump some information about the graph.
     std::cout << graph.getInfo() << std::endl;

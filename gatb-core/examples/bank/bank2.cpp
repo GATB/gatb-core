@@ -5,6 +5,10 @@
 
 /********************************************************************************/
 /*                    Bank with exception management                            */
+/*                                                                              */
+/* This snippet shows how to open a FASTA bank and iterate its sequences.       */
+/* Note: we use here a try/catch block in case the bank opening doesn't work.   */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

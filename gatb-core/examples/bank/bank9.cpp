@@ -8,7 +8,26 @@
 using namespace std;
 
 /********************************************************************************/
-/*                         Bank conversion to binary format                     */
+/*                         Bank conversion with some filtering                  */
+/*                                                                              */
+/* This snippet shows how to copy a bank to another one with some filtering     */
+/* criteria. The criteria is described through a functor.                       */
+/* Here, we can keep only every 'modulo' sequence that have no 'N' in data.     */
+/*                                                                              */
+/********************************************************************************/
+
+// We define a functor for our sequence filtering.
+struct FilterFunctor
+{
+    int modulo;
+    FilterFunctor (int modulo) : modulo(modulo) {}
+    bool operator ()  (Sequence& seq)
+    {
+        string data = string (seq.getDataBuffer(), seq.getDataSize());
+        return seq.getIndex() % modulo == 0 && strstr (data.c_str(), "N") == 0;
+    }
+};
+
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -30,20 +49,14 @@ int main (int argc, char* argv[])
         // We declare an output Bank
         BankFasta outputBank (argv[2]);
 
-        // We get the modulo value (10 by default), defined as static to be retrieved in the functor
-        static int modulo = argc >= 4 ? atoi (argv[3]) : 10;
+        // We get the modulo value (1 by default), defined as static to be retrieved in the functor
+        int modulo = argc >= 4 ? atoi (argv[3]) : 1;
 
         // We create a sequence iterator for the bank
-        BankFasta::Iterator* itInput = new BankFasta::Iterator (inputBank);
-
-        // We define a functor for our sequence filtering.
-        struct FilterFunctor  {  bool operator ()  (Sequence& seq)  {
-            string data = string (seq.getDataBuffer(), seq.getDataSize());
-            return seq.getIndex() % modulo == 0 && strstr (data.c_str(), "N") == 0;
-        } } filter;
+        Iterator<Sequence>* itInput = new BankFasta::Iterator (inputBank);
 
         // We create a filter on the bank
-        FilterIterator<Sequence,FilterFunctor>* itFilter = new FilterIterator<Sequence,FilterFunctor>((Iterator<Sequence>*)itInput, filter);
+        FilterIterator<Sequence,FilterFunctor>* itFilter = new FilterIterator<Sequence,FilterFunctor>(itInput, FilterFunctor (modulo));
 
         // We create an iterator over the input bank and encapsulate it with progress notification.
         SubjectIterator<Sequence> itSeq (itFilter, 100000);

@@ -8,6 +8,10 @@ using namespace std;
 
 /********************************************************************************/
 /*           Iterate a bank whose sequences are each kmer of a model.           */
+/*                                                                              */
+/* This snippet shows how iterate all possible kmers of a given size and dump   */
+/* them as output.                                                              */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -23,11 +27,15 @@ int main (int argc, char* argv[])
         /** We create a kmers bank with the provided kmer size. */
         BankKmers bank (options->getInt(STR_KMER_SIZE));
 
+        /** We create a Sequence iterator. */
+        Iterator<Sequence>* it = bank.iterator();
+        LOCAL (it);
+
         /** We iterate the bank. */
-        bank.iterate ([&] (Sequence& seq)
+        for (it->first(); !it->isDone(); it->next())
         {
-            cout << "seq: " << seq.toString() << endl;
-        });
+            cout << "seq: " << it->item().toString() << endl;
+        }
     }
 
     catch (OptionFailure& e)

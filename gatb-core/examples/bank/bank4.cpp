@@ -5,6 +5,10 @@
 
 /********************************************************************************/
 /*                    Bank iteration with progress information                  */
+/*                                                                              */
+/* This snippet shows how to iterate sequences from a FASTA with some progress  */
+/* information. In this example, we provide our own progress manager.           */
+/*                                                                              */
 /********************************************************************************/
 
 // We a define a functor that will be called during bank parsing

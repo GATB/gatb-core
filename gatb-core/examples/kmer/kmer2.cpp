@@ -4,6 +4,9 @@
 
 /********************************************************************************/
 /*                              Kmer management                                 */
+/*                                                                              */
+/* This snippet shows how to get kmer information from a raw ascii sequence.    */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

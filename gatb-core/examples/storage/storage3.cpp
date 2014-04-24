@@ -11,7 +11,7 @@ using namespace std;
 int main (int argc, char* argv[])
 {
     // We load a Storage product "foo" in HDF5 format
-    // It should have been created with the storage1 snippet
+    // It must have been created with the storage1 snippet
     Storage* storage = StorageFactory(STORAGE_HDF5).load ("foo");
     LOCAL (storage);
 

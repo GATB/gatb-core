@@ -11,8 +11,8 @@
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We create the graph with a bank holding one sequence, and use a specific kmer size and nks to 1
-    Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 5 -nks 1");
+    // We create the graph with a bank holding one sequence, and use a specific kmer size and solid kmer abundance to 1
+    Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 5  -abundance 1  -verbose 0");
 
     // We get an iterator for all nodes of the graph.
     Graph::Iterator<Node> it = graph.iterator<Node> ();
@@ -37,6 +37,8 @@ int main (int argc, char* argv[])
 
     // We also check that the two nodes share the same kmer value
     assert (current.kmer == other.kmer);
+
+    std::cout << "Test OK" << std::endl;
 
     return EXIT_SUCCESS;
 }

@@ -14,7 +14,7 @@ int main (int argc, char* argv[])
     std::cout << "The initial sequence is '" << seq << "', kmer size is " << kmerSize << std::endl;
 
     // We create the graph from a given sequence, and for a given kmer size
-    Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d -nks 1", kmerSize);
+    Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
 
     // We get the first node of the sequence.
     Node node = graph.buildNode (seq);

@@ -9,6 +9,27 @@ using namespace std;
 /********************************************************************************/
 /*         Multithreaded iteration and modification of a shared resource.       */
 /********************************************************************************/
+
+// We define a functor that will be cloned by the dispatcher
+struct Functor
+{
+    ISynchronizer* synchro;    fstream& file;
+    Functor (ISynchronizer* synchro, fstream& file)  : synchro(synchro), file(file) {}
+
+    void operator() (int i)
+    {
+        // We lock the synchronizer
+        synchro->lock ();
+
+        // We dump the current integer into the file
+        file << i << endl;
+
+        // We unlock the synchronizer
+        synchro->unlock ();
+    }
+};
+
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We get the number of cores to be used.  If we don't give any number,
@@ -29,18 +50,8 @@ int main (int argc, char* argv[])
     // We create a dispatcher configured for 'nbCores' cores.
     Dispatcher dispatcher (nbCores, 1);
 
-    // We iterate the range
-    dispatcher.iterate (it, [&] (int i)
-    {
-        // We lock the synchronizer
-        synchro->lock ();
-
-        // We dump the current integer into the file
-        file << i << endl;
-
-        // We unlock the synchronizer
-        synchro->unlock ();
-    });
+    // We iterate the range.  NOTE: we could also use lambda expression (easing the code readability)
+   dispatcher.iterate (it, Functor(synchro,file));
 
     // We close the file
     file.close();

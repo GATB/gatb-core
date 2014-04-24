@@ -9,6 +9,12 @@ using namespace std;
 
 /********************************************************************************/
 /*                         Bank conversion to binary format                     */
+/*                                                                              */
+/* This snippet shows how to convert a bank from a format to another one. The   */
+/* main idea is to iterate the input bank and to insert each sequence into the  */
+/* output bank. We use progress information to get feedback about the iteration */
+/* progression.                                                                 */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

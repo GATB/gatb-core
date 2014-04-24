@@ -5,6 +5,10 @@
 
 /********************************************************************************/
 /*                              Kmer management                                 */
+/*                                                                              */
+/* This snippet shows how instantiate the Model class and how to get info       */
+/* about it.                                                                    */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

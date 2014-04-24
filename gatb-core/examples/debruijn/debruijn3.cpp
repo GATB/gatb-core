@@ -19,7 +19,7 @@ int main (int argc, char* argv[])
     IBank* bank = new BankFasta (argv[1]);
 
     // We create the graph with the bank and other options
-    Graph graph = Graph::create (bank, "-nks 3");
+    Graph graph = Graph::create (bank, "-abundance 5");
 
     // We dump some information about the graph.
     std::cout << graph.getInfo() << std::endl;

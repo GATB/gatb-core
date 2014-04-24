@@ -8,6 +8,15 @@ using namespace std;
 /********************************************************************************/
 /*                    Multithreaded iteration of an integer range               */
 /********************************************************************************/
+
+// We define a functor that will be cloned by the dispatcher
+struct Functor { void operator() (int i)
+{
+    // In this instruction block, we are executing in one of the nbCores threads
+    // created by the dispatcher. Note that 'i' is one value of our range
+}};
+
+/********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We get the number of cores to be used.  If we don't give any number,
@@ -23,12 +32,9 @@ int main (int argc, char* argv[])
     // We dispatch the range iteration with the dispatcher.
     // This will create nbCores threads and each thread will be fed with
     // one value of the defined range
-    // Note the usage of lambda expression (easing the code readability)
-    IDispatcher::Status status = dispatcher.iterate (it, [&] (int i)
-    {
-        // In this instruction block, we are executing in one of the nbCores threads
-        // created by the dispatcher. Note that 'i' is one value of our range
-    });
+
+    // NOTE: we could also use lambda expression (easing the code readability)
+    IDispatcher::Status status = dispatcher.iterate (it, Functor());
 
     // We dump some information about the dispatching
     cout << "nbCores=" << status.nbCores << "  time=" << status.time << endl;

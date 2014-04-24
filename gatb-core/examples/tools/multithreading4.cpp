@@ -8,6 +8,10 @@ using namespace std;
 
 /********************************************************************************/
 /*         Multithreaded iteration and modification of a shared resource.       */
+/*                                                                              */
+/* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
+/* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

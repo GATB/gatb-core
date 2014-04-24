@@ -10,6 +10,11 @@ using namespace std;
 
 /********************************************************************************/
 /*                                Bank copy                                     */
+/*                                                                              */
+/* This snippet shows how to copy a bank into another one, with some possible   */
+/* modifications. Note that this snippet can be really useful for re-formatting */
+/* FASTA banks                                                                  */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -17,7 +22,7 @@ int main (int argc, char* argv[])
     {
         cerr << "you must provide at least the FASTA file path. Arguments are:" << endl;
         cerr << "   1) FASTA file path" << endl;
-        cerr << "   2) data lines size (60 by default)" << endl;
+        cerr << "   2) data lines size (60 by default, 0 means only one line for sequence data)" << endl;
         cerr << "   3) type of comments: 0 for new comments, 1 for only ids, 2 (default) for full comments" << endl;
         cerr << "   4) number of sequences to keep (all by default)" << endl;
         return EXIT_FAILURE;

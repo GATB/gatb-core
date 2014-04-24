@@ -5,6 +5,10 @@
 
 /********************************************************************************/
 /*                    Bank iteration with progress information                  */
+/*                                                                              */
+/* This snippet shows how to iterate sequences from a FASTA with some progress  */
+/* information. In this example, we use some pre defined progress manager.      */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -25,7 +29,7 @@ int main (int argc, char* argv[])
         // Note that we get an estimation of the number of sequences in the bank and give it to the
         // functor in order to compute a percentage. Since this is a crude estimation, it is likely
         // that the final percentage will not be exactly 100%
-        iter.addObserver (new Progress (b.estimateNbItems(), "Iterating sequences"));
+        iter.addObserver (new ProgressTimer (b.estimateNbItems(), "Iterating sequences"));
 
         // We loop over sequences.
         for (iter.first(); !iter.isDone(); iter.next())
