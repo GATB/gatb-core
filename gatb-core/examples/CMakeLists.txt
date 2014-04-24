@@ -23,7 +23,7 @@ file (GLOB_RECURSE  PROGRAMS_FILES_EXTRA
 
 # Some examples may require lambda expressions. If this option is not activated, we
 # don't compile such examples.
-if (NOT WITH_LAMBDA_EXPRESSIONS)
+if (NOT WITH_LAMBDA_EXPRESSION)
     message ("-- WARNING !!! Some examples won't be compiled (use of lambda expressions)")
     LIST (REMOVE_ITEM PROGRAMS_FILES ${PROGRAMS_FILES_EXTRA})
 endif()
