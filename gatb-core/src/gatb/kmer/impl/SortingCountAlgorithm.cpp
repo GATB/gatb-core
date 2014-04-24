@@ -361,7 +361,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     /** We gather some statistics. */
     getInfo()->add (1, "config");
     getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);
-    getInfo()->add (2, "nks",               "%ld", _nks);
+    getInfo()->add (2, "abundance",         "%ld", _nks);
     getInfo()->add (2, "available_space",   "%ld", available_space);
     getInfo()->add (2, "bank_size",         "%ld", bankSize);
     getInfo()->add (2, "sequence_number",   "%ld", _estimateSeqNb);

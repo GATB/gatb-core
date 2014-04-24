@@ -81,7 +81,7 @@ public:
     const char* db             ()  { return "-db";             }
     const char* file           ()  { return "-file";           }
     const char* kmer_size      ()  { return "-kmer-size";      }
-    const char* nks            ()  { return "-nks";            }
+    const char* kmer_abundance ()  { return "-abundance"; }
     const char* max_memory     ()  { return "-max-memory";     }
     const char* max_disk       ()  { return "-max-disk";       }
     const char* kmer_solid     ()  { return "-kmer-solid";     }
@@ -109,7 +109,7 @@ public:
 #define STR_URI_DB              gatb::core::tools::misc::StringRepository::singleton().db ()
 #define STR_URI_FILE            gatb::core::tools::misc::StringRepository::singleton().file ()
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
-#define STR_NKS                 gatb::core::tools::misc::StringRepository::singleton().nks ()
+#define STR_KMER_ABUNDANCE      gatb::core::tools::misc::StringRepository::singleton().kmer_abundance ()
 #define STR_MAX_MEMORY          gatb::core::tools::misc::StringRepository::singleton().max_memory ()
 #define STR_MAX_DISK            gatb::core::tools::misc::StringRepository::singleton().max_disk ()
 #define STR_KMER_SOLID          gatb::core::tools::misc::StringRepository::singleton().kmer_solid ()
