@@ -28,7 +28,7 @@ int main (int argc, char* argv[])
             std::cout << "[" << it->getDataSize() << "] " << it->getComment()  << std::endl;
 
             // We dump the data
-            std::cout << it->getDataBuffer() << std::endl;
+            std::cout << it->toString() << std::endl;
         }
     }
     catch (gatb::core::system::Exception& e)

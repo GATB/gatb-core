@@ -50,7 +50,7 @@ int main (int argc, char* argv[])
             cout << "[" << itSeq->getDataSize() << "] " << itSeq->getComment()  << endl;
 
             // We dump the data
-            cout << itSeq->getDataBuffer() << endl;
+            cout << itSeq->toString() << endl;
         }
     }
     catch (gatb::core::system::Exception& e)

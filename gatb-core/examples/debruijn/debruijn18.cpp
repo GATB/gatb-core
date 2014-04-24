@@ -11,6 +11,10 @@ using namespace std;
 
 /********************************************************************************/
 /*                   Statistics about branching nodes in/out degrees.           */
+/*                                                                              */
+/* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
+/* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

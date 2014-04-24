@@ -6,7 +6,11 @@
 using namespace std;
 
 /********************************************************************************/
-/*               */
+/*                   Looking for simple cycles in the graph.                    */
+/*                                                                              */
+/* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
+/* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

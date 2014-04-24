@@ -19,6 +19,9 @@ using namespace std;
 /* the distribution with gnuplot with the following line:                       */
 /*      h5dump -y -d distrib  output.h5  | grep "^\ *[0-9]" | tr -d " "  | paste - - | gnuplot -p -e 'plot  "-" with lines' */
 /*                                                                              */
+/* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
+/* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
+/*                                                                              */
 /********************************************************************************/
 class BranchingNodeMapping : public Tool
 {

@@ -113,6 +113,10 @@ private:
 
 /********************************************************************************/
 /*        Computing connected components of the branching nodes subgraph.       */
+/*                                                                              */
+/* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
+/* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

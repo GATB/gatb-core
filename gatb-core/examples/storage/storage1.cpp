@@ -7,6 +7,13 @@ using namespace std;
 
 /********************************************************************************/
 /*              Create a Collection and save it with the Storage class.         */
+/*                                                                              */
+/* This snippet shows how to use the Storage layer. In this example, we use the */
+/* HDF5 layer, so we can check the result of the test with HDF5 tools (like     */
+/* h5dump for instance).                                                        */
+/*                                                                              */
+/* NOTE: GATB provides some HDF5 tools (check 'bin' directory)                  */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

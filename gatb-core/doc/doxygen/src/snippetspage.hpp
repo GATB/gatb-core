@@ -363,21 +363,6 @@
  * \n
  *
  ************************************************************************************
- * \section snippets_kmer_snippet5 Iterating kmers from one or several banks with progress information
- *
- * This snippet shows how to iterate the kmers from banks.
- *
- * It shows how to use a single compound iterator that is equivalent to two iterators (one inner, one outer).
- *
- * Although this is a kmer iterator, we add a progress listener on the outer sequences iteration.
- *
- * This snippet is rather complex but shows how we can develop few material (basically bank and kmer iterators)
- * and get in return several advantages through the iterator helpers.
- *
- *\snippet kmer5.cpp  snippet1
- * \n
- *
- ************************************************************************************
  * \section snippets_kmer_snippet6 Comparing kmers from a FASTA bank and a binary bank
  *
  * This snippet shows that kmers from a FASTA bank or a binary bank are the same.

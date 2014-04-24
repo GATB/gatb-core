@@ -25,7 +25,7 @@ struct Functor {  void operator ()  (Sequence& s)  const
     std::cout << "[" << s.getDataSize() << "] " << s.getComment()  << std::endl;
 
     // We dump the data
-    std::cout << s.getDataBuffer () << std::endl;
+    std::cout << s.toString () << std::endl;
 }};
 
 /********************************************************************************/
