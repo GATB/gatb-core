@@ -62,6 +62,8 @@ template<typename Type, typename Number=u_int16_t> struct Abundance
     const Number& getAbundance() const { return abundance; }
     const Type&   getValue()     const { return value;     }
 
+    bool operator== (const Abundance& other) const  {  return value == other.value && abundance == other.abundance;  }
+
     /** Creates a HDF5 type identifier for the [kmer,abundance] structure. This type will be used
      * for dumping Count instances in a HDF5 file (like SortingCount algorithm does).
      * \param[in] isCompound : tells whether the structure is compound (SHOULD BE OBSOLETE IN THE FUTURE)
