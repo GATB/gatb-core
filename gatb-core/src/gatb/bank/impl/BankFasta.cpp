@@ -113,7 +113,7 @@ BankFasta::BankFasta (const std::vector<std::string>& filenames)
 ** REMARKS :
 *********************************************************************/
 BankFasta::BankFasta (int argc, char* argv[])
-    : filesizes(0), nb_files(0), _insertHandle(0)
+    : filesizes(0), nb_files(0), _insertHandle(0), _gz_insertHandle(0)
 {
     for (size_t i=0; i<argc; i++)  { _filenames.push_back (argv[i]); }
 
@@ -147,7 +147,7 @@ BankFasta::BankFasta (const std::string& filename, bool output_fastq, bool outpu
 *********************************************************************/
 BankFasta::~BankFasta ()
 {
-    if (_insertHandle != 0)  { fclose (_insertHandle); }
+    if (_insertHandle    != 0)  { fclose  (_insertHandle);    }
     if (_gz_insertHandle != 0)  { gzclose (_gz_insertHandle); }
     
 }
