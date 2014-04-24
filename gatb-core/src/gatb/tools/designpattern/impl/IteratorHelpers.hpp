@@ -506,7 +506,7 @@ public:
     /** Constructor.
      * \param[in] ref : the referred iterator
      * \param[in] filter : the filter on items. Returns true if item is kept, false otherwise. */
-    FilterIterator (Iterator<Item>* ref, Filter& filter) : _ref(0), _filter(filter)  { setRef(ref); }
+    FilterIterator (Iterator<Item>* ref, Filter filter) : _ref(0), _filter(filter)  { setRef(ref); }
 
     /** Destructor. */
     ~FilterIterator ()  { setRef(0); }
@@ -531,7 +531,7 @@ private:
     Iterator<Item>* _ref;
     void setRef (Iterator<Item>* ref)  { SP_SETATTR(ref); }
 
-    Filter&         _filter;
+    Filter         _filter;
 };
 
 /********************************************************************************/
