@@ -61,6 +61,14 @@
  *
  ****************************************************************************************************
  ****************************************************************************************************
+ * \section contact Contact
+ *
+ * You can get support on the following <a href="mailto:gatb-core-support@lists.gforge.inria.fr">mailing list</a>
+ *
+ * You can also have general information about the <a href="http://gatb.inria.fr">GATB project</a>
+ *
+ ****************************************************************************************************
+ ****************************************************************************************************
  * \section other Other material
  *
  * You can also read the related pages:

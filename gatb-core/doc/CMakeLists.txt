@@ -14,3 +14,7 @@ if (DOXYGEN_FOUND)
     INSTALL (DIRECTORY ${CMAKE_BINARY_DIR}/doc/html DESTINATION doc)
     
 endif (DOXYGEN_FOUND)
+
+
+# HERE IS A COMMAND LINE TO COPY THE HTML DOCUMENTATION TO THE GFORGE SERVER  (from the build directory)
+#    scp doc/html/* edrezen@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/

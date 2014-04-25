@@ -42,6 +42,7 @@ You can copy the content of one of the snippet file into the 'src/main.cpp' file
 For instance:
     cp thirdparty/gatb-core/examples/debruijn/debruijn4.cpp src/main.cpp
 
+WARNING... Some examples use on purpose lambda expressions, so you will need a compiler supporting this feature for this examples.
 
 
 # Binaries from gatb-core
