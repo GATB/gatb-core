@@ -46,6 +46,8 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+    template<size_t kk> class PartitionsCommand;
+
 /** \brief Class performing the kmer counting (also known as 'DSK')
  *
  * This class does the real job of counting the kmers from a reads database.
@@ -76,7 +78,7 @@ public:
         tools::storage::impl::Storage* storage,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
-        size_t              nks,
+        size_t              abundance,
         u_int32_t           max_memory     = 0,
         u_int64_t           max_disk_space = 0,
         size_t              nbCores        = 0,
@@ -137,7 +139,7 @@ private:
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;
-    size_t      _nks;
+    size_t      _abundance;
     size_t      _partitionType;
     size_t      _nbCores;
 
@@ -146,10 +148,6 @@ private:
 
     gatb::core::tools::dp::IteratorListener* _progress;
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
-    gatb::core::tools::dp::IteratorListener* getProgress ()  { return _progress; }
-
-    /** */
-    size_t getNks ()  { return _nks; }
 
     /** Values computed for algorithm parameterization. In particular, we have one value for the number
      * of passes and one value for the number of partitions.
@@ -182,7 +180,6 @@ private:
 
     u_int64_t _totalKmerNb;
 
-    template<size_t kk> friend class PartitionsCommand;
 };
 
 /********************************************************************************/

@@ -27,14 +27,12 @@
 #include <gatb/system/impl/System.hpp>
 
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
-#include <gatb/tools/collections/impl/BagPartition.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
-#include <gatb/tools/collections/impl/IteratorFile.hpp>
 
 #include <gatb/tools/math/Integer.hpp>
 
@@ -86,14 +84,16 @@ static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  "
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS :  
+R: why are we repeating those long initializations for all constructors?
+R: I think it has to do with: http://stackoverflow.com/questions/761917/handling-a-class-with-a-long-initialization-list-and-multiple-constructors
 *********************************************************************/
 template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm ()
     : Algorithm("dsk", 0, 0),
       _storage(0),
       _bank(0),
-      _kmerSize(0), _nks(0),
+      _kmerSize(0), _abundance(0),
       _partitionType(0), _nbCores(0), _prefix(""),
       _progress (0),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
@@ -116,7 +116,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     Storage* storage,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
-    size_t      nks,
+    size_t      abundance,
     u_int32_t   max_memory,
     u_int64_t   max_disk_space,
     size_t      nbCores,
@@ -128,7 +128,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
   : Algorithm("dsk", nbCores, options),
     _storage(storage),
     _bank(0),
-    _kmerSize(kmerSize), _nks(nks),
+    _kmerSize(kmerSize), _abundance(abundance),
     _partitionType(partitionType), _nbCores(nbCores), _prefix(prefix),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
@@ -158,7 +158,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
   : Algorithm("dsk", 0, 0),
     _storage(0),
     _bank(0),
-    _kmerSize(0), _nks(0),
+    _kmerSize(0), _abundance(0),
     _partitionType(0), _nbCores(0), _prefix(""),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
@@ -204,7 +204,7 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
     {
         _storage                = s._storage;
         _kmerSize               = s._kmerSize;
-        _nks                    = s._nks;
+        _abundance              = s._abundance;
         _partitionType          = s._partitionType;
         _nbCores                = s._nbCores;
         _prefix                 = s._prefix;
@@ -361,7 +361,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     /** We gather some statistics. */
     getInfo()->add (1, "config");
     getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);
-    getInfo()->add (2, "abundance",         "%ld", _nks);
+    getInfo()->add (2, "abundance",         "%ld", _abundance);
     getInfo()->add (2, "available_space",   "%ld", available_space);
     getInfo()->add (2, "bank_size",         "%ld", bankSize);
     getInfo()->add (2, "sequence_number",   "%ld", _estimateSeqNb);
@@ -443,7 +443,7 @@ private:
     PartitionCache<Type> _partition;
 #endif
     
-    ProgressSynchro      _progress;
+    ProgressSynchro _progress;
 };
 
 /*********************************************************************
@@ -506,13 +506,15 @@ public:
         Iterable<Type>&   partition,
         IHistogram*    histogram,
         ISynchronizer* synchro,
-        u_int64_t&     totalKmerNbRef
+        u_int64_t&     totalKmerNbRef,
+        size_t         abundance,
+        IteratorListener* progress
     )
-        : _nks(algo.getNks()),
+        : _abundance(abundance),
           _solidKmers(solidKmers, 10*1000, synchro),
           _partition(partition),
           _histogram(histogram),
-          _progress(algo.getProgress(), synchro),
+          _progress(progress, synchro),
           _totalKmerNb(0),
           _totalKmerNbRef(totalKmerNbRef) {}
 
@@ -521,7 +523,7 @@ public:
     }
 
 protected:
-    size_t              _nks;
+    size_t              _abundance;
     BagCache<Count>      _solidKmers;
     Iterable<Type>&      _partition;
     HistogramCache      _histogram;
@@ -539,7 +541,7 @@ protected:
         _histogram.inc (kmer.abundance);
 
         /** We check that the current abundance is in the correct range. */
-        if (kmer.abundance >= this->_nks  && kmer.abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
+        if (kmer.abundance >= this->_abundance && kmer.abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
     }
 };
 
@@ -561,9 +563,11 @@ public:
         IHistogram*     histogram,
         ISynchronizer*  synchro,
         u_int64_t&      totalKmerNbRef,
+        size_t          abundance,
+        IteratorListener* progress,
         u_int64_t       hashMemory
     )
-        : PartitionsCommand<span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef), _hashMemory(hashMemory)  {}
+        : PartitionsCommand<span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress), _hashMemory(hashMemory)  {}
 
     void execute ()
     {
@@ -615,9 +619,11 @@ public:
         Iterable<Type>&    partition,
         IHistogram*     histogram,
         ISynchronizer*  synchro,
-        u_int64_t&      totalKmerNbRef
+        u_int64_t&      totalKmerNbRef,
+        size_t          abundance,
+        IteratorListener* progress
     )
-        : PartitionsCommand<span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef)
+        : PartitionsCommand<span> (algo, solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress)
           {}
 
     void execute ()
@@ -741,11 +747,11 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
 
             if (memoryPartition >= mem)
             {
-                cmd = new PartitionsByHashCommand<span>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, mem);
+                cmd = new PartitionsByHashCommand<span>   (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem);
             }
             else
             {
-                cmd = new PartitionsByVectorCommand<span> (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb);
+                cmd = new PartitionsByVectorCommand<span> (*this, solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress);
             }
 
             cmds.push_back (cmd);
