@@ -68,7 +68,7 @@ void PartitionsCommand<span>::insert (const Count& kmer)
     };
 
 /********************************************************************************/
-/** */
+/** in this scheme we count k-mers inside a partition by a hash table */
 template<size_t span>
 PartitionsByHashCommand<span>:: PartitionsByHashCommand (
         Bag<Count>*      solidKmers,
@@ -113,7 +113,7 @@ void PartitionsByHashCommand<span>:: execute ()
     };
 
 /********************************************************************************/
-/** */
+/** in this scheme we count k-mers in a partition by sorting a vector*/
 template<size_t span>
 PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
         Bag<Count>*  solidKmers,
