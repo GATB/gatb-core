@@ -31,6 +31,7 @@
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/kmer/impl/PartitionsCommand.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
@@ -45,8 +46,6 @@ namespace kmer      {
 /** \brief Implementation for genomic databases management. */
 namespace impl      {
 /********************************************************************************/
-
-    template<size_t kk> class PartitionsCommand;
 
 /** \brief Class performing the kmer counting (also known as 'DSK')
  *

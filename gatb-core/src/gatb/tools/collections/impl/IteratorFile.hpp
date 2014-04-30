@@ -222,7 +222,6 @@ public:
            // _cpt_buffer = _file->fread (_buffer, sizeof(Item), _cacheItemsNb);
             if (_cpt_buffer==0)  { _isDone = true;  return; }
         }
-        
         *(this->_item) =  _buffer[_idx];
         _cpt_buffer --;
         _idx ++;
