@@ -218,9 +218,15 @@ public:
         if (_cpt_buffer==0)
         {
             _idx = 0;
-            _cpt_buffer = (gzread(_gzfile,_buffer, sizeof(Item)*_cacheItemsNb)  /  sizeof(Item))  ;  // gzread returns number of bytes uncompressed returned in _buffer
-           // _cpt_buffer = _file->fread (_buffer, sizeof(Item), _cacheItemsNb);
-            if (_cpt_buffer==0)  { _isDone = true;  return; }
+            _cpt_buffer = (gzread(_gzfile, _buffer, sizeof(Item)*_cacheItemsNb)  /  sizeof(Item))  ;  // gzread returns number of bytes uncompressed returned in _buffer
+            //printf("refreshing buffer from gzread(), cptbuffer now: %d\n",_cpt_buffer);
+            if (_cpt_buffer < 0)
+            { // On other errors, gzread() shall return a value less than 0 and and applications may examine the cause using gzerror().
+                // FIXME: more tests are needed but on my system (R: linux64), gzread returns the fixed number of items, then a lower number of items (as it reaches the end), then it returns -1 instead of 0 and prints a "data error" but at this point it's fine to just return
+                int err;
+                fprintf(stderr, "gzread error: %s %p\n", gzerror(_gzfile, &err));
+            }
+            if (_cpt_buffer<=0)  { _isDone = true;  return; }
         }
         *(this->_item) =  _buffer[_idx];
         _cpt_buffer --;
