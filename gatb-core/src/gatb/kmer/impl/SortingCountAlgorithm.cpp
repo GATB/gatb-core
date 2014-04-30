@@ -554,14 +554,6 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
 
 /********************************************************************************/
 
-// since we didn't define the functions in a .h file, that trick removes linker errors,
-// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
-
-template class SortingCountAlgorithm <KSIZE_1>;
-template class SortingCountAlgorithm <KSIZE_2>;
-template class SortingCountAlgorithm <KSIZE_3>;
-template class SortingCountAlgorithm <KSIZE_4>;
-
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
