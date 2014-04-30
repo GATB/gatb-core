@@ -30,18 +30,9 @@
 #include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
-#include <string>
 
-#include <gatb/system/impl/System.hpp>
-#include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
-#include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/tools/misc/impl/Property.hpp>
-#include <gatb/tools/designpattern/impl/Command.hpp>
-#include <gatb/tools/math/Integer.hpp>
 #include <gatb/bank/impl/Banks.hpp>
-#include <math.h>
-#include <algorithm>
 
 using namespace std;
 
@@ -51,15 +42,11 @@ using namespace gatb::core::system::impl;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
-using namespace gatb::core::tools::storage::impl;
-
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
-
-using namespace gatb::core::tools::math;
 
 using namespace gatb::core::kmer::impl;
 

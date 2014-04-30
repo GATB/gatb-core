@@ -24,23 +24,6 @@
 //#define PROTO_COMP
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 
-#include <gatb/system/impl/System.hpp>
-
-#include <gatb/tools/collections/impl/IteratorFile.hpp>
-#include <gatb/tools/collections/impl/OAHash.hpp>
-
-#include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/tools/misc/impl/Property.hpp>
-
-#include <gatb/tools/designpattern/impl/Command.hpp>
-
-#include <gatb/tools/math/Integer.hpp>
-
-#include <gatb/bank/impl/Banks.hpp>
-
-#include <math.h>
-#include <algorithm>
-
 #define DEBUG(a)  //printf a
 
 /********************************************************************************/

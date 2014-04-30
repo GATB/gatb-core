@@ -31,12 +31,13 @@
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
-#include <gatb/kmer/impl/PartitionsCommand.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <string>
+
+#include <gatb/kmer/impl/PartitionsCommand.hpp>
 
 /********************************************************************************/
 namespace gatb      {
