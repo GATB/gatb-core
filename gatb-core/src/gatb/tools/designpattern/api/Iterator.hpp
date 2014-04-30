@@ -47,12 +47,7 @@ namespace dp    {
 
 /** \brief  Definition of the Design Pattern Iterator interface.
  *
- *  Iteration is an important concept, which is specially true for PLAST whose core algorithm
- *  iterates over some seeds set. A very important point in PLAST parallelization is that the
- *  full seeds iterator can be split into several ones, each of them being iterated in a specific
- *  thread (and therefore on specific core if we have a multi-cores computer).
- *
- *  So the Iterator concept is here reified as a template class that knows how to iterate some set of objects.
+ *    The Iterator concept is here reified as a template class that knows how to iterate some set of objects.
  *
  *  Actually, the interface has two ways for iterating instances:
  *    1- the 'classic' one in terms of Iterator Design Pattern (see first/next/isDone methods)
