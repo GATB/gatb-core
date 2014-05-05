@@ -23,6 +23,7 @@
 
 //#define PROTO_COMP
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
+#include <cmath>
 
 #define DEBUG(a)  //printf a
 
