@@ -96,6 +96,7 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test11);
         CPPUNIT_TEST_GATB (debruijn_test12);
         CPPUNIT_TEST_GATB (debruijn_test13);
+        CPPUNIT_TEST_GATB (debruijn_mutation);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -718,6 +719,58 @@ public:
 
         // We check that we have only two branching nodes.
         CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching") == 2);
+    }
+
+    /********************************************************************************/
+    void debruijn_mutation_aux (const char* sequences[], size_t len, bool reverse)
+    {
+        size_t kmerSize = strlen (sequences[0]);
+
+        // We create the graph.
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+
+        // We get the first node (should be AGGCGCT); this is a branching node.
+        Node node = graph.buildNode ((char*)sequences[0]);
+        CPPUNIT_ASSERT (graph.toString(node) == sequences[0]);
+
+        if (reverse)  { node = graph.reverse(node); }
+
+        Graph::Vector<Node> mutations = graph.mutate (node, kmerSize-1, 1);
+        CPPUNIT_ASSERT (mutations.size() == 3);
+
+        // We check we got the correct mutations
+        for (size_t i=0; i<mutations.size(); i++)
+        {
+            Node item = mutations[i];
+
+            if (reverse)  { item = graph.reverse (item); }
+
+            CPPUNIT_ASSERT (graph.toString(item) == sequences[i+1]);
+        }
+    }
+
+    /** */
+    void debruijn_mutation ()
+    {
+        const char* sequences1[] =
+        {
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCA",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCC",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCT",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCG"
+
+        };
+
+        const char* sequences2[] =
+        {
+            "TTTGCTCACATGTTCTTTCCTGCGTTATCCC",
+            "GTTGCTCACATGTTCTTTCCTGCGTTATCCC",
+            "ATTGCTCACATGTTCTTTCCTGCGTTATCCC",
+            "CTTGCTCACATGTTCTTTCCTGCGTTATCCC"
+        };
+
+        debruijn_mutation_aux (sequences1, ARRAY_SIZE(sequences1), false);
+        debruijn_mutation_aux (sequences2, ARRAY_SIZE(sequences2), true);
     }
 };
 
