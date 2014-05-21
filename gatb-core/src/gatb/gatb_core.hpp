@@ -72,6 +72,7 @@
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/Terminator.hpp>
 #include <gatb/debruijn/impl/Traversal.hpp>
+#include <gatb/debruijn/impl/Frontline.hpp>
 
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
