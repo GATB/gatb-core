@@ -595,6 +595,20 @@ public:
     template <typename T, typename IteratorInput>
     std::set<T> neighbors (IteratorInput first, IteratorInput last) const;
 
+    /** Returns the successors of two nodes, ie with the same transition nucleotide from both nodes.
+     * \param[in] node1 : first node
+     * \param[in] node2 : sedond node
+     * \return the vector of pairs of items as successors
+     */
+    template <typename T>  Graph::Vector<std::pair<T,T> > successors   (const Node& node1, const Node& node2) const;
+
+    /** Returns the predecessors of two nodes, ie with the same transition nucleotide from both nodes.
+     * \param[in] node1 : first node
+     * \param[in] node2 : sedond node
+     * \return the vector of pairs of items as predecessors
+     */
+    template <typename T>  Graph::Vector<std::pair<T,T> > predecessors (const Node& node1, const Node& node2) const;
+
     /**********************************************************************/
     /*                     ONE NEIGHBOR METHODS                           */
     /**********************************************************************/
@@ -715,6 +729,20 @@ public:
      * \return the reverted node.  */
     Node reverse (const Node& node) const;
 
+    /** Return the reverse complement node of the provided one.
+     * param[in] node : the node to be reverted
+     * \return the reverted node.  */
+    BranchingNode reverse (const BranchingNode& node) const;
+
+    /** Mutation of a node. */
+    Graph::Vector<Node> mutate (const Node& node, size_t idx, int mode=0) const;
+
+    /** Return a nucleotide at position 'idx' of a given node 
+     * \param[in] node : the node we want to extract a nucleotide from
+     * \param[in] idx : the position of the nucleotide to be extracted
+     * \return the wanted nucleotide. */
+    kmer::Nucleotide getNT (const Node& node, size_t idx) const;
+
     /**********************************************************************/
     /*                         EDGE METHODS                               */
     /**********************************************************************/
@@ -824,6 +852,12 @@ private:
     Graph::Vector<Edge> getEdges (const Node& source, Direction direction) const;
 
     /** */
+    Graph::Vector<std::pair<Node,Node> > getNodesCouple (const Node& node1, const Node& node2, Direction direction) const;
+
+    /** */
+    Graph::Vector<std::pair<Edge,Edge> > getEdgesCouple (const Node& node1, const Node& node2, Direction direction) const;
+
+    /** */
     Graph::Vector<Node> getNodes (const Node& source, Direction direction) const;
 
     /** */
@@ -885,6 +919,19 @@ template <>  inline Graph::Vector<Edge> Graph::successors   (const Node& node) c
 template <>  inline Graph::Vector<Edge> Graph::predecessors (const Node& node) const                 {  return getEdges (node, DIR_INCOMING);  }
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node& node, Direction dir) const  {  return getEdges (node, dir);           }
 template <>  inline Graph::Vector<Edge> Graph::neighbors    (const Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
+
+/** */
+template <>  inline Graph::Vector<std::pair<Edge,Edge> > Graph::successors (const Node& node1, const Node& node2) const
+{ return getEdgesCouple (node1, node2, DIR_OUTCOMING); }
+
+template <>  inline Graph::Vector<std::pair<Node,Node> > Graph::successors (const Node& node1, const Node& node2) const
+{ return getNodesCouple (node1, node2, DIR_OUTCOMING); }
+
+template <>  inline Graph::Vector<std::pair<Edge,Edge> > Graph::predecessors (const Node& node1, const Node& node2) const
+{ return getEdgesCouple (node1, node2, DIR_INCOMING); }
+
+template <>  inline Graph::Vector<std::pair<Node,Node> > Graph::predecessors (const Node& node1, const Node& node2) const
+{ return getNodesCouple (node1, node2, DIR_INCOMING); }
 
 /** */
 template <>  inline Graph::Vector<BranchingNode> Graph::successors (const Node& node) const

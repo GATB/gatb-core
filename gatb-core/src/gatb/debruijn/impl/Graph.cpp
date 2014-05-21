@@ -598,9 +598,13 @@ Graph& Graph::operator= (const Graph& graph)
 {
     if (this != &graph)
     {
-        _kmerSize = graph._kmerSize;
+        _kmerSize      = graph._kmerSize;
+        _storageMode   = graph._storageMode;
+        _name          = graph._name;
+        _info          = graph._info;
+        _bloomKind     = graph._bloomKind;
+        _cascadingKind = graph._cascadingKind;
 
-        _storageMode = graph._storageMode;
         setStorage (graph._storage);
 
         if (graph._variant)  {  *((GraphDataVariant*)_variant) = *((GraphDataVariant*)graph._variant);  }
@@ -688,6 +692,21 @@ bool Graph::isEdge (const Node& u, const Node& v) const
 Node Graph::reverse (const Node& node) const
 {
     Node result = node;
+    result.strand = kmer::StrandReverse(node.strand);
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+BranchingNode Graph::reverse (const BranchingNode& node) const
+{
+    BranchingNode result = node;
     result.strand = kmer::StrandReverse(node.strand);
     return result;
 }
@@ -893,6 +912,166 @@ struct Functor_getNodes {  void operator() (
 Graph::Vector<Node> Graph::getNodes (const Node& source, Direction direction)  const
 {
     return boost::apply_visitor (getItems_visitor<Node,Functor_getNodes>(source, direction, Functor_getNodes()),  *(GraphDataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<typename Item, typename Functor>
+struct getItemsCouple_visitor : public boost::static_visitor<Graph::Vector<pair<Item,Item> > >    {
+
+    const Node& node1; const Node& node2;  Direction direction; Functor functor;
+
+    getItemsCouple_visitor (const Node& node1, const Node& node2, Direction aDirection, Functor aFct)
+        : node1(node1), node2(node2),  direction(aDirection), functor(aFct) {}
+
+    template<size_t span>  Graph::Vector<pair<Item,Item> > operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type  Type;
+
+        size_t idx = 0;
+        Graph::Vector < pair<Item,Item> > items;
+
+        /** Shortcuts. */
+        size_t      kmerSize = data._model->getKmerSize();
+        const Type& mask     = data._model->getMask();
+
+        /** We get the specific typed value from the generic typed value. */
+        const Type& val1 = node1.kmer.get<Type>();
+        const Type& val2 = node2.kmer.get<Type>();
+
+        // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
+        Type graine1 = ((node1.strand == STRAND_FORWARD) ?  val1 :  revcomp (val1, kmerSize) );
+        Type graine2 = ((node2.strand == STRAND_FORWARD) ?  val2 :  revcomp (val2, kmerSize) );
+
+        if (direction & DIR_OUTCOMING)
+        {
+            for (u_int64_t nt=0; nt<4; nt++)
+            {
+                Type forward1 = ( (graine1 << 2 )  + nt) & mask;
+                Type forward2 = ( (graine2 << 2 )  + nt) & mask;
+
+                Type reverse1 = revcomp (forward1, kmerSize);
+                Type reverse2 = revcomp (forward2, kmerSize);
+
+                bool isForwardMin1 = forward1 < reverse1;
+                bool isForwardMin2 = forward2 < reverse2;
+
+                if (isForwardMin1==true && isForwardMin2==true)
+                {
+                    if (data.contains (forward1) && data.contains (forward2))
+                    {
+                        pair<Item,Item>& p = items[idx++];
+                        functor (p,
+                            node1.kmer, node1.strand, Node::Value(forward1), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING,
+                            node2.kmer, node2.strand, Node::Value(forward2), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING
+                        );
+                    }
+                }
+                else if (isForwardMin1==true && isForwardMin2==false)
+                {
+                    if (data.contains (forward1) && data.contains (reverse2))
+                    {
+                        pair<Item,Item>& p = items[idx++];
+                        functor (p,
+                            node1.kmer, node1.strand, Node::Value(forward1), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING,
+                            node2.kmer, node2.strand, Node::Value(reverse2), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING
+                        );
+                    }
+                }
+                else if (isForwardMin1==false && isForwardMin2==true)
+                {
+                    if (data.contains (reverse1) && data.contains (forward2))
+                    {
+                        pair<Item,Item>& p = items[idx++];
+                        functor (p,
+                            node1.kmer, node1.strand, Node::Value(reverse1), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING,
+                            node2.kmer, node2.strand, Node::Value(forward2), STRAND_FORWARD, (Nucleotide)nt, DIR_OUTCOMING
+                        );
+                    }
+                }
+                else if (isForwardMin1==false && isForwardMin2==false)
+                {
+                    if (data.contains (reverse1) && data.contains (reverse2))
+                    {
+                        pair<Item,Item>& p = items[idx++];
+                        functor (p,
+                            node1.kmer, node1.strand, Node::Value(reverse1), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING,
+                            node2.kmer, node2.strand, Node::Value(reverse2), STRAND_REVCOMP, (Nucleotide)nt, DIR_OUTCOMING
+                        );
+                    }
+                }
+            }
+        }
+
+        if (direction & DIR_INCOMING)
+        {
+            throw ExceptionNotImplemented();
+        }
+
+        /** We update the size of the container according to the number of found items. */
+        items.resize (idx);
+
+        /** We return the result. */
+        return items;
+    }
+};
+
+/********************************************************************************/
+struct Functor_getNodesCouple {  void operator() (
+    pair<Node,Node>&   items,
+    const Node::Value&   kmer_from1,
+    kmer::Strand         strand_from1,
+    const Node::Value&   kmer_to1,
+    kmer::Strand         strand_to1,
+    kmer::Nucleotide     nt1,
+    Direction            dir1,
+    const Node::Value&   kmer_from2,
+    kmer::Strand         strand_from2,
+    const Node::Value&   kmer_to2,
+    kmer::Strand         strand_to2,
+    kmer::Nucleotide     nt2,
+    Direction            dir2
+) const
+{
+    items.first.set  (kmer_to1, strand_to1);
+    items.second.set (kmer_to2, strand_to2);
+}};
+
+Graph::Vector<std::pair<Node,Node> > Graph::getNodesCouple (const Node& node1, const Node& node2, Direction direction) const
+{
+    return boost::apply_visitor (getItemsCouple_visitor<Node,Functor_getNodesCouple>(node1, node2, direction, Functor_getNodesCouple()),  *(GraphDataVariant*)_variant);
+}
+
+/********************************************************************************/
+struct Functor_getEdgesCouple {  void operator() (
+        pair<Edge,Edge>&     items,
+        const Node::Value&   kmer_from1,
+        kmer::Strand         strand_from1,
+        const Node::Value&   kmer_to1,
+        kmer::Strand         strand_to1,
+        kmer::Nucleotide     nt1,
+        Direction            dir1,
+        const Node::Value&   kmer_from2,
+        kmer::Strand         strand_from2,
+        const Node::Value&   kmer_to2,
+        kmer::Strand         strand_to2,
+        kmer::Nucleotide     nt2,
+        Direction            dir2
+) const
+{
+    items.first.set  (kmer_from1, strand_from1, kmer_to1, strand_to1, nt1, dir1);
+    items.second.set (kmer_from2, strand_from2, kmer_to2, strand_to2, nt2, dir2);
+}};
+
+Graph::Vector<std::pair<Edge,Edge> > Graph::getEdgesCouple (const Node& node1, const Node& node2, Direction direction) const
+{
+    return boost::apply_visitor (getItemsCouple_visitor<Edge,Functor_getEdgesCouple>(node1, node2, direction, Functor_getEdgesCouple()),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -1844,6 +2023,145 @@ std::set<BranchingNode> Graph::neighbors (std::set<BranchingNode>::iterator firs
 
     return result;
 #endif
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+struct mutate_visitor : public boost::static_visitor<Graph::Vector<Node> >    {
+
+    const Node& node;  size_t idx;  int mode;
+
+    mutate_visitor (const Node& node, size_t idx, int mode) : node(node), idx(idx), mode(mode){}
+
+    template<size_t span>  Graph::Vector<Node> operator() (const GraphData<span>& data) const
+    {
+        /** Shortcuts. */
+        typedef typename Kmer<span>::Type Type;
+        typedef typename Kmer<span>::Model Model;
+
+        Graph::Vector<Node> result;
+        size_t nbMutations = 0;
+
+        size_t kmerSize = data._model->getKmerSize();
+
+        Model* model = data._model;
+
+        Type kmer = node.kmer.get<Type>();
+
+        size_t idxReverse = kmerSize - 1 - idx;
+
+        if (node.strand == STRAND_FORWARD)
+        {
+            Nucleotide ntInit = (Nucleotide) (node.kmer[idxReverse]);
+            size_t     nt0    = mode==0 ? 0 : ntInit+1;
+
+            Type resetMask = ((~(Type(3)<<(2*idxReverse))));
+
+            for (size_t nt=nt0; nt<4; nt++)
+            {
+                Type direct = (kmer & resetMask) |   (Type(nt) << (2*idxReverse));
+                Type rev    = model->reverse(direct);
+
+                if (direct < rev)
+                {
+                    if (data.contains(direct))
+                    {
+                        Node& node  = result[nbMutations++];
+                        node.kmer   = direct;
+                        node.strand = STRAND_FORWARD;
+                    }
+                }
+                else
+                {
+                    if (data.contains(rev))
+                    {
+                        Node& node  = result[nbMutations++];
+                        node.kmer   = rev;
+                        node.strand = STRAND_REVCOMP;
+                    }
+                }
+            } /* end of or (size_t nt=nt0; */
+        }
+        else
+        {
+            Nucleotide ntInit = reverse ((Nucleotide) (node.kmer[idx]));
+            size_t nt0 = mode==0 ? 0 : ntInit+1;
+
+            Type resetMask = ((~(Type(3)<<(2*idx))));
+
+            for (size_t nt=nt0; nt<4; nt++)
+            {
+                Type direct = (kmer & resetMask) +  (Type(reverse((Nucleotide)nt)) << (2*idx));
+                Type rev    = model->reverse(direct);
+
+                if (direct < rev)
+                {
+                    if (data.contains(direct))
+                    {
+                        Node& node  = result[nbMutations++];
+                        node.kmer   = direct;
+                        node.strand = STRAND_REVCOMP;
+                    }
+                }
+                else
+                {
+                    if (data.contains(rev))
+                    {
+                        Node& node  = result[nbMutations++];
+                        node.kmer   = rev;
+                        node.strand = STRAND_FORWARD;
+                    }
+                }
+            }
+        }
+
+        result.resize(nbMutations);
+
+        return result;
+    }
+};
+
+/** */
+Graph::Vector<Node> Graph::mutate (const Node& node, size_t idx, int mode) const
+{
+    return boost::apply_visitor (mutate_visitor(node,idx,mode),  *(GraphDataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+struct getNT_visitor : public boost::static_visitor<Nucleotide>    {
+
+    const Node& node;  size_t idx;
+
+    getNT_visitor (const Node& node, size_t idx) : node(node), idx(idx) {}
+
+    template<size_t span>  Nucleotide operator() (const GraphData<span>& data) const
+    {
+        /** Shortcuts. */
+        typedef typename Kmer<span>::Model Model;
+        size_t kmerSize = data._model->getKmerSize();
+
+        if (node.strand == STRAND_FORWARD)  { return (Nucleotide) (node.kmer[kmerSize-1-idx]); }
+        else                                { return reverse ((Nucleotide) (node.kmer[idx])); }
+    }
+};
+
+/** */
+Nucleotide Graph::getNT (const Node& node, size_t idx) const
+{
+    return boost::apply_visitor (getNT_visitor(node,idx),  *(GraphDataVariant*)_variant);
 }
 
 /********************************************************************************/
