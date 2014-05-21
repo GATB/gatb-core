@@ -224,7 +224,7 @@ public:
             { // On other errors, gzread() shall return a value less than 0 and and applications may examine the cause using gzerror().
                 // FIXME: more tests are needed but on my system (R: linux64), gzread returns the fixed number of items, then a lower number of items (as it reaches the end), then it returns -1 instead of 0 and prints a "data error" but at this point it's fine to just return
                 int err;
-                fprintf(stderr, "gzread error: %s %p\n", gzerror(_gzfile, &err));
+                fprintf(stderr, "gzread error: %s\n", gzerror(_gzfile, &err));
             }
             if (_cpt_buffer<=0)  { _isDone = true;  return; }
         }
