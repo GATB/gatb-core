@@ -105,6 +105,10 @@ public:
     /** \return maximum number of files. */
     static const size_t getMaxNbFiles ()  { return 30; }
 
+    /** */
+    static void setDataLineSize (size_t len) { _dataLineSize = len; }
+    static size_t getDataLineSize ()  { return _dataLineSize; }
+
     /************************************************************/
 
     /** \brief Specific Iterator impl for Bank class
@@ -221,6 +225,8 @@ protected:
 
     gzFile _gz_insertHandle;
     
+    static size_t _dataLineSize;
+
     /** Initialization method (compute the file sizes). */
     void init ();
 };

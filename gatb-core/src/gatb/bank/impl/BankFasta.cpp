@@ -47,6 +47,8 @@ using namespace gatb::core::tools::misc;
 namespace gatb {  namespace core {  namespace bank {  namespace impl {
 /********************************************************************************/
 
+size_t BankFasta::_dataLineSize = 70;
+
 /********************************************************************************/
 // heavily inspired by kseq.h from Heng Li (https://github.com/attractivechaos/klib)
 typedef struct
@@ -265,8 +267,7 @@ void BankFasta::insert (const Sequence& item)
         fprintf (_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
 #else
         // We dump the data with fixed sized columns
-        size_t dataLineSize = 70;
-        char line[dataLineSize+1];
+        char line[_dataLineSize+1];
 
         size_t      len    = item.getDataSize();
         const char* buffer = item.getDataBuffer();
@@ -274,7 +275,7 @@ void BankFasta::insert (const Sequence& item)
         for (size_t i=0; i<len; )
         {
             size_t j=0;
-            for (j=0; j<dataLineSize && i<len; j++, i++)
+            for (j=0; j<_dataLineSize && i<len; j++, i++)
             {
                 line[j] = item.getDataBuffer() [i];
             }
