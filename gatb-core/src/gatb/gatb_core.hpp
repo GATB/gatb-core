@@ -70,6 +70,8 @@
 #include <gatb/kmer/impl/BankKmers.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
+#include <gatb/debruijn/impl/Terminator.hpp>
+#include <gatb/debruijn/impl/Traversal.hpp>
 
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
