@@ -76,7 +76,7 @@ int main (int argc, char* argv[])
             {
                 for (size_t j=0; j<dataLineSize && i<len; j++, i++)
                 {
-                    cout << (char) toupper (it->getData() [i]);
+                    cout << (char)  (it->getData() [i]);
                 }
                 cout << endl;
             }
