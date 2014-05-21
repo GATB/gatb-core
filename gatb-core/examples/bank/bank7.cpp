@@ -18,7 +18,7 @@ struct FilterFunctor  {  bool operator ()  (Sequence& seq) const  {  return seq.
 /* This snippet shows how to iterate a bank and filter some sequences through   */
 /* a functor.                                                                   */
 /* Note: lambda expressions could be used for the functor (in case the used     */
-/* compiler supports it)
+/* compiler supports it)                                                        */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
