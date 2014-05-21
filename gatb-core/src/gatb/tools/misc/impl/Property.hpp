@@ -78,8 +78,14 @@ public:
      */
     Properties (const std::string& rootname = "");
 
+    /** Copy constructor. */
+    Properties (const Properties& p);
+
     /** Destructor. */
     virtual ~Properties ();
+
+    /** Affectation operator. */
+    Properties& operator= (const Properties& p);
 
     /** \copydoc IProperties::accept */
     void accept (IPropertiesVisitor* visitor);

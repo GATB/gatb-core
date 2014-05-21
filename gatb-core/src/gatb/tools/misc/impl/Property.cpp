@@ -82,12 +82,48 @@ Properties::Properties (const std::string& rootname)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+Properties::Properties (const Properties& p)
+{
+    for (std::list<IProperty*>::const_iterator it = p._properties.begin(); it != p._properties.end(); it++)
+    {
+        this->add ((*it)->depth, (*it)->key, (*it)->value);
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 Properties::~Properties ()
 {
     for (std::list<IProperty*>::iterator it = _properties.begin(); it != _properties.end(); it++)
     {
         delete *it;
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Properties& Properties::operator= (const Properties& p)
+{
+    if (this != &p)
+    {
+        for (std::list<IProperty*>::const_iterator it = p._properties.begin(); it != p._properties.end(); it++)
+        {
+            this->add ((*it)->depth, (*it)->key, (*it)->value);
+        }
+    }
+    return *this;
 }
 
 /*********************************************************************
