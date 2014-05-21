@@ -42,6 +42,17 @@ namespace misc      {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Null implementation of IteratorListener.
+ */
+class ProgressNone : public dp::IteratorListener
+{
+public:
+    /** Constructor. */
+    ProgressNone (u_int64_t ntasks=0, const char* msg=0) {}
+};
+
+/********************************************************************************/
+
 /** \brief Progress information display feature.
  *
  * This class is used to display some progression information, for instance during
