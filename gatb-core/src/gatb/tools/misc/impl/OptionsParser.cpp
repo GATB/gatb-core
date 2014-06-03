@@ -75,7 +75,7 @@ OptionsParser::~OptionsParser ()
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::push_back (OptionsParser& parser)
+void OptionsParser::push_back (const OptionsParser& parser)
 {
     const std::list<Option*>& options = parser.getOptions ();
 

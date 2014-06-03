@@ -264,7 +264,7 @@ public:
 
     /** Add the options of the provided parser.
      * \param[in] parser : the parser from which we add the options. */
-    void push_back (OptionsParser& parser);
+    void push_back (const OptionsParser& parser);
 
     /** Add the options of the provided parser.
      * \param[in] parser : the parser from which we add the options. */
@@ -343,7 +343,7 @@ public:
     /** Return the list of options that define the parser.
      * \return the list of options.
      */
-    const std::list<Option*>& getOptions ()  { return _options; }
+    const std::list<Option*>& getOptions () const { return _options; }
 
     /** */
     void setName (const std::string& name)  { _name = name; }
