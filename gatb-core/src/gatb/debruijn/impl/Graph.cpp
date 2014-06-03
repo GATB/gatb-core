@@ -320,6 +320,10 @@ struct build_visitor : public boost::static_visitor<>    {
         BranchingAlgorithm<span> branchingAlgo (graph, *graph._storage);
         executeAlgorithm (branchingAlgo, props, graph._info);
 
+        /** The variant configuration has already been done (necessary for building the branching nodes).
+         * Now, we have to update the variant for the branching nodes information.*/
+        data.setBranching (branchingAlgo.getBranchingCollection());
+
         /************************************************************/
         /*                    Post processing                       */
         /************************************************************/
