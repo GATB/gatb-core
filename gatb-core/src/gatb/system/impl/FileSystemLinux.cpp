@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <dirent.h>
 
-#include <attr/xattr.h>
+#include <sys/xattr.h>
 
 #include <string>
 #include <sstream>
