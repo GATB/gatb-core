@@ -101,6 +101,12 @@ public:
     const char* version        ()  { return "-version";        }
     const char* bloom_type     ()  { return "-bloom";          }
     const char* debloom_type   ()  { return "-debloom";        }
+
+    const char* attr_uri_input      ()  { return "input";           }
+    const char* attr_kmer_size      ()  { return "kmer_size";       }
+    const char* attr_kmer_abundance ()  { return "abundance";       }
+    const char* attr_bloom_type     ()  { return "bloom_kind";      }
+    const char* attr_debloom_type   ()  { return "debloom_kind";    }
 };
 
 /********************************************************************************/
@@ -129,6 +135,14 @@ public:
 #define STR_VERSION             gatb::core::tools::misc::StringRepository::singleton().version ()
 #define STR_BLOOM_TYPE          gatb::core::tools::misc::StringRepository::singleton().bloom_type()
 #define STR_DEBLOOM_TYPE        gatb::core::tools::misc::StringRepository::singleton().debloom_type()
+
+/********************************************************************************/
+
+#define ATTR_URI_INPUT          gatb::core::tools::misc::StringRepository::singleton().attr_uri_input()
+#define ATTR_KMER_SIZE          gatb::core::tools::misc::StringRepository::singleton().attr_kmer_size()
+#define ATTR_KMER_ABUNDANCE     gatb::core::tools::misc::StringRepository::singleton().attr_kmer_abundance()
+#define ATTR_BLOOM_TYPE         gatb::core::tools::misc::StringRepository::singleton().attr_bloom_type()
+#define ATTR_DEBLOOM_TYPE       gatb::core::tools::misc::StringRepository::singleton().attr_debloom_type()
 
 /********************************************************************************/
 
