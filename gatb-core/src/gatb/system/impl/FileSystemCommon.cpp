@@ -28,8 +28,6 @@
 #include <string>
 #include <sstream>
 
-#include <attr/xattr.h>
-
 using namespace std;
 
 /********************************************************************************/
