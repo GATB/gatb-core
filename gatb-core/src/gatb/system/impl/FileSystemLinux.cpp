@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <dirent.h>
 
+#include <attr/xattr.h>
+
 #include <string>
 #include <sstream>
 
@@ -124,6 +126,48 @@ int FileSystemLinux::clearCache ()
 
     return result;
 }
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ssize_t FileSystemLinux::getAttribute (const Path& filename, const char* key, string& value)
+{
+    char buffer[4*1024];
+
+    value.clear();
+
+    ssize_t res = ::getxattr (filename.c_str(), (string("user.") + key).c_str(), buffer, sizeof(buffer));
+
+    if (res >= 0)   { value.assign (buffer, res); }
+
+    return res;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ssize_t FileSystemLinux::setAttribute (const Path& filename, const char* key, const char* fmt, ...)
+{
+    char buffer[4*1024];
+
+    va_list ap;
+    va_start (ap, fmt);
+    vsnprintf (buffer, sizeof(buffer), fmt, ap);
+    va_end (ap);
+
+    return ::setxattr (filename.c_str(), (string("user.") + key).c_str(), buffer, strlen(buffer), XATTR_CREATE);
+}
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

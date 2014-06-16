@@ -47,6 +47,12 @@ public:
     /** \copydoc IFileSystem::getMaxFilesNumber */
     size_t getMaxFilesNumber ();
 
+    /** \copydoc IFileSystem::getAttribute */
+    ssize_t getAttribute (const Path& filename, const char* key, std::string& value);
+
+    /** \copydoc IFileSystem::setAttribute */
+    ssize_t setAttribute (const Path& filename, const char* key, const char* fmt, ...);
+
     /** \copydoc IFileSystem::newFile */
     IFile* newFile (const Path& path, const char* mode);
 

@@ -197,10 +197,10 @@ public:
     void iterate (const Path& path, void (*callback) (const Path& entry, void* data), void* data);
 
     /** \copydoc IFileSystem::getAttribute */
-    ssize_t getAttribute (const Path& filename, const char* key, std::string& value);
+    ssize_t getAttribute (const Path& filename, const char* key, std::string& value)  { return -1; }
 
     /** \copydoc IFileSystem::setAttribute */
-    ssize_t setAttribute (const Path& filename, const char* key, const char* fmt, ...);
+    ssize_t setAttribute (const Path& filename, const char* key, const char* fmt, ...)   { return -1; }
 };
 
 /********************************************************************************/
