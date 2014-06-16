@@ -29,6 +29,8 @@
 #include <string>
 #include <sstream>
 
+#include <sys/xattr.h>
+
 using namespace std;
 
 /********************************************************************************/
@@ -121,6 +123,46 @@ int FileSystemMacos::clearCache ()
     return ::system("purge");
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ssize_t FileSystemMacos::getAttribute (const Path& filename, const char* key, string& value)
+{
+    char buffer[4*1024];
+
+    value.clear();
+
+    ssize_t res = ::getxattr (filename.c_str(), (string("user.") + key).c_str(), buffer, sizeof(buffer), 0, XATTR_NOFOLLOW);
+
+    if (res >= 0)   { value.assign (buffer, res); }
+
+    return res;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ssize_t FileSystemMacos::setAttribute (const Path& filename, const char* key, const char* fmt, ...)
+{
+    char buffer[4*1024];
+
+    va_list ap;
+    va_start (ap, fmt);
+    vsnprintf (buffer, sizeof(buffer), fmt, ap);
+    va_end (ap);
+
+    return ::setxattr (filename.c_str(), (string("user.") + key).c_str(), buffer, strlen(buffer), 0, XATTR_CREATE);
+}
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
