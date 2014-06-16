@@ -232,6 +232,21 @@ public:
       */
      virtual IFile* newFile (const Path& dirpath, const Path& filename, const char* mode) = 0;
 
+     /** Get metadata associated with the file for a given key.
+      * \param[in] filename : name of the file.
+      * \param[in] key : key for which we want the value
+      * \param[in] value : value associated to the key
+      * \return -1 if KO, 0 otherwise, otherwise length of the retrieved value. */
+     virtual ssize_t getAttribute (const Path& filename, const char* key, std::string& value) = 0;
+
+     /** Set metadata associated with the file for a given key.
+      * \param[in] filename : name of the file.
+      * \param[in] key : key for which we want the value
+      * \param[in] fmt : format of the string (in the 'printf' way)
+      * \param[in] ... : paramters for the format parameter
+      * \return -1 if error, 0 otherwise. */
+     virtual ssize_t setAttribute (const Path& filename, const char* key, const char* fmt, ...) = 0;
+
      /** Destructor. */
      virtual ~IFileSystem () {}
 };
