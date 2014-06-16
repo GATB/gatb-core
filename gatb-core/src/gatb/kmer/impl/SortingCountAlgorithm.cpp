@@ -381,12 +381,12 @@ public:
         for (size_t i=0; i<kmers.size(); i++)
         {
             /** We hash the current kmer. */
-            Type h = oahash (kmers[i]);
+            u_int64_t h = oahash (kmers[i]);
 
             /** We check whether this kmer has to be processed during the current pass. */
             if ((h % nbPass) != pass)  { continue; }
 
-            Type reduced_kmer = h / nbPass;
+            u_int64_t reduced_kmer = h / nbPass;
 
             /** We compute in which partition this kmer falls into. */
             size_t p = reduced_kmer % nbPartitions;
