@@ -76,6 +76,8 @@ class TestSystem : public Test
         CPPUNIT_TEST_GATB (filesystem_iterate);
         CPPUNIT_TEST_GATB (file_create);
 
+        CPPUNIT_TEST_GATB (file_attributes);
+
     CPPUNIT_TEST_SUITE_GATB_END();
 
 public:
@@ -867,6 +869,38 @@ public:
         /** Some cleanup. */
         delete writer;
         delete reader;
+    }
+
+    /********************************************************************************/
+    void file_attributes ()
+    {
+        /** We create a temporary file. */
+        string filename = System::file().getTemporaryDirectory() + "/foo.txt";
+
+        IFile* file = System::file().newFile (filename, "w");
+        CPPUNIT_ASSERT (file != 0);
+        CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
+
+        const char* key = "myKey";
+        int res = 0;
+
+        /** We set some tags to the file. */
+        res = System::file().setAttribute (filename, key, "%d", 147);
+        CPPUNIT_ASSERT (res >= 0);
+
+        /** We get the attribute. */
+        string value;
+        res = System::file().getAttribute (filename, key, value);
+
+        CPPUNIT_ASSERT (res == 3);
+
+        /** We delete the temporary file. */
+        System::file().remove (filename);
+
+        CPPUNIT_ASSERT (System::file().doesExist (filename) == false);
+
+        /** Cleanup */
+        delete file;
     }
 };
 
