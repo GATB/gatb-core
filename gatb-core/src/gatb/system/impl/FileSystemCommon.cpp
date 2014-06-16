@@ -28,7 +28,7 @@
 #include <string>
 #include <sstream>
 
-#include <attr/xattr.h>
+#include <sys/xattr.h>
 
 using namespace std;
 
