@@ -24,14 +24,6 @@ set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${g
 set (gatb-core-date "xxxx-xx-xx")
 
 ################################################################################
-# Boost
-################################################################################
-
-# We need boost for its "variant" part. It could be worthy to estimate a custom
-# (and possibly optimized) version of our own in order to avoid the boost dependency.
-find_package (Boost REQUIRED)
-
-################################################################################
 # Define cmake modules directory
 ################################################################################
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -135,7 +127,7 @@ set (gatb-core-flags ${LIBRARY_COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
 # Note that we need to add boost include dependency (not working otherwise with clang)
-set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${PROJECT_SOURCE_DIR}/src  ${Boost_INCLUDE_DIRS})
+set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${PROJECT_SOURCE_DIR}/src  ${PROJECT_SOURCE_DIR}/thirdparty)
 
 # We define the libraries used for linking binary based on gatb core
 set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5)
