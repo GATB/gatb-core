@@ -23,7 +23,7 @@ public:
         ProgressGraphIterator<BranchingNode,ProgressTimer>  it (graph.iterator<BranchingNode>(), "MiniDiscoSNP: finding bubbles          ");
 
         int nbsnps = 1 ;
-        int ksize = graph.getKmerSize();
+        int ksize  = graph.getKmerSize();
 
         for (it.first(); !it.isDone(); it.next())
         {
