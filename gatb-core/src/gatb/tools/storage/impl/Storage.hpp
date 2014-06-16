@@ -411,6 +411,9 @@ public:
     Storage* create (const std::string& name, bool deleteIfExist, bool autoRemove);
 
     /** */
+    bool exists (const std::string& name);
+
+    /** */
     Storage* load (const std::string& name) { return create (name, false, false); }
 
     /** */

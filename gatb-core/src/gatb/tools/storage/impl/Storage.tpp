@@ -559,6 +559,20 @@ inline Storage* StorageFactory::create (const std::string& name, bool deleteIfEx
 
 /*********************************************************************
 *********************************************************************/
+inline bool StorageFactory::exists (const std::string& name)
+{
+    switch (_mode)
+    {
+        case STORAGE_HDF5:              return StorageHDF5Factory::exists (name);
+        case STORAGE_FILE:              return StorageFileFactory::exists (name);
+        case STORAGE_GZFILE:            return StorageGzFileFactory::exists (name);
+        case STORAGE_COMPRESSED_FILE:   return StorageSortedFactory::exists (name);
+        default:            throw system::Exception ("Unknown mode in StorageFactory::exists");
+    }
+}
+
+/*********************************************************************
+*********************************************************************/
 inline Group* StorageFactory::createGroup (ICell* parent, const std::string& name)
 {
     switch (_mode)

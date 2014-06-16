@@ -54,6 +54,23 @@ public:
     }
 
     /** */
+    static bool exists (const std::string& name)
+    {
+        H5Eset_auto (0, NULL, NULL);
+
+        bool result = false;
+        {
+            hid_t id = H5Fopen (name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+            if (id > 0)  {  H5Fclose(id);  result = true;  }
+        }
+        {
+            hid_t id = H5Fopen ((name+".h5").c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+            if (id > 0)  {  H5Fclose(id);  result = true;  }
+        }
+        return result;
+    }
+
+    /** */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
         StorageHDF5* storage = dynamic_cast<StorageHDF5*> (ICell::getRoot (parent));

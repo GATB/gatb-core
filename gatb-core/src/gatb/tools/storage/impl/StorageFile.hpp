@@ -52,6 +52,12 @@ public:
     }
 
     /** */
+    static bool exists (const std::string& name)
+    {
+        return false;
+    }
+
+    /** */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
         ICell* root = ICell::getRoot (parent);
@@ -101,6 +107,12 @@ public:
     }
     
     /** */
+    static bool exists (const std::string& name)
+    {
+        return false;
+    }
+
+    /** */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
         ICell* root = ICell::getRoot (parent);
@@ -147,6 +159,12 @@ public:
         return new Storage (STORAGE_COMPRESSED_FILE, name, autoRemove);
     }
     
+    /** */
+    static bool exists (const std::string& name)
+    {
+        return false;
+    }
+
     /** */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
