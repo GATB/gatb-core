@@ -463,7 +463,7 @@ public:
     /** */
     int64_t getNbItems ()   {  return -1; } // does not know value
     
-    int64_t estimateNbItems ()   {  return 3.0* (system::impl::System::file().getSize(_filename) / sizeof(Item)); }
+    int64_t estimateNbItems ()   {  return 3* (system::impl::System::file().getSize(_filename) / sizeof(Item)); }
 
 private:
     std::string     _filename;
@@ -487,7 +487,7 @@ public:
     /** */
     int64_t getNbItems ()   {  return -1; } // does not know value
     
-    int64_t estimateNbItems ()   {  return 2.0* (system::impl::System::file().getSize(_filename) / sizeof(Item)); }
+    int64_t estimateNbItems ()   {  return 2* (system::impl::System::file().getSize(_filename) / sizeof(Item)); }
     
 private:
     std::string     _filename;

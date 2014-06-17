@@ -214,7 +214,7 @@ public:
                 
                 abundance++;
 
-                if(abundance == ~((u_int8_t)0) )
+                if(abundance == (u_int8_t)(~0) )
                 {
                     write(abundance,_previous);
                     abundance     = 0;
