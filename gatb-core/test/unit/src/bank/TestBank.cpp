@@ -78,6 +78,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_album1);
         CPPUNIT_TEST_GATB (bank_album2);
         CPPUNIT_TEST_GATB (bank_iteration);
+        CPPUNIT_TEST_GATB (bank_datalinesize);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -873,6 +874,75 @@ public:
         Iterator<Sequence>* it = bank.iterator();  LOCAL (it);
         for (it->first(); !it->isDone(); it->next())  { count ++; }
         CPPUNIT_ASSERT (count == 100);
+    }
+
+    /********************************************************************************/
+    void bank_datalinesize_aux (const char* sequence, size_t dataLineSize)
+    {
+        /** We create a fake bank. */
+        BankStrings inputBank (sequence, NULL);
+
+        string outputFilename = System::file().getTemporaryDirectory() + "/foo.fa";
+        System::file().remove (outputFilename);
+        CPPUNIT_ASSERT (System::file().doesExist(outputFilename) == false);
+
+        BankFasta::setDataLineSize (dataLineSize);
+
+        /** We want the output bank instance to be deleted before reading the generated file. */
+        {
+            /** We create a FASTA bank. */
+            BankFasta outputBank (outputFilename);
+
+            /** We iterate the sequences. */
+            Iterator<Sequence>* itSeq = inputBank.iterator();
+            LOCAL (itSeq);
+
+            for (itSeq->first(); !itSeq->isDone(); itSeq->next())  {  outputBank.insert (itSeq->item());  }
+            outputBank.flush();
+        }
+
+        const char* loop = sequence;
+
+        ifstream fbank (outputFilename.c_str());
+        if (fbank.is_open())
+        {
+            string line;
+            while (getline (fbank,line))
+            {
+                /** We skip the comment. */
+                if (line[0] == '>')  { continue; }
+
+                CPPUNIT_ASSERT (line.size() == dataLineSize);
+
+                for (size_t i=0; i<dataLineSize; i++, loop++)
+                {
+                    CPPUNIT_ASSERT (line[i] == *loop);
+                }
+            }
+            fbank.close();
+        }
+        else
+        {
+            CPPUNIT_ASSERT (false);
+        }
+
+        /** We remove the album file. */
+        System::file().remove (outputFilename);
+        CPPUNIT_ASSERT (System::file().doesExist(outputFilename) == false);
+    }
+
+    /********************************************************************************/
+    void bank_datalinesize (void)
+    {
+        // Important : sequence size power of 2 for the test
+        const char* sequence = "CGCTACAGCAGCTAGTTCATCATTGTTTATCAATGATAAAATATAATAAGCTAAAAGGAAACCGGGTATATGGCGCGCGATTATATACGCGCGCTATATACGCGCTATCGATCGATCGAGCGACTAAT";
+
+        size_t dataLineSizeTable[] = {1, 2, 4, 8, 16, 32, 64, 128};
+
+        for (size_t i=0; i<ARRAY_SIZE(dataLineSizeTable); i++)
+        {
+            bank_datalinesize_aux (sequence, dataLineSizeTable[i]);
+        }
     }
 };
 

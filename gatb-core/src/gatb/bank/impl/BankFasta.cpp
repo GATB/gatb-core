@@ -267,7 +267,9 @@ void BankFasta::insert (const Sequence& item)
         fprintf (_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
 #else
         // We dump the data with fixed sized columns
-        char line[_dataLineSize+1];
+        char line[4*1024];
+        char* loop = line;
+        size_t actualDataLineSize = _dataLineSize > 0 ? _dataLineSize : (size_t)(~0);
 
         size_t      len    = item.getDataSize();
         const char* buffer = item.getDataBuffer();
@@ -275,12 +277,15 @@ void BankFasta::insert (const Sequence& item)
         for (size_t i=0; i<len; )
         {
             size_t j=0;
-            for (j=0; j<_dataLineSize && i<len; j++, i++)
+            for (j=0; j<actualDataLineSize && i<len; j++, i++)
             {
-                line[j] = item.getDataBuffer() [i];
+                *(loop++) = item.getDataBuffer() [i];
+                if (j >= sizeof(line)-2)
+                {
+                    *(loop++) = 0;   fprintf (_insertHandle, "%s", line);     loop = line;
+                }
             }
-            line[j] = 0;
-            fprintf (_insertHandle, "%s\n", line);
+            *(loop++) = 0;    fprintf (_insertHandle, "%s\n", line);    loop = line;
         }
 #endif
         }
