@@ -70,6 +70,7 @@ class TestSystem : public Test
 
         CPPUNIT_TEST_GATB (thread_checkTime);
         CPPUNIT_TEST_GATB (thread_checkSynchro);
+        CPPUNIT_TEST_GATB (thread_exception);
 
         CPPUNIT_TEST_GATB (filesystem_info);
         CPPUNIT_TEST_GATB (filesystem_create_delete);
@@ -712,6 +713,55 @@ public:
 
         /** Some cleanup. */
         delete synchro;
+    }
+
+    /********************************************************************************/
+    static void* thread_exception_mainloop (void* arg)
+    {
+        IThreadGroup* threadGroup = (IThreadGroup*) arg;
+
+        /** We have to catch the thread local exception and forward it to the thread group. */
+        try
+        {
+            /** We launch an exception. */
+            throw core::system::Exception ("something wrong");
+        }
+        catch (core::system::Exception& e)
+        {
+            threadGroup->addException (e);
+        }
+
+        return 0;
+    }
+
+    void thread_exception ()
+    {
+        /** We create a thread group. */
+        IThreadGroup* threadGroup = ThreadGroup::create ();
+        LOCAL (threadGroup);
+
+        /** We retrieve the number of cores. */
+        size_t nbCores = System::info().getNbCores();
+        CPPUNIT_ASSERT (nbCores > 0);
+
+        /** We add some threads to the group. */
+        for (size_t i=0; i<nbCores; i++)   {  threadGroup->add (thread_exception_mainloop, threadGroup);  }
+
+        /** We start the group. */
+        threadGroup->start ();
+
+        /** Now, the treads are all finished and joined, we check for got exceptions. */
+        CPPUNIT_ASSERT (threadGroup->hasExceptions());
+
+        try
+        {
+            throw threadGroup->getException();
+            CPPUNIT_ASSERT (false);
+        }
+        catch (core::system::Exception& e)
+        {
+            CPPUNIT_ASSERT (true);
+        }
     }
 
     /********************************************************************************/

@@ -185,6 +185,16 @@ public:
 
     IThread* operator[] (size_t idx)  { return _threads[idx]; }
 
+    /** */
+    void addException (system::Exception e)
+    {
+        LocalSynchronizer synchro (_startSynchro);
+        _exceptions.push_back (e);
+    }
+    bool hasExceptions() const { return _exceptions.empty() == false; }
+
+    Exception getException () const  { return ExceptionComposite(_exceptions); }
+
 private:
 
     ThreadGroup ();
@@ -194,6 +204,8 @@ private:
     system::ISynchronizer* _startSynchro;
 
     static std::list<ThreadGroup*> _groups;
+
+    std::list<system::Exception> _exceptions;
 };
 
 /********************************************************************************/

@@ -28,7 +28,9 @@
 
 #include <gatb/system/api/types.hpp>
 #include <gatb/system/api/ISmartPointer.hpp>
+#include <gatb/system/api/Exception.hpp>
 #include <string>
+#include <list>
 
 /********************************************************************************/
 namespace gatb      {
@@ -68,6 +70,13 @@ class IThreadGroup : virtual public ISmartPointer
 {
 public:
 
+    struct Info : public SmartPointer
+    {
+        Info (IThreadGroup* group, void* data) : group(group), data(data) {}
+        IThreadGroup* group;
+        void*         data;
+    };
+
     virtual ~IThreadGroup () {}
 
     virtual void add (void* (*mainloop) (void*), void* data) = 0;
@@ -79,6 +88,11 @@ public:
     virtual size_t size() const = 0;
 
     virtual IThread* operator[] (size_t idx) = 0;
+
+    /** */
+    virtual void addException (system::Exception e) = 0;
+    virtual bool hasExceptions() const = 0;
+    virtual Exception getException () const = 0;
 };
 
 /********************************************************************************/

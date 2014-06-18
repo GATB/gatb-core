@@ -23,6 +23,7 @@
 
 using namespace std;
 using namespace gatb::core::tools::dp;
+using namespace gatb::core::system;
 
 /********************************************************************************/
 namespace gatb  {
@@ -132,14 +133,27 @@ size_t Dispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand*
 
     system::IThreadGroup* threadGroup = system::impl::ThreadGroup::create ();
 
+    /** We create threads and add them to the thread group. */
     for (std::vector<ICommand*>::iterator it = commands.begin(); it != commands.end(); it++)
     {
-        /** We add the thread to the group. */
-        threadGroup->add (mainloop, new CommandStartSynchro (*it, threadGroup->getSynchro()) );
+        /** We add the thread to the group. Note that we have to set two things:
+         *  - the main loop function to be called by the thread
+         *  - the information to be provided to the main loop.
+         *
+         *  Note that we provide here a IThreadGroup::Info instance as data for the main loop
+         *  => it is important that at the beginning of the main loop we retrieved the correct
+         *  type from the void* data. */
+        threadGroup->add (
+            mainloop,
+            new IThreadGroup::Info (threadGroup,  new CommandStartSynchro (*it, threadGroup->getSynchro()))
+        );
     }
 
     /** We start the group. */
     threadGroup->start ();
+
+    /** We may have to forward exceptions got in threads. */
+    if (threadGroup->hasExceptions())  { throw threadGroup->getException(); }
 
     /** Some cleanup. */
     system::impl::ThreadGroup::destroy (threadGroup);
@@ -186,13 +200,27 @@ system::IThread* Dispatcher::newThread (ICommand* command)
 *********************************************************************/
 void* Dispatcher::mainloop (void* data)
 {
-    ICommand* cmd = (ICommand*) data;
+    IThreadGroup::Info* info = (IThreadGroup::Info*) data;
+    LOCAL (info);
 
-    if (cmd != 0)
+    IThreadGroup* threadGroup = info->group;
+    ICommand*    cmd          = (ICommand*) info->data;
+
+    assert (threadGroup != 0);
+    assert (cmd         != 0);
+
+    /** Here, we should catch any exception thrown locally in a thread
+     * and keep it to re-throw it in the main thread. */
+    try
     {
         cmd->use ();
         cmd->execute();
         cmd->forget ();
+    }
+    catch (system::Exception& e)
+    {
+    	/** We copy the exception in the list of received exceptions of the thread group. */
+        threadGroup->addException (e);
     }
 
     return 0;

@@ -34,6 +34,8 @@
 #include <string.h>
 #include <errno.h>
 #include <string>
+#include <sstream>
+#include <list>
 
 /********************************************************************************/
 namespace gatb      {
@@ -71,7 +73,7 @@ namespace system    {
      /** Returns the description message.
       * \return the message
       */
-     const char* getMessage ()  { return _message.c_str(); }
+     const char* getMessage () const  { return _message.c_str(); }
 
  protected:
 
@@ -85,6 +87,22 @@ namespace system    {
 
      /** The informative message. */
      std::string _message;
+ };
+
+ /********************************************************************************/
+ class ExceptionComposite : public Exception
+ {
+ public:
+
+     ExceptionComposite (const std::list<Exception>& exceptions)
+     {
+         std::stringstream ss;
+         for (std::list<Exception>::const_iterator it = exceptions.begin(); it != exceptions.end(); it++)
+         {
+             ss << it->getMessage() << std::endl;
+         }
+         _message = ss.str();
+     }
  };
 
  /********************************************************************************/
