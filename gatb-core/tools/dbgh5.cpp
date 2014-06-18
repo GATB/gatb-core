@@ -46,12 +46,12 @@ int main (int argc, char* argv[])
     }
     catch (Exception& e)
     {
-        std::cout << "EXCEPTION: " << e.getMessage() << std::endl;
+        std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
         return EXIT_FAILURE;
     }
     catch (char const* msg)
     {
-        std::cout << "EXCEPTION: " << msg << std::endl;
+        std::cout << std::endl << "EXCEPTION: " << msg << std::endl;
         return EXIT_FAILURE;
     }
 
