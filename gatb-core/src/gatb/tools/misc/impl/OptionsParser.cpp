@@ -126,6 +126,25 @@ int OptionsParser::push_back (Option* option)
     return _options.size();
 }
 
+	
+int OptionsParser::remove (const char * label)
+{
+
+	
+    for (std::list<Option*>::const_iterator it = _options.begin(); it != _options.end(); it++)
+    {
+		if(  ! strcmp ((*it)->getLabel().c_str(), label) )
+		{
+			_options.erase(it);
+			break;
+		}
+		
+    }
+	return _options.size();
+
+}
+
+	
 /*********************************************************************
  ** METHOD  :
  ** PURPOSE :

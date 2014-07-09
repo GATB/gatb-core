@@ -280,6 +280,14 @@ public:
      */
     int push_back (Option* opt);
 
+	
+	/** remove an option to the pool of recognized options.
+     * \param[in] label : label to be removed to the parser.
+     * \return the number of known options
+     */
+    int remove (const char * label);
+	
+	
     /** Add an option to the pool of recognized options.
      * \param[in] opt : option to be registered to the parser.
      * \return the number of known options
