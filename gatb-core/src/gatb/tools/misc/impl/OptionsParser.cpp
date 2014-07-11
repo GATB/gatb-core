@@ -131,7 +131,7 @@ int OptionsParser::remove (const char * label)
 {
 
 	
-    for (std::list<Option*>::const_iterator it = _options.begin(); it != _options.end(); it++)
+    for (std::list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
     {
 		if(  ! strcmp ((*it)->getLabel().c_str(), label) )
 		{

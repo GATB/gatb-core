@@ -86,6 +86,13 @@ public:
     /** */
     virtual void save () = 0;
 
+	/** */
+    virtual void compute_threshold () = 0;
+	
+	//compute_threshold needs to be called first
+	virtual u_int16_t get_solid_cutoff () = 0;
+	virtual u_int64_t get_nbsolids_auto () = 0;
+
     /** */
     virtual u_int64_t& get (u_int16_t idx) = 0;
 };

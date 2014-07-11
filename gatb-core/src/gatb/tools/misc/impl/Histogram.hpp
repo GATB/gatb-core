@@ -57,9 +57,14 @@ public:
         _histogram = (Entry*) system::impl::System::memory().calloc (_length + 1, sizeof (Entry));
         memset (_histogram, 0, sizeof(Entry)*(_length + 1));
 
+		_histogram_smoothed = (Entry*) system::impl::System::memory().calloc (_length + 1, sizeof (Entry));
+        memset (_histogram_smoothed, 0, sizeof(Entry)*(_length + 1));
+		
         for (size_t i=0; i<_length+1; i++)
         {
             _histogram[i].index     = i;
+			_histogram_smoothed[i].index     = i;
+
             _histogram[i].abundance = 0;
         }
     }
@@ -77,6 +82,11 @@ public:
     /** */
     void save ();
 
+	
+	void compute_threshold () ;
+	u_int16_t get_solid_cutoff () ;
+	u_int64_t get_nbsolids_auto () ;
+
     /** */
     size_t getLength() { return _length; }
 
@@ -86,7 +96,12 @@ public:
 private:
 
     size_t  _length;
+	u_int16_t _cutoff;
+	u_int64_t _nbsolids;
+	
     Entry*  _histogram;
+
+	Entry*  _histogram_smoothed;
 
     tools::collections::Bag<Entry>* _bag;
     void setBag (tools::collections::Bag<Entry>* bag)  { SP_SETATTR(bag); }
@@ -104,6 +119,11 @@ public:
 
     /** */
     void save ()  {}
+	
+	u_int16_t get_solid_cutoff () {return 0; }
+	u_int64_t get_nbsolids_auto () {return 0;}
+
+	void compute_threshold () { }
 
     /** */
     size_t getLength() { return 0; }
@@ -136,6 +156,12 @@ public:
 
     /** */
     void save ()  { return _ref->save(); }
+
+	void compute_threshold () { return _ref->compute_threshold(); }
+
+	u_int16_t get_solid_cutoff () {return _ref->get_solid_cutoff();}
+	
+	u_int64_t get_nbsolids_auto () {return _ref->get_nbsolids_auto();}
 
     /** */
     size_t getLength() { return _localHisto.getLength(); }

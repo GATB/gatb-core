@@ -263,6 +263,21 @@ void SortingCountAlgorithm<span>::execute ()
 
     /** We save the histogram if any. */
     _histogram->save ();
+	
+	
+    /** compute auto cutoff **/
+    _histogram->compute_threshold ();
+
+	/** store auto cutoff and corresponding number of solid kmers **/
+	Collection<NativeInt64>& storecutoff =   (*_storage)("dsk").getCollection<NativeInt64>("cutoff") ;
+	storecutoff.insert(_histogram->get_solid_cutoff());
+	storecutoff.flush();
+	
+	Collection<NativeInt64>& storesolids =   (*_storage)("dsk").getCollection<NativeInt64>("nbsolidsforcutoff") ;
+	storesolids.insert(_histogram->get_nbsolids_auto());
+	storesolids.flush();
+	
+
 
     /** We want to remove physically the partitions. */
     _partitions->remove ();
