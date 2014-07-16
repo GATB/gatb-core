@@ -48,6 +48,108 @@ void Histogram::save ()
     _bag->insert (_histogram + offset, (_length+1) - offset);
 }
 
+	
+void Histogram::compute_threshold ()
+{
+	//printf("compute threshold \n");
+	
+	if (_length >= 2)
+		_histogram_smoothed [1 ].abundance = (u_int64_t) (  0.6 * (double)  _histogram[1].abundance + 0.4 * (double) _histogram[2].abundance) ;
+	
+	
+	int index_first_increase = -1;
+	int index_maxval_after_first_increase = -1;
+	u_int64_t max_val = 0 ;
+
+	//smoothing and detection of first increase
+	for (size_t i=2; i<_length  ; i++) // && i < 100
+	{
+		//printf("idx %i     %i \n",_histogram[i].index ,_histogram[i].abundance );
+
+		_histogram_smoothed [i].abundance = // _histogram[i].abundance ;
+		(u_int64_t) (
+		0.2 * (double) _histogram[i-1].abundance
+		+0.6 * (double) _histogram[i].abundance
+												+ 0.2 * (double) _histogram[i+1].abundance);
+	
+		if( index_first_increase==-1 && (_histogram_smoothed[i-1].abundance < _histogram_smoothed[i].abundance) )
+		{
+			index_first_increase = i-1;
+		}
+		if(index_first_increase>0 &&  (_histogram_smoothed[i].abundance > max_val))
+		{
+			max_val = _histogram_smoothed[i].abundance ;
+			index_maxval_after_first_increase= i;
+		}
+		
+	}
+	
+	if(index_first_increase ==-1 )
+	{
+		_cutoff = 3; //def val
+		return;
+	}
+	
+	
+	//printf("index first increase %i  idx maxval %i \n",index_first_increase,index_maxval_after_first_increase);
+	
+	
+	u_int64_t min_val = 10000000000LL;
+	
+	int index_minval = -1;
+	
+	for (size_t i=index_first_increase; i<= index_maxval_after_first_increase   ; i++)
+	{
+		
+		if(_histogram_smoothed[i].abundance < min_val)
+		{
+			min_val = _histogram_smoothed[i].abundance;
+			index_minval = i;
+		}
+		
+	}
+	
+	if(index_minval !=-1)
+		_cutoff = index_minval;
+
+	//printf("cutoff  %i \n",index_minval);
+
+	/*
+	printf("raw values \n");
+	for (size_t i=1; i<_length  && i < 100 ; i++)
+	{
+		printf("idx %i     %i \n",_histogram[i].index ,_histogram[i].abundance );
+	}
+	
+	printf("smoothed values \n");
+
+	for (size_t i=1; i<_length  && i < 100 ; i++)
+	{
+		printf("idx %i     %i \n",_histogram_smoothed[i].index ,_histogram_smoothed[i].abundance );
+		
+	}
+	*/
+	
+	_nbsolids =0;
+	for (size_t i=_cutoff; i<_length+1   ; i++)
+	{
+		_nbsolids += _histogram[i].abundance;
+		
+	}
+	
+
+}
+
+u_int16_t Histogram::get_solid_cutoff ()
+{
+	return _cutoff;
+}
+u_int64_t Histogram::get_nbsolids_auto ()
+{
+	return _nbsolids;
+}
+	
+	
 /********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/

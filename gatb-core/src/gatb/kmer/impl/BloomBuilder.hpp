@@ -65,9 +65,10 @@ public:
         u_int64_t   bloomSize,
         size_t      nbHash,
         tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::DEFAULT,
-        size_t      nbCores = 0
+        size_t      nbCores = 0,
+		int		  min_abundance =0
     )
-        : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind)
+        : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind), _min_abundance(min_abundance)
     {
     }
 
@@ -87,7 +88,7 @@ public:
             tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
-        tools::dp::impl::Dispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom));
+        tools::dp::impl::Dispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom,_min_abundance));
 
         /** We gather some statistics. */
         if (stats != 0)
@@ -136,15 +137,18 @@ private:
     u_int64_t _bloomSize;
     size_t    _nbHash;
     size_t    _nbCores;
+	int _min_abundance;
+	
     tools::collections::impl::BloomFactory::Kind _bloomKind;
 
     /********************************************************************************/
     class BuildKmerBloom
     {
     public:
-        void operator() (const Count& kmer)  {  _bloom.insert(kmer.value); }
-        BuildKmerBloom (tools::collections::impl::Bloom<Type>& bloom)  : _bloom(bloom) {}
+        void operator() (const Count& kmer)  { if(kmer.abundance >= _min_abundance)  _bloom.insert(kmer.value); }
+        BuildKmerBloom (tools::collections::impl::Bloom<Type>& bloom, int min_abundance=0)  : _bloom(bloom),_min_abundance(min_abundance)  {}
         tools::collections::impl::Bloom<Type>& _bloom;
+		int _min_abundance;
     };
 };
 

@@ -3,6 +3,7 @@
 ################################################################################
 
 FIND_PATH (CPPUNIT_INCLUDE_DIR cppunit/extensions/HelperMacros.h
+  $ENV{HOME}/.linuxbrew/include
   /local/include
   /usr/include
   /usr/local/Cellar/cppunit/1.12.1/include
@@ -15,7 +16,7 @@ FIND_LIBRARY (CPPUNIT_LIBRARY cppunit
 
 # A little hack here... We check whether the library is reachable too.
 if (NOT EXISTS "${CPPUNIT_INCLUDE_DIR}/../lib/libcppunit.a")
-    message ("-- CppUnit: found headers but not the library...")
+    message ("-- CppUnit: found headers (in ${CPPUNIT_INCLUDE_DIR}) but not the library...")
     SET (CPPUNIT_NO_LIB_FOUND 1)   
 endif()
 
