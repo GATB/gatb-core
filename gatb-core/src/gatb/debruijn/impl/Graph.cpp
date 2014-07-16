@@ -389,8 +389,8 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,      "output file",                          false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,  "output directory",                     false,  "."));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,         "verbosity level",                      false,  "1"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory",                           false, "0"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk",                             false, "0"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,      "max memory (in MBytes)",               false, "0"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,        "max disk   (in MBytes)",               false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,        "nb cores (0 for all)",                 false, "0"));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,         "version",                              false));
