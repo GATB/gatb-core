@@ -286,7 +286,8 @@ IProperties* ToolComposite::run (int argc, char* argv[])
             IProperties* input = (*it)->getParser()->parse (argc, argv);
 
             /** We may display the help for the tool. */
-            if (getParser()->saw (STR_HELP))  {  (*it)->getParser()->displayHelp (stdout);  }
+            if ((*it)->getParser()->saw (STR_HELP))  {  (*it)->getParser()->displayHelp (stdout);  }
+
 
             /** We add the input into the vector that gather the tools inputs. */
             inputs.push_back (input);
