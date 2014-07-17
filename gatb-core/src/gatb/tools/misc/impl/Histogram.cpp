@@ -52,9 +52,14 @@ void Histogram::save ()
 void Histogram::compute_threshold ()
 {
 	//printf("compute threshold \n");
-	
+	u_int64_t sum_allk = 0 ;
+
 	if (_length >= 2)
+	{
 		_histogram_smoothed [1 ].abundance = (u_int64_t) (  0.6 * (double)  _histogram[1].abundance + 0.4 * (double) _histogram[2].abundance) ;
+		sum_allk += _histogram[1].abundance * 1 ;
+
+	}
 	
 	
 	int index_first_increase = -1;
@@ -66,6 +71,7 @@ void Histogram::compute_threshold ()
 	{
 		//printf("idx %i     %i \n",_histogram[i].index ,_histogram[i].abundance );
 
+		sum_allk += _histogram[i].abundance * i  ;
 		_histogram_smoothed [i].abundance = // _histogram[i].abundance ;
 		(u_int64_t) (
 		0.2 * (double) _histogram[i-1].abundance
@@ -84,6 +90,9 @@ void Histogram::compute_threshold ()
 		
 	}
 	
+	sum_allk += _histogram[_length].abundance  *  _length ;
+	
+
 	if(index_first_increase ==-1 )
 	{
 		_cutoff = 3; //def val
@@ -112,7 +121,30 @@ void Histogram::compute_threshold ()
 	if(index_minval !=-1)
 		_cutoff = index_minval;
 
-	//printf("cutoff  %i \n",index_minval);
+	
+	u_int64_t sum_elim = 0 ;
+	double ratio = 0.0;
+	int max_cutoff;
+	for (size_t i=0; i<_length+1; i++)
+	{
+		sum_elim +=  _histogram[i].abundance * i ;
+		ratio = (double)sum_elim / sum_allk; // ratio elim for cutoff i+1
+		//printf("thre %i : %lli elim / %lli   : ratio %f \n",i,sum_elim,sum_allk,ratio );
+
+		if(ratio >= 0.4)
+		{
+			max_cutoff = i+1;
+			break;
+		}
+
+	}
+	
+	if (_cutoff > max_cutoff)
+		_cutoff = max_cutoff;
+	
+
+	
+	//printf("cutoff  %i  maxcutoff %i \n",index_minval,max_cutoff);
 
 	/*
 	printf("raw values \n");
