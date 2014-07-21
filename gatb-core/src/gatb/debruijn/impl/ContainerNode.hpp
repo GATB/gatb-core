@@ -63,13 +63,27 @@ public:
     /** */
     bool contains (const Item& item)  {  return (_bloom->contains(item) && !_falsePositives->contains(item));  }
 
-private:
+protected:
 
     tools::collections::Container<Item>* _bloom;
 	void setBloom (tools::collections::Container<Item>* bloom)  { SP_SETATTR(bloom); }
 
 	tools::collections::Container<Item>* _falsePositives;
 	void setFalsePositives (tools::collections::Container<Item>* falsePositives)  { SP_SETATTR(falsePositives); }
+};
+
+/********************************************************************************/
+
+/** \brief Bloom filter implementation
+ */
+template <typename Item> class ContainerNodeNoCFP : public ContainerNode<Item>
+{
+public:
+
+    ContainerNodeNoCFP (tools::collections::Container<Item>* bloom) : ContainerNode<Item>(bloom, NULL) {}
+
+    /** */
+    bool contains (const Item& item)  {  return (this->_bloom)->contains(item);  }
 };
 
 /********************************************************************************/
