@@ -261,7 +261,7 @@ public:
 
     void first()
     {
-
+        _nbRead   = 0;
         _dataIdx  = 0;
         _dataSize = retrieveNextCache();
         _isDone   = _dataIdx >= _dataSize;
