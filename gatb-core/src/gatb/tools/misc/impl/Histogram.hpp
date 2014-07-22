@@ -74,6 +74,7 @@ public:
     {
         setBag(0);
         system::impl::System::memory().free (_histogram);
+        system::impl::System::memory().free (_histogram_smoothed);
     }
 
     /** */
