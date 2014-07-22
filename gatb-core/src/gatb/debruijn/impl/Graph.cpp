@@ -67,6 +67,10 @@ using namespace gatb::core::tools::misc::impl;
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
 
+Graph::NodeStore Graph::_defaultNodeStore = Graph::NODE_STORE_BOTH;
+
+/********************************************************************************/
+
 /* We define a structure that holds all the necessary stuff for implementing the graph API.
  *  Here, the structure is templated by the span (ie. the kmer max size).
  *
@@ -317,12 +321,15 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                         Branching                        */
         /************************************************************/
-        BranchingAlgorithm<span> branchingAlgo (graph, *graph._storage);
-        executeAlgorithm (branchingAlgo, props, graph._info);
+        if (graph._nodeStore & Graph::NODE_STORE_BRANCHING)
+        {
+            BranchingAlgorithm<span> branchingAlgo (graph, *graph._storage);
+            executeAlgorithm (branchingAlgo, props, graph._info);
 
-        /** The variant configuration has already been done (necessary for building the branching nodes).
-         * Now, we have to update the variant for the branching nodes information.*/
-        data.setBranching (branchingAlgo.getBranchingCollection());
+            /** The variant configuration has already been done (necessary for building the branching nodes).
+             * Now, we have to update the variant for the branching nodes information.*/
+            data.setBranching (branchingAlgo.getBranchingCollection());
+        }
 
         /************************************************************/
         /*                    Post processing                       */
@@ -333,7 +340,7 @@ struct build_visitor : public boost::static_visitor<>    {
 
         /** We add a special collection for global metadata (in particular the kmer size). */
         Collection<NativeInt8>* metadata = & graph.getStorage().getCollection<NativeInt8> ("metadata");
-        NativeInt8 kmerSizeData[] = { kmerSize, graph._bloomKind, graph._cascadingKind };
+        NativeInt8 kmerSizeData[] = { kmerSize, graph._bloomKind, graph._cascadingKind, graph._nodeStore };
         metadata->insert (kmerSizeData, ARRAY_SIZE(kmerSizeData));
 
         metadata->addProperty ("properties", graph.getInfo().getXML());
@@ -343,6 +350,12 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /** We can get rid of the binary bank. */
         System::file().remove (binaryBankUri);
+
+        /** We may have to remove the solid nodes. */
+        if (graph._nodeStore == Graph::NODE_STORE_BRANCHING)
+        {
+
+        }
     }
 
     /** Algorithm configuration. */
@@ -395,7 +408,8 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,            "help",                                 false));
     parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,         "version",                              false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,      "bloom type ('basic' or 'cache')",      false, "cache"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,    "debloom type ('original' or 'cascading')", false, "cascading"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,    "debloom type ('none', 'original' or 'cascading')", false, "cascading"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_NODE_STORE_TYPE, "node storage (1:solid, 2:branching, 3:solid+branching)", false, "3"));
 
     return parser;
 }
@@ -459,7 +473,7 @@ Graph  Graph::create (const char* fmt, ...)
 Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
-      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DEBLOOM_DEFAULT)
+      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DEBLOOM_DEFAULT), _nodeStore(_defaultNodeStore)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -490,7 +504,8 @@ Graph::Graph (const std::string& uri)
     gatb::core::tools::dp::Iterator<NativeInt8>* itData = metadata->iterator();  LOCAL (itData);
     itData->first(); if (!itData->isDone())  { _kmerSize      = itData->item(); }
     itData->next();  if (!itData->isDone())  { _bloomKind     = (BloomFactory::Kind) (u_int8_t) itData->item(); }
-    itData->next();  if (!itData->isDone())  { _cascadingKind = (DebloomKind)        (u_int8_t)itData->item(); }
+    itData->next();  if (!itData->isDone())  { _cascadingKind = (DebloomKind)        (u_int8_t)itData->item();  }
+    itData->next();  if (!itData->isDone())  { _nodeStore     = (NodeStore)          (u_int8_t)itData->item();  }
 
     /** We retrieve the information as a XML string in the "metadata.properties" attribute. */
     string xmlString = metadata->getProperty ("properties");
@@ -518,6 +533,9 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
 
+    /** We set the node storage. */
+    _nodeStore = (Graph::NodeStore) params->getInt (STR_NODE_STORE_TYPE);
+
     /** We get other user parameters. */
     BloomFactory::parse (params->getStr(STR_BLOOM_TYPE), _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE), _cascadingKind);
@@ -544,6 +562,9 @@ Graph::Graph (tools::misc::IProperties* params)
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
 
+    /** We set the node storage. */
+    _nodeStore = (Graph::NodeStore) params->getInt (STR_NODE_STORE_TYPE);
+
     /** We get other user parameters. */
     BloomFactory::parse (params->getStr(STR_BLOOM_TYPE), _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE), _cascadingKind);
@@ -552,7 +573,7 @@ Graph::Graph (tools::misc::IProperties* params)
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
     /** We build a Bank instance for the provided reads uri. */
-    bank::IBank* bank = BankRegistery::singleton().getFactory()->createBank (params->getStr(STR_URI_INPUT));
+    bank::IBank* bank = BankRegistery::singleton().createBank (params->getStr(STR_URI_INPUT));
 
     /** We build the graph according to the wanted precision. */
     boost::apply_visitor (build_visitor (*this, bank,params),  *(GraphDataVariant*)_variant);
@@ -569,7 +590,7 @@ Graph::Graph (tools::misc::IProperties* params)
 Graph::Graph ()
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
-      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DEBLOOM_DEFAULT)
+      _bloomKind(BloomFactory::DEFAULT), _cascadingKind(DEBLOOM_DEFAULT), _nodeStore(_defaultNodeStore)
 {
 }
 

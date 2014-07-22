@@ -795,6 +795,17 @@ public:
     /** */
     std::string debugString (const Edge& edge, kmer::Strand strand = kmer::STRAND_ALL, int mode=0) const;
 
+
+    /**********************************************************************/
+    /*                         TYPES                                      */
+    /**********************************************************************/
+    enum NodeStore
+    {
+        NODE_STORE_SOLID     = (1<<0),
+        NODE_STORE_BRANCHING = (1<<1),
+        NODE_STORE_BOTH      = (NODE_STORE_SOLID + NODE_STORE_BRANCHING)
+    };
+
 private:
 
     /** Constructor for empty graph.*/
@@ -832,6 +843,10 @@ private:
     /** */
     tools::collections::impl::BloomFactory::Kind _bloomKind;
     kmer::impl::DebloomKind                      _cascadingKind;
+
+    /** */
+    NodeStore _nodeStore;
+    static NodeStore _defaultNodeStore;
 
     /** Defined as a void* for hiding implementation in cpp file. */
     void* _variant;
