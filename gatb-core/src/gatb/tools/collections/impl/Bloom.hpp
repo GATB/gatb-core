@@ -85,9 +85,31 @@ private:
 
 /********************************************************************************/
 
+/** \brief Bloom interface
+ *
+ * We define a Bloom filter has a container (something that tells whether an item is here or not) and
+ * a bag (something we can put items into).
+ *
+ * As expected, there is no Iterable interface here.
+ */
+template <typename Item> class IBloom : public Container<Item>, public Bag<Item>, public system::SmartPointer
+{
+public:
+    virtual ~IBloom() {}
+
+    virtual u_int8_t*& getArray    () = 0;
+    virtual u_int64_t  getSize     () = 0;
+    virtual u_int64_t  getBitSize  () = 0;
+    virtual size_t     getNbHash   () const = 0;
+
+    virtual std::string  getName   () const  = 0;
+};
+
+/********************************************************************************/
+
 /** \brief Bloom filter implementation
  */
-template <typename Item> class BloomContainer : public Container<Item>, public system::SmartPointer
+template <typename Item> class BloomContainer : public IBloom<Item>
 {
 public:
 
@@ -163,7 +185,7 @@ protected:
 /********************************************************************************/
 /** \brief Bloom filter implementation
  */
-template <typename Item> class Bloom : public BloomContainer<Item>, public Bag<Item>
+template <typename Item> class Bloom : public BloomContainer<Item>
 {
 public:
 
@@ -204,6 +226,29 @@ public:
         fwrite (this->blooma, sizeof(unsigned char), this->nchar, file);
         fclose (file);
     }
+};
+
+/********************************************************************************/
+/** \brief Bloom filter implementation
+ */
+template <typename Item> class BloomNull : public IBloom<Item>
+{
+public:
+
+    virtual ~BloomNull() {}
+
+    u_int8_t*& getArray    () { return a; }
+    u_int64_t  getSize     () { return 0; }
+    u_int64_t  getBitSize  () { return 0; }
+    size_t     getNbHash   () const { return 0; }
+
+    virtual std::string  getName   () const  { return "BloomNull"; }
+
+    bool contains (const Item& item) { return false; }
+    void insert (const Item& item) {}
+    void flush ()  {}
+private:
+    u_int8_t* a;
 };
 
 /********************************************************************************/
@@ -782,11 +827,12 @@ class BloomFactory
 {
 public:
 
-    enum Kind  {  BASIC, CACHE, DEFAULT };
+    enum Kind  {  NONE, BASIC, CACHE, DEFAULT };
 
     static void parse (const std::string& s, Kind& kind)
     {
-             if (s == "basic")    { kind = BASIC;  }
+             if (s == "none")     { kind = NONE;  }
+        else if (s == "basic")    { kind = BASIC;  }
         else if (s == "cache")    { kind = CACHE; }
         else if (s == "default")  { kind = CACHE; }
         else   { throw system::Exception ("bad Bloom kind '%s'", s.c_str()); }
@@ -796,6 +842,7 @@ public:
     {
         switch (kind)
         {
+            case NONE:      return "none";
             case BASIC:     return "basic";
             case CACHE:     return "cache";
             case DEFAULT:   return "cache";
@@ -807,10 +854,11 @@ public:
     static BloomFactory& singleton()  { static BloomFactory instance; return instance; }
 
     /** */
-    template<typename T> Bloom<T>* createBloom (Kind kind, u_int64_t tai_bloom, size_t nbHash)
+    template<typename T> IBloom<T>* createBloom (Kind kind, u_int64_t tai_bloom, size_t nbHash)
     {
         switch (kind)
         {
+            case NONE:      return new BloomNull<T>          ();
             case BASIC:     return new BloomSynchronized<T>  (tai_bloom, nbHash);
             case CACHE:     return new BloomCacheCoherent<T> (tai_bloom, nbHash);
             case DEFAULT:   return new BloomCacheCoherent<T> (tai_bloom, nbHash);
@@ -819,7 +867,7 @@ public:
     }
 
     /** */
-    template<typename T> Bloom<T>* createBloom (std::string name, std::string sizeStr, std::string nbHashStr)
+    template<typename T> IBloom<T>* createBloom (std::string name, std::string sizeStr, std::string nbHashStr)
     {
         Kind kind;  parse (name, kind);
         return createBloom<T> (kind, (u_int64_t)atol (sizeStr.c_str()), (size_t)atol (nbHashStr.c_str()));
