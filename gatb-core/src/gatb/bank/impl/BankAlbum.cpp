@@ -20,14 +20,17 @@
 #include <gatb/bank/impl/BankAlbum.hpp>
 #include <gatb/bank/impl/BankRegistery.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <gatb/tools/misc/impl/Tokenizer.hpp>
 
 #include <fstream>
 
 using namespace std;
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
+using namespace gatb::core::tools::misc;
 
-#define DEBUG(a)  //printf a
+#define DEBUG(a)    //printf a
+#define VERBOSE(a)
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace bank {  namespace impl {
@@ -74,7 +77,7 @@ BankAlbum::BankAlbum (const std::string& name, bool deleteIfExists) : _name(name
                 }
 
                 /** We add a new bank. */
-                BankComposite::addBank (BankRegistery::singleton().getFactory()->createBank(bankUri));
+                BankComposite::addBank (BankRegistery::singleton().createBank(bankUri));
 
                 /** We memorize the uri of this bank. */
                 _banksUri.push_back (bankUri);
@@ -97,8 +100,55 @@ BankAlbum::BankAlbum (const std::string& name, bool deleteIfExists) : _name(name
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankAlbum::~BankAlbum ()
+bool BankAlbum::isAlbumValid (const std::string& uri)
 {
+    bool result = true;
+
+    FILE* file = fopen (uri.c_str(), "r");
+    if (file != 0)
+    {
+        char buffer[256];
+
+        while (fgets(buffer, sizeof(buffer), file) != 0)
+        {
+            VERBOSE (("BankAlbum::isAlbumValid  BEFORE buffer='%s'\n", buffer));
+
+            int len = strlen(buffer);
+
+            /** We skip last characters. */
+            for (len-- ; len >= 0; len--)  { if (isspace (buffer[len]) != 0)  { buffer[len]=0; } }
+
+            VERBOSE (("BankAlbum::isAlbumValid  AFTER  buffer='%s'\n", buffer));
+
+            if (strlen(buffer) > 0)
+            {
+                string bankUri = buffer;
+
+                /** We check whether it is a mere file name or there is also a directory name. */
+                if (isOnlyFilename(bankUri) == true)
+                {
+                    /** We add the path name of the album file. */
+                    bankUri = System::file().getDirectory (uri) + "/" + bankUri;
+                }
+
+                /** We check whether the file exists. */
+                bool exists = System::file().doesExist(bankUri);
+
+                DEBUG (("BankAlbum::isAlbumValid  bankUri='%s' bankUri.size()=%d  exists=%d  result=%d \n",
+                        bankUri.c_str(), bankUri.size(), exists, result
+                ));
+
+                if (!exists) { result=false; break; }
+            }
+        }
+        fclose (file);
+    }
+    else
+    {
+        result = false;
+    }
+
+    return result;
 }
 
 /*********************************************************************
@@ -124,7 +174,7 @@ IBank* BankAlbum::addBank (const std::string& bankUri)
         file->print ("%s\n", bankUri.c_str());
 
         /** We create a new bank. */
-        result = BankRegistery::singleton().getFactory()->createBank(bankUri);
+        result = BankRegistery::singleton().createBank(bankUri);
 
         /** We put it into the album. */
         BankComposite::addBank (result);
@@ -165,7 +215,7 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
         file->print ("%s\n", bankName.c_str());
 
         /** We add a new bank. */
-        result = BankRegistery::singleton().getFactory()->createBank(bankUri);
+        result = BankRegistery::singleton().createBank(bankUri);
 
         /** We put it into the album. */
         BankComposite::addBank (result);
@@ -211,6 +261,54 @@ bool BankAlbum::isOnlyFilename (const std::string& path)
 
     /** It may not be bullet proof... */
     return (path[0]!='/' && path[0]!='.');
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IBank* BankAlbumFactory::createBank (const std::string& uri)
+{
+    /** We check whether the uri is a "multiple" bank, i.e. a list (comma separated) of FASTA banks URIs. */
+    tools::misc::impl::TokenizerIterator it (uri.c_str(), ",");
+
+    /** We count the item number. */
+    vector<string> names;
+    for (it.first(); !it.isDone(); it.next())  { names.push_back(it.item()); }
+
+    /** FIRST CASE : a comma separated list of banks uri. */
+    if (names.size() > 1)
+    {
+        DEBUG (("BankAlbumFactory::createBank : count>1 (%d)\n", names.size()));
+
+        vector<IBank*> banks;
+        for (size_t i=0; i<names.size(); i++)
+        {
+            DEBUG (("   %s\n", names[i].c_str()));
+
+            /** We create a vector with the 'unitary' banks. */
+            banks.push_back (BankRegistery::singleton().createBank (names[i]));
+        }
+        /** We return a composite bank. */
+        return new BankComposite (banks);
+    }
+
+    /** SECOND CASE : an album file. */
+    else if (names.size() == 1)
+    {
+        bool isAlbumValid = BankAlbum::isAlbumValid(uri);
+
+        DEBUG (("BankAlbumFactory::createBank : count==1  isAlbumValid=%d\n", isAlbumValid));
+
+        if (isAlbumValid == true)  {  return new BankAlbum (uri);  }
+    }
+
+    /** Nothing worked => return 0. */
+    return 0;
 }
 
 /********************************************************************************/
