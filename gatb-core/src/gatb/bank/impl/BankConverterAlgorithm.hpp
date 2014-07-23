@@ -30,6 +30,7 @@
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/bank/api/IBank.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -44,6 +45,9 @@ public:
 
     /** */
     BankConverterAlgorithm (IBank* bank, size_t kmerSize, const std::string& outputUri);
+
+    /** */
+    BankConverterAlgorithm (tools::storage::impl::Storage& storage);
 
     /** */
     ~BankConverterAlgorithm ();
