@@ -79,7 +79,7 @@ public:
 
         bloomCollection->addProperty ("size",    ss1.str());
         bloomCollection->addProperty ("nb_hash", ss2.str());
-        bloomCollection->addProperty ("name",    bloom->getName());
+        bloomCollection->addProperty ("type",    bloom->getName());
     }
 
     /** */
@@ -90,7 +90,7 @@ public:
 
         /** We create the Bloom fiter. */
         tools::collections::impl::IBloom<T>* bloom = tools::collections::impl::BloomFactory::singleton().createBloom<T> (
-            bloomArray->getProperty("name"),
+            bloomArray->getProperty("type"),
             bloomArray->getProperty("size"),
             bloomArray->getProperty("nb_hash")
         );
