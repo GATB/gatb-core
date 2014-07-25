@@ -155,6 +155,12 @@ public:
     /** */
     void remove ();
 
+    /** */
+    virtual void addProperty (const std::string& key, const std::string value) { /*throw system::ExceptionNotImplemented ();*/ }
+
+    /** */
+    virtual std::string getProperty (const std::string& key)  { return "?"; /*throw system::ExceptionNotImplemented ();*/  }
+
 protected:
 
     StorageFactory* _factory;
