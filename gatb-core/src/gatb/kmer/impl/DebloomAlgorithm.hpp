@@ -35,6 +35,7 @@
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
+#include <gatb/tools/misc/api/Enums.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
@@ -52,28 +53,6 @@ namespace gatb      {
 namespace core      {
 namespace kmer      {
 namespace impl      {
-/********************************************************************************/
-enum DebloomKind  { DEBLOOM_ORIGINAL, DEBLOOM_CASCADING, DEBLOOM_DEFAULT };
-
-static void parse (const std::string& s, DebloomKind& kind)
-{
-         if (s == "original")   { kind = DEBLOOM_ORIGINAL;  }
-    else if (s == "cascading")  { kind = DEBLOOM_CASCADING; }
-    else if (s == "default")    { kind = DEBLOOM_CASCADING; }
-    else   { throw system::Exception ("bad debloom kind '%s'", s.c_str()); }
-}
-
-static std::string toString (DebloomKind kind)
-{
-    switch (kind)
-    {
-        case DEBLOOM_ORIGINAL:  return "original";
-        case DEBLOOM_CASCADING: return "cascading";
-        case DEBLOOM_DEFAULT:   return "cascading";
-        default:        throw system::Exception ("bad debloom kind %d", kind);
-    }
-}
-
 /********************************************************************************/
 
 template<size_t span=KMER_DEFAULT_SPAN>
@@ -93,8 +72,8 @@ public:
         size_t                      kmerSize,
         size_t                      max_memory = 0,
         size_t                      nb_cores   = 0,
-        tools::collections::impl::BloomFactory::Kind   bloomKind     = tools::collections::impl::BloomFactory::DEFAULT,
-        DebloomKind                 cascadingKind = DEBLOOM_DEFAULT,
+        tools::misc::BloomKind      bloomKind     = tools::misc::BLOOM_DEFAULT,
+        tools::misc::DebloomKind    cascadingKind = tools::misc::DEBLOOM_DEFAULT,
         const std::string&          debloomUri = "debloom",
         tools::misc::IProperties*   options    = 0
     );
@@ -110,20 +89,33 @@ public:
 
     /** Get the collection for the computed critical FP kmers.
      * \return the cFP  kmers collection. */
-    tools::collections::Collection<Type>* getCriticalKmers ()  { return _criticalCollection; }
+    tools::collections::Collection<Type>* getCriticalKmers ()
+    {
+        /** We need a temporary reference to ease the life of the compiler. */
+        tools::storage::impl::Group& group = _storage(this->getName());
+
+        return & group.getCollection <Type> ("cfp");
+    }
 
     /** Get the bloom/cFP container.
      * \return the container. */
     debruijn::IContainerNode<Type>* getContainerNode ()  { return _container; }
 
     /** */
-    float getNbBitsPerKmer () const;
-
+    static float getNbBitsPerKmer (size_t kmerSize, tools::misc::DebloomKind debloomKind);
 
 private:
 
     /** */
-    virtual gatb::core::tools::collections::impl::Bloom<Type>* createBloom (
+    void execute_aux (
+        tools::misc::IProperties* bloomProps,
+        tools::misc::IProperties* cfpProps,
+        u_int64_t& totalSizeBloom,
+        u_int64_t& totalSizeCFP
+    );
+
+    /** */
+    virtual gatb::core::tools::collections::impl::IBloom<Type>* createBloom (
         tools::collections::Iterable<Count>* solidIterable,
         tools::misc::IProperties* props,
         u_int64_t& totalSizeBloom
@@ -138,23 +130,19 @@ private:
     /** */
     tools::storage::impl::Storage& _storage;
 
-    tools::storage::impl::Group& _group;
+    tools::storage::impl::Group& _groupBloom;
+    tools::storage::impl::Group& _groupDebloom;
 
     size_t       _kmerSize;
 
-    tools::collections::impl::BloomFactory::Kind _bloomKind;
-    DebloomKind                                  _cascadingKind;
+    tools::misc::BloomKind   _bloomKind;
+    tools::misc::DebloomKind _debloomKind;
 
     std::string  _debloomUri;
     size_t       _max_memory;
 
     tools::collections::Iterable<Count>* _solidIterable;
     void setSolidIterable (tools::collections::Iterable<Count>* solidIterable)  {  SP_SETATTR(solidIterable); }
-
-    /** */
-    tools::storage::impl::CollectionNode<Type>* _criticalCollection;
-    void setCriticalCollection (tools::storage::impl::CollectionNode<Type>* criticalCollection)
-    { _criticalCollection = criticalCollection; }
 
     debruijn::IContainerNode<Type>* _container;
     void setContainer (debruijn::IContainerNode<Type>* container)  { SP_SETATTR(container); }

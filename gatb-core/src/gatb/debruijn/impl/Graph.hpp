@@ -39,6 +39,7 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
+#include <gatb/tools/misc/api/Enums.hpp>
 
 #include <gatb/tools/storage/impl/Storage.hpp>
 
@@ -799,12 +800,20 @@ public:
     /**********************************************************************/
     /*                         TYPES                                      */
     /**********************************************************************/
-    enum NodeStore
+    enum StateMask
     {
-        NODE_STORE_SOLID     = (1<<0),
-        NODE_STORE_BRANCHING = (1<<1),
-        NODE_STORE_BOTH      = (NODE_STORE_SOLID + NODE_STORE_BRANCHING)
+        STATE_INIT_DONE           = (1<<0),
+        STATE_BANKCONVERTER_DONE  = (1<<1),
+        STATE_SORTING_COUNT_DONE  = (1<<2),
+        STATE_BLOOM_DONE          = (1<<3),
+        STATE_DEBLOOM_DONE        = (1<<4),
+        STATE_BRANCHING_DONE      = (1<<5)
     };
+    typedef int State;
+    State getState () const { return _state; }
+    bool checkState (StateMask mask) const { return (_state & mask)==mask; }
+    State setState   (StateMask mask) { _state |=  mask; return _state; }
+    State unsetState (StateMask mask) { _state &= ~mask; return _state; }
 
 private:
 
@@ -829,7 +838,8 @@ private:
     /** Storage. */
     tools::storage::impl::Storage* _storage;
     void setStorage (tools::storage::impl::Storage* storage)  { SP_SETATTR(storage); }
-    tools::storage::impl::Group& getStorage(const std::string name="")  { return (*_storage) (name); }
+    tools::storage::impl::Storage& getStorage()                           { return (*_storage); }
+    tools::storage::impl::Group&   getGroup  (const std::string name="")  { return getStorage() (name); }
 
     /** */
     std::string _name;
@@ -841,12 +851,11 @@ private:
     tools::misc::impl::Properties _info;
 
     /** */
-    tools::collections::impl::BloomFactory::Kind _bloomKind;
-    kmer::impl::DebloomKind                      _cascadingKind;
+    tools::misc::BloomKind     _bloomKind;
+    tools::misc::DebloomKind   _debloomKind;
+    tools::misc::BranchingKind _branchingKind;
 
-    /** */
-    NodeStore _nodeStore;
-    static NodeStore _defaultNodeStore;
+    State _state;
 
     /** Defined as a void* for hiding implementation in cpp file. */
     void* _variant;
