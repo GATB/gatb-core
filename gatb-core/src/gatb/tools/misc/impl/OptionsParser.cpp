@@ -267,7 +267,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
     if (!_errors.empty())   {  throw OptionFailure (*this);  }
 
     /** We may launch an exception if needed. */
-    if (!_warnings.empty())   {  throw OptionFailure (*this);  }
+    //if (!_warnings.empty())   {  throw OptionFailure (*this);  }
 
     /** We fill the properties. */
     buildProperties ();
