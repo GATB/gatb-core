@@ -39,9 +39,10 @@ int main (int argc, char* argv[])
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (stdout);
-        e.getParser().displayHelp   (stdout);
-        e.getParser().displayVersion(stdout);
+        e.getParser().displayErrors   (stdout);
+        e.getParser().displayWarnings (stdout);
+        e.getParser().displayHelp     (stdout);
+        e.getParser().displayVersion  (stdout);
         return EXIT_FAILURE;
     }
     catch (Exception& e)
