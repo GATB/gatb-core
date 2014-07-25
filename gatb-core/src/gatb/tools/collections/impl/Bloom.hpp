@@ -33,6 +33,7 @@
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/system/api/types.hpp>
+#include <gatb/tools/misc/api/Enums.hpp>
 
 /********************************************************************************/
 namespace gatb          {
@@ -827,41 +828,18 @@ class BloomFactory
 {
 public:
 
-    enum Kind  {  NONE, BASIC, CACHE, DEFAULT };
-
-    static void parse (const std::string& s, Kind& kind)
-    {
-             if (s == "none")     { kind = NONE;  }
-        else if (s == "basic")    { kind = BASIC;  }
-        else if (s == "cache")    { kind = CACHE; }
-        else if (s == "default")  { kind = CACHE; }
-        else   { throw system::Exception ("bad Bloom kind '%s'", s.c_str()); }
-    }
-
-    static const char* toString (Kind kind)
-    {
-        switch (kind)
-        {
-            case NONE:      return "none";
-            case BASIC:     return "basic";
-            case CACHE:     return "cache";
-            case DEFAULT:   return "cache";
-            default:        throw system::Exception ("bad Bloom kind %d", kind);
-        }
-    }
-
     /** */
     static BloomFactory& singleton()  { static BloomFactory instance; return instance; }
 
     /** */
-    template<typename T> IBloom<T>* createBloom (Kind kind, u_int64_t tai_bloom, size_t nbHash)
+    template<typename T> IBloom<T>* createBloom (tools::misc::BloomKind kind, u_int64_t tai_bloom, size_t nbHash)
     {
         switch (kind)
         {
-            case NONE:      return new BloomNull<T>          ();
-            case BASIC:     return new BloomSynchronized<T>  (tai_bloom, nbHash);
-            case CACHE:     return new BloomCacheCoherent<T> (tai_bloom, nbHash);
-            case DEFAULT:   return new BloomCacheCoherent<T> (tai_bloom, nbHash);
+            case tools::misc::BLOOM_NONE:      return new BloomNull<T>          ();
+            case tools::misc::BLOOM_BASIC:     return new BloomSynchronized<T>  (tai_bloom, nbHash);
+            case tools::misc::BLOOM_CACHE:     return new BloomCacheCoherent<T> (tai_bloom, nbHash);
+            case tools::misc::BLOOM_DEFAULT:   return new BloomCacheCoherent<T> (tai_bloom, nbHash);
             default:        throw system::Exception ("bad Bloom kind %d in createBloom", kind);
         }
     }
@@ -869,7 +847,7 @@ public:
     /** */
     template<typename T> IBloom<T>* createBloom (std::string name, std::string sizeStr, std::string nbHashStr)
     {
-        Kind kind;  parse (name, kind);
+        tools::misc::BloomKind kind;  parse (name, kind);
         return createBloom<T> (kind, (u_int64_t)atol (sizeStr.c_str()), (size_t)atol (nbHashStr.c_str()));
     }
 };
