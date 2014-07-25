@@ -64,7 +64,7 @@ public:
     BloomBuilder (
         u_int64_t   bloomSize,
         size_t      nbHash,
-        tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::DEFAULT,
+        tools::misc::BloomKind bloomKind = tools::misc::BLOOM_DEFAULT,
         size_t      nbCores = 0,
 		int		  min_abundance =0
     )
@@ -139,7 +139,7 @@ private:
     size_t    _nbCores;
 	int _min_abundance;
 	
-    tools::collections::impl::BloomFactory::Kind _bloomKind;
+    tools::misc::BloomKind _bloomKind;
 
     /********************************************************************************/
     class BuildKmerBloom
