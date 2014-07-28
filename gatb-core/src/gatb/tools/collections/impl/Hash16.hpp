@@ -45,17 +45,17 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
-template <typename Item> class Hash16
+template <typename Item, typename value_type=int> class Hash16
 {
 protected:
 
     /** Shortcuts. */
-    typedef typename misc::impl::Pool<Item>::cell        cell;
-    typedef typename misc::impl::Pool<Item>::cell_ptr_t  cell_ptr_t;
+    typedef typename misc::impl::Pool<Item,value_type>::cell        cell;
+    typedef typename misc::impl::Pool<Item,value_type>::cell_ptr_t  cell_ptr_t;
 
     cell_ptr_t * datah;
 
-    misc::impl::Pool<Item> storage;
+    misc::impl::Pool<Item,value_type> storage;
     u_int64_t mask ;
 
     u_int64_t tai;
@@ -83,6 +83,8 @@ public:
         max_nb_elem = (u_int64_t) (0.8*sizeMB*1024LL*1024LL /sizeof(cell));
         datah       = (cell_ptr_t *) _memory.malloc( tai * sizeof(cell_ptr_t));  //create hashtable
 
+		printf("Hash16 size asked in MB %zu  tai_Hash16 %i  nb entries %llu \n",sizeMB,tai_Hash16,tai);
+
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
 
@@ -101,7 +103,7 @@ public:
     }
 
     /** */
-    void insert (Item graine, int value)
+    void insert (Item graine, value_type value)
     {
         unsigned int clef ;
         cell* cell_ptr    = 0;
@@ -169,7 +171,7 @@ public:
     }
 
     /** */
-    int get( Item graine, int * val)
+    int get( Item graine, value_type * val)
     {
         unsigned int clef ;
         cell* cell_ptr;
@@ -200,7 +202,7 @@ public:
     }
 
     /** */
-    int remove (Item graine, int * val)
+    int remove (Item graine, value_type * val)
     {
         unsigned int clef ;
         cell* cell_ptr;
