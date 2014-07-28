@@ -613,6 +613,7 @@ public:
     {
         /** We get the default factory. */
         IBankFactory* factory = BankRegistery::singleton().getFactory (bankformat);
+        CPPUNIT_ASSERT (factory != 0);
 
         /** We create a bank handle. */
         IBank* bank = factory->createBank (DBPATH(bankuri));

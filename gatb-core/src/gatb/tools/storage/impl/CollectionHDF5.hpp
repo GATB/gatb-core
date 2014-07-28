@@ -70,6 +70,8 @@ public:
      * \param[in] items : items to be inserted. */
     void insert (const Item* items, size_t length)
     {
+        if (items==0 || length==0)  { return; }
+        
         herr_t status = 0;
 
         system::LocalSynchronizer localsynchro (_synchro);
@@ -181,7 +183,7 @@ private:
 
         /** Read buffer from dataset */
         status = H5Dread (_datasetId, _typeId, memspaceId, filespaceId, H5P_DEFAULT, data);
-        if (status != 0)  { std::cout << "err H5Dwrite" << std::endl; }
+        if (status != 0)  { std::cout << "err H5Dread" << std::endl; }
 
         /** Close resources. */
         status = H5Sclose (filespaceId);
@@ -261,7 +263,7 @@ public:
 
     void first()
     {
-
+        _nbRead   = 0;
         _dataIdx  = 0;
         _dataSize = retrieveNextCache();
         _isDone   = _dataIdx >= _dataSize;

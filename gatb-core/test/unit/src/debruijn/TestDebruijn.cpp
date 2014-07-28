@@ -97,6 +97,7 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test12);
         CPPUNIT_TEST_GATB (debruijn_test13);
         CPPUNIT_TEST_GATB (debruijn_mutation);
+        CPPUNIT_TEST_GATB (debruijn_build);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -771,6 +772,96 @@ public:
 
         debruijn_mutation_aux (sequences1, ARRAY_SIZE(sequences1), false);
         debruijn_mutation_aux (sequences2, ARRAY_SIZE(sequences2), true);
+    }
+
+    /********************************************************************************/
+    struct debruijn_build_entry
+    {
+        debruijn_build_entry () : nbNodes(0), nbBranchingNodes(0) {}
+        size_t  nbNodes;
+        Integer checksumNodes;
+        size_t  nbBranchingNodes;
+        Integer checksumBranchingNodes;
+    };
+
+    debruijn_build_entry debruijn_build_aux_aux (const char* name, bool checkNodes, bool checkBranching)
+    {
+        debruijn_build_entry result;
+
+        /** We load the graph. */
+        Graph graph = Graph::load (name);
+
+        if (checkNodes)
+        {
+            Graph::Iterator<Node> iterNodes = graph.iterator<Node>();
+            for (iterNodes.first(); !iterNodes.isDone(); iterNodes.next())
+            { result.nbNodes++; result.checksumNodes += iterNodes.item().kmer; }
+        }
+
+        if (checkBranching)
+        {
+            Graph::Iterator<BranchingNode> iterBranchingNodes = graph.iterator<BranchingNode>();
+            for (iterBranchingNodes.first(); !iterBranchingNodes.isDone(); iterBranchingNodes.next())
+            { result.nbBranchingNodes++; result.checksumBranchingNodes += iterBranchingNodes.item().kmer; }
+        }
+
+        return result;
+    }
+
+    /********************************************************************************/
+    void debruijn_build_aux (const char* sequences[], size_t nbSequences)
+    {
+        // We build the bank
+        IBank* inputBank = new BankStrings (sequences, nbSequences);
+        LOCAL (inputBank);
+
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance 1  -verbose 0",                        "g1");
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance 1  -verbose 0 -branching-nodes none",  "g2");
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance 1  -verbose 0 -solid-kmers-out none",  "g3");
+
+        debruijn_build_entry r1 = debruijn_build_aux_aux ("g1", true,  true);
+        debruijn_build_entry r2 = debruijn_build_aux_aux ("g2", true,  true);
+        debruijn_build_entry r3 = debruijn_build_aux_aux ("g3", false, true);
+
+        CPPUNIT_ASSERT (r1.nbNodes       == r2.nbNodes);
+        CPPUNIT_ASSERT (r1.checksumNodes == r2.checksumNodes);
+
+        /** Right now, we don't test Node for g3 since the Node iterator (based only on BranchingNode) is not implemented. */
+        //CPPUNIT_ASSERT (r1.nbNodes       == r3.nbNodes);
+        //CPPUNIT_ASSERT (r1.checksumNodes == r3.checksumNodes);
+
+        CPPUNIT_ASSERT (r1.nbBranchingNodes       == r2.nbBranchingNodes);
+        CPPUNIT_ASSERT (r1.checksumBranchingNodes == r2.checksumBranchingNodes);
+        CPPUNIT_ASSERT (r1.nbBranchingNodes       == r3.nbBranchingNodes);
+        CPPUNIT_ASSERT (r1.checksumBranchingNodes == r3.checksumBranchingNodes);
+    }
+
+    /********************************************************************************/
+    void debruijn_build ()
+    {
+        const char* sequences[] =
+        {
+            "GAATTCCAGGAGGACCAGGAGAACGTCAATCCCGAGAAGGCGGCGCCCGCCCAGCAGCCCCGGACCCGGGCTGGACTGGC",
+            "GGTACTGAGGGCCGGAAACTCGCGGGGTCCAGCTCCCCAGAGGCCTAAGACGCGACGGGTTGCACCTCTTAAGGATCTTC",
+            "CTATAAATGATGAGTATGTCCCTGTTCCTCCCTGGAAAGCAAACAATAAACAGCCTGCATTTACCATACATGTGGATGAA",
+            "GCAGAAGAAATTCAAAAGAGGCCAACTGAATCTAAAAAATCAGAAAGTGAAGATGTCTTGGCCTTTAATTCAGCTGTTAC",
+            "TTTACCAGGACCAAGAAAGCCACTGGCACCTCTTGATTACCCAATGGATGGTAGTTTTGAGTCTCCACATACTATGGAAA",
+            "TGTCAGTTGTATTGGAAGATGAAAAGCCAGTGAGTGTTAATGAAGTACCAGACTACCATGAGGACATTCACACGTACCTT",
+            "AGGGAAATGGAGGTTAAATGTAAGCCTAAAGTGGGTTACATGAAGAAACAGCCAGACATTACTAACAGTATGAGGGCTAT",
+            "CCTCGTGGACTGGTTAGTTGAAGTAGGAGAAGAATATAAACTGCAGAACGAGACCCTGCATTTGGCTGTGAACTACATTG",
+            "ATAGGTTTCTTTCATCCATGTCTGTGTTGAGAGGAAAACTTCAACTTGTGGGCACTGCTGCTATGCTTTTAGCCTCAAAG",
+            "TTTGAAGAGATATACCCGCCAGAAGTAGCAGAGTTTGTATACATTACAGATGACACTTATACCAAGAAACAAGTTCTAAG",
+            "GATGGAGCACCTAGTCTTGAAAGTCCTGGCTTTTGACTTAGCTGCACCAACAATAAATCAGTTTCTTACCCAGTACTTTT",
+            "TGCATCAGCAGCCTGCAAACTGCAAAGTTGAAAGTTTAGCAATGTTTTTGGGAGAGTTAAGTTTGATAGATGCTGACCCA",
+            "TATCTAAAGTATTTGCCGTCAGTTATCGCTGCAGCAGCCTTTCATTTAGCACTCTACACAGTCACAGGACAAAGCTGGCC",
+            "TGAATCATTAGTACAGAAGACTGGATATACTCTGGAAACTCTAAAGCCTTGTCTCCTGGACCTTCACCAGACCTACCTCA",
+            "GAGCACCACAGCACGCACAACAGTCAATAAGAGAGAAGTACAAAAATTCAAAGTATCATGGTGTTTCTCTCCTCAACCCA",
+            "CCAGAGACACTAAATGTGTAACAGTGAAAAGACTGCCTTTGTTTTCTAAGACTGTAAATCACATGCAATGTATATGGTGT",
+            "ACAGATTTTATCTTAGGTTTTAATTTTACAACATTTCTGAATAAGAAGAGTTATGGTCCAGTACAAATTATGGTATCTAT",
+            "TACTTTTTAAATGGTTTTAATTTGTATATCTTTTGTAAATGTAACTATCTTAGATATTTGGCTAATTTTAAGTGGTTTCT"
+        };
+
+        debruijn_build_aux (sequences, ARRAY_SIZE(sequences));
     }
 };
 

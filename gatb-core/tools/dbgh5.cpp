@@ -35,13 +35,14 @@ int main (int argc, char* argv[])
          Graph graph = Graph::create (options);
 
          /** We dump some information about the graph. */
-         if (options->get(STR_VERBOSE) != 0)  {  std::cout << graph.getInfo() << std::endl;  }
+         if (options->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (stdout);
-        e.getParser().displayHelp   (stdout);
-        e.getParser().displayVersion(stdout);
+        e.getParser().displayErrors   (stdout);
+        e.getParser().displayWarnings (stdout);
+        e.getParser().displayHelp     (stdout);
+        e.getParser().displayVersion  (stdout);
         return EXIT_FAILURE;
     }
     catch (Exception& e)
@@ -49,7 +50,7 @@ int main (int argc, char* argv[])
         std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
         return EXIT_FAILURE;
     }
-    catch (char const* msg)
+    catch (std::string& msg)
     {
         std::cout << std::endl << "EXCEPTION: " << msg << std::endl;
         return EXIT_FAILURE;

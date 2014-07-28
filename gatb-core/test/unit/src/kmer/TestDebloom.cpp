@@ -23,6 +23,7 @@
 #include <gatb/bank/impl/BankStrings.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
+#include <gatb/kmer/impl/BloomAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/tools/misc/api/Macros.hpp>
@@ -89,18 +90,24 @@ public:
         } ;
 
         /** We create a storage instance. */
-        Storage storage (STORAGE_FILE, "test");
+        Storage* storage = StorageFactory(STORAGE_HDF5).create("foo", true, true);
+        LOCAL (storage);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (&storage, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        SortingCountAlgorithm<> sortingCount (storage, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
 
         /** We launch DSK. */
         sortingCount.execute();
 
         CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
 
+        /** We create a bloom instance. */
+        float nbitsPerKmer = DebloomAlgorithm<>::getNbBitsPerKmer (kmerSize, DEBLOOM_ORIGINAL);
+        BloomAlgorithm<> bloom (*storage, sortingCount.getSolidKmers(), kmerSize, nbitsPerKmer, 0, BLOOM_BASIC);
+        bloom.execute ();
+
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (storage, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BloomFactory::BASIC, DEBLOOM_ORIGINAL);
+        DebloomAlgorithm<> debloom (*storage, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BLOOM_BASIC, DEBLOOM_ORIGINAL);
 
         /** We launch the debloom. */
         debloom.execute();

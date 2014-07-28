@@ -77,7 +77,7 @@ using namespace gatb::core::tools::storage::impl;
 
 using namespace gatb::core::tools::math;
 
-#define DEBUG(a)  printf a
+#define DEBUG(a)  //printf a
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
@@ -103,25 +103,24 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
     size_t              kmerSize,
     size_t              max_memory,
     size_t              nb_cores,
-    BloomFactory::Kind  bloomKind,
+    BloomKind           bloomKind,
     DebloomKind         cascadingKind,
     const std::string&  debloomUri,
     IProperties*        options
 )
-    :  Algorithm("debloom", nb_cores, options), _storage(storage), _group(storage().getGroup ("debloom")),
+    :  Algorithm("debloom", nb_cores, options), _storage(storage),
+       _groupBloom  (storage().getGroup ("bloom")),
+       _groupDebloom(storage().getGroup ("debloom")),
        _kmerSize(kmerSize),
-       _bloomKind(bloomKind), _cascadingKind(cascadingKind),
+       _bloomKind(bloomKind), _debloomKind(cascadingKind),
        _debloomUri("debloom"),
        _max_memory(max_memory),
-       _solidIterable(0), _criticalCollection(0), _container(0)
+       _solidIterable(0),  _container(0)
 {
     /** We get a group for deblooming. */
     Group& group = _storage().getGroup ("debloom");
 
     setSolidIterable    (solidIterable);
-
-    /** We get a collection for the cFP from the storage. */
-    setCriticalCollection (& group.getCollection<Type> ("cfp"));
 
     /** We set the max memory to a default project value if not set. */
     if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
@@ -137,19 +136,21 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
 *********************************************************************/
 template<size_t span>
 DebloomAlgorithm<span>::DebloomAlgorithm (tools::storage::impl::Storage& storage)
-:  Algorithm("debloom", 0, 0), _storage(storage), _group(storage().getGroup ("debloom")),
+:  Algorithm("debloom", 0, 0), _storage(storage),
+   _groupBloom(storage().getGroup   ("bloom")),
+   _groupDebloom(storage().getGroup ("debloom")),
    _kmerSize(0),
    _debloomUri("debloom"),
    _max_memory(0),
-   _solidIterable(0), _criticalCollection(0), _container(0)
+   _solidIterable(0), _container(0)
 {
-    /** We get a collection for the cFP from the storage. */
-    setCriticalCollection (& _group.getCollection<Type> ("cfp"));
-
     /** We retrieve the cascading kind from the storage. */
-    parse (_criticalCollection->getProperty("kind"), _cascadingKind);
+    parse (_groupDebloom.getProperty("kind"), _debloomKind);
 
     loadContainer (_storage);
+
+    string xmlString = _groupDebloom.getProperty ("xml");
+    stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
 }
 
 /*********************************************************************
@@ -164,7 +165,6 @@ template<size_t span>
 DebloomAlgorithm<span>::~DebloomAlgorithm ()
 {
     setSolidIterable      (0);
-    setCriticalCollection (0);
     setContainer          (0);
 }
 
@@ -182,14 +182,14 @@ struct FunctorKmersExtension
 {
     struct FunctorNeighbors
     {
-        Bloom<Type>* bloom; ThreadObject<BagCache<Type> >& extendBag;
-        FunctorNeighbors (Bloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
+        IBloom<Type>* bloom; ThreadObject<BagCache<Type> >& extendBag;
+        FunctorNeighbors (IBloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
             : bloom(bloom), extendBag(extendBag) {}
         void operator() (const Type& k)  const {  if (bloom->contains (k))  {  extendBag().insert (k);  }  }
     } functorNeighbors;
 
     Model& model;
-    FunctorKmersExtension (Model& model, Bloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
+    FunctorKmersExtension (Model& model, IBloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
         : model(model), functorNeighbors(bloom,extendBag) {}
     void operator() (const Count& kmer) const
     {
@@ -198,10 +198,63 @@ struct FunctorKmersExtension
     }
 };
 #endif
-/*********************************************************************/
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<size_t span>
 void DebloomAlgorithm<span>::execute ()
+{
+    DEBUG (("DebloomAlgorithm<span>::execute  bloomKind=%ld  debloomKind=%d\n", _bloomKind, _debloomKind));
+
+    IProperties* bloomProps = new Properties();  LOCAL (bloomProps);
+    u_int64_t totalSizeBloom = 0;
+
+    IProperties* cfpProps = new Properties();  LOCAL (cfpProps);
+    u_int64_t totalSizeCFP = 0;
+
+    /** We execute the debloom if needed. */
+    if (_debloomKind != DEBLOOM_NONE)
+    {
+        execute_aux (bloomProps, cfpProps, totalSizeBloom, totalSizeCFP);
+    }
+
+    /** Now, we configure the IContainerNode instance for public API. */
+    loadContainer (_storage);
+
+    /** We gather some statistics. */
+    getInfo()->add (1, "stats");
+    getInfo()->add (2, "kind",           "%s", toString(_debloomKind).c_str());
+    getInfo()->add (2, "size",           "%ld", totalSizeBloom + totalSizeCFP);
+    getInfo()->add (2, "nbits_per_kmer", "%f",  (float)(totalSizeBloom + totalSizeCFP) / (float)_solidIterable->getNbItems());
+    getInfo()->add (2, cfpProps);
+
+    getInfo()->add (1, getTimeInfo().getProperties("time"));
+
+    /** We save the cfp kind in the "cfp" storage collection. */
+    _groupDebloom.addProperty ("kind", toString(_debloomKind));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+void DebloomAlgorithm<span>::execute_aux (
+    IProperties* bloomProps,
+    IProperties* cfpProps,
+    u_int64_t&   totalSizeBloom,
+    u_int64_t&   totalSizeCFP
+)
 {
     Model model (_kmerSize);
 
@@ -211,11 +264,18 @@ void DebloomAlgorithm<span>::execute ()
     /***************************************************/
     /** We create a bloom and insert solid kmers into. */
     /***************************************************/
-    IProperties* bloomProps = new Properties();  LOCAL (bloomProps);
-    u_int64_t totalSizeBloom = 0;
-
-    Bloom<Type>* bloom = createBloom (_solidIterable, bloomProps, totalSizeBloom);
+#if 0
+    IBloom<Type>* bloom = createBloom (_solidIterable, bloomProps, totalSizeBloom);
     bloom->use ();
+#else
+    IBloom<Type>* bloom = StorageTools::singleton().loadBloom<Type> (_groupBloom, "bloom");
+    bloom->use ();
+    totalSizeBloom = bloom->getBitSize();
+#endif
+
+    DEBUG (("DebloomAlgorithm<span>::execute_aux  _solidIterable->getNbItems()=%ld  totalSizeBloom=%ld \n",
+        _solidIterable->getNbItems(), totalSizeBloom
+    ));
 
     /*************************************************/
     /** We build the solid neighbors extension.      */
@@ -251,10 +311,14 @@ void DebloomAlgorithm<span>::execute ()
 
         /** We have to flush each bag cache used during iteration. */
         for (size_t i=0; i<extendBag.size(); i++)  {  extendBag[i].flush();  }
+
+        DEBUG (("DebloomAlgorithm<span>::execute_aux   extendBag.size()=%ld \n", extendBag.size() ));
     }
 
+#if 0
     /** We save the bloom. */
-    StorageTools::singleton().saveBloom<Type> (_group, "bloom", bloom);
+    StorageTools::singleton().saveBloom<Type> (_groupBloom, "bloom", bloom);
+#endif
 
     /** We get rid of the bloom. */
     bloom->forget ();
@@ -310,9 +374,6 @@ void DebloomAlgorithm<span>::execute ()
     /*************************************************************/
     /** We build the final cFP container.                        */
     /*************************************************************/
-    IProperties* cfpProps = new Properties();  LOCAL (cfpProps);
-    u_int64_t totalSizeCFP = 0;
-
     {
         TIME_INFO (getTimeInfo(), "cascading");
 
@@ -324,21 +385,6 @@ void DebloomAlgorithm<span>::execute ()
     System::file().remove (inputUri);
     System::file().remove (outputUri);
     criticalCollection->remove ();
-
-    /** We gather some statistics. */
-    getInfo()->add (1, "stats");
-    getInfo()->add (2, "bloom_kind",    "%s",  BloomFactory::toString(_bloomKind));
-    getInfo()->add (2, "debloom_kind",  "%s", toString(_cascadingKind).c_str());
-    getInfo()->add (2, "size",           "%ld", totalSizeBloom + totalSizeCFP);
-    getInfo()->add (2, "nbits_per_kmer", "%f",  (float)(totalSizeBloom + totalSizeCFP) / (float)_solidIterable->getNbItems());
-    getInfo()->add (2, "bloom");
-    getInfo()->add (3, bloomProps);
-    getInfo()->add (2, cfpProps);
-
-    getInfo()->add (1, getTimeInfo().getProperties("time"));
-
-    /** We save (as metadata) information into the critical collection. */
-    _criticalCollection->addProperty ("properties", getInfo()->getXML());
 }
 
 /*********************************************************************
@@ -418,7 +464,7 @@ void DebloomAlgorithm<span>::end_debloom_partition (
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
+IBloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
     tools::collections::Iterable<Count>* solidIterable,
     tools::misc::IProperties* bloomProps,
     u_int64_t& totalSizeBloom
@@ -429,7 +475,7 @@ Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
     /** We get the number of solid kmers. */
     u_int64_t solidKmersNb = solidIterable->getNbItems();
 
-    float     NBITS_PER_KMER     = getNbBitsPerKmer();
+    float     NBITS_PER_KMER     = getNbBitsPerKmer(_kmerSize, _debloomKind);
     u_int64_t estimatedBloomSize = (u_int64_t) (solidKmersNb * NBITS_PER_KMER);
     size_t    nbHash             = (int)floorf (0.7*NBITS_PER_KMER);
 
@@ -447,7 +493,7 @@ Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
     BloomBuilder<span> builder (estimatedBloomSize, nbHash, _bloomKind, getDispatcher()->getExecutionUnitsNumber());
 
     /** We instantiate the bloom object. */
-    Bloom<Type>* bloom = builder.build (itKmers, bloomProps);
+    IBloom<Type>* bloom = builder.build (itKmers, bloomProps);
     bloomProps->add (0, "nbits_per_kmer", "%f", NBITS_PER_KMER);
 
     totalSizeBloom = bloom->getBitSize();
@@ -471,16 +517,16 @@ Bloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
 template<typename Type>
 struct Functor0
 {
-    Bloom<Type>* bloom2;
-    Functor0 (Bloom<Type>* bloom2) : bloom2(bloom2) {}
+    IBloom<Type>* bloom2;
+    Functor0 (IBloom<Type>* bloom2) : bloom2(bloom2) {}
     void operator() (const Type& t)  {  bloom2->insert (t); };
 };
 /*********************************************************************/
 template<typename Count, typename Type>
 struct Functor1
 {
-    Iterable<Count>* solidIterable;  Bloom<Type>* bloom2;  Bloom<Type>* bloom3;  ThreadObject<BagCache<Type> >& T2Cache;
-    Functor1 (Iterable<Count>* solidIterable,  Bloom<Type>* bloom2, Bloom<Type>* bloom3, ThreadObject<BagCache<Type> >& T2Cache)
+    Iterable<Count>* solidIterable;  IBloom<Type>* bloom2;  IBloom<Type>* bloom3;  ThreadObject<BagCache<Type> >& T2Cache;
+    Functor1 (Iterable<Count>* solidIterable,  IBloom<Type>* bloom2, IBloom<Type>* bloom3, ThreadObject<BagCache<Type> >& T2Cache)
         : solidIterable(solidIterable), bloom2(bloom2), bloom3(bloom3), T2Cache(T2Cache) {}
     void operator() (const Count& t)
     {
@@ -495,8 +541,8 @@ struct Functor1
 template<typename Type>
 struct Functor2
 {
-    Bloom<Type>* bloom3;  Bloom<Type>* bloom4;
-    Functor2 (Bloom<Type>* bloom3, Bloom<Type>* bloom4) : bloom3(bloom3), bloom4(bloom4) {}
+    IBloom<Type>* bloom3;  IBloom<Type>* bloom4;
+    Functor2 (IBloom<Type>* bloom3, IBloom<Type>* bloom4) : bloom3(bloom3), bloom4(bloom4) {}
     void operator() (const Type& t) { if (bloom3->contains(t))  {  bloom4->insert (t); }  }
 };
 /*********************************************************************/
@@ -512,7 +558,7 @@ void DebloomAlgorithm<span>::createCFP (
     u_int64_t& totalSize_bits
 )
 {
-    props->add (0, "cfp", "");
+    DEBUG (("DebloomAlgorithm<span>::createCFP   criticalCollection->size=%ld \n", criticalCollection->getNbItems() ));
 
     /** We define an iterator for 4 tasks. */
     size_t nbTasks = 4;
@@ -522,32 +568,35 @@ void DebloomAlgorithm<span>::createCFP (
 
     /** We may have to change the cascading kind if we have no false positives. */
     int64_t nbFP = criticalCollection->getNbItems();
-    if (nbFP == 0)  {  _cascadingKind = DEBLOOM_ORIGINAL; }
+    if (nbFP == 0)  {  _debloomKind = DEBLOOM_ORIGINAL; }
+
+    /** Shortcut. */
+    Collection<Type>* finalCriticalCollection = getCriticalKmers();
 
     /*************************************************************/
     /** We code the critical FP according to the cascading type. */
     /*************************************************************/
-    switch (_cascadingKind)
+    switch (_debloomKind)
     {
         case DEBLOOM_CASCADING:
         {
-            float     nbBitsPerKmer = getNbBitsPerKmer();
+            float     nbBitsPerKmer = getNbBitsPerKmer(_kmerSize, _debloomKind);
             u_int64_t nbKmers       = _solidIterable->getNbItems();
 
             int64_t estimated_T2_size = std::max ((int)ceilf(nbKmers * (double)powf((double)0.62, (double)nbBitsPerKmer)), 1);
             int64_t estimated_T3_size = std::max ((int)ceilf(nbFP    * (double)powf((double)0.62, (double)nbBitsPerKmer)), 1);
 
-            tools::collections::impl::Bloom<Type>* bloom2 = tools::collections::impl::BloomFactory::singleton().createBloom<Type> (
+            IBloom<Type>* bloom2 = BloomFactory::singleton().createBloom<Type> (
                 _bloomKind, (u_int64_t)(nbFP * nbBitsPerKmer), (int)floorf(0.7*nbBitsPerKmer)
             );
             LOCAL (bloom2);
 
-            tools::collections::impl::Bloom<Type>* bloom3 = tools::collections::impl::BloomFactory::singleton().createBloom<Type> (
+            IBloom<Type>* bloom3 = BloomFactory::singleton().createBloom<Type> (
                 _bloomKind, (u_int64_t)(estimated_T2_size * nbBitsPerKmer), (int)floorf(0.7*nbBitsPerKmer)
             );
             LOCAL (bloom3);
 
-            tools::collections::impl::Bloom<Type>* bloom4 = tools::collections::impl::BloomFactory::singleton().createBloom<Type> (
+            IBloom<Type>* bloom4 = BloomFactory::singleton().createBloom<Type> (
                 _bloomKind, (u_int64_t)(estimated_T3_size * nbBitsPerKmer), (int)floorf(0.7*nbBitsPerKmer)
             );
             LOCAL (bloom4);
@@ -603,7 +652,9 @@ void DebloomAlgorithm<span>::createCFP (
                 if (bloom4->contains(T2It->item()))  {  cfpItems.push_back (T2It->item());  }
             }
             std::sort (cfpItems.begin(), cfpItems.end());
-            _criticalCollection->insert (cfpItems.data(), cfpItems.size());
+
+            finalCriticalCollection->insert (cfpItems.data(), cfpItems.size());
+            finalCriticalCollection->flush ();
             itTask->next();
             itTask->isDone(); // force to finish progress dump
 
@@ -615,11 +666,11 @@ void DebloomAlgorithm<span>::createCFP (
             totalSize_bits = bloom2->getBitSize() + bloom3->getBitSize() + bloom4->getBitSize() + 8*cfpItems.size()*sizeof(Type);
 
             /** Some statistics. */
-            props->add (1, "size",   "%ld", totalSize_bits);
-            props->add (2, "bloom2", "%ld", bloom2->getBitSize());
-            props->add (2, "bloom3", "%ld", bloom3->getBitSize());
-            props->add (2, "bloom4", "%ld", bloom4->getBitSize());
-            props->add (2, "cfp",    "%ld", 8*cfpItems.size()*sizeof(Type));
+            props->add (0, "cfp",   "%ld", totalSize_bits);
+            props->add (1, "bloom2", "%ld", bloom2->getBitSize());
+            props->add (1, "bloom3", "%ld", bloom3->getBitSize());
+            props->add (1, "bloom4", "%ld", bloom4->getBitSize());
+            props->add (1, "set",    "%ld", 8*cfpItems.size()*sizeof(Type));
 
             /** We remove the two temporary files. */
             System::file().remove (T2name);
@@ -633,8 +684,8 @@ void DebloomAlgorithm<span>::createCFP (
         {
             /** We save the final cFP container into the storage. */
             tools::dp::Iterator<Type>* it = criticalCollection->iterator();  LOCAL (it);
-            for (it->first(); !it->isDone(); it->next())  {  this->_criticalCollection->insert (it->item());  }
-            _criticalCollection->flush ();
+            for (it->first(); !it->isDone(); it->next())  {  finalCriticalCollection->insert (it->item());  }
+            finalCriticalCollection->flush ();
 
             totalSize_bits = 8*criticalCollection->getNbItems()*sizeof(Type);
 
@@ -643,9 +694,6 @@ void DebloomAlgorithm<span>::createCFP (
             break;
         }
     }
-
-    /** We save the cfp kind in the "cfp" storage collection. */
-    _criticalCollection->addProperty ("kind", toString(_cascadingKind));
 }
 
 /*********************************************************************
@@ -657,23 +705,23 @@ void DebloomAlgorithm<span>::createCFP (
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-float DebloomAlgorithm<span>::getNbBitsPerKmer () const
+float DebloomAlgorithm<span>::getNbBitsPerKmer (size_t kmerSize, DebloomKind debloomKind)
 {
     static double lg2 = log(2);
     float nbitsPerKmer = 0;
 
-    if (_kmerSize > 128 && _cascadingKind==DEBLOOM_CASCADING)  {  throw Exception ("kmer size %d too big for cascading bloom filters", _kmerSize); }
+    if (kmerSize > 128 && debloomKind==DEBLOOM_CASCADING)  {  throw Exception ("kmer size %d too big for cascading bloom filters", kmerSize); }
 
-    switch (_cascadingKind)
+    switch (debloomKind)
     {
     case DEBLOOM_CASCADING:
-        nbitsPerKmer = rvalues[_kmerSize][1];
+        nbitsPerKmer = rvalues[kmerSize][1];
         break;
 
     case DEBLOOM_ORIGINAL:
     case DEBLOOM_DEFAULT:
     default:
-        nbitsPerKmer = log (16*_kmerSize*(lg2*lg2))/(lg2*lg2);
+        nbitsPerKmer = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
         break;
     }
     return nbitsPerKmer;
@@ -690,14 +738,25 @@ float DebloomAlgorithm<span>::getNbBitsPerKmer () const
 template<size_t span>
 void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& storage)
 {
-    switch (_cascadingKind)
+    DEBUG (("DebloomAlgorithm<span>::loadContainer  _debloomKind=%d \n", _debloomKind));
+
+    switch (_debloomKind)
     {
+        case DEBLOOM_NONE:
+        {
+            IBloom<Type>* bloom = StorageTools::singleton().loadBloom<Type> (_groupBloom, "bloom");
+
+            /** We build the set of critical false positive kmers. */
+            setContainer (new debruijn::impl::ContainerNodeNoCFP<Type> (bloom));
+            break;
+        }
+
         case DEBLOOM_ORIGINAL:
         case DEBLOOM_DEFAULT:
         default:
         {
-            Bloom<Type>*       bloom    = StorageTools::singleton().loadBloom<Type>     (_group, "bloom");
-            Container<Type>*   cFP      = StorageTools::singleton().loadContainer<Type> (_group, "cfp");
+            IBloom<Type>*      bloom    = StorageTools::singleton().loadBloom<Type>     (_groupBloom,   "bloom");
+            Container<Type>*   cFP      = StorageTools::singleton().loadContainer<Type> (_groupDebloom, "cfp");
 
             /** We build the set of critical false positive kmers. */
             setContainer (new debruijn::impl::ContainerNode<Type> (bloom, cFP));
@@ -707,11 +766,11 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
 
         case DEBLOOM_CASCADING:
         {
-            Bloom<Type>*     bloom   = StorageTools::singleton().loadBloom<Type>     (_group, "bloom");
-            Bloom<Type>*     bloom2  = StorageTools::singleton().loadBloom<Type>     (_group, "bloom2");
-            Bloom<Type>*     bloom3  = StorageTools::singleton().loadBloom<Type>     (_group, "bloom3");
-            Bloom<Type>*     bloom4  = StorageTools::singleton().loadBloom<Type>     (_group, "bloom4");
-            Container<Type>* cFP     = StorageTools::singleton().loadContainer<Type> (_group, "cfp");
+            IBloom<Type>*     bloom   = StorageTools::singleton().loadBloom<Type>     (_groupBloom,   "bloom");
+            IBloom<Type>*     bloom2  = StorageTools::singleton().loadBloom<Type>     (_groupDebloom, "bloom2");
+            IBloom<Type>*     bloom3  = StorageTools::singleton().loadBloom<Type>     (_groupDebloom, "bloom3");
+            IBloom<Type>*     bloom4  = StorageTools::singleton().loadBloom<Type>     (_groupDebloom, "bloom4");
+            Container<Type>*  cFP     = StorageTools::singleton().loadContainer<Type> (_groupDebloom, "cfp");
 
             /** We build the set of critical false positive kmers. */
             setContainer (new debruijn::impl::ContainerNodeCascading<Type> (bloom, bloom2, bloom3, bloom4, cFP));

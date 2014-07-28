@@ -101,6 +101,8 @@ public:
     const char* version        ()  { return "-version";        }
     const char* bloom_type     ()  { return "-bloom";          }
     const char* debloom_type   ()  { return "-debloom";        }
+    const char* branching_type ()  { return "-branching-nodes";}
+    const char* uri_solid_kmers()  { return "-solid-kmers-out";    }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -135,6 +137,8 @@ public:
 #define STR_VERSION             gatb::core::tools::misc::StringRepository::singleton().version ()
 #define STR_BLOOM_TYPE          gatb::core::tools::misc::StringRepository::singleton().bloom_type()
 #define STR_DEBLOOM_TYPE        gatb::core::tools::misc::StringRepository::singleton().debloom_type()
+#define STR_BRANCHING_TYPE      gatb::core::tools::misc::StringRepository::singleton().branching_type()
+#define STR_URI_SOLID_KMERS     gatb::core::tools::misc::StringRepository::singleton().uri_solid_kmers()
 
 /********************************************************************************/
 

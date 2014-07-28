@@ -74,6 +74,21 @@ BankConverterAlgorithm::BankConverterAlgorithm (IBank* bank,  size_t kmerSize, c
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+BankConverterAlgorithm::BankConverterAlgorithm (tools::storage::impl::Storage& storage)
+: Algorithm ("bankconverter"), _bankInput(0), _bankOutput(0)
+{
+    string xmlString = storage(this->getName()).getProperty ("xml");
+    stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 BankConverterAlgorithm::~BankConverterAlgorithm ()
 {
     setBankInput  (0);

@@ -17,61 +17,84 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/** \file BankConverterAlgorithm.hpp
+/** \file BloomAlgorithm.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Bank conversion from one IBank to another IBank
+ *  \brief Bloom algorithm, ie. compute a Bloom filter from a set of reads
  */
 
-#ifndef _BANK_CONVERTER_ALGORITHM_HPP_
-#define _BANK_CONVERTER_ALGORITHM_HPP_
+#ifndef _BLOOM_ALGORITHM_HPP_
+#define _BLOOM_ALGORITHM_HPP_
 
 /********************************************************************************/
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
-#include <gatb/bank/api/IBank.hpp>
+
+#include <gatb/kmer/impl/Model.hpp>
+#include <gatb/tools/collections/impl/Bloom.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
+
+#include <string>
 
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
-namespace bank      {
+namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-class BankConverterAlgorithm : public gatb::core::tools::misc::impl::Algorithm
+template<size_t span=KMER_DEFAULT_SPAN>
+class BloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
-    /** */
-    BankConverterAlgorithm (IBank* bank, size_t kmerSize, const std::string& outputUri);
+    /** Shortcuts. */
+    typedef typename kmer::impl::Kmer<span>::Model Model;
+    typedef typename kmer::impl::Kmer<span>::Type  Type;
+    typedef typename kmer::impl::Kmer<span>::Count Count;
 
     /** */
-    BankConverterAlgorithm (tools::storage::impl::Storage& storage);
+    BloomAlgorithm (
+        tools::storage::impl::Storage&       storage,
+        tools::collections::Iterable<Count>* solidIterable,
+        size_t                               kmerSize,
+        float                                nbitsPerKmer,
+        size_t                               nb_cores = 0,
+        tools::misc::BloomKind               bloomKind = tools::misc::BLOOM_DEFAULT,
+        tools::misc::IProperties*            options    = 0
+    );
 
     /** */
-    ~BankConverterAlgorithm ();
+    BloomAlgorithm (tools::storage::impl::Storage& storage);
+
+    /** */
+    ~BloomAlgorithm ();
 
     /** */
     void execute ();
 
-    /** */
-    IBank* getResult ()  { return _bankOutput; }
-
 private:
 
-    IBank*      _bankInput;
-    void setBankInput (IBank* bankInput)  { SP_SETATTR(bankInput); }
+    /** */
+    size_t _kmerSize;
 
-    IBank*      _bankOutput;
-    void setBankOutput (IBank* bankOutput)  { SP_SETATTR(bankOutput); }
+    /** */
+    float _nbitsPerKmer;
 
-    std::string _outputUri;
+    /** */
+    tools::misc::BloomKind _bloomKind;
+
+    /** */
+    tools::storage::impl::Storage& _storage;
+
+    /** */
+    tools::collections::Iterable<Count>* _solidIterable;
+    void setSolidIterable (tools::collections::Iterable<Count>* solidIterable)  {  SP_SETATTR(solidIterable); }
 };
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _BANK_CONVERTER_ALGORITHM_HPP_ */
+#endif /* _BLOOM_ALGORITHM_HPP_ */
 
