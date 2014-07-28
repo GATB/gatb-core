@@ -83,7 +83,7 @@ public:
         max_nb_elem = (u_int64_t) (0.8*sizeMB*1024LL*1024LL /sizeof(cell));
         datah       = (cell_ptr_t *) _memory.malloc( tai * sizeof(cell_ptr_t));  //create hashtable
 
-		printf("Hash16 size asked in MB %zu  tai_Hash16 %i  nb entries %llu \n",sizeMB,tai_Hash16,tai);
+		//printf("Hash16 size asked in MB %zu  tai_Hash16 %i  nb entries %llu \n",sizeMB,tai_Hash16,tai);
 
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
