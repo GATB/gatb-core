@@ -8,9 +8,21 @@ SET (KSIZE_2  "64")
 SET (KSIZE_3  "96")
 SET (KSIZE_4 "128")
 
-# Users can overwrite the default fourth value
-IF (kmax)
-    SET (KSIZE_4 ${kmax})
+# Users can overwrite the fourth value
+IF (k1)
+    SET (KSIZE_1 ${k1})
+ENDIF()
+
+IF (k2)
+    SET (KSIZE_2 ${k2})
+ENDIF()
+
+IF (k3)
+    SET (KSIZE_3 ${k3})
+ENDIF()
+
+IF (k4)
+    SET (KSIZE_4 ${k4})
 ENDIF()
 
 MESSAGE ("-- SUPPORTED KMER SIZES ARE ${KSIZE_1} ${KSIZE_2} ${KSIZE_3} ${KSIZE_4}")
