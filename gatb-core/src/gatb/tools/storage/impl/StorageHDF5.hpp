@@ -224,6 +224,13 @@ private:
         }
 
         /** */
+        ~GroupHDF5()
+        {
+            /** We release the group handle. */
+            H5Gclose(_groupId);
+        }
+
+        /** */
         void addProperty (const std::string& key, const std::string value)
         {
             hid_t datatype = H5Tcopy (H5T_C_S1);  H5Tset_size (datatype, H5T_VARIABLE);
