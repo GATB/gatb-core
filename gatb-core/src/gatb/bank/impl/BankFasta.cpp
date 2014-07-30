@@ -758,31 +758,41 @@ void BankFasta::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_i
 *********************************************************************/
 IBank* BankFastaFactory::createBank (const std::string& uri)
 {
-    vector<IBank*> banks;
+    bool isFASTA = false;
 
-    /** We check whether the uri is a "multiple" bank, i.e. a list (comma separated) of FASTA banks URIs. */
-    tools::misc::impl::TokenizerIterator it (uri.c_str(), ",");
-
-    /** We build each FASTA bank object. */
-    for (it.first(); !it.isDone(); it.next())
+    /** We check whether the uri looks like a FASTA bank. */
+    gzFile file = gzopen (uri.c_str(), "r");
+    if (file != 0)
     {
-        banks.push_back (new BankFasta (it.item()));
+        char buffer[256];
+        int res = gzread (file, buffer, sizeof(buffer));
+        if (res > 0)
+        {
+            int i=0;
+            char previous=' ';
+            bool foundStart = false;
+            for (i=0; !foundStart && i<res; i++)
+            {
+                if (buffer[i]=='>' && isspace(previous))    {  foundStart = true;  break; }
+                previous=buffer[i];
+            }
+            if (foundStart)
+            {
+                /** We look for alphanum + space. */
+                bool foundSpace = false;
+                for ( ; !foundSpace && i<res; i++)
+                {
+                         if (  isspace(buffer[i]))  { foundSpace=true; }
+                    else if (! isprint(buffer[i]))  { break; }
+                }
+                isFASTA = foundSpace;
+            }
+        }
+
+        gzclose (file);
     }
 
-    if (banks.size() == 1)
-    {
-        return banks.front ();
-    }
-    else if (banks.size() > 1)
-    {
-        /** We the composite IBank. */
-
-        return new BankComposite (banks);
-    }
-    else
-    {
-        throw Exception ("BAD URI '%s'", uri.c_str());
-    }
+    return (isFASTA ? new BankFasta (uri) : NULL);
 }
 
 /********************************************************************************/

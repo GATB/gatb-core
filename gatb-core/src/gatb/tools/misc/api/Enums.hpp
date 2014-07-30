@@ -33,6 +33,29 @@ namespace tools     {
 namespace misc      {
 /********************************************************************************/
 
+enum BankConvertKind  {  BANK_CONVERT_NONE, BANK_CONVERT_TMP, BANK_CONVERT_KEEP };
+
+static void parse (const std::string& s, BankConvertKind& kind)
+{
+         if (s == "none")   { kind = BANK_CONVERT_NONE;  }
+    else if (s == "tmp")    { kind = BANK_CONVERT_TMP;  }
+    else if (s == "keep")   { kind = BANK_CONVERT_KEEP;  }
+    else   { throw system::Exception ("bad bank convert kind '%s'", s.c_str()); }
+}
+
+static const char* toString (BankConvertKind kind)
+{
+    switch (kind)
+    {
+        case BANK_CONVERT_NONE:     return "none";
+        case BANK_CONVERT_TMP:      return "tmp";
+        case BANK_CONVERT_KEEP:     return "keep";
+        default:        throw system::Exception ("bad bank convert kind %d", kind);
+    }
+}
+
+/********************************************************************************/
+
 enum BloomKind  {  BLOOM_NONE, BLOOM_BASIC, BLOOM_CACHE, BLOOM_DEFAULT };
 
 static void parse (const std::string& s, BloomKind& kind)

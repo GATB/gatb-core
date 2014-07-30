@@ -851,9 +851,10 @@ private:
     tools::misc::impl::Properties _info;
 
     /** */
-    tools::misc::BloomKind     _bloomKind;
-    tools::misc::DebloomKind   _debloomKind;
-    tools::misc::BranchingKind _branchingKind;
+    tools::misc::BankConvertKind _bankConvertKind;
+    tools::misc::BloomKind       _bloomKind;
+    tools::misc::DebloomKind     _debloomKind;
+    tools::misc::BranchingKind   _branchingKind;
 
     State _state;
 

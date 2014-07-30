@@ -59,8 +59,8 @@ static const char* progressFormat1 = "Bank: fasta to binary                  ";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankConverterAlgorithm::BankConverterAlgorithm (IBank* bank,  size_t kmerSize, const std::string& outputUri)
-    : Algorithm ("bankconverter"), _bankInput(0), _bankOutput(0), _outputUri(outputUri)
+BankConverterAlgorithm::BankConverterAlgorithm (tools::misc::BankConvertKind kind, IBank* bank,  size_t kmerSize, const std::string& outputUri)
+    : Algorithm ("bankconverter"), _kind(kind), _bankInput(0), _bankOutput(0), _outputUri(outputUri)
 {
     setBankInput  (bank);
     setBankOutput (new BankBinary (outputUri, kmerSize));
@@ -75,7 +75,7 @@ BankConverterAlgorithm::BankConverterAlgorithm (IBank* bank,  size_t kmerSize, c
 ** REMARKS :
 *********************************************************************/
 BankConverterAlgorithm::BankConverterAlgorithm (tools::storage::impl::Storage& storage)
-: Algorithm ("bankconverter"), _bankInput(0), _bankOutput(0)
+: Algorithm ("bankconverter"), _kind(BANK_CONVERT_NONE), _bankInput(0), _bankOutput(0)
 {
     string xmlString = storage(this->getName()).getProperty ("xml");
     stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
@@ -105,6 +105,13 @@ BankConverterAlgorithm::~BankConverterAlgorithm ()
 *********************************************************************/
 void BankConverterAlgorithm::execute ()
 {
+    /** We may have no conversion at all to do. */
+    if (_kind == BANK_CONVERT_NONE)
+    {
+        setBankOutput (_bankInput);
+        return;
+    }
+
     /** We may have to delete the binary file if it already exists. */
     System::file().remove (_outputUri);
 

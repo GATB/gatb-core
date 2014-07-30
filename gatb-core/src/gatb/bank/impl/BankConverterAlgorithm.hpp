@@ -31,6 +31,7 @@
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
+#include <gatb/tools/misc/api/Enums.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -44,7 +45,7 @@ class BankConverterAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 public:
 
     /** */
-    BankConverterAlgorithm (IBank* bank, size_t kmerSize, const std::string& outputUri);
+    BankConverterAlgorithm (tools::misc::BankConvertKind kind, IBank* bank, size_t kmerSize, const std::string& outputUri);
 
     /** */
     BankConverterAlgorithm (tools::storage::impl::Storage& storage);
@@ -59,6 +60,8 @@ public:
     IBank* getResult ()  { return _bankOutput; }
 
 private:
+
+    tools::misc::BankConvertKind _kind;
 
     IBank*      _bankInput;
     void setBankInput (IBank* bankInput)  { SP_SETATTR(bankInput); }
