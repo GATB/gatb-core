@@ -323,7 +323,7 @@ struct build_visitor : public boost::static_visitor<>    {
         /*                         Bank conversion                  */
         /************************************************************/
         /** We create the binary bank. */
-        BankConverterAlgorithm converter (graph._bankConvertKind, bank, kmerSize, binaryBankUri);
+        BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
         executeAlgorithm (converter, *solidStorage, props, graph._info);
         graph.setState(Graph::STATE_BANKCONVERTER_DONE);
 

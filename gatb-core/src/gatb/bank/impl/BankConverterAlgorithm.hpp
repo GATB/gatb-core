@@ -45,7 +45,7 @@ class BankConverterAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 public:
 
     /** */
-    BankConverterAlgorithm (tools::misc::BankConvertKind kind, IBank* bank, size_t kmerSize, const std::string& outputUri);
+    BankConverterAlgorithm (IBank* bank, size_t kmerSize, const std::string& outputUri);
 
     /** */
     BankConverterAlgorithm (tools::storage::impl::Storage& storage);

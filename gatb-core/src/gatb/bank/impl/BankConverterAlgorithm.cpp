@@ -59,8 +59,8 @@ static const char* progressFormat1 = "Bank: fasta to binary                  ";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankConverterAlgorithm::BankConverterAlgorithm (tools::misc::BankConvertKind kind, IBank* bank,  size_t kmerSize, const std::string& outputUri)
-    : Algorithm ("bankconverter"), _kind(kind), _bankInput(0), _bankOutput(0), _outputUri(outputUri)
+BankConverterAlgorithm::BankConverterAlgorithm (IBank* bank,  size_t kmerSize, const std::string& outputUri)
+    : Algorithm ("bankconverter"), _kind(BANK_CONVERT_TMP), _bankInput(0), _bankOutput(0), _outputUri(outputUri)
 {
     setBankInput  (bank);
     setBankOutput (new BankBinary (outputUri, kmerSize));
