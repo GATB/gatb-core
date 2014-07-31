@@ -773,7 +773,7 @@ IBank* BankFastaFactory::createBank (const std::string& uri)
             bool foundStart = false;
             for (i=0; !foundStart && i<res; i++)
             {
-                if (buffer[i]=='>' && isspace(previous))    {  foundStart = true;  break; }
+                if ((buffer[i]=='>' || buffer[i]=='@')  && isspace(previous))    {  foundStart = true;  break; }
                 previous=buffer[i];
             }
             if (foundStart)

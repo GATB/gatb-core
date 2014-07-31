@@ -130,6 +130,33 @@ IBank* BankRegistery::createBank (const std::string& uri)
     return result;
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+std::string BankRegistery::getType (const std::string& uri)
+{
+    string result = "unknown";
+
+    /** We try to create the bank; if a bank is valid, then we have the factory name. */
+    for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
+    {
+        IBank* bank = it->factory->createBank(uri);
+        if (bank != 0)
+        {
+            result = it->name;
+            delete bank;
+            break;
+        }
+    }
+
+    return result;
+}
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

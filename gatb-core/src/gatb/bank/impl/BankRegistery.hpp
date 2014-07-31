@@ -73,6 +73,11 @@ public:
      * \return the bank handle. */
     IBank* createBank (const std::string& uri);
 
+    /** Get the type of the bank as a string
+     * \param[in] uri : uri of the bank.
+     * \return the bank type as a string. */
+    std::string getType (const std::string& uri);
+
     /** Get a factory for a given name. */
     IBankFactory* getFactory (const std::string& name);
 
