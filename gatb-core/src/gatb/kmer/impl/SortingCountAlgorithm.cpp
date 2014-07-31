@@ -318,7 +318,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     // optimism == 1 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, a k-mer will be seen 'optimism' times
-    int optimism = 1;
+    int optimism = 0; // guarantees always work, above 0 : assumes kmer seen (optimism+1) times (with optim 1  'OAHash: max rehashes..'  happened sometimes)
 
     /** We get some information about the bank. */
     bank->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
