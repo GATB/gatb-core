@@ -757,6 +757,8 @@ public:
         : _iterators(iterators), _currentIdx(0), _currentIt(0), _isDone(true)
     {
         for (size_t i=0; i<_iterators.size(); i++)  { _iterators[i]->use(); }
+
+        _currentIt = _iterators[_currentIdx];
     }
 
     /** Destructor. */
@@ -790,6 +792,11 @@ public:
 
     /** \copydoc Iterator::item */
     Item& item ()  {  return _currentIt->item(); }
+
+    /** IMPORTANT : the Item argument provided to 'setItem' must be the object to be modified by
+     * one of the delegate iterator AND NOT the current item of CompositeIterator. Therefore,
+     * we make point the delegate current item to this provided Item argument. */
+    void setItem (Item& i)  {  _currentIt->setItem (i);  }
 
 private:
 

@@ -482,7 +482,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
 
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                       false,  "31"    ));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE,    "abundance threshold for solid kmers",  false,  "3"     ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BANK_CONVERT_TYPE, "convert the bank ('none', 'bin')",     false,  "tmp"   ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BANK_CONVERT_TYPE, "convert the bank ('none', 'tmp', 'keep')",     false,  "tmp"   ));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,        "output file",                          false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                     false,  "."));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,           "verbosity level",                      false,  "1"));
