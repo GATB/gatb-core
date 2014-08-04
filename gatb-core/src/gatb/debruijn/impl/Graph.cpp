@@ -37,6 +37,7 @@
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
+#include <gatb/kmer/impl/MPHFAlgorithm.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
 
 using namespace std;
@@ -80,9 +81,10 @@ struct GraphData
     typedef typename Kmer<span>::Model Model;
     typedef typename Kmer<span>::Type  Type;
     typedef typename Kmer<span>::Count Count;
+    typedef typename MPHFAlgorithm<span>::MPHF MPHF;
 
     /** Constructor. */
-    GraphData () : _model(0), _solid(0), _container(0), _branching(0) {}
+    GraphData () : _model(0), _solid(0), _container(0), _branching(0), _mphf(0) {}
 
     /** Destructor. */
     ~GraphData ()
@@ -91,15 +93,17 @@ struct GraphData
         setSolid     (0);
         setContainer (0);
         setBranching (0);
+        setMPHF (0);
     }
 
     /** Constructor (copy). */
-    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0)
+    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0), _mphf(0)
     {
         setModel     (d._model);
         setSolid     (d._solid);
         setContainer (d._container);
         setBranching (d._branching);
+        setMPHF (d._mphf);
     }
 
     /** Assignment operator. */
@@ -111,6 +115,7 @@ struct GraphData
             setSolid     (d._solid);
             setContainer (d._container);
             setBranching (d._branching);
+            setMPHF (d._mphf);
         }
         return *this;
     }
@@ -120,12 +125,14 @@ struct GraphData
     Collection<Count>*    _solid;
     IContainerNode<Type>* _container;
     Collection<Count>*    _branching;
+    MPHF*       _mphf;
 
     /** Setters. */
     void setModel       (Model*                 model)      { SP_SETATTR (model);     }
     void setSolid       (Collection<Count>*     solid)      { SP_SETATTR (solid);     }
     void setContainer   (IContainerNode<Type>*  container)  { SP_SETATTR (container); }
     void setBranching   (Collection<Count>*     branching)  { SP_SETATTR (branching); }
+    void setMPHF        (MPHF*           mphf)  { SP_SETATTR (mphf) ;}
 
     /** Shortcut. */
     bool contains (const Type& item)  const  {  return _container->contains (item);  }
@@ -210,6 +217,12 @@ struct configure_visitor : public boost::static_visitor<>    {
             /** We set the branching container. */
             BranchingAlgorithm<span> branching (*storage);
             data.setBranching (branching.getBranchingCollection());
+
+            /** Set the MPHF */
+            MPHFAlgorithm<span> mphf (*storage, sortingCount.getSolidKmers(), kmerSize, "CHANGEME.mphf", 0, true);   /* this constructor should be modified later, when mphf serialization is taken care of */
+            data.setMPHF (mphf.getMPHF());
+
+
         }
     }
 };
@@ -292,6 +305,21 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We check that we got solid kmers. */
         if (sortingCount.getSolidKmers()->getNbItems() == 0)  {  throw "NO SOLID KMERS FOUND...";  }
 
+        /************************************************************/
+        /*                         MPHF                             */
+        // note: theoretically could be done in parallel to debloom, but both tasks may or may not be IO intensive
+        /************************************************************/
+
+        /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
+        MPHFAlgorithm<span> mphf_algo (
+            *graph._storage,
+            sortingCount.getSolidKmers(),
+            kmerSize,
+            "CHANGEME.mphf"
+        );
+        executeAlgorithm (mphf_algo, props, graph._info);
+
+ 
         /************************************************************/
         /*                         Debloom                          */
         /************************************************************/
@@ -2167,6 +2195,36 @@ Nucleotide Graph::getNT (const Node& node, size_t idx) const
 {
     return boost::apply_visitor (getNT_visitor(node,idx),  *(GraphDataVariant*)_variant);
 }
+
+
+
+// I don't understand fully this visitor pattern, was it needed for this method? -r
+struct queryAbundance_visitor : public boost::static_visitor<int>    {
+
+    const Node& node;  size_t idx;
+
+    queryAbundance_visitor (const Node& node) : node(node){}
+
+    template<size_t span>  int operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type  Type;
+        unsigned char res = 0;
+
+        /** We get the specific typed value from the generic typed value. */
+        const Type& nodeVal = node.kmer.get<Type>();
+
+        data._mphf->get(nodeVal, &res);
+        return res;
+    }
+};
+
+
+
+int Graph::queryAbundance (const Node& node) const
+{
+    return boost::apply_visitor (queryAbundance_visitor(node),  *(GraphDataVariant*)_variant);
+}
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

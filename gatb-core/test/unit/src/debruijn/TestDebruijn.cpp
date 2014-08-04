@@ -85,6 +85,7 @@ class TestDebruijn : public Test
 //        CPPUNIT_TEST_GATB (debruijn_test1);
 //        CPPUNIT_TEST_GATB (debruijn_test2);
 
+        CPPUNIT_TEST_GATB (debruijn_mphf);
         CPPUNIT_TEST_GATB (debruijn_test3);
         CPPUNIT_TEST_GATB (debruijn_test4);
         CPPUNIT_TEST_GATB (debruijn_test5);
@@ -772,6 +773,59 @@ public:
         debruijn_mutation_aux (sequences1, ARRAY_SIZE(sequences1), false);
         debruijn_mutation_aux (sequences2, ARRAY_SIZE(sequences2), true);
     }
+
+
+    /********************************************************************************/
+    void debruijn_mphf_aux (const char* sequences[], size_t len, const int abundances[])    
+    {
+        size_t kmerSize = strlen (sequences[0]);
+
+        // We create the graph.
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+
+        Graph::Iterator<Node> it = graph.iterator<Node> ();
+
+        // debugging
+        for (it.first(); !it.isDone(); it.next())
+        {
+            //std::cout << graph.toString (it.item()) << " test printing node abundance " << it.item().abundance << std::endl;
+        }
+
+        for (int i = len-1; i >=  0; i--)
+        {
+            // random access to nodes
+            Node node = graph.buildNode ((char*)sequences[i]);
+            CPPUNIT_ASSERT (graph.toString(node) == sequences[i]);
+            int abundance = graph.queryAbundance(node);
+            //std::cout << graph.toString(node) << " test printing node abundance " << abundance << " expected abundance:" << abundances[i] << std::endl;
+            CPPUNIT_ASSERT (abundance == abundances[i]);
+        }
+
+    }
+
+    /** */
+    void debruijn_mphf ()
+    {
+        const char* sequences1[] =
+        {
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCA",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCC",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCC",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCT",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCT",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCT",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCG",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCG",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCG",
+            "TTGCTCACATGTTCTTTCCTGCGTTATCCCG"
+
+        };
+
+        const int abundances[] = { 1, 2, 2, 3, 3, 3, 4, 4, 4, 4 };
+
+        debruijn_mphf_aux (sequences1, ARRAY_SIZE(sequences1), abundances);
+    }
+
 };
 
 /********************************************************************************/

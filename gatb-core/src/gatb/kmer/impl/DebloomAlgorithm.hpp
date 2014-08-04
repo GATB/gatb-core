@@ -157,7 +157,10 @@ private:
     { _criticalCollection = criticalCollection; }
 
     debruijn::IContainerNode<Type>* _container;
-    void setContainer (debruijn::IContainerNode<Type>* container)  { SP_SETATTR(container); }
+
+    /* used to be named setContainer, I can see why (input is a IContainerNode, whatever that is). But I renamed it for disambiguation, as there
+     * already exists an object named Container, and it's certainly not a Debloom structure */
+    void setDebloomStructures (debruijn::IContainerNode<Type>* container)  { SP_SETATTR(container); }
 
     void createCFP (
         gatb::core::tools::collections::Collection<Type>*  criticalCollection,
@@ -165,7 +168,7 @@ private:
         u_int64_t& totalSize
     );
 
-    void loadContainer (tools::storage::impl::Storage& storage);
+    void loadDebloomStructures (tools::storage::impl::Storage& storage);
 };
 
 /********************************************************************************/

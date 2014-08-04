@@ -191,6 +191,7 @@ private:
             system::impl::System::file().remove (getActualName());
         }
 
+
     private:
         hid_t       _fileId;
         std::string _name;

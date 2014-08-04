@@ -743,6 +743,12 @@ public:
      * \return the wanted nucleotide. */
     kmer::Nucleotide getNT (const Node& node, size_t idx) const;
 
+    /** Return the abundance of a node by querying the perfect hash function 
+     * \param[in] node : the node
+     * \return the abundance */
+    int queryAbundance (const Node& node) const;
+
+
     /**********************************************************************/
     /*                         EDGE METHODS                               */
     /**********************************************************************/

@@ -149,7 +149,7 @@ DebloomAlgorithm<span>::DebloomAlgorithm (tools::storage::impl::Storage& storage
     /** We retrieve the cascading kind from the storage. */
     parse (_criticalCollection->getProperty("kind"), _cascadingKind);
 
-    loadContainer (_storage);
+    loadDebloomStructures (_storage);
 }
 
 /*********************************************************************
@@ -165,7 +165,7 @@ DebloomAlgorithm<span>::~DebloomAlgorithm ()
 {
     setSolidIterable      (0);
     setCriticalCollection (0);
-    setContainer          (0);
+    setDebloomStructures  (0);
 }
 
 /*********************************************************************
@@ -265,7 +265,7 @@ void DebloomAlgorithm<span>::execute ()
     string inputUri  = _debloomUri;
     string outputUri = _debloomUri + "2";
 
-    /** We need a hash that will hold solid kmers. */
+    /** We need a hash table that will hold solid kmers. */
     Hash16<Type> partition (_max_memory);
 
     {
@@ -685,10 +685,10 @@ float DebloomAlgorithm<span>::getNbBitsPerKmer () const
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : used to be named loadContainer but I renamed it for clarity, also conficting name with actual loadContainer for a container
 *********************************************************************/
 template<size_t span>
-void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& storage)
+void DebloomAlgorithm<span>::loadDebloomStructures (tools::storage::impl::Storage& storage)
 {
     switch (_cascadingKind)
     {
@@ -700,7 +700,7 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
             Container<Type>*   cFP      = StorageTools::singleton().loadContainer<Type> (_group, "cfp");
 
             /** We build the set of critical false positive kmers. */
-            setContainer (new debruijn::impl::ContainerNode<Type> (bloom, cFP));
+            setDebloomStructures (new debruijn::impl::ContainerNode<Type> (bloom, cFP));
 
             break;
         }
@@ -714,7 +714,7 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
             Container<Type>* cFP     = StorageTools::singleton().loadContainer<Type> (_group, "cfp");
 
             /** We build the set of critical false positive kmers. */
-            setContainer (new debruijn::impl::ContainerNodeCascading<Type> (bloom, bloom2, bloom3, bloom4, cFP));
+            setDebloomStructures (new debruijn::impl::ContainerNodeCascading<Type> (bloom, bloom2, bloom3, bloom4, cFP));
 
             break;
         }

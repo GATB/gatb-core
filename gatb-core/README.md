@@ -80,4 +80,10 @@ The directory where the project is created has no link to any external resources
 move it anywhere you want.
 
 Such a project can be a start for building applications based on GATB-CORE. 
-        
+
+----------------------------------------------------------------------------------
+# Notes for GATB-core developers
+
+to compile in debug mode, type:
+
+ mkdir build ; cd build && cmake -Ddebug=1 .. && make -j

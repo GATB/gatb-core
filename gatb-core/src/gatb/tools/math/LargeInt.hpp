@@ -465,6 +465,7 @@ private:
 
     // c++ fun fact:
     // "const" will ban the function from being anything which can attempt to alter any member variables in the object.
+    // 2 months later: I don't understand this fun fact anymore. thanks c++.
 };
 
 /********************************************************************************/
