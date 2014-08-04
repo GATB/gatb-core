@@ -52,12 +52,13 @@ template<size_t span>
 BranchingAlgorithm<span>::BranchingAlgorithm (
     const Graph& graph,
     tools::storage::impl::Storage& storage,
+    tools::misc::BranchingKind  kind,
     size_t                      nb_cores,
     tools::misc::IProperties*   options
 )
-    : Algorithm("branching", nb_cores, options), _graph (&graph),  _branchingCollection(0)
+    : Algorithm("branching", nb_cores, options), _graph (&graph),  _storage(storage), _kind(kind), _branchingCollection(0)
 {
-    setBranchingCollection (& storage("graph").getCollection<Count> ("branching"));
+    setBranchingCollection (& storage("branching").getCollection<Count> ("nodes"));
 }
 
 /*********************************************************************
@@ -70,9 +71,12 @@ BranchingAlgorithm<span>::BranchingAlgorithm (
 *********************************************************************/
 template<size_t span>
 BranchingAlgorithm<span>::BranchingAlgorithm (tools::storage::impl::Storage& storage)
-    : Algorithm("branching", 0, 0), _graph(0), _branchingCollection(0)
+    : Algorithm("branching", 0, 0), _graph(0), _storage(storage), _branchingCollection(0)
 {
-    setBranchingCollection (& storage("graph").getCollection<Count> ("branching"));
+    setBranchingCollection (& storage("branching").getCollection<Count> ("nodes"));
+
+    string xmlString = storage(this->getName()).getProperty ("xml");
+    stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
 }
 
 /*********************************************************************
@@ -165,6 +169,9 @@ void BranchingAlgorithm<span>::execute ()
 
     /** We put the kmers into the final bag. */
     _branchingCollection->insert (branchingNodes->data(), branchingNodes->size());
+
+    /** We save the kind in the storage. */
+    _storage(getName()).addProperty ("kind", toString(_kind));
 
     /** We gather the information collected during iteration. */
     for (size_t i=0; i<count.size(); i++)  {  *count += count[i];  }

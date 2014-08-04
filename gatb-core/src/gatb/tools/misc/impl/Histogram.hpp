@@ -50,7 +50,9 @@ class Histogram : public IHistogram, public system::SmartPointer
 public:
 
     /** */
-    Histogram (size_t length, tools::collections::Bag<Entry>* bag) : _length(length), _bag(0)
+    Histogram (size_t length, tools::collections::Bag<Entry>* bag)
+        : _length(length), _cutoff(0), _nbsolids(0),
+          _histogram(0), _histogram_smoothed(0), _bag(0)
     {
         setBag (bag);
 
@@ -74,6 +76,7 @@ public:
     {
         setBag(0);
         system::impl::System::memory().free (_histogram);
+        system::impl::System::memory().free (_histogram_smoothed);
     }
 
     /** */

@@ -76,26 +76,7 @@ public:
         StorageHDF5* storage = dynamic_cast<StorageHDF5*> (ICell::getRoot (parent));
         assert (storage != 0);
 
-        /** We create the instance. */
-        Group* result = new Group (storage->getFactory(), parent, name);
-
-        /** We may need to create the HDF5 group. Empty name means root group, which is constructed by default. */
-        if (name.empty() == false)
-        {
-            std::string actualName = result->getFullId('/');
-
-            /** We create the HDF5 group if needed. */
-            htri_t doesExist = H5Lexists (storage->getId(), actualName.c_str(), H5P_DEFAULT);
-
-            if (doesExist <= 0)
-            {
-                hid_t group = H5Gcreate (storage->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                H5Gclose (group);
-            }
-        }
-
-        /** We return the result. */
-        return result;
+        return new GroupHDF5 (storage, parent, name);
     }
 
     /** */
@@ -151,7 +132,7 @@ private:
         system::ISynchronizer* synchro;
     };
 
-    /** */
+    /************************************************************/
     class StorageHDF5 : public Storage
     {
     public:
@@ -160,16 +141,13 @@ private:
         {
             if (deleteIfExist)  {  system::impl::System::file().remove (getActualName());  }
 
-            std::string usedName;
+            /** We test the actual name exists in filesystem. */
+            bool exists = system::impl::System::file().doesExist(getActualName());
 
-            /** We test the actual name. */
-                 if (system::impl::System::file().doesExist(getActualName()))  { usedName = getActualName(); }
-            else if (system::impl::System::file().doesExist(getName()))        { usedName = getName();       }
-
-            if (usedName.empty()==false)
+            if (exists==true)
             {
                 /** We open the existing file. */
-                _fileId = H5Fopen (usedName.c_str(), H5P_DEFAULT, H5P_DEFAULT);
+                _fileId = H5Fopen (getActualName().c_str(), H5P_DEFAULT, H5P_DEFAULT);
             }
             else
             {
@@ -195,10 +173,124 @@ private:
     private:
         hid_t       _fileId;
         std::string _name;
+        std::string _actualName;
 
-        std::string getActualName () const  { return _name + ".h5"; }
+        /** */
+        std::string getActualName ()
+        {
+            /** We set the actual name at first call. */
+            if (_actualName.empty())
+            {
+                _actualName = _name;
+                /** We check whether the given name has a ".h5" suffix. */
+                if (_name.rfind(".h5") == std::string::npos)  {  _actualName += ".h5";  }
+
+            }
+            return _actualName;
+        }
+
+        /** */
         std::string getName       () const  { return _name;         }
 
+    };
+
+    /************************************************************/
+    class GroupHDF5 : public Group
+    {
+    public:
+        GroupHDF5 (StorageHDF5* storage, ICell* parent, const std::string& name)
+        : Group(storage->getFactory(),parent,name), _groupId(0)
+        {
+            /** We may need to create the HDF5 group. Empty name means root group, which is constructed by default. */
+            if (name.empty() == false)
+            {
+                std::string actualName = this->getFullId('/');
+
+                /** We create the HDF5 group if needed. */
+                htri_t doesExist = H5Lexists (storage->getId(), actualName.c_str(), H5P_DEFAULT);
+
+                if (doesExist <= 0)
+                {
+                    _groupId = H5Gcreate (storage->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                }
+                else
+                {
+                    _groupId = H5Gopen2 (storage->getId(), actualName.c_str(), H5P_DEFAULT);
+                }
+            }
+            else
+            {
+                _groupId = H5Gopen2 (storage->getId(), "/", H5P_DEFAULT);
+            }
+        }
+
+        /** */
+        ~GroupHDF5()
+        {
+            /** We release the group handle. */
+            H5Gclose(_groupId);
+        }
+
+        /** */
+        void addProperty (const std::string& key, const std::string value)
+        {
+            hid_t datatype = H5Tcopy (H5T_C_S1);  H5Tset_size (datatype, H5T_VARIABLE);
+
+            hsize_t dims = 1;
+            hid_t space_id = H5Screate_simple (1, &dims, NULL);
+
+            /** We create the attribute. */
+            hid_t attrId = H5Acreate2 (_groupId, key.c_str(), datatype,  space_id, H5P_DEFAULT, H5P_DEFAULT);
+            if (attrId >= 0)
+            {
+                /** We write the data. */
+                const char* array[] = { value.c_str() };
+                H5Awrite (attrId, datatype, &array);
+
+                /** We close resources. */
+                H5Aclose (attrId);
+                H5Tclose (datatype);
+                H5Sclose (space_id);
+            }
+        }
+
+        /** */
+        std::string getProperty (const std::string& key)
+        {
+            std::string result;
+            herr_t status;
+
+            hid_t datatype = H5Tcopy (H5T_C_S1);  H5Tset_size (datatype, H5T_VARIABLE);
+
+            hid_t attrId = H5Aopen (_groupId, key.c_str(), H5P_DEFAULT);
+            if (attrId >= 0)
+            {
+                hid_t space_id = H5Aget_space (attrId);
+
+                hsize_t dims = 1;
+                H5Sget_simple_extent_dims (space_id, &dims, NULL);
+                char** rdata = (char **) malloc (dims * sizeof (char *));
+
+                status = H5Aread (attrId, datatype, rdata);
+
+                /** We set the result. */
+                result.assign (rdata[0]);
+
+                /** We release buffers. */
+                status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
+                free (rdata);
+
+                /** We close resources. */
+                H5Aclose (attrId);
+                H5Tclose (datatype);
+                H5Sclose (space_id);
+            }
+
+            return result;
+        }
+
+    private:
+        hid_t _groupId;
     };
 };
 

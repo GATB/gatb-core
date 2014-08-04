@@ -499,23 +499,23 @@ private:
  * This iterator iterates a referred iterator and will filter out some items according
  * to a functor provided at construction.
  */
-template <class Item, typename Filter> class FilterIterator : public Iterator<Item>
+template <class Item, typename Filter> class FilterIterator : public ISmartIterator<Item>
 {
 public:
 
     /** Constructor.
      * \param[in] ref : the referred iterator
      * \param[in] filter : the filter on items. Returns true if item is kept, false otherwise. */
-    FilterIterator (Iterator<Item>* ref, Filter filter) : _ref(0), _filter(filter)  { setRef(ref); }
+    FilterIterator (Iterator<Item>* ref, Filter filter) : _ref(0), _filter(filter), _rank(0)  { setRef(ref); }
 
     /** Destructor. */
     ~FilterIterator ()  { setRef(0); }
 
     /** \copydoc  Iterator::first */
-    void first() { _ref->first(); while (!isDone() && _filter(item())==false) { _ref->next(); }  }
+    void first() { _rank=0; _ref->first(); while (!isDone() && _filter(item())==false) { _ref->next(); }  }
 
     /** \copydoc  Iterator::next */
-    void next()  { _ref->next();  while (!isDone() && _filter(item())==false) { _ref->next(); }  }
+    void next()  { _rank++; _ref->next();  while (!isDone() && _filter(item())==false) { _ref->next(); }  }
 
     /** \copydoc  Iterator::isDone */
     bool isDone() { return _ref->isDone();  }
@@ -526,12 +526,16 @@ public:
     /** \copydoc  Iterator::setItem */
     void setItem (Item& i)  { _ref->setItem(i); }
 
+    u_int64_t size () const  { return 0; }
+    u_int64_t rank () const  { return _rank; }
+
 private:
 
     Iterator<Item>* _ref;
     void setRef (Iterator<Item>* ref)  { SP_SETATTR(ref); }
 
-    Filter         _filter;
+    Filter      _filter;
+    u_int64_t  _rank;
 };
 
 /********************************************************************************/
@@ -753,6 +757,8 @@ public:
         : _iterators(iterators), _currentIdx(0), _currentIt(0), _isDone(true)
     {
         for (size_t i=0; i<_iterators.size(); i++)  { _iterators[i]->use(); }
+
+        _currentIt = _iterators[_currentIdx];
     }
 
     /** Destructor. */
@@ -786,6 +792,11 @@ public:
 
     /** \copydoc Iterator::item */
     Item& item ()  {  return _currentIt->item(); }
+
+    /** IMPORTANT : the Item argument provided to 'setItem' must be the object to be modified by
+     * one of the delegate iterator AND NOT the current item of CompositeIterator. Therefore,
+     * we make point the delegate current item to this provided Item argument. */
+    void setItem (Item& i)  {  _currentIt->setItem (i);  }
 
 private:
 

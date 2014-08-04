@@ -61,6 +61,7 @@ class TestBank : public Test
 
         CPPUNIT_TEST_GATB (bank_checkSample1);
         CPPUNIT_TEST_GATB (bank_checkSample2);
+        CPPUNIT_TEST_GATB (bank_checkSample3);
         CPPUNIT_TEST_GATB (bank_checkComments);
         CPPUNIT_TEST_GATB (bank_checkBadUri);
         CPPUNIT_TEST_GATB (bank_checkSize);
@@ -79,6 +80,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_album2);
         CPPUNIT_TEST_GATB (bank_iteration);
         CPPUNIT_TEST_GATB (bank_datalinesize);
+        CPPUNIT_TEST_GATB (bank_registery_types);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -206,6 +208,41 @@ public:
     {
         /** We launch the test with uncompressed sample bank. */
         bank_checkSample2_aux (DBPATH("sample2.fa"));
+    }
+
+    /********************************************************************************/
+    void bank_checkSample3_aux (const string& filename)
+    {
+        /** We check that the bank exists. */
+        CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
+
+        /** We declare a Bank instance. */
+        IBank* bank = BankRegistery::singleton().createBank(filename);
+        CPPUNIT_ASSERT (bank != NULL);
+        LOCAL (bank);
+
+        /** We create an iterator over this bank. */
+        Iterator<Sequence>* it = bank->iterator();
+        CPPUNIT_ASSERT (it != NULL);
+        LOCAL (it);
+
+        size_t nbSeq=0;
+
+        /** We loop over sequences. */
+        for (it->first(); !it->isDone(); it->next(), nbSeq++)
+        {
+            CPPUNIT_ASSERT (it->item().getDataSize() > 0);
+        }
+
+        /** We check that we read exactly N sequences. */
+        CPPUNIT_ASSERT (nbSeq == 7);
+    }
+    /********************************************************************************/
+    void bank_checkSample3 ()
+    {
+        /** We launch the test with fastq banks. */
+        bank_checkSample3_aux (DBPATH("sample.fastq"));
+        bank_checkSample3_aux (DBPATH("sample.fastq.gz"));
     }
 
     /********************************************************************************/
@@ -613,6 +650,7 @@ public:
     {
         /** We get the default factory. */
         IBankFactory* factory = BankRegistery::singleton().getFactory (bankformat);
+        CPPUNIT_ASSERT (factory != 0);
 
         /** We create a bank handle. */
         IBank* bank = factory->createBank (DBPATH(bankuri));
@@ -944,6 +982,19 @@ public:
             bank_datalinesize_aux (sequence, dataLineSizeTable[i]);
         }
     }
+
+    /********************************************************************************/
+    void bank_registery_types (void)
+    {
+        IBank* bank1 = BankRegistery::singleton().createBank (DBPATH("sample1.fa"));
+        CPPUNIT_ASSERT (bank1 != 0);
+        LOCAL (bank1);
+
+        CPPUNIT_ASSERT (BankRegistery::singleton().getType(DBPATH("album.txt"))    == "album");
+        CPPUNIT_ASSERT (BankRegistery::singleton().getType(DBPATH("sample1.fa"))   == "fasta");
+        CPPUNIT_ASSERT (BankRegistery::singleton().getType(DBPATH("sample.fastq")) == "fasta");
+    }
+
 };
 
 /********************************************************************************/

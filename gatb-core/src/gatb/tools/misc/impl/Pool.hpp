@@ -43,7 +43,7 @@ namespace impl      {
  * \brief Cette class dÈfinit une pool memoire pour allocation rapide de la table de hachage utilisee quand seed >14
  */
 
-template <typename graine_type>  class Pool
+template <typename graine_type, typename value_type=int>  class Pool
 {
 public:
 
@@ -53,7 +53,7 @@ public:
     {
         graine_type graine;
         cell_ptr_t  suiv;
-        int val;
+        value_type val;
     };
 
     /** Default constructor.

@@ -24,7 +24,9 @@
  *
  *  This file holds interfaces related to the Collection, Group, Partition, Factory interfaces.
  *
- *  TODO: indicate whether Storage.hpp is dealing with objects on disk, on memory, or both
+ *  I believe this deals with both on-disk and in-memory structures.. (from discussions with Erwan)
+ *  So if you're looking at this file to figure out whether a Collection/Group/Partition is stored on
+ *  disk or on memory, look elsewhere!
  */
 
 #ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HPP_
@@ -156,6 +158,12 @@ public:
 
     /** */
     void remove ();
+
+    /** */
+    virtual void addProperty (const std::string& key, const std::string value) { /*throw system::ExceptionNotImplemented ();*/ }
+
+    /** */
+    virtual std::string getProperty (const std::string& key)  { return "?"; /*throw system::ExceptionNotImplemented ();*/  }
 
 protected:
 

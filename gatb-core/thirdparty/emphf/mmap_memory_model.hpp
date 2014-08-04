@@ -141,8 +141,7 @@ namespace emphf {
             {
                 using std::swap;
 
-                //const size_t memory = 512 * 1024 * 1024;
-                const size_t memory = 10 * 1024; // FIXME
+                const size_t memory = 512 * 1024 * 1024; // maybe TODO make that a param as it contorls memory usage
                 auto len = (size_t)std::distance(begin, end);
 
                 if (len * sizeof(value_type) <= memory) {

@@ -20,6 +20,7 @@
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/Tokenizer.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/system/impl/System.hpp>
 
 #include <stdarg.h>
@@ -126,11 +127,16 @@ int OptionsParser::push_back (Option* option)
     return _options.size();
 }
 
-	
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
 int OptionsParser::remove (const char * label)
 {
-
-	
     for (std::list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
     {
 		if(  ! strcmp ((*it)->getLabel().c_str(), label) )
@@ -141,10 +147,8 @@ int OptionsParser::remove (const char * label)
 		
     }
 	return _options.size();
-
 }
 
-	
 /*********************************************************************
  ** METHOD  :
  ** PURPOSE :
@@ -246,7 +250,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
             giveToNoOption (txt);
 #else
             /** Unknown option => add it to the warning list. */
-            _warnings.push_back (txt);
+            _warnings.push_back (tools::misc::impl::Stringify::format("Unknown '%s'", txt));
 #endif
         }
     }
@@ -261,6 +265,9 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
 
     /** We may launch an exception if needed. */
     if (!_errors.empty())   {  throw OptionFailure (*this);  }
+
+    /** We may launch an exception if needed. */
+    //if (!_warnings.empty())   {  throw OptionFailure (*this);  }
 
     /** We fill the properties. */
     buildProperties ();

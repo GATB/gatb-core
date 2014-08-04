@@ -38,7 +38,7 @@ int main (int argc, char* argv[])
         u_int64_t maxDbSize = options->getInt(STR_MAX_INPUT_SIZE);
 
         // We declare an input Bank
-        IBank* inputBank = BankRegistery::singleton().getFactory()->createBank (options->getStr(STR_URI_INPUT));
+        IBank* inputBank = BankRegistery::singleton().createBank (options->getStr(STR_URI_INPUT));
         LOCAL (inputBank);
 
         // We get the basename of the input bank.

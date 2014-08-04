@@ -53,6 +53,7 @@ public:
     BranchingAlgorithm (
         const Graph& graph,
         tools::storage::impl::Storage& storage,
+        tools::misc::BranchingKind  kind,
         size_t                      nb_cores = 0,
         tools::misc::IProperties*   options  = 0
     );
@@ -72,6 +73,10 @@ public:
 private:
 
     const Graph* _graph;
+
+    tools::storage::impl::Storage& _storage;
+
+    tools::misc::BranchingKind  _kind;
 
     tools::collections::Collection<Count>* _branchingCollection;
     void setBranchingCollection (tools::collections::Collection<Count>* branchingCollection)  {  SP_SETATTR(branchingCollection); }

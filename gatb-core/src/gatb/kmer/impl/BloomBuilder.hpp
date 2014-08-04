@@ -64,7 +64,7 @@ public:
     BloomBuilder (
         u_int64_t   bloomSize,
         size_t      nbHash,
-        tools::collections::impl::BloomFactory::Kind   bloomKind = tools::collections::impl::BloomFactory::DEFAULT,
+        tools::misc::BloomKind bloomKind = tools::misc::BLOOM_DEFAULT,
         size_t      nbCores = 0,
 		int		  min_abundance =0
     )
@@ -73,7 +73,7 @@ public:
     }
 
     /** */
-    tools::collections::impl::Bloom<Type>*  build (
+    tools::collections::impl::IBloom<Type>*  build (
         tools::dp::Iterator<Count>* itKmers,
         tools::misc::IProperties* stats=0
     )
@@ -84,7 +84,7 @@ public:
         LOCAL (itKmers);
 
         /** We instantiate the bloom object. */
-        tools::collections::impl::Bloom<Type>* bloom =
+        tools::collections::impl::IBloom<Type>* bloom =
             tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash);
 
         /** We launch the bloom fill. */
@@ -103,7 +103,7 @@ public:
     }
 
     /** */
-    tools::collections::impl::Bloom<Type>*  load (
+    tools::collections::impl::IBloom<Type>*  load (
         tools::collections::Iterable<tools::math::NativeInt8>* bloomIterable,
         tools::misc::IProperties* stats = 0)
     {
@@ -113,7 +113,7 @@ public:
         LOCAL (bloomIterable);
 
         /** We instantiate the bloom object. */
-        tools::collections::impl::Bloom<Type>* bloom =
+        tools::collections::impl::IBloom<Type>* bloom =
             tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash);
 
         /** We set the bloom with the provided array given as an iterable of NativeInt8 objects. */
@@ -139,15 +139,15 @@ private:
     size_t    _nbCores;
 	int _min_abundance;
 	
-    tools::collections::impl::BloomFactory::Kind _bloomKind;
+    tools::misc::BloomKind _bloomKind;
 
     /********************************************************************************/
     class BuildKmerBloom
     {
     public:
         void operator() (const Count& kmer)  { if(kmer.abundance >= _min_abundance)  _bloom.insert(kmer.value); }
-        BuildKmerBloom (tools::collections::impl::Bloom<Type>& bloom, int min_abundance=0)  : _bloom(bloom),_min_abundance(min_abundance)  {}
-        tools::collections::impl::Bloom<Type>& _bloom;
+        BuildKmerBloom (tools::collections::impl::IBloom<Type>& bloom, int min_abundance=0)  : _bloom(bloom),_min_abundance(min_abundance)  {}
+        tools::collections::impl::IBloom<Type>& _bloom;
 		int _min_abundance;
     };
 };

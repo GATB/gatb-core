@@ -74,7 +74,7 @@ public:
     }
 
     /** */
-    template<typename T>  void saveBloom (Group& group, const std::string& name, collections::impl::Bloom<T>* bloom)
+    template<typename T>  void saveBloom (Group& group, const std::string& name, collections::impl::IBloom<T>* bloom)
     {
         collections::Collection<math::NativeInt8>* bloomCollection = & group.getCollection<math::NativeInt8> (name);
 
@@ -85,18 +85,18 @@ public:
 
         bloomCollection->addProperty ("size",    ss1.str());
         bloomCollection->addProperty ("nb_hash", ss2.str());
-        bloomCollection->addProperty ("name",    bloom->getName());
+        bloomCollection->addProperty ("type",    bloom->getName());
     }
 
     /** */
-    template<typename T>  collections::impl::Bloom<T>*  loadBloom (Group& group, const std::string& name)
+    template<typename T>  collections::impl::IBloom<T>*  loadBloom (Group& group, const std::string& name)
     {
         /** We retrieve the raw data buffer for the Bloom filter. */
         tools::collections::Collection<tools::math::NativeInt8>* bloomArray = & group.getCollection<tools::math::NativeInt8> (name);
 
         /** We create the Bloom fiter. */
-        tools::collections::impl::Bloom<T>* bloom = tools::collections::impl::BloomFactory::singleton().createBloom<T> (
-            bloomArray->getProperty("name"),
+        tools::collections::impl::IBloom<T>* bloom = tools::collections::impl::BloomFactory::singleton().createBloom<T> (
+            bloomArray->getProperty("type"),
             bloomArray->getProperty("size"),
             bloomArray->getProperty("nb_hash")
         );

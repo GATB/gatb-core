@@ -21,6 +21,7 @@
 
 #include <gatb/bank/impl/BankFasta.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
+#include <gatb/bank/impl/BankAlbum.hpp>
 
 #include <gatb/system/api/Exception.hpp>
 
@@ -40,14 +41,51 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+BankRegistery::BankRegistery ()
+{
+    /** We register most known factories. */
+    registerFactory ("album",  new BankAlbumFactory());
+    registerFactory ("fasta",  new BankFastaFactory());
+    registerFactory ("binary", new BankBinaryFactory());
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+BankRegistery::~BankRegistery ()
+{
+    for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
+    {
+        (it->factory)->forget ();
+    }
+    _factories.clear();
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void BankRegistery::registerFactory (const std::string& name, IBankFactory* instance)
 {
     /** We look whether the factory is already registered. */
-    std::map <std::string, IBankFactory*>::iterator it = _factories.find (name);
-    if (it == _factories.end())
+    IBankFactory* factory = getFactory (name);
+    if (factory == 0)
     {
-        _factories[name] = instance;
+        _factories.push_back (Entry (name, instance));
         instance->use();
+    }
+    else
+    {
+        throw string("Bank factory ") + name + string (" already registered");
     }
 }
 
@@ -61,14 +99,34 @@ void BankRegistery::registerFactory (const std::string& name, IBankFactory* inst
 *********************************************************************/
 IBankFactory* BankRegistery::getFactory (const std::string& name)
 {
-    IBankFactory* result = 0;
+    for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
+    {
+        if (it->name == name)  { return it->factory; }
+    }
+    return 0;
+}
 
-    if (name.empty())  {  result = _factories[_defaultName]; }
-    else               {  result = _factories[name];         }
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IBank* BankRegistery::createBank (const std::string& uri)
+{
+    DEBUG (("BankRegistery::createBank : %s \n", uri.c_str()));
 
-    if (result == 0)  { throw system::Exception ("Bank factory not registered for name '%s'", name.c_str()); }
+    IBank* result = 0;
+    for (list<Entry>::iterator it = _factories.begin(); result==0 && it != _factories.end(); it++)
+    {
+        result = it->factory->createBank(uri);
+        DEBUG (("   factory '%s' => result=%p \n", it->name.c_str(), result ));
+    }
 
-    /** We return the factory. */
+    if (result == 0) { throw string("Bad bank creation from bank registery"); }
+
     return result;
 }
 
@@ -80,30 +138,23 @@ IBankFactory* BankRegistery::getFactory (const std::string& name)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankRegistery::BankRegistery ()
+std::string BankRegistery::getType (const std::string& uri)
 {
-    /** We register most known factories. */
-    registerFactory ("fasta",  new BankFastaFactory());
-    registerFactory ("binary", new BankBinaryFactory());
+    string result = "unknown";
 
-    /** We set the default one. */
-    _defaultName = "fasta";
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-BankRegistery::~BankRegistery ()
-{
-    for (std::map <std::string, IBankFactory*>::iterator it = _factories.begin (); it != _factories.end(); it++)
+    /** We try to create the bank; if a bank is valid, then we have the factory name. */
+    for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
     {
-        (it->second)->forget ();
+        IBank* bank = it->factory->createBank(uri);
+        if (bank != 0)
+        {
+            result = it->name;
+            delete bank;
+            break;
+        }
     }
+
+    return result;
 }
 
 /********************************************************************************/

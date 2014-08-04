@@ -31,7 +31,7 @@
 #include <gatb/bank/api/IBank.hpp>
 
 #include <string>
-#include <map>
+#include <list>
 
 /********************************************************************************/
 namespace gatb      {
@@ -40,7 +40,21 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief TBD
+/** \brief Class providing factories for building IBank objects.
+ *
+ * This class registers IBankFactory instances, which allows to create IBank objects
+ * through a call to 'createBank'.
+ *
+ * Today, the following factories are registered:
+ *  1) BankAlbumFactory
+ *  2) BankFastaFactory
+ *  3) BankBinaryFactory
+ *
+ * During a call to 'createBank', each factory is tried (in the order of registration)
+ * until a correct IBank object is returned; if no valid IBank is found, an exception
+ * is thrown.
+ *
+ * This class is a Singleton (private constructor) and must be used only this way.
  */
 class BankRegistery
 {
@@ -49,28 +63,42 @@ public:
     /** Singleton instance. */
     static BankRegistery& singleton()  { static BankRegistery instance; return instance; }
 
-    /** */
+    /** Register a new factory, associated with a name.
+     * \param[in] name : name of the factory
+     * \param[in] instance : IBank factory */
     void registerFactory (const std::string& name, IBankFactory* instance);
-
-    /** */
-    IBankFactory* getFactory (const std::string& name = "");
 
     /** Get a bank handle.
      * \param[in] uri : uri of the bank.
      * \return the bank handle. */
-    IBank* createBank (const std::string& uri)  {  return getFactory()->createBank(uri);  }
+    IBank* createBank (const std::string& uri);
+
+    /** Get the type of the bank as a string
+     * \param[in] uri : uri of the bank.
+     * \return the bank type as a string. */
+    std::string getType (const std::string& uri);
+
+    /** Get a factory for a given name. */
+    IBankFactory* getFactory (const std::string& name);
 
 private:
 
     /** Private due to singleton method. */
     BankRegistery ();
 
-    /** */
+    /** Destructor. */
     ~BankRegistery ();
 
-    std::map <std::string, IBankFactory*> _factories;
+    /** The order of registration is important, so we can't rely on a map and have to use
+     * a list of Entry (equivalent to <key,value> of a map). */
+    struct Entry
+    {
+        Entry (const std::string& name, IBankFactory* factory) : name(name), factory(factory) {}
+        std::string   name;
+        IBankFactory* factory;
+    };
 
-    std::string _defaultName;
+    std::list<Entry> _factories;
 };
 
 /********************************************************************************/

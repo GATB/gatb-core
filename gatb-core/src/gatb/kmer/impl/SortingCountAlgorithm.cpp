@@ -23,6 +23,7 @@
 
 //#define PROTO_COMP
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 #include <cmath>
 
 #define DEBUG(a)  //printf a
@@ -150,8 +151,13 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _histogram (0), _histogramUri(""),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidKmers(0)
 {
+    Group& group = storage(this->getName());
+
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& (storage)("dsk").getCollection<Count> ("solid"));
+    setSolidKmers (& group.getCollection<Count> ("solid"));
+
+    string xmlString = group.getProperty ("xml");
+    stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
 }
 
 /*********************************************************************
@@ -293,8 +299,8 @@ void SortingCountAlgorithm<span>::execute ()
 
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 
-    /** We save (as metadata) the sorting count information into the solid collection. */
-    _solidKmers->addProperty ("properties", getInfo()->getXML());
+    /** We save (as metadata) some information. */
+    (*_storage)("dsk").addProperty ("kmer_size", Stringify::format("%d", _kmerSize));
 }
 
 /*********************************************************************
@@ -312,7 +318,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     // optimism == 1 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, a k-mer will be seen 'optimism' times
-    int optimism = 1;
+    int optimism = 0; // guarantees always work, above 0 : assumes kmer seen (optimism+1) times (with optim 1  'OAHash: max rehashes..'  happened sometimes)
 
     /** We get some information about the bank. */
     bank->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);

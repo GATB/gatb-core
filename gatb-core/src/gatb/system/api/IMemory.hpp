@@ -41,13 +41,19 @@ namespace system    {
 /********************************************************************************/
 
 /** \brief enumeration defining memory units */
-enum MemoryUnit
-{
-    KBYTE = (1ULL << 10),
-    MBYTE = (1ULL << 20),
-    GBYTE = (1ULL << 30)
-};
-
+//enum MemoryUnit
+//{
+//    KBYTE = (1ULL << 10),
+//    MBYTE = (1ULL << 20),
+//    GBYTE = (1ULL << 30)
+//};
+	
+//GR : enum type is int (caused dsk bug) , switching to u_int64_t
+	
+	const   u_int64_t  KBYTE = (1ULL << 10);
+	const   u_int64_t  MBYTE = (1ULL << 20);
+	const   u_int64_t  GBYTE = (1ULL << 30);
+	
 /********************************************************************************/
 
 /** \brief Interface providing methods for dynamic allocation.

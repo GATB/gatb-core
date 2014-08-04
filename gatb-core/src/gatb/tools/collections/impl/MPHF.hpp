@@ -231,6 +231,7 @@ template <size_t span, typename ValueType> class MPHF : public system::SmartPoin
         {
             emphf::logger() << "Setting abundances of " << n << " kmers." << std::endl;
             long nb_iterated = 0;
+            long nb_abundances_above_precision = 0;
 
             IteratorCount* itKmers =                   solidIterable->iterator();
 
@@ -246,8 +247,11 @@ template <size_t span, typename ValueType> class MPHF : public system::SmartPoin
                 }
 
                 int abundance = itKmers->item().abundance;
-                if (abundance > 256)
-                    emphf::logger() << "WARNING: a k-mer count above 256 was found" << std::endl;
+                if (abundance > 255)
+                {
+                    nb_abundances_above_precision++;
+                    abundance = 255;
+                }
 
                 //emphf::logger() << "index of kmer " << itKmers->item().value.toString(_kmerSize) << " is " << h << " and setting abundance " << abundance << std::endl;
 
@@ -262,7 +266,8 @@ template <size_t span, typename ValueType> class MPHF : public system::SmartPoin
 
             }
 
-            itKmers =                     solidIterable->iterator()                    ;
+            if (nb_abundances_above_precision > 0)
+                emphf::logger() << "WARNING: " << nb_abundances_above_precision << " k-mer counts were clipped to 255" << std::endl;
 
             nb_iterated = 0;
             // you know what? let's test if the MPHF does not have collisions, it won't hurt.
@@ -306,7 +311,7 @@ template <size_t span, typename ValueType> class MPHF : public system::SmartPoin
     }
 
     /** */
-    bool get (const KmerType& graine, ValueType * val=0)
+    bool get(const KmerType& graine, ValueType * val=0)
     {
         uint64_t index = get_index(graine);
         *val = data[index];
