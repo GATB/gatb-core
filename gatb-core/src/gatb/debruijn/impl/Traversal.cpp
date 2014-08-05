@@ -199,8 +199,6 @@ float Traversal::needleman_wunch (const Path& a, const Path& b)
         score [ii] = (float *) malloc (sizeof(float) * (n_b+1));
     }
 
-   // float score[n_a+1][n_b+1];  //stack is too small
-    // float pointer[n_a+1][n_b+1];
 
     for (int i = 0; i <= n_a; i++)
         score[i][0] = gap_score * i;
@@ -631,6 +629,7 @@ set<Path> MonumentTraversal::all_consensuses_between (
     set<Node::Value> usedNode;
     usedNode.insert(startNode.kmer);
     Path current_consensus;
+    current_consensus.start = startNode;
     success = true;
 
     return all_consensuses_between (dir, startNode, endNode, traversal_depth, usedNode, current_consensus, success);
@@ -683,15 +682,20 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
     if (! all_consensuses_almost_identical(consensuses))
         return false;
 
-    // if all good, an arbitrary consensus is chosen
+    // if all good, an arbitrary consensus is chosen (if no MPHF) or the most abundance one is chosen (if MPHF available)
+    bool has_mphf = (graph.getState() & Graph::STATE_MPHF_DONE);
     Path chosen_consensus = *consensuses.begin();
+    if (has_mphf)
+        chosen_consensus = most_abundant_consensus(consensuses);
+    else
+        chosen_consensus = *consensuses.begin();
+
     int result_length = chosen_consensus.size();
     if  (result_length> max_depth) // it can happen that consensus is longer than max_depth, despite that we didn't explore that far (in a messy bubble with branchings inside)
         return false;
 
     /** We the the result consensus. */
     result = chosen_consensus;
-
     return true;
 }
 
@@ -718,6 +722,60 @@ bool MonumentTraversal::all_consensuses_almost_identical (set<Path>& consensuses
     }
     return true;
 }
+
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
+{
+    int k = graph.getKmerSize();
+    Path res;
+    bool debug = false;
+
+    long best_mean_abundance = 0;
+
+    for (set<Path>::iterator it = consensuses.begin(); it != consensuses.end(); it++)
+    {
+        // iterate over all kmers in consensus and get mean abundance
+        Path p = *it;
+
+        // naive conversion from path to string
+        string p_str = graph.toString(p.start);
+        for (int i = 0; i < p.size(); i++)
+            p_str.push_back(p.ascii(i));
+
+        long mean_abundance = 0;
+        for (size_t i = 0; i < p.size(); i++)
+        {            
+            Node node = graph.buildNode((char *)(p_str.c_str()), i); 
+            /* I know that buildNode was supposed to be used for test purpose only,
+             * but couldn't find anything else to transform my substring into a kmer */
+
+            unsigned char abundance = graph.queryAbundance(node.kmer);
+            mean_abundance += abundance;
+        }
+        mean_abundance /= p.size();
+
+        if (mean_abundance > best_mean_abundance)
+        {
+            best_mean_abundance = mean_abundance;
+            res = p;
+        }
+
+        if (debug && consensuses.size() > 1)
+            printf("path: %s mean abundance: %d\n",p_str.c_str(),mean_abundance);
+    }
+
+    return res;
+}
+
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

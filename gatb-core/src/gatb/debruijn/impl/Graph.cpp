@@ -244,14 +244,14 @@ struct configure_visitor : public boost::static_visitor<>    {
             data.setBranching (algo.getBranchingCollection());
         }
 
-
-            // TODO move that stuff to some Graph::STATE_MPHF_DONE and get solid kmers from storage..
-            //
-            SortingCountAlgorithm<span> algo_sortingcount (storage); // actually need to get solid kmers so i'm calling this as a temporary hack
+        if (graph.getState() & Graph::STATE_MPHF_DONE)
+        {
+            // TODO get solid kmers from storage..
+            SortingCountAlgorithm<span> algo_sortingcount (storage); // actually need to get solid kmers (as a way to reconstruct abundance data in the mphf) so i'm calling this as a temporary hack. later: remove that line, just save/load the MPHF abundance array to disk
             /** Set the MPHF */
             MPHFAlgorithm<span> mphf_algo (storage, algo_sortingcount.getSolidKmers(), kmerSize, "CHANGEME.mphf" /* that's also an obvious temporary hack */, 0, true);   /* this constructor should be modified later, when mphf serialization is taken care of */
             data.setMPHF (mphf_algo.getMPHF());
-
+        }
 
     }
 };
@@ -367,24 +367,25 @@ struct build_visitor : public boost::static_visitor<>    {
         if (sortingCount.getSolidKmers()->getNbItems() == 0)  {  throw "NO SOLID KMERS FOUND...";  }
 
 
-        // TODO put MPHF in its own state
-        //
         /************************************************************/
         /*                         MPHF                             */
         // note: theoretically could be done in parallel to debloom, but both tasks may or may not be IO intensive
         /************************************************************/
 
         /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
-        MPHFAlgorithm<span> mphf_algo (
-            graph.getStorage(),
-            sortingCount.getSolidKmers(),
-            kmerSize,
-            "CHANGEME.mphf"
-        );
-        executeAlgorithm (mphf_algo, graph.getStorage(), props, graph._info);
-        data.setMPHF(mphf_algo.getMPHF());
+        if (graph._mphfKind != MPHF_NONE)
+        {
+            MPHFAlgorithm<span> mphf_algo (
+                    graph.getStorage(),
+                    sortingCount.getSolidKmers(),
+                    kmerSize,
+                    "CHANGEME.mphf"
+                    );
+            executeAlgorithm (mphf_algo, graph.getStorage(), props, graph._info);
+            data.setMPHF(mphf_algo.getMPHF());
+            graph.setState(Graph::STATE_MPHF_DONE);
+        }
 
- 
         /************************************************************/
         /*                         Bloom                            */
         /************************************************************/
@@ -530,6 +531,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,        "bloom type ('basic' or 'cache')",      false, "cache"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,      "debloom type ('none', 'original' or 'cascading')", false, "cascading"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')", false, "stored"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')", false, "emphf"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers ('none' means delete by convention)", false));
 
     return parser;
@@ -595,7 +597,7 @@ Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED)
+      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -658,6 +660,7 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
+    parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -672,7 +675,7 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : this is mostly duplicated code with function above, TODO refactor?
 *********************************************************************/
 Graph::Graph (tools::misc::IProperties* params)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
@@ -687,6 +690,7 @@ Graph::Graph (tools::misc::IProperties* params)
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
+    parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -710,7 +714,7 @@ Graph::Graph ()
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED)
+      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
 {
 }
 
@@ -750,6 +754,7 @@ Graph& Graph::operator= (const Graph& graph)
         _bankConvertKind = graph._bankConvertKind;
         _bloomKind       = graph._bloomKind;
         _debloomKind     = graph._debloomKind;
+        _mphfKind        = graph._mphfKind;
         _branchingKind   = graph._branchingKind;
         _state           = graph._state;
 
