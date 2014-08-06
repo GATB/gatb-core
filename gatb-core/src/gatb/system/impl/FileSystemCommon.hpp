@@ -58,6 +58,10 @@ public:
     {
         _isStdout = path && strcmp(path,"stdout")==0;
         _handle   = _isStdout ? stdout : fopen (path, mode);
+		if(_handle == 0)
+		{
+			throw Exception ("cannot open %s %s",path,strerror(errno));
+		}
     }
 
     /** Destructor. */

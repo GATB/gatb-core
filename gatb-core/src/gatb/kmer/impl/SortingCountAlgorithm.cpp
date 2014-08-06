@@ -480,6 +480,8 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     setPartitionsStorage (StorageFactory(STORAGE_FILE).create ("partitions", true, false));
 #endif
     
+	setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
+
     setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
