@@ -80,7 +80,7 @@ public:
 
         tai         = (1LL << tai_Hash16);
         mask        = tai-1 ;
-        max_nb_elem = (u_int64_t) (0.8*sizeMB*1024LL*1024LL /sizeof(cell));
+        max_nb_elem = (u_int64_t) (0.8*sizeMB*1024LL*1024LL /sizeof(cell)); // indicative , irrelevant
         //datah       = (cell_ptr_t *) _memory.malloc( tai * sizeof(cell_ptr_t));
 		//GR: bug for large values because malloc takes  BlockSize_t (u_int32_t)
 		//switching to calloc to avoid problem temporarily, but BlockSize_t should be changed to u_int64_t ?
@@ -91,6 +91,32 @@ public:
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
 
+	
+	//other creator with directly number of entries wished, return really created in nb_created
+	Hash16 (u_int64_t nb_entries, u_int64_t * nb_created) : datah(0), mask(0), tai(0), nb_elem(0), max_nb_elem(0), _memory(system::impl::System::memory())
+    {
+        int tai_Hash16 = std::max (
+								   (size_t) ceilf (log2f (nb_entries)),
+								   (size_t)1
+								   );
+		
+        /** We check that the provided size is ok. */
+        if (tai_Hash16 > 32)  {  throw system::Exception ("Hash16: max size for this hash is 2^32, but ask for %d", tai_Hash16);   }
+		
+        tai         = (1LL << tai_Hash16);
+        mask        = tai-1 ;
+        max_nb_elem = (u_int64_t) (10 * tai); // indicative
+
+		if(nb_created!= NULL)
+			*nb_created = tai;
+ 		datah       = (cell_ptr_t *) _memory.calloc( tai , sizeof(cell_ptr_t));  //create hashtable
+		
+		//printf("Hash16 size asked in MB %zu  tai_Hash16 %i  nb entries %llu \n",sizeMB,tai_Hash16,tai);
+		
+        _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
+    }
+	
+	
     /** */
     ~Hash16()
     {
