@@ -46,6 +46,9 @@ GetCurrentDate (gatb-core-date)
 ################################################################################
 # We try to find the best compiler config, in particular for C++ extension usage
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    IF(NOT CMAKE_CXX_COMPILER_VERSION) #for old cmakes
+        include(CheckCompiler)
+    ENDIF()
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.5) 
         message ("-------------------------------------------------------------------------------------")
         message ("-- GCC VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
