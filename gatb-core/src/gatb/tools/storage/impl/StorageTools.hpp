@@ -108,11 +108,13 @@ public:
         return bloom;
     }
 
+#ifdef WITH_MPHF
     /** */
     template<typename BaseHasher>   void saveEMPHF (Group& group, const std::string& name, void* mphf);
 
     /** */
     template<typename BaseHasher>     void*  loadEMPHF (Group& group, const std::string& name);
+#endif
 
 };
 

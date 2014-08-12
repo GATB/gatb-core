@@ -102,6 +102,13 @@ if (use_new_cxx)
     set (WITH_LAMBDA_EXPRESSION "1")
     # We add compilation flags to the global flags
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION  ${CXX_STD_VERSION}")
+    # We enable emphf
+    set (WITH_MPHF "1")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
+        message ("-------------------------------------------------------------------------------------")
+        message ("-- WILL COMPILE MPHF! (GCC VERSION IS HIGH ENOUGH) ")
+        message ("-------------------------------------------------------------------------------------")
+ 
 endif()
 
 # In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
@@ -176,7 +183,11 @@ ADD_SUBDIRECTORY(thirdparty)
 #  DEPENDENCIES 
 ################################################################################
 # we must be sure that hdf5 is built and installed before building gatb-core
-ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild emphf_copyasis)
+ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
+
+IF (DEFINED WITH_MPHF)
+    ADD_DEPENDENCIES(gatbcore-static emphf_copyasis)
+ENDIF()
 
 
 ################################################################################

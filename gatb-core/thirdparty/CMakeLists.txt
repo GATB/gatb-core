@@ -48,35 +48,42 @@ endforeach()
 #  EMPHF GENERATION 
 ################################################################################
 
+# TODO: I actually just mimicked hdf5, but I'm not so sure anymore whether
+# this is useful. MPHF is just #include'd, perhaps we can just not copy it? in
+# that case just delete this code
 
-ADD_SUBDIRECTORY (emphf)
+IF (DEFINED WITH_MPHF)
 
-# We add a custom target for copying emphf as it is.
-add_custom_target (emphf_copyasis ALL)
+    ADD_SUBDIRECTORY (emphf)
 
-SET (EMPHF_INSTALL_INCLUDE_DIR
-    ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/emphf)
+    # We add a custom target for copying emphf as it is.
+    add_custom_target (emphf_copyasis ALL)
 
-# We define all the header files to be copied
-file (GLOB headerfiles ${PROJECT_SOURCE_DIR}/thirdparty/emphf/*.hpp
-    ${PROJECT_SOURCE_DIR}/thirdparty/emphf/*.cpp)
+    SET (EMPHF_INSTALL_INCLUDE_DIR
+        ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/emphf)
 
-# create emphf directory
-add_custom_command (TARGET emphf_copyasis COMMAND ${CMAKE_COMMAND} -E
-    make_directory ${EMPHF_INSTALL_INCLUDE_DIR})
+    # We define all the header files to be copied
+    file (GLOB headerfiles ${PROJECT_SOURCE_DIR}/thirdparty/emphf/*.hpp
+        ${PROJECT_SOURCE_DIR}/thirdparty/emphf/*.cpp)
 
-# We copy each header file
-foreach (header ${headerfiles})
-  add_custom_command (TARGET emphf_copyasis 
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header} ${EMPHF_INSTALL_INCLUDE_DIR}  
-    )
-endforeach()
+    # create emphf directory
+    add_custom_command (TARGET emphf_copyasis COMMAND ${CMAKE_COMMAND} -E
+        make_directory ${EMPHF_INSTALL_INCLUDE_DIR})
 
+    # We copy each header file
+    foreach (header ${headerfiles})
+      add_custom_command (TARGET emphf_copyasis 
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header} ${EMPHF_INSTALL_INCLUDE_DIR}  
+        )
+    endforeach()
+ENDIF() # WITH_MPHF
 
 ################################################################################
 #  INSTALL 
 ################################################################################
 IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5 DESTINATION include)
-    INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/emphf DESTINATION include)
+    IF (DEFINED WITH_MPHF)
+        INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/emphf DESTINATION include)
+    ENDIF()
 ENDIF ()

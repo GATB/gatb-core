@@ -1,3 +1,4 @@
+#ifdef WITH_MPHF
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
  *   Copyright (C) 2014  INRIA
@@ -23,6 +24,7 @@
 // for mphf
 #include <iostream>
 #include <fstream>
+
 #include <emphf/common.hpp>
 #include <emphf/mphf.hpp>
 #include <emphf/base_hash.hpp>
@@ -40,7 +42,7 @@ namespace impl      {
 
     template<typename BaseHasher>   void StorageTools::saveEMPHF (Group& group, const std::string& name, void* mphf_void)
     {
-
+#ifdef WITH_MPHF
         // TODO: I couldn't bother converting the ostream returned by mphf to the "collection" of GATB (whatever that is),
         // so I'm hacking my way through
         
@@ -56,7 +58,7 @@ namespace impl      {
         mphf<BaseHasher>* mphf_propercast = static_cast< emphf::mphf<BaseHasher>* >(mphf_void);
         std::ofstream os(name, std::ios::binary);
         mphf_propercast->save(os);
-
+#endif
 
     }
 
@@ -65,13 +67,13 @@ namespace impl      {
     {
         // TODO same as function right above
         //
-
+#ifdef WITH_MPHF
         mphf<BaseHasher> *mphf_propercast = new mphf<BaseHasher>();
         logger() << "Loading mphf from disk" << std::endl;
         std::ifstream is(name, std::ios::binary);
         mphf_propercast->load(is);
         return static_cast<void*>(mphf_propercast);
-
+#endif
     }
 
     // tell compiler to instantiate those templates, else there will be undefined reference problems
@@ -83,4 +85,5 @@ namespace impl      {
 /********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
+#endif 
 

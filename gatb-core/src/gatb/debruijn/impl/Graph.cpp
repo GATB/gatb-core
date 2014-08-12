@@ -39,8 +39,11 @@
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/BloomAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
-#include <gatb/kmer/impl/MPHFAlgorithm.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
+
+#ifdef WITH_MPHF
+#include <gatb/kmer/impl/MPHFAlgorithm.hpp>
+#endif
 
 using namespace std;
 
@@ -83,7 +86,12 @@ struct GraphData
     typedef typename Kmer<span>::Model Model;
     typedef typename Kmer<span>::Type  Type;
     typedef typename Kmer<span>::Count Count;
+#ifdef WITH_MPHF
     typedef typename MPHFAlgorithm<span>::MPHF MPHF;
+#endif
+#ifndef WITH_MPHF
+    #define setMPHF(x) x
+#endif
 
     /** Constructor. */
     GraphData () : _model(0), _solid(0), _container(0), _branching(0), _mphf(0) {}
@@ -127,14 +135,20 @@ struct GraphData
     Collection<Count>*    _solid;
     IContainerNode<Type>* _container;
     Collection<Count>*    _branching;
+#ifdef WITH_MPHF
     MPHF*       _mphf;
+#else
+    void *_mphf;
+#endif
 
     /** Setters. */
     void setModel       (Model*                 model)      { SP_SETATTR (model);     }
     void setSolid       (Collection<Count>*     solid)      { SP_SETATTR (solid);     }
     void setContainer   (IContainerNode<Type>*  container)  { SP_SETATTR (container); }
     void setBranching   (Collection<Count>*     branching)  { SP_SETATTR (branching); }
+#ifdef WITH_MPHF
     void setMPHF        (MPHF*           mphf)  { SP_SETATTR (mphf) ;}
+#endif
 
     /** Shortcut. */
     bool contains (const Type& item)  const  {  return _container->contains (item);  }
@@ -246,11 +260,13 @@ struct configure_visitor : public boost::static_visitor<>    {
 
         if (graph.getState() & Graph::STATE_MPHF_DONE)
         {
+#ifdef WITH_MPHF
             // TODO get solid kmers from storage..
             SortingCountAlgorithm<span> algo_sortingcount (storage); // actually need to get solid kmers (as a way to reconstruct abundance data in the mphf) so i'm calling this as a temporary hack. later: remove that line, just save/load the MPHF abundance array to disk
             /** Set the MPHF */
             MPHFAlgorithm<span> mphf_algo (storage, algo_sortingcount.getSolidKmers(), kmerSize, "CHANGEME.mphf" /* that's also an obvious temporary hack */, 0, true);   /* this constructor should be modified later, when mphf serialization is taken care of */
             data.setMPHF (mphf_algo.getMPHF());
+#endif
         }
 
     }
@@ -375,6 +391,7 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
         if (graph._mphfKind != MPHF_NONE)
         {
+#ifdef WITH_MPHF
             MPHFAlgorithm<span> mphf_algo (
                     graph.getStorage(),
                     sortingCount.getSolidKmers(),
@@ -384,6 +401,7 @@ struct build_visitor : public boost::static_visitor<>    {
             executeAlgorithm (mphf_algo, graph.getStorage(), props, graph._info);
             data.setMPHF(mphf_algo.getMPHF());
             graph.setState(Graph::STATE_MPHF_DONE);
+#endif
         }
 
         /************************************************************/
@@ -2373,8 +2391,9 @@ struct queryAbundance_visitor : public boost::static_visitor<int>    {
 
         /** We get the specific typed value from the generic typed value. */
         const Type& nodeVal = node.kmer.get<Type>();
-
+#ifdef WITH_MPHF
         data._mphf->get(nodeVal, &res);
+#endif
         return res;
     }
 };
