@@ -83,9 +83,9 @@ template<size_t span>
 struct GraphData
 {
     /** Shortcuts. */
-    typedef typename Kmer<span>::Model Model;
-    typedef typename Kmer<span>::Type  Type;
-    typedef typename Kmer<span>::Count Count;
+    typedef typename Kmer<span>::ModelCanonical Model;
+    typedef typename Kmer<span>::Type           Type;
+    typedef typename Kmer<span>::Count          Count;
 #ifdef WITH_MPHF
     typedef typename MPHFAlgorithm<span>::MPHF MPHF;
 #endif
@@ -218,7 +218,7 @@ struct configure_visitor : public boost::static_visitor<>    {
         size_t   kmerSize = graph.getKmerSize();
 
         /** We create the kmer model. */
-        data.setModel (new typename Kmer<span>::Model (kmerSize));
+        data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
         if (graph.getState() & Graph::STATE_BANKCONVERTER_DONE)
         {
@@ -325,7 +325,7 @@ struct build_visitor : public boost::static_visitor<>    {
         ));
 
         /** We create the kmer model. */
-        data.setModel (new typename Kmer<span>::Model (kmerSize));
+        data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
         /** We add library information. */
         graph.getInfo().add (1, & LibraryInfo::getInfo());
@@ -1262,7 +1262,7 @@ struct buildNode_visitor : public boost::static_visitor<Node>    {
     template<size_t span>  Node operator() (const GraphData<span>& graphData) const
     {
         /** Shortcut. */
-        typedef typename Kmer<span>::Model::Kmer Kmer;
+        typedef typename Kmer<span>::ModelCanonical::Kmer Kmer;
 
         Kmer kmer = graphData._model->getKmer (data, offset);
         return Node (Integer(kmer.value()), kmer.forward()==kmer.value() ? STRAND_FORWARD : STRAND_REVCOMP);
@@ -1625,9 +1625,9 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
     template<size_t span>  tools::dp::ISmartIterator<NodeType>* operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::Model Model;
-        typedef typename Kmer<span>::Type  Type;
-        typedef typename Kmer<span>::Count Count;
+        typedef typename Kmer<span>::ModelCanonical Model;
+        typedef typename Kmer<span>::Type           Type;
+        typedef typename Kmer<span>::Count          Count;
 
         class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
@@ -2253,8 +2253,8 @@ struct mutate_visitor : public boost::static_visitor<Graph::Vector<Node> >    {
     template<size_t span>  Graph::Vector<Node> operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::Type Type;
-        typedef typename Kmer<span>::Model Model;
+        typedef typename Kmer<span>::Type           Type;
+        typedef typename Kmer<span>::ModelCanonical Model;
 
         Graph::Vector<Node> result;
         size_t nbMutations = 0;
@@ -2361,7 +2361,7 @@ struct getNT_visitor : public boost::static_visitor<Nucleotide>    {
     template<size_t span>  Nucleotide operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::Model Model;
+        typedef typename Kmer<span>::ModelCanonical Model;
         size_t kmerSize = data._model->getKmerSize();
 
         if (node.strand == STRAND_FORWARD)  { return (Nucleotide) (node.kmer[kmerSize-1-idx]); }

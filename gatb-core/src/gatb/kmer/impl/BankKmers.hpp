@@ -143,7 +143,7 @@ public:
     tools::dp::Iterator<bank::Sequence>* iterator ()  { return new Iterator (*this); }
 
 private:
-    Kmer<>::Model _model;
+    Kmer<>::ModelCanonical _model;
     u_int64_t              _totalNumber;
 
     friend class Iterator;

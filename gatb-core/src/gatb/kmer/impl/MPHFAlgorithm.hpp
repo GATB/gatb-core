@@ -55,7 +55,7 @@ public:
     typedef unsigned char mphf_abundance_t;
 
     /** Shortcuts. */
-    typedef typename kmer::impl::Kmer<span>::Model Model;
+    typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
     typedef typename kmer::impl::Kmer<span>::Type  Type;
     typedef typename kmer::impl::Kmer<span>::Count Count;
     typedef typename gatb::core::tools::collections::impl::MPHF<span, mphf_abundance_t> MPHF;
