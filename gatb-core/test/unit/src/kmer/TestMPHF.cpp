@@ -112,15 +112,15 @@ public:
         
         CPPUNIT_ASSERT (mphf_class->getSize() == 130);
        
-        typedef typename Kmer<32>::Model Model;
-        typedef typename Kmer<32>::Type  Type;
+        typedef typename Kmer<32>::ModelCanonical       Model;
+        typedef typename Kmer<32>::ModelCanonical::Kmer Kmer;
         Model model (11);
 
-        Type kmer = model.codeSeed ("ACCATGTATAA", Data::ASCII);
-        mphf_class->set(kmer,4);
+        Kmer kmer = model.codeSeed ("ACCATGTATAA", Data::ASCII);
+        mphf_class->set(kmer.value(),4);
 
         unsigned char val = 0;
-        mphf_class->get(kmer,&val);
+        mphf_class->get(kmer.value(),&val);
 
         CPPUNIT_ASSERT (val == 4);
     }

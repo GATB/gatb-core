@@ -28,6 +28,13 @@
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/math/Integer.hpp>
 
+#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/BankRandom.hpp>
+#include <gatb/bank/impl/BankStrings.hpp>
+#include <gatb/tools/collections/impl/IterableHelpers.hpp>
+
+#include <gatb/system/api/Exception.hpp>
+
 #include <iostream>
 
 using namespace std;
@@ -41,8 +48,15 @@ using namespace gatb::core::bank::impl;
 using namespace gatb::core::kmer;
 using namespace gatb::core::kmer::impl;
 
+using namespace gatb::core::tools::dp;
+
+using namespace gatb::core::tools::collections;
+using namespace gatb::core::tools::collections::impl;
+
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
+
+extern std::string DBPATH (const string& a);
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
@@ -59,6 +73,8 @@ class TestKmer : public Test
         CPPUNIT_TEST_GATB (kmer_checkCompute);
         CPPUNIT_TEST_GATB (kmer_checkIterator);
         CPPUNIT_TEST_GATB (kmer_build);
+        CPPUNIT_TEST_GATB (kmer_minimizer);
+        CPPUNIT_TEST_GATB (kmer_minimizer2);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -73,8 +89,8 @@ public:
     {
     public:
 
-        typedef typename Kmer<span>::Model Model;
-        typedef typename Kmer<span>::Type  Type;
+        typedef typename Kmer<span>::ModelCanonical Model;
+        typedef typename Kmer<span>::Type           Type;
 
         /********************************************************************************/
         static void kmer_checkInfo ()
@@ -90,26 +106,28 @@ public:
         }
 
         /********************************************************************************/
-        static void kmer_checkCompute_aux (const char* seq, long* check, size_t len, KmerMode mode)
+        template <class ModelType>
+        static void kmer_checkCompute_aux (const char* seq, long* check, size_t len)
         {
-            Type kmer;
+            typename ModelType::Kmer kmer;
 
             /** We declare a kmer model with a given span size. */
-            Model model (3, mode);
+            ModelType model (3);
 
             /** We compute the kmer for a given sequence */
             kmer = model.codeSeed (seq, Data::ASCII);
-            CPPUNIT_ASSERT (kmer == check[0]);
+            CPPUNIT_ASSERT (kmer.value() == check[0]);
 
             /** We compute some of the next kmers. */
             kmer = model.codeSeedRight (kmer, seq[3], Data::ASCII);
-            CPPUNIT_ASSERT (kmer == check[1]);
+
+            CPPUNIT_ASSERT (kmer.value() == check[1]);
 
             kmer = model.codeSeedRight (kmer, seq[4], Data::ASCII);
-            CPPUNIT_ASSERT (kmer == check[2]);
+            CPPUNIT_ASSERT (kmer.value() == check[2]);
 
             kmer = model.codeSeedRight (kmer, seq[5], Data::ASCII);
-            CPPUNIT_ASSERT (kmer == check[3]);
+            CPPUNIT_ASSERT (kmer.value() == check[3]);
         }
 
         /** */
@@ -119,14 +137,18 @@ public:
             long directKmers [] = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
             long reverseKmers[] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
 
-            kmer_checkCompute_aux (seq, directKmers,  ARRAY_SIZE(directKmers),  KMER_DIRECT);
+            kmer_checkCompute_aux <typename Kmer<span>::ModelDirect> (seq, directKmers,  ARRAY_SIZE(directKmers));
         }
 
         /********************************************************************************/
-        static void kmer_checkIterator_aux (Model& model, const char* seq, KmerMode mode, long* kmersTable, size_t lenTable)
+        template<class ModelType>
+        static void kmer_checkIterator_aux (const char* seq, long* kmersTable, size_t lenTable)
         {
+            /** We declare a kmer model with a given span size. */
+            ModelType model (3);
+
             /** We declare an iterator. */
-            typename Model::Iterator it (model);
+            typename ModelType::Iterator it (model);
 
             /** We set the data from which we want to extract kmers. */
             Data data (Data::ASCII);
@@ -134,12 +156,13 @@ public:
 
             /** We feed the iterator with the sequence data content. */
             it.setData (data);
+
             /** We iterate the kmers. */
             size_t idx=0;
             for (it.first(); !it.isDone(); it.next())
             {
                 /** We check that the iterated kmer is the good one. */
-                CPPUNIT_ASSERT (*it == kmersTable[idx++]);
+                CPPUNIT_ASSERT (it->value() == kmersTable[idx++]);
             }
             /** We check we found the correct number of kmers. */
             CPPUNIT_ASSERT (idx == lenTable);
@@ -148,19 +171,16 @@ public:
         /********************************************************************************/
         static void kmer_checkIterator ()
         {
-            /** We declare a kmer model with a given span size. */
-            typename Kmer<span>::Model model (3);
-
             const char* seq = "CATTGATAGTGG";
 
-            // long checkDirect []  = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
-            // kmer_checkIterator_aux (model, seq, KMER_DIRECT, checkDirect, ARRAY_SIZE(checkDirect));
-            //
-            // long checkReverse [] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
-            // kmer_checkIterator_aux (model, seq, KMER_REVCOMP, checkReverse, ARRAY_SIZE(checkReverse));
+             long checkDirect []  = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
+             kmer_checkIterator_aux <typename Kmer<span>::ModelDirect> (seq, checkDirect, ARRAY_SIZE(checkDirect));
+
+             // long checkReverse [] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
+             // kmer_checkIterator_aux (model, seq, KMER_REVCOMP, checkReverse, ARRAY_SIZE(checkReverse));
 
             long checkBoth []    = {11,  2, 16, 36,  9,  8, 24,  6, 17, 20};
-            kmer_checkIterator_aux (model, seq, KMER_MINIMUM, checkBoth, ARRAY_SIZE(checkBoth));
+            kmer_checkIterator_aux <typename Kmer<span>::ModelCanonical> (seq, checkBoth, ARRAY_SIZE(checkBoth));
         }
     };
 
@@ -210,27 +230,175 @@ public:
 
         Sequence s1 (buf);
 
-        Kmer<>::Model model (5);
+        Kmer<>::ModelCanonical model (5);
 
         Kmer<>::Type check[] = {0x61, 0x187, 0x21c, 0x72, 0x1c9, 0x1c9, 0x9c, 0x9c, 0x127, 0x49, 0xb8};
 
-        vector<Kmer<>::Type> kmers;
+        vector<Kmer<>::ModelCanonical::Kmer> kmers;
 
         model.build (s1.getData(), kmers);
+
         CPPUNIT_ASSERT (kmers.size() == 11);
 
         size_t i=0;
-        for (i=0; i<kmers.size(); i++)  {  CPPUNIT_ASSERT (kmers[i] == check[i]);  }
+        for (i=0; i<kmers.size(); i++)  {  CPPUNIT_ASSERT (kmers[i].value() == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
 
-        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer(s1.getData(), i).first == check[i]);  }
+        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer(s1.getData(), i).value() == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
 
-        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer (Data(buf), i).first == check[i]);  }
+        for (i=0; i<ARRAY_SIZE(check); i++)  {  CPPUNIT_ASSERT (model.getKmer (Data(buf), i).value() == check[i]);  }
         CPPUNIT_ASSERT (i==ARRAY_SIZE(check));
 
-        Kmer<>::Type kmer = model.getKmer (Data(buf)).first;
-        CPPUNIT_ASSERT (kmer == check[0]);
+        Kmer<>::ModelCanonical::Kmer kmer = model.getKmer (Data(buf));
+        CPPUNIT_ASSERT (kmer.value() == check[0]);
+    }
+
+    /********************************************************************************/
+    template<size_t span>
+    struct kmer_minimizer_fct
+    {
+        typedef typename Kmer<span>::ModelDirect ModelDirect;
+        typedef typename Kmer<span>::template ModelMinimizer<ModelDirect> ModelMinimizer;
+
+        ModelMinimizer& model;
+        size_t& nbKmers;
+
+        kmer_minimizer_fct (ModelMinimizer& model, size_t& nbKmers)  : model(model), nbKmers(nbKmers) {}
+
+        void operator() (const typename ModelMinimizer::Kmer& kmers, size_t idx)
+        {
+            string currentKmer = model.toString(kmers.value());
+
+            typename Kmer<span>::Type currentMini (~0);
+            for (size_t i=0; i<model.getKmerSize() - model.getMmersModel().getKmerSize() + 1; i++)
+            {
+                typename ModelDirect::Kmer tmp = model.getMmersModel().codeSeed (
+                    currentKmer.substr(i,model.getMmersModel().getKmerSize()).data(),
+                    Data::ASCII
+                );
+
+                if (tmp.value() < currentMini)  { currentMini = tmp.value(); }
+            }
+
+            CPPUNIT_ASSERT (currentMini == kmers.minimizer().value() );
+
+            nbKmers++;
+        }
+    };
+
+    /** */
+    template<size_t span, class ModelType>
+    void kmer_minimizer_aux2 (IBank& bank, size_t kmerSize, size_t miniSize)
+    {
+        typename Kmer<span>::template ModelMinimizer <ModelType> minimizerModel (kmerSize, miniSize);
+
+        size_t nbKmers = 0;
+        // We loop over sequences.
+        Iterator<Sequence>* itSeq = bank.iterator();  LOCAL (itSeq);
+
+        for (itSeq->first(); !itSeq->isDone(); itSeq->next())
+        {
+            minimizerModel.iterate ((*itSeq)->getData(), kmer_minimizer_fct<span> (minimizerModel, nbKmers));
+        }
+        CPPUNIT_ASSERT (nbKmers > 0);
+    }
+
+    /** */
+    void kmer_minimizer ()
+    {
+        /** NOTE: sequences should be big enough to get kmers up to 128. */
+        vector<IBank*> banks;
+        banks.push_back (new BankStrings ("ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAGAT"
+                                          "TCCCCAGGCCCCTACACCCAATGTGGAACCGGGGTCCCGAATGAAAATGCTGCTGTTCCCTGGAGGTGTTCT", NULL));
+        banks.push_back (BankRegistery::singleton().createBank (DBPATH("reads1.fa")));
+        banks.push_back (new BankRandom (500, 200));
+
+        size_t   kmerSizes[] = { 12,31, 33,63, 65,95, 97,127 };
+        size_t   miniSizes[] = {  5,  9, 11 };
+
+        try
+        {
+            for (size_t b=0; b<banks.size(); b++)
+            {
+                IBank* bank = banks[b];   LOCAL(bank);
+
+                for (size_t i=0; i<ARRAY_SIZE(kmerSizes); i++)
+                {
+                    size_t kmerSize = kmerSizes[i];
+
+                    for (size_t j=0; j<ARRAY_SIZE(miniSizes); j++)
+                    {
+                             if (kmerSize < KSIZE_1)  {  kmer_minimizer_aux2<KSIZE_1, Kmer<KSIZE_1>::ModelDirect> (*bank, kmerSize, miniSizes[j]);  }
+                        else if (kmerSize < KSIZE_2)  {  kmer_minimizer_aux2<KSIZE_2, Kmer<KSIZE_2>::ModelDirect> (*bank, kmerSize, miniSizes[j]);  }
+                        else if (kmerSize < KSIZE_3)  {  kmer_minimizer_aux2<KSIZE_3, Kmer<KSIZE_3>::ModelDirect> (*bank, kmerSize, miniSizes[j]);  }
+                    }
+                }
+            }
+        }
+        catch (gatb::core::system::Exception& e)
+        {
+            cout << e.getMessage() << endl;
+        }
+    }
+
+    /** */
+    struct kmer_minimizer2_info
+    {
+        const char* kmer;
+        const char* minimizer;
+        size_t      position;
+        bool        changed;
+    };
+
+    void kmer_minimizer2 ()
+    {
+        const char* seq = "ATGTCTGAAGTGACCTAACATTGCA";
+        size_t sequenceSize = strlen(seq);
+
+        size_t kmerSize = 15;
+        size_t mmerSize = 7;
+
+        typedef Kmer<KSIZE_1>::ModelDirect                  ModelDirect;
+        typedef Kmer<KSIZE_1>::ModelMinimizer<ModelDirect>  ModelMinimizer;
+
+        ModelMinimizer model (kmerSize, mmerSize);
+
+        const ModelDirect& modelMini = model.getMmersModel();
+
+        kmer_minimizer2_info table[] =
+        {
+            {"ATGTCTGAAGTGACC", "AAGTGAC", 7, true },
+            {"TGTCTGAAGTGACCT", "AAGTGAC", 6, false},
+            {"GTCTGAAGTGACCTA", "AAGTGAC", 5, false},
+            {"TCTGAAGTGACCTAA", "AAGTGAC", 4, false},
+            {"CTGAAGTGACCTAAC", "AAGTGAC", 3, false},
+            {"TGAAGTGACCTAACA", "AAGTGAC", 2, false},
+            {"GAAGTGACCTAACAT", "AAGTGAC", 1, false},
+            {"AAGTGACCTAACATT", "AAGTGAC", 0, false},
+            {"AGTGACCTAACATTG", "AACATTG", 8, true },
+            {"GTGACCTAACATTGC", "AACATTG", 7, false},
+            {"TGACCTAACATTGCA", "AACATTG", 6, false}
+          };
+
+        size_t idx = 0;
+
+        #define CHECK(idx) \
+            CPPUNIT_ASSERT (  \
+                   model.toString (kmer.value()) == table[idx].kmer \
+                && modelMini.toString(kmer.minimizer().value()) == table[idx].minimizer \
+                && kmer.position()   == table[idx].position  \
+                && kmer.hasChanged() == table[idx].changed)
+
+        ModelMinimizer::Kmer kmer = model.codeSeed (seq, Data::ASCII);
+        CHECK (idx);  idx++;
+        seq += kmerSize;
+
+        for ( ; idx < ARRAY_SIZE(table); idx++)
+        {
+            kmer = model.codeSeedRight (kmer, *(seq++), Data::ASCII);
+            CHECK (idx);
+        }
     }
 };
 

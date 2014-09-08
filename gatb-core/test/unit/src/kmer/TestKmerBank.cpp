@@ -69,8 +69,12 @@ public:
     void tearDown ()  {}
 
     /********************************************************************************/
-    void kmerbank_checkKmersFromBankAndBankBinary_aux (const char* filepath, size_t span, KmerMode mode)
+    template<class ModelType>
+    void kmerbank_checkKmersFromBankAndBankBinary_aux (const char* filepath, size_t span)
     {
+        /** Shortcuts. */
+        typedef typename ModelType::Kmer             Kmer;
+
         string filename    = DBPATH (filepath);
         string filenameBin = filepath + string(".bin");
 
@@ -78,12 +82,12 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a kmer model with a given span size. */
-        Kmer<>::Model model (span);
+        ModelType model (span);
 
         /** We declare the two banks.
          *  WARNING! we don't remove the bad characters (param 'false') in the binary bank,
          *  otherwise the two bank won't be comparable anymore. */
-        BankFasta       bank1 (filename);
+        BankFasta  bank1 (filename);
         BankBinary bank2 (filenameBin, false);
 
         /** We convert the fasta bank in binary format. */
@@ -91,9 +95,10 @@ public:
         for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
 
         /** We declare two kmer iterators for the two banks and a paired one that links them. */
-        Kmer<>::Model::Iterator itKmer1 (model);
-        Kmer<>::Model::Iterator itKmer2 (model);
-        PairedIterator<Iterator, Kmer<>::Type,Kmer<>::Type> itKmer (itKmer1, itKmer2);
+        typename ModelType::Iterator itKmer1 (model);
+        typename ModelType::Iterator itKmer2 (model);
+
+        PairedIterator<Iterator, Kmer, Kmer> itKmer (itKmer1, itKmer2);
 
         /** We loop the two banks with a paired iterator. */
         BankBinary::Iterator itSeq2 (bank2);
@@ -109,7 +114,7 @@ public:
             /** We loop the kmers for the two datas. */
             for (itKmer.first(); !itKmer.isDone();  itKmer.next())
             {
-                CPPUNIT_ASSERT (itKmer->first == itKmer->second);
+                CPPUNIT_ASSERT (itKmer->first.value() == itKmer->second.value());
             }
         }
     }
@@ -123,16 +128,13 @@ public:
     {
         const char* files[] = { "reads1.fa", "reads1.fa.gz", "reads2.fa" };
         size_t      spans[] = { 2, 3, 5, 8, 13, 21 };
-        KmerMode    modes[] = { KMER_DIRECT, KMER_REVCOMP, KMER_MINIMUM};
 
         for (size_t i=0; i<ARRAY_SIZE(files); i++)
         {
             for (size_t j=0; j<ARRAY_SIZE(spans); j++)
             {
-                for (size_t k=0; k<ARRAY_SIZE(modes); k++)
-                {
-                    kmerbank_checkKmersFromBankAndBankBinary_aux (files[i], spans[j], modes[k]);
-                }
+                kmerbank_checkKmersFromBankAndBankBinary_aux <Kmer<>::ModelDirect>    (files[i], spans[j]);
+                kmerbank_checkKmersFromBankAndBankBinary_aux <Kmer<>::ModelCanonical> (files[i], spans[j]);
             }
         }
     }
