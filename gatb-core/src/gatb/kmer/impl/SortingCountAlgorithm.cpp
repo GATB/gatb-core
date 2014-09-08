@@ -390,9 +390,9 @@ class FillPartitions
 public:
 
     /** Shortcut. */
-    typedef typename Kmer<span>::Type        Type;
-    typedef typename Kmer<span>::Model       ModelCanonical;
-    typedef typename Kmer<span>::Model::Kmer Kmer;
+    typedef typename Kmer<span>::Type                  Type;
+    typedef typename Kmer<span>::ModelCanonical        Model;
+    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
 
     void operator() (Sequence& sequence)
     {
