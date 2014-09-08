@@ -55,6 +55,11 @@ int main (int argc, char* argv[])
         std::cout << std::endl << "EXCEPTION: " << msg << std::endl;
         return EXIT_FAILURE;
     }
+    catch (const char* msg)
+    {
+        std::cout << std::endl << "EXCEPTION: " << msg << std::endl;
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
