@@ -444,7 +444,7 @@ public:
      */
     std::string toString (size_t sizeKmer) const
     {
-        char seq[65];
+        char seq[sizeKmer+1];
         char bin2NT[4] = {'A','C','T','G'};
 
         for (size_t i=0; i<sizeKmer; i++)  {  seq[sizeKmer-i-1] = bin2NT [(*this)[i]];  }
@@ -453,7 +453,7 @@ public:
     }
 
     /********************************************************************************/
-    u_int8_t  operator[]  (size_t idx) const    {  return (this->value[0] >> (2*idx)) & 3; }
+    u_int8_t  operator[]  (size_t idx) const    {  return (this->value[idx/32] >> (2*idx)) & 3; }
 
 private:
 //    u_int64_t value[precision];
