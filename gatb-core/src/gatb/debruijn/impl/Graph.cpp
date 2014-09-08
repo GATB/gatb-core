@@ -976,7 +976,7 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
 
         /** Shortcuts. */
         size_t      kmerSize = data._model->getKmerSize();
-        const Type& mask     = data._model->getMask();
+        const Type& mask     = data._model->getKmerMax();
 
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
         Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, kmerSize) );
@@ -1110,7 +1110,7 @@ struct getItemsCouple_visitor : public boost::static_visitor<Graph::Vector<pair<
 
         /** Shortcuts. */
         size_t      kmerSize = data._model->getKmerSize();
-        const Type& mask     = data._model->getMask();
+        const Type& mask     = data._model->getKmerMax();
 
         /** We get the specific typed value from the generic typed value. */
         const Type& val1 = node1.kmer.get<Type>();
@@ -1262,10 +1262,10 @@ struct buildNode_visitor : public boost::static_visitor<Node>    {
     template<size_t span>  Node operator() (const GraphData<span>& graphData) const
     {
         /** Shortcut. */
-        typedef typename Kmer<span>::Type Type;
+        typedef typename Kmer<span>::Model::Kmer Kmer;
 
-        pair<Type,bool> kmer = graphData._model->getKmer (data, offset);
-        return Node (Integer(kmer.first), kmer.second ? STRAND_FORWARD : STRAND_REVCOMP);
+        Kmer kmer = graphData._model->getKmer (data, offset);
+        return Node (Integer(kmer.value()), kmer.forward()==kmer.value() ? STRAND_FORWARD : STRAND_REVCOMP);
     }
 };
 
@@ -1389,7 +1389,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
 
         /** Shortcuts. */
         size_t      kmerSize = data._model->getKmerSize();
-        const Type& mask     = data._model->getMask();
+        const Type& mask     = data._model->getKmerMax();
 
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
         Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, kmerSize) );

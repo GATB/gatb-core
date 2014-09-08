@@ -40,7 +40,7 @@ enum KmerMode
     /** Kmer as reverse complement */
     KMER_REVCOMP,
     /** Kmer as minimum between the direct and reverse complement */
-    KMER_MINIMUM
+    KMER_CANONICAL
 };
 
 /********************************************************************************/
