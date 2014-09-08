@@ -95,9 +95,12 @@ struct Kmer
     /***********************     MODEL    ***********************/
     /************************************************************/
 
+    /** Forward declarations. */
     class ModelDirect;
     class ModelCanonical;
     template<class Model, class Comparator> class ModelMinimizer;
+
+    /** */
 
     /** */
     class KmerDirect
@@ -128,11 +131,27 @@ struct Kmer
     class KmerMinimizer : public Model::Kmer
     {
     public:
-        const typename Model::Kmer& minimizer() const  {  return minimizers[idx];  }
+
+        const typename Model::Kmer& minimizer() const  {  return minimizers[minimizerIdx];  }
+
+        size_t position () const
+        {
+            /** By convention, if there is no minimizer, we return position 0. */
+            if (isDefined()==false) { return 0; }
+
+            return startIdx<minimizerIdx ? minimizerIdx-startIdx-1 : (minimizerIdx+nbMinimizer)-startIdx-1;
+        }
+
+        bool hasChanged () const  {  return changed;  }
+
+        bool isDefined () const { return minimizerIdx!=nbMinimizer; }
+
     protected:
         typename Model::Kmer minimizers[span];
-        size_t idx;
         size_t minimizerIdx;
+        size_t startIdx;
+        size_t nbMinimizer;
+        bool changed;
         friend class ModelMinimizer<Model,Comparator>;
     };
 
@@ -536,7 +555,7 @@ struct Kmer
 
     struct ComparatorMinimizer
     {
-        void init (Type& best) const { best = Type(~0); }
+        template<class Model>  void init (const Model& model, Type& best) const { best = model.getKmerMax(); }
         bool operator() (const Type& current, const Type& best) const { return current < best; }
     };
 
@@ -552,8 +571,8 @@ struct Kmer
 
         typedef KmerMinimizer<ModelType,Comparator> Kmer;
 
-        /** */
-        const ModelType& getModel() const { return _miniModel; }
+        /** Return a reference on the model used for managing mmers. */
+        const ModelType& getMmersModel() const { return _miniModel; }
 
         /** */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator())
@@ -572,7 +591,10 @@ struct Kmer
             /** We initialize a sentinel value at the end of the mmers vector.
              * This value will be used in case no minimizer is found.
              * The value is actually set by the Comparator instance provided as a template of the class. */
-            _cmp.init ((Type&)(value.minimizers [_nbMinimizers].value()));
+            _cmp.template init<ModelType> (getMmersModel(), (Type&)(value.minimizers [_nbMinimizers].value()));
+
+            /** We memorize the number of minimizers. */
+            value.nbMinimizer = _nbMinimizers;
 
             /** We compute the kmer. */
             _kmerModel.first<Convert> (seq, value);
@@ -590,32 +612,47 @@ struct Kmer
             }
 
             /** We initialize the circular buffer index. */
-            value.minimizerIdx = _nbMinimizers - 1;
+            value.startIdx = _nbMinimizers - 1;
 
             /** We get the index of the the minimizer in the circular buffer. */
-            value.idx = getMinimizerIdx (value.minimizers);
+            value.minimizerIdx = getMinimizerIdx (value);
+            value.changed   = true;
         }
 
         template <class Convert>
         void  next (char c, Kmer& value)   const
         {
-            size_t nextIdx =  (value.minimizerIdx + 1) % _nbMinimizers;
-            value.minimizers[nextIdx] = value.minimizers[value.minimizerIdx];
+            /** We get a copy of the current minimizer. */
+            Type currentMinimizer = value.minimizers[value.minimizerIdx].value();
+
+            size_t nextIdx =  (value.startIdx + 1) % _nbMinimizers;
+            value.minimizers[nextIdx] = value.minimizers[value.startIdx];
 
             _kmerModel.next<Convert> (c, value);
             _miniModel.next<Convert> (c, value.minimizers[nextIdx]);
+
+            /** By default, we set the minimizer has unchanged for the 'next' call. */
+            value.changed = false;
+
+            /** We update the starting index in the circular buffer. */
+            value.startIdx = nextIdx;
 
             /** We may have to update the minimizer index in the following cases :
              *      1) the minimizer index is invalid
              *      2) the minimizer index is out of the current kmer window
              *      3) the new current mmer is best than the current minimizer
              */
-            if (value.idx==_nbMinimizers || value.idx==nextIdx || _cmp (value.minimizers[nextIdx].value(), value.minimizers[value.idx].value()) )
+            if (value.minimizerIdx==_nbMinimizers || value.minimizerIdx==nextIdx
+                || _cmp (value.minimizers[nextIdx].value(), value.minimizers[value.minimizerIdx].value()) )
             {
-                value.idx = getMinimizerIdx (value.minimizers);
+                /** We update the minimizer index. */
+                value.minimizerIdx = getMinimizerIdx (value);
+
+                /** We check whether it is a true minimizer change. Note: checking only the indexes is not enough
+                 * because we can have the same minimizer twice or more in the same kmer. */
+                if (currentMinimizer != value.minimizers[value.minimizerIdx].value())  {  value.changed = true;  }
             }
 
-            value.minimizerIdx = nextIdx;
         }
 
     private:
@@ -627,16 +664,26 @@ struct Kmer
         Comparator _cmp;
 
         /** Returns the minimizer of the provided vector of mmers. */
-        int getMinimizerIdx(const typename ModelType::Kmer* minimizers) const
+        int getMinimizerIdx(const Kmer& kmer) const
         {
-            /** Naive implementation: we could use the fact that we could remind where the last minimizer has been found. */
             int result = _nbMinimizers;
-            typename ModelType::Kmer current;  current.set(minimizers[result].value());
+            typename ModelType::Kmer current;  current.set(kmer.minimizers[result].value());
 
-            for (size_t i=0; i<_nbMinimizers; i++)
+            /** we have to loop nbMinimizers but not starting from startIdx instead of 0
+             *  => we split the loop in two parts. */
+            size_t i0 = kmer.startIdx + 1;
+
+            for (size_t i=i0; i<_nbMinimizers; i++)
             {
-                if (_cmp(minimizers[i].value(), current.value())==true)  {  current = minimizers [result = i];  }
+                if (_cmp(kmer.minimizers[i].value(), current.value())==true)  {  current = kmer.minimizers [result = i];  }
             }
+
+            for (size_t i=0; i<i0; i++)
+            {
+                if (_cmp(kmer.minimizers[i].value(), current.value())==true)  {  current = kmer.minimizers [result = i];  }
+            }
+
+            /** We return the result. */
             return result;
         }
     };
