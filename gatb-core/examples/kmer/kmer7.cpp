@@ -42,7 +42,7 @@ int main (int argc, char* argv[])
         size_t nbKmers  = 1 << (2*kmerSize);
 
         // We create a kmer model.
-        Kmer<>::Model model (kmerSize, KMER_DIRECT);
+        Kmer<>::ModelDirect model (kmerSize);
 
         // We open the bank.
         BankFasta bank (options->getStr(STR_URI_INPUT));
@@ -66,10 +66,10 @@ int main (int argc, char* argv[])
             for (size_t i=0; i<len; i++, data += kmerSize)
             {
                 // We get the kmer value of the current block
-                Kmer<>::Type kmer = model.codeSeed (data, seq.getDataEncoding());
+                Kmer<>::ModelDirect::Kmer kmer = model.codeSeed (data, seq.getDataEncoding());
 
                 // We update the occurrences number for this kmer value
-                distrib [kmer.toInt()] += 1;
+                distrib [kmer.value().toInt()] += 1;
             }
         }
 

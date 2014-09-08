@@ -20,10 +20,10 @@ int main (int argc, char* argv[])
 
     // We declare a kmer model with kmer of size 5.
     // Note that we want "direct" kmers, not the min(forward,revcomp) default behavior.
-    Kmer<>::Model model (5, KMER_DIRECT);
+    Kmer<>::ModelDirect model (5);
 
     // We declare an iterator on a given sequence.
-    Kmer<>::Model::Iterator it (model);
+    Kmer<>::ModelDirect::Iterator it (model);
 
     // We configure the iterator with our sequence
     it.setData (data);
@@ -31,7 +31,7 @@ int main (int argc, char* argv[])
     // We iterate the kmers.
     for (it.first(); !it.isDone(); it.next())
     {
-        std::cout << "kmer " << model.toString(*it) << ",  value " << *it << std::endl;
+        std::cout << "kmer " << model.toString(it->value()) << ",  value " << it->value() << std::endl;
     }
 }
 //! [snippet1]

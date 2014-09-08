@@ -264,7 +264,7 @@ public:
         u_int64_t unitigsSize = 0;
 
         // We create a kmer model for iterating kmers of sequences.
-        Kmer<>::Model model (graph.getKmerSize());
+        Kmer<>::ModelCanonical model (graph.getKmerSize());
 
 size_t ok=0;
 size_t nbBNodes=0;
@@ -394,11 +394,11 @@ cout << "NBITS_PER_KMER=" << NBITS_PER_KMER << "  nbHash=" << nbHash << "  bloom
             size_t nbBranching = 0;
 
             // We iterate the kmers of the current sequence
-            model.iterate (seq.getData(), [&] (const Kmer<>::Type& kmer, size_t rank)
+            model.iterate (seq.getData(), [&] (const Kmer<>::ModelCanonical::Kmer& kmer, size_t rank)
             {
-                if (graph.isBranching (Node::Value(kmer)))  {  nbBranching++;  }
+                if (graph.isBranching (Node::Value(kmer.value())))  {  nbBranching++;  }
 
-                occurs[nbKmer++] = bloomGroup.contains (kmer);
+                occurs[nbKmer++] = bloomGroup.contains (kmer.value());
             });
 
             /** We count sequences that have at least one kmer for the required kmer size. */

@@ -13,7 +13,7 @@
 int main (int argc, char* argv[])
 {
     // We declare a default kmer model
-    Kmer<>::Model model;
+    Kmer<>::ModelCanonical model;
 
     // We get some information about the model.
     std::cout << "----------   MODEL   ----------"               << std::endl;

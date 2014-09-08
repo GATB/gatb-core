@@ -7,6 +7,8 @@
 // We use the required packages
 using namespace std;
 
+static const size_t span = KSIZE_1;
+
 /********************************************************************************/
 /*                              Kmer management                                 */
 /*                                                                              */
@@ -36,13 +38,13 @@ int main (int argc, char* argv[])
         BankFasta b (argc-2, argv+2);
 
         // We declare a kmer model with a given span size.
-        Kmer<>::Model model (kmerSize);
+        Kmer<span>::ModelDirect model (kmerSize);
 
         // We create an iterator over this bank.
         BankFasta::Iterator itSeq (b);
 
         // We declare an iterator on a given sequence.
-        Kmer<>::Model::Iterator itKmer (model);
+        Kmer<span>::ModelDirect::Iterator itKmer (model);
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
@@ -51,7 +53,11 @@ int main (int argc, char* argv[])
             itKmer.setData (itSeq->getData());
 
             // We iterate the kmers.
-            for (itKmer.first(); !itKmer.isDone(); itKmer.next())   {  nbKmers++;  }
+            for (itKmer.first(); !itKmer.isDone(); itKmer.next())
+            {
+                cout << model.toString (itKmer->value()) << endl;
+                nbKmers++;
+            }
 
             //  We increase the sequences counter.
             nbSequences++;

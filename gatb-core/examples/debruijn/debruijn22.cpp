@@ -52,7 +52,7 @@ public:
         LOCAL (bank);
 
         // We create a kmer model for iterating kmers of sequences.
-        Kmer<>::Model model (graph.getKmerSize());
+        Kmer<>::ModelCanonical model (graph.getKmerSize());
 
         size_t totalNbKmers     = 0;
         size_t totalNbBranching = 0;
@@ -78,10 +78,10 @@ public:
                 int nbBranching = 0;
 
                 // We iterate the kmers of the current sequence
-                model.iterate (seq.getData(), [&] (const Kmer<>::Type& kmer, size_t rank)
+                model.iterate (seq.getData(), [&] (const Kmer<>::ModelCanonical::Kmer& kmer, size_t rank)
                 {
                     // We count the branching nodes.
-                    if (graph.isBranching (Node::Value(kmer)))  {  nbBranching++;  }
+                    if (graph.isBranching (Node::Value(kmer.value())))  {  nbBranching++;  }
                 });
 
                 // We increase the (local) distribution for this number of branching nodes per sequence

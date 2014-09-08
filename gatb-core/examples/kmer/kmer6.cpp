@@ -19,7 +19,7 @@ int main (int argc, char* argv[])
     // => we should get an exception
     try
     {
-        Kmer<32>::Model model (51);
+        Kmer<32>::ModelCanonical model (51);
     }
     catch (Exception& e)
     {
@@ -28,7 +28,7 @@ int main (int argc, char* argv[])
 
     try
     {
-        Kmer<64>::Model model (51);
+        Kmer<64>::ModelCanonical model (51);
         std::cout << "It's OK..." << std::endl;
     }
     catch (Exception& e)
