@@ -75,7 +75,7 @@ public:
     Data (char* buffer)  : encoding(ASCII) { setRef(buffer,strlen(buffer)); }
 
     /** Constructor. */
-    Data (size_t len)  : Vector<char>(len), encoding(BINARY)  {}
+    Data (size_t len, Encoding_e encode = BINARY)  : Vector<char>(len), encoding(encode)  {}
 
     /** */
     Data& operator= (const Data& d)

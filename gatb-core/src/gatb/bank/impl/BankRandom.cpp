@@ -84,7 +84,7 @@ void BankRandom::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& m
 BankRandom::Iterator::Iterator(const BankRandom& bank)
     : _bank(bank),_rank(0), _isDone(true), _dataRef(0)
 {
-    setDataRef (new Data (bank._length));
+    setDataRef (new Data (bank._length, Data::ASCII));
 
     _item->getData().setRef (_dataRef, 0, bank._length);
 
