@@ -71,10 +71,11 @@ int main (int argc, char* argv[])
 {
     if (argc < 4)
     {
-        cerr << "you must provide at least 2 arguments. Arguments are:" << endl;
-        cerr << "   1) kmer size"           << endl;
-        cerr << "   2) minimizer size"      << endl;
-        cerr << "   2) list of FASTA files" << endl;
+        cerr << "you must provide at least 3 arguments. Arguments are:" << endl;
+        cerr << "   1) kmer size"                   << endl;
+        cerr << "   2) minimizer size"              << endl;
+        cerr << "   3) FASTA file"                  << endl;
+        cerr << "   4) verbose (0/1, 0 by default)" << endl;
         return EXIT_FAILURE;
     }
 
@@ -89,12 +90,16 @@ int main (int argc, char* argv[])
         u_int64_t nbKmers       = 0;
         u_int64_t nbMinimizers  = 0;
         u_int64_t nbMinimizers2 = 0;
+        bool display = argc>=5 ? atoi(argv[4]) : false;
 
         // We declare a Bank instance defined by a list of filenames
-        BankFasta b (argc-3, argv+3);
+        BankFasta b (argv[3]);
 
         // We declare a kmer model and a minimizer model
         ModelMinimizer model (kmerSize, mmerSize);
+
+        // We get a reference on the minimizer model, which will be useful for dumping
+        const ModelDirect& modelMinimizer = model.getMmersModel();
 
         // We create an iterator over this bank.
         ProgressIterator<Sequence> itSeq (b);
@@ -107,6 +112,16 @@ int main (int argc, char* argv[])
             // We iterate the kmers (and minimizers) of the current sequence.
             model.iterate (itSeq->getData(), [&] (const ModelMinimizer::Kmer& kmer, size_t idx)
             {
+                // We could display some information about the kmer and its minimizer
+                if (display)
+                {
+                    std::cout << "KMER=" << model.toString(kmer.value()) << "  "
+                              << (kmer.hasChanged() ? "NEW" : "OLD") << " "
+                              << "MINIMIZER=" << modelMinimizer.toString(kmer.minimizer().value()) << " "
+                              << "at position " << kmer.position()
+                              << std::endl;
+                }
+
                 // We may have to update the number of different minimizer in the current sequence
                 if (kmer.hasChanged()==true)  {  nbMinimizersPerRead++;  }
 
