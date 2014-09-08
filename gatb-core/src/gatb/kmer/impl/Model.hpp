@@ -100,14 +100,37 @@ struct Kmer
     class ModelCanonical;
     template<class Model, class Comparator> class ModelMinimizer;
 
-    /** */
+    /** Now, we need to define what is a kmer for each kind of model.
+     *
+     * The simple case is KmerDirect, where only the value of the kmer is available
+     * as a method 'value' returning a Type object.
+     *
+     * The second case is KmerCanonical, which is the same as KmerDirect, but with
+     * two other methods 'forward' and 'revcomp'
+     *
+     * The third case is KmerMinimizer<Model> which allows to handle minimizers associated
+     * to a kmer. This class inherits from the Model::Kmer type and adds methods specific
+     * to minimizers, such as 'minimizer' itself (ie the Model::Kmer object holding the
+     * minimizer), 'position' giving the position of the minimizer whithin the kmer and
+     * 'hasChanged' telling whether a minimizer has changed during iteration of kmers from
+     * some data source (a sequence data for instance).
+     */
 
-    /** */
+    /** Kmer type for the ModelDirect class. */
     class KmerDirect
     {
     public:
+        /** Returns the value of the kmer.
+         * \return the kmer value as a Type object. */
         const Type& value  () const { return _value;   }
+
+        /** Comparison operator between two instances.
+         * \param[in] t : object to be compared to
+         * \return true if the values are the same, false otherwise. */
         bool operator< (const KmerDirect& t) const  { return this->_value < t._value; };
+
+        /** Set the value of the kmer
+         * \param[in] val : value to be set. */
         void set (const Type& val) { _value=val; }
 
     protected:
@@ -115,11 +138,16 @@ struct Kmer
         friend class ModelDirect;
     };
 
-    /** */
+    /** Kmer type for the ModelCanonical class. */
     class KmerCanonical : public KmerDirect
     {
     public:
+        /** Returns the forward value of this canonical kmer.
+         * \return the forward value */
         const Type& forward() const { return _forward; }
+
+        /** Returns the reverse complement value of this canonical kmer.
+         * \return the reverse complement value */
         const Type& revcomp() const { return _revcomp; }
 
     protected:
@@ -127,13 +155,18 @@ struct Kmer
         friend class ModelCanonical;
     };
 
+    /** Kmer type for the ModelMinimizer class. */
     template<class Model, class Comparator>
     class KmerMinimizer : public Model::Kmer
     {
     public:
 
+        /** Returns the minimizer of the current kmer as a Model::Kmer object
+         * \return the Model::Kmer instance */
         const typename Model::Kmer& minimizer() const  {  return minimizers[minimizerIdx];  }
 
+        /** Returns the position of the minimizer within the kmer.
+         * \return the position of the minimizer. */
         size_t position () const
         {
             /** By convention, if there is no minimizer, we return position 0. */
@@ -142,11 +175,17 @@ struct Kmer
             return startIdx<minimizerIdx ? minimizerIdx-startIdx-1 : (minimizerIdx+nbMinimizer)-startIdx-1;
         }
 
+        /** Tells whether the minimizer has changed; useful while iterating kmers
+         * \return true if changed, false otherwise */
         bool hasChanged () const  {  return changed;  }
 
+        /** Tells whether the minimizer is defined within the kmer.
+         * \return true if defined, false otherwise. */
         bool isDefined () const { return minimizerIdx!=nbMinimizer; }
 
     protected:
+
+
         typename Model::Kmer minimizers[span];
         size_t minimizerIdx;
         size_t startIdx;
@@ -155,15 +194,34 @@ struct Kmer
         friend class ModelMinimizer<Model,Comparator>;
     };
 
-    /** */
+    /** Abstract class that provides kmer management.
+     *
+     * This class is the base class for kmer management. It provides several services on this purpose
+     * like getting kmer information from some nucleotides sequence, or iterate kmers through such
+     * a sequence.
+     *
+     * This class has two templates types :
+     *
+     *      1) ModelImpl : ModelAbstract is design for static polymorphism and ModelImpl is the implementation
+     *                     that must be provided to it
+     *
+     *      2) T : type of kmers handled by the class (ie KmerDirect, KmerCanonical...); I was not successful
+     *             in trying to hide KmerXXX classes in the dedicated ModelXXX classes because of mutual
+     *             dependencies while template specializations (maybe a solution one day)
+     *
+     * End user will be given instances of Kmer class, delivering more or less information according to the
+     * specific type of ModelImpl
+     */
     template <class ModelImpl, typename T>
     class ModelAbstract : public system::SmartPointer
     {
     public:
 
+        /** Type of kmers provided by the class. */
         typedef T Kmer;
 
-        /** */
+        /** (default) Constructor. The provided (runtime) kmer size must be coherent with the span (static) value.
+         * \param[in] sizeKmer : size of kmers handled by the instance.*/
         ModelAbstract (size_t sizeKmer=span-1) : _kmerSize(sizeKmer)
         {
             /** We check that the Type precision is enough for the required kmers span. */
@@ -185,6 +243,8 @@ struct Kmer
             for (size_t i=0; i<4; i++)   {  Type tmp  = comp_NT[i];  _revcompTable[i] = tmp << shift;  }
         }
 
+        /** Returns the span of the model
+         * \return the model span. */
         size_t getSpan () const { return span; }
 
         /** Get the memory size (in bytes) of a Kmer<span>::Type object.
@@ -195,8 +255,13 @@ struct Kmer
          * \return the kmer size. */
         size_t getKmerSize () const { return _kmerSize; }
 
+        /** Gives the maximum value of a kmer for the instance.
+         * \return the maximum kmer value. */
         const Type& getKmerMax () const { return _kmerMask; }
 
+        /** Returns an ascii representation of the kmer value.
+         * \param[in] kmer : the kmer we want an ascii representation for
+         * \return a string instance holding the ascii representation. */
         std::string toString (const Type& kmer) const  {  return kmer.toString(_kmerSize);  }
 
         /** Compute the reverse complement of a kmer.
@@ -569,12 +634,15 @@ struct Kmer
     {
     public:
 
+        /** Type holding all the information of a kmer.  */
         typedef KmerMinimizer<ModelType,Comparator> Kmer;
 
         /** Return a reference on the model used for managing mmers. */
         const ModelType& getMmersModel() const { return _miniModel; }
 
-        /** */
+        /** Constructor.
+         * \param[in] kmerSize      : size of the kmers handled by the model.
+         * \param[in] minimizerSize : size of the mmers handled by the model. */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator())
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
               _kmerModel(kmerSize), _miniModel(minimizerSize), _nbMinimizers(0), _cmp(cmp)
@@ -652,7 +720,6 @@ struct Kmer
                  * because we can have the same minimizer twice or more in the same kmer. */
                 if (currentMinimizer != value.minimizers[value.minimizerIdx].value())  {  value.changed = true;  }
             }
-
         }
 
     private:
@@ -729,7 +796,7 @@ struct Kmer
         bool operator== (const Count& other) const {  return (this->value == other.value && this->abundance == other.abundance); }
     };
 
-};  // class Kmer
+};  // struct Kmer
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
