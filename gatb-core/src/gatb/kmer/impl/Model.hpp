@@ -677,10 +677,10 @@ struct Kmer
             value.nbMinimizer = _nbMinimizers;
 
             /** We compute the kmer. */
-            _kmerModel.first<Convert> (seq, value);
+            _kmerModel.template first<Convert> (seq, value);
 
             /** We compute N potential minimizers and put them into the circular buffer. */
-            _miniModel.first<Convert> (seq, value.minimizers[0]);
+            _miniModel.template first<Convert> (seq, value.minimizers[0]);
 
             /** We have to shift the current buffer to extract next mmers. */
             seq += _miniModel.getKmerSize() - 1;
@@ -688,7 +688,7 @@ struct Kmer
             for (size_t idx=1; idx<_nbMinimizers; idx++)
             {
                 value.minimizers[idx] = value.minimizers[idx-1];
-                _miniModel.next<Convert> (Convert::get (seq, idx), value.minimizers[idx]);
+                _miniModel.template next<Convert> (Convert::get (seq, idx), value.minimizers[idx]);
             }
 
             /** We initialize the circular buffer index. */
@@ -708,8 +708,8 @@ struct Kmer
             size_t nextIdx =  (value.startIdx + 1) % _nbMinimizers;
             value.minimizers[nextIdx] = value.minimizers[value.startIdx];
 
-            _kmerModel.next<Convert> (c, value);
-            _miniModel.next<Convert> (c, value.minimizers[nextIdx]);
+            _kmerModel.template next<Convert> (c, value);
+            _miniModel.template next<Convert> (c, value.minimizers[nextIdx]);
 
             /** By default, we set the minimizer has unchanged for the 'next' call. */
             value.changed = false;
