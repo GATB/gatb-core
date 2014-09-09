@@ -52,7 +52,7 @@ endforeach()
 # this is useful. MPHF is just #include'd, perhaps we can just not copy it? in
 # that case just delete this code
 
-IF (DEFINED WITH_MPHF)
+IF (DEFINED use_mphf)
 
     ADD_SUBDIRECTORY (emphf)
 
