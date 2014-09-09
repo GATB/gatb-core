@@ -143,6 +143,9 @@ struct Kmer
     {
     public:
 
+        /** Set the value attribute. */
+        void set (const Type& value)  {  KmerDirect::set(value); }
+
         /** Set the forward/revcomp attributes. */
         void set (const Type& forward, const Type& revcomp)
         {
