@@ -85,7 +85,9 @@ class TestDebruijn : public Test
 //        CPPUNIT_TEST_GATB (debruijn_test1);
 //        CPPUNIT_TEST_GATB (debruijn_test2);
 
+#ifdef WITH_MPHF
         CPPUNIT_TEST_GATB (debruijn_mphf);
+#endif
         CPPUNIT_TEST_GATB (debruijn_test3);
         CPPUNIT_TEST_GATB (debruijn_test4);
         //CPPUNIT_TEST_GATB (debruijn_test5); // FIXME: this one crashes so I disabled it.. I know.. that's stupid to disable a crashing test lol.
