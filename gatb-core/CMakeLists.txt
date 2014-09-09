@@ -46,6 +46,7 @@ GetCurrentDate (gatb-core-date)
 ################################################################################
 # We try to find the best compiler config, in particular for C++ extension usage
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
     IF(NOT CMAKE_CXX_COMPILER_VERSION) #for old cmakes
         include(CheckCompiler)
     ENDIF()
@@ -59,8 +60,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message ("-- C++ EXTENSIONS WILL BE USED...")
         message ("-------------------------------------------------------------------------------------")
     endif()
+
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.7) 
+        set (use_mphf 0)
+    else()
+        set (use_mphf 1)
+    endif()
     
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
         message ("-------------------------------------------------------------------------------------")
         message ("-- CLANG VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
@@ -70,6 +78,12 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         message ("-------------------------------------------------------------------------------------")
         message ("-- C++ EXTENSIONS WILL BE USED...")
         message ("-------------------------------------------------------------------------------------")
+    endif()
+
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
+        set (use_mphf 0)
+    else()
+        set (use_mphf 1)
     endif()
 
 else()
@@ -102,13 +116,13 @@ if (use_new_cxx)
     set (WITH_LAMBDA_EXPRESSION "1")
     # We add compilation flags to the global flags
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION  ${CXX_STD_VERSION}")
-    # We enable emphf
-    set (WITH_MPHF "1")
+ endif()
+
+if (use_mpfh)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
         message ("-------------------------------------------------------------------------------------")
         message ("-- WILL COMPILE MPHF! (GCC VERSION IS HIGH ENOUGH) ")
         message ("-------------------------------------------------------------------------------------")
- 
 endif()
 
 # In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
