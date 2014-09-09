@@ -66,7 +66,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     else()
         set (use_mphf 1)
     endif()
-    
+
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
@@ -118,7 +118,7 @@ if (use_new_cxx)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION  ${CXX_STD_VERSION}")
  endif()
 
-if (use_mpfh)
+if (use_mphf)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
         message ("-------------------------------------------------------------------------------------")
         message ("-- WILL COMPILE MPHF! (GCC VERSION IS HIGH ENOUGH) ")
