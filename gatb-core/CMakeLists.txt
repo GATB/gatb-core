@@ -80,7 +80,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         message ("-------------------------------------------------------------------------------------")
     endif()
 
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
         set (use_mphf 0)
     else()
         set (use_mphf 1)
