@@ -142,6 +142,15 @@ struct Kmer
     class KmerCanonical : public KmerDirect
     {
     public:
+
+        /** Set the forward/revcomp attributes. */
+        void set (const Type& forward, const Type& revcomp)
+        {
+            _forward=forward;
+            _revcomp=revcomp;
+            KmerDirect::set (std::min (_forward,_revcomp));
+        }
+
         /** Returns the forward value of this canonical kmer.
          * \return the forward value */
         const Type& forward() const { return _forward; }
