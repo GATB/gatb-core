@@ -30,9 +30,13 @@
 
 /********************************************************************************/
 
+#include <gatb/tools/collections/api/Collection.hpp>
+#include <gatb/tools/math/NativeInt8.hpp>
+
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/collections/impl/Bloom.hpp>
 #include <gatb/tools/collections/impl/ContainerSet.hpp>
+
 
 /********************************************************************************/
 namespace gatb      {
@@ -45,6 +49,8 @@ namespace impl      {
 class StorageTools
 {
 public:
+
+    /** why is there code in headers? because else we'd have to instantiate the template, see http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor */
 
     /** */
     static StorageTools& singleton() { static StorageTools instance; return instance; }
@@ -101,6 +107,15 @@ public:
         /** We return the result. */
         return bloom;
     }
+
+#ifdef WITH_MPHF
+    /** */
+    template<typename BaseHasher>   void saveEMPHF (Group& group, const std::string& name, void* mphf);
+
+    /** */
+    template<typename BaseHasher>     void*  loadEMPHF (Group& group, const std::string& name);
+#endif
+
 };
 
 /********************************************************************************/

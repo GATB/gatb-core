@@ -33,11 +33,11 @@ int main (int argc, char* argv[])
         double percentThreshold = options->getDouble(STR_FILTER_RATIO);
 
         /** We open the input bank. */
-        IBank* inBank = BankRegistery::singleton().getFactory()->createBank (options->getStr(STR_URI_INPUT));
+        IBank* inBank = BankRegistery::singleton().createBank (options->getStr(STR_URI_INPUT));
         LOCAL (inBank);
 
         /** We create the output inBank. */
-        IBank* outBank = BankRegistery::singleton().getFactory()->createBank (options->getStr(STR_URI_INPUT) + "_filtered");
+        IBank* outBank = BankRegistery::singleton().createBank (options->getStr(STR_URI_INPUT) + "_filtered");
         LOCAL (outBank);
 
         /** We iterate the inBank. NOTE: WE USE A LAMBDA EXPRESSION HERE. */

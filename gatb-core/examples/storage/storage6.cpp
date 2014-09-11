@@ -44,7 +44,7 @@ int main (int argc, char* argv[])
 
     // We create a Model instance. It will help to dump the kmers in
     // a human readable form (ie as a string of nucleotides)
-    Kmer<>::Model model (props.getInt ("kmer_size"));
+    Kmer<>::ModelCanonical model (props.getInt ("kmer_size"));
 
     size_t nbKmers = 0;
 

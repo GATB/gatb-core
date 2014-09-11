@@ -126,6 +126,28 @@ static std::string toString (BranchingKind kind)
 }
 
 /********************************************************************************/
+
+enum MPHFKind  { MPHF_NONE, MPHF_EMPHF };
+
+static void parse (const std::string& s, MPHFKind& kind)
+{
+         if (s == "none")     { kind = MPHF_NONE;  }
+    else if (s == "emphf")    { kind = MPHF_EMPHF;  }
+    else   { throw system::Exception ("bad mphf kind '%s'", s.c_str()); }
+}
+
+static std::string toString (MPHFKind kind)
+{
+    switch (kind)
+    {
+        case MPHF_NONE:     return "none";
+        case MPHF_EMPHF:   return "emphf";
+        default:        throw system::Exception ("bad mphf kind %d", kind);
+    }
+}
+
+
+/********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 

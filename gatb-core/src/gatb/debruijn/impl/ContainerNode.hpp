@@ -38,7 +38,14 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Bloom filter implementation
+/** \brief ContainerNode (or sometimes just named 'container')
+ *
+ *  In the GATB terminology, this object contains the information relative to the nodes of the dBG.
+ *  It is not a set of nodes, as we don't store nodes explicitly. 
+ *  Only one operation is supported:
+ *     contains()
+ *
+ *  In the current implement this object is actually just the Bloom filter + the set of False positives.
  */
 template <typename Item> class ContainerNode : public IContainerNode<Item>, public system::SmartPointer
 {

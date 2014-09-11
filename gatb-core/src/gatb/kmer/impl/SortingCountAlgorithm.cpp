@@ -390,8 +390,9 @@ class FillPartitions
 public:
 
     /** Shortcut. */
-    typedef typename Kmer<span>::Model Model;
-    typedef typename Kmer<span>::Type  Type;
+    typedef typename Kmer<span>::Type                  Type;
+    typedef typename Kmer<span>::ModelCanonical        Model;
+    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
 
     void operator() (Sequence& sequence)
     {
@@ -402,7 +403,7 @@ public:
         for (size_t i=0; i<kmers.size(); i++)
         {
             /** We hash the current kmer. */
-            u_int64_t h = oahash (kmers[i]);
+            u_int64_t h = oahash (kmers[i].value());
 
             /** We check whether this kmer has to be processed during the current pass. */
             if ((h % nbPass) != pass)  { continue; }
@@ -413,7 +414,7 @@ public:
             size_t p = reduced_kmer % nbPartitions;
 
             /** We write the kmer into the bag. */
-            _partition[p].insert (kmers[i]);
+            _partition[p].insert (kmers[i].value());
 
             nbWrittenKmers++;
         }
@@ -439,7 +440,7 @@ private:
     size_t    nbPartitions;
     size_t    nbWrittenKmers;
     Data      binaryData;
-    vector<Type> kmers;
+    vector<Kmer> kmers;
 
     /** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
 #ifdef PROTO_COMP

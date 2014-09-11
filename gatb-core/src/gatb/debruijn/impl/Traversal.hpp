@@ -241,6 +241,8 @@ private:
 
     void mark_extensions (std::set<Node>& extensions_to_mark);
 
+    Path most_abundant_consensus(std::set<Path>& consensuses);
+
     static const int consensuses_identity = 90; // traversing bubble if paths are all pair-wise identical by > 90%
 };
 

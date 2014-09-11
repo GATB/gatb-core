@@ -288,11 +288,11 @@ struct BranchingEdge : Edge
 
 /** \brief Structure representing a path in the De Bruijn graph.
  *
- * The Path structure provides information on a path in the DB graph. It mainly holds
+ * The Path structure provides information on a linear path in the DB graph. It mainly holds
  * the succession of nucleotides that define the path.
  *
- * The path start is defined by an Edge object, which defines without ambiguity the first
- * transition of the path.
+ * The path start is defined by an Node object, which defines without ambiguity the first
+ * node of the path.
  *
  * It can be used by clients such a contiger tool.
  *
@@ -305,7 +305,7 @@ struct Path
     Path (size_t n=0) : path(n) {}
 
     /** Edge defining the initial transition of the path. */
-    Edge root;
+    Node start;
 
     /** Path definition as a succession of nucleotides. */
     std::vector<kmer::Nucleotide> path;
@@ -744,6 +744,12 @@ public:
      * \return the wanted nucleotide. */
     kmer::Nucleotide getNT (const Node& node, size_t idx) const;
 
+    /** Return the abundance of a node by querying the perfect hash function 
+     * \param[in] node : the node
+     * \return the abundance */
+    int queryAbundance (const Node& node) const;
+
+
     /**********************************************************************/
     /*                         EDGE METHODS                               */
     /**********************************************************************/
@@ -807,7 +813,8 @@ public:
         STATE_SORTING_COUNT_DONE  = (1<<2),
         STATE_BLOOM_DONE          = (1<<3),
         STATE_DEBLOOM_DONE        = (1<<4),
-        STATE_BRANCHING_DONE      = (1<<5)
+        STATE_BRANCHING_DONE      = (1<<5),
+        STATE_MPHF_DONE           = (1<<6)
     };
     typedef int State;
     State getState () const { return _state; }
@@ -855,6 +862,7 @@ private:
     tools::misc::BloomKind       _bloomKind;
     tools::misc::DebloomKind     _debloomKind;
     tools::misc::BranchingKind   _branchingKind;
+    tools::misc::MPHFKind        _mphfKind;
 
     State _state;
 

@@ -41,6 +41,10 @@
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
 
+#ifdef WITH_MPHF
+#include <gatb/kmer/impl/MPHFAlgorithm.hpp>
+#endif
+
 using namespace std;
 
 using namespace gatb::core::system::impl;
@@ -79,12 +83,18 @@ template<size_t span>
 struct GraphData
 {
     /** Shortcuts. */
-    typedef typename Kmer<span>::Model Model;
-    typedef typename Kmer<span>::Type  Type;
-    typedef typename Kmer<span>::Count Count;
+    typedef typename Kmer<span>::ModelCanonical Model;
+    typedef typename Kmer<span>::Type           Type;
+    typedef typename Kmer<span>::Count          Count;
+#ifdef WITH_MPHF
+    typedef typename MPHFAlgorithm<span>::MPHF MPHF;
+#endif
+#ifndef WITH_MPHF
+    #define setMPHF(x) x
+#endif
 
     /** Constructor. */
-    GraphData () : _model(0), _solid(0), _container(0), _branching(0) {}
+    GraphData () : _model(0), _solid(0), _container(0), _branching(0), _mphf(0) {}
 
     /** Destructor. */
     ~GraphData ()
@@ -93,15 +103,17 @@ struct GraphData
         setSolid     (0);
         setContainer (0);
         setBranching (0);
+        setMPHF (0);
     }
 
     /** Constructor (copy). */
-    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0)
+    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0), _mphf(0)
     {
         setModel     (d._model);
         setSolid     (d._solid);
         setContainer (d._container);
         setBranching (d._branching);
+        setMPHF (d._mphf);
     }
 
     /** Assignment operator. */
@@ -113,6 +125,7 @@ struct GraphData
             setSolid     (d._solid);
             setContainer (d._container);
             setBranching (d._branching);
+            setMPHF (d._mphf);
         }
         return *this;
     }
@@ -122,12 +135,20 @@ struct GraphData
     Collection<Count>*    _solid;
     IContainerNode<Type>* _container;
     Collection<Count>*    _branching;
+#ifdef WITH_MPHF
+    MPHF*       _mphf;
+#else
+    void *_mphf;
+#endif
 
     /** Setters. */
     void setModel       (Model*                 model)      { SP_SETATTR (model);     }
     void setSolid       (Collection<Count>*     solid)      { SP_SETATTR (solid);     }
     void setContainer   (IContainerNode<Type>*  container)  { SP_SETATTR (container); }
     void setBranching   (Collection<Count>*     branching)  { SP_SETATTR (branching); }
+#ifdef WITH_MPHF
+    void setMPHF        (MPHF*           mphf)  { SP_SETATTR (mphf) ;}
+#endif
 
     /** Shortcut. */
     bool contains (const Type& item)  const  {  return _container->contains (item);  }
@@ -197,7 +218,7 @@ struct configure_visitor : public boost::static_visitor<>    {
         size_t   kmerSize = graph.getKmerSize();
 
         /** We create the kmer model. */
-        data.setModel (new typename Kmer<span>::Model (kmerSize));
+        data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
         if (graph.getState() & Graph::STATE_BANKCONVERTER_DONE)
         {
@@ -212,7 +233,7 @@ struct configure_visitor : public boost::static_visitor<>    {
             SortingCountAlgorithm<span> algo (storage);
             graph.getInfo().add (1, algo.getInfo());
             data.setSolid (algo.getSolidKmers());
-        }
+       }
 
         if (graph.getState() & Graph::STATE_BLOOM_DONE)
         {
@@ -236,6 +257,18 @@ struct configure_visitor : public boost::static_visitor<>    {
             graph.getInfo().add (1, algo.getInfo());
             data.setBranching (algo.getBranchingCollection());
         }
+
+        if (graph.getState() & Graph::STATE_MPHF_DONE)
+        {
+#ifdef WITH_MPHF
+            // TODO get solid kmers from storage..
+            SortingCountAlgorithm<span> algo_sortingcount (storage); // actually need to get solid kmers (as a way to reconstruct abundance data in the mphf) so i'm calling this as a temporary hack. later: remove that line, just save/load the MPHF abundance array to disk
+            /** Set the MPHF */
+            MPHFAlgorithm<span> mphf_algo (storage, algo_sortingcount.getSolidKmers(), kmerSize, "CHANGEME.mphf" /* that's also an obvious temporary hack */, 0, true);   /* this constructor should be modified later, when mphf serialization is taken care of */
+            data.setMPHF (mphf_algo.getMPHF());
+#endif
+        }
+
     }
 };
 
@@ -292,7 +325,7 @@ struct build_visitor : public boost::static_visitor<>    {
         ));
 
         /** We create the kmer model. */
-        data.setModel (new typename Kmer<span>::Model (kmerSize));
+        data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
         /** We add library information. */
         graph.getInfo().add (1, & LibraryInfo::getInfo());
@@ -348,6 +381,28 @@ struct build_visitor : public boost::static_visitor<>    {
 
         /** We check that we got solid kmers. */
         if (sortingCount.getSolidKmers()->getNbItems() == 0)  {  throw "NO SOLID KMERS FOUND...";  }
+
+
+        /************************************************************/
+        /*                         MPHF                             */
+        // note: theoretically could be done in parallel to debloom, but both tasks may or may not be IO intensive
+        /************************************************************/
+
+        /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
+        if (graph._mphfKind != MPHF_NONE)
+        {
+#ifdef WITH_MPHF
+            MPHFAlgorithm<span> mphf_algo (
+                    graph.getStorage(),
+                    sortingCount.getSolidKmers(),
+                    kmerSize,
+                    "CHANGEME.mphf"
+                    );
+            executeAlgorithm (mphf_algo, graph.getStorage(), props, graph._info);
+            data.setMPHF(mphf_algo.getMPHF());
+            graph.setState(Graph::STATE_MPHF_DONE);
+#endif
+        }
 
         /************************************************************/
         /*                         Bloom                            */
@@ -494,6 +549,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,        "bloom type ('basic' or 'cache')",      false, "cache"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,      "debloom type ('none', 'original' or 'cascading')", false, "cascading"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')", false, "stored"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')", false, "emphf"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers ('none' means delete by convention)", false));
 
     return parser;
@@ -559,7 +615,7 @@ Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED)
+      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -622,6 +678,7 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
+    parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -636,7 +693,7 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : this is mostly duplicated code with function above, TODO refactor?
 *********************************************************************/
 Graph::Graph (tools::misc::IProperties* params)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
@@ -651,6 +708,7 @@ Graph::Graph (tools::misc::IProperties* params)
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
+    parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -674,7 +732,7 @@ Graph::Graph ()
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED)
+      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
 {
 }
 
@@ -714,6 +772,7 @@ Graph& Graph::operator= (const Graph& graph)
         _bankConvertKind = graph._bankConvertKind;
         _bloomKind       = graph._bloomKind;
         _debloomKind     = graph._debloomKind;
+        _mphfKind        = graph._mphfKind;
         _branchingKind   = graph._branchingKind;
         _state           = graph._state;
 
@@ -917,7 +976,7 @@ struct getItems_visitor : public boost::static_visitor<Graph::Vector<Item> >    
 
         /** Shortcuts. */
         size_t      kmerSize = data._model->getKmerSize();
-        const Type& mask     = data._model->getMask();
+        const Type& mask     = data._model->getKmerMax();
 
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
         Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, kmerSize) );
@@ -1051,7 +1110,7 @@ struct getItemsCouple_visitor : public boost::static_visitor<Graph::Vector<pair<
 
         /** Shortcuts. */
         size_t      kmerSize = data._model->getKmerSize();
-        const Type& mask     = data._model->getMask();
+        const Type& mask     = data._model->getKmerMax();
 
         /** We get the specific typed value from the generic typed value. */
         const Type& val1 = node1.kmer.get<Type>();
@@ -1203,10 +1262,10 @@ struct buildNode_visitor : public boost::static_visitor<Node>    {
     template<size_t span>  Node operator() (const GraphData<span>& graphData) const
     {
         /** Shortcut. */
-        typedef typename Kmer<span>::Type Type;
+        typedef typename Kmer<span>::ModelCanonical::Kmer Kmer;
 
-        pair<Type,bool> kmer = graphData._model->getKmer (data, offset);
-        return Node (Integer(kmer.first), kmer.second ? STRAND_FORWARD : STRAND_REVCOMP);
+        Kmer kmer = graphData._model->getKmer (data, offset);
+        return Node (Integer(kmer.value()), kmer.forward()==kmer.value() ? STRAND_FORWARD : STRAND_REVCOMP);
     }
 };
 
@@ -1330,7 +1389,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
 
         /** Shortcuts. */
         size_t      kmerSize = data._model->getKmerSize();
-        const Type& mask     = data._model->getMask();
+        const Type& mask     = data._model->getKmerMax();
 
         // the kmer we're extending may be actually a revcomp sequence in the bidirected debruijn graph node
         Type graine = ((source.strand == STRAND_FORWARD) ?  sourceVal :  revcomp (sourceVal, kmerSize) );
@@ -1566,9 +1625,9 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
     template<size_t span>  tools::dp::ISmartIterator<NodeType>* operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::Model Model;
-        typedef typename Kmer<span>::Type  Type;
-        typedef typename Kmer<span>::Count Count;
+        typedef typename Kmer<span>::ModelCanonical Model;
+        typedef typename Kmer<span>::Type           Type;
+        typedef typename Kmer<span>::Count          Count;
 
         class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
@@ -2194,8 +2253,8 @@ struct mutate_visitor : public boost::static_visitor<Graph::Vector<Node> >    {
     template<size_t span>  Graph::Vector<Node> operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::Type Type;
-        typedef typename Kmer<span>::Model Model;
+        typedef typename Kmer<span>::Type           Type;
+        typedef typename Kmer<span>::ModelCanonical Model;
 
         Graph::Vector<Node> result;
         size_t nbMutations = 0;
@@ -2302,7 +2361,7 @@ struct getNT_visitor : public boost::static_visitor<Nucleotide>    {
     template<size_t span>  Nucleotide operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::Model Model;
+        typedef typename Kmer<span>::ModelCanonical Model;
         size_t kmerSize = data._model->getKmerSize();
 
         if (node.strand == STRAND_FORWARD)  { return (Nucleotide) (node.kmer[kmerSize-1-idx]); }
@@ -2315,6 +2374,37 @@ Nucleotide Graph::getNT (const Node& node, size_t idx) const
 {
     return boost::apply_visitor (getNT_visitor(node,idx),  *(GraphDataVariant*)_variant);
 }
+
+
+
+// I don't understand fully this visitor pattern, was it needed for this method? -r
+struct queryAbundance_visitor : public boost::static_visitor<int>    {
+
+    const Node& node;  size_t idx;
+
+    queryAbundance_visitor (const Node& node) : node(node){}
+
+    template<size_t span>  int operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type  Type;
+        unsigned char res = 0;
+
+        /** We get the specific typed value from the generic typed value. */
+        const Type& nodeVal = node.kmer.get<Type>();
+#ifdef WITH_MPHF
+        data._mphf->get(nodeVal, &res);
+#endif
+        return res;
+    }
+};
+
+
+
+int Graph::queryAbundance (const Node& node) const
+{
+    return boost::apply_visitor (queryAbundance_visitor(node),  *(GraphDataVariant*)_variant);
+}
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

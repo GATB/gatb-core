@@ -49,9 +49,9 @@ class BloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 public:
 
     /** Shortcuts. */
-    typedef typename kmer::impl::Kmer<span>::Model Model;
-    typedef typename kmer::impl::Kmer<span>::Type  Type;
-    typedef typename kmer::impl::Kmer<span>::Count Count;
+    typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
+    typedef typename kmer::impl::Kmer<span>::Type           Type;
+    typedef typename kmer::impl::Kmer<span>::Count          Count;
 
     /** */
     BloomAlgorithm (

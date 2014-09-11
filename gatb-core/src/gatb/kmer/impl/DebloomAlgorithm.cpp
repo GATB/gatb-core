@@ -147,7 +147,7 @@ DebloomAlgorithm<span>::DebloomAlgorithm (tools::storage::impl::Storage& storage
     /** We retrieve the cascading kind from the storage. */
     parse (_groupDebloom.getProperty("kind"), _debloomKind);
 
-    loadContainer (_storage);
+    loadDebloomStructures(_storage);
 
     string xmlString = _groupDebloom.getProperty ("xml");
     stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
@@ -165,7 +165,7 @@ template<size_t span>
 DebloomAlgorithm<span>::~DebloomAlgorithm ()
 {
     setSolidIterable      (0);
-    setContainer          (0);
+    setDebloomStructures  (0);
 }
 
 /*********************************************************************
@@ -225,7 +225,7 @@ void DebloomAlgorithm<span>::execute ()
     }
 
     /** Now, we configure the IContainerNode instance for public API. */
-    loadContainer (_storage);
+    loadDebloomStructures (_storage);
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
@@ -329,7 +329,7 @@ void DebloomAlgorithm<span>::execute_aux (
     string inputUri  = _debloomUri;
     string outputUri = _debloomUri + "2";
 
-    /** We need a hash that will hold solid kmers. */
+    /** We need a hash table that will hold solid kmers. */
     Hash16<Type> partition (_max_memory);
 
     {
@@ -733,10 +733,10 @@ float DebloomAlgorithm<span>::getNbBitsPerKmer (size_t kmerSize, DebloomKind deb
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : used to be named loadContainer but I renamed it for clarity, also conficting name with actual loadContainer for a container
 *********************************************************************/
 template<size_t span>
-void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& storage)
+void DebloomAlgorithm<span>::loadDebloomStructures (tools::storage::impl::Storage& storage)
 {
     DEBUG (("DebloomAlgorithm<span>::loadContainer  _debloomKind=%d \n", _debloomKind));
 
@@ -747,7 +747,7 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
             IBloom<Type>* bloom = StorageTools::singleton().loadBloom<Type> (_groupBloom, "bloom");
 
             /** We build the set of critical false positive kmers. */
-            setContainer (new debruijn::impl::ContainerNodeNoCFP<Type> (bloom));
+            setDebloomStructures (new debruijn::impl::ContainerNodeNoCFP<Type> (bloom));
             break;
         }
 
@@ -759,7 +759,7 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
             Container<Type>*   cFP      = StorageTools::singleton().loadContainer<Type> (_groupDebloom, "cfp");
 
             /** We build the set of critical false positive kmers. */
-            setContainer (new debruijn::impl::ContainerNode<Type> (bloom, cFP));
+            setDebloomStructures (new debruijn::impl::ContainerNode<Type> (bloom, cFP));
 
             break;
         }
@@ -773,7 +773,7 @@ void DebloomAlgorithm<span>::loadContainer (tools::storage::impl::Storage& stora
             Container<Type>*  cFP     = StorageTools::singleton().loadContainer<Type> (_groupDebloom, "cfp");
 
             /** We build the set of critical false positive kmers. */
-            setContainer (new debruijn::impl::ContainerNodeCascading<Type> (bloom, bloom2, bloom3, bloom4, cFP));
+            setDebloomStructures (new debruijn::impl::ContainerNodeCascading<Type> (bloom, bloom2, bloom3, bloom4, cFP));
 
             break;
         }

@@ -20,9 +20,13 @@
 /** \file Storage.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Collection interface
+ *  \brief Storage interface
  *
- *  This file holds interfaces related to the Collection interface
+ *  This file holds interfaces related to the Collection, Group, Partition, Factory interfaces.
+ *
+ *  I believe this deals with both on-disk and in-memory structures.. (from discussions with Erwan)
+ *  So if you're looking at this file to figure out whether a Collection/Group/Partition is stored on
+ *  disk or on memory, look elsewhere!
  */
 
 #ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HPP_
@@ -331,13 +335,9 @@ protected:
 
     
 /********************************************************************************
-        ######   ######   #######  ######   #     #   #####   #######
-        #     #  #     #  #     #  #     #  #     #  #     #     #
-        #     #  #     #  #     #  #     #  #     #  #           #
-        ######   ######   #     #  #     #  #     #  #           #
-        #        #   #    #     #  #     #  #     #  #           #
-        #        #    #   #     #  #     #  #     #  #     #     #
-        #        #     #  #######  ######    #####    #####      #
+        
+           S t o r a g e
+
 ********************************************************************************/
 
 /** \brief Storage class
@@ -397,13 +397,13 @@ protected:
 };
 
 /********************************************************************************
-        #######     #      #####   #######  #######  ######   #     #
-        #          # #    #     #     #     #     #  #     #   #   #
-        #         #   #   #           #     #     #  #     #    # #
-        #####    #     #  #           #     #     #  ######      #
-        #        #######  #           #     #     #  #   #       #
-        #        #     #  #     #     #     #     #  #    #      #
-        #        #     #   #####      #     #######  #     #     #
+                #######     #      #####   #######  #######  ######   #     #
+                #          # #    #     #     #     #     #  #     #   #   #
+                #         #   #   #           #     #     #  #     #    # #
+   storage -    #####    #     #  #           #     #     #  ######      #
+                #        #######  #           #     #     #  #   #       #
+                #        #     #  #     #     #     #     #  #    #      #
+                #        #     #   #####      #     #######  #     #     #
 ********************************************************************************/
 
 class StorageFactory : public system::SmartPointer
