@@ -66,7 +66,7 @@ class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 public:
 
     /** Shortcuts. */
-    typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
+    typedef typename kmer::impl::Kmer<span>::ModelDirect Model; //was canonical
     typedef typename kmer::impl::Kmer<span>::Type           Type;
     typedef typename kmer::impl::Kmer<span>::Count          Count;
 

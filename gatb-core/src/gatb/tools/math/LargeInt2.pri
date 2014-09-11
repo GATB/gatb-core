@@ -178,6 +178,8 @@ inline LargeInt<2> revcomp (const LargeInt<2>& in, size_t sizeKmer)
 /********************************************************************************/
 inline u_int64_t hash1 (const LargeInt<2>& item, u_int64_t seed=0)
 {
+	printf("hash1 call largeint2 \n");
+
     const __uint128_t& elem = item.value[0];
 
     return NativeInt64::hash64 ((u_int64_t)(elem>>64),seed) ^

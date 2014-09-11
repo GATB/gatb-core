@@ -54,6 +54,11 @@ namespace system    {
 	const   u_int64_t  MBYTE = (1ULL << 20);
 	const   u_int64_t  GBYTE = (1ULL << 30);
 	
+	
+	extern  float superk_average_pread  ;
+	extern  u_int64_t nbrl ;
+	
+	
 /********************************************************************************/
 
 /** \brief Interface providing methods for dynamic allocation.

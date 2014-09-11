@@ -130,6 +130,8 @@ public:
     /********************************************************************************/
     inline static u_int64_t hash64 (u_int64_t key, u_int64_t seed)
     {
+		//pourquoi appelle pas native64 version ?
+	//	printf("call hash64 l1 \n ");
         u_int64_t hash = seed;
         hash ^= (hash <<  7) ^  key * (hash >> 3) ^ (~((hash << 11) + (key ^ (hash >> 5))));
         hash = (~hash) + (hash << 21); // hash = (hash << 21) - hash - 1;
@@ -139,7 +141,35 @@ public:
         hash = (hash + (hash << 2)) + (hash << 4); // hash * 21
         hash = hash ^ (hash >> 28);
         hash = hash + (hash << 31);
-        return hash;
+		
+		//proto avec taille en dur
+		int ks = 31;
+
+		// test return le minimizer m 8 : ie 16 bit
+		u_int64_t revk  = revcomp64(key,ks);
+		
+		int mm = 8;
+		u_int64_t minim = 1000000000;
+		u_int64_t mask = (1<<(2*mm)) - 1;
+		for (int i = 0; i <  (1+(ks*2)- 2*mm );i++ )
+		{
+			u_int64_t	 newm = (key >> i) & mask;
+			if (newm < minim) minim = newm;
+		}
+		
+		
+		for (int i = 0; i <  (1+(ks*2)- 2*mm );i++ )
+		{
+			u_int64_t	 newm = (revk >> i) & mask;
+			if (newm < minim) minim = newm;
+		}
+		
+		
+		
+		
+		
+		return minim;
+		
     }
 
     /********************************************************************************/
@@ -205,6 +235,7 @@ inline LargeInt<1> revcomp (const LargeInt<1>& x, size_t sizeKmer)
 /********************************************************************************/
 inline u_int64_t hash1 (const LargeInt<1>& key, u_int64_t seed=0)
 {
+
     return LargeInt<1>::hash64 (key.value[0], seed);
 }
 

@@ -20,9 +20,16 @@
 #include <gatb/system/impl/System.hpp>
 
 /********************************************************************************/
-namespace gatb { namespace core { namespace system { namespace impl {
+namespace gatb { namespace core { namespace system {
+	
+	
+	float superk_average_pread  ;
+	u_int64_t nbrl ;
+	
+	namespace impl {
 /********************************************************************************/
 
+	
 std::list<ThreadGroup*> ThreadGroup::_groups;
 
 /*********************************************************************

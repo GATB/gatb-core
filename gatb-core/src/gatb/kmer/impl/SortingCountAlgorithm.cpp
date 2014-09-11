@@ -231,6 +231,10 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
 template<size_t span>
 void SortingCountAlgorithm<span>::execute ()
 {
+	
+	superk_average_pread = 0;
+	nbrl = 0;
+	
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
     assert (_nbCores > 0);
@@ -257,7 +261,9 @@ void SortingCountAlgorithm<span>::execute ()
 
         /** 1) We fill the partition files. */
         fillPartitions (_current_pass, itSeq);
+		printf("average nb superkmer per read %f \n",system::superk_average_pread);
 
+		//return ;
         /** 2) We fill the kmers solid file from the partition files. */
         fillSolidKmers (_solidKmers->bag());
     }
@@ -270,7 +276,8 @@ void SortingCountAlgorithm<span>::execute ()
     /** We save the histogram if any. */
     _histogram->save ();
 	
-	
+	//printf("average nb superkmer per read %f \n",system::superk_average_pread);
+
     /** compute auto cutoff **/
     _histogram->compute_threshold ();
 
@@ -391,36 +398,147 @@ public:
 
     /** Shortcut. */
     typedef typename Kmer<span>::Type                  Type;
-    typedef typename Kmer<span>::ModelCanonical        Model;
-    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
+	typedef typename Kmer<span>::ModelDirect           Model;
+    typedef typename Kmer<span>::ModelDirect::Kmer  Kmer;
+	
+	
+	//Was
+ //   typedef typename Kmer<span>::Type                  Type;
+ //   typedef typename Kmer<span>::ModelCanonical        Model;
+ //   typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
+	
+	
 
+	
+//    typedef typename Kmer<span>::ModelMinimizer<ModelCanonical> ModelDirectMinimizer;
+//    typedef typename Kmer<span>::ModelMinimizer<ModelCanonical> ModelCanonicalMinimizer;
+	
+	
+	void compact_and_insert_superkmer (std::vector<Type> & superK,u_int64_t minimk)
+    {
+	
+		if ((minimk % nbPass) == pass) //check if falls into pass
+		{
+			u_int64_t reduced_kmer = minimk / nbPass;
+			
+			/** We compute in which partition this kmer falls into. */
+			size_t p = reduced_kmer % nbPartitions;
+			
+			/** We write the superkmer into the bag. */
+			//but first compact superkmer into two kmers
+			
+			//compactage here
+			
+			
+			
+			
+			unsigned char lenK = superK.size() ;
+			
+			int64_t zero = 0;
+			Type masknt ((int64_t) 3);
+			Type nbK ((int64_t) superK.size());
+			Type compactedK(zero);
+			
+			int maxs = (compactedK.getSize() - 8 ) ;
+			
+			
+			for (int ii = 1 ; ii <superK.size(); ii++) {
+				compactedK = compactedK << 2  ;
+				compactedK = compactedK | (superK[ii] & masknt) ;
+			}
+			
+			compactedK = compactedK | (  nbK << maxs ) ; // 56 = nb bits in type - 8
+			
+			//then output first and amorce
+			//		printf("WRITE A %llx\n",compactedK.getVal());
+			//		printf("WRITE B %llx\n",debk.getVal());
+			
+			_partition[p].insert (compactedK);
+			_partition[p].insert (superK[0]);
+
+			
+			///// end compact
+						
+			nbWrittenKmers+= superK.size();
+		}
+		
+	}
+	
     void operator() (Sequence& sequence)
     {
         /** We build the kmers from the current sequence. */
         if (model.build (sequence.getData(), kmers) == false)  { return; }
+		// il faut les recup en mode forward maintenant
 
+		std::vector<Type>  superK;
+		u_int64_t prevmin;
+		int nb_superk = 1;
+		superK.clear();
+
+		
+		if(kmers.size()> 0)
+		{
+			prevmin  = hash1 (kmers[0].value());
+		//	superK.push_back(kmers[0]);
+		}
+
+		int maxs = (superK[0].getSize() - 8 )/2 ;
+		//printf("type size %i bits   max allowed nt superK %lu \n",superK[0].getSize(), (superK[0].getSize() - 8 )/2);
+	//	printf("---------------new read ------------ %i \n",kmers.size());
+		//printf("kmers size %lu \n",kmers.size());
         /** We loop over the kmers. */
         for (size_t i=0; i<kmers.size(); i++)
         {
             /** We hash the current kmer. */
-            u_int64_t h = oahash (kmers[i].value());
 
-            /** We check whether this kmer has to be processed during the current pass. */
-            if ((h % nbPass) != pass)  { continue; }
+//            _partition[p].insert (kmers[i].value());
+			//get minimizer here
+			 u_int64_t h = hash1 (kmers[i].value());
 
-            u_int64_t reduced_kmer = h / nbPass;
+			//printf("minim %lu \n",h);
+			
+			if(h!= prevmin || superK.size() >= maxs) //todo max nt coded :( nb bits in type - 8)  /2
+			{
+				nb_superk ++;
+				
+				
+				
+				//output previous superkmer (minim prevmin)
+				/** We check whether this kmer has to be processed during the current pass. */
+				//if ((prevmin % nbPass) != pass)  { superK.clear();superK.push_back(kmers[i]);prevmin =  h; continue; }
+				
+				compact_and_insert_superkmer(superK, prevmin);
 
-            /** We compute in which partition this kmer falls into. */
-            size_t p = reduced_kmer % nbPartitions;
+ 				superK.clear();superK.push_back(kmers[i].value());
+			}
+			else
+			{
+				superK.push_back(kmers[i].value());
+			}
+			
+			
+			//printf("%s \n",kmers[i].toString(31).c_str());
+			//
+			
+			prevmin =  h;
 
-            /** We write the kmer into the bag. */
-            _partition[p].insert (kmers[i].value());
-
-            nbWrittenKmers++;
         }
+		
+		//output last superK
+		compact_and_insert_superkmer(superK, prevmin);
 
+		
+		
+		
+		superk_average_pread =  (nbrl *  superk_average_pread  +  nb_superk) / (float)(nbrl+1);
+		
+		nbrl ++;
+		
+	//	printf ("nb_superk %i \n",nb_superk);
+		
         if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
+
 
     FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress)
         : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0),
@@ -468,8 +586,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
-    Model model (_kmerSize);
-
+  //  Model model (_kmerSize,KMER_DIRECT); // en forward mode pour le minimizer : on recup la suite du read  compute revcomp ds hash minim
+    //Model model (_kmerSize);
+	Model model (_kmerSize);
+	
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
 
@@ -483,7 +603,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     
 	setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
 
+	//ici changer le type en suprkmer ? mais ca donne aussi type lecture pour iterablefile
     setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
+	//getparti --> _factory->createPartition  --> new partition --> n new  create collec
+	//Type here  =     typedef typename Kmer<span>::Type  Type;  ?
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
@@ -563,11 +686,11 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
             /* Get the memory taken by this partition if loaded for sorting */
             uint64_t memoryPartition = partitionLen * sizeof(Type);
 
-            if (memoryPartition >= mem)
-            {
-                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem);
-            }
-            else
+//            if (memoryPartition >= mem)
+//            {
+//                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem);
+//            }
+//            else
             {
                 cmd = new PartitionsByVectorCommand<span> (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress);
             }

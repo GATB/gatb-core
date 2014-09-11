@@ -159,6 +159,7 @@ public:
     /********************************************************************************/
     inline static u_int64_t hash64 (u_int64_t key, u_int64_t seed)
     {
+		printf("call hash64 \n");
         u_int64_t hash = seed;
         hash ^= (hash <<  7) ^  key * (hash >> 3) ^ (~((hash << 11) + (key ^ (hash >> 5))));
         hash = (~hash) + (hash << 21); // hash = (hash << 21) - hash - 1;
@@ -168,12 +169,40 @@ public:
         hash = (hash + (hash << 2)) + (hash << 4); // hash * 21
         hash = hash ^ (hash >> 28);
         hash = hash + (hash << 31);
-        return hash;
+		
+		//proto avec test en dur
+		// test return le minimizer m 8 : ie 16 bit
+		u_int64_t revk  = revcomp64(key,31);
+
+		int mm = 8;
+		u_int64_t minim = 1000000000;
+		u_int64_t mask = (1<<(2*mm)) - 1;
+		for (int i = 0; i <  (1+64- 2*mm );i++ )
+		{
+			u_int64_t	 newm = (key >> i) & mask;
+			if (newm < minim) minim = newm;
+		}
+		
+		
+		for (int i = 0; i <  (1+64- 2*mm );i++ )
+		{
+			u_int64_t	 newm = (revk >> i) & mask;
+			if (newm < minim) minim = newm;
+		}
+		
+		
+		
+	
+		
+		return minim;
+        //return hash;
     }
 
     /********************************************************************************/
     inline static u_int64_t oahash64 (u_int64_t elem)
     {
+		printf("call oahash64 \n");
+
         u_int64_t code = elem;
         code = code ^ (code >> 14); //supp
         code = (~code) + (code << 18);
@@ -182,6 +211,7 @@ public:
         code = code ^ (code >> 11);
         code = code + (code << 6);
         code = code ^ (code >> 22);
+		
         return code;
     }
 
@@ -226,6 +256,7 @@ inline NativeInt64 revcomp (const NativeInt64& x, size_t sizeKmer)
 /********************************************************************************/
 inline u_int64_t hash1 (const NativeInt64& key, u_int64_t seed=0)
 {
+
     return NativeInt64::hash64 (key.value[0], seed);
 }
 
