@@ -157,6 +157,7 @@ private:
     friend NativeInt128 revcomp (const NativeInt128& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const NativeInt128& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const NativeInt128& key);
+	friend u_int64_t    mhash  (const NativeInt128& key,const NativeInt128& key2,   u_int64_t prevmin);
     friend u_int64_t    simplehash16    (const NativeInt128& key, int  shift);
 
 };
@@ -209,6 +210,15 @@ inline u_int64_t oahash (const NativeInt128& item)
            NativeInt64::oahash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)));
 }
 
+/********************************************************************************/
+inline u_int64_t mhash (const NativeInt128& item,const NativeInt128& item2,  u_int64_t prevmin)
+{
+	const __uint128_t& elem = item.value[0];
+	
+	return NativeInt64::mhash64 ((u_int64_t)(elem>>64),(u_int64_t)(elem>>64),prevmin) ^
+	NativeInt64::mhash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)),(u_int64_t)(elem&((((__uint128_t)1)<<64)-1)),prevmin);
+}
+	
 /********************************************************************************/
 inline u_int64_t simplehash16 (const NativeInt128& key, int  shift)
 {

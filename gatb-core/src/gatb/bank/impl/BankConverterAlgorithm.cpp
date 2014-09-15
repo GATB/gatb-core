@@ -105,6 +105,13 @@ BankConverterAlgorithm::~BankConverterAlgorithm ()
 *********************************************************************/
 void BankConverterAlgorithm::execute ()
 {
+	typedef Kmer<31>::ModelCanonical  Modelc;
+	typedef typename Kmer<31>::ModelCanonical::Kmer  Mmer;
+	typedef typename Kmer<31>::Type           Typem;
+	
+	Modelc model (g_msize);
+    vector<Mmer> mmers;
+	
     /** We may have no conversion at all to do. */
     if (_kind == BANK_CONVERT_NONE)
     {
@@ -140,9 +147,32 @@ void BankConverterAlgorithm::execute ()
              nbSeq ++;
              sizeSeq += (*itBank)->getDataSize();
 
+
+
              /** We insert the current sequence into the output bank. */
              _bankOutput->insert (itBank->item());
+			 
+			 
+			 //todo also in this pass :  parse the mmers of the seq itBank->item() to count mmers , to do freq based minim later
+			model.build (itBank->item().getData(), mmers);
+			 for (size_t i=0; i<mmers.size(); i++)
+			 {
+				 Typem cur =mmers[i].value();
+				 freq_mmer[cur.getVal() ] ++;
+			 }
+			 
+			 
          }
+		 
+		 
+//		 //debug
+//		 for (int ii= 0; ii< ( 1 <<(8*2)); ii++)
+//		 {
+//			 Typem cur = ii;
+//			 printf("%s : %lli\n",cur.toString(8).c_str(),freq_mmer[ii]);
+//		 }
+		 //
+		 
      }
 
      /** We flush the output bank (important if it is a file output). */

@@ -16,7 +16,6 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
-
 /** \file LargeInt<1>.hpp
  *  \date 01/03/2013
  *  \author edrezen
@@ -25,6 +24,11 @@
 
 /** \brief Large integer class
  */
+
+
+
+
+
 template<>  class LargeInt<1> :  private misc::ArrayData<u_int64_t, 1>
 {
 public:
@@ -114,6 +118,11 @@ public:
     }
 
     
+	
+	
+
+	
+	
     /********************************************************************************/
     inline static u_int64_t revcomp64 (const u_int64_t& x, size_t sizeKmer)
     {
@@ -130,8 +139,6 @@ public:
     /********************************************************************************/
     inline static u_int64_t hash64 (u_int64_t key, u_int64_t seed)
     {
-		//pourquoi appelle pas native64 version ?
-	//	printf("call hash64 l1 \n ");
         u_int64_t hash = seed;
         hash ^= (hash <<  7) ^  key * (hash >> 3) ^ (~((hash << 11) + (key ^ (hash >> 5))));
         hash = (~hash) + (hash << 21); // hash = (hash << 21) - hash - 1;
@@ -142,34 +149,7 @@ public:
         hash = hash ^ (hash >> 28);
         hash = hash + (hash << 31);
 		
-		//proto avec taille en dur
-		int ks = 31;
-
-		// test return le minimizer m 8 : ie 16 bit
-		u_int64_t revk  = revcomp64(key,ks);
-		
-		int mm = 8;
-		u_int64_t minim = 1000000000;
-		u_int64_t mask = (1<<(2*mm)) - 1;
-		for (int i = 0; i <  (1+(ks*2)- 2*mm );i++ )
-		{
-			u_int64_t	 newm = (key >> i) & mask;
-			if (newm < minim) minim = newm;
-		}
-		
-		
-		for (int i = 0; i <  (1+(ks*2)- 2*mm );i++ )
-		{
-			u_int64_t	 newm = (revk >> i) & mask;
-			if (newm < minim) minim = newm;
-		}
-		
-		
-		
-		
-		
-		return minim;
-		
+		return hash;
     }
 
     /********************************************************************************/
@@ -186,6 +166,86 @@ public:
         return code;
     }
 
+	inline static bool comp_less_minimizer (u_int64_t a, u_int64_t b)
+	{
+		bool res = false;
+		
+		int mm = system::g_msize;
+		u_int64_t * freqm = system::freq_mmer;
+		
+		//2 revcomp, couteux
+		u_int64_t ca = std::min ( NativeInt64::revcomp8(a,mm), a); // revcomp8 version optim revcomp 8nt max
+		u_int64_t cb = std::min ( NativeInt64::revcomp8(b,mm), b);
+		
+		if (freqm[ca] < freqm[cb]   ||
+			( (freqm[ca] == freqm[cb]) && (a < b) )
+			)
+			res = true;
+		return res;
+		
+		//pour minim standard :
+	//	return (a<b);
+	}
+
+	
+	/********************************************************************************/
+    inline static u_int64_t mhash64 (u_int64_t forw,u_int64_t rev,   u_int64_t prevmin)
+    {
+		
+		u_int64_t res ;
+		int ks = system::g_ksize;
+		int mm = system::g_msize;
+		u_int64_t * freqm = system::freq_mmer;
+		u_int64_t maskm = (1<<(2*mm)) - 1;
+		
+		u_int64_t maskms = (1<<(2*(mm-1))) - 1;
+		
+		
+		int dec = 2*(ks- (mm-1)); // m-1 suffix
+		u_int64_t  f_sortant = (forw >> dec ) & maskms; // on a plus le sortant en fait, juste son m-1 suffixe
+		u_int64_t  f_new = forw & maskm;
+		
+		u_int64_t  r_sortant = rev & maskms; //prefix du sortant
+		u_int64_t  r_new = (rev >> (2*(ks- (mm))) ) & maskm;
+		
+		
+		// 1000000000 == non init, debut seq
+		if(f_sortant== (prevmin & maskms) ||  r_sortant== ((prevmin >>2) & maskms)  || prevmin == 1000000000 ) // peut etre il est sorti; on recalc tout
+		{
+			u_int64_t minim = 1000000000;
+			
+			minim = forw  & maskm; // init avec le premier
+			for (int i = 0; i <  (1+(ks *2)- 2*mm );i+=2 )
+			{
+				u_int64_t	 newm = (forw >> i) & maskm;
+				if (comp_less_minimizer(newm,minim )  ) minim = newm;
+			}
+			
+			for (int i = 0; i <  (1+(ks *2)- 2*mm );i+=2 )
+			{
+				u_int64_t	 newm = (rev >> i) & maskm;
+				if (comp_less_minimizer(newm,minim )  ) minim = newm;
+			}
+			
+			res = minim;
+			
+		}
+		else //juste besoin comparer aux  2 minim entrant
+		{
+			res = prevmin;
+			
+			u_int64_t minim = r_new;
+			if (comp_less_minimizer(f_new,r_new )  )
+				minim = f_new;
+			if (comp_less_minimizer(minim,res )  )
+				res = minim;
+			
+		}
+		
+		return res;
+
+    }
+	
     /********************************************************************************/
     /** computes a simple, naive hash using only 16 bits from input key
      * \param[shift] in : selects which of the input byte will be used for hash computation
@@ -222,6 +282,7 @@ private:
     friend LargeInt<1> revcomp (const LargeInt<1>& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const LargeInt<1>& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const LargeInt<1>& key);
+	friend u_int64_t    mhash  (const LargeInt<1>& key,const LargeInt<1>& key2,   u_int64_t prevmin);
     friend u_int64_t    simplehash16    (const LargeInt<1>& key, int  shift);
 
 };
@@ -244,7 +305,14 @@ inline u_int64_t oahash (const LargeInt<1>& key)
 {
     return LargeInt<1>::oahash64 (key.value[0]);
 }
-    
+
+/********************************************************************************/
+inline u_int64_t mhash (const LargeInt<1>& key, const LargeInt<1>& key2, u_int64_t prevmin)
+{
+	//printf("call mash L1  .. ");
+    return LargeInt<1>::mhash64 (key.value[0],key2.value[0],prevmin);
+}
+
 /********************************************************************************/
 inline u_int64_t simplehash16 (const LargeInt<1>& key, int  shift)
 {

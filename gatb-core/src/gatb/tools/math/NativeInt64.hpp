@@ -156,6 +156,22 @@ public:
         return (res >> (2*( 32 - sizeKmer))) ;
     }
 
+	
+	/********************************************************************************/
+    inline static u_int64_t revcomp8 (const u_int64_t& x, size_t sizeKmer)
+    {
+        u_int64_t res = x;
+		
+        unsigned char* kmerrev  = (unsigned char *) (&(res));
+        unsigned char* kmer     = (unsigned char *) (&(x));
+		
+        for (size_t i=0; i<2; ++i)  {  kmerrev[8-1-i] = revcomp_4NT [kmer[i]];  }
+		
+        return (res >> (2*( 32 - sizeKmer))) ;
+    }
+
+	
+	
     /********************************************************************************/
     inline static u_int64_t hash64 (u_int64_t key, u_int64_t seed)
     {
@@ -215,6 +231,15 @@ public:
         return code;
     }
 
+	/********************************************************************************/
+    inline static u_int64_t mhash64 (u_int64_t elem, u_int64_t elem2,    u_int64_t prevmin)
+    {
+		
+        u_int64_t code = elem;
+		//todo implem
+        return code;
+    }
+	
     /********************************************************************************/
     /** computes a simple, naive hash using only 16 bits from input key
      * \param[in] key : key of the hash
@@ -243,6 +268,7 @@ private:
     friend NativeInt64 revcomp (const NativeInt64& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const NativeInt64& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const NativeInt64& key);
+	friend u_int64_t    mhash  (const NativeInt64& key, const NativeInt64& key2,u_int64_t prevmin);
     friend u_int64_t    simplehash16    (const NativeInt64& key, int  shift);
 
 };
@@ -265,7 +291,13 @@ inline u_int64_t oahash (const NativeInt64& key)
 {
     return NativeInt64::oahash64 (key.value[0]);
 }
-    
+   
+/********************************************************************************/
+inline u_int64_t mhash (const NativeInt64& key,const NativeInt64& key2, u_int64_t prevmin)
+{
+	return NativeInt64::mhash64 (key.value[0],key2.value[0],prevmin);
+}
+	
 /********************************************************************************/
 inline u_int64_t simplehash16 (const NativeInt64& key, int  shift)
 {

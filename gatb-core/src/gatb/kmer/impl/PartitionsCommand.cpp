@@ -138,10 +138,10 @@ void PartitionsByVectorCommand<span>:: execute ()
 
         /** We resize our vector that will be filled with the partition file content.
          * NOTE: we add an extra item and we will set it to the maximum kmer value. */
-      //  kmers.resize (1 + partitionLen);
+        //kmers.resize (1 + partitionLen);
 		kmers.reserve(4*partitionLen);
 		//hmm do not know exactly how much will be needed, hence max mem can be  in worst case 2 times greater than necessary
-		//todo save somewhere nb of elems per parti, to be bale to resize accordingly  (then  kmers[idx] = ) instead of reserve
+		//todo save somewhere nb of elems per parti, to be able to resize accordingly  (then  kmers[idx] = ) instead of reserve
 		
         /** We directly fill the vector from the current partition file. */
         Iterator<Type>* it = this->_partition.iterator();  LOCAL (it);
@@ -151,23 +151,28 @@ void PartitionsByVectorCommand<span>:: execute ()
 		//superk
 		u_int8_t		nbK, rem ;
 		uint64_t compactedK;
-		int ks = 31;
+		int ks = system::g_ksize;
 
 		Type un = 1;
 		Type kmerMask = (un << (ks*2)) - un;
 		
+		//without decompactage
 		
-        for (it->first(); !it->isDone(); it->next()/*, idx++*/) {
+//		  for (it->first(); !it->isDone(); it->next(), idx++) {
+//			kmers[idx] = it->item();
+//		  }
+		
+		
+        for (it->first(); !it->isDone(); it->next()) {
 		
 			//here expand superk
 			//kmers[idx] = it->item();
 		
 			
-			//debug , lecture 2 par 2
+			// lecture 2 par 2
 			Type superk = it->item();
 			//printf("%s      %llx \n",superk.toString(ks).c_str(),superk.getVal());
 			//
-			
 			it->next();
 			
 			Type seedk = it->item();
@@ -177,7 +182,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 			
 			
 			compactedK =  superk.getVal();
-			nbK = (compactedK >> 56) & 255;
+			nbK = (compactedK >> 56) & 255; // 8 bits poids fort = cpt
 			rem = nbK;
 			
 		//	printf("read new super k  %i  : \n",nbK);
@@ -187,7 +192,6 @@ void PartitionsByVectorCommand<span>:: execute ()
 			//temp =  *((uint64_t *)(&_seed) );
 			Type temp = seedk;
 			
-			//proto avec taille en dur
 			
 			Type mink, revc;
 			
@@ -195,9 +199,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 			for (int ii=0; ii< nbK; ii++,rem--) {
 				
 				revc = revcomp(temp,ks);
-//				mink = temp;
-//				if(revc <  temp)
-//					mink = revc;
+
 				mink = std::min (revc, temp);
 				
 				//kmers[idx] = mink; idx++;
@@ -205,8 +207,6 @@ void PartitionsByVectorCommand<span>:: execute ()
 				
 			//  printf("%s   (%i / %i)   ( %lli )   (revc %lli   temp %lli )\n",mink.toString(ks).c_str(),rem,nbK,mink.getVal(),revc.getVal(),temp.getVal() );
 
-				
-				
 				if(rem < 2) break;
 				temp = ((temp << 2 ) |  ( ( superk >> ( 2*(rem-2)) ) & 3 )) & kmerMask;
 			}
@@ -214,12 +214,12 @@ void PartitionsByVectorCommand<span>:: execute ()
 			
 		}
 
+		
         /** We set the extra item to a max value, so we are sure it will sorted at the last location.
          * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
-       // kmers[partitionLen] = ~0;
+        //kmers[partitionLen] = ~0;
 		kmers.push_back(~0);
 
-		printf("parti size %zu \n",kmers.size());
         /** We sort the vector. */
         std::sort (kmers.begin (), kmers.end ());
 
@@ -232,7 +232,6 @@ void PartitionsByVectorCommand<span>:: execute ()
             if (*itKmers == previous_kmer)  {   abundance++;  }
             else
             {
-				//printf("should insert %llx %i \n",previous_kmer.getVal(),abundance);
                 this->insert (Count (previous_kmer, abundance) );
 
                 abundance     = 1;

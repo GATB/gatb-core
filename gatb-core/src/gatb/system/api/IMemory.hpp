@@ -57,7 +57,11 @@ namespace system    {
 	
 	extern  float superk_average_pread  ;
 	extern  u_int64_t nbrl ;
-	
+	extern  int g_ksize ;
+	extern  int g_msize ;
+	extern u_int64_t * freq_mmer;
+	extern u_int64_t * stat_mmer;
+
 	
 /********************************************************************************/
 
