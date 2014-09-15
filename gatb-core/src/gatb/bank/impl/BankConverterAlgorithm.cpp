@@ -109,6 +109,10 @@ void BankConverterAlgorithm::execute ()
 	typedef typename Kmer<31>::ModelCanonical::Kmer  Mmer;
 	typedef typename Kmer<31>::Type           Typem;
 	
+	g_msize =  7;
+	freq_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) ); //cpt on smaller type would be enough
+	stat_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) ); //cpt on smaller type would be enough
+	
 	Modelc model (g_msize);
     vector<Mmer> mmers;
 	
