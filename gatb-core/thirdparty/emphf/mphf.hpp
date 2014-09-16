@@ -14,9 +14,9 @@ namespace emphf {
         mphf()
         {}
 
-        template <typename HypergraphSorter, typename Range, typename Adaptor>
+        template <typename HypergraphSorter, typename Range, typename Adaptor, typename Progress>
         mphf(HypergraphSorter& sorter, size_t n,
-             Range const& input_range, Adaptor adaptor,
+             Range const& input_range, Adaptor adaptor, Progress& progress,
              double gamma = 1.23)
             : m_n(n)
             , m_hash_domain((size_t(std::ceil(double(m_n) * gamma)) + 2) / 3)
@@ -47,13 +47,16 @@ namespace emphf {
                 logger() << "Hypergraph generation: trial " << trial << std::endl;
                 m_hasher = BaseHasher::generate(rng);
                 if (sorter.try_generate_and_sort(input_range, edge_gen,
-                                                 m_n, m_hash_domain)) break;
+                                                 m_n, m_hash_domain, progress)) break;
             }
 
             auto peeling_order = sorter.get_peeling_order();
             bitpair_vector bv(nodes_domain);
 
             logger() << "Assigning values" << std::endl;
+            size_t d=0; for (auto edge = peeling_order.first;  edge != peeling_order.second;  ++edge) { d++; }
+            progress.reset (d);
+            progress.init  ();
             for (auto edge = peeling_order.first;
                  edge != peeling_order.second;
                  ++edge) {
@@ -64,7 +67,10 @@ namespace emphf {
                 // "assigned values" must be nonzeros to be ranked, so
                 // if the result is 0 we assign 3
                 bv.set(edge->v0, ((target - assigned + 9) % 3) ?: 3);
+
+                progress.inc (1);
             }
+            progress.finish ();
 
             m_bv.build(std::move(bv));
         }
