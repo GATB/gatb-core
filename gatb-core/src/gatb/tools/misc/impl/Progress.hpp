@@ -98,6 +98,9 @@ public:
      * \param[in] ntasks_done :  sets the current number of job done. */
     void set (u_int64_t ntasks_done);
 
+    /** We reinitialize the progress object. */
+    void reset (u_int64_t ntasks);
+
     /** \copydoc dp::IteratorListener::setMessage*/
     void setMessage (const char* format, ...);
 
@@ -176,6 +179,9 @@ public:
     /** Set the current number of tasks done.
      * \param[in] ntasks_done :  sets the current number of job done. */
     void set (u_int64_t ntasks_done)  { _ref->set (ntasks_done); }
+
+    /** */
+    void reset (u_int64_t ntasks) { _ref->reset(ntasks); }
 
     /** \copydoc dp::IteratorListener::setMessage*/
     void setMessage (const char* format, ...)  { _ref->setMessage (format); }

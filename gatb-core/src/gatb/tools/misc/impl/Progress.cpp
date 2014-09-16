@@ -45,6 +45,19 @@ Progress::Progress (u_int64_t ntasks, const char * msg, std::ostream& output)
     : os(output)
 {
     message = (msg != NULL ? msg : "?");
+    reset (ntasks);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Progress::reset (u_int64_t ntasks)
+{
     todo    = ntasks;
     done    = 0;
     partial = 0;
@@ -275,6 +288,7 @@ void ProgressTimer::update ()
 
         /** We dump the string. */
         os << buffer;
+        os.flush();
     }
 }
 
