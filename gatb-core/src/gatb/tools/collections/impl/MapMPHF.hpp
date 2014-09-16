@@ -17,33 +17,41 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/** \file MPHF.hpp
+/** \file MapMPHF.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Minimal Perfect Hash Function
  */
 
-#ifndef _GATB_CORE_TOOLS_MISC_MAP_MPHF_HPP_
-#define _GATB_CORE_TOOLS_MISC_MAP_MPHF_HPP_
+#ifndef _GATB_CORE_TOOLS_COLLECTION_MAP_MPHF_HPP_
+#define _GATB_CORE_TOOLS_COLLECTION_MAP_MPHF_HPP_
 
 /********************************************************************************/
 
 #include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/collections/impl/MPHF.hpp>
+#include <gatb/tools/misc/impl/Progress.hpp>
 #include <vector>
 
 /********************************************************************************/
-namespace gatb      {
-namespace core      {
-namespace tools     {
-namespace misc      {
+namespace gatb        {
+namespace core        {
+namespace tools       {
+namespace collections {
+namespace impl        {
 /********************************************************************************/
 
 /** */
-template <class Key, class Value>
-class MapMPHF
+template <class Key, class Value, class Adaptator=AdaptatorDefault<Key> >
+class MapMPHF : public system::SmartPointer
 {
 public:
+
+    /** Hash type. */
+    typedef MPHF<Key, Adaptator> Hash;
+
+    /** Constant telling whether the feature is enabled or not. */
+    static const bool enabled = Hash::enabled;
 
     /** */
     MapMPHF ()  {}
@@ -51,10 +59,10 @@ public:
     /** Build the hash function from a set of items.
      * \param[in] iterator : keys iterator
      * \param[in] nbItems : number of keys (if known) */
-    void build (tools::collections::Iterable<Key>& keys)
+    void build (tools::collections::Iterable<Key>& keys, tools::dp::IteratorListener* progress=0)
     {
         /** We build the hash function. */
-        hash.build (&keys);
+        hash.build (&keys, progress);
 
         /** We resize the vector of Value objects. */
         data.resize (keys.getNbItems());
@@ -82,7 +90,10 @@ public:
     /** Get the value for a given index
      * \param[in] index : the index
      * \return the value associated to the index. */
-    Value& atIndex (size_t index)  { return data[index]; }
+    Value& at (typename Hash::Code code)  { return data[code]; }
+
+    /** Get the hash code of the given key. */
+    typename Hash::Code getCode (const Key& key) { return hash(key); }
 
     /** Get the number of keys.
      * \return keys number. */
@@ -90,12 +101,12 @@ public:
 
 private:
 
-    MPHF<Key>          hash;
+    Hash               hash;
     std::vector<Value> data;
 };
 
 /********************************************************************************/
-} } } } /* end of namespaces. */
+} } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _GATB_CORE_TOOLS_MISC_MAP_MPHF_HPP_ */
+#endif /* _GATB_CORE_TOOLS_COLLECTION_MAP_MPHF_HPP_ */

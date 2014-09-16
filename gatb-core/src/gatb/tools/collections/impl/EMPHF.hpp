@@ -28,8 +28,8 @@
 
 /********************************************************************************/
 
-#include <gatb/tools/misc/api/MPHF.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 
 #include <emphf/common.hpp>
 #include <emphf/mphf.hpp>
@@ -38,10 +38,11 @@
 #include <emphf/hypergraph_sorter_scan.hpp>
 
 /********************************************************************************/
-namespace gatb      {
-namespace core      {
-namespace tools     {
-namespace misc      {
+namespace gatb        {
+namespace core        {
+namespace tools       {
+namespace collections {
+namespace impl        {
 /********************************************************************************/
 
 /** \brief Minimal Perfect Hash Function
@@ -50,8 +51,8 @@ namespace misc      {
  * It uses EMPHF for the implementation and is most a wrapper between EMPHF and
  * GATB-CORE concepts.
  */
-template<typename Key,typename Adaptator>
-class MPHF<Key,Adaptator,true> : public system::SmartPointer
+template<typename Key,typename Adaptator, class Progress>
+class MPHF<Key,Adaptator,Progress,true> : public system::SmartPointer
 {
 private:
     // adapted from compute_mphf_scan_mmap.cpp
@@ -62,48 +63,58 @@ private:
 
 public:
 
-    /** */
+    /** Template specialization.  */
     static const bool enabled = true;
 
     /** Definition of a hash value. */
-    typedef u_int64_t Value;
+    typedef u_int64_t Code;
 
     /** Constructor. */
-    MPHF () : isBuilt(false)  {}
-
-    /** Constructor. */
-    MPHF (tools::collections::Iterable<Key>* iterable)  : isBuilt(false)  {  build (iterable);  }
+    MPHF () : isBuilt(false), nbKeys(0)  {}
 
     /** Build the hash function from a set of items.
      * \param[in] iterator : keys iterator
      * \param[in] nbItems : number of keys (if known) */
-    void build (tools::collections::Iterable<Key>* iterable)
+    void build (tools::collections::Iterable<Key>* iterable, tools::dp::IteratorListener* progress=0)
     {
         if (isBuilt==true) { throw system::Exception ("MFHP: built already done"); }
 
+        /** We create an iterator from the iterable. */
+        tools::dp::Iterator<Key>* iter = iterable->iterator();
+        LOCAL (iter);
+
         size_t nbElts = iterable->getNbItems();
-        iterator_wrapper kmers (iterable->iterator());
+
+        // a small fix, emphf for 2 nodes doesn't seem to work
+        if (nbElts <= 2)  {  nbElts = 3;  }
+
+        iterator_wrapper kmers (iter);
+
+        // We may have no provided listener => use default one.
+        if (progress==0)  { progress = new tools::dp::IteratorListener; }
+        LOCAL (progress);
 
         size_t max_nodes = (size_t(std::ceil(double(nbElts) * 1.23)) + 2) / 3 * 3;
         if (max_nodes >= uint64_t(1) << 32)
         {
             HypergraphSorter64 sorter;
-            mphf_t(sorter, nbElts, kmers, adaptor).swap(mphf);
+            mphf_t(sorter, nbElts, kmers, adaptor, *progress).swap(mphf);
         }
         else
         {
             HypergraphSorter32 sorter;
-            mphf_t(sorter, nbElts, kmers, adaptor).swap(mphf);
+            mphf_t(sorter, nbElts, kmers, adaptor, *progress).swap(mphf);
         }
 
         isBuilt = true;
+        nbKeys  = iterable->getNbItems();
     }
 
     /** Returns the hash code for the given key. WARNING : default implementation here will
      * throw an exception.
      * \param[in] key : the key to be hashed
      * \return the hash value. */
-    Value operator () (const Key& key)
+    Code operator () (const Key& key)
     {
         return mphf.lookup (key, adaptor);
     }
@@ -113,17 +124,27 @@ public:
     size_t size() const { return mphf.size(); }
 
     /** Load hash function from a collection*/
-    void load (tools::storage::impl::Group& group, const std::string& name)
+    size_t load (tools::storage::impl::Group& group, const std::string& name)
     {
+        /** We need an input stream for the given collection given by group/name. */
         tools::storage::impl::Storage::istream is (group, name);
+        /** We load the emphf object from the input stream. */
         mphf.load (is);
+        /** We return the number of keys. */
+        return atol (group.getProperty("nb_keys").c_str());
     }
 
-    /** Save hash function to a collection*/
-    void save (tools::storage::impl::Group& group, const std::string& name)
+    /** Save hash function to a collection
+     * \return the number of bytes of the saved data. */
+    size_t save (tools::storage::impl::Group& group, const std::string& name)
     {
+        /** We need an output stream for the given collection given by group/name. */
         tools::storage::impl::Storage::ostream os (group, name);
+        /** We save the emphf object to the output stream. */
         mphf.save (os);
+        /** We set the number of keys as an attribute of the group. */
+        group.addProperty ("nb_keys", misc::impl::Stringify().format("%d",nbKeys));
+        return os.tellp();
     }
 
 private:
@@ -131,6 +152,7 @@ private:
     mphf_t    mphf;
     Adaptator adaptor;
     bool      isBuilt;
+    size_t    nbKeys;
 
 private:
 
@@ -186,7 +208,7 @@ private:
 };
 
 /********************************************************************************/
-} } } } /* end of namespaces. */
+} } } } } /* end of namespaces. */
 /********************************************************************************/
 
 #endif /* _GATB_CORE_TOOLS_MISC_IMPL_EMPHF_HPP_ */
