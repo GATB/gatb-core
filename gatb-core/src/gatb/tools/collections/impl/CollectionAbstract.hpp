@@ -32,6 +32,8 @@
 
 #include <gatb/tools/collections/api/Collection.hpp>
 #include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 /********************************************************************************/
 namespace gatb          {
