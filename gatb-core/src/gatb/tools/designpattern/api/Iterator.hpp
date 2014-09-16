@@ -233,6 +233,10 @@ public:
     /** Set the current number of tasks done.
      * \param[in] ntasks_done :  sets the current number of job done. */
     virtual void set (u_int64_t ntasks_done) {}
+
+    /** Set the total number of tasks done.
+     * \param[in] ntasks :  sets the total number of job. */
+    virtual void reset (u_int64_t ntasks) {}
 };
 
 /********************************************************************************/
