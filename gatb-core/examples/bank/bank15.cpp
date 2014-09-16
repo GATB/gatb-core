@@ -22,6 +22,8 @@ int main (int argc, char* argv[])
     // We declare a Bank instance.
     BankFasta bank (filename);
 
+    // IN A NEAR FUTURE, WE WILL HAVE STL LIKE ITERATORS.
+#if 0
     for (BankFasta::stl_iterator it = bank.begin(); it != bank.end(); ++it)
     {
         Sequence& seq = *it;
@@ -33,6 +35,7 @@ int main (int argc, char* argv[])
         if (data.size() < seqMinSize)  { seqMinSize = data.size(); }
         dataSize += data.size ();
     }
+#endif
 
     cout << "data size         : " << dataSize     << endl;
     cout << "sequence number   : " << nbSequences  << endl;
