@@ -290,16 +290,16 @@ public:
         sortingCount.execute();
 
         /** We check that the sequence has no duplicate kmers. */
-        CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidKmers()->getNbItems());
+        CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidCounts()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, sortingCount.getSolidKmers(), kmerSize);
+        DebloomAlgorithm<> debloom (*storage, sortingCount.getSolidCounts(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();
 
         /** We create the graph. */
-//        Graph graph = GraphFactory::createGraph (sortingCount.getSolidKmers(), debloom.getCriticalKmers(), kmerSize);
+//        Graph graph = GraphFactory::createGraph (sortingCount.getSolidCounts(), debloom.getCriticalKmers(), kmerSize);
 //
 //        debruijn_check_sequence (graph, kmerSize, seq);
     }
@@ -802,7 +802,6 @@ public:
             //std::cout << graph.toString(node) << " test printing node abundance " << abundance << " expected abundance:" << abundances[i] << std::endl;
             CPPUNIT_ASSERT (abundance == abundances[i]);
         }
-
     }
 
     /** */
@@ -820,7 +819,6 @@ public:
             "TTGCTCACATGTTCTTTCCTGCGTTATCCCG",
             "TTGCTCACATGTTCTTTCCTGCGTTATCCCG",
             "TTGCTCACATGTTCTTTCCTGCGTTATCCCG"
-
         };
 
         const int abundances[] = { 1, 2, 2, 3, 3, 3, 4, 4, 4, 4 };

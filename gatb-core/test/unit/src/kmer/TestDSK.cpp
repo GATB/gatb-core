@@ -228,7 +228,7 @@ public:
         sortingCount.execute();
 
         /** We iterate the solid kmers. */
-        Iterator<Count>* iter = sortingCount.getSolidKmers()->iterator();
+        Iterator<Count>* iter = sortingCount.getSolidCounts()->iterator();
         LOCAL (iter);
 
         /** The following values have been computed with the original DSK.
@@ -315,7 +315,7 @@ public:
         sortingCount.execute();
 
         /** We iterate the solid kmers. */
-        Iterator<Count>* iter = sortingCount.getSolidKmers()->iterator();
+        Iterator<Count>* iter = sortingCount.getSolidCounts()->iterator();
         LOCAL (iter);
 
         // cout << "----------------------------------------------------------" << endl;
