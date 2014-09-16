@@ -141,7 +141,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
 template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storage& storage)
   : Algorithm("dsk", 0, 0),
-    _storage(0),
+    _storage(&storage),
     _bank(0),
     _kmerSize(0), _abundance(0),
     _partitionType(0), _nbCores(0), _prefix(""),
@@ -151,7 +151,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _histogram (0), _histogramUri(""),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
 {
-    Group& group = storage(this->getName());
+    Group& group = (*_storage)(this->getName());
 
     /** We create the collection corresponding to the solid kmers output. */
     setSolidCounts (& group.getCollection<Count> ("solid"));
