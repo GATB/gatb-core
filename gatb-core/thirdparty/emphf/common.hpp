@@ -23,7 +23,7 @@ namespace emphf {
         };
 
         static nullstream logstream;
-        //return logstream ; // FIXME (rayan) removed logging
+        return logstream ; // FIXME (rayan) removed logging
 
         time_t t = std::time(nullptr);
         // XXX(ot): put_time unsupported in g++ 4.7

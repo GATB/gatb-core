@@ -29,8 +29,8 @@
  *  disk or on memory, look elsewhere!
  */
 
-#ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HPP_
-#define _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HPP_
+#ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_HPP_
+#define _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_HPP_
 
 /********************************************************************************/
 
@@ -42,11 +42,14 @@
 
 #include <gatb/tools/misc/api/IProperty.hpp>
 
+#include <gatb/tools/math/NativeInt8.hpp>
+
 #include <string>
 #include <sstream>
 #include <list>
 #include <vector>
 #include <map>
+#include <cstring>
 
 /********************************************************************************/
 namespace gatb      {
@@ -280,8 +283,7 @@ protected:
     std::vector <collections::impl::CollectionCache<Type>* > _cachedCollections;
 };
 
-    
-    
+/********************************************************************************/
 template<typename Type>
 class PartitionCacheSorted
 {
@@ -328,16 +330,17 @@ protected:
     bool _own_synchros;
     bool _own_outsynchros;
 
-
     std::vector <collections::impl::CollectionCacheSorted<Type>* > _cachedCollections;
 };
     
-
-    
 /********************************************************************************
-        
-           S t o r a g e
-
+         #####   #######  #######  ######      #      #####   #######
+        #     #     #     #     #  #     #    # #    #     #  #
+        #           #     #     #  #     #   #   #   #        #
+         #####      #     #     #  ######   #     #  #  ####  #####
+              #     #     #     #  #   #    #######  #     #  #
+        #     #     #     #     #  #    #   #     #  #     #  #
+         #####      #     #######  #     #  #     #   #####   #######
 ********************************************************************************/
 
 /** \brief Storage class
@@ -382,6 +385,22 @@ public:
 
     /** */
     StorageFactory* getFactory() const { return _factory; }
+
+    /** WRAPPER C++ OUTPUT STREAM */
+    class ostream : public std::ostream
+    {
+    public:
+        ostream (Group& group, const std::string& name);
+        ~ostream ();
+    };
+
+    /** WRAPPER C++ INPUT STREAM */
+    class istream : public std::istream
+    {
+    public:
+        istream (Group& group, const std::string& name);
+        ~istream();
+    };
 
 protected:
 
@@ -447,4 +466,4 @@ private:
 #include <gatb/tools/storage/impl/Storage.tpp>
 /********************************************************************************/
 
-#endif /* _GATB_CORE_TOOLS_STORAGE_IMPL_PRODUCT_HPP_ */
+#endif /* _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_HPP_ */

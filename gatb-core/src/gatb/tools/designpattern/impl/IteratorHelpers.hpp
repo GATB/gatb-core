@@ -822,9 +822,44 @@ private:
 
             /** We update the 'isDone' status. */
             _isDone = _currentIt->isDone();
-
         }
     }
+};
+
+/********************************************************************************/
+/** \brief Iterator adaptation from one type to another one
+ */
+template <class T1, class T2, class Adaptor>
+class IteratorAdaptor : public Iterator <T2>
+{
+public:
+
+    /** Constructor. */
+    IteratorAdaptor (Iterator<T1>* ref) : _ref(0) { setRef(ref); }
+
+    /** Destructor. */
+    ~IteratorAdaptor ()  { setRef(0); }
+
+    /** Method that initializes the iteration. */
+    void first() {  _ref->first(); }
+
+    /** Method that goes to the next item in the iteration.
+     * \return status of the iteration
+     */
+    void next()  { _ref->next(); }
+
+    /** Method telling whether the iteration is finished or not.
+     * \return true if iteration is finished, false otherwise.
+     */
+    bool isDone()  { return _ref->isDone(); }
+
+    /** */
+    T2& item ()  { return Adaptor() (_ref->item()); }
+
+private:
+
+    Iterator<T1>* _ref;
+    void setRef (Iterator<T1>* ref)  { SP_SETATTR(ref); }
 };
 
 /********************************************************************************/

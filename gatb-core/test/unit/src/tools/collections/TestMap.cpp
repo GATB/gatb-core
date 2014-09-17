@@ -20,12 +20,14 @@
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
+#include <gatb/tools/collections/impl/MapMPHF.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>
 #include <gatb/tools/math/NativeInt128.hpp>
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/tools/misc/api/Abundance.hpp>
 #include <gatb/system/api/Exception.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <list>
 #include <stdlib.h>     /* srand, rand */
@@ -39,6 +41,8 @@ using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::storage;
+using namespace gatb::core::tools::storage::impl;
 using namespace gatb::core::system;
 
 /********************************************************************************/
@@ -55,6 +59,7 @@ class TestMap : public Test
     CPPUNIT_TEST_SUITE_GATB (TestMap);
 
         CPPUNIT_TEST_GATB (checkOAHash);
+        CPPUNIT_TEST_GATB (checkMapMPHF);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -113,6 +118,92 @@ public:
             checkOAHash_aux<LargeInt<3> >  (table[i]);
             checkOAHash_aux<LargeInt<4> >  (table[i]);
             checkOAHash_aux<LargeInt<5> >  (table[i]);
+        }
+    }
+
+    /********************************************************************************/
+    static void checkMapMPHF_progress (size_t round, size_t initial, size_t remaining)
+    {
+    }
+
+    /** */
+    void checkMapMPHF ()
+    {
+        if (MapMPHF<NativeInt8,float>::enabled == false) { return; }
+
+        float val = 0;
+
+        /** We create some Iterable for our keys. */
+        IterableFile<NativeInt8> keys("/tmp/ABC");
+
+        /** We create a map for our keys; the values are floats. */
+        MapMPHF <NativeInt8, float> map1;
+
+        /** We build the hash function for the given keys. */
+        map1.build (keys);
+
+        CPPUNIT_ASSERT (map1.size() == keys.getNbItems());
+
+        /** We populate the values. */
+        Iterator<NativeInt8>* itKeys = keys.iterator();   LOCAL (itKeys);
+        for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
+        {
+            /** We change the value for the current key. */
+            map1[itKeys->item()] = val;
+        }
+
+        /** We check the values. */
+        val = 0;
+        for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
+        {
+            /** We check the value for the current key. */
+            CPPUNIT_ASSERT (map1[itKeys->item()] == val);
+        }
+
+        /** We create a storage object. */
+        Storage* storage = StorageFactory(STORAGE_HDF5).create ("map", true, false);
+        LOCAL (storage);
+
+        /** We save the map. */
+        size_t writeLen = map1.save (storage->root(), "mphf");
+
+        /** We create another map. */
+        MapMPHF <NativeInt8, float> map2;
+
+        /** We load the hash function. */
+        map2.load (storage->root(), "mphf");
+
+        CPPUNIT_ASSERT (map2.size() == keys.getNbItems());
+
+        /** We populate the values. */
+        val = 0;
+        for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
+        {
+            /** We change the value for the current key. */
+            map2[itKeys->item()] = val;
+        }
+
+        /** We check the values. */
+        val = 0;
+        for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
+        {
+            /** We check the value for the current key. */
+            CPPUNIT_ASSERT (map2[itKeys->item()] == val);
+        }
+
+        /** We compare the values of the two maps. */
+        for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
+        {
+            /** We check the value for the current key. */
+            CPPUNIT_ASSERT (map1[itKeys->item()] == map2[itKeys->item()]);
+        }
+
+        /** We compare the values of the two maps (index iteration) */
+        CPPUNIT_ASSERT (map1.size() == map2.size());
+        for (size_t i=0; i<map1.size(); i++)
+        {
+            /** We check the value for the current key. */
+            CPPUNIT_ASSERT (map1.at(i) == map2.at(i));
         }
     }
 };

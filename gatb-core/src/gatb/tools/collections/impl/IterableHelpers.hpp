@@ -52,6 +52,42 @@ public:
     ) {}
 };
 
+/********************************************************************************/
+
+/** \brief Adaptor of an Iterable<T1> into an Iterable<T2>
+ */
+template <class T1, class T2, class Adaptor>
+class IterableAdaptor : public Iterable<T2>, public system::SmartPointer
+{
+public:
+    /** */
+    IterableAdaptor (Iterable<T1>& ref)  : _ref(ref) {}
+
+    /** Create an iterator for the given Iterable instance.
+     * \return the new iterator. */
+    dp::Iterator<T2>* iterator ()  { return new tools::dp::impl::IteratorAdaptor<T1,T2,Adaptor> (_ref.iterator()); }
+
+    /** Return the number of items. If a specific implementation doesn't know the value,
+     * it should return -1 by convention.
+     * \return the number of items if known, -1 otherwise. */
+    int64_t getNbItems () { return _ref.getNbItems(); }
+
+    /** Return the (approximate) number of items. If a specific implementation doesn't know the value,
+     * it should return -1 by convention.
+     * \return the number of items if known, -1 otherwise. */
+    int64_t estimateNbItems ()  { return _ref.estimateNbItems(); }
+
+    /** Return a buffer of items.
+     * \param[out] buffer : the buffer
+     * \return the buffer */
+    T2* getItems (T2*& buffer) { return 0; } //_ref.getItems (buffer); }
+
+    /** */
+    size_t getItems (T2*& buffer, size_t start, size_t nb) { return 0; }//_ref.getItems (buffer, start, nb); }
+
+private:
+    Iterable<T1>& _ref;
+};
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */

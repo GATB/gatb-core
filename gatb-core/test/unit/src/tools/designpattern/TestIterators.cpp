@@ -53,6 +53,7 @@ class TestIterators : public Test
         CPPUNIT_TEST_GATB (iterators_checkPairedIterator);
         CPPUNIT_TEST_GATB (iterators_checkVariant1);
         CPPUNIT_TEST_GATB (iterators_checkVariant2);
+        CPPUNIT_TEST_GATB (iterators_adaptator);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -300,6 +301,38 @@ public:
         //it = it1;
         //size_t i=0;
         //for (it.first(); !it.isDone(); it.next(), i++)  {  }
+    }
+
+    /********************************************************************************/
+    struct Entry { int n; float x; };
+
+
+    struct Adaptator  {  float& operator() (Entry& e)  { return e.x; }  };
+
+    void iterators_adaptator ()
+    {
+        size_t i=0;
+
+        Entry table[] = { {3,0.4}, {17,2.7}, {-2,3.14} };
+        list<Entry> l (table, table + sizeof(table)/sizeof(table[0]) );
+
+        Iterator<Entry>* it = new ListIterator<Entry> (l);
+        LOCAL (it);
+
+        i=0;
+        for (it->first(); !it->isDone(); it->next(), i++)
+        {
+            CPPUNIT_ASSERT (it->item().n == table[i].n);
+            CPPUNIT_ASSERT (it->item().x == table[i].x);
+        }
+
+        IteratorAdaptor<Entry,float,Adaptator> itAdapt (it);
+
+        i=0;
+        for (itAdapt.first(); !itAdapt.isDone(); itAdapt.next(), i++)
+        {
+            CPPUNIT_ASSERT (itAdapt.item() == table[i].x);
+        }
     }
 };
 

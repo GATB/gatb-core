@@ -32,6 +32,8 @@
 
 #include <gatb/tools/collections/api/Collection.hpp>
 #include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 /********************************************************************************/
 namespace gatb          {
@@ -82,6 +84,9 @@ public:
 
     /** \copydoc Iterable::getItems */
     Item* getItems (Item*& buffer)  { return _iterable->getItems(buffer); }
+
+    /** \copydoc Iterable::getItems */
+    size_t getItems (Item*& buffer, size_t start, size_t nb)  { return _iterable->getItems (buffer, start, nb); }
 
     /** \copydoc Bag::insert */
     void insert (const Item& item)  { _bag->insert (item); }

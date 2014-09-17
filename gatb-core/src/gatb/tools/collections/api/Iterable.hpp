@@ -84,6 +84,17 @@ public:
         throw "Iterable::getItems... SHOULD NOT BE HERE...";
         return buffer;
     }
+
+    /** Return a buffer of items.
+     * \param[out] buffer : the buffer
+     * \param[in] start : index where to start in the buffer
+     * \param[in] nb : number of items to be retrieved
+     * \return the number of items retrieved */
+    virtual size_t getItems (Item*& buffer, size_t start, size_t nb)
+    {
+        throw "Iterable::getItems... SHOULD NOT BE HERE...";
+        return 0;
+    }
 };
 
 /********************************************************************************/

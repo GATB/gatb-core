@@ -34,6 +34,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
+#include <gatb/tools/collections/impl/IterableHelpers.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <string>
 
@@ -112,7 +113,15 @@ public:
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
-    tools::collections::Collection<Count>* getSolidKmers ()  { return _solidKmers; }
+    tools::collections::Iterable<Count>* getSolidCounts ()  { return _solidCounts; }
+
+    /** Get the iterable over the computed solid kmers.
+     * \return the solid kmers iterable. */
+    tools::collections::Iterable<Type>* getSolidKmers   ()  { return _solidKmers;  }
+
+    /** Return the storage group where dsk stuf is stored.
+     * \return the Group instance.  */
+    tools::storage::impl::Group& getStorageGroup() { return  (*_storage)("dsk"); }
 
 private:
 
@@ -141,9 +150,16 @@ private:
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
 
     /** */
-    tools::storage::impl::CollectionNode<Count>* _solidKmers;
-    void setSolidKmers (tools::storage::impl::CollectionNode<Count>* solidKmers)
-    {  _solidKmers = solidKmers;  }
+    tools::collections::Iterable<Type>* _solidKmers;
+    void setSolidKmers (tools::collections::Iterable<Type>* solidKmers)  { SP_SETATTR(solidKmers); }
+
+    /** */
+    tools::storage::impl::CollectionNode<Count>* _solidCounts;
+    void setSolidCounts (tools::storage::impl::CollectionNode<Count>* solidCounts)
+    {
+        SP_SETATTR(solidCounts);
+        setSolidKmers (solidCounts ? new tools::collections::impl::IterableAdaptor<Count,Type,Count2TypeAdaptor> (*_solidCounts) : 0);
+    }
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;
@@ -188,6 +204,7 @@ private:
 
     u_int64_t _totalKmerNb;
 
+    struct Count2TypeAdaptor  {  Type& operator() (Count& c)  { return c.value; }  };
 };
 
 /********************************************************************************/

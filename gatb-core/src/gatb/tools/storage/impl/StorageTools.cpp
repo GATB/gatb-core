@@ -20,17 +20,6 @@
 
 #include <gatb/tools/storage/impl/StorageTools.hpp>
 
-
-// for mphf
-#include <iostream>
-#include <fstream>
-
-#include <emphf/common.hpp>
-#include <emphf/mphf.hpp>
-#include <emphf/base_hash.hpp>
-
-using namespace emphf;
-
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -38,49 +27,6 @@ namespace tools     {
 namespace storage   {
 namespace impl      {
 /********************************************************************************/
-
-
-    template<typename BaseHasher>   void StorageTools::saveEMPHF (Group& group, const std::string& name, void* mphf_void)
-    {
-#ifdef WITH_MPHF
-        // TODO: I couldn't bother converting the ostream returned by mphf to the "collection" of GATB (whatever that is),
-        // so I'm hacking my way through
-        
-        /*collections::Collection<math::NativeInt8>* mphfCollection = & group.getCollection<math::NativeInt8> (name);
-        
-          mphfCollection->insert ((math::NativeInt8*)mphf->save(something like a converter from an ostream to an array of chars), mphf->size());
-
-        std::stringstream ss1;  ss1 <<  mphf->size();
-        bloomCollection->addProperty ("size",    ss1.str());
-        bloomCollection->addProperty ("name",    name);*/
-
-        logger() << "Saving mphf to disk" << std::endl;
-        mphf<BaseHasher>* mphf_propercast = static_cast< emphf::mphf<BaseHasher>* >(mphf_void);
-        std::ofstream os(name, std::ios::binary);
-        mphf_propercast->save(os);
-#endif
-
-    }
-
-    /** */
-    template<typename BaseHasher>     void*  StorageTools::loadEMPHF (Group& group, const std::string& name)
-    {
-        // TODO same as function right above
-        //
-#ifdef WITH_MPHF
-        mphf<BaseHasher> *mphf_propercast = new mphf<BaseHasher>();
-        logger() << "Loading mphf from disk" << std::endl;
-        std::ifstream is(name, std::ios::binary);
-        mphf_propercast->load(is);
-        return static_cast<void*>(mphf_propercast);
-#endif
-    }
-
-    // tell compiler to instantiate those templates, else there will be undefined reference problems
-    // and I don't want to put that code in the .hpp, to avoid including emphf includes in the hpp, I recall it posed problems
-    template  void StorageTools::saveEMPHF<  emphf::jenkins64_hasher >(Group& group, const std::string& name, void* mphf_void);
-    template  void* StorageTools::loadEMPHF< emphf::jenkins64_hasher >(Group& group, const std::string& name);
-
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */

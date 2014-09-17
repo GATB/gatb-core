@@ -1,4 +1,3 @@
-#ifdef WITH_MPHF
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
  *   Copyright (C) 2014  INRIA
@@ -19,22 +18,12 @@
 *****************************************************************************/
 
 #include <gatb/kmer/impl/MPHFAlgorithm.hpp>
-
 #include <gatb/system/impl/System.hpp>
-
 #include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 
 #include <iostream>
-#include <map>
-#include <math.h>
-
-#include <gatb/tools/math/NativeInt8.hpp>
-
-#include <gatb/tools/storage/impl/StorageTools.hpp>
-
-
+#include <limits>
 
 // We use the required packages
 using namespace std;
@@ -60,92 +49,270 @@ using namespace gatb::core::tools::storage::impl;
 
 using namespace gatb::core::tools::math;
 
-using namespace emphf;
-
-#define DEBUG(a)  printf a
+#define DEBUG(a)  //printf a
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
-static const char* progressFormat1 = "MPHF: read solid kmers              ";
-static const char* progressFormat2 = "MPHF: build mphf                    ";
-static const char* progressFormat3 = "MPHF: finalization                  ";
+static const char* messages[] = {
+    "MPHF: initialization                   ",
+    "MPHF: build hash function              ",
+    "MPHF: assign values                    ",
+    "MPHF: populate                         "
+};
 
-template<size_t span>
-MPHFAlgorithm<span>::MPHFAlgorithm (
-    Storage& storage,
-    Iterable<Count>*    solidIterable,
-    size_t              kmerSize,
-    const std::string&  mphfUri,
-    IProperties*        options,
-    bool load_emphf
+/** First tried to set the constant in the hpp file but got the following error:
+ *  "error: a function call cannot appear in a constant-expression"
+ *  Solved by putting it in the cpp...
+ *      => http://stackoverflow.com/questions/2738435/using-numeric-limitsmax-in-constant-expressions
+ */
+template<size_t span, typename Abundance_t>
+const Abundance_t MPHFAlgorithm<span,Abundance_t>::MAX_ABUNDANCE = std::numeric_limits<Abundance_t>::max();
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span, typename Abundance_t>
+MPHFAlgorithm<span,Abundance_t>::MPHFAlgorithm (
+    Group&              group,
+    const std::string&  name,
+    Iterable<Count>*    solidCounts,
+    Iterable<Type>*     solidKmers,
+    bool                buildOrLoad,
+    IProperties*        options
 )
-    :  Algorithm("emphf", 1, options), _storage(storage), _group(storage().getGroup ("mphf")),
-       _kmerSize(kmerSize),
-       _mphfUri(mphfUri),
-       _solidIterable(0)
+    :  Algorithm("emphf", 1, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
+       _solidCounts(0), _solidKmers(0), _map(0), _dataSize(0), _nb_abundances_above_precision(0), _progress(0)
 {
-    /** We get a group for MPHF. */
-    Group& group = _storage().getGroup ("mphf");
+    /** We keep a reference on the solid kmers. */
+    setSolidCounts (solidCounts);
 
-    setSolidIterable    (solidIterable);
+    /** We keep a reference on the solid kmers. */
+    setSolidKmers (solidKmers);
 
-    // TODO: should later be replaced by better serialization
-    // and a constructor taking only _storage, like DebloomAlgorithm
-    if (load_emphf)
+    /** We build the hash object. */
+    setMap (new Map());
+
+    /** We gather some statistics. */
+    getInfo()->add (1, "enabled", "%d", Map::enabled);
+
+    /** In case of load, we load the mphf and populate right now. */
+    if (Map::enabled == true && buildOrLoad == false)
     {
+        /** We load the hash object from the dedicated storage group. */
+        {   TIME_INFO (getTimeInfo(), "load");
+            _map->load (_group, _name);
+        }
 
-        Model model (kmerSize);
-        long n = solidIterable->getNbItems();
-
-        mphf_class = new MPHF(_kmerSize, n);
-
-        mphf_class->setEMPHF(StorageTools::singleton().loadEMPHF<typename MPHF::BaseHasher>(_group, _mphfUri));
-
-        mphf_class->populateAbundances(_solidIterable);
-
-        //fprintf(stderr, "Loaded MPHF from disk, number of elements: %d\n", mphf_class->getSize());
-
+        /** We populate the hash table. */
+        populate ();
     }
 }
 
-template<size_t span>
-MPHFAlgorithm<span>::~MPHFAlgorithm ()
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span,typename Abundance_t>
+MPHFAlgorithm<span,Abundance_t>::~MPHFAlgorithm ()
 {
-    setSolidIterable      (0);
+    /** Cleanup */
+    setSolidCounts (0);
+    setSolidKmers  (0);
+    setMap         (0);
+    setProgress    (0);
 }
 
-
-
-template<size_t span>
-void MPHFAlgorithm<span>::execute ()
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span, typename Abundance_t>
+void MPHFAlgorithm<span,Abundance_t>::execute ()
 {
-    Model model (_kmerSize);
-    long n = _solidIterable->getNbItems();
+    /** We check whether we can use such a type. */
+    if (Map::enabled == true && _buildOrLoad == true)
+    {
+        size_t dataSize=0;
 
-    mphf_class = new MPHF(_kmerSize, n, _solidIterable);
+        /** We need a progress object. */
+        tools::dp::IteratorListener* delegate = createIteratorListener(0,"");  LOCAL (delegate);
+        setProgress (new ProgressCustom(delegate));
 
-    mphf_class->populateAbundances(_solidIterable);
+        /** We build the hash. */
+        {   TIME_INFO (getTimeInfo(), "build");
+            _map->build (*_solidKmers, _progress);
+        }
 
-    // save the produced mphf
-    StorageTools::singleton().saveEMPHF<typename MPHF::BaseHasher>(_group, _mphfUri, static_cast< void* >( &( mphf_class->mphf) ));
+        /** We save the hash object in the dedicated storage group. */
+        {   TIME_INFO (getTimeInfo(), "save");
+            _dataSize = _map->save (_group, _name);
+        }
+
+        /** We populate the hash table. */
+        populate ();
+    }
 }
 
-template<size_t span>
-float MPHFAlgorithm<span>::getNbBitsPerKmer () const
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span,typename Abundance_t>
+float MPHFAlgorithm<span,Abundance_t>::getNbBitsPerKmer () const
 {
-    float nbitsPerKmer = sizeof(mphf_abundance_t)*8;
-
+    float nbitsPerKmer = sizeof(Abundance_t)*8;
     return nbitsPerKmer;
 }
 
-template<size_t span>
-typename MPHFAlgorithm<span>::MPHF * MPHFAlgorithm<span>::getMPHF () 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span,typename Abundance_t>
+void MPHFAlgorithm<span,Abundance_t>::populate ()
 {
-    return mphf_class;
+    size_t nb_iterated = 0;
+    size_t n = _map->size();
+
+    _nb_abundances_above_precision = 0;
+
+    /** We need a progress object. */
+    tools::dp::IteratorListener* delegate = createIteratorListener(_solidCounts->getNbItems(),messages[3]);  LOCAL (delegate);
+    setProgress (new ProgressCustom(delegate));
+
+    SubjectIterator<Count>* itKmers = new SubjectIterator<Count> (_solidCounts->iterator(), _solidCounts->getNbItems()/100);
+    itKmers->addObserver (_progress);
+    LOCAL (itKmers);
+
+    // set counts and at the same time, test the mphf
+    for (itKmers->first(); !itKmers->isDone(); itKmers->next())
+    {
+        /** We get the hash code of the current item. */
+        typename Map::Hash::Code h = _map->getCode (itKmers->item().value);
+
+        /** Little check. */
+        if (h >= n) {  throw Exception ("MPHF check: value out of bounds"); }
+
+        /** We get the abundance of the current kmer. */
+        int abundance = itKmers->item().abundance;
+
+        if (abundance > MAX_ABUNDANCE)
+        {
+            _nb_abundances_above_precision++;
+            abundance = MAX_ABUNDANCE;
+        }
+
+        /** We set the abundance of the current kmer. */
+        _map->at (h) = abundance;
+
+        nb_iterated ++;
+    }
+
+    if (nb_iterated != n && n > 3)
+    {
+        throw Exception ("ERROR during abundance population: itKmers iterated over %d/%d kmers only", nb_iterated, n);
+    }
+
+#if 1
+    // you know what? let's test if the MPHF does not have collisions, it won't hurt.
+    check ();
+#endif
+
+    /** We gather some statistics. */
+    getInfo()->add (1, "stats");
+    getInfo()->add (2, "nb_keys",               "%ld",  _map->size());
+    getInfo()->add (2, "data_size",             "%ld",  _dataSize);
+    getInfo()->add (2, "bits_per_key",          "%.3f", (float)(_dataSize*8)/(float)_map->size());
+    getInfo()->add (2, "prec",                  "%d",   MAX_ABUNDANCE);
+    getInfo()->add (2, "nb_abund_above_prec",   "%d",   _nb_abundances_above_precision);
+    getInfo()->add (1, getTimeInfo().getProperties("time"));
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span,typename Abundance_t>
+void MPHFAlgorithm<span,Abundance_t>::check ()
+{
+    size_t nb_iterated = 0;
+
+    Iterator<Count>* itKmers = _solidCounts->iterator();  LOCAL (itKmers);
+
+    for (itKmers->first(); !itKmers->isDone(); itKmers->next())
+    {
+        Count& count = itKmers->item();
+
+        /** We get the current abundance. */
+        Abundance_t abundance = (*_map)[count.value];
+
+        if (abundance!=count.abundance && abundance<MAX_ABUNDANCE)  {  throw Exception ("ERROR: MPHF isn't injective (abundance population failed)");  }
+
+        nb_iterated ++;
+    }
+
+    if (nb_iterated != _map->size() && _map->size() > 3)
+    {
+        throw Exception ("ERROR during abundance population: itKmers iterated over %d/%d kmers only", nb_iterated, _map->size());
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span,typename Abundance_t>
+MPHFAlgorithm<span,Abundance_t>::ProgressCustom::ProgressCustom (tools::dp::IteratorListener* ref)
+  : tools::misc::impl::ProgressProxy (ref), nbReset(0)
+{
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span,typename Abundance_t>
+void MPHFAlgorithm<span,Abundance_t>::ProgressCustom::reset (u_int64_t ntasks)
+{
+    getRef()->reset(ntasks);
+    getRef()->setMessage (messages[nbReset++]);
+    getRef()->init();
+}
 
 /********************************************************************************/
 
@@ -160,4 +327,3 @@ template class MPHFAlgorithm <KSIZE_4>;
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
-#endif

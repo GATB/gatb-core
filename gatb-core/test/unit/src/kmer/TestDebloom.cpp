@@ -99,15 +99,15 @@ public:
         /** We launch DSK. */
         sortingCount.execute();
 
-        CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
+        CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a bloom instance. */
         float nbitsPerKmer = DebloomAlgorithm<>::getNbBitsPerKmer (kmerSize, DEBLOOM_ORIGINAL);
-        BloomAlgorithm<> bloom (*storage, sortingCount.getSolidKmers(), kmerSize, nbitsPerKmer, 0, BLOOM_BASIC);
+        BloomAlgorithm<> bloom (*storage, sortingCount.getSolidCounts(), kmerSize, nbitsPerKmer, 0, BLOOM_BASIC);
         bloom.execute ();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, sortingCount.getSolidKmers(), kmerSize, 1000, 0, BLOOM_BASIC, DEBLOOM_ORIGINAL);
+        DebloomAlgorithm<> debloom (*storage, sortingCount.getSolidCounts(), kmerSize, 1000, 0, BLOOM_BASIC, DEBLOOM_ORIGINAL);
 
         /** We launch the debloom. */
         debloom.execute();

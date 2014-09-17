@@ -682,13 +682,19 @@ struct Kmer
             /** We compute N potential minimizers and put them into the circular buffer. */
             _miniModel.template first<Convert> (seq, value.minimizers[0]);
 
-            /** We have to shift the current buffer to extract next mmers. */
-            seq += _miniModel.getKmerSize() - 1;
+            /** We compute the following mmers from the first one.
+             *  We have consumed 'mmerSize' nucleotides so far for computing the first mmer.
+             *  The following nucleotides have therefore to be retrieved further in the
+             *  data buffer. It is important to shift the index of the current nucleotide
+             *  (and not only moving the buffer forward) because the buffer may be encoded
+             *  in different way (ascii, binary...)
+             */
+            size_t idxShift = _miniModel.getKmerSize()-1;
 
             for (size_t idx=1; idx<_nbMinimizers; idx++)
             {
                 value.minimizers[idx] = value.minimizers[idx-1];
-                _miniModel.template next<Convert> (Convert::get (seq, idx), value.minimizers[idx]);
+                _miniModel.template next<Convert> (Convert::get (seq, idx+idxShift), value.minimizers[idx]);
             }
 
             /** We initialize the circular buffer index. */

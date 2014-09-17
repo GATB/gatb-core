@@ -30,11 +30,12 @@ namespace emphf {
             , m_edges(m_memory_model, 0, 0)
         {}
 
-        template <typename Range, typename EdgeGenerator>
+        template <typename Range, typename EdgeGenerator, typename Progress>
         bool try_generate_and_sort(Range const& input_range,
                                    EdgeGenerator const& edge_gen,
                                    size_t n,
-                                   size_t hash_domain)
+                                   size_t hash_domain,
+                                   Progress& progress)
         {
             auto m = hash_domain * 3;
             uint64_t node_bits = msb(m - 1) + 1;
@@ -105,8 +106,16 @@ namespace emphf {
             // we exploit the tripartition by populating the adjacency
             // lists of each orientation of the tripartition
             // separately
+
+            progress.reset (3);
+            progress.init  ();
+
             for (unsigned o = 0; o < 3; ++o) {
                 logger() << "Sorting " << o << "-orientation edges" << std::endl;
+
+                // progress notification
+                progress.inc (1);
+
                 auto sorted_edges =
                     m_memory_model.make_sorter(edges_begin, edges_end,
                                                [](hyperedge const& e) { return e.v0; },
@@ -155,6 +164,8 @@ namespace emphf {
                     }
                 }
             }
+            progress.finish  ();
+
             wr.flush();
 
             auto peeling_order_begin = m_edges.begin();
@@ -168,12 +179,19 @@ namespace emphf {
                                          peeling_order_begin);
             round_hinges_begin = peeling_order_begin;
 
+            // progress initialization
+            progress.reset (initial_nodes);
+            progress.init  ();
 
             // iterate rounds until no more hinges are found
             for (size_t round = 0; round_hinges_begin != round_hinges_end; ++round) {
+
                 logger() << "Round " << round << ", "
                          << 100 * double(remaining_nodes) / double(initial_nodes)
                          << "% nodes remaining" << std::endl;
+
+                // progress notification
+                progress.set (initial_nodes - remaining_nodes);
 
                 // sort hinges by their canonical orientation
                 auto sorted_hinges =
@@ -270,6 +288,8 @@ namespace emphf {
                 remaining_nodes = new_remaining_nodes;
                 wr.flush();
             }
+
+            progress.finish ();
 
             if (remaining_nodes > 0) {
                 logger() << "Hypergraph is not peelable" << std::endl;

@@ -84,7 +84,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0), _histogramUri(""),
-      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidKmers(0)
+      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
 {
 }
 
@@ -119,12 +119,12 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(histogramUri),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0)
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
 {
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& (*_storage)("dsk").getCollection<Count> ("solid"));
+    setSolidCounts (& (*_storage)("dsk").getCollection<Count> ("solid"));
 
     /** We set the histogram instance. */
     setHistogram (new Histogram  (10000, & (*_storage)("dsk").getCollection<Histogram::Entry>("histogram") ));
@@ -141,7 +141,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
 template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storage& storage)
   : Algorithm("dsk", 0, 0),
-    _storage(0),
+    _storage(&storage),
     _bank(0),
     _kmerSize(0), _abundance(0),
     _partitionType(0), _nbCores(0), _prefix(""),
@@ -149,12 +149,12 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(""),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidKmers(0)
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
 {
-    Group& group = storage(this->getName());
+    Group& group = (*_storage)(this->getName());
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidKmers (& group.getCollection<Count> ("solid"));
+    setSolidCounts (& group.getCollection<Count> ("solid"));
 
     string xmlString = group.getProperty ("xml");
     stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
@@ -175,7 +175,7 @@ SortingCountAlgorithm<span>::~SortingCountAlgorithm ()
     setBank              (0);
     setPartitionsStorage (0);
     setPartitions        (0);
-    setSolidKmers        (0);
+    setSolidCounts       (0);
     setHistogram         (0);
 }
 
@@ -215,7 +215,7 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         setHistogram            (s._histogram);
         setPartitionsStorage    (s._partitionsStorage);
         setPartitions           (s._partitions);
-        setSolidKmers           (s._solidKmers);
+        setSolidCounts          (s._solidCounts);
     }
     return *this;
 }
@@ -265,7 +265,7 @@ void SortingCountAlgorithm<span>::execute ()
 
 		//return ;
         /** 2) We fill the kmers solid file from the partition files. */
-        fillSolidKmers (_solidKmers->bag());
+        fillSolidKmers (_solidCounts->bag());
     }
 
 	//debug
@@ -281,7 +281,7 @@ void SortingCountAlgorithm<span>::execute ()
     _progress->finish ();
 
     /** We flush the solid kmers file. */
-    _solidKmers->bag()->flush();
+    _solidCounts->bag()->flush();
 
     /** We save the histogram if any. */
     _histogram->save ();
@@ -305,7 +305,7 @@ void SortingCountAlgorithm<span>::execute ()
     /** We want to remove physically the partitions. */
     _partitions->remove ();
 
-    u_int64_t nbSolids = _solidKmers->iterable()->getNbItems();
+    u_int64_t nbSolids = _solidCounts->iterable()->getNbItems();
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");

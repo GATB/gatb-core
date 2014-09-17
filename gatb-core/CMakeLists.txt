@@ -121,7 +121,7 @@ if (use_new_cxx)
 if (use_mphf)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
         message ("-------------------------------------------------------------------------------------")
-        message ("-- WILL COMPILE MPHF! (GCC VERSION IS HIGH ENOUGH) ")
+        message ("-- WILL COMPILE MPHF! (COMPILER VERSION IS HIGH ENOUGH) ")
         message ("-------------------------------------------------------------------------------------")
 endif()
 

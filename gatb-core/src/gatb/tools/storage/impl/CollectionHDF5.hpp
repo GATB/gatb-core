@@ -158,6 +158,8 @@ public:
         return buffer;
     }
 
+    size_t getItems (Item*& buffer, size_t start, size_t count)  { return retrieveCache (buffer, start, count); }
+
 
 private:
 
@@ -171,6 +173,9 @@ private:
     u_int64_t retrieveCache (Item* data, hsize_t start, hsize_t count)
     {
         herr_t status = 0;
+
+        if (start       > _nbItems)  { return 0;               }
+        if (start+count > _nbItems)  { count = _nbItems-start; }
 
         system::LocalSynchronizer localsynchro (_synchro);
 
