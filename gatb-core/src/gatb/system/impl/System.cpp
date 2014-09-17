@@ -28,6 +28,8 @@ namespace gatb { namespace core { namespace system {
 	u_int64_t nbrl ;
 	int g_ksize ;
 	int g_msize ;
+	  u_int64_t max_mmer ;
+
 	u_int64_t * freq_mmer;
 	u_int64_t * stat_mmer;
 	

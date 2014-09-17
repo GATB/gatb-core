@@ -729,7 +729,7 @@ struct Kmer
              *      3) the new current mmer is best than the current minimizer
              */
             if (value.minimizerIdx==_nbMinimizers || value.minimizerIdx==nextIdx
-                || _cmp (value.minimizers[nextIdx].value(), value.minimizers[value.minimizerIdx].value()) )
+              /*  || _cmp (value.minimizers[nextIdx].value(), value.minimizers[value.minimizerIdx].value())*/ )
             {
                 /** We update the minimizer index. */
                 value.minimizerIdx = getMinimizerIdx (value);
@@ -738,6 +738,13 @@ struct Kmer
                  * because we can have the same minimizer twice or more in the same kmer. */
                 if (currentMinimizer != value.minimizers[value.minimizerIdx].value())  {  value.changed = true;  }
             }
+			else if (  _cmp (value.minimizers[nextIdx].value(), value.minimizers[value.minimizerIdx].value()))
+			{
+				value.minimizerIdx  = nextIdx;
+				
+				if (currentMinimizer != value.minimizers[value.minimizerIdx].value())  {  value.changed = true;  }
+
+			}
         }
 
     private:

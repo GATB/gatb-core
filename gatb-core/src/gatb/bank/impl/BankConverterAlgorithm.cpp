@@ -111,7 +111,7 @@ void BankConverterAlgorithm::execute ()
 	
 	g_msize =  7;
 	freq_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) ); //cpt on smaller type would be enough
-	stat_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) ); //cpt on smaller type would be enough
+	stat_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) );
 	
 	Modelc model (g_msize);
     vector<Mmer> mmers;
@@ -167,8 +167,20 @@ void BankConverterAlgorithm::execute ()
 			 
 			 
          }
+	
+		 max_mmer = 0;
+		 for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
+		 {
+			 if (freq_mmer[ii]> freq_mmer[max_mmer]) max_mmer = ii;
+			 //		typedef typename Kmer<31>::Type           Typem;
+			 //		Typem cur = ii;
+			 //		printf("%s : %lli\n",cur.toString(8).c_str(),stat_mmer[ii]);
+			 
+		 }
 		 
-		 
+		 Typem mma = max_mmer;
+		 printf("Max mmer by freq is  %llu  (%s)\n",max_mmer, mma.toString(g_msize).c_str());
+
 //		 //debug
 //		 for (int ii= 0; ii< ( 1 <<(8*2)); ii++)
 //		 {

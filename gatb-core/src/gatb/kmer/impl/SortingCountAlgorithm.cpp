@@ -261,7 +261,7 @@ void SortingCountAlgorithm<span>::execute ()
 
         /** 1) We fill the partition files. */
         fillPartitions (_current_pass, itSeq);
-		printf("average nb superkmer per read %f \n",system::superk_average_pread);
+		//printf("average nb superkmer per read %f \n",system::superk_average_pread);
 
 		//return ;
         /** 2) We fill the kmers solid file from the partition files. */
@@ -269,14 +269,19 @@ void SortingCountAlgorithm<span>::execute ()
     }
 
 	//debug
-//	printf("Stat kmer\n");
-//	for (int ii= 0; ii< ( 1 <<(8*2)); ii++)
-//	{
+	/*
+	printf("Histo superkmer sizes\n");
+	//for (int ii= 0; ii< ( 1 <<(8*2)); ii++)
+		for (int ii= 0; ii< 50; ii++)
+	{
 //		typedef typename Kmer<31>::Type           Typem;
 //		Typem cur = ii;
 //		printf("%s : %lli\n",cur.toString(8).c_str(),stat_mmer[ii]);
-//	}
-//	//
+		printf("Size %i :  %llu\n",ii,stat_mmer[ii]);
+
+	}
+	 */
+	//
 	
     _progress->finish ();
 
@@ -357,7 +362,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     assert (_max_disk_space > 0);
     _nb_passes = ( (_volume/3) / _max_disk_space ) + 1; //minim, approx volume /3
-	printf("_volume/3 %lli _max_disk_space %lli \n", (_volume/3),_max_disk_space);
+	printf("_volume/3 %lli _max_disk_space %lli  _nb_passes init %i  \n", (_volume/3),_max_disk_space,_nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
     u_int64_t volume_per_pass;
 
@@ -378,6 +383,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
         if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
         else                                    { break;         }
 
+		printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
 
     /** We gather some statistics. */
@@ -406,24 +412,15 @@ class FillPartitions
 {
 public:
 
+
     /** Shortcut. */
-    typedef typename Kmer<span>::Type                  Type;
-	typedef typename Kmer<span>::ModelDirect           ModelDirect;
+    typedef typename SortingCountAlgorithm<span>::Type                  Type;
+	//typedef typename SortingCountAlgorithm<span>::ModelDirect           ModelDirect;
+	typedef typename SortingCountAlgorithm<span>::ModelCanonical             ModelCanonical;
+    typedef typename SortingCountAlgorithm<span>::Model 	Model;
 
-	typedef typename Kmer<span>::ModelCanonical             Model; //ModelCanonical
 	
-	//bug clang with this
-	typedef typename Kmer<span>::ModelCanonical             ModelCanonical;
-    typedef  Kmer<span>::ModelMinimizer<ModelCanonical> 	ModelM; // makes this the model makes clang segfault !!      ModelMinimizer
-
-   // typedef typename Kmer<span>::ModelDirect::Kmer  Kmer;
-	 typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer; //  ModelCanonical
-	
-	//Was
-//    typedef typename Kmer<span>::Type                  Type;
-//    typedef typename Kmer<span>::ModelCanonical        Model;
-//    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
-	
+	 typedef typename Model::Kmer  Kmer;
 	
 
 	
@@ -431,7 +428,9 @@ public:
 	void compact_and_insert_superkmer (std::vector<Type> & superK,u_int64_t minimk)
     {
 	
-		stat_mmer[minimk] += superK.size();
+	//	stat_mmer[minimk] += superK.size();
+	//	stat_mmer[superK.size()] ++; // stats works in single thread
+		
 		if ((minimk % nbPass) == pass) //check if falls into pass
 		{
 			u_int64_t reduced_kmer = minimk / nbPass;
@@ -493,30 +492,76 @@ public:
     void operator() (Sequence& sequence)
     {
 		
-        //ModelM modelm (31, 8); //fait aussi planter clang
+		//const ModelCanonical& modelmm = model.getMmersModel();
+		//debug
+		/*
 		
+		
+		//debug
+		
+		printf("------------- new sequence ---------\n");
+		
+		model.build (sequence.getData(), kmers);
+
+		for (size_t i=0; i<kmers.size(); i++)
+        {
+			
+			std::cout << "KMER=" << model.toString(kmers[i].value()) << "  "
+			<< (kmers[i].hasChanged() ? "NEW" : "OLD") << " "
+			<< "MINIMIZER=" << modelmm.toString(kmers[i].minimizer().value()) << " "
+			<< "at position " << kmers[i].position()
+			<< std::endl;
+			
+			//printf("kmer %s minim %s \n",model.toString(kmers[i].forward()).c_str(),	modelmm.toString(kmers[i].minimizer().forward()).c_str());
+
+		}
+		
+		return ;
+		//fin debug
+		*/
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			
         /** We build the kmers from the current sequence. */
         if (model.build (sequence.getData(), kmers) == false)  { return; }
 		
 		// il faut les recup en mode forward maintenant
 
+		int mm = system::g_msize;
+		u_int64_t maskm = (1<<(2*mm)) - 1;
+		
 		std::vector<Type>  superK;
 		u_int64_t prevmin = 1000000000 ;
 		int nb_superk = 1;
 		superK.clear();
 
+		Type temp;
 		
 		if(kmers.size()> 0)
 		{
 		//	prevmin  = hash1 (kmers[0].forward()); // todo remplacer par .minimizer().value()  .getVal() ?
-		prevmin  =  mhash (kmers[0].forward(),kmers[0].revcomp(),prevmin);
-		//prevmin  = hash1 (kmers[0].forward());
-			
-		//	prevmin = 0; //normal cause bug, car fait un compact superk sur un superk vide ptet le mhash multi arg fonctionne en fait
-		//	printf("prev mhash %lli \n",prevmin);
-			//prevmin  = oahash (kmers[0].value());
+		//prevmin  =  mhash (kmers[0].forward(),kmers[0].revcomp(),prevmin);
+			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() & maskm;
 
 		}
+		
+		
+
+
+		//
 
 		int maxs = (superK[0].getSize() - 8 )/2 ;
 		//printf("type size %i bits   max allowed nt superK %lu \n",superK[0].getSize(), (superK[0].getSize() - 8 )/2);
@@ -530,22 +575,19 @@ public:
 			//            _partition[p].insert (kmers[i].value());
 			//get minimizer here
 			u_int64_t h = prevmin;
-			h = mhash (kmers[i].forward(),kmers[i].revcomp(),h);
-			//h  = hash1 (kmers[i].forward());
-			//h  = hash1 (kmers[i].forward());
+			//h = mhash (kmers[i].forward(),kmers[i].revcomp(),h);
+			temp = kmers[i].minimizer().value(); h = temp.getVal() & maskm;
+
+			//printf("kmer %s minim %s \n",kmers[i].value().toString(31).c_str(),	modelmm.toString(kmers[i].minimizer().value()).c_str());
+
 			
 			//u_int64_t h = oahash (kmers[i].value());
 			
 			//printf("minim %lu \n",h);
 			
-			if(h!= prevmin || superK.size() >= maxs)
+			if(h!= prevmin || superK.size() >= maxs) //use kmers[i].hasChanged()
 			{
 				nb_superk ++;
-				
-				
-				//output previous superkmer (minim prevmin)
-				/** We check whether this kmer has to be processed during the current pass. */
-				//if ((prevmin % nbPass) != pass)  { superK.clear();superK.push_back(kmers[i]);prevmin =  h; continue; }
 				
 				compact_and_insert_superkmer(superK, prevmin);
 				
@@ -570,10 +612,9 @@ public:
 		
 		
 		
-		superk_average_pread =  (nbrl *  superk_average_pread  +  nb_superk) / (float)(nbrl+1);
+	//	superk_average_pread =  (nbrl *  superk_average_pread  +  nb_superk) / (float)(nbrl+1);
 	//	superk_average_pread += nb_superk;
-		
-		nbrl ++;
+	//	nbrl ++;
 		
 	//	printf ("nb_superk %i \n",nb_superk);
 		
@@ -588,13 +629,13 @@ public:
 #else
       _partition (*partition,1<<12,0),
 #endif
-          _progress  (progress,System::thread().newSynchronizer())  {}
+          _progress  (progress,System::thread().newSynchronizer())  { /* model_minimizer = model.getMmersModel();  */ }
 
 private:
 
     /** Local resources. */
     Model&    model;
-	//ModelM modelm; //fait aussi planter clang
+	ModelCanonical model_minimizer ;
     size_t    pass;
     size_t    nbPass;
     size_t    nbPartitions;
@@ -629,8 +670,8 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     /** We create a kmer model. */
   //  Model model (_kmerSize,KMER_DIRECT); // en forward mode pour le minimizer : on recup la suite du read  compute revcomp ds hash minim
-	Model model (_kmerSize); // Modelminimizer passe pas, cause bug clang
-	
+	Model model (_kmerSize,g_msize);
+	//Model model (_kmerSize);
 	g_ksize = model.getKmerSize();
 	//g_msize =  8;
 	

@@ -49,6 +49,11 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+	
+	
+
+	
+	
 /** \brief Class performing the kmer counting (also known as 'DSK')
  *
  * This class does the real job of counting the kmers from a reads database.
@@ -66,15 +71,63 @@ class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
+	/** We define here a 'maximizer' in the mmers of a specific kmer. */
+	struct FreqMinimizer
+	{
+		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
+		{
+			optimum = Kmer<span>::Type(0);
+		}
+		
+		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
+		{
+			return !(current < optimum);
+		}
+	};
+	
+	
+	struct CustomMinimizer
+	{
+		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
+		{
+			//optimum = model.getKmerMax();//mettre le mmer de freq max ?
+			optimum = max_mmer;
+		}
+		
+		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
+		{
+			
+			typename Kmer<span>::Type curr = current;
+			typename Kmer<span>::Type opt  = optimum;
+			
+			bool res = false;
+			
+			int mm = system::g_msize;
+			u_int64_t * freqm = system::freq_mmer;
+			
+			//2 revcomp, couteux
+			//u_int64_t ca = std::min ( NativeInt64::revcomp8(a,mm), a); // revcomp8 version optim revcomp 8nt max
+			//u_int64_t cb = std::min ( NativeInt64::revcomp8(b,mm), b);
+			
+			if (freqm[curr.getVal()] < freqm[opt.getVal()]   ||
+				( (freqm[curr.getVal()] == freqm[opt.getVal()]) && (current < optimum) )
+				)
+				res = true;
+			
+			return res;
+			//return current < optimum;
+		}
+	};
+	
+	
+	
     /** Shortcuts. */
-    typedef typename kmer::impl::Kmer<span>::ModelDirect ModelDirect; //was canonical Model -> ModelD
-	
-	typedef typename kmer::impl::Kmer<span>::ModelCanonical   Model;  //ModelCanonical
-	
-	//makes clang segfault !!
+		
 	typedef typename Kmer<span>::ModelCanonical             ModelCanonical;
-    typedef  kmer::impl::Kmer<span>::ModelMinimizer<ModelCanonical> ModelM; // ModelMinimizer ->  Model
-	
+	typedef typename Kmer<span>::ModelDirect             ModelDirect;
+	//,CustomMinimizer
+	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical,CustomMinimizer> 	Model;
+	//typedef typename Kmer<span>::ModelCanonical             Model;
 
     typedef typename kmer::impl::Kmer<span>::Type           Type;
     typedef typename kmer::impl::Kmer<span>::Count          Count;
