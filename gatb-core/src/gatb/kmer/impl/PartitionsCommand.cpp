@@ -93,14 +93,64 @@ void PartitionsByHashCommand<span>:: execute ()
         /** We directly fill the vector from the current partition file. */
         Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
 
-        for (it->first(); !it->isDone(); it->next())
-        {
-            hash.increment (it->item());
+//        for (it->first(); !it->isDone(); it->next())
+//        {
+//            hash.increment (it->item());
+//
+//            /** Some display. */
+//            if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
+//        }
 
-            /** Some display. */
-            if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
-        }
+		
+		
+		//with decompactage
+		//should pass the kmer model here
+		//superk
+		u_int8_t		nbK, rem ;
+		uint64_t compactedK;
+		int ks = system::g_ksize;
+		Type un = 1;
+		Type kmerMask = (un << (ks*2)) - un;
+		size_t shift = 2*(ks-1);
+		
+        for (it->first(); !it->isDone(); it->next()) {
+			Type superk = it->item();
+			it->next();
+			Type seedk = it->item();
+			
+			
+			compactedK =  superk.getVal();
+			nbK = (compactedK >> 56) & 255; // 8 bits poids fort = cpt //todo for large k values
+			rem = nbK;
+			
 
+			Type temp = seedk;
+			Type rev_temp = revcomp(temp,ks);
+			Type newnt ;
+			Type mink;
+			
+			for (int ii=0; ii< nbK; ii++,rem--) {
+				mink = std::min (rev_temp, temp);
+				
+				//insert elem here
+				hash.increment (mink);
+								
+				if(rem < 2) break;
+				newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
+				
+				temp = ((temp << 2 ) |  newnt   ) & kmerMask;
+				newnt =  Type(comp_NT[newnt.getVal()]) ;
+				rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
+			}
+			
+			
+			
+			
+		}
+		
+		
+		
+		
         /** We loop over the solid kmers map. */
         Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator();
         LOCAL (itKmerAbundance);
@@ -162,6 +212,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 //			kmers[idx] = it->item();
 //		  }
 		
+		size_t shift = 2*(ks-1);
 		
         for (it->first(); !it->isDone(); it->next()) {
 		
@@ -182,25 +233,23 @@ void PartitionsByVectorCommand<span>:: execute ()
 			
 			
 			compactedK =  superk.getVal();
-			nbK = (compactedK >> 56) & 255; // 8 bits poids fort = cpt
+			nbK = (compactedK >> 56) & 255; // 8 bits poids fort = cpt //todo for large k values
 			rem = nbK;
 			
 		//	printf("read new super k  %i  : \n",nbK);
-
-
 			
 			//temp =  *((uint64_t *)(&_seed) );
 			Type temp = seedk;
-			
-			
-			Type mink, revc;
-			
+			Type rev_temp = revcomp(temp,ks);
+			Type newnt ;
+			Type mink;
 			
 			for (int ii=0; ii< nbK; ii++,rem--) {
 				
-				revc = revcomp(temp,ks);
+			//	revc = revcomp(temp,ks); //non, il faut calc plus intelligemment que ca, calc
+				//revcomp au debut puis  par iteration comme temp plus bas
 
-				mink = std::min (revc, temp);
+				mink = std::min (rev_temp, temp);
 				
 				//kmers[idx] = mink; idx++;
 				kmers.push_back(mink);
@@ -208,7 +257,11 @@ void PartitionsByVectorCommand<span>:: execute ()
 			//  printf("%s   (%i / %i)   ( %lli )   (revc %lli   temp %lli )\n",mink.toString(ks).c_str(),rem,nbK,mink.getVal(),revc.getVal(),temp.getVal() );
 
 				if(rem < 2) break;
-				temp = ((temp << 2 ) |  ( ( superk >> ( 2*(rem-2)) ) & 3 )) & kmerMask;
+				newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
+				
+				temp = ((temp << 2 ) |  newnt   ) & kmerMask;
+				newnt =  Type(comp_NT[newnt.getVal()]) ;
+				rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
 			}
 			
 			

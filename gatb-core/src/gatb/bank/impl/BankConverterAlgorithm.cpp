@@ -158,28 +158,28 @@ void BankConverterAlgorithm::execute ()
 			 
 			 
 			 //todo also in this pass :  parse the mmers of the seq itBank->item() to count mmers , to do freq based minim later
-			model.build (itBank->item().getData(), mmers);
-			 for (size_t i=0; i<mmers.size(); i++)
-			 {
-				 Typem cur =mmers[i].value();
-				 freq_mmer[cur.getVal() ] ++;
-			 }
+//			model.build (itBank->item().getData(), mmers);
+//			 for (size_t i=0; i<mmers.size(); i++)
+//			 {
+//				 Typem cur =mmers[i].value();
+//				 freq_mmer[cur.getVal() ] ++;
+//			 }
 			 
 			 
          }
 	
-		 max_mmer = 0;
-		 for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
-		 {
-			 if (freq_mmer[ii]> freq_mmer[max_mmer]) max_mmer = ii;
-			 //		typedef typename Kmer<31>::Type           Typem;
-			 //		Typem cur = ii;
-			 //		printf("%s : %lli\n",cur.toString(8).c_str(),stat_mmer[ii]);
-			 
-		 }
+//		 max_mmer = 0;
+//		 for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
+//		 {
+//			 if (freq_mmer[ii]> freq_mmer[max_mmer]) max_mmer = ii;
+//			 //		typedef typename Kmer<31>::Type           Typem;
+//			 //		Typem cur = ii;
+//			 //		printf("%s : %lli\n",cur.toString(8).c_str(),stat_mmer[ii]);
+//			 
+//		 }
 		 
-		 Typem mma = max_mmer;
-		 printf("Max mmer by freq is  %llu  (%s)\n",max_mmer, mma.toString(g_msize).c_str());
+//		 Typem mma = max_mmer;
+//		 printf("Max mmer by freq is  %llu  (%s)\n",max_mmer, mma.toString(g_msize).c_str());
 
 //		 //debug
 //		 for (int ii= 0; ii< ( 1 <<(8*2)); ii++)

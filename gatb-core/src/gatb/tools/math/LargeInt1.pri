@@ -168,9 +168,10 @@ public:
 
 	inline static bool comp_less_minimizer (u_int64_t a, u_int64_t b)
 	{
-		bool res = false;
 		
-		int mm = system::g_msize;
+	/*	bool res = false;
+		
+
 		u_int64_t * freqm = system::freq_mmer;
 		
 		//2 revcomp, couteux
@@ -182,16 +183,55 @@ public:
 			)
 			res = true;
 		return res;
+		*/
 		
+
+ //todo faire e nsorte que pas trop couteux
+		
+		int mm = system::g_msize;
+//		u_int64_t  bmax =  1 << (mm*2);
+//		u_int64_t  mask_aaa = 63 <<  ((mm-3)*2);
+//		u_int64_t  aca_pattern = 4 <<  ((mm-3)*2);
+//		u_int64_t  mask_2nt = 15 ;
+		u_int64_t  mask_0101 = 0x5555555555555555 ;
+		u_int64_t  mmask_m1 =  (1 << ((mm-2)*2)) -1 ; // - (tai nt -1 )
+		
+// le -1 marchait pas mal aussi
+		//		u_int64_t  mmask_m1 =  (1 << ((mm-1)*2)) -1 ;  // eleime les AA*, AAA*, AAAA*, remplacereai AAA*
+
+		
+		//detect 2 a somewhere inside, except at beginning
+//		for (int ii=0; ii<=  (mm-3); ii++) {
+//			if(( (a>>(ii*2)) & mask_2nt ) == 0) return false;
+//		}
+		
+////
+//		if(( a & mask_aaa ) == 0) return false; //a+=bmax;//
+//		if(( a & mask_aaa ) == aca_pattern) return false; //a+=bmax;//
+
+		
+	
+		u_int64_t a1 = a >>2 ;
+		u_int64_t a2 = a >>4 ;
+	//	u_int64_t a3 = a >>6 ;
+		//u_int64_t a4 = a >>8;
+		
+		
+		a1 = (~(a ^ a1)) &  (~ (a ^ a2)) ;//  &  (~ (a ^ a3)) ;//   &  (~ (a ^ a4)); //4nt
+
+		a1 =  ((a1 >>1) & a1) & mask_0101 & mmask_m1 ;
+		
+		if(a1 != 0) return false;
+	
 		//pour minim standard :
-		//return (a<b);
+		//if(a < 255)  return false;  //255 :  AA..AA puis 4 nt
+		return (a<b);
 	}
 
 	
 	/********************************************************************************/
     inline static u_int64_t mhash64 (u_int64_t forw,u_int64_t rev,   u_int64_t prevmin)
     {
-		
 		u_int64_t res ;
 		int ks = system::g_ksize;
 		int mm = system::g_msize;
@@ -209,12 +249,13 @@ public:
 		u_int64_t  r_new = (rev >> (2*(ks- (mm))) ) & maskm;
 		
 		
+		
 		// 1000000000 == non init, debut seq
 		if(f_sortant== (prevmin & maskms) ||  r_sortant== ((prevmin >>2) & maskms)  || prevmin == 1000000000 ) // peut etre il est sorti; on recalc tout
 		{
-			u_int64_t minim = 1000000000;
+			u_int64_t minim = maskm; // init with max val
 			
-			minim = forw  & maskm; // init avec le premier
+		//	minim = f_new; // init avec le premier // non si chgt ordre ou filtrage le premier peut etre interdit
 			for (int i = 0; i <  (1+(ks *2)- 2*mm );i+=2 )
 			{
 				u_int64_t	 newm = (forw >> i) & maskm;
@@ -234,11 +275,17 @@ public:
 		{
 			res = prevmin;
 			
-			u_int64_t minim = r_new;
-			if (comp_less_minimizer(f_new,r_new )  )
-				minim = f_new;
-			if (comp_less_minimizer(minim,res )  )
-				res = minim;
+//			u_int64_t minim = r_new;
+//			if (comp_less_minimizer(f_new,r_new )  )
+//				minim = f_new;
+//			if (comp_less_minimizer(minim,res )  )
+//				res = minim;
+			
+			if (comp_less_minimizer(r_new,res )  )
+				res = r_new;
+			
+			if (comp_less_minimizer(f_new,res )  )
+				res = f_new;
 			
 		}
 		

@@ -55,6 +55,7 @@ namespace impl      {
 	
 	
 /** \brief Class performing the kmer counting (also known as 'DSK')
+	
  *
  * This class does the real job of counting the kmers from a reads database.
  *
@@ -71,26 +72,53 @@ class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
+
+	
 	/** We define here a 'maximizer' in the mmers of a specific kmer. */
-	struct FreqMinimizer
+	struct  CustomMinimizer
 	{
 		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
 		{
-			optimum = Kmer<span>::Type(0);
+			optimum = model.getKmerMax();
 		}
 		
 		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
 		{
-			return !(current < optimum);
+			
+			typename Kmer<span>::Type curr = current;
+			typename Kmer<span>::Type opt  = optimum;
+			
+			u_int64_t a = curr.getVal() ;
+			u_int64_t b = opt.getVal() ;
+			
+			
+			int mm = system::g_msize;
+			u_int64_t  mask_0101 = 0x5555555555555555 ;
+			u_int64_t  mmask_m1 =  (1 << ((mm-2)*2)) -1 ; // - (tai nt -1 )
+			
+			u_int64_t a1 = a >>2 ;
+			u_int64_t a2 = a >>4 ;
+			
+			
+			// test 3 consecutive identical nt
+			a1 = (~( a ^ a1)) &  (~ (a ^ a2)) ;
+			a1 =  ((a1 >>1) & a1) & mask_0101 & mmask_m1 ;
+			if(a1 != 0) return false;
+			
+
+			return (a<b);
+			
+			
+			
 		}
+		//read-only when passed as template, class, not object
 	};
 	
 	
-	struct CustomMinimizer
+	struct FreqMinimizer
 	{
 		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
 		{
-			//optimum = model.getKmerMax();//mettre le mmer de freq max ?
 			optimum = max_mmer;
 		}
 		
@@ -126,7 +154,7 @@ public:
 	typedef typename Kmer<span>::ModelCanonical             ModelCanonical;
 	typedef typename Kmer<span>::ModelDirect             ModelDirect;
 	//,CustomMinimizer
-	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical,CustomMinimizer> 	Model;
+	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical,CustomMinimizer> 	Model; //,FreqMinimizer
 	//typedef typename Kmer<span>::ModelCanonical             Model;
 
     typedef typename kmer::impl::Kmer<span>::Type           Type;
