@@ -115,7 +115,7 @@ void BankConverterAlgorithm::execute ()
 
 	freq_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) ); //cpt on smaller type would be enough
 	stat_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) );
-//	
+//
 //	Modelc model (g_msize);
 //    vector<Mmer> mmers;
 	

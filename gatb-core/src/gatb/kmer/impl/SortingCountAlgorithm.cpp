@@ -271,18 +271,18 @@ void SortingCountAlgorithm<span>::execute ()
 	//debug
 	
 	//printf("Histo superkmer sizes\n");
-	printf("NB superkmers per  bin\n");
-
-	for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
-		//for (int ii= 0; ii< 50; ii++)
-	{
-		typedef typename Kmer<31>::Type           Typem;
-		Typem cur = ii;
-		printf("%s : %lli\n",cur.toString(g_msize).c_str(),stat_mmer[ii]);
-	//	printf("Size %i :  %llu\n",ii,stat_mmer[ii]);
-
-	}
-	 
+//	printf("NB superkmers per  bin\n");
+//
+//	for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
+//		//for (int ii= 0; ii< 50; ii++)
+//	{
+//		typedef typename Kmer<31>::Type           Typem;
+//		Typem cur = ii;
+//		printf("%s : %lli\n",cur.toString(g_msize).c_str(),stat_mmer[ii]);
+//	//	printf("Size %i :  %llu\n",ii,stat_mmer[ii]);
+//
+//	}
+//	 
 	//
 	
     _progress->finish ();
@@ -340,6 +340,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
+	
     // optimism == 1 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, a k-mer will be seen 'optimism' times
     int optimism = 0; // guarantees always work, above 0 : assumes kmer seen (optimism+1) times (with optim 1  'OAHash: max rehashes..'  happened sometimes)
@@ -508,8 +509,6 @@ public:
 
 	//	printf("Sequence %s \n",sequence.getComment().c_str());
 		
-		int mm = system::g_msize;
-		u_int64_t maskm = (1<<(2*mm)) - 1;
 		
 		std::vector<Type>  superK;
 		u_int64_t prevmin = 1000000000 ;
@@ -518,7 +517,7 @@ public:
 		
 		Type temp;
 		
-		int maxs = (superK[0].getSize() - mm )/2 ;
+		int maxs = (superK[0].getSize() - _mm )/2 ;
 
 		
 		
@@ -633,8 +632,8 @@ public:
     }
 
 
-    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress, unsigned int * repart_table)
-	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _repart_table (repart_table),
+    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress, unsigned int * repart_table, int minim_size)
+	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _repart_table (repart_table),_mm(minim_size),
 #ifdef PROTO_COMP
       _partition (*partition,1<<12,max_memory, 0),
 #else
@@ -654,7 +653,7 @@ private:
     Data      binaryData;
     vector<Kmer> kmers;
 	unsigned int * _repart_table;
-
+	int _mm;
     /** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
 #ifdef PROTO_COMP
     PartitionCacheSorted<Type> _partition;
@@ -814,15 +813,14 @@ public:
 	{
 
 		
-		//printf("Sample Sequence %s \n",sequence.getComment().c_str());
+		//printf("Sample Sequence %s _binsize %p \n",sequence.getComment().c_str(),_binsize);
 		
-		int mm = system::g_msize;
 		
 		u_int64_t prevmin = 1000000000 ;
 		
 		int superk_size =0;
 		Type temp;
-		int maxs = (temp.getSize() - mm )/2 ;
+		int maxs = (temp.getSize() - _mm )/2 ;
 		
 		
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
@@ -830,8 +828,8 @@ public:
 		if(kmers.size()> 0)
 		{
 			//	prevmin  = hash1 (kmers[0].forward()); // todo remplacer par .minimizer().value()  .getVal() ?
-			prevmin  =  mhash (kmers[0].forward(),kmers[0].revcomp(),prevmin);
-			//temp = kmers[0].minimizer().value(); prevmin = temp.getVal() & maskm;
+			//prevmin  =  mhash (kmers[0].forward(),kmers[0].revcomp(),prevmin);
+			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
 			
 		}
 		
@@ -839,8 +837,9 @@ public:
         for (size_t i=0; i<kmers.size(); i++)
         {
 			u_int64_t h = prevmin;
-			h = mhash (kmers[i].forward(),kmers[i].revcomp(),h);
-
+			//h = mhash (kmers[i].forward(),kmers[i].revcomp(),h);
+			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
+			
 			if(h!= prevmin || superk_size >= maxs) //use kmers[i].hasChanged()
 			{
 				//_binsize[prevmin] ++; //record number of superkmers per bin
@@ -862,8 +861,8 @@ public:
     }
 	
 	
-	SampleRepart (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress,  int * binsize)
-	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _binsize ( binsize),
+	SampleRepart (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress,  int * binsize, int minim_size)
+	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _binsize ( binsize),_mm(minim_size),
 
 	_progress  (progress,System::thread().newSynchronizer())  { }
 	
@@ -882,7 +881,7 @@ private:
     vector<Kmer> kmers;
 
 	 int * _binsize;
-	
+	int _mm;
 	/** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
 
 	
@@ -905,12 +904,15 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
-	Model model (_kmerSize,g_msize);
+	Model model (_kmerSize,7 , CustomMinimizer(7));
+	
+	int mmsize = model.getMmersModel().getKmerSize();
+	
 	//Model model (_kmerSize);
 	g_ksize = model.getKmerSize();
 	//g_msize =  8;
 	
-	printf(" k / m  %i / %i \n",g_ksize,g_msize);
+	printf(" k / m  %i / %i  mmsize %i\n",g_ksize,g_msize,mmsize);
 	
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
@@ -937,27 +939,28 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     // R to E: typical question from a puzzled developer: what's this last argument of iterate() (15*1000)? so to answer this, I need to find the definition of iterate(), where is it? maybe to answer this, where does getDispatcher come from? any way we could search http://gatb-core.gforge.inria.fr/ to quickly find out?
 	
 	int nbpart =_partitions->size();
-	u_int64_t _nb_minims =   1 << (g_msize*2) ; // todo put here minim size form model
+	u_int64_t _nb_minims =   1 << (mmsize*2) ;
 	int * binsize = ( int *)  calloc(_nb_minims , sizeof(unsigned int));
 
 
 	TruncateIterator<Sequence> it_sample (*itSeq, 1000000); //sample with first million reads
 
 	//fill bin sizes here
-	printf("Sample superkmers per  bin\n");
+	printf("Sample superkmers per  bin  \n");
 
-    getDispatcher()->iterate (it_sample,  SampleRepart<span> (model, _nb_passes, pass,_partitions, _max_memory, _progress,binsize), 15*1000);
+    getDispatcher()->iterate (it_sample,  SampleRepart<span> (model, _nb_passes, pass,_partitions, _max_memory, _progress,binsize,mmsize), 15*1000);
 
 	//compute the repart table
+	printf("Compute bin merging \n");
+
 	
-	
-	Repartitor repartitor (binsize,_partitions->size(),g_msize);
+	Repartitor repartitor (binsize,_partitions->size(),mmsize);
 
 	repartitor.computeDistrib();
 
 	
 	//repartitor.getRepartTable()
-    getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _max_memory, _progress,repartitor.getRepartTable()), 15*1000);
+    getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _max_memory, _progress,repartitor.getRepartTable(),mmsize), 15*1000);
 	
 
 	

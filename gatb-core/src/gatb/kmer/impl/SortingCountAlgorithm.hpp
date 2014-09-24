@@ -80,21 +80,17 @@ public:
 		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
 		{
 			optimum = model.getKmerMax();
+
 		}
 		
 		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
 		{
-			
+		//	printf("mm %i \n",mm);
 			typename Kmer<span>::Type curr = current;
 			typename Kmer<span>::Type opt  = optimum;
 			
 			u_int64_t a = curr.getVal() ;
 			u_int64_t b = opt.getVal() ;
-			
-			
-			int mm = system::g_msize;
-			u_int64_t  mask_0101 = 0x5555555555555555 ;
-			u_int64_t  mmask_m1 =  (1 << ((mm-2)*2)) -1 ; // - (tai nt -1 )
 			
 			u_int64_t a1 = a >>2 ;
 			u_int64_t a2 = a >>4 ;
@@ -108,13 +104,34 @@ public:
 
 			return (a<b);
 			
-			
-			
 		}
-		//read-only when passed as template, class, not object
+		
+		int _mm;
+		u_int64_t  mmask_m1  ;
+		u_int64_t  mask_0101 ;
+		
+		CustomMinimizer()
+		{
+		}
+		
+		
+		CustomMinimizer(int minim_size)
+		{
+			_mm = minim_size;
+			
+			mmask_m1 = (1 << ((_mm-2)*2)) -1 ;
+			mask_0101 = 0x5555555555555555  ;
+		}
+		
+		
+		CustomMinimizer(const CustomMinimizer& cm)
+		{
+			_mm = cm._mm;
+		}
+			
 	};
 	
-	
+	/*
 	struct FreqMinimizer
 	{
 		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
@@ -146,7 +163,7 @@ public:
 			//return current < optimum;
 		}
 	};
-	
+	*/
 	
 	
     /** Shortcuts. */
