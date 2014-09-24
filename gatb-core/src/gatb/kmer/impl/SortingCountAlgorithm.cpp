@@ -282,7 +282,7 @@ void SortingCountAlgorithm<span>::execute ()
 //	//	printf("Size %i :  %llu\n",ii,stat_mmer[ii]);
 //
 //	}
-//	 
+	 
 	//
 	
     _progress->finish ();
@@ -472,9 +472,9 @@ public:
 			int maxs = (compactedK.getSize() - 8 ) ;
 			
 			Type mm (minimk);
-		//	printf("new minim %s      \n",mm.toString(system::g_msize).c_str());
+			//printf("new minim %s      \n",mm.toString(system::g_msize).c_str());
 
-		//	printf("K0 %s      \n",superK[0].toString(31).c_str());
+			//printf("K0 %s      \n",superK[0].toString(31).c_str());
 
 			
 			for (int ii = 1 ; ii <superK.size(); ii++) {
@@ -526,42 +526,7 @@ public:
 
 		
 		
-		
-		
-		/*
-		// We iterate the kmers (and minimizers) of the current sequence.
-		model.iterate (sequence.getData(), [&] (const Kmer& kmer, size_t idx)
-					   {
-						   // We could display some information about the kmer and its minimizer
-						 //  printf("iter %zu \n",idx);
 
-						   u_int64_t h = prevmin;
-						   h = mhash (kmer.forward(),kmer.revcomp(),h);
-						   //temp = kmer.minimizer().value(); h = temp.getVal() & maskm;
- 
-						//   if( (kmer.hasChanged()  && idx!=0)  || superK.size() >= maxs) //use kmers[i].hasChanged() kmer.hasChanged()  h!= prevmin
-						if( (h!= prevmin  && idx!=0)  || superK.size() >= maxs) //use kmers[i].hasChanged() kmer.hasChanged()
-
-						   {
-							   nb_superk ++;
-							   compact_and_insert_superkmer(superK, prevmin);
-							   
-							   superK.clear();superK.push_back(kmer.forward());
-						   }
-						   else
-						   {
-							   superK.push_back(kmer.forward());
-						   }
-		
-						   prevmin =  h;
-						   
-						   
-					   });
-		
-		compact_and_insert_superkmer(superK, prevmin);
-*/
-		
-		
 
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
 
@@ -666,131 +631,7 @@ private:
 
 	
 	
-//giv it the binsize estimation
-//method distribute will compute even distrib of bins across n partitions, result in repart table
-class Repartitor
-{
-public:
-	
-	typedef std::pair<int,int> ipair;
-	
-	struct mycomp {
-		bool operator() (ipair l,ipair r) { return l.first > r.first; }
-	} pair_comp;
 
-	
-	
-	void computeDistrib ()
-	{
-		u_int64_t _nb_minims =   1 << (_mm*2) ; // todo put here minim size form model
-		_repart_table = (unsigned int *)  calloc(_nb_minims , sizeof(unsigned int));
-		
-		_space_left = ( int *)  calloc(_nbpart, sizeof(unsigned int));
-		
-		std::vector<ipair> bin_size_vec;
-		
-		
-		
-		u_int64_t sumsizes =0;
-		for (int ii=0; ii< _nb_minims; ii++) {
-			sumsizes += _binsize[ii];
-			bin_size_vec.push_back(ipair(_binsize[ii],ii));
-		}
-		u_int64_t mean_size =  sumsizes /  _nbpart;
-		//printf("mean size per parti :  %lli  (total %lli )\n",mean_size,sumsizes);
-		
-		//init space left
-		for (int jj = 0; jj < _nbpart; jj++) {
-			_space_left[jj] = mean_size;
-		}
-		
-		//sort minim bins per size
-		std::sort (bin_size_vec.begin (), bin_size_vec.end (),pair_comp);
-		
-		//debug
-//		printf("100 largest bin sizes \n");
-//		for(int ii=0; ii<100; ii++ ) //_nb_minims 100  print largest bins
-//		{
-//			printf("binsize [%i] = %i \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
-//		}
-		
-		
-		int cur_minim = 0;
-		//loop 2 times over partitions
-		for (int nbfill=0; nbfill<2 && (cur_minim < _nb_minims); nbfill++) {
-			
-			//loop over parts, fill them with bins until each part is full
-			for (int jj = 0; jj < _nbpart; jj++) {
-				while(
-					  (( _space_left[jj] - bin_size_vec[cur_minim].first  )>0   ||  _space_left[jj] == mean_size) // if part empty, allow depassement
-					  &&  (cur_minim < _nb_minims))
-				{
-					//affect bin cur_minim to partition jj
-					_repart_table[bin_size_vec[cur_minim].second] = jj;
-					_space_left[jj] -= bin_size_vec[cur_minim].first;
-					cur_minim++;
-					
-					//printf("affected minim %i to part %i  space left %i  (msize %i) \n",bin_size_vec[cur_minim-1].second,jj,_space_left[jj],bin_size_vec[cur_minim-1].first);
-
-				}
-			}
-			
-		}
-	
-		//debug info
-//		for(int ii=0; ii<_nbpart; ii++ )
-//		{
-//			printf("space left [%i] = %i \n",ii,_space_left[ii]);
-//		}
-		
-		
-		//affect remainder randomly
-		//printf("will affect %i smallest  bins randomly \n",cur_minim);
-		if(cur_minim < _nb_minims)
-		{
-			for(int ii=cur_minim; ii<_nb_minims; ii++ )
-			{
-				_repart_table[bin_size_vec[ii].second] = simplehash16 (NativeInt64(ii),0)  % _nbpart;
-			}
-		}
-		
-		
-		//debug info
-//		printf("repart  table \n");
-//		for(int ii=0; ii<_nb_minims; ii++ )
-//		{
-//			printf("repart table [%i] = %i \n",ii,_repart_table[ii]);
-//		}
-		
-		
-		free(_space_left);
-		
-	}
-	
-	unsigned int * getRepartTable()
-	{
-		if(_repart_table==NULL)
-			this->computeDistrib();
-		
-		return _repart_table;
-	}
-	
-	Repartitor(int *  binsize, int nbpart, int minimsize) : _binsize(binsize), _nbpart(nbpart), _mm(minimsize)
-	{
-		_repart_table = NULL;
-	}
-	
-private:
-	
-
-	
-	unsigned int * _repart_table ;
-	int * _space_left ;
-	int * _binsize ;
-	int _nbpart;
-	int _mm;
-};
-	
 /********************************************************************************/
 	
 template<size_t span>
@@ -822,14 +663,11 @@ public:
 		Type temp;
 		int maxs = (temp.getSize() - _mm )/2 ;
 		
-		
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
 		
 		if(kmers.size()> 0)
 		{
-			//	prevmin  = hash1 (kmers[0].forward()); // todo remplacer par .minimizer().value()  .getVal() ?
-			//prevmin  =  mhash (kmers[0].forward(),kmers[0].revcomp(),prevmin);
-			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
+			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;// & maskm;
 			
 		}
 		
@@ -837,9 +675,8 @@ public:
         for (size_t i=0; i<kmers.size(); i++)
         {
 			u_int64_t h = prevmin;
-			//h = mhash (kmers[i].forward(),kmers[i].revcomp(),h);
-			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
-			
+			temp = kmers[i].minimizer().value(); h = temp.getVal();
+
 			if(h!= prevmin || superk_size >= maxs) //use kmers[i].hasChanged()
 			{
 				//_binsize[prevmin] ++; //record number of superkmers per bin
@@ -862,15 +699,15 @@ public:
 	
 	
 	SampleRepart (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress,  int * binsize, int minim_size)
-	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _binsize ( binsize),_mm(minim_size),
+	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _binsize ( binsize),_mm(minim_size)//,
 
-	_progress  (progress,System::thread().newSynchronizer())  { }
+	//_progress  (progress,System::thread().newSynchronizer())
+	{ }
 	
 private:
 	
 	/** Local resources. */
 	Model&    model;
-	ModelCanonical model_minimizer ;
 	size_t    pass;
 	size_t    nbPass;
 	size_t    nbPartitions;
@@ -882,11 +719,137 @@ private:
 
 	 int * _binsize;
 	int _mm;
-	/** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
 
-	
-	ProgressSynchro _progress;
 };
+	
+	
+	
+	//giv it the binsize estimation
+	//method distribute will compute even distrib of bins across n partitions, result in repart table
+class Repartitor
+{
+public:
+	
+	typedef std::pair<int,int> ipair;
+	
+	struct mycomp {
+		bool operator() (ipair l,ipair r) { return l.first > r.first; }
+	} pair_comp;
+	
+	
+	
+	void computeDistrib ()
+	{
+		u_int64_t _nb_minims =   1 << (_mm*2) ; // todo put here minim size form model
+		_repart_table = (unsigned int *)  calloc(_nb_minims , sizeof(unsigned int));
+		
+		_space_left = ( int *)  calloc(_nbpart, sizeof(unsigned int));
+		
+		std::vector<ipair> bin_size_vec;
+		
+		
+		
+		u_int64_t sumsizes =0;
+		for (int ii=0; ii< _nb_minims; ii++) {
+			sumsizes += _binsize[ii];
+			bin_size_vec.push_back(ipair(_binsize[ii],ii));
+		}
+		u_int64_t mean_size =  sumsizes /  _nbpart;
+		//printf("mean size per parti :  %lli  (total %lli )\n",mean_size,sumsizes);
+		
+		//init space left
+		for (int jj = 0; jj < _nbpart; jj++) {
+			_space_left[jj] = mean_size;
+		}
+		
+		//sort minim bins per size
+		std::sort (bin_size_vec.begin (), bin_size_vec.end (),pair_comp);
+		
+		//debug
+//				printf("100 largest bin sizes \n");
+//				for(int ii=0; ii<100; ii++ ) //_nb_minims 100  print largest bins
+//				{
+//					printf("binsize [%i] = %i \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
+//				}
+		
+		
+		int cur_minim = 0;
+		//loop 2 times over partitions
+		for (int nbfill=0; nbfill<2 && (cur_minim < _nb_minims); nbfill++) {
+			
+			//loop over parts, fill them with bins until each part is full
+			for (int jj = 0; jj < _nbpart; jj++) {
+				while(
+					  (( _space_left[jj] - bin_size_vec[cur_minim].first  )>0   ||  _space_left[jj] == mean_size) // if part empty, allow depassement
+					  &&  (cur_minim < _nb_minims))
+				{
+					//affect bin cur_minim to partition jj
+					_repart_table[bin_size_vec[cur_minim].second] = jj;
+					_space_left[jj] -= bin_size_vec[cur_minim].first;
+					cur_minim++;
+					
+					//printf("affected minim %i to part %i  space left %i  (msize %i) \n",bin_size_vec[cur_minim-1].second,jj,_space_left[jj],bin_size_vec[cur_minim-1].first);
+					
+				}
+			}
+			
+		}
+		
+		//debug info
+		//		for(int ii=0; ii<_nbpart; ii++ )
+		//		{
+		//			printf("space left [%i] = %i \n",ii,_space_left[ii]);
+		//		}
+		
+		
+		//affect remainder randomly
+		//printf("will affect %i smallest  bins randomly \n",cur_minim);
+		if(cur_minim < _nb_minims)
+		{
+			for(int ii=cur_minim; ii<_nb_minims; ii++ )
+			{
+				_repart_table[bin_size_vec[ii].second] = simplehash16 (NativeInt64(ii),0)  % _nbpart;
+			}
+		}
+		
+		
+		//debug info
+		//		printf("repart  table \n");
+		//		for(int ii=0; ii<_nb_minims; ii++ )
+		//		{
+		//			printf("repart table [%i] = %i \n",ii,_repart_table[ii]);
+		//		}
+		
+		
+		free(_space_left);
+		
+	}
+	
+	unsigned int * getRepartTable()
+	{
+		if(_repart_table==NULL)
+			this->computeDistrib();
+		
+		return _repart_table;
+	}
+	
+	Repartitor(int *  binsize, int nbpart, int minimsize) : _binsize(binsize), _nbpart(nbpart), _mm(minimsize)
+	{
+		_repart_table = NULL;
+	}
+	
+private:
+	
+	
+	
+	unsigned int * _repart_table ;
+	int * _space_left ;
+	int * _binsize ;
+	int _nbpart;
+	int _mm;
+};
+	
+	
 	
 /*********************************************************************
 ** METHOD  :
@@ -905,6 +868,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     /** We create a kmer model. */
 	Model model (_kmerSize,7 , CustomMinimizer(7));
+	//Model model (_kmerSize,7 );
 	
 	int mmsize = model.getMmersModel().getKmerSize();
 	

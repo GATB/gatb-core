@@ -187,7 +187,7 @@ public:
 		
 
  //todo faire e nsorte que pas trop couteux
-		/*
+		
 		int mm = system::g_msize;
 //		u_int64_t  bmax =  1 << (mm*2);
 //		u_int64_t  mask_aaa = 63 <<  ((mm-3)*2);
@@ -223,7 +223,7 @@ public:
 		
 		if(a1 != 0) return false;
 	
-		*/
+		
 		//pour minim standard :
 		//if(a < 255)  return false;  //255 :  AA..AA puis 4 nt
 		return (a<b);
@@ -233,7 +233,8 @@ public:
 	/********************************************************************************/
     inline static u_int64_t mhash64 (u_int64_t forw,u_int64_t rev,   u_int64_t prevmin)
     {
-		/*
+		
+		printf("call to mhash \n");
 		u_int64_t res ;
 		int ks = system::g_ksize;
 		int mm = system::g_msize;
@@ -292,8 +293,8 @@ public:
 		}
 		
 		return res;
-*/
-		return prevmin;
+
+	//	return prevmin;
     }
 	
     /********************************************************************************/

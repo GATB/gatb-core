@@ -85,10 +85,10 @@ public:
 		
 		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
 		{
-		//	printf("mm %i \n",mm);
 			typename Kmer<span>::Type curr = current;
 			typename Kmer<span>::Type opt  = optimum;
 			
+
 			u_int64_t a = curr.getVal() ;
 			u_int64_t b = opt.getVal() ;
 			
@@ -98,7 +98,8 @@ public:
 			
 			// test 3 consecutive identical nt
 			a1 = (~( a ^ a1)) &  (~ (a ^ a2)) ;
-			a1 =  ((a1 >>1) & a1) & mask_0101 & mmask_m1 ;
+			a1 =  ((a1 >>1) & a1) & _mask_0101 & _mmask_m1 ;
+			
 			if(a1 != 0) return false;
 			
 
@@ -107,8 +108,9 @@ public:
 		}
 		
 		int _mm;
-		u_int64_t  mmask_m1  ;
-		u_int64_t  mask_0101 ;
+		u_int64_t  _mmask_m1  ;
+		u_int64_t  _mask_0101 ;
+		
 		
 		CustomMinimizer()
 		{
@@ -119,59 +121,28 @@ public:
 		{
 			_mm = minim_size;
 			
-			mmask_m1 = (1 << ((_mm-2)*2)) -1 ;
-			mask_0101 = 0x5555555555555555  ;
+			_mmask_m1 = (1 << ((_mm-2)*2)) -1 ;
+			_mask_0101 = 0x5555555555555555  ;
 		}
 		
 		
 		CustomMinimizer(const CustomMinimizer& cm)
 		{
 			_mm = cm._mm;
-		}
-			
-	};
-	
-	/*
-	struct FreqMinimizer
-	{
-		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
-		{
-			optimum = max_mmer;
+			_mmask_m1 = cm._mmask_m1;
+			_mask_0101 = cm._mask_0101;
 		}
 		
-		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
-		{
-			
-			typename Kmer<span>::Type curr = current;
-			typename Kmer<span>::Type opt  = optimum;
-			
-			bool res = false;
-			
-			int mm = system::g_msize;
-			u_int64_t * freqm = system::freq_mmer;
-			
-			//2 revcomp, couteux
-			//u_int64_t ca = std::min ( NativeInt64::revcomp8(a,mm), a); // revcomp8 version optim revcomp 8nt max
-			//u_int64_t cb = std::min ( NativeInt64::revcomp8(b,mm), b);
-			
-			if (freqm[curr.getVal()] < freqm[opt.getVal()]   ||
-				( (freqm[curr.getVal()] == freqm[opt.getVal()]) && (current < optimum) )
-				)
-				res = true;
-			
-			return res;
-			//return current < optimum;
-		}
 	};
-	*/
 	
+
 	
     /** Shortcuts. */
 		
 	typedef typename Kmer<span>::ModelCanonical             ModelCanonical;
 	typedef typename Kmer<span>::ModelDirect             ModelDirect;
 	//,CustomMinimizer
-	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical,CustomMinimizer> 	Model; //,FreqMinimizer
+	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical,CustomMinimizer> 	Model; //
 	//typedef typename Kmer<span>::ModelCanonical             Model;
 
     typedef typename kmer::impl::Kmer<span>::Type           Type;
