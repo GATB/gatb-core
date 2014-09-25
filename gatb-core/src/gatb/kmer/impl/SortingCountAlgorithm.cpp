@@ -271,17 +271,17 @@ void SortingCountAlgorithm<span>::execute ()
 	//debug
 	
 	//printf("Histo superkmer sizes\n");
-//	printf("NB superkmers per  bin\n");
-//
-//	for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
-//		//for (int ii= 0; ii< 50; ii++)
-//	{
-//		typedef typename Kmer<31>::Type           Typem;
-//		Typem cur = ii;
-//		printf("%s : %lli\n",cur.toString(g_msize).c_str(),stat_mmer[ii]);
-//	//	printf("Size %i :  %llu\n",ii,stat_mmer[ii]);
-//
-//	}
+	printf("NB superkmers per  bin\n");
+
+	for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
+		//for (int ii= 0; ii< 50; ii++)
+	{
+		typedef typename Kmer<31>::Type           Typem;
+		Typem cur = ii;
+		printf("%s : %lli\n",cur.toString(g_msize).c_str(),stat_mmer[ii]);
+	//	printf("Size %i :  %llu\n",ii,stat_mmer[ii]);
+
+	}
 	 
 	//
 	

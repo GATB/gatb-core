@@ -92,16 +92,31 @@ public:
 			u_int64_t a = curr.getVal() ;
 			u_int64_t b = opt.getVal() ;
 			
-			u_int64_t a1 = a >>2 ;
-			u_int64_t a2 = a >>4 ;
 			
+			// test 3 consecutive identical nt  ~12 instr
+
 			
-			// test 3 consecutive identical nt
-			a1 = (~( a ^ a1)) &  (~ (a ^ a2)) ;
-			a1 =  ((a1 >>1) & a1) & _mask_0101 & _mmask_m1 ;
+//			u_int64_t a1 = a >>2 ;
+//			u_int64_t a2 = a >>4 ;
+//			
+//			a1 = (~( a ^ a1)) &  (~ (a ^ a2)) ;
+//			a1 =  ((a1 >>1) & a1) & _mask_0101 & _mmask_m1 ;
+//			
+//			if(a1 != 0) return false;
+//			
+			//test 2 consecutive aa anywhere except beginning
+			
+
+			//u_int64_t a1 =  ( ~a )  & (  ~a >>2 );
+			
+			// en 7 instruc, test si AA consecutif sauf au debut
+			u_int64_t a1 =   ~(( a )   | (  a >>2 ));
+			a1 =((a1 >>1) & a1) & _mask_ma1 ;
+			
+
+			
 			
 			if(a1 != 0) return false;
-			
 
 			return (a<b);
 			
@@ -110,6 +125,7 @@ public:
 		int _mm;
 		u_int64_t  _mmask_m1  ;
 		u_int64_t  _mask_0101 ;
+		u_int64_t  _mask_ma1 ;
 		
 		
 		CustomMinimizer()
@@ -121,16 +137,19 @@ public:
 		{
 			_mm = minim_size;
 			
-			_mmask_m1 = (1 << ((_mm-2)*2)) -1 ;
+			_mmask_m1  = (1 << ((_mm-2)*2)) -1 ;
 			_mask_0101 = 0x5555555555555555  ;
+			_mask_ma1  = _mask_0101 & _mmask_m1;
 		}
 		
 		
 		CustomMinimizer(const CustomMinimizer& cm)
 		{
 			_mm = cm._mm;
-			_mmask_m1 = cm._mmask_m1;
+			_mmask_m1  = cm._mmask_m1;
 			_mask_0101 = cm._mask_0101;
+			_mask_ma1  = cm._mask_ma1;
+
 		}
 		
 	};
