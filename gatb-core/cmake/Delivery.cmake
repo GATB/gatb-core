@@ -14,9 +14,14 @@ GetCurrentDateShort (CPACK_DATE)
 # We set the name of the versions file.
 SET (CPACK_VERSIONS_FILENAME  "versions.txt")
 
+# We may have to set (if not defined) the CPACK_GFORGE_PROJECT_NAME
+IF (NOT CPACK_GFORGE_PROJECT_NAME)
+    SET (CPACK_GFORGE_PROJECT_NAME  ${PROJECT_NAME})
+ENDIF (NOT CPACK_GFORGE_PROJECT_NAME)
+
 # We set the server URI
 SET (CPACK_SERVER_ADDRESS   "${CPACK_USER_NAME}@scm.gforge.inria.fr")
-SET (CPACK_SERVER_DIR       "/home/groups/${PROJECT_NAME}/htdocs/versions/")
+SET (CPACK_SERVER_DIR       "/home/groups/${CPACK_GFORGE_PROJECT_NAME}/htdocs/versions/")
 SET (CPACK_SERVER_DIR_BIN   "${CPACK_SERVER_DIR}/bin/")
 SET (CPACK_SERVER_DIR_SRC   "${CPACK_SERVER_DIR}/src/")
 SET (CPACK_SERVER_VERSIONS  "${CPACK_SERVER_DIR}/${CPACK_VERSIONS_FILENAME}")
@@ -31,8 +36,8 @@ SET (CPACK_UPLOAD_URI_SRC  "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_SRC}")
 SET (CPACK_UPLOAD_VERSIONS "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_VERSIONS}")
 
 # We set the text holding all the information about the delivery.
-SET (CPACK_INFO_BIN ${CMAKE_PROJECT_NAME} bin ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} ${CPACK_SYSTEM_NAME} ${CPACK_USER_NAME} ${CPACK_URI_BIN})
-SET (CPACK_INFO_SRC ${CMAKE_PROJECT_NAME} src ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} all ${CPACK_USER_NAME} ${CPACK_URI_SRC})
+SET (CPACK_INFO_BIN ${CMAKE_PROJECT_NAME} bin ${CPACK_GFORGE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} ${CPACK_SYSTEM_NAME} ${CPACK_USER_NAME} ${CPACK_URI_BIN})
+SET (CPACK_INFO_SRC ${CMAKE_PROJECT_NAME} src ${CPACK_GFORGE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} all ${CPACK_USER_NAME} ${CPACK_URI_SRC})
 
 
 ################################################################################
@@ -45,7 +50,7 @@ add_custom_target (delivery
     DEPENDS delivery_bin  delivery_src 
     
     COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo "DELIVERY FOR ${PROJECT_NAME}, VERSION ${CPACK_PACKAGE_VERSION}"
+    COMMAND echo "DELIVERY FOR ${CPACK_GFORGE_PROJECT_NAME}, VERSION ${CPACK_PACKAGE_VERSION}"
     COMMAND echo "-----------------------------------------------------------"
 
     # We dump the known versions
@@ -60,7 +65,7 @@ add_custom_target (delivery
 add_custom_target (delivery_bin 
 
     # We get the versions.txt file from the server
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "BIN" ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_BIN}\"  ${CPACK_URI_BIN}   ${CPACK_UPLOAD_URI_BIN}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "BIN" ${CPACK_GFORGE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_BIN}\"  ${CPACK_URI_BIN}   ${CPACK_UPLOAD_URI_BIN}
 )
 
 ################################################################################
@@ -71,7 +76,7 @@ add_custom_target (delivery_bin
 add_custom_target (delivery_src 
 
     # We get the versions.txt file from the server
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "SRC" ${PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_SRC}\"  ${CPACK_URI_SRC}   ${CPACK_UPLOAD_URI_SRC}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "SRC" ${CPACK_GFORGE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_SRC}\"  ${CPACK_URI_SRC}   ${CPACK_UPLOAD_URI_SRC}
 )
 
 ################################################################################
@@ -103,7 +108,7 @@ add_custom_target (delivery_dump
     # We dump the versions file.
     COMMAND echo ""
     COMMAND echo "-------------------------------------------------------------------------------------------------"
-    COMMAND echo "LIST OF DELIVERIES FOR " ${CMAKE_PROJECT_NAME}
+    COMMAND echo "LIST OF DELIVERIES FOR " ${CPACK_GFORGE_PROJECT_NAME}
     COMMAND echo "-------------------------------------------------------------------------------------------------"
     COMMAND cat ${CPACK_VERSIONS_FILENAME}
     COMMAND echo "-------------------------------------------------------------------------------------------------"

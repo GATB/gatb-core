@@ -25,8 +25,18 @@ _gatb_core_dir="$_scripts_dir/../.."
 # We create the project directory
 mkdir $_project_dir
 
-# We create the project source directory
-mkdir $_project_dir/src
+# We create the tools directory and two sub directory for two different tools
+mkdir $_project_dir/tools
+mkdir $_project_dir/tools/$1_1
+mkdir $_project_dir/tools/$1_2
+
+# We create the source directory for two tools
+mkdir $_project_dir/tools/$1_1/src
+mkdir $_project_dir/tools/$1_2/src
+
+# We create the script directory and copy the delivery script
+mkdir $_project_dir/scripts
+cp  $_gatb_core_dir/scripts/delivery.sh  $_project_dir/scripts/
 
 # If no $3 argument is provided, we copy GATB-CORE as thirdparty.
 # => in GATB-TOOLS context, we can provide a $3 argument and so
@@ -44,45 +54,22 @@ then
     cp -r $_gatb_core_dir/doc               $_project_dir/thirdparty/gatb-core/
     cp -r $_gatb_core_dir/CMakeLists.txt    $_project_dir/thirdparty/gatb-core/
 fi
-    
-# We init the CMakeLists.txt
-touch $_project_dir/CMakeLists.txt
 
-# Note: we do it this way because it is cumbersome to do it with sed because of special characters in _gatb_core_dir
+# We copy the top level CMakeLists.txt
+cat $_scripts_dir/CMakeLists.txt | sed s/XXX/$1/g  > $_project_dir/CMakeLists.txt
 
-echo "project($1)"                                                                                  >> $_project_dir/CMakeLists.txt
-echo ""                                                                                             >> $_project_dir/CMakeLists.txt
-echo "cmake_minimum_required(VERSION 2.6)"                                                          >> $_project_dir/CMakeLists.txt
-echo ""                                                                                             >> $_project_dir/CMakeLists.txt
-echo "################################################################################"             >> $_project_dir/CMakeLists.txt
-echo "# Define cmake modules directory"                                                             >> $_project_dir/CMakeLists.txt
-echo "################################################################################"             >> $_project_dir/CMakeLists.txt
-echo "FOREACH (path \"cmake\" \"../cmake\"  \"thirdparty/gatb-core/cmake\"  \"../../thirdparty/gatb-core/gatb-core/cmake\")"  >> $_project_dir/CMakeLists.txt
-echo "IF (EXISTS \"\${CMAKE_CURRENT_SOURCE_DIR}/${path}\")"                                         >> $_project_dir/CMakeLists.txt
-echo "SET (CMAKE_MODULE_PATH  \"\${CMAKE_MODULE_PATH}\" \"\${CMAKE_CURRENT_SOURCE_DIR}/\${path}\")" >> $_project_dir/CMakeLists.txt
-echo "ENDIF()"                                                                                      >> $_project_dir/CMakeLists.txt
-echo "ENDFOREACH(path)"                                                                             >> $_project_dir/CMakeLists.txt
-echo ""                                                                                             >> $_project_dir/CMakeLists.txt
-echo "################################################################################"             >> $_project_dir/CMakeLists.txt
-echo "# THIRD PARTIES"                                                                              >> $_project_dir/CMakeLists.txt
-echo "################################################################################"             >> $_project_dir/CMakeLists.txt
-echo ""                                                                                             >> $_project_dir/CMakeLists.txt
-echo "# We don't want to install some GATB-CORE artifacts"                                          >> $_project_dir/CMakeLists.txt
-echo "#SET (GATB_CORE_EXCLUDE_TOOLS     1)"                                                         >> $_project_dir/CMakeLists.txt
-echo "#SET (GATB_CORE_EXCLUDE_TESTS     1)"                                                         >> $_project_dir/CMakeLists.txt
-echo "#SET (GATB_CORE_EXCLUDE_EXAMPLES  1)"                                                         >> $_project_dir/CMakeLists.txt
-echo ""                                                                                             >> $_project_dir/CMakeLists.txt
-echo "# GATB CORE"                                                                                  >> $_project_dir/CMakeLists.txt
-echo "include (GatbCore)"                                                                           >> $_project_dir/CMakeLists.txt
-echo ""                                                                                             >> $_project_dir/CMakeLists.txt
-
-# We copy the remaining of the file
-cat $_scripts_dir/CMakeLists.txt | sed 's/__PROJECT_NAME__/'$1'/g' >> $_project_dir/CMakeLists.txt
+# We copy the 'tools' CMakeLists.txt
+cat $_scripts_dir/CMakeLists_tools.txt | sed s/XXX/$1/g  > $_project_dir/tools/CMakeLists.txt
 
 # We copy the default main.cpp file
-cat $_scripts_dir/main.cpp | sed s/XXX/$1/g  > $_project_dir/src/main.cpp
-cat $_scripts_dir/XXX.hpp  | sed s/XXX/$1/g  > $_project_dir/src/$1.hpp
-cat $_scripts_dir/XXX.cpp  | sed s/XXX/$1/g  > $_project_dir/src/$1.cpp
+cat $_scripts_dir/main.cpp | sed s/XXX/$1_1/g  > $_project_dir/tools/$1_1/src/main.cpp
+cat $_scripts_dir/XXX.hpp  | sed s/XXX/$1_1/g  > $_project_dir/tools/$1_1/src/$1_1.hpp
+cat $_scripts_dir/XXX.cpp  | sed s/XXX/$1_1/g  > $_project_dir/tools/$1_1/src/$1_1.cpp
+
+cat $_scripts_dir/main.cpp | sed s/XXX/$1_2/g  > $_project_dir/tools/$1_2/src/main.cpp
+cat $_scripts_dir/XXX.hpp  | sed s/XXX/$1_2/g  > $_project_dir/tools/$1_2/src/$1_2.hpp
+cat $_scripts_dir/XXX.cpp  | sed s/XXX/$1_2/g  > $_project_dir/tools/$1_2/src/$1_2.cpp
+
 
 # We copy the default README
 cp $_scripts_dir/README.md $_project_dir/README.md
