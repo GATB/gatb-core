@@ -3,9 +3,14 @@ project(XXX)
 cmake_minimum_required(VERSION 2.6)
 
 ################################################################################
+# Shortcuts
+################################################################################
+SET (GATB_CORE_HOME  ${PROJECT_SOURCE_DIR}/thirdparty/gatb-core)
+
+################################################################################
 # Define cmake modules directory
 ################################################################################
-SET (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/thirdparty/gatb-core/cmake)
+SET (CMAKE_MODULE_PATH ${GATB_CORE_HOME}/cmake)
 
 ################################################################################
 # THIRD PARTIES
@@ -42,5 +47,14 @@ SET (CPACK_GFORGE_PROJECT_NAME          "gatb-tools")
 # We set the kind of archive
 SET (CPACK_GENERATOR                    "TGZ")
 SET (CPACK_SOURCE_GENERATOR             "TGZ")
+
+# We ignore unwated files for the source archive
+SET (CPACK_SOURCE_IGNORE_FILES          
+    "^${PROJECT_SOURCE_DIR}/build/"  
+    "^${GATB_CORE_HOME}/.project"
+    "^${GATB_CORE_HOME}/.gitignore"
+    "^${GATB_CORE_HOME}/doc/design"
+    "^${GATB_CORE_HOME}/DELIVERY.md"
+)
 
 include (Delivery)

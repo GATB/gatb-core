@@ -6,7 +6,9 @@
 include (CPack)
 
 # We get the user name
-SET (CPACK_USER_NAME  $ENV{USER})
+IF (NOT CPACK_USER_NAME)
+    SET (CPACK_USER_NAME  $ENV{USER})
+ENDIF (NOT CPACK_USER_NAME)
 
 # We get the date
 GetCurrentDateShort (CPACK_DATE) 
