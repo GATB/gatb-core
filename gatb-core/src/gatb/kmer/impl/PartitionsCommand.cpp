@@ -38,7 +38,13 @@ PartitionsCommand<span>:: PartitionsCommand (
         ISynchronizer* synchro,
         u_int64_t&     totalKmerNbRef,
         size_t         abundance,
-        IteratorListener* progress
+        IteratorListener* progress,
+		PartiInfo * pInfo,
+		int parti,
+		size_t      nbCores,
+		size_t      kmerSize
+
+
     )
         : _abundance(abundance),
           _solidKmers(solidKmers, 10*1000, synchro),
@@ -46,7 +52,11 @@ PartitionsCommand<span>:: PartitionsCommand (
           _histogram(histogram),
           _progress(progress, synchro),
           _totalKmerNb(0),
-          _totalKmerNbRef(totalKmerNbRef) {};
+          _totalKmerNbRef(totalKmerNbRef),
+		  _pInfo(pInfo),
+		  _parti_num(parti),
+		  _nbCores(nbCores),
+	      _kmerSize(kmerSize) {};
 
 template<size_t span>
 PartitionsCommand<span>::~PartitionsCommand()  {
@@ -78,9 +88,16 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
         u_int64_t&      totalKmerNbRef,
         size_t          abundance,
         IteratorListener* progress,
-        u_int64_t       hashMemory
+        u_int64_t       hashMemory,
+		PartiInfo * pInfo,
+		int parti,
+		size_t      nbCores,
+		size_t      kmerSize
+														
+
+														 
     )
-        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress), _hashMemory(hashMemory)  {};
+        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize), _hashMemory(hashMemory)  {};
 
 template<size_t span>
 void PartitionsByHashCommand<span>:: execute ()
@@ -108,7 +125,7 @@ void PartitionsByHashCommand<span>:: execute ()
 		//superk
 		u_int8_t		nbK, rem ;
 		uint64_t compactedK;
-		int ks = system::g_ksize;
+		int ks = this->_kmerSize;
 		Type un = 1;
 		Type kmerMask = (un << (ks*2)) - un;
 		size_t shift = 2*(ks-1);
@@ -172,14 +189,23 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
         ISynchronizer*  synchro,
         u_int64_t&      totalKmerNbRef,
         size_t          abundance,
-        IteratorListener* progress
+        IteratorListener* progress,
+		PartiInfo * pInfo,
+		int parti,
+		size_t      nbCores,
+		size_t      kmerSize
     )
-        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress)
+        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize)
           {};
 
 template<size_t span>
 void PartitionsByVectorCommand<span>:: execute ()
     {
+		
+//		 TimeInfo t;
+//		t.start ("lecture");
+		
+		//printf("fillsolid parti num %i \n",this->_parti_num);
         /** We get the length of the current partition file. */
         size_t partitionLen = this->_partition.getNbItems();
 
@@ -188,8 +214,30 @@ void PartitionsByVectorCommand<span>:: execute ()
 
         /** We resize our vector that will be filled with the partition file content.
          * NOTE: we add an extra item and we will set it to the maximum kmer value. */
-        //kmers.resize (1 + partitionLen);
-		kmers.reserve(4*partitionLen);
+        //kmers.resize (1 + this->_pInfo->getNbKmer(this->_parti_num)); //ou reserve puis push back ?  le resize va appeler construc  de type pour rien ?
+		// kmers.reserve (1 + this->_pInfo->getNbKmer(this->_parti_num));
+		//kmers.reserve(4*partitionLen);
+		
+
+		radix_kmers.resize(256);
+		for(int ii=0;ii< 256; ii++)
+		{
+			//printf("get %i %i \n", this->_parti_num,ii);
+			radix_kmers[ii].reserve(1 + this->_pInfo->getNbKmer(this->_parti_num,ii));
+		}
+		
+		Type mask_radix ((int64_t) 255);
+		mask_radix =  mask_radix << ((this->_kmerSize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
+		Type radix ;
+
+		
+		//repartir les kmers ds les differents bins, faire tri de chaque ,
+		//puis lecture de chaque separement possible aussi
+		//puis version parall
+		// puis version kx mer
+		//puis gestion depass ram : multi pass  (mais comment estim ram max )? et cest fini
+		
+		
 		//hmm do not know exactly how much will be needed, hence max mem can be  in worst case 2 times greater than necessary
 		//todo save somewhere nb of elems per parti, to be able to resize accordingly  (then  kmers[idx] = ) instead of reserve
 		
@@ -197,11 +245,11 @@ void PartitionsByVectorCommand<span>:: execute ()
         Iterator<Type>* it = this->_partition.iterator();  LOCAL (it);
         size_t idx = 0;
 		
-		//should pass the kmer model here
+		//should pass the kmer model down here
 		//superk
 		u_int8_t		nbK, rem ;
 		uint64_t compactedK;
-		int ks = system::g_ksize;
+		int ks = this->_kmerSize;
 
 		Type un = 1;
 		Type kmerMask = (un << (ks*2)) - un;
@@ -251,8 +299,13 @@ void PartitionsByVectorCommand<span>:: execute ()
 
 				mink = std::min (rev_temp, temp);
 				
+				radix =  (mink & mask_radix) >> ((ks - 4)*2);
+				radix_kmers[radix.getVal()].push_back(mink);
+				
+				
+				
 				//kmers[idx] = mink; idx++;
-				kmers.push_back(mink);
+				//kmers.push_back(mink);
 				
 			//  printf("%s   (%i / %i)   ( %lli )   (revc %lli   temp %lli )\n",mink.toString(ks).c_str(),rem,nbK,mink.getVal(),revc.getVal(),temp.getVal() );
 
@@ -270,28 +323,95 @@ void PartitionsByVectorCommand<span>:: execute ()
 		
         /** We set the extra item to a max value, so we are sure it will sorted at the last location.
          * This trick allows to avoid extra treatment after the loop that computes the kmers abundance. */
+		//kmers[idx] = ~0; //GR : est on sur que ~0 va se convertir en k max qqsoit taille de kmer ?  et pas juste init avec max 64 bit int ?  (< max kmer)
+		//et meme, ya pas un  prob si le max kmer arrive en vrai ?  kmer GGGGG..GGGG sauf si k 32 fait avec 128 bit
         //kmers[partitionLen] = ~0;
-		kmers.push_back(~0);
+		///kmers.push_back(~0);
+		
+//		for(int ii=0;ii< 256; ii++)
+//		{
+//			if(radix_kmers[ii].size() > 0)
+//				radix_kmers[ii].push_back(~0);
+//		}
+		
+		
+		
+		//serial mode
+//		for(int ii=0;ii< 256; ii++)
+//		{
+//				if(radix_kmers[ii].size() > 0)
+//					std::sort (radix_kmers[ii].begin (), radix_kmers[ii].end ());
+//		}
+		
+		//parall mode
+		vector<ICommand*> cmds;
+		
+		int nwork = 256 / this->_nbCores;
+				
+		// mettre dans le  SortCommand le master radix_kmers et range a traiter
+		for(int tid=0;tid< this->_nbCores; tid++)
+		{
+			int deb = 0 + tid * nwork;
+			int fin = (tid+1) * nwork -1; // thread will do inclusive range [begin -- end ]
+			if(tid== this->_nbCores-1) fin = 255;
+			
+			ICommand* cmd = 0;
+			
+			cmd = new SortCommand<span> (radix_kmers,deb,fin);
+			cmds.push_back (cmd);
+			
+			
+		}
+		
+		Dispatcher* disp = 	new Dispatcher ();
+		disp->dispatchCommands (cmds, 0);
 
+//
+//		t.stop ("lecture");
+//		t.start ("tri");
+
+		
         /** We sort the vector. */
-        std::sort (kmers.begin (), kmers.end ());
+  //      std::sort (kmers.begin (), kmers.end ());
+		
+//		t.stop ("tri");
+//		t.start ("output solid");
 
-        u_int32_t abundance = 0;
-        Type previous_kmer = kmers.front();
+		//with radix bins
+		for(int ii=0;ii< 256; ii++)
+		{
+			
+			if(radix_kmers[ii].size() == 0) continue;
+			
+			u_int32_t abundance = 0;
+			//Type previous_kmer = kmers.front();
+			Type previous_kmer = radix_kmers[ii].front();
+			
+			/** We loop over the sorted solid kmers. */
+			// for (typename vector<Type>::iterator itKmers = kmers.begin(); itKmers != kmers.end(); ++itKmers)
+			for (typename vector<Type>::iterator itKmers = radix_kmers[ii].begin(); itKmers != radix_kmers[ii].end(); ++itKmers)
+				
+			{
+				if (*itKmers == previous_kmer)  {   abundance++;  }
+				else
+				{
+					this->insert (Count (previous_kmer, abundance) );
+					
+					abundance     = 1;
+					previous_kmer = *itKmers;
+				}
+			}
+			this->insert (Count (previous_kmer, abundance) ); //last elem // je sais pas pquoi avec radix il faut cette version le trick  insert max marche pas
+			
+			
+		}
 
-        /** We loop over the sorted solid kmers. */
-        for (typename vector<Type>::iterator itKmers = kmers.begin(); itKmers != kmers.end(); ++itKmers)
-        {
-            if (*itKmers == previous_kmer)  {   abundance++;  }
-            else
-            {
-                this->insert (Count (previous_kmer, abundance) );
-
-                abundance     = 1;
-                previous_kmer = *itKmers;
-            }
-        }
-
+//		t.stop ("output solid");
+//
+//		cout << "lecture: " << t.getEntryByKey("lecture") << "  "
+//		<< "tri: " << t.getEntryByKey("tri") << "  "
+//		<< "output solid: " << t.getEntryByKey("output solid") << endl;
+		
         /** We update the progress bar. */
         this->_progress.inc (kmers.size());
     };

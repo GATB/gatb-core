@@ -61,7 +61,6 @@ namespace system    {
 	extern  int g_msize ;
 	extern  u_int64_t max_mmer ;
 
-	extern u_int64_t * freq_mmer;
 	extern u_int64_t * stat_mmer;
 
 	

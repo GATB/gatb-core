@@ -93,7 +93,7 @@ public:
 			u_int64_t b = opt.getVal() ;
 			
 			
-			// test 3 consecutive identical nt  ~12 instr
+			// test 3 consecutive identical nt
 
 			
 //			u_int64_t a1 = a >>2 ;
@@ -109,15 +109,14 @@ public:
 
 			//u_int64_t a1 =  ( ~a )  & (  ~a >>2 );
 			
-			// en 7 instruc, test si AA consecutif sauf au debut
+			// test si AA consecutif sauf au debut
 			u_int64_t a1 =   ~(( a )   | (  a >>2 ));
 			a1 =((a1 >>1) & a1) & _mask_ma1 ;
 			
 
-			
-			
 			if(a1 != 0) return false;
 
+			
 			return (a<b);
 			
 		}
@@ -220,12 +219,12 @@ private:
      * \param[in] pass  : current pass whose value is used for choosing the partition file
      * \param[in] itSeq : sequences iterator whose sequence are cut into kmers to be split.
      */
-    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq);
+    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq,PartiInfo * pInfo);
 
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
      */
-    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>*  solidKmers);
+    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>*  solidKmers,PartiInfo * pInfo);
 
     /** */
     std::vector <size_t> getNbCoresList ();
@@ -295,6 +294,10 @@ private:
     struct Count2TypeAdaptor  {  Type& operator() (Count& c)  { return c.value; }  };
 };
 
+	
+	
+
+	
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

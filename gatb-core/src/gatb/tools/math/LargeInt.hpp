@@ -79,7 +79,7 @@ public:
         return buffer;
     }
 
-     u_int64_t getVal()  { return this->value[0]; }
+     u_int64_t getVal() const  { return this->value[0]; }
     static const size_t getSize ()  { return 8*sizeof(u_int64_t)*precision; }
 
     /********************************************************************************/

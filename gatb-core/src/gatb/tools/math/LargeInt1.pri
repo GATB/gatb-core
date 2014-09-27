@@ -37,7 +37,7 @@ public:
      * \param[in] c : initial value of the large integer. */
     LargeInt<1> (const u_int64_t& c=0)  {  value[0] = c;  }
 
-     u_int64_t getVal ()  { return *value; }
+     u_int64_t getVal () const  { return *value; }
 
     static const char* getName ()  { return "LargeInt<1>"; }
 
@@ -233,7 +233,7 @@ public:
 	/********************************************************************************/
     inline static u_int64_t mhash64 (u_int64_t forw,u_int64_t rev,   u_int64_t prevmin)
     {
-		
+		/*
 		printf("call to mhash \n");
 		u_int64_t res ;
 		int ks = system::g_ksize;
@@ -293,8 +293,8 @@ public:
 		}
 		
 		return res;
-
-	//	return prevmin;
+*/
+		return prevmin;
     }
 	
     /********************************************************************************/

@@ -30,7 +30,6 @@ namespace gatb { namespace core { namespace system {
 	int g_msize ;
 	  u_int64_t max_mmer ;
 
-	u_int64_t * freq_mmer;
 	u_int64_t * stat_mmer;
 	
 	namespace impl {
