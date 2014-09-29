@@ -11,6 +11,9 @@ add_definitions (${gatb-core-flags})
 
 include_directories (${gatb-core-includes})
 
+# We add the path for extra libraries
+link_directories (${gatb-core-extra-libraries-path})
+
 file (GLOB_RECURSE  PROGRAMS_FILES  *.cpp)
 
 file (GLOB_RECURSE  PROGRAMS_FILES_EXTRA  

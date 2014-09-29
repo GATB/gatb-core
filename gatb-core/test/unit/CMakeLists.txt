@@ -9,6 +9,9 @@ file (GLOB_RECURSE  GatbCoreTestFiles  src/*)
 
 include_directories (${gatb-core-includes}  ${gatb-core_SOURCE_DIR}/test/unit/src  ${CPPUNIT_INCLUDE_DIR})
 
+# We add the path for extra libraries
+link_directories (${gatb-core-extra-libraries-path})
+
 add_executable        (gatb-core-cppunit    ${GatbCoreTestFiles})
 target_link_libraries (gatb-core-cppunit    ${gatb-core-libraries} ${CPPUNIT_LIBRARY_STATIC})
 
@@ -25,6 +28,3 @@ add_custom_target (test gatb-core-cppunit  "All Tests"  ${gatb-core_SOURCE_DIR}/
 install (TARGETS gatb-core-cppunit   DESTINATION test)
 install (DIRECTORY ${gatb-core_SOURCE_DIR}/test/db DESTINATION test/)
     
-    
-
-

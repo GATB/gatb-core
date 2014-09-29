@@ -11,6 +11,9 @@ add_definitions (${gatb-core-flags})
 
 include_directories (${gatb-core-includes})
 
+# We add the path for extra libraries
+link_directories (${gatb-core-extra-libraries-path})
+
 list (APPEND PROGRAMS dbgh5 dbginfo)
 
 FOREACH (program ${PROGRAMS})
