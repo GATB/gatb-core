@@ -113,18 +113,24 @@ public:
         return seq;
     }
 
-    
     /********************************************************************************/
     inline static u_int64_t revcomp64 (const u_int64_t& x, size_t sizeKmer)
     {
         u_int64_t res = x;
 
-        unsigned char* kmerrev  = (unsigned char *) (&(res));
-        unsigned char* kmer     = (unsigned char *) (&(x));
+        // OLD VERSION (with lookup table)
+        // unsigned char* kmerrev  = (unsigned char *) (&(res));
+        // unsigned char* kmer     = (unsigned char *) (&(x));
+        // for (size_t i=0; i<8; ++i)  {  kmerrev[8-1-i] = revcomp_4NT [kmer[i]];  }
 
-        for (size_t i=0; i<8; ++i)  {  kmerrev[8-1-i] = revcomp_4NT [kmer[i]];  }
-
-        return (res >> (2*( 32 - sizeKmer))) ;
+        res = ((res>> 2 & 0x3333333333333333) | (res & 0x3333333333333333) <<  2);
+        res = ((res>> 4 & 0x0F0F0F0F0F0F0F0F) | (res & 0x0F0F0F0F0F0F0F0F) <<  4);
+        res = ((res>> 8 & 0x00FF00FF00FF00FF) | (res & 0x00FF00FF00FF00FF) <<  8);
+        res = ((res>>16 & 0x0000FFFF0000FFFF) | (res & 0x0000FFFF0000FFFF) << 16);
+        res = ((res>>32 & 0x00000000FFFFFFFF) | (res & 0x00000000FFFFFFFF) << 32);
+        res = res ^ 0xAAAAAAAAAAAAAAAA;
+        
+        return (res >> (2*(32-sizeKmer))) ;
     }
 
     /********************************************************************************/
