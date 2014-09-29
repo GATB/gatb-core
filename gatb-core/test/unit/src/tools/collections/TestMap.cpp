@@ -133,8 +133,18 @@ public:
 
         float val = 0;
 
+        u_int8_t keysValue[] = {14, 35, 1, 9, 65, 37, 12, 24, 98, 124, 32};
+
+        /** We create a file with some keys (coded as NativeInt8 values). */
+        const char* filename = "keys";
+        BagFile<NativeInt8> keysFile (filename);
+        for (size_t i=0; i<ARRAY_SIZE(keysValue); i++)  {  keysFile.insert (keysValue[i]); }
+        keysFile.flush();
+
         /** We create some Iterable for our keys. */
-        IterableFile<NativeInt8> keys("/tmp/ABC");
+        IterableFile<NativeInt8> keys(filename);
+
+        CPPUNIT_ASSERT (keys.getNbItems() == ARRAY_SIZE(keysValue));
 
         /** We create a map for our keys; the values are floats. */
         MapMPHF <NativeInt8, float> map1;
