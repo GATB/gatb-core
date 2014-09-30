@@ -136,35 +136,82 @@ struct Kmer
     protected:
         Type _value;
         friend class ModelDirect;
+
+        /** Extract a mmer from a kmer. This is done by using a mask on the kmer.
+         * \param[in] mask : mask to be applied to the current kmer
+         * \param[in] size : shift size (needed for some kmer classes but not all)
+         * \return the extracted kmer.
+         */
+        KmerDirect extract      (const Type& mask, size_t size)  {  KmerDirect output;  output.set (this->value() & mask);  return output;  }
+        KmerDirect extractShift (const Type& mask, size_t size)  {  KmerDirect output = extract(mask,size);  _value = _value >> 2;  return output;  }
     };
 
     /** Kmer type for the ModelCanonical class. */
-    class KmerCanonical : public KmerDirect
+    class KmerCanonical
     {
     public:
 
-        /** Set the value attribute. */
-        void set (const Type& value)  {  KmerDirect::set(value); }
+        /** Returns the value of the kmer.
+         * \return the kmer value as a Type object. */
+        const Type& value  () const { return table[choice];   }
+
+        /** Comparison operator between two instances.
+         * \param[in] t : object to be compared to
+         * \return true if the values are the same, false otherwise. */
+        bool operator< (const KmerDirect& t) const  { return this->value() < t.value(); };
+
+        /** Set the value of the kmer
+         * \param[in] val : value to be set. */
+        void set (const Type& val)
+        {
+            /** Not really a forward/revcomp couple, but may be useful for the minimizer default value. */
+            set (val,val);
+        }
 
         /** Set the forward/revcomp attributes. */
         void set (const Type& forward, const Type& revcomp)
         {
-            _forward=forward;
-            _revcomp=revcomp;
-            KmerDirect::set (std::min (_forward,_revcomp));
+            table[0]=forward;
+            table[1]=revcomp;
+            updateChoice ();
         }
 
         /** Returns the forward value of this canonical kmer.
          * \return the forward value */
-        const Type& forward() const { return _forward; }
+        const Type& forward() const { return table[0]; }
 
         /** Returns the reverse complement value of this canonical kmer.
          * \return the reverse complement value */
-        const Type& revcomp() const { return _revcomp; }
+        const Type& revcomp() const { return table[1]; }
+
+        /** Tells which strand is used for the kmer.
+         * \return true if the kmer value is the forward value, false if it is the reverse complement value
+         */
+        bool which () const { return choice==0 ? true : false; }
 
     protected:
-        Type _forward;  Type _revcomp;
+        Type table[2];  char choice;
+        void updateChoice () { choice = (table[0] < table[1]) ? 0 : 1; }
         friend class ModelCanonical;
+
+        /** Extract a mmer from a kmer. This is done by using a mask on the kmer.
+         * \param[in] mask : mask to be applied to the current kmer
+         * \param[in] size : shift size (needed for some kmer classes but not all)
+         * \return the extracted kmer.
+         */
+        KmerCanonical extract (const Type& mask, size_t size)
+        {
+            KmerCanonical output;  output.set (this->table[0] & mask, (this->table[1] >> size) & mask);
+            output.updateChoice();
+            return output;
+        }
+
+        KmerCanonical extractShift (const Type& mask, size_t size)
+        {
+            KmerCanonical output = extract (mask, size);
+            table[0] = table[0] >> 2;   table[1] = table[1] << 2;  updateChoice();
+            return output;
+        }
     };
 
     /** Kmer type for the ModelMinimizer class. */
@@ -175,34 +222,22 @@ struct Kmer
 
         /** Returns the minimizer of the current kmer as a Model::Kmer object
          * \return the Model::Kmer instance */
-        const typename Model::Kmer& minimizer() const  {  return minimizers[minimizerIdx];  }
+        const typename Model::Kmer& minimizer() const  {  return _minimizer; }
 
-        /** Returns the position of the minimizer within the kmer.
+        /** Returns the position of the minimizer within the kmer. By convention,
+         * a negative value means that there is no minimizer inside the kmer.
          * \return the position of the minimizer. */
-        size_t position () const
-        {
-            /** By convention, if there is no minimizer, we return position 0. */
-            if (isDefined()==false) { return 0; }
-
-            return startIdx<minimizerIdx ? minimizerIdx-startIdx-1 : (minimizerIdx+nbMinimizer)-startIdx-1;
-        }
+        int position () const  {  return _position;  }
 
         /** Tells whether the minimizer has changed; useful while iterating kmers
          * \return true if changed, false otherwise */
-        bool hasChanged () const  {  return changed;  }
-
-        /** Tells whether the minimizer is defined within the kmer.
-         * \return true if defined, false otherwise. */
-        bool isDefined () const { return minimizerIdx!=nbMinimizer; }
+        bool hasChanged () const  {  return _changed;  }
 
     protected:
 
-
-        typename Model::Kmer minimizers[span];
-        size_t minimizerIdx;
-        size_t startIdx;
-        size_t nbMinimizer;
-        bool changed;
+        typename Model::Kmer _minimizer;
+        int16_t              _position;
+        bool                 _changed;
         friend class ModelMinimizer<Model,Comparator>;
     };
 
@@ -290,7 +325,7 @@ struct Kmer
          */
         Kmer getKmer (const tools::misc::Data& data, size_t idx=0)  const
         {
-            return codeSeed (data.getBuffer() + idx, data.getEncoding());
+            return codeSeed (data.getBuffer() + idx, data.getEncoding());  // should not work with BINARY encoding
         }
 
         /** Iteration of the kmers from a data object through a functor (so lambda expressions can be used).
@@ -606,9 +641,9 @@ struct Kmer
         template <class Convert>
         void  first (const char* seq, Kmer& value)   const
         {
-            this->template polynom<Convert> (seq, value._forward);
-            value._revcomp = this->reverse (value._forward);
-            value._value   = std::min (value._forward, value._revcomp);
+            this->template polynom<Convert> (seq, value.table[0]);
+            value.table[1] = this->reverse (value.table[0]);
+            value.updateChoice();
         }
 
         /** Computes a kmer in a recursive way, ie. from a kmer and the next
@@ -622,9 +657,9 @@ struct Kmer
         template <class Convert>
         void  next (char c, Kmer& value)   const
         {
-            value._forward = ( (value._forward << 2) +  c) & this->_kmerMask;
-            value._revcomp = ( (value._revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
-            value._value   = std::min (value._forward, value._revcomp);
+            value.table[0] = ( (value.table[0] << 2) +  c                     ) & this->_kmerMask;
+            value.table[1] = ( (value.table[1] >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
+            value.updateChoice();
         }
     };
 
@@ -641,10 +676,13 @@ struct Kmer
      * This model supports the concept of minimizer. It acts as a Model instance (given as a
      * template class) and add minimizer information to the Kmer type.
      */
-    template<class ModelType, class Comparator=ComparatorMinimizer>
+    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizer>
     class ModelMinimizer :  public ModelAbstract <ModelMinimizer<ModelType,Comparator>, KmerMinimizer<ModelType,Comparator> >
     {
     public:
+
+        /** Type of the model for kmer and mmers.  */
+        typedef ModelType Model;
 
         /** Type holding all the information of a kmer.  */
         typedef KmerMinimizer<ModelType,Comparator> Kmer;
@@ -657,119 +695,101 @@ struct Kmer
          * \param[in] minimizerSize : size of the mmers handled by the model. */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator())
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
-              _kmerModel(kmerSize), _miniModel(minimizerSize), _nbMinimizers(0), _cmp(cmp)
+              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp)
         {
             if (kmerSize <= minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
             /** We compute the number of mmers found in a kmer. */
             _nbMinimizers = _kmerModel.getKmerSize() - _miniModel.getKmerSize() + 1;
-        }
 
-        template <class Convert>
-        void  first (const char* seq, Kmer& value)   const
-        {
-            /** We initialize a sentinel value at the end of the mmers vector.
-             * This value will be used in case no minimizer is found.
+            /** We need a mask to extract a mmer from a kmer. */
+            _mask  = ((u_int64_t)1 << (2*_miniModel.getKmerSize())) - 1;
+            _shift = 2*(_nbMinimizers-1);
+
+            /** We initialize the default value of the minimizer.
              * The value is actually set by the Comparator instance provided as a template of the class. */
-            _cmp.template init<ModelType> (getMmersModel(), (Type&)(value.minimizers [_nbMinimizers].value()));
-
-            /** We memorize the number of minimizers. */
-            value.nbMinimizer = _nbMinimizers;
-
-            /** We compute the kmer. */
-            _kmerModel.template first<Convert> (seq, value);
-
-            /** We compute N potential minimizers and put them into the circular buffer. */
-            _miniModel.template first<Convert> (seq, value.minimizers[0]);
-
-            /** We compute the following mmers from the first one.
-             *  We have consumed 'mmerSize' nucleotides so far for computing the first mmer.
-             *  The following nucleotides have therefore to be retrieved further in the
-             *  data buffer. It is important to shift the index of the current nucleotide
-             *  (and not only moving the buffer forward) because the buffer may be encoded
-             *  in different way (ascii, binary...)
-             */
-            size_t idxShift = _miniModel.getKmerSize()-1;
-
-            for (size_t idx=1; idx<_nbMinimizers; idx++)
-            {
-                value.minimizers[idx] = value.minimizers[idx-1];
-                _miniModel.template next<Convert> (Convert::get (seq, idx+idxShift), value.minimizers[idx]);
-            }
-
-            /** We initialize the circular buffer index. */
-            value.startIdx = _nbMinimizers - 1;
-
-            /** We get the index of the the minimizer in the circular buffer. */
-            value.minimizerIdx = getMinimizerIdx (value);
-            value.changed   = true;
+            Type tmp;
+            _cmp.template init<ModelType> (getMmersModel(), tmp);
+            _minimizerDefault.set (tmp);
         }
 
         template <class Convert>
-        void  next (char c, Kmer& value)   const
+        void  first (const char* seq, Kmer& kmer)   const
         {
-            /** We get a copy of the current minimizer. */
-            Type currentMinimizer = value.minimizers[value.minimizerIdx].value();
+            /** We compute the first kmer. */
+            _kmerModel.template first<Convert> (seq, kmer);
 
-            size_t nextIdx =  (value.startIdx + 1) % _nbMinimizers;
-            value.minimizers[nextIdx] = value.minimizers[value.startIdx];
+            /** We compute the minimizer of the kmer. */
+            computeNewMinimizer (kmer);
+        }
 
-            _kmerModel.template next<Convert> (c, value);
-            _miniModel.template next<Convert> (c, value.minimizers[nextIdx]);
+        template <class Convert>
+        void  next (char c, Kmer& kmer)   const
+        {
+            /** We compute the next kmer. */
+            _kmerModel.template next<Convert> (c, kmer);
 
-            /** By default, we set the minimizer has unchanged for the 'next' call. */
-            value.changed = false;
+            /** We extract the new mmer from the kmer. */
+            typename ModelType::Kmer mmer = kmer.extract (this->_mask, this->_shift);
 
-            /** We update the starting index in the circular buffer. */
-            value.startIdx = nextIdx;
+            /** We update the position of the previous minimizer. */
+            kmer._position--;
 
-            /** We may have to update the minimizer index in the following cases :
-             *      1) the minimizer index is invalid
-             *      2) the minimizer index is out of the current kmer window
-             *      3) the new current mmer is best than the current minimizer
+            /** By default, we consider that the minimizer is still the same. */
+            kmer._changed  = false;
+
+            /** We have to update the minimizer in the following case:
+             *      1) the new mmer is the new minimizer
+             *      2) the previous minimizer is invalid or out from the new kmer window.
              */
-            if (value.minimizerIdx==_nbMinimizers || value.minimizerIdx==nextIdx
-                || _cmp (value.minimizers[nextIdx].value(), value.minimizers[value.minimizerIdx].value()) )
+            if (_cmp (mmer.value(), kmer._minimizer.value()) == true)
             {
-                /** We update the minimizer index. */
-                value.minimizerIdx = getMinimizerIdx (value);
-
-                /** We check whether it is a true minimizer change. Note: checking only the indexes is not enough
-                 * because we can have the same minimizer twice or more in the same kmer. */
-                if (currentMinimizer != value.minimizers[value.minimizerIdx].value())  {  value.changed = true;  }
+                kmer._minimizer = mmer;
+                kmer._position  = _nbMinimizers - 1;
+                kmer._changed   = true;
+            }
+            else if (kmer._position < 0)
+            {
+                computeNewMinimizer (kmer);
             }
         }
 
     private:
-        ModelType _kmerModel;
-        ModelType _miniModel;
-
-        size_t _nbMinimizers;
-
+        ModelType  _kmerModel;
+        ModelType  _miniModel;
         Comparator _cmp;
+        size_t     _nbMinimizers;
+        Type       _mask;
+        size_t     _shift;
+        typename ModelType::Kmer _minimizerDefault;
 
         /** Returns the minimizer of the provided vector of mmers. */
-        int getMinimizerIdx(const Kmer& kmer) const
+        void computeNewMinimizer (Kmer& kmer) const
         {
-            int result = _nbMinimizers;
-            typename ModelType::Kmer current;  current.set(kmer.minimizers[result].value());
+            int16_t result = -1;
 
-            /** we have to loop nbMinimizers but not starting from startIdx instead of 0
-             *  => we split the loop in two parts. */
-            size_t i0 = kmer.startIdx + 1;
+            /** We initialize the minimizer value to the default one. */
+            typename ModelType::Kmer minimizer = this->_minimizerDefault;
 
-            for (size_t i=i0; i<_nbMinimizers; i++)
+            /** We need a local object that loops each mmer of the provided kmer (and we don't want
+             * to modify the kmer value of this provided kmer). */
+            Kmer loop = kmer;
+
+            /** We compute each mmer and memorize the minimizer among them. */
+            for (int16_t idx=_nbMinimizers-1; idx>=0; idx--)
             {
-                if (_cmp(kmer.minimizers[i].value(), current.value())==true)  {  current = kmer.minimizers [result = i];  }
+                /** We extract the most left mmer in the kmer. */
+                typename ModelType::Kmer mmer = loop.extractShift (_mask, _shift);
+
+                /** We check whether this mmer is the new minimizer. */
+                if (_cmp (mmer.value(), minimizer.value()) == true)  {  minimizer = mmer;   result = idx;  }
             }
 
-            for (size_t i=0; i<i0; i++)
-            {
-                if (_cmp(kmer.minimizers[i].value(), current.value())==true)  {  current = kmer.minimizers [result = i];  }
-            }
-
-            /** We return the result. */
-            return result;
+            /** We update the attributes of the provided kmer. Note that we might have not found any valid minimizer,
+             * which is memorized by convention by a negative minimizer position. */
+            kmer._position  = result;
+            kmer._changed   = true;
+            kmer._minimizer = minimizer;
         }
     };
 
