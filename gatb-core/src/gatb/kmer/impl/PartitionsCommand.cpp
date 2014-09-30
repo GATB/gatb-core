@@ -313,7 +313,7 @@ public:
 		
 	}
 	
-	SuperKReader (size_t kmerSize,  uint64_t * r_idx, std::vector <vector < vector<Type>>> & radix_kmers)
+	SuperKReader (size_t kmerSize,  uint64_t * r_idx, std::vector <vector < vector<Type> > > & radix_kmers)
 	: _first(true) ,_kmerSize (kmerSize), _r_idx (r_idx), _radix_kmers(radix_kmers), _kx(4)
 	//model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _repart_table (repart_table),_mm(minim_size),
 	 {
@@ -334,7 +334,7 @@ public:
 	size_t _shift_val ;
 	size_t _shift_radix ;
 	int _kx;
-	std::vector < vector <vector<Type> >> & _radix_kmers;
+	std::vector < vector <vector<Type> > > & _radix_kmers;
 
 	uint64_t * _r_idx ;
 	bool _first;
@@ -406,8 +406,8 @@ void PartitionsByVectorCommand<span>:: execute ()
 			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
 		}
 
-		printf("--------- fillsolid parti num %i   nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
-			   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
+	//	printf("--------- fillsolid parti num %i   nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
+	//		   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
 		
         /** We directly fill the vector from the current partition file. */
         Iterator<Type>* it = this->_partition.iterator();  LOCAL (it);

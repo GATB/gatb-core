@@ -429,7 +429,7 @@ private:
 	public:
 		typedef typename Kmer<span>::Type  Type;
 
-		SortCommand(std::vector<vector<Type>>  & kmervec, int begin, int end) : _radix_kmers(kmervec),_deb(begin), _fin(end) {}
+		SortCommand( std::vector<vector<Type> >  & kmervec, int begin, int end) : _radix_kmers(kmervec),_deb(begin), _fin(end) {}
 		
 		 void execute ()
 		{
@@ -460,7 +460,7 @@ public:
 	typedef typename Kmer<span>::Type  Type;
 	
 	//on lui passe le vector dun kxmer
-	KxmerPointer(std::vector<vector<Type>>  & kmervec, int prefix_size, int x_size, int min_radix, int max_radix, int kmerSize) : _kxmers(kmervec)
+	KxmerPointer(std::vector<vector<Type> >  & kmervec, int prefix_size, int x_size, int min_radix, int max_radix, int kmerSize) : _kxmers(kmervec)
 	,_prefix_size(prefix_size), _x_size(x_size),_cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix) {
 		
 		_idx_radix = min_radix;
