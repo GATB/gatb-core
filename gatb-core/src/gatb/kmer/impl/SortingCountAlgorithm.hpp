@@ -219,12 +219,12 @@ private:
      * \param[in] pass  : current pass whose value is used for choosing the partition file
      * \param[in] itSeq : sequences iterator whose sequence are cut into kmers to be split.
      */
-    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq,PartiInfo * pInfo);
+    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq,PartiInfo<2> * pInfo);
 
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
      */
-    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>*  solidKmers,PartiInfo * pInfo);
+    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>*  solidKmers,PartiInfo<2> * pInfo);
 
     /** */
     std::vector <size_t> getNbCoresList ();

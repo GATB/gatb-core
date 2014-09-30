@@ -188,7 +188,7 @@ public:
 
  //todo faire e nsorte que pas trop couteux
 		
-		int mm = system::g_msize;
+		int mm =  7 ;
 //		u_int64_t  bmax =  1 << (mm*2);
 //		u_int64_t  mask_aaa = 63 <<  ((mm-3)*2);
 //		u_int64_t  aca_pattern = 4 <<  ((mm-3)*2);

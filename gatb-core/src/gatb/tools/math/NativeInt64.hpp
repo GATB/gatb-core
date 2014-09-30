@@ -185,33 +185,8 @@ public:
         hash = (hash + (hash << 2)) + (hash << 4); // hash * 21
         hash = hash ^ (hash >> 28);
         hash = hash + (hash << 31);
-		
-		//proto avec test en dur
-		// test return le minimizer m 8 : ie 16 bit
-		u_int64_t revk  = revcomp64(key,31);
 
-		int mm = 8;
-		u_int64_t minim = 1000000000;
-		u_int64_t mask = (1<<(2*mm)) - 1;
-		for (int i = 0; i <  (1+64- 2*mm );i++ )
-		{
-			u_int64_t	 newm = (key >> i) & mask;
-			if (newm < minim) minim = newm;
-		}
-		
-		
-		for (int i = 0; i <  (1+64- 2*mm );i++ )
-		{
-			u_int64_t	 newm = (revk >> i) & mask;
-			if (newm < minim) minim = newm;
-		}
-		
-		
-		
-	
-		
-		return minim;
-        //return hash;
+        return hash;
     }
 
     /********************************************************************************/

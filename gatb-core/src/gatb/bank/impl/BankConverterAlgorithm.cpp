@@ -105,19 +105,7 @@ BankConverterAlgorithm::~BankConverterAlgorithm ()
 *********************************************************************/
 void BankConverterAlgorithm::execute ()
 {
-	
-		g_msize =  7;
-	
-//	typedef Kmer<31>::ModelCanonical  Modelc;
-//	typedef typename Kmer<31>::ModelCanonical::Kmer  Mmer;
-//	typedef typename Kmer<31>::Type           Typem;
-//	
-
-	stat_mmer = ( u_int64_t * )  calloc (( 1 << (2*g_msize)),sizeof(u_int64_t) );
-//
-//	Modelc model (g_msize);
-//    vector<Mmer> mmers;
-	
+		
     /** We may have no conversion at all to do. */
     if (_kind == BANK_CONVERT_NONE)
     {

@@ -55,13 +55,6 @@ namespace system    {
 	const   u_int64_t  GBYTE = (1ULL << 30);
 	
 	
-	extern  float superk_average_pread  ;
-	extern  u_int64_t nbrl ;
-	extern  int g_ksize ;
-	extern  int g_msize ;
-	extern  u_int64_t max_mmer ;
-
-	extern u_int64_t * stat_mmer;
 
 	
 /********************************************************************************/

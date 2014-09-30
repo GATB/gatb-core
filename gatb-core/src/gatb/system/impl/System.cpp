@@ -23,14 +23,9 @@
 namespace gatb { namespace core { namespace system {
 	
 	
-	//for rapid prototyping, to be removed
-	float superk_average_pread  ;
-	u_int64_t nbrl ;
-	int g_ksize ;
-	int g_msize ;
-	  u_int64_t max_mmer ;
 
-	u_int64_t * stat_mmer;
+
+
 	
 	namespace impl {
 /********************************************************************************/

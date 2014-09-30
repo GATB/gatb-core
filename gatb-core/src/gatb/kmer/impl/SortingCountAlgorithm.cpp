@@ -241,8 +241,7 @@ template<size_t span>
 void SortingCountAlgorithm<span>::execute ()
 {
 	
-	superk_average_pread = 0;
-	nbrl = 0;
+
 	
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
@@ -260,7 +259,7 @@ void SortingCountAlgorithm<span>::execute ()
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
     _progress->init ();
 
-	PartiInfo * pInfo = new PartiInfo(_nb_partitions, 7); //minimsize here et ailleurs
+	PartiInfo<2> * pInfo = new PartiInfo<2>(_nb_partitions, 7); //minimsize here et ailleurs
 	
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -274,13 +273,13 @@ void SortingCountAlgorithm<span>::execute ()
 		
         /** 1) We fill the partition files. */
         fillPartitions (_current_pass, itSeq,pInfo);
-		//printf("average nb superkmer per read %f \n",system::superk_average_pread);
 
+		
 		//return ;
         /** 2) We fill the kmers solid file from the partition files. */
         fillSolidKmers (_solidCounts->bag(),pInfo);
 		
-		pInfo->printInfo();
+		//pInfo->printInfo();
 
     }
 
@@ -289,19 +288,7 @@ void SortingCountAlgorithm<span>::execute ()
 	delete pInfo;
 	
 	
-//	//printf("Histo superkmer sizes\n");
-//	printf("NB superkmers per  bin\n");
-//
-//	for (int ii= 0; ii< ( 1 <<(g_msize*2)); ii++)
-//		//for (int ii= 0; ii< 50; ii++)
-//	{
-//		typedef typename Kmer<31>::Type           Typem;
-//		Typem cur = ii;
-//		printf("%s : %lli\n",cur.toString(g_msize).c_str(),stat_mmer[ii]);
-//
-//	}
-	 
-	//
+
 	
     _progress->finish ();
 
@@ -311,7 +298,6 @@ void SortingCountAlgorithm<span>::execute ()
     /** We save the histogram if any. */
     _histogram->save ();
 	
-	printf("Total  nb superkmer per read %f \n",system::superk_average_pread);
 
     /** compute auto cutoff **/
     _histogram->compute_threshold ();
@@ -388,19 +374,32 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     u_int64_t volume_per_pass;
 
     do  {
+
         assert (_nb_passes > 0);
         volume_per_pass = _volume / _nb_passes;
 
         assert (_max_memory > 0);
+		printf("volume_per_pass %lli  _nbCores %zu _max_memory %i \n",volume_per_pass, _nbCores,_max_memory);
+
         _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
 
+		
+//		_nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
+		// plus tard ici _nbCores == nb parti parall en meme tps,
+		//variable en fonction ram dispo, eventuellement 1, puis parall par parti
+
+		
+		 //was for hash
         if (_partitionType == 0)
         {
             _nb_partitions = (u_int32_t) ceil((float) _nb_partitions / load_factor);
             _nb_partitions = ((_nb_partitions * OAHash<Type>::size_entry()) + sizeof(Type)-1) / sizeof(Type); // also adjust for hash overhead
             _nb_partitions = std::max ((_nb_partitions/(optimism+1)), (u_int32_t)1);
         }
+		
+		printf("nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
 
+		
         if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
         else                                    { break;         }
 
@@ -450,7 +449,6 @@ public:
 									   u_int64_t minimk, std::vector<Kmer *>  &superKp)
     {
 	
-	//	stat_mmer[minimk] ++; // nb superk per bin     = superK.size();
 		
 	//	_local_pInfo.incSuperKmer_per_minimBin(minimk); //marche
 		
@@ -488,7 +486,7 @@ public:
 			
 			Type mask_radix ((int64_t) 255);
 			mask_radix =  mask_radix << ((_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
-			Type radix ;
+			Type radix, radix_kxmer_forward ,radix_kxmer ;
 			
 			Type nbK ((int64_t) superKp.size());
 			Type compactedK(zero);
@@ -501,19 +499,72 @@ public:
 			//printf("K0 %s      \n",superK[0].toString(31).c_str());
 
 			
+			bool prev_which = superKp[0]->which();
+			size_t kx_size =0;
+			
+			radix_kxmer_forward =  (superKp[0]->value() & mask_radix) >> ((_kmersize - 4)*2);
+
 			for (int ii = 1 ; ii <superKp.size(); ii++) {
 				//printf("K%i %s      \n",ii,superK[ii].toString(31).c_str());
 
+				//compute here stats on  kx mer
+				//tant que tai <= xmer et which kmer[ii] == which kmer [ii-1] --> cest un kxmer
+				//do the same in sampling : gives ram estimation
+				if(superKp[ii]->which() != prev_which || kx_size >= _kx) // kxmer_size = 1 //cost should diminish with larger kxmer
+				{
+					//output kxmer size kx_size,radix_kxmer
+					//kx mer is composed of superKp[ii-1] superKp[ii-2] .. superKp[ii-n] with nb elems  n  == kxmer_size +1  (un seul kmer ==k+0)
+					Type debb;
+					
+					if(prev_which)
+					{
+						radix_kxmer = radix_kxmer_forward;
+					}
+					else // si revcomp, le radix du kxmer est le debut du dernier kmer
+					{
+						radix_kxmer =  (superKp[ii-1]->value() & mask_radix) >> ((_kmersize - 4)*2);
+					}
 
+					//debug
+					//debb = superKp[ii-1]->value();
+					//printf("storing  kx %zu  rad %llu    kmer %s  \n",kx_size,radix_kxmer.getVal(), debb.toString(31).c_str());
+					
+					_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size ); //nb of superkmer per x per parti per radix
+
+					radix_kxmer_forward =  (superKp[ii]->value() & mask_radix) >> ((_kmersize - 4)*2);
+					kx_size =0;
+				}
+				else
+				{
+					kx_size++;
+				}
 				
-				radix =  (superKp[ii]->value() & mask_radix) >> ((_kmersize - 4)*2);
-				_local_pInfo.incKmer_and_rad(p, radix.getVal() );
+				prev_which = superKp[ii]->which() ;
+
+
 
 				compactedK = compactedK << 2  ;
 			//	compactedK = compactedK | (superK[ii] & masknt) ;
 				compactedK = compactedK | ( (superKp[ii]->forward()) & masknt) ;
 
 			}
+			
+			//record last kx mer
+			if(prev_which)
+			{
+				radix_kxmer = radix_kxmer_forward;
+			}
+			else // si revcomp, le radix du kxmer est le debut du dernier kmer
+			{
+				radix_kxmer =  (superKp.back()->value() & mask_radix) >> ((_kmersize - 4)*2);
+			}
+			
+			//debug
+			//Type debb = superKp.back()->value();
+			//printf("last storing  kx %zu  rad %llu    kmer %s  \n",kx_size,radix_kxmer.getVal(), debb.toString(31).c_str());
+			
+			_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
+
 			
 			compactedK = compactedK | (  nbK << maxs ) ; // 56 = nb bits in type - 8
 			
@@ -526,12 +577,6 @@ public:
 			_partition[p].insert (superKp[0]->forward());
 			//_partition[p].insert (superK[0]);
 
-			//info
-			
-			radix =  (superKp[0]->value() & mask_radix) >> ((_kmersize - 4)*2);
-			_local_pInfo.incKmer_and_rad(p, radix.getVal() );
-			
-			
 			
 			///// end compact
 	
@@ -640,9 +685,8 @@ public:
 		
 		
 		
-	//	superk_average_pread =  (nbrl *  superk_average_pread  +  nb_superk) / (float)(nbrl+1);
-		superk_average_pread += nb_superk;
-	//	nbrl ++;
+
+		
 		
 	//	printf ("nb_superk %i \n",nb_superk);
 		
@@ -650,11 +694,11 @@ public:
     }
 
 
-    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress, unsigned int * repart_table, int minim_size, PartiInfo & pInfo)
+    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress, unsigned int * repart_table, int minim_size, PartiInfo<2> & pInfo)
 	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _repart_table (repart_table),_mm(minim_size),
 
       _partition (*partition,1<<12,0), _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,_mm), _kmersize(model.getKmerSize()),
-	_progress  (progress,System::thread().newSynchronizer())  {
+	_progress  (progress,System::thread().newSynchronizer()) ,_kx(1)  {
 	}
 
 	 ~FillPartitions ()
@@ -671,13 +715,14 @@ private:
     size_t    nbPass;
     size_t    nbPartitions;
     size_t    nbWrittenKmers;
+	int _kx;
     Data      binaryData;
     vector<Kmer> kmers;
 	unsigned int * _repart_table;
 	int _mm;
 	int _kmersize;
-	PartiInfo & _extern_pInfo;
-	PartiInfo  _local_pInfo;
+	PartiInfo<2> & _extern_pInfo;
+	PartiInfo<2>  _local_pInfo;
 	
     /** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
 #ifdef PROTO_COMP
@@ -694,7 +739,6 @@ private:
 
 /********************************************************************************/
 	
-	//todo lui passer un objet PartiInfo a la place de  	 int * _binsize;
 	//ie ce sera posible d avoir plus dinfo , estim ram max par exemple ?
 template<size_t span>
 class SampleRepart
@@ -768,7 +812,7 @@ public:
     }
 	
 	
-	SampleRepart (Model& model, size_t nbPasses, size_t currentPass, int nbparti, u_int32_t max_memory, IteratorListener* progress, int minim_size, PartiInfo & pInfo)
+	SampleRepart (Model& model, size_t nbPasses, size_t currentPass, int nbparti, u_int32_t max_memory, IteratorListener* progress, int minim_size, PartiInfo<2> & pInfo)
 	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(nbparti), nbseqread(0), _mm(minim_size),
 	 _extern_pInfo(pInfo) , _local_pInfo(nbparti,minim_size),
 	_progress  (progress,System::thread().newSynchronizer())
@@ -794,8 +838,8 @@ private:
 	Data      binaryData;
     vector<Kmer> kmers;
 
-	PartiInfo & _extern_pInfo;
-	PartiInfo  _local_pInfo;
+	PartiInfo<2> & _extern_pInfo;
+	PartiInfo<2>  _local_pInfo;
 	
 	int _mm;
 
@@ -914,7 +958,7 @@ public:
 		return _repart_table;
 	}
 	
-	Repartitor(int nbpart, int minimsize,PartiInfo & pInfo) : _nbpart(nbpart), _mm(minimsize), _extern_pInfo(pInfo)
+	Repartitor(int nbpart, int minimsize,PartiInfo<2> & pInfo) : _nbpart(nbpart), _mm(minimsize), _extern_pInfo(pInfo)
 	{
 		_repart_table = NULL;
 	}
@@ -925,7 +969,7 @@ private:
 	
 	unsigned int * _repart_table ;
 	int * _space_left ;
-	PartiInfo & _extern_pInfo;
+	PartiInfo<2> & _extern_pInfo;
 
 	int _nbpart;
 	int _mm;
@@ -943,7 +987,7 @@ private:
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo * pInfo)
+void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo<2> * pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_partitions");
 
@@ -957,10 +1001,9 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 	
 	
 	//Model model (_kmerSize);
-	g_ksize = model.getKmerSize();
 	//g_msize =  8;
 	
-	printf(" k / m  %i / %i  mmsize %i\n",g_ksize,g_msize,mmsize);
+	printf(" k / m   %zu  mmsize %i\n",_kmerSize,mmsize);
 	
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
@@ -996,7 +1039,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 	//fill bin sizes here
 	printf("Sample superkmers per  bin  \n");
 	
-	PartiInfo * sample_info = new PartiInfo(_nb_partitions,mmsize);
+	PartiInfo<2> * sample_info = new PartiInfo<2>(_nb_partitions,mmsize);
 	
 	gatb::core::tools::dp::IteratorListener* _progress_sample = createIteratorListener (1000000, "Collecting stats on read sample");
 	_progress_sample->init();
@@ -1035,7 +1078,7 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 
     for (size_t p=0; p<_nb_partitions; )
     {
-        size_t i=0;  for (i=0; i<_nbCores && p<_nb_partitions; i++, p++)  {}
+        size_t i=0;  for (i=0; i<_nbCores && p<_nb_partitions; i++, p++)  {} // forcer 2 thread max ici pour nb parti simult  _nbCores
         result.push_back (i);
     }
 
@@ -1051,7 +1094,7 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, PartiInfo * pInfo)
+void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, PartiInfo<2> * pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
@@ -1108,8 +1151,8 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
             cmds.push_back (cmd);
         }
 
-		sd->dispatchCommands (cmds, 0);
-       // getDispatcher()->dispatchCommands (cmds, 0);
+		//sd->dispatchCommands (cmds, 0);
+        getDispatcher()->dispatchCommands (cmds, 0);
 
     }
 
