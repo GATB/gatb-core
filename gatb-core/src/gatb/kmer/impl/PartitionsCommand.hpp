@@ -219,17 +219,13 @@ namespace impl      {
 			_num_mm_bins =   1 << (2*_mm);
 			_stat_mmer = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 			
-			//nbk_per_radix_per_part =  std::vector<  std::vector<u_int64_t>   >  (_nbpart, std::vector<u_int64_t>(256,0)   );
-			// nbk_per_radix_per_part[numpart][radix] //gives nb kmer in numpart in bin radix
+
 			
 			for(int xx=0; xx<xmer; xx++)
 			for(int ii=0; ii<256; ii++)
 			{
 				_nbk_per_radix_per_part[xx][ii] = (u_int64_t  *) calloc(nbpart,sizeof(u_int64_t));
 			}
-			// nbk_per_radix_per_part[radix][numpart] //gives nb kmer in numpart in bin radix
-			
-			//	printf("PartiInfo alloced %p  _nb_kmers_per_parti %p \n",this,_nb_kmers_per_parti);
 			
 		}
 		
@@ -321,7 +317,7 @@ public:
         u_int64_t&     totalKmerNbRef,
         size_t         abundance,
         IteratorListener* progress,
-		PartiInfo<2> * pInfo,
+		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
 		size_t      kmerSize
@@ -339,7 +335,7 @@ protected:
     ProgressSynchro     _progress;
     u_int64_t           _totalKmerNb;
     u_int64_t&          _totalKmerNbRef;
-	PartiInfo<2> * _pInfo;
+	PartiInfo<5> * _pInfo;
 	int _parti_num;
     size_t      _nbCores;
 	size_t      _kmerSize;
@@ -368,7 +364,7 @@ public:
         size_t          abundance,
         IteratorListener* progress,
         u_int64_t       hashMemory,
-		PartiInfo<2> * pInfo,
+		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
 		size_t      kmerSize
@@ -393,21 +389,15 @@ public:
     typedef typename Kmer<span>::Type  Type;
     typedef typename Kmer<span>::Count Count;
 
-	
+
+	//used for the priority queue
 	typedef std::pair<int, Type> kxp; //id pointer in vec_pointer , value
 	
 	struct kxpcomp {
 		bool operator() (kxp l,kxp r) { return ((r.second) < (l.second)); }
 	} ;
 	
-	
-	
-	
-//		struct kxpcomp {
-//			bool operator() (const KxmerPointer<span>& l,const KxmerPointer<span>& r) const
-//			{ return (l.value() > r.value()); } //highest first, 'top' of pq will yeild smallest
-//		} ;
-	
+
     PartitionsByVectorCommand (
         Bag<Count>*  solidKmers,
         Iterable<Type>&    partition,
@@ -416,7 +406,7 @@ public:
         u_int64_t&      totalKmerNbRef,
         size_t          abundance,
         IteratorListener* progress,
-		PartiInfo<2> * pInfo,
+		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
 		size_t      kmerSize
@@ -462,87 +452,74 @@ private:
 	
 
 	
+
+template<size_t span>
+class KxmerPointer
+{
+public:
+	typedef typename Kmer<span>::Type  Type;
 	
-	//maybe template it with _prefix_size ?
-	template<size_t span>
-	class KxmerPointer
-	{
-	public:
-		typedef typename Kmer<span>::Type  Type;
+	//on lui passe le vector dun kxmer
+	KxmerPointer(std::vector<vector<Type>>  & kmervec, int prefix_size, int x_size, int min_radix, int max_radix, int kmerSize) : _kxmers(kmervec)
+	,_prefix_size(prefix_size), _x_size(x_size),_cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix) {
 		
-		//on lui passe le vector dun kxmer
-		KxmerPointer(std::vector<vector<Type>>  & kmervec, int prefix_size, int x_size, int min_radix, int max_radix, int kmerSize) : _kxmers(kmervec)
-		,_prefix_size(prefix_size), _x_size(x_size),_cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix) {
-			
-			//printf("creating kxmerpointer \n");
-			//_cur_radix = cur_radix <<  ((kmerSize-4)*2);
-			
-			_idx_radix = min_radix;
-			Type un = 1;
-            _kmerMask = (un << (_kmerSize*2)) - un;
-			
-			_shift_size = ( (4 - _prefix_size) *2) ;
+		_idx_radix = min_radix;
+		Type un = 1;
+		_kmerMask = (un << (_kmerSize*2)) - un;
+		
+		_shift_size = ( (4 - _prefix_size) *2) ;
+		_radixMask = Type(_idx_radix) ;
+		_radixMask = _radixMask << ((_kmerSize-4)*2);
+		_radixMask = _radixMask  << (2*_prefix_size)  ;
+
+	}
+	
+	
+	
+	inline bool next ()
+	{
+
+		_cur_idx++;
+		
+		//go to next non empty radix
+		while(_cur_idx >= _kxmers[_idx_radix].size() && _idx_radix<= _high_radix )
+		{
+			_idx_radix++;
+			_cur_idx = 0;
+			//update radix mask does not happen often
 			_radixMask = Type(_idx_radix) ;
 			_radixMask = _radixMask << ((_kmerSize-4)*2);
 			_radixMask = _radixMask  << (2*_prefix_size)  ;
-			//_radixMask = (  (_idx_radix) << ((_kmerSize-4)*2)  )  << (2*_prefix_size) ;
-			//_idx_radix = 0;
 		}
 		
-		
-		
-		inline bool next ()
-		{
-			
-			//printf("Next of _cur_idx %lli/%zu   pref %i xz %i  radix %i\n", _cur_idx,_kxmers[_idx_radix].size(), _prefix_size,_x_size,
-			//	  _idx_radix );
-			_cur_idx++;
-			
-			//go to next non empty radix
-			while(_cur_idx >= _kxmers[_idx_radix].size() && _idx_radix<= _high_radix )
-			{
-				_idx_radix++;
-				_cur_idx = 0;
-				//update radix mask does not happen often
-				_radixMask = Type(_idx_radix) ;
-				_radixMask = _radixMask << ((_kmerSize-4)*2);
-				_radixMask = _radixMask  << (2*_prefix_size)  ;
-			}
-			
-			return (_idx_radix <= _high_radix);
-		}
-		
-		inline Type value() const
-		{
-			//debug
-			//Type debk = _kxmers[_cur_idx] ;
-			//Type compk = ( ((_kxmers[_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask;
-			//printf("____ Ouput val of  %lli   pref %i xz %i    raw %s  computed %s  ____\n",
-			//	   _cur_idx, _prefix_size,_x_size,debk.toString(31).c_str(),compk.toString(31).c_str() );
-
-			Type res =  ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
-			return res ;
-		}
-		
-		private :
-		
-		std::vector <  vector < Type > >    & _kxmers;
-		
-		int64_t _cur_idx;
-		Type _cur_radix;
-		Type _kmerMask;
-		Type _radixMask;
-		
-		int _idx_radix;
-		int _low_radix, _high_radix;
-		int _shift_size;
-		int _prefix_size;
-		int _kmerSize;
-		int _x_size; //x size of the _kxmersarray
-		
-		
-	};
+		return (_idx_radix <= _high_radix);
+	}
 	
+	inline Type value() const
+	{
+		Type res =  ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
+		return res ;
+	}
+	
+	private :
+	
+	std::vector <  vector < Type > >    & _kxmers;
+	
+	int64_t _cur_idx;
+	Type _cur_radix;
+	Type _kmerMask;
+	Type _radixMask;
+	
+	int _idx_radix;
+	int _low_radix, _high_radix;
+	int _shift_size;
+	int _prefix_size;
+	int _kmerSize;
+	int _x_size; //x size of the _kxmersarray
+	
+	
+};
+
 
 	
 	

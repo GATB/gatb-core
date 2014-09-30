@@ -93,7 +93,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0), _histogramUri(""),
-      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1) ,_nb_partitions_in_parallel(0)
 {
 }
 
@@ -128,7 +128,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(histogramUri),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition (1) ,_nb_partitions_in_parallel (nbCores)
 {
     setBank (bank);
 
@@ -158,7 +158,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(""),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1),_nb_partitions_in_parallel(0)
 {
     Group& group = (*_storage)(this->getName());
 
@@ -206,6 +206,8 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         _abundance              = s._abundance;
         _partitionType          = s._partitionType;
         _nbCores                = s._nbCores;
+		_nbCores_per_partition  = s._nbCores_per_partition;
+		_nb_partitions_in_parallel = s._nb_partitions_in_parallel;
         _prefix                 = s._prefix;
         _estimateSeqNb          = s._estimateSeqNb;
         _estimateSeqTotalSize   = s._estimateSeqTotalSize;
@@ -245,6 +247,7 @@ void SortingCountAlgorithm<span>::execute ()
 	
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
+	_nb_partitions_in_parallel = _nbCores;
     assert (_nbCores > 0);
 
     /** We configure dsk by computing the number of passes and partitions we will have
@@ -259,7 +262,7 @@ void SortingCountAlgorithm<span>::execute ()
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
     _progress->init ();
 
-	PartiInfo<2> * pInfo = new PartiInfo<2>(_nb_partitions, 7); //minimsize here et ailleurs
+	PartiInfo<5> * pInfo = new PartiInfo<5>(_nb_partitions, 7); //minimsize here et ailleurs
 	
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -358,8 +361,11 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     u_int64_t kmersNb  = (_estimateSeqTotalSize - _estimateSeqNb * (_kmerSize-1));
     u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
 
-    _volume = kmersNb * sizeof(Type) / MBYTE;  // in MBytes
-    if (_volume == 0)   { _volume = 1; }    // tiny files fix
+    _volume =  kmersNb * sizeof(Type) / MBYTE;  // in MBytes
+	 u_int64_t volume_minim = _volume * 0.5 *1.2 ; //0.5 for using kxmers   1.2 if bad repartition of minimizers ( todo sampling to assert ram usage)
+	
+	
+    if (volume_minim == 0)   { volume_minim = 1; }    // tiny files fix
 
     if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, bankSize);  }
     if (_max_disk_space == 0)  { _max_disk_space = 10000; }
@@ -368,44 +374,48 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     if (_max_memory == 0)  {  _max_memory = 1000; }
 
     assert (_max_disk_space > 0);
-    _nb_passes = ( (_volume/3) / _max_disk_space ) + 1; //minim, approx volume /3
-	printf("_volume/3 %lli _max_disk_space %lli  _nb_passes init %i  \n", (_volume/3),_max_disk_space,_nb_passes);
+    
+	//_nb_passes = ( (_volume/3) / _max_disk_space ) + 1; //minim, approx volume /3
+	_nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
+	//increase it only if ram issue
+	
+	printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
     u_int64_t volume_per_pass;
 
     do  {
 
         assert (_nb_passes > 0);
-        volume_per_pass = _volume / _nb_passes;
+        volume_per_pass = volume_minim / _nb_passes;
 
         assert (_max_memory > 0);
 		printf("volume_per_pass %lli  _nbCores %zu _max_memory %i \n",volume_per_pass, _nbCores,_max_memory);
 
-        _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
+       // _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
 
-		
-//		_nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
-		// plus tard ici _nbCores == nb parti parall en meme tps,
-		//variable en fonction ram dispo, eventuellement 1, puis parall par parti
+		_nb_partitions  = ( ( volume_per_pass* _nb_partitions_in_parallel) / _max_memory ) + 1;
 
-		
-		 //was for hash
-        if (_partitionType == 0)
-        {
-            _nb_partitions = (u_int32_t) ceil((float) _nb_partitions / load_factor);
-            _nb_partitions = ((_nb_partitions * OAHash<Type>::size_entry()) + sizeof(Type)-1) / sizeof(Type); // also adjust for hash overhead
-            _nb_partitions = std::max ((_nb_partitions/(optimism+1)), (u_int32_t)1);
-        }
 		
 		printf("nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
-
+		//_nb_partitions = max_open_files; break;
 		
-        if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
+		if (_nb_partitions >= max_open_files &&  _nb_partitions_in_parallel >1)   { _nb_partitions_in_parallel  = _nb_partitions_in_parallel /2;  }
+        else if (_nb_partitions >= max_open_files && _nb_partitions_in_parallel == 1)   { _nb_passes++;  }
         else                                    { break;         }
 
 		printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
 
+	if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
+	
+	//then put _nbCores_per_partition
+	
+	_nbCores_per_partition =  _nbCores / _nb_partitions_in_parallel ; //how to best distrib available cores ?
+	// with this formula we'll sometimes use less than _nbCores (maybe enforce _nb_partitions_in_parallel is power of two ?)
+	printf("_nbCores %zu  _nb_partitions_in_parallel %zu   _nbCores_per_partition %zu \n",_nbCores,_nb_partitions_in_parallel,_nbCores_per_partition);
+
+	assert(_nbCores_per_partition > 0);
+	
     /** We gather some statistics. */
     getInfo()->add (1, "config");
     getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);
@@ -422,7 +432,10 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     getInfo()->add (2, "nb_partitions",     "%d",  _nb_partitions);
     getInfo()->add (2, "nb_bits_per_kmer",  "%d",  Type::getSize());
     getInfo()->add (2, "nb_cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
-    getInfo()->add (2, "partition_type",    "%d",  _partitionType);
+	getInfo()->add (2, "nb_cores_per_partition",     "%d",  _nbCores_per_partition);
+    getInfo()->add (2, "nb_partitions_in_parallel",  "%d",  _nb_partitions_in_parallel);
+
+   // getInfo()->add (2, "partition_type",    "%d",  _partitionType);
 }
 
 /********************************************************************************/
@@ -445,40 +458,18 @@ public:
 	
 	
 	
-	void compact_and_insert_superkmer (//std::vector<Type> & superK,
-									   u_int64_t minimk, std::vector<Kmer *>  &superKp)
+	void compact_and_insert_superkmer ( u_int64_t minimk, std::vector<Kmer *>  &superKp)
     {
 	
 		
-	//	_local_pInfo.incSuperKmer_per_minimBin(minimk); //marche
 		
 		if ((minimk % nbPass) == pass) //check if falls into pass
 		{
 		//	u_int64_t reduced_kmer = minimk / nbPass; //opt 1 pass
 			u_int64_t reduced_kmer = minimk ;
 			
-			/** We compute in which partition this kmer falls into. */
-			//size_t p = simplehash16 (NativeInt64(reduced_kmer),0)  % nbPartitions; //ptet il faut rehasher pour meilleur repart // reduced_kmer
-
-			//use repart table here
 			
 			size_t p = _repart_table [reduced_kmer];
-			
-	//		_local_pInfo.incSuperKmer(p);
-
-			
-		//	size_t p = reduced_kmer  % nbPartitions; //ptet il faut rehasher pour meilleur repart // reduced_kmer
-
-			
-			/** We write the superkmer into the bag. */
-			//but first compact superkmer into two kmers
-			
-			//compactage here
-			
-			
-			//without compactage
-			//_partition[p].insert (superK, superK.size());
-
 			
 
 			int64_t zero = 0;
@@ -514,8 +505,6 @@ public:
 				{
 					//output kxmer size kx_size,radix_kxmer
 					//kx mer is composed of superKp[ii-1] superKp[ii-2] .. superKp[ii-n] with nb elems  n  == kxmer_size +1  (un seul kmer ==k+0)
-					Type debb;
-					
 					if(prev_which)
 					{
 						radix_kxmer = radix_kxmer_forward;
@@ -525,10 +514,6 @@ public:
 						radix_kxmer =  (superKp[ii-1]->value() & mask_radix) >> ((_kmersize - 4)*2);
 					}
 
-					//debug
-					//debb = superKp[ii-1]->value();
-					//printf("storing  kx %zu  rad %llu    kmer %s  \n",kx_size,radix_kxmer.getVal(), debb.toString(31).c_str());
-					
 					_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size ); //nb of superkmer per x per parti per radix
 
 					radix_kxmer_forward =  (superKp[ii]->value() & mask_radix) >> ((_kmersize - 4)*2);
@@ -541,10 +526,7 @@ public:
 				
 				prev_which = superKp[ii]->which() ;
 
-
-
 				compactedK = compactedK << 2  ;
-			//	compactedK = compactedK | (superK[ii] & masknt) ;
 				compactedK = compactedK | ( (superKp[ii]->forward()) & masknt) ;
 
 			}
@@ -558,10 +540,6 @@ public:
 			{
 				radix_kxmer =  (superKp.back()->value() & mask_radix) >> ((_kmersize - 4)*2);
 			}
-			
-			//debug
-			//Type debb = superKp.back()->value();
-			//printf("last storing  kx %zu  rad %llu    kmer %s  \n",kx_size,radix_kxmer.getVal(), debb.toString(31).c_str());
 			
 			_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
 
@@ -588,22 +566,14 @@ public:
     void operator() (Sequence& sequence)
     {
 		
-		//const ModelCanonical& modelmm = model.getMmersModel();
-		//debug
 
-	//	printf("Sequence %s \n",sequence.getComment().c_str());
-		
 		
 		std::vector<Kmer *>  superKp;
 		
-	//	std::vector<Type>  superK;
-	//	std::vector<Type>  superK_canonical;
-//oui cest cestte copie  vers superK_canonical qui bouffe  : faire vec avec pointeurs vers kmers[i] ?
+
 		u_int64_t prevmin = 1000000000 ;
 		int nb_superk = 1;
 		superKp.clear();
-	//	superK.clear();
-	//	superK_canonical.clear();
 
 		Type temp;
 		
@@ -614,44 +584,23 @@ public:
 
 		
 		
-		
-		
-
-		
-		
 
 
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
 
 		if(kmers.size()> 0)
 		{
-			//	prevmin  = hash1 (kmers[0].forward()); // todo remplacer par .minimizer().value()  .getVal() ?
-			//prevmin  =  mhash (kmers[0].forward(),kmers[0].revcomp(),prevmin);
-			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
-			
+			temp = kmers[0].minimizer().value(); prevmin =  kmers[0].minimizer().value().getVal() ;
 		}
 		
 
-		//
-
-		//printf("type size %i bits   max allowed nt superK %lu \n",superK[0].getSize(), (superK[0].getSize() - 8 )/2);
-	//	printf("---------------new read ------------ %i \n",kmers.size());
-		//printf("kmers size %lu \n",kmers.size());
         for (size_t i=0; i<kmers.size(); i++)
         {
 			
-			//            _partition[p].insert (kmers[i].value());
-			//get minimizer here
 			u_int64_t h = prevmin;
-			//h = mhash (kmers[i].forward(),kmers[i].revcomp(),h);
+
 			temp = kmers[i].minimizer().value(); h = temp.getVal();
 
-			//printf("kmer %s minim %s \n",kmers[i].value().toString(31).c_str(),	modelmm.toString(kmers[i].minimizer().value()).c_str());
-
-			
-			//u_int64_t h = oahash (kmers[i].value());
-			
-			//printf("minim %lu \n",h);
 			
 			if(h!= prevmin || superKp.size() >= maxs) //use kmers[i].hasChanged()
 			{
@@ -659,22 +608,13 @@ public:
 				
 				compact_and_insert_superkmer( prevmin,superKp);
 				
-				//superK_canonical.clear(); superK_canonical.push_back(kmers[i].value()); //ptet eviter copie en prenant * vers kmers[i] directement
- 				//superK.clear();superK.push_back(kmers[i].forward());
 				superKp.clear(); superKp.push_back( & (kmers[i]));
 			}
 			else
 			{
-			//	superK.push_back(kmers[i].forward());
-			//	superK_canonical.push_back(kmers[i].value());
 				superKp.push_back( & (kmers[i]));
-
 			}
-			
-			
-			//printf("%s \n",kmers[i].toString(31).c_str());
-			//
-			
+
 			prevmin =  h;
 			
         }
@@ -682,23 +622,15 @@ public:
 		//output last superK
 		compact_and_insert_superkmer( prevmin,superKp);
 
-		
-		
-		
-
-		
-		
-	//	printf ("nb_superk %i \n",nb_superk);
-		
         if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
     }
 
 
-    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress, unsigned int * repart_table, int minim_size, PartiInfo<2> & pInfo)
+    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress, unsigned int * repart_table, int minim_size, PartiInfo<5> & pInfo)
 	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _repart_table (repart_table),_mm(minim_size),
 
       _partition (*partition,1<<12,0), _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,_mm), _kmersize(model.getKmerSize()),
-	_progress  (progress,System::thread().newSynchronizer()) ,_kx(1)  {
+	_progress  (progress,System::thread().newSynchronizer()) ,_kx(4)  {
 	}
 
 	 ~FillPartitions ()
@@ -721,8 +653,8 @@ private:
 	unsigned int * _repart_table;
 	int _mm;
 	int _kmersize;
-	PartiInfo<2> & _extern_pInfo;
-	PartiInfo<2>  _local_pInfo;
+	PartiInfo<5> & _extern_pInfo;
+	PartiInfo<5>  _local_pInfo;
 	
     /** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
 #ifdef PROTO_COMP
@@ -773,7 +705,7 @@ public:
 		
 		if(kmers.size()> 0)
 		{
-			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;// & maskm;
+			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
 			
 		}
 		
@@ -785,24 +717,22 @@ public:
 
 			if(h!= prevmin || superk_size >= maxs) //use kmers[i].hasChanged()
 			{
-				//_binsize[prevmin] ++; //record number of superkmers per bin
-				_local_pInfo.incSuperKmer_per_minimBin(prevmin);
-				// __sync_fetch_and_add (_binsize+prevmin, 1);
+				if ((prevmin % nbPass) == pass)
+					_local_pInfo.incSuperKmer_per_minimBin(prevmin);
+				
 				superk_size =1;
 			}
 			else
 			{
 				superk_size ++;
-
 			}
 			
 			prevmin =  h;
 			
         }
-		_local_pInfo.incSuperKmer_per_minimBin(prevmin);
+		if ((prevmin % nbPass) == pass)
+			_local_pInfo.incSuperKmer_per_minimBin(prevmin);
 		
-	//	__sync_fetch_and_add (_binsize+prevmin, 1);
-		//_binsize[prevmin] ++;
 
 		nbseqread++;
 		
@@ -812,7 +742,7 @@ public:
     }
 	
 	
-	SampleRepart (Model& model, size_t nbPasses, size_t currentPass, int nbparti, u_int32_t max_memory, IteratorListener* progress, int minim_size, PartiInfo<2> & pInfo)
+	SampleRepart (Model& model, size_t nbPasses, size_t currentPass, int nbparti, u_int32_t max_memory, IteratorListener* progress, int minim_size, PartiInfo<5> & pInfo)
 	: model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(nbparti), nbseqread(0), _mm(minim_size),
 	 _extern_pInfo(pInfo) , _local_pInfo(nbparti,minim_size),
 	_progress  (progress,System::thread().newSynchronizer())
@@ -838,8 +768,8 @@ private:
 	Data      binaryData;
     vector<Kmer> kmers;
 
-	PartiInfo<2> & _extern_pInfo;
-	PartiInfo<2>  _local_pInfo;
+	PartiInfo<5> & _extern_pInfo;
+	PartiInfo<5>  _local_pInfo;
 	
 	int _mm;
 
@@ -958,7 +888,7 @@ public:
 		return _repart_table;
 	}
 	
-	Repartitor(int nbpart, int minimsize,PartiInfo<2> & pInfo) : _nbpart(nbpart), _mm(minimsize), _extern_pInfo(pInfo)
+	Repartitor(int nbpart, int minimsize,PartiInfo<5> & pInfo) : _nbpart(nbpart), _mm(minimsize), _extern_pInfo(pInfo)
 	{
 		_repart_table = NULL;
 	}
@@ -969,7 +899,7 @@ private:
 	
 	unsigned int * _repart_table ;
 	int * _space_left ;
-	PartiInfo<2> & _extern_pInfo;
+	PartiInfo<5> & _extern_pInfo;
 
 	int _nbpart;
 	int _mm;
@@ -987,7 +917,7 @@ private:
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo<2> * pInfo)
+void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo<5> * pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_partitions");
 
@@ -995,15 +925,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     /** We create a kmer model. */
 	Model model (_kmerSize,7 , CustomMinimizer(7)); //minimsize here et ailleurs
-	//Model model (_kmerSize,7 );
 	
 	int mmsize = model.getMmersModel().getKmerSize();
 	
-	
-	//Model model (_kmerSize);
-	//g_msize =  8;
-	
-	printf(" k / m   %zu  mmsize %i\n",_kmerSize,mmsize);
+	//printf(" k / m   %zu  mmsize %i\n",_kmerSize,mmsize);
 	
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
@@ -1018,10 +943,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     
 	setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
 
-	//ici changer le type en suprkmer ? mais ca donne aussi type lecture pour iterablefile
     setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
-	//getparti --> _factory->createPartition  --> new partition --> n new  create collec
-	//Type here  =     typedef typename Kmer<span>::Type  Type;  ?
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
@@ -1029,32 +951,25 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We launch the iteration of the sequences iterator with the created functors. */
     // R to E: typical question from a puzzled developer: what's this last argument of iterate() (15*1000)? so to answer this, I need to find the definition of iterate(), where is it? maybe to answer this, where does getDispatcher come from? any way we could search http://gatb-core.gforge.inria.fr/ to quickly find out?
 	
-	//int nbpart =_partitions->size();
-	//u_int64_t _nb_minims =   1 << (mmsize*2) ;
-	//int * binsize = ( int *)  calloc(_nb_minims , sizeof(unsigned int));
 
 
 	TruncateIterator<Sequence> it_sample (*itSeq, 1000000); //sample with first 5  million reads ? //mettre max de nb reads, 5M reads,  10 % des reads ?
 
 	//fill bin sizes here
-	printf("Sample superkmers per  bin  \n");
 	
-	PartiInfo<2> * sample_info = new PartiInfo<2>(_nb_partitions,mmsize);
+	PartiInfo<5> * sample_info = new PartiInfo<5>(_nb_partitions,mmsize);
 	
 	gatb::core::tools::dp::IteratorListener* _progress_sample = createIteratorListener (1000000, "Collecting stats on read sample");
 	_progress_sample->init();
     getDispatcher()->iterate (it_sample,  SampleRepart<span> (model, _nb_passes, pass,_nb_partitions, _max_memory, _progress_sample,mmsize,*pInfo), 15*1000);
 	_progress_sample->finish();
 
-	//compute the repart table
-	printf("Compute bin merging \n");
-
 	
 	Repartitor repartitor (_partitions->size(),mmsize,*pInfo);
 
 	repartitor.computeDistrib();
 
-	
+
 	//repartitor.getRepartTable()
     getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _max_memory, _progress,repartitor.getRepartTable(),mmsize,*pInfo), 15*1000);
 	
@@ -1078,7 +993,7 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 
     for (size_t p=0; p<_nb_partitions; )
     {
-        size_t i=0;  for (i=0; i<_nbCores && p<_nb_partitions; i++, p++)  {} // forcer 2 thread max ici pour nb parti simult  _nbCores
+        size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions; i++, p++)  {} 
         result.push_back (i);
     }
 
@@ -1094,7 +1009,7 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, PartiInfo<2> * pInfo)
+void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, PartiInfo<5> * pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
@@ -1106,10 +1021,10 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
     /** We retrieve the list of cores number for dispatching N partitions in N threads.
      *  We need to know these numbers for allocating the N maps according to the maximum allowed memory.
      */
-    vector<size_t> coreList = getNbCoresList();
+    vector<size_t> coreList = getNbCoresList(); //uses _nb_partitions_in_parallel
 
 	//for serial mode
-	SerialDispatcher * sd  = new SerialDispatcher();
+	//SerialDispatcher * sd  = new SerialDispatcher();
 	
     size_t p = 0;
     for (size_t i=0; i<coreList.size(); i++)
@@ -1120,7 +1035,6 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
         size_t currentNbCores = coreList[i];
         assert (currentNbCores > 0);
 
-		//currentNbCores = 1 ;
         /** We correct the number of memory per map according to the max allowed memory.
          * Note that _max_memory has initially been divided by the user provided cores number. */
         u_int64_t mem = (_max_memory*MBYTE)/currentNbCores;
@@ -1138,20 +1052,19 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
             /* Get the memory taken by this partition if loaded for sorting */
             uint64_t memoryPartition = partitionLen * sizeof(Type);
 
-			//testing, forcing by vector
+			//only use by vector now
 //            if (memoryPartition >= mem)
 //            {
 //                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem);
 //            }
 //            else
             {
-                cmd = new PartitionsByVectorCommand<span> (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress,pInfo,p,_nbCores, _kmerSize);
+                cmd = new PartitionsByVectorCommand<span> (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress,pInfo,p,_nbCores_per_partition, _kmerSize);
             }
 
             cmds.push_back (cmd);
         }
 
-		//sd->dispatchCommands (cmds, 0);
         getDispatcher()->dispatchCommands (cmds, 0);
 
     }
