@@ -406,7 +406,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 		printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
 
-	if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
+	//if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
 	
 	//then put _nbCores_per_partition
 	
@@ -475,8 +475,7 @@ public:
 			int64_t zero = 0;
 			Type masknt ((int64_t) 3);
 			
-			Type mask_radix ((int64_t) 255);
-			mask_radix =  mask_radix << ((_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
+
 			Type radix, radix_kxmer_forward ,radix_kxmer ;
 			
 			Type nbK ((int64_t) superKp.size());
@@ -493,7 +492,7 @@ public:
 			bool prev_which = superKp[0]->which();
 			size_t kx_size =0;
 			
-			radix_kxmer_forward =  (superKp[0]->value() & mask_radix) >> ((_kmersize - 4)*2);
+			radix_kxmer_forward =  (superKp[0]->value() & _mask_radix) >> ((_kmersize - 4)*2);
 
 			for (int ii = 1 ; ii <superKp.size(); ii++) {
 				//printf("K%i %s      \n",ii,superK[ii].toString(31).c_str());
@@ -511,12 +510,12 @@ public:
 					}
 					else // si revcomp, le radix du kxmer est le debut du dernier kmer
 					{
-						radix_kxmer =  (superKp[ii-1]->value() & mask_radix) >> ((_kmersize - 4)*2);
+						radix_kxmer =  (superKp[ii-1]->value() & _mask_radix) >> ((_kmersize - 4)*2);
 					}
 
 					_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size ); //nb of superkmer per x per parti per radix
 
-					radix_kxmer_forward =  (superKp[ii]->value() & mask_radix) >> ((_kmersize - 4)*2);
+					radix_kxmer_forward =  (superKp[ii]->value() & _mask_radix) >> ((_kmersize - 4)*2);
 					kx_size =0;
 				}
 				else
@@ -538,7 +537,7 @@ public:
 			}
 			else // si revcomp, le radix du kxmer est le debut du dernier kmer
 			{
-				radix_kxmer =  (superKp.back()->value() & mask_radix) >> ((_kmersize - 4)*2);
+				radix_kxmer =  (superKp.back()->value() & _mask_radix) >> ((_kmersize - 4)*2);
 			}
 			
 			_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
@@ -590,7 +589,7 @@ public:
 
 		if(kmers.size()> 0)
 		{
-			temp = kmers[0].minimizer().value(); prevmin =  kmers[0].minimizer().value().getVal() ;
+			 prevmin =  kmers[0].minimizer().value().getVal() ;
 		}
 		
 
@@ -599,7 +598,7 @@ public:
 			
 			u_int64_t h = prevmin;
 
-			temp = kmers[i].minimizer().value(); h = temp.getVal();
+		    h =  kmers[i].minimizer().value().getVal();
 
 			
 			if(h!= prevmin || superKp.size() >= maxs) //use kmers[i].hasChanged()
@@ -631,6 +630,10 @@ public:
 
       _partition (*partition,1<<12,0), _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,_mm), _kmersize(model.getKmerSize()),
 	_progress  (progress,System::thread().newSynchronizer()) ,_kx(4)  {
+		
+		_mask_radix =  (int64_t) 255 ;
+		_mask_radix =  _mask_radix << ((_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
+
 	}
 
 	 ~FillPartitions ()
@@ -641,6 +644,8 @@ public:
 	}
 private:
 
+	Type _mask_radix;
+	
     /** Local resources. */
     Model&    model;
     size_t    pass;

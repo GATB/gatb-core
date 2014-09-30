@@ -85,12 +85,12 @@ public:
 		
 		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
 		{
-			typename Kmer<span>::Type curr = current;
-			typename Kmer<span>::Type opt  = optimum;
+		//	typename Kmer<span>::Type curr = current;
+		//	typename Kmer<span>::Type opt  = optimum;
 			
 
-			u_int64_t a = curr.getVal() ;
-			u_int64_t b = opt.getVal() ;
+			u_int64_t a = current.getVal() ;
+			u_int64_t b = optimum.getVal() ;
 			
 			
 			// test 3 consecutive identical nt
@@ -118,6 +118,7 @@ public:
 
 			
 			return (a<b);
+			//return (current<optimum);
 			
 		}
 		
