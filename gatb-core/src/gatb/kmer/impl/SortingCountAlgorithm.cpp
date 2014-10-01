@@ -908,16 +908,20 @@ public:
 		//or todo  dynamic nb_partitions_in_parralel
 		if(_nbpart> 30)
 		{
-			int second_goto = _nbpart-1;
-			int fourth_goto = _nbpart-5;
+			int second_goto =   _nbpart-1;
+			int fourth_goto =   _nbpart-5;
+
 			
 			for(int ii=0; ii<_nb_minims; ii++ )
 				{
 					if(_repart_table[ii]== 1 ) _repart_table[ii]= second_goto;
-					if(_repart_table[ii]== 3 ) _repart_table[ii]= fourth_goto;
-					if(_repart_table[ii]== second_goto ) _repart_table[ii]= 1;
-					if(_repart_table[ii]== fourth_goto ) _repart_table[ii]= 3;
+					else if(_repart_table[ii]== 3 ) _repart_table[ii]= fourth_goto;
+					else if(_repart_table[ii]== second_goto ) _repart_table[ii]= 1;
+					else if(_repart_table[ii]== fourth_goto ) _repart_table[ii]= 3;
 				}
+			
+			
+			
 			
 
 		}
