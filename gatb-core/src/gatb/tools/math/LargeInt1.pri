@@ -62,6 +62,9 @@ public:
     LargeInt<1>& operator+=  (const LargeInt<1>& other)    {  value[0] += other.value[0]; return *this; }
     LargeInt<1>& operator^=  (const LargeInt<1>& other)    {  value[0] ^= other.value[0]; return *this; }
 
+    LargeInt<1>& operator<<=  (const int& coeff)  { value[0] <<= coeff; return *this; } 
+    LargeInt<1>& operator>>=  (const int& coeff)  { value[0] >>= coeff; return *this; }
+
     u_int8_t  operator[]  (size_t idx) const   {  return (value[0] >> (2*idx)) & 3; }
 
     /********************************************************************************/
