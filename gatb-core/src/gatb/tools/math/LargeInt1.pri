@@ -117,23 +117,24 @@ public:
         return seq;
     }
 
-    
-	
-	
-
-	
-	
     /********************************************************************************/
     inline static u_int64_t revcomp64 (const u_int64_t& x, size_t sizeKmer)
     {
         u_int64_t res = x;
 
-        unsigned char* kmerrev  = (unsigned char *) (&(res));
-        unsigned char* kmer     = (unsigned char *) (&(x));
+        // OLD VERSION (with lookup table)
+        // unsigned char* kmerrev  = (unsigned char *) (&(res));
+        // unsigned char* kmer     = (unsigned char *) (&(x));
+        // for (size_t i=0; i<8; ++i)  {  kmerrev[8-1-i] = revcomp_4NT [kmer[i]];  }
 
-        for (size_t i=0; i<8; ++i)  {  kmerrev[8-1-i] = revcomp_4NT [kmer[i]];  }
-
-        return (res >> (2*( 32 - sizeKmer))) ;
+        res = ((res>> 2 & 0x3333333333333333) | (res & 0x3333333333333333) <<  2);
+        res = ((res>> 4 & 0x0F0F0F0F0F0F0F0F) | (res & 0x0F0F0F0F0F0F0F0F) <<  4);
+        res = ((res>> 8 & 0x00FF00FF00FF00FF) | (res & 0x00FF00FF00FF00FF) <<  8);
+        res = ((res>>16 & 0x0000FFFF0000FFFF) | (res & 0x0000FFFF0000FFFF) << 16);
+        res = ((res>>32 & 0x00000000FFFFFFFF) | (res & 0x00000000FFFFFFFF) << 32);
+        res = res ^ 0xAAAAAAAAAAAAAAAA;
+        
+        return (res >> (2*(32-sizeKmer))) ;
     }
 
     /********************************************************************************/
@@ -166,137 +167,8 @@ public:
         return code;
     }
 
-	inline static bool comp_less_minimizer (u_int64_t a, u_int64_t b)
-	{
-		
-	/*	bool res = false;
-		
 
-		u_int64_t * freqm = system::freq_mmer;
-		
-		//2 revcomp, couteux
-		u_int64_t ca = std::min ( NativeInt64::revcomp8(a,mm), a); // revcomp8 version optim revcomp 8nt max
-		u_int64_t cb = std::min ( NativeInt64::revcomp8(b,mm), b);
-		
-		if (freqm[ca] < freqm[cb]   ||
-			( (freqm[ca] == freqm[cb]) && (a < b) )
-			)
-			res = true;
-		return res;
-		*/
-		
 
- //todo faire e nsorte que pas trop couteux
-		
-		int mm =  7 ;
-//		u_int64_t  bmax =  1 << (mm*2);
-//		u_int64_t  mask_aaa = 63 <<  ((mm-3)*2);
-//		u_int64_t  aca_pattern = 4 <<  ((mm-3)*2);
-//		u_int64_t  mask_2nt = 15 ;
-		u_int64_t  mask_0101 = 0x5555555555555555 ;
-		u_int64_t  mmask_m1 =  (1 << ((mm-2)*2)) -1 ; // - (tai nt -1 )
-		
-// le -1 marchait pas mal aussi
-		//		u_int64_t  mmask_m1 =  (1 << ((mm-1)*2)) -1 ;  // eleime les AA*, AAA*, AAAA*, remplacereai AAA*
-
-		
-		//detect 2 a somewhere inside, except at beginning
-//		for (int ii=0; ii<=  (mm-3); ii++) {
-//			if(( (a>>(ii*2)) & mask_2nt ) == 0) return false;
-//		}
-		
-////
-//		if(( a & mask_aaa ) == 0) return false; //a+=bmax;//
-//		if(( a & mask_aaa ) == aca_pattern) return false; //a+=bmax;//
-
-		
-	
-		u_int64_t a1 = a >>2 ;
-		u_int64_t a2 = a >>4 ;
-	//	u_int64_t a3 = a >>6 ;
-		//u_int64_t a4 = a >>8;
-		
-		
-		a1 = (~(a ^ a1)) &  (~ (a ^ a2)) ;//  &  (~ (a ^ a3)) ;//   &  (~ (a ^ a4)); //4nt
-
-		a1 =  ((a1 >>1) & a1) & mask_0101 & mmask_m1 ;
-		
-		if(a1 != 0) return false;
-	
-		
-		//pour minim standard :
-		//if(a < 255)  return false;  //255 :  AA..AA puis 4 nt
-		return (a<b);
-	}
-
-	
-	/********************************************************************************/
-    inline static u_int64_t mhash64 (u_int64_t forw,u_int64_t rev,   u_int64_t prevmin)
-    {
-		/*
-		printf("call to mhash \n");
-		u_int64_t res ;
-		int ks = system::g_ksize;
-		int mm = system::g_msize;
-		u_int64_t * freqm = system::freq_mmer;
-		u_int64_t maskm = (1<<(2*mm)) - 1;
-		
-		u_int64_t maskms = (1<<(2*(mm-1))) - 1;
-		
-		
-		int dec = 2*(ks- (mm-1)); // m-1 suffix
-		u_int64_t  f_sortant = (forw >> dec ) & maskms; // on a plus le sortant en fait, juste son m-1 suffixe
-		u_int64_t  f_new = forw & maskm;
-		
-		u_int64_t  r_sortant = rev & maskms; //prefix du sortant
-		u_int64_t  r_new = (rev >> (2*(ks- (mm))) ) & maskm;
-		
-		
-		
-		// 1000000000 == non init, debut seq
-		if(f_sortant== (prevmin & maskms) ||  r_sortant== ((prevmin >>2) & maskms)  || prevmin == 1000000000 ) // peut etre il est sorti; on recalc tout
-		{
-			u_int64_t minim = maskm; // init with max val
-			
-		//	minim = f_new; // init avec le premier // non si chgt ordre ou filtrage le premier peut etre interdit
-			for (int i = 0; i <  (1+(ks *2)- 2*mm );i+=2 )
-			{
-				u_int64_t	 newm = (forw >> i) & maskm;
-				if (comp_less_minimizer(newm,minim )  ) minim = newm;
-			}
-			
-			for (int i = 0; i <  (1+(ks *2)- 2*mm );i+=2 )
-			{
-				u_int64_t	 newm = (rev >> i) & maskm;
-				if (comp_less_minimizer(newm,minim )  ) minim = newm;
-			}
-			
-			res = minim;
-			
-		}
-		else //juste besoin comparer aux  2 minim entrant
-		{
-			res = prevmin;
-			
-//			u_int64_t minim = r_new;
-//			if (comp_less_minimizer(f_new,r_new )  )
-//				minim = f_new;
-//			if (comp_less_minimizer(minim,res )  )
-//				res = minim;
-			
-			if (comp_less_minimizer(r_new,res )  )
-				res = r_new;
-			
-			if (comp_less_minimizer(f_new,res )  )
-				res = f_new;
-			
-		}
-		
-		return res;
-*/
-		return prevmin;
-    }
-	
     /********************************************************************************/
     /** computes a simple, naive hash using only 16 bits from input key
      * \param[shift] in : selects which of the input byte will be used for hash computation

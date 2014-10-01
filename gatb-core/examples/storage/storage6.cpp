@@ -18,25 +18,33 @@ using namespace std;
 int main (int argc, char* argv[])
 {
     // We check that the user provides a graph URL (supposed to be in HDF5 format).
-    if (argc < 2)
+    if (argc < 3)
     {
-        std::cerr << "You must provide a HDF5 file." << std::endl;
+        std::cerr << "You must provide the following." << std::endl;
+        std::cerr << "  1) HDF5 file" << std::endl;
+        std::cerr << "  2) 1 (display kmers) or 0 (no display)" << std::endl;
+
         return EXIT_FAILURE;
     }
+
+    bool display = atoi (argv[2]);
 
     // We get a handle on the HDF5 storage object.
     // Note that we use an auto pointer since the StorageFactory dynamically allocates an instance
     auto_ptr<Storage> storage (StorageFactory(STORAGE_HDF5).load (argv[1]));
 
+    // We get the group for dsk
+    Group& dskGroup = storage->getGroup("dsk");
+
     // We get the solid kmers collection 1) from the 'dsk' group  2) from the 'solid' collection
-    Collection<Kmer<>::Count>& solidKmers = storage->getGroup("dsk").getCollection<Kmer<>::Count> ("solid");
+    Collection<Kmer<>::Count>& solidKmers = dskGroup.getCollection<Kmer<>::Count> ("solid");
 
     // We can retrieve information (as an XML string) about the construction of the solid kmers
-    cout << solidKmers.getProperty("properties") << endl;
+    cout << dskGroup.getProperty("xml") << endl;
 
     // We can access each of these information through a Properties object
     Properties props;
-    props.readXML (solidKmers.getProperty("properties"));
+    props.readXML (dskGroup.getProperty("xml"));
 
     // Now, we can for instance get the kmer size (as an integer)
     cout << "kmer size:      " << props.getInt ("kmer_size")      << endl;
@@ -52,17 +60,27 @@ int main (int argc, char* argv[])
     Iterator<Kmer<>::Count>* iter = solidKmers.iterator();
     LOCAL (iter);
 
+    Kmer<>::Type checksum;
+
     // We iterate the solid kmers from the retrieved collection
     for (iter->first(); !iter->isDone(); iter->next())
     {
         // shortcut
         Kmer<>::Count& count = iter->item();
 
+        // We update the checksum.
+        checksum += count.value;
+
         // We dump the solid kmer information:
         //   1) nucleotides
         //   2) raw value (integer)
         //   3) abundance
-        cout << "[" << ++nbKmers << "]  " << model.toString(count.value) << "  " << count.value << "  "  << count.abundance << endl;
+        if (display)
+        {
+            cout << "[" << ++nbKmers << "]  " << model.toString(count.value) << "  " << count.value << "  "  << count.abundance << endl;
+        }
     }
+
+    cout << "kmer checksum:  " << checksum << endl;
 }
 //! [snippet1]

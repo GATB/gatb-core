@@ -576,7 +576,6 @@ public:
 
 		Type temp;
 		
-		
 
 		
 		int maxs = (temp.getSize() - _mm )/2 ;
@@ -596,6 +595,8 @@ public:
         for (size_t i=0; i<kmers.size(); i++)
         {
 			
+			if (kmers[i].isValid() == false)  { continue; }
+
 			u_int64_t h = prevmin;
 
 		    h =  kmers[i].minimizer().value().getVal();

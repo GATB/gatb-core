@@ -75,6 +75,7 @@ class TestKmer : public Test
         CPPUNIT_TEST_GATB (kmer_build);
         CPPUNIT_TEST_GATB (kmer_minimizer);
         CPPUNIT_TEST_GATB (kmer_minimizer2);
+        CPPUNIT_TEST_GATB (kmer_badchar);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -399,6 +400,72 @@ public:
             kmer = model.codeSeedRight (kmer, *(seq++), Data::ASCII);
             CHECK (idx);
         }
+    }
+
+    /********************************************************************************/
+
+    typedef Kmer<KSIZE_1>::ModelDirect  ModelDirect;
+
+    struct kmer_badchar_info
+    {
+        const char* kmer;
+        bool        valid;
+    };
+
+    struct kmer_badchar_functor
+    {
+        const ModelDirect& model;
+        kmer_badchar_info* table;
+        size_t             length;
+
+        kmer_badchar_functor (const ModelDirect& model, kmer_badchar_info* table, size_t length) : model(model), table(table), length(length) {}
+
+        void operator() (const ModelDirect::Kmer& kmer, size_t idx)
+        {
+            CPPUNIT_ASSERT (kmer.isValid() == table[idx].valid);
+
+            if (kmer.isValid())
+            {
+                CPPUNIT_ASSERT (model.toString(kmer.value()) == table[idx].kmer);
+            }
+            else
+            {
+                // Bad nucleotides should have replaced N by G
+                string modif (table[idx].kmer);
+                for (size_t i=0; i<modif.size(); i++)  { if (modif[i]=='N') { modif[i]='G'; }}
+                CPPUNIT_ASSERT (model.toString(kmer.value()) == modif);
+            }
+        }
+    };
+
+    /** */
+    void kmer_badchar (void)
+    {
+        typedef Kmer<KSIZE_1>::ModelDirect  ModelDirect;
+
+        size_t kmerSize = 11;
+        ModelDirect model (kmerSize);
+
+        const char* seq = "ACGNCNTGCTAGCTATTTAGCTTTAGANAGTAGATGACGCNC";
+
+        kmer_badchar_info info[] =
+        {
+            {"ACGNCNTGCTA", false}, {"CGNCNTGCTAG", false}, {"GNCNTGCTAGC", false}, {"NCNTGCTAGCT", false},
+            {"CNTGCTAGCTA", false}, {"NTGCTAGCTAT", false}, {"TGCTAGCTATT", true }, {"GCTAGCTATTT", true },
+            {"CTAGCTATTTA", true }, {"TAGCTATTTAG", true }, {"AGCTATTTAGC", true }, {"GCTATTTAGCT", true },
+            {"CTATTTAGCTT", true }, {"TATTTAGCTTT", true }, {"ATTTAGCTTTA", true }, {"TTTAGCTTTAG", true },
+            {"TTAGCTTTAGA", true }, {"TAGCTTTAGAN", false}, {"AGCTTTAGANA", false}, {"GCTTTAGANAG", false},
+            {"CTTTAGANAGT", false}, {"TTTAGANAGTA", false}, {"TTAGANAGTAG", false}, {"TAGANAGTAGA", false},
+            {"AGANAGTAGAT", false}, {"GANAGTAGATG", false}, {"ANAGTAGATGA", false}, {"NAGTAGATGAC", false},
+            {"AGTAGATGACG", true }, {"GTAGATGACGC", true }, {"TAGATGACGCN", false}, {"AGATGACGCNC", false}
+        };
+
+        Data data (Data::ASCII);
+        data.set ((char*)seq, strlen(seq));
+
+        kmer_badchar_functor fct (model, info, ARRAY_SIZE(info));
+
+        model.iterate (data, fct);
     }
 };
 

@@ -11,12 +11,15 @@ add_definitions (${gatb-core-flags})
 
 include_directories (${gatb-core-includes})
 
+# We add the path for extra libraries
+link_directories (${gatb-core-extra-libraries-path})
+
 file (GLOB_RECURSE  PROGRAMS_FILES  *.cpp)
 
 file (GLOB_RECURSE  PROGRAMS_FILES_EXTRA  
     bank13.cpp 
     debruijn7.cpp debruijn18.cpp debruijn19.cpp debruijn20.cpp debruijn21.cpp debruijn22.cpp debruijn23.cpp
-    kmer5.cpp
+    kmer5.cpp kmer8.cpp
     storage4.cpp 
     multithreading2.cpp  multithreading4.cpp  multithreading5.cpp  multithreading6.cpp
     ToyTool.cpp  
