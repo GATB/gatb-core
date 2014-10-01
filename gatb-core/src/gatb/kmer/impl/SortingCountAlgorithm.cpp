@@ -259,10 +259,11 @@ void SortingCountAlgorithm<span>::execute ()
     LOCAL (itSeq);
 
     /** We configure the progress bar. */
+	printf("progress inited with %lli (vol %lli) ", 2 * _volume * MBYTE / sizeof(Type),_volume);
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
     _progress->init ();
 
-	PartiInfo<5> * pInfo = new PartiInfo<5>(_nb_partitions, 7); //minimsize here et ailleurs
+	PartiInfo<5> * pInfo = new PartiInfo<5>(_nb_partitions, 8); //minimsize here et ailleurs
 	
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -362,6 +363,9 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
 
     _volume =  kmersNb * sizeof(Type) / MBYTE;  // in MBytes
+	
+	if (_volume == 0)   { _volume = 1; }    // tiny files fix
+
 	 u_int64_t volume_minim = _volume * 0.5 *1.2 ; //0.5 for using kxmers   1.2 if bad repartition of minimizers ( todo sampling to assert ram usage)
 	
 	
@@ -406,7 +410,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 		printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
 
-	//if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
+	if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
 	
 	//then put _nbCores_per_partition
 	
@@ -463,7 +467,7 @@ public:
 	
 		
 		
-		if ((minimk % nbPass) == pass) //check if falls into pass
+		if ((minimk % nbPass) == pass && minimk!=1000000000 ) //check if falls into pass
 		{
 		//	u_int64_t reduced_kmer = minimk / nbPass; //opt 1 pass
 			u_int64_t reduced_kmer = minimk ;
@@ -586,23 +590,29 @@ public:
 
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
 
-		if(kmers.size()> 0)
-		{
-			 prevmin =  kmers[0].minimizer().value().getVal() ;
-		}
+//		if(kmers.size()> 0)
+//		{
+//			 prevmin =  kmers[0].minimizer().value().getVal() ;
+//		}
 		
 
         for (size_t i=0; i<kmers.size(); i++)
         {
 			
-			if (kmers[i].isValid() == false)  { continue; }
+			if (kmers[i].isValid() == false)  {
+				
+			//on onvalid kmer : output previous superk utput prev
+				compact_and_insert_superkmer( prevmin,superKp); superKp.clear();
+				prevmin = 1000000000; //marking will have to restart 'from new'
+				continue;
+			
+			}
 
-			u_int64_t h = prevmin;
-
-		    h =  kmers[i].minimizer().value().getVal();
+			u_int64_t h =  kmers[i].minimizer().value().getVal();
+			if(prevmin == 1000000000) prevmin= h;
 
 			
-			if(h!= prevmin || superKp.size() >= maxs) //use kmers[i].hasChanged()
+			if(   h!= prevmin || superKp.size() >= maxs) //could use (kmers[i].hasChanged() && i > 0
 			{
 				nb_superk ++;
 				
@@ -701,27 +711,41 @@ public:
 		//printf("Sample Sequence %s _binsize %p \n",sequence.getComment().c_str(),_binsize);
 		
 		
-		u_int64_t prevmin = 1000000000 ;
+		u_int64_t prevmin = 1000000000 ; //invalid mark
 		
 		int superk_size =0;
 		Type temp;
 		int maxs = (temp.getSize() - _mm )/2 ;
 		
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
-		
-		if(kmers.size()> 0)
-		{
-			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
-			
-		}
-		
+//		
+//		if(kmers.size()> 0)
+//		{
+//			temp = kmers[0].minimizer().value(); prevmin = temp.getVal() ;
+//			
+//		}
+//		
 
         for (size_t i=0; i<kmers.size(); i++)
         {
-			u_int64_t h = prevmin;
-			temp = kmers[i].minimizer().value(); h = temp.getVal();
+			
+			if (kmers[i].isValid() == false)  {
+				
+				//count previous
+				if ((prevmin % nbPass) == pass && prevmin!=1000000000)
+					_local_pInfo.incSuperKmer_per_minimBin(prevmin);
+				
+	
+				
+				prevmin=1000000000; continue;
+			
+			}
 
-			if(h!= prevmin || superk_size >= maxs) //use kmers[i].hasChanged()
+			
+			u_int64_t h = kmers[i].minimizer().value().getVal();
+			if(prevmin == 1000000000) prevmin= h;
+
+			if(  h!= prevmin  || superk_size >= maxs)
 			{
 				if ((prevmin % nbPass) == pass)
 					_local_pInfo.incSuperKmer_per_minimBin(prevmin);
@@ -736,7 +760,7 @@ public:
 			prevmin =  h;
 			
         }
-		if ((prevmin % nbPass) == pass)
+		if ((prevmin % nbPass) == pass && prevmin!=1000000000)
 			_local_pInfo.incSuperKmer_per_minimBin(prevmin);
 		
 
@@ -801,7 +825,7 @@ public:
 	
 	void computeDistrib ()
 	{
-		u_int64_t _nb_minims =   1 << (_mm*2) ; // todo put here minim size form model
+		u_int64_t _nb_minims =   1 << (_mm*2) ;
 		_repart_table = (unsigned int *)  calloc(_nb_minims , sizeof(unsigned int));
 		
 		_space_left = ( int *)  calloc(_nbpart, sizeof(unsigned int));
@@ -810,6 +834,7 @@ public:
 		
 		
 		
+		//sum total bins size
 		u_int64_t sumsizes =0;
 		for (int ii=0; ii< _nb_minims; ii++) {
 			sumsizes +=   _extern_pInfo.getNbSuperKmer_per_minim(ii); // _binsize[ii];
@@ -856,6 +881,9 @@ public:
 			
 		}
 		
+		
+
+		
 		//debug info
 		//		for(int ii=0; ii<_nbpart; ii++ )
 		//		{
@@ -872,6 +900,28 @@ public:
 				_repart_table[bin_size_vec[ii].second] = simplehash16 (NativeInt64(ii),0)  % _nbpart;
 			}
 		}
+		
+		
+		
+		//swap second with last
+		//swap 3rd with n-5   : idea : when parall several parti, parti 0,1,2 are potentially the largest, scatter them
+		//or todo  dynamic nb_partitions_in_parralel
+		if(_nbpart> 30)
+		{
+			int second_goto = _nbpart-1;
+			int fourth_goto = _nbpart-5;
+			
+			for(int ii=0; ii<_nb_minims; ii++ )
+				{
+					if(_repart_table[ii]== 1 ) _repart_table[ii]= second_goto;
+					if(_repart_table[ii]== 3 ) _repart_table[ii]= fourth_goto;
+					if(_repart_table[ii]== second_goto ) _repart_table[ii]= 1;
+					if(_repart_table[ii]== fourth_goto ) _repart_table[ii]= 3;
+				}
+			
+
+		}
+		
 		
 		
 		//debug info
@@ -930,7 +980,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
-	Model model (_kmerSize,7 , CustomMinimizer(7)); //minimsize here et ailleurs
+	Model model (_kmerSize,8 , CustomMinimizer(8)); //minimsize here et ailleurs
 	
 	int mmsize = model.getMmersModel().getKmerSize();
 	
@@ -959,13 +1009,13 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 	
 
 
-	TruncateIterator<Sequence> it_sample (*itSeq, 1000000); //sample with first 5  million reads ? //mettre max de nb reads, 5M reads,  10 % des reads ?
+	TruncateIterator<Sequence> it_sample (*itSeq, 10000000); //sample with first 5  million reads ? //mettre max de nb reads, 5M reads,  10 % des reads ?
 
 	//fill bin sizes here
 	
 	PartiInfo<5> * sample_info = new PartiInfo<5>(_nb_partitions,mmsize);
 	
-	gatb::core::tools::dp::IteratorListener* _progress_sample = createIteratorListener (1000000, "Collecting stats on read sample");
+	gatb::core::tools::dp::IteratorListener* _progress_sample = createIteratorListener (10000000, "Collecting stats on read sample");
 	_progress_sample->init();
     getDispatcher()->iterate (it_sample,  SampleRepart<span> (model, _nb_passes, pass,_nb_partitions, _max_memory, _progress_sample,mmsize,*pInfo), 15*1000);
 	_progress_sample->finish();
@@ -999,7 +1049,8 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 
     for (size_t p=0; p<_nb_partitions; )
     {
-        size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions; i++, p++)  {} 
+        size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions; i++, p++)  {}
+		//ici get ram chaque parti pour parall dynamique ? une ou plusieurs parti a la fois selon  taille parti ?
         result.push_back (i);
     }
 

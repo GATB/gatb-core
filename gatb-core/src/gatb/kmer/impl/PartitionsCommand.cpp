@@ -400,14 +400,14 @@ void PartitionsByVectorCommand<span>:: execute ()
 		for (int xx=0; xx< (_kx+1); xx ++)
 		for(int ii=0;ii< 256; ii++)
 		{
-			//if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
-			 // printf("should resize  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
+		//	if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
+		//	  printf("should resize  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
 			radix_kmers[xx][ii].resize(this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
 			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
 		}
 
-	//	printf("--------- fillsolid parti num %i   nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
-	//		   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
+		printf("--------- fillsolid parti num %i   nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
+			   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
 		
         /** We directly fill the vector from the current partition file. */
         Iterator<Type>* it = this->_partition.iterator();  LOCAL (it);
@@ -461,19 +461,18 @@ void PartitionsByVectorCommand<span>:: execute ()
 			parallel_dispatcher->dispatchCommands (cmds, 0);
 			
 		}
-		//printf("done sorting the kmers  \n");
 
 //
 
 
-		
+
         /** We sort the vector. */
 	#ifdef TIMP
 		t.stop ("tri");
 		t.start ("output solid");
 #endif
 		
-		//printf("start scanning kx mers  \n");
+	//	printf("start scanning kx mers  \n");
 
 		vector< KxmerPointer<span>  * > vec_pointer;
 		
@@ -609,7 +608,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 		
 		
 		
-		
+
 		
 		
 		//printf("fill pq \n");
@@ -620,7 +619,6 @@ void PartitionsByVectorCommand<span>:: execute ()
 			if(vec_pointer[ii]->next())
 				pq.push(kxp(ii,vec_pointer[ii]->value()));
 		}
-		//printf("done filling  pq  pq.size() %zu \n",pq.size());
 
 		
 		if(pq.size() != 0) // everything empty, no kmer at all
@@ -628,6 +626,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 			//get first pointer
 			best_p = pq.top().first ; pq.pop();
 			
+
 			previous_kmer = vec_pointer[best_p]->value();
 			abundance = 1;
 			
@@ -639,35 +638,42 @@ void PartitionsByVectorCommand<span>:: execute ()
 				//go forward in this array or in new array of reaches end of this one
 				if(! vec_pointer[best_p]->next())
 				{
+
+					
 					//reaches end of one array
 					if(pq.size() == 0) break; //everything done
 					
 					//otherwise get new best
 					best_p = pq.top().first ; pq.pop();
+
 				}
 				
 				if(vec_pointer[best_p]->value()!=previous_kmer )
 				{
+
 					//if diff, changes to new array, get new min pointer
 					pq.push(kxp(best_p,vec_pointer[best_p]->value())); //push new val of this pointer in pq, will be counted later
 					
 					best_p = pq.top().first ; pq.pop();
-					
+
 					//if new best is diff, this is the end of this kmer
 					if(vec_pointer[best_p]->value()!=previous_kmer )
 					{
+
 						this->insert (Count (previous_kmer, abundance) );
 						abundance     = 1;
 						previous_kmer = vec_pointer[best_p]->value();
 					}
 					else
 					{
+
 						abundance++;
 					}
 					
 				}
 				else
 				{
+
 					abundance++;
 				}
 			}
@@ -678,8 +684,11 @@ void PartitionsByVectorCommand<span>:: execute ()
 			
 		}
 		
+
+
 		
-		for(unsigned int ii=0; ii<6; ii++)
+		
+		for(unsigned int ii=0; ii<nbkxpointers; ii++)
 		{
 			delete vec_pointer[ii];
 		}
@@ -694,9 +703,12 @@ void PartitionsByVectorCommand<span>:: execute ()
 		<< "tri: " << t.getEntryByKey("tri") << "  "
 		<< "output solid: " << t.getEntryByKey("output solid") << endl;
 #endif
-        
+
 		/** We update the progress bar. */
         this->_progress.inc (this->_pInfo->getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
+
+		//return;
+
     };
 
 /********************************************************************************/

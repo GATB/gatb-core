@@ -462,7 +462,6 @@ private:
     template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
     template<int T>  friend u_int64_t   hash1    (const LargeInt<T>& key, u_int64_t  seed);
     template<int T>  friend u_int64_t   oahash  (const LargeInt<T>& key);
-    template<int T>  friend u_int64_t   mhash    (const LargeInt<T>& key, const LargeInt<T>& key2, u_int64_t  seed);
     template<int T>  friend u_int64_t   simplehash16    (const LargeInt<T>& key, int  shift);
 
     // c++ fun fact:
@@ -520,15 +519,7 @@ template<int precision>  u_int64_t oahash (const LargeInt<precision>& elem)
 }
 
 	
-/********************************************************************************/
-template<int precision>  u_int64_t mhash (const LargeInt<precision>& elem, const LargeInt<precision>& elem2, u_int64_t seed)
-{
-	u_int64_t result = 0;
-	//todo implem
-	return result;
-}
-	
-	
+
 /********************************************************************************/
 template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision>& elem, int  shift)
 {

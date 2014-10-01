@@ -205,7 +205,6 @@ private:
     friend LargeInt<1> revcomp (const LargeInt<1>& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const LargeInt<1>& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const LargeInt<1>& key);
-	friend u_int64_t    mhash  (const LargeInt<1>& key,const LargeInt<1>& key2,   u_int64_t prevmin);
     friend u_int64_t    simplehash16    (const LargeInt<1>& key, int  shift);
 
 };
@@ -229,12 +228,7 @@ inline u_int64_t oahash (const LargeInt<1>& key)
     return LargeInt<1>::oahash64 (key.value[0]);
 }
 
-/********************************************************************************/
-inline u_int64_t mhash (const LargeInt<1>& key, const LargeInt<1>& key2, u_int64_t prevmin)
-{
-	//printf("call mash L1  .. ");
-    return LargeInt<1>::mhash64 (key.value[0],key2.value[0],prevmin);
-}
+
 
 /********************************************************************************/
 inline u_int64_t simplehash16 (const LargeInt<1>& key, int  shift)

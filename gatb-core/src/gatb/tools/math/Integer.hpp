@@ -118,9 +118,7 @@ public:
 
     friend u_int64_t hash1        (const IntegerTemplate& a,  u_int64_t seed)  {  return  boost::apply_visitor (Integer_hash1(seed),  *a);          }
     friend u_int64_t oahash       (const IntegerTemplate& a)                   {  return  boost::apply_visitor (Integer_oahash(), *a);              }
-  //  friend u_int64_t mhash        (const IntegerTemplate& a,  u_int64_t seed)  {  return  boost::apply_visitor (Integer_mhash(seed),  *a);          }
 
-	    friend u_int64_t mhash       (const IntegerTemplate& a, IntegerTemplate& b,   u_int64_t prevmin )         {  return  boost::apply_visitor (Integer_mhash(prevmin), *a, *b);              }
 	
     friend u_int64_t simplehash16 (const IntegerTemplate& a,  int shift)       {  return  boost::apply_visitor (Integer_simplehash16(shift),  *a);  }
 
@@ -238,14 +236,6 @@ private:
     struct Integer_oahash : public boost::static_visitor<u_int64_t>    {
         template<typename T>  u_int64_t operator() (const T& a) const  { return (oahash(a));  }};
 
-//	struct Integer_mhash : public Visitor<u_int64_t,u_int64_t>    {
-//        Integer_mhash (const u_int64_t& c) : Visitor<u_int64_t,u_int64_t>(c) {}
-//        template<typename T>  u_int64_t operator() (const T& a) const  { return (mhash(a,this->arg));  }};
-
-	struct Integer_mhash : public Visitor<u_int64_t,u_int64_t>    {
-        Integer_mhash (const u_int64_t& c) : Visitor<u_int64_t,u_int64_t>(c) {}
-        template<typename T>  u_int64_t operator() (const T& a,const T& b) const  { return (mhash(a,b,this->arg));  }};
-	
 	
     struct Integer_simplehash16 : public Visitor<u_int64_t,int>    {
         Integer_simplehash16 (const int& c) : Visitor<u_int64_t,int>(c) {}
