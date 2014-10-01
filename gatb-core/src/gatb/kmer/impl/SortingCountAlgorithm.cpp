@@ -402,6 +402,9 @@ public:
         /** We loop over the kmers. */
         for (size_t i=0; i<kmers.size(); i++)
         {
+            /** We get rid of invalid kmers (holding 'N' for instance). */
+            if (kmers[i].isValid() == false)  { continue; }
+
             /** We hash the current kmer. */
             u_int64_t h = oahash (kmers[i].value());
 
