@@ -49,7 +49,7 @@ int main (int argc, char* argv[])
         bool display = argc>=5 ? atoi(argv[4]) : false;
 
         // We declare a Bank instance defined by a list of filenames
-        BankFasta b (argv[3]);
+        BankFasta bank (argv[3]);
 
         // We declare a kmer model and a minimizer model
         Model model (kmerSize, mmerSize);
@@ -57,26 +57,25 @@ int main (int argc, char* argv[])
         // We get a reference on the minimizer model, which will be useful for dumping
        const ModelMinimizer::Model& modelMinimizer = model.getMmersModel();
 
-        // We create an iterator over this bank.
-        BankFasta::Iterator itSeq (b);
-
         Kmer<span>::Type checksum;
         size_t nbChanged = 0;
+        size_t nbInvalid = 0;
 
         // We loop over sequences.
-        for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+        bank.iterate ([&] (Sequence& seq)
         {
             // We iterate the kmers (and minimizers) of the current sequence.
-            model.iterate (itSeq->getData(), [&] (const Model::Kmer& kmer, size_t idx)
+            model.iterate (seq.getData(), [&] (const Model::Kmer& kmer, size_t idx)
             {
                 nbKmers ++;
-                if (kmer.hasChanged()) { nbChanged++;  }
-
+                if (kmer.hasChanged() == true)   { nbChanged++;  }
+                if (kmer.isValid()    == false)  { nbInvalid++;  }
                 checksum += kmer.minimizer().value();
             });
-        }
+        });
 
-        cout << "nbKmers   : "  << nbKmers << endl;
+        cout << "nbKmers   : " << nbKmers << endl;
+        cout << "nbInvalid : " << nbInvalid << endl;
         cout << "nbChanged : " << nbChanged << endl;
         cout << "ratio     : " << (nbChanged > 0 ? (double)nbKmers / (double)nbChanged : 0) << endl;
         cout << "checksum  : " << checksum << endl;
