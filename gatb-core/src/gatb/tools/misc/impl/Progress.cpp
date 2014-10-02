@@ -62,7 +62,7 @@ void Progress::reset (u_int64_t ntasks)
     done    = 0;
     partial = 0;
     subdiv  = 100;
-    steps   = (double)todo / (double)subdiv;
+    steps   = (double)(ntasks>0 ? ntasks : 1) / (double)subdiv;
 }
 
 /*********************************************************************
