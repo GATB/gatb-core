@@ -149,7 +149,7 @@ struct Kmer
          * \return the extracted kmer.
          */
         KmerDirect extract      (const Type& mask, size_t size)  {  KmerDirect output;  output.set (this->value() & mask);  return output;  }
-        KmerDirect extractShift (const Type& mask, size_t size)  {  KmerDirect output = extract(mask,size);  _value = _value >> 2;  return output;  }
+        KmerDirect extractShift (const Type& mask, size_t size)  {  KmerDirect output = extract(mask,size);  _value >>= 2;  return output;  }
     };
 
     /** Kmer type for the ModelCanonical class. */
@@ -221,7 +221,7 @@ struct Kmer
         KmerCanonical extractShift (const Type& mask, size_t size)
         {
             KmerCanonical output = extract (mask, size);
-            table[0] = table[0] >> 2;   table[1] = table[1] << 2;  updateChoice();
+            table[0] >>= 2;   table[1] <<= 2;  updateChoice();
             return output;
         }
     };
@@ -822,30 +822,27 @@ struct Kmer
         /** Returns the minimizer of the provided vector of mmers. */
         void computeNewMinimizer (Kmer& kmer) const
         {
-            int16_t result = -1;
-
-            /** We initialize the minimizer value to the default one. */
-            typename ModelType::Kmer minimizer = this->_minimizerDefault;
+            /** We update the attributes of the provided kmer. Note that an invalid minimizer is
+             * memorized by convention by a negative minimizer position. */
+            kmer._minimizer = this->_minimizerDefault;
+            kmer._position  = -1;
+            kmer._changed   = true;
 
             /** We need a local object that loops each mmer of the provided kmer (and we don't want
              * to modify the kmer value of this provided kmer). */
             Kmer loop = kmer;
 
+            typename ModelType::Kmer mmer;
+
             /** We compute each mmer and memorize the minimizer among them. */
             for (int16_t idx=_nbMinimizers-1; idx>=0; idx--)
             {
                 /** We extract the most left mmer in the kmer. */
-                typename ModelType::Kmer mmer = loop.extractShift (_mask, _shift);
+                mmer = loop.extractShift (_mask, _shift);
 
                 /** We check whether this mmer is the new minimizer. */
-                if (_cmp (mmer.value(), minimizer.value()) == true)  {  minimizer = mmer;   result = idx;  }
+                if (_cmp (mmer.value(), kmer._minimizer.value()) == true)  {  kmer._minimizer = mmer;   kmer._position = idx;  }
             }
-
-            /** We update the attributes of the provided kmer. Note that we might have not found any valid minimizer,
-             * which is memorized by convention by a negative minimizer position. */
-            kmer._position  = result;
-            kmer._changed   = true;
-            kmer._minimizer = minimizer;
         }
     };
 
