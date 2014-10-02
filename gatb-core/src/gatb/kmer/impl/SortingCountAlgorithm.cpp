@@ -854,7 +854,7 @@ public:
 		
 		//debug
 				printf("20 largest bin sizes \n");
-				for(int ii=0; ii<20; ii++ ) //_nb_minims 20  print largest bins
+				for(int ii=0; ii<20 && ii< bin_size_vec.size(); ii++ ) //_nb_minims 20  print largest bins
 				{
 					printf("binsize [%i] = %i \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
 				}
@@ -985,7 +985,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
-	Model model (_kmerSize,7 , CustomMinimizer(7)); //minimsize here et ailleurs
+	Model model (_kmerSize,8 , CustomMinimizer(8)); //minimsize here et ailleurs
 	
 	int mmsize = model.getMmersModel().getKmerSize();
 	
