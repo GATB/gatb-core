@@ -853,11 +853,11 @@ public:
 		std::sort (bin_size_vec.begin (), bin_size_vec.end (),pair_comp);
 		
 		//debug
-//				printf("100 largest bin sizes \n");
-//				for(int ii=0; ii<100; ii++ ) //_nb_minims 100  print largest bins
-//				{
-//					printf("binsize [%i] = %i \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
-//				}
+				printf("20 largest bin sizes \n");
+				for(int ii=0; ii<20; ii++ ) //_nb_minims 20  print largest bins
+				{
+					printf("binsize [%i] = %i \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
+				}
 		
 		
 		int cur_minim = 0;
@@ -930,11 +930,11 @@ public:
 		
 		
 		//debug info
-		//		printf("repart  table \n");
-		//		for(int ii=0; ii<_nb_minims; ii++ )
-		//		{
-		//			printf("repart table [%i] = %i \n",ii,_repart_table[ii]);
-		//		}
+				printf("repart  table \n");
+				for(int ii=0; ii<_nb_minims; ii++ )
+				{
+					printf("repart table [%i] = %i \n",ii,_repart_table[ii]);
+				}
 		
 		
 		free(_space_left);
