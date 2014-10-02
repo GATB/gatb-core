@@ -293,6 +293,8 @@ private:
     void setPartitions (tools::storage::impl::Partition<Type>* partitions)  {  SP_SETATTR(partitions);  }
 
     u_int64_t _totalKmerNb;
+	
+	PartiInfo<5> * _pInfo; //used to store info per partition (nb of kxmers, nb of kmers )
 
     struct Count2TypeAdaptor  {  Type& operator() (Count& c)  { return c.value; }  };
 };

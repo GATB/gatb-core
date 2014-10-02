@@ -80,7 +80,7 @@ namespace impl      {
 		
 		inline void incSuperKmer(int numpart, u_int64_t val=1)
 		{
-			_nb_superkmers_per_parti[numpart]+=val;
+			_nb_superkmers_per_parti[numpart]+=val; //now used to store number of kxmers per parti
 		}
 		
 		inline void incSuperKmer_per_minimBin(int numbin, u_int64_t val=1)
@@ -91,6 +91,7 @@ namespace impl      {
 		//numaprt, radix, size of kx mer
 		inline void incKmer_and_rad(int numpart, int radix,int x,  u_int64_t val=1)
 		{
+			_nb_superkmers_per_parti[numpart] += val; //now used to store number of kxmers per parti
 			_nb_kmers_per_parti[numpart]+= (val * (x+1)); // number of  'real' kmers
 			_nbk_per_radix_per_part[x][radix][numpart]+=val; // contains number of kx mer per part per radix per x
 		}
@@ -136,7 +137,7 @@ namespace impl      {
 		}
 		
 		
-		inline  u_int64_t   getNbSuperKmer(int numpart) const
+		inline  u_int64_t   getNbSuperKmer(int numpart) const //now used for number of kxmers (indistinctive of xsize)
 		{
 			return _nb_superkmers_per_parti[numpart];
 		}
@@ -271,9 +272,9 @@ namespace impl      {
 	private:
 		
 		u_int64_t  * _nb_kmers_per_parti;
-		u_int64_t  * _nb_superkmers_per_parti;
+		u_int64_t  * _nb_superkmers_per_parti; //now used to store number of kxmers per parti
 		u_int64_t * _stat_mmer;
-		u_int64_t * _nbk_per_radix_per_part[xmer][256];
+		u_int64_t * _nbk_per_radix_per_part[xmer][256];//number of kxmer per parti per rad
 		u_int64_t _num_mm_bins;
 		
 		int _nbpart;

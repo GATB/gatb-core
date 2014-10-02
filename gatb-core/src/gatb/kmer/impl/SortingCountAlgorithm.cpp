@@ -263,7 +263,7 @@ void SortingCountAlgorithm<span>::execute ()
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
     _progress->init ();
 
-	PartiInfo<5> * pInfo = new PartiInfo<5>(_nb_partitions, 8); //minimsize here et ailleurs
+	_pInfo = new PartiInfo<5>(_nb_partitions, 8); //minimsize here et ailleurs
 	
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -273,23 +273,23 @@ void SortingCountAlgorithm<span>::execute ()
     {
         DEBUG (("SortingCountAlgorithm<span>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
 
-		pInfo->clear();
+		_pInfo->clear();
 		
         /** 1) We fill the partition files. */
-        fillPartitions (_current_pass, itSeq,pInfo);
+        fillPartitions (_current_pass, itSeq,_pInfo);
 
 		
 		//return ;
         /** 2) We fill the kmers solid file from the partition files. */
-        fillSolidKmers (_solidCounts->bag(),pInfo);
+        fillSolidKmers (_solidCounts->bag(),_pInfo);
 		
-		//pInfo->printInfo();
+		_pInfo->printInfo();
 
     }
 
 	//debug
 	
-	delete pInfo;
+	delete _pInfo;
 	
 	
 
@@ -1053,8 +1053,10 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 
     for (size_t p=0; p<_nb_partitions; )
     {
-        size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions; i++, p++)  {}
-		//ici get ram chaque parti pour parall dynamique ? une ou plusieurs parti a la fois selon  taille parti ?
+		u_int64_t ram_total = 0;
+        size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions && ram_total <= _max_memory; i++, p++)  {
+			ram_total+= (_pInfo->getNbSuperKmer(p)*(Type::getSize()/8))/MBYTE;
+		}
         result.push_back (i);
     }
 
@@ -1102,9 +1104,12 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 
         ISynchronizer* synchro = System::thread().newSynchronizer();
         LOCAL (synchro);
+		printf("\ncomputing %zu partitions simultaneously , parti : ",currentNbCores);
 
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
+			printf(" %zu ",p);
+
             ICommand* cmd = 0;
 
             /** We get the length of the current partition file. */
@@ -1125,6 +1130,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 
             cmds.push_back (cmd);
         }
+		printf("\n ");
 
         getDispatcher()->dispatchCommands (cmds, 0);
 
