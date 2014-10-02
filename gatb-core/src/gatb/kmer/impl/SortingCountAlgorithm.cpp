@@ -264,6 +264,7 @@ void SortingCountAlgorithm<span>::execute ()
     _progress->init ();
 
 	_pInfo = new PartiInfo<5>(_nb_partitions, 8); //minimsize here et ailleurs
+
 	
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -984,7 +985,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
-	Model model (_kmerSize,8 , CustomMinimizer(8)); //minimsize here et ailleurs
+	Model model (_kmerSize,7 , CustomMinimizer(7)); //minimsize here et ailleurs
 	
 	int mmsize = model.getMmersModel().getKmerSize();
 	
@@ -1104,11 +1105,13 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 
         ISynchronizer* synchro = System::thread().newSynchronizer();
         LOCAL (synchro);
+
 		printf("\ncomputing %zu partitions simultaneously , parti : ",currentNbCores);
 
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
 			printf(" %zu ",p);
+
 
             ICommand* cmd = 0;
 
