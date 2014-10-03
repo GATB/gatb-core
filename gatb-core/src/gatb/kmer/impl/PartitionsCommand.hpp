@@ -83,13 +83,15 @@ namespace impl      {
 			_nb_superkmers_per_parti[numpart]+=val; //now used to store number of kxmers per parti
 		}
 		
-		inline void incSuperKmer_per_minimBin(int numbin, u_int64_t val=1)
+		inline void incSuperKmer_per_minimBin(int numbin, int superksize, u_int64_t val=1) //superksize in number of kmer inside this superk
 		{
-			_stat_mmer[numbin]+=val;
+			_superk_per_mmer_bin[numbin]+= val ;
+			_kmer_per_mmer_bin[numbin]+= val *superksize;
+			
 		}
 		
 		//numaprt, radix, size of kx mer
-		inline void incKmer_and_rad(int numpart, int radix,int x,  u_int64_t val=1)
+		inline void incKmer_and_rad(int numpart, int radix,int x,  u_int64_t val=1) //appele ds vrai loop
 		{
 			_nb_superkmers_per_parti[numpart] += val; //now used to store number of kxmers per parti
 			_nb_kmers_per_parti[numpart]+= (val * (x+1)); // number of  'real' kmers
@@ -118,7 +120,9 @@ namespace impl      {
 			}
 			
 			for (int ii=0; ii< _num_mm_bins; ii++) {
-				__sync_fetch_and_add( _stat_mmer + ii,   other.getNbSuperKmer_per_minim(ii) );
+				__sync_fetch_and_add( _superk_per_mmer_bin + ii,   other.getNbSuperKmer_per_minim(ii) );
+				__sync_fetch_and_add( _kmer_per_mmer_bin + ii,   other.getNbKmer_per_minim(ii) );
+				
 			}
 			
 			return *this;
@@ -145,15 +149,23 @@ namespace impl      {
 		
 		inline  u_int64_t   getNbSuperKmer_per_minim(int numbin) const
 		{
-			return _stat_mmer[numbin];
+			return _superk_per_mmer_bin[numbin];
 		}
+		
+		inline  u_int64_t   getNbKmer_per_minim(int numbin) const
+		{
+			return _kmer_per_mmer_bin[numbin];
+		}
+		
 		
 		
 		void clear()
 		{
 			memset(_nb_kmers_per_parti, 0, _nbpart*sizeof(u_int64_t));
 			memset(_nb_superkmers_per_parti, 0, _nbpart*sizeof(u_int64_t));
-			memset(_stat_mmer, 0, _num_mm_bins *sizeof(u_int64_t));
+			memset(_superk_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
+			memset(_kmer_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
+
 			
 			for (int xx=0; xx<xmer; xx++)
 			for(int ii=0; ii<256; ii++)
@@ -175,37 +187,45 @@ namespace impl      {
 			
 			
 			printf("------------------------\n");
-			printf("Nb Super kmers per parti\n");
+			printf("Nb kxmers per parti\n");
 			
 			for (int np=0; np<_nbpart; np++) {
 				printf("Parti[%i]= %lli\n",np,this->getNbSuperKmer(np));
 			}
 			
 			
-			printf("----------------------------\n");
-			printf("Nb kmers per parti per radix\n");
+//			printf("----------------------------\n");
+//			printf("Nb kmers per parti per radix\n");
+//			
+//			for (int np=0; np<_nbpart; np++) {
+//				printf("___ Parti %i ___\n",np);
+//				
+//				for (int rad=0; rad<256; rad++) {
+//					printf("%10lli  ",this->getNbKmer(np,rad,0));
+//					if((rad & 7) == 7) printf("\n");
+//				}
+//				printf("\n");
+//				
+//			}
 			
-			for (int np=0; np<_nbpart; np++) {
-				printf("___ Parti %i ___\n",np);
-				
-				for (int rad=0; rad<256; rad++) {
-					printf("%10lli  ",this->getNbKmer(np,rad,0));
-					if((rad & 7) == 7) printf("\n");
-				}
-				printf("\n");
-				
-			}
-			
 			printf("----------------------------\n");
-			printf("Nb Super kmers per minim bin\n");
+			printf("Nb Super kmers , nb kmers per minim bin\n");
+			
+			u_int64_t sumk = 0;
+			u_int64_t sumsuperk = 0;
 			
 			for (int np=0; np<_num_mm_bins; np++) {
 				typedef typename Kmer<31>::Type           Typem; //should be kmer size 
 				Typem cur = np;
 				
-				printf("Bin[%5i (%s) ]= %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np));
+				printf("Bin[%5i (%s) ]= %lli    %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
+				
+				sumk += this->getNbKmer_per_minim(np);
+				sumsuperk +=  this->getNbSuperKmer_per_minim(np);
 			}
 			
+			printf("total number of kmers %lli  total number of superkmers %lli \n",sumk,sumsuperk);
+			printf("Average size of superkmers :  %f \n",(double)sumk / (double)sumsuperk );
 			
 			
 			
@@ -218,8 +238,9 @@ namespace impl      {
 			_nb_superkmers_per_parti =  (u_int64_t  *)  calloc(nbpart,sizeof(u_int64_t));
 			
 			_num_mm_bins =   1 << (2*_mm);
-			_stat_mmer = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
-			
+			_superk_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
+			_kmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
+
 
 			
 			for(int xx=0; xx<xmer; xx++)
@@ -242,7 +263,8 @@ namespace impl      {
 			
 			_nb_kmers_per_parti =  (u_int64_t  *)  calloc(_nbpart,sizeof(u_int64_t));
 			_nb_superkmers_per_parti =  (u_int64_t  *)  calloc(_nbpart,sizeof(u_int64_t));
-			_stat_mmer = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
+			_superk_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
+			_kmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 			
 			for(int xx=0; xx<xmer; xx++)
 			for(int ii=0; ii<256; ii++)
@@ -258,7 +280,8 @@ namespace impl      {
 		{
 			free(_nb_kmers_per_parti);
 			free(_nb_superkmers_per_parti);
-			free(_stat_mmer);
+			free(_superk_per_mmer_bin);
+			free(_kmer_per_mmer_bin);
 			
 			for(int xx=0; xx<xmer; xx++)
 			for(int ii=0; ii<256; ii++)
@@ -273,7 +296,9 @@ namespace impl      {
 		
 		u_int64_t  * _nb_kmers_per_parti;
 		u_int64_t  * _nb_superkmers_per_parti; //now used to store number of kxmers per parti
-		u_int64_t * _stat_mmer;
+		u_int64_t * _superk_per_mmer_bin;
+		u_int64_t * _kmer_per_mmer_bin;
+
 		u_int64_t * _nbk_per_radix_per_part[xmer][256];//number of kxmer per parti per rad
 		u_int64_t _num_mm_bins;
 		

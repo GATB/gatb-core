@@ -251,6 +251,7 @@ public:
 					
 					//record kxmer
 					rid = radix_kxmer.getVal();
+					//idx = _r_idx[IX(kx_size,rid)]++;
 					idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
 					
 					
@@ -298,6 +299,7 @@ public:
 			
 			//record kxmer
 			rid = radix_kxmer.getVal();
+			//idx = _r_idx[IX(kx_size,rid)]++;
 			idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
 			
 					

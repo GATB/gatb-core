@@ -256,6 +256,7 @@ private:
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
     size_t      _nb_partitions_in_parallel;
+    size_t      _minim_size;;
 
     std::string _prefix;
     std::string _histogramUri;
