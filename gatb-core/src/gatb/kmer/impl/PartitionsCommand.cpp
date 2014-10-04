@@ -105,11 +105,12 @@ void PartitionsByHashCommand<span>:: execute ()
         size_t count=0;
 
         /** We need a map for storing part of solid kmers. */
-        OAHash<Type> hash (_hashMemory);
+        OAHash<Type> hash (_hashMemory); //or use hash16 to ensure always finishes ?
 
         /** We directly fill the vector from the current partition file. */
         Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
 
+		//without decompactage, would be :
 //        for (it->first(); !it->isDone(); it->next())
 //        {
 //            hash.increment (it->item());
@@ -118,15 +119,17 @@ void PartitionsByHashCommand<span>:: execute ()
 //            if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
 //        }
 
+		printf("--------- fillsolid parti num %i  by oahash -------\n",this->_parti_num);
+		
 		
 		
 		//with decompactage
-		//should pass the kmer model here
 		//superk
 		u_int8_t		nbK, rem ;
 		uint64_t compactedK;
 		int ks = this->_kmerSize;
 		Type un = 1;
+		size_t _shift_val = un.getSize() -8;
 		Type kmerMask = (un << (ks*2)) - un;
 		size_t shift = 2*(ks-1);
 		
@@ -137,7 +140,7 @@ void PartitionsByHashCommand<span>:: execute ()
 			
 			
 			compactedK =  superk.getVal();
-			nbK = (compactedK >> 56) & 255; // 8 bits poids fort = cpt //todo for large k values
+			nbK = (compactedK >> _shift_val) & 255; // 8 bits poids fort = cpt //todo for large k values
 			rem = nbK;
 			
 
@@ -177,6 +180,8 @@ void PartitionsByHashCommand<span>:: execute ()
             /** We may add this kmer to the solid kmers bag. */
            this->insert ((Count&) itKmerAbundance->item());
         }
+		
+		this->_progress.inc (this->_pInfo->getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
     };
 
 	
@@ -408,7 +413,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
 		}
 
-		printf("--------- fillsolid parti num %i   nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
+		printf("--------- fillsolid parti num %i  by vector  nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
 			   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
 		
         /** We directly fill the vector from the current partition file. */

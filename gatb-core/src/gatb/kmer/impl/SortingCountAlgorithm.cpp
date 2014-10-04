@@ -244,7 +244,6 @@ void SortingCountAlgorithm<span>::execute ()
 {
 	
 
-	_minim_size = 7;
 	
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
@@ -260,7 +259,6 @@ void SortingCountAlgorithm<span>::execute ()
     LOCAL (itSeq);
 
     /** We configure the progress bar. */
-	printf("progress inited with %lli (vol %lli) ", 2 * _volume * MBYTE / sizeof(Type),_volume);
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
     _progress->init ();
 
@@ -285,7 +283,7 @@ void SortingCountAlgorithm<span>::execute ()
         /** 2) We fill the kmers solid file from the partition files. */
         fillSolidKmers (_solidCounts->bag(),_pInfo);
 		
-		_pInfo->printInfo();
+//		_pInfo->printInfo();
 
     }
 
@@ -350,6 +348,8 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
+	_minim_size = 7;
+
 	
     // optimism == 1 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, a k-mer will be seen 'optimism' times
@@ -395,21 +395,21 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
         volume_per_pass = volume_minim / _nb_passes;
 
         assert (_max_memory > 0);
-		printf("volume_per_pass %lli  _nbCores %zu _max_memory %i \n",volume_per_pass, _nbCores,_max_memory);
+		//printf("volume_per_pass %lli  _nbCores %zu _max_memory %i \n",volume_per_pass, _nbCores,_max_memory);
 
        // _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
 
 		_nb_partitions  = ( ( volume_per_pass* _nb_partitions_in_parallel) / _max_memory ) + 1;
 
 		
-		printf("nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
+		//printf("nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
 		//_nb_partitions = max_open_files; break;
 		
 		if (_nb_partitions >= max_open_files &&  _nb_partitions_in_parallel >1)   { _nb_partitions_in_parallel  = _nb_partitions_in_parallel /2;  }
         else if (_nb_partitions >= max_open_files && _nb_partitions_in_parallel == 1)   { _nb_passes++;  }
         else                                    { break;         }
 
-		printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
+		//printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
 
 	if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
@@ -480,7 +480,7 @@ public:
 			u_int64_t reduced_kmer = minimk ;
 			
 			
-			_local_pInfo.incSuperKmer_per_minimBin(minimk,superKp.size()); //for debug info, to be removed
+			//_local_pInfo.incSuperKmer_per_minimBin(minimk,superKp.size()); //for debug info, to be removed
 
 			
 			size_t p = _repart_table [reduced_kmer];
@@ -576,6 +576,8 @@ public:
 		
 	}
 	
+	
+	
     void operator() (Sequence& sequence)
     {
 		
@@ -595,11 +597,23 @@ public:
 		int maxs = (temp.getSize() - _mm )/2 ;
 
 		
-		
 
+//		
+//		// We iterate the kmers (and minimizers) of the current sequence.
+//		model.iterate (sequence.getData(), [&] (const :Kmer& kmer, size_t idx)
+//					   {
+//						   ;
+//					   });
+//		
+//		
+		
+	//	model.iterate (sequence.getData(),BuildFunctor<Kmer>(kmersBuffer));
+		
 
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
 
+
+		
 //		if(kmers.size()> 0)
 //		{
 //			 prevmin =  kmers[0].minimizer().value().getVal() ;
@@ -618,7 +632,9 @@ public:
 			
 			}
 
-			u_int64_t h =  kmers[i].minimizer().value().getVal();
+			u_int64_t h =  kmers[i].minimizer().value().getVal(); //
+			//u_int64_t h =  kmers[i].minimizer(); //
+
 			if(prevmin == 1000000000) prevmin= h;
 
 			
@@ -753,6 +769,8 @@ public:
 
 			
 			u_int64_t h = kmers[i].minimizer().value().getVal();
+		//	u_int64_t h = kmers[i].minimizer();
+
 			if(prevmin == 1000000000) prevmin= h;
 
 			if(  h!= prevmin  || superk_size >= maxs)
@@ -871,7 +889,7 @@ public:
 		
 		//debug
 				printf("20 largest estimated bin sizes \n");
-				for(int ii=0;  ii< bin_size_vec.size(); ii++ ) //_nb_minims 20  print largest bins //ii<20 &&
+				for(int ii=0; ii<20 &&  ii< bin_size_vec.size(); ii++ ) //_nb_minims 20  print largest bins //ii<20 &&
 				{
 					printf("binsize [%llu] = %llu \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
 				}
@@ -895,8 +913,8 @@ public:
 			smallest_parti.second += bin_size_vec[cur_minim].first;
 			pq.push(smallest_parti);
 			
-			printf("affected minim %llu to part %llu  space used %llu  (msize %llu) \n",bin_size_vec[cur_minim].second,smallest_parti.first,
-				   smallest_parti.second , bin_size_vec[cur_minim].first);
+			//printf("affected minim %llu to part %llu  space used %llu  (msize %llu) \n",bin_size_vec[cur_minim].second,smallest_parti.first,
+			//	   smallest_parti.second , bin_size_vec[cur_minim].first);
 			
 			
 			cur_minim++;
@@ -905,12 +923,12 @@ public:
 		
 		
 		//debug info
-		while (pq.size()>0)		{
-			ipair smallest_parti;
-			smallest_parti = pq.top(); pq.pop();
-
-			printf("space used [%llu] = %llu \n",smallest_parti.first,smallest_parti.second);
-		}
+//		while (pq.size()>0)		{
+//			ipair smallest_parti;
+//			smallest_parti = pq.top(); pq.pop();
+//
+//			printf("space used [%llu] = %llu \n",smallest_parti.first,smallest_parti.second);
+//		}
 		
 		
 		//debug info
@@ -968,7 +986,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
-	Model model (_kmerSize,_minim_size , CustomMinimizer(_minim_size)); //minimsize here et ailleurs
+	Model model (_kmerSize,_minim_size); //minimsize here et ailleurs // , CustomMinimizer(_minim_size)
 	
 	int mmsize = model.getMmersModel().getKmerSize();
 	
@@ -996,14 +1014,15 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     // R to E: typical question from a puzzled developer: what's this last argument of iterate() (15*1000)? so to answer this, I need to find the definition of iterate(), where is it? maybe to answer this, where does getDispatcher come from? any way we could search http://gatb-core.gforge.inria.fr/ to quickly find out?
 	
 
-
-	TruncateIterator<Sequence> it_sample (*itSeq, 1000000); //sample with first 5  million reads ? //mettre max de nb reads, 5M reads,  10 % des reads ?
+    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.1) , 1000000ULL) ;
+	printf("nb seq for sample :  %llu \n ",nbseq_sample);
+	TruncateIterator<Sequence> it_sample (*itSeq, nbseq_sample); //sample with first 5  million reads ? //mettre max de nb reads, 5M reads,  10 % des reads ?
 
 	//fill bin sizes here
 	
 	PartiInfo<5> * sample_info = new PartiInfo<5>(_nb_partitions,mmsize);
 	
-	gatb::core::tools::dp::IteratorListener* _progress_sample = createIteratorListener (1000000, "Collecting stats on read sample");
+	gatb::core::tools::dp::IteratorListener* _progress_sample = createIteratorListener (nbseq_sample, "Collecting stats on read sample");
 	_progress_sample->init();
     getDispatcher()->iterate (it_sample,  SampleRepart<span> (model, _nb_passes, pass,_nb_partitions, _max_memory, _progress_sample,mmsize,*sample_info), 15*1000);
 	_progress_sample->finish();
@@ -1038,7 +1057,8 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
     for (size_t p=0; p<_nb_partitions; )
     {
 		u_int64_t ram_total = 0;
-        size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions && ram_total <= _max_memory; i++, p++)  {
+        size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions
+						  && (ram_total ==0  || ((ram_total+(_pInfo->getNbSuperKmer(p)*(Type::getSize()/8))/MBYTE)  <= _max_memory)) ; i++, p++)  {
 			ram_total+= (_pInfo->getNbSuperKmer(p)*(Type::getSize()/8))/MBYTE;
 		}
         result.push_back (i);
@@ -1102,14 +1122,14 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
             size_t partitionLen = (*_partitions)[p].getNbItems(); // hmm this will be unknown for a gz file, maybe estimation possible du coup utilise le hash
 
             /* Get the memory taken by this partition if loaded for sorting */
-            uint64_t memoryPartition = partitionLen * sizeof(Type);
+            uint64_t memoryPartition = (_pInfo->getNbSuperKmer(p)*(Type::getSize()/8)); //in bytes
 
-			//only use by vector now
-//            if (memoryPartition >= mem)
-//            {
-//                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem);
-//            }
-//            else
+			//still use hash if by vector would be too large
+            if (memoryPartition >= mem)
+            {
+                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem,pInfo,p,_nbCores_per_partition, _kmerSize);
+            }
+            else
             {
                 cmd = new PartitionsByVectorCommand<span> (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress,pInfo,p,_nbCores_per_partition, _kmerSize);
             }

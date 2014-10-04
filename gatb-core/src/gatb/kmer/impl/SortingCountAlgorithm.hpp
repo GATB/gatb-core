@@ -161,7 +161,7 @@ public:
 	typedef typename Kmer<span>::ModelCanonical             ModelCanonical;
 	typedef typename Kmer<span>::ModelDirect             ModelDirect;
 	//,CustomMinimizer
-	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical,CustomMinimizer> 	Model; //
+	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical> 	Model; // ,CustomMinimizer
 	//typedef typename Kmer<span>::ModelCanonical             Model;
 
     typedef typename kmer::impl::Kmer<span>::Type           Type;
