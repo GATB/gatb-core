@@ -1014,7 +1014,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     // R to E: typical question from a puzzled developer: what's this last argument of iterate() (15*1000)? so to answer this, I need to find the definition of iterate(), where is it? maybe to answer this, where does getDispatcher come from? any way we could search http://gatb-core.gforge.inria.fr/ to quickly find out?
 	
 
-    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.1) , 1000000ULL) ;
+    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.1) ,u_int64_t( 1000000ULL) ) ;
 	printf("nb seq for sample :  %llu \n ",nbseq_sample);
 	TruncateIterator<Sequence> it_sample (*itSeq, nbseq_sample); //sample with first 5  million reads ? //mettre max de nb reads, 5M reads,  10 % des reads ?
 
