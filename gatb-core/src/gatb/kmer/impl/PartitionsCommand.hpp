@@ -83,11 +83,19 @@ namespace impl      {
 			_nb_superkmers_per_parti[numpart]+=val; //now used to store number of kxmers per parti
 		}
 		
-		inline void incSuperKmer_per_minimBin(int numbin, int superksize, u_int64_t val=1) //superksize in number of kmer inside this superk
+		//superksize in number of kmer inside this superk
+		//increases both superk and kmer count
+		inline void incSuperKmer_per_minimBin(int numbin, int superksize, u_int64_t val=1)
 		{
 			_superk_per_mmer_bin[numbin]+= val ;
 			_kmer_per_mmer_bin[numbin]+= val *superksize;
 			
+		}
+		
+		//kxmer count (regardless of x size), used for ram
+		inline void incKxmer_per_minimBin(int numbin, u_int64_t val=1)
+		{
+			_kxmer_per_mmer_bin[numbin]+= val ;
 		}
 		
 		//numaprt, radix, size of kx mer
@@ -122,6 +130,7 @@ namespace impl      {
 			for (int ii=0; ii< _num_mm_bins; ii++) {
 				__sync_fetch_and_add( _superk_per_mmer_bin + ii,   other.getNbSuperKmer_per_minim(ii) );
 				__sync_fetch_and_add( _kmer_per_mmer_bin + ii,   other.getNbKmer_per_minim(ii) );
+				__sync_fetch_and_add( _kxmer_per_mmer_bin + ii,   other.getNbKxmer_per_minim(ii) );
 				
 			}
 			
@@ -157,6 +166,10 @@ namespace impl      {
 			return _kmer_per_mmer_bin[numbin];
 		}
 		
+		inline  u_int64_t   getNbKxmer_per_minim(int numbin) const
+		{
+			return _kxmer_per_mmer_bin[numbin];
+		}
 		
 		
 		void clear()
@@ -165,6 +178,7 @@ namespace impl      {
 			memset(_nb_superkmers_per_parti, 0, _nbpart*sizeof(u_int64_t));
 			memset(_superk_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
 			memset(_kmer_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
+			memset(_kxmer_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
 
 			
 			for (int xx=0; xx<xmer; xx++)
@@ -240,6 +254,7 @@ namespace impl      {
 			_num_mm_bins =   1 << (2*_mm);
 			_superk_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 			_kmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
+			_kxmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 
 
 			
@@ -265,6 +280,7 @@ namespace impl      {
 			_nb_superkmers_per_parti =  (u_int64_t  *)  calloc(_nbpart,sizeof(u_int64_t));
 			_superk_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 			_kmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
+			_kxmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 			
 			for(int xx=0; xx<xmer; xx++)
 			for(int ii=0; ii<256; ii++)
@@ -282,6 +298,7 @@ namespace impl      {
 			free(_nb_superkmers_per_parti);
 			free(_superk_per_mmer_bin);
 			free(_kmer_per_mmer_bin);
+			free(_kxmer_per_mmer_bin);
 			
 			for(int xx=0; xx<xmer; xx++)
 			for(int ii=0; ii<256; ii++)
@@ -298,6 +315,7 @@ namespace impl      {
 		u_int64_t  * _nb_superkmers_per_parti; //now used to store number of kxmers per parti
 		u_int64_t * _superk_per_mmer_bin;
 		u_int64_t * _kmer_per_mmer_bin;
+		u_int64_t * _kxmer_per_mmer_bin;
 
 		u_int64_t * _nbk_per_radix_per_part[xmer][256];//number of kxmer per parti per rad
 		u_int64_t _num_mm_bins;
@@ -445,6 +463,7 @@ private:
     vector<Type> kmers;
 	
 	vector <   vector < vector<Type> >  >    radix_kmers; //by  xmer by radix 4nt bins //pas tres beau ,bcp indirection
+	Type ** _radix_kmers;
 
 };
 
@@ -455,7 +474,7 @@ private:
 	public:
 		typedef typename Kmer<span>::Type  Type;
 
-		SortCommand( std::vector<vector<Type> >  & kmervec, int begin, int end) : _radix_kmers(kmervec),_deb(begin), _fin(end) {}
+		SortCommand( Type **   kmervec, int begin, int end, uint64_t * radix_sizes) : _radix_kmers(kmervec),_deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
 		
 		 void execute ()
 		{
@@ -463,8 +482,11 @@ private:
 			//printf("will exec  range [ %i ; %i] \n ",_deb,_fin);
 			for (int ii= _deb; ii<= _fin; ii++) {
 		
-				if(_radix_kmers[ii].size() > 0)
-					std::sort (_radix_kmers[ii].begin (), _radix_kmers[ii].end ());
+//				if(_radix_kmers[ii].size() > 0)
+//					std::sort (_radix_kmers[ii].begin (), _radix_kmers[ii].end ());
+				
+				if(_radix_sizes[ii] > 0)
+					std::sort (&_radix_kmers[ii][0] , &_radix_kmers[ii][ _radix_sizes[ii]]);
 			}
 			
 		}
@@ -472,8 +494,9 @@ private:
 		private :
 		
 		int _deb, _fin;
-		std::vector <  vector<Type> >   & _radix_kmers;
-
+		//std::vector <  vector<Type> >   & _radix_kmers;
+		Type ** _radix_kmers;
+		uint64_t * _radix_sizes;
 	};
 	
 
@@ -485,9 +508,9 @@ class KxmerPointer
 public:
 	typedef typename Kmer<span>::Type  Type;
 	
-	//on lui passe le vector dun kxmer
-	KxmerPointer(std::vector<vector<Type> >  & kmervec, int prefix_size, int x_size, int min_radix, int max_radix, int kmerSize) : _kxmers(kmervec)
-	,_prefix_size(prefix_size), _x_size(x_size),_cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix) {
+	//on lui passe le vector dun kxmer //std::vector<vector<Type> >  & kmervec
+	KxmerPointer(Type ** kmervec, int prefix_size, int x_size, int min_radix, int max_radix, int kmerSize, uint64_t * radix_sizes) : _kxmers(kmervec)
+	,_prefix_size(prefix_size), _x_size(x_size),_cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix), _radix_sizes(radix_sizes)  {
 		
 		_idx_radix = min_radix;
 		Type un = 1;
@@ -508,7 +531,8 @@ public:
 		_cur_idx++;
 		
 		//go to next non empty radix
-		while(_cur_idx >= _kxmers[_idx_radix].size() && _idx_radix<= _high_radix )
+	//	while(_idx_radix<= _high_radix &&_cur_idx >= _kxmers[_idx_radix].size()  )
+		while(_idx_radix<= _high_radix &&_cur_idx >=   _radix_sizes[_idx_radix]    )
 		{
 			_idx_radix++;
 			_cur_idx = 0;
@@ -523,14 +547,18 @@ public:
 	
 	inline Type value() const
 	{
+	//	Type res =  ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
 		Type res =  ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
+
 		return res ;
 	}
 	
 	private :
 	
-	std::vector <  vector < Type > >    & _kxmers;
-	
+	//std::vector <  vector < Type > >    & _kxmers;
+	Type **    _kxmers;
+	uint64_t * _radix_sizes;
+
 	int64_t _cur_idx;
 	Type _cur_radix;
 	Type _kmerMask;

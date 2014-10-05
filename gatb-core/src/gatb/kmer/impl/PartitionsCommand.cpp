@@ -119,7 +119,7 @@ void PartitionsByHashCommand<span>:: execute ()
 //            if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
 //        }
 
-		printf("--------- fillsolid parti num %i  by oahash -------\n",this->_parti_num);
+		printf("--------- fillsolid parti num %i  by oahash -------  mem %llu  MB\n",this->_parti_num,_hashMemory/MBYTE);
 		
 		
 		
@@ -228,7 +228,7 @@ public:
 			
 			u_int8_t rid;
 
-			//printf("init loop prev_which %i  kx_size %i \n",prev_which,kx_size);
+			//printf("--loop nbk  %i \n",nbK); //todo bug avec larger k
 			for (int ii=0; ii< nbK; ii++,rem--) {
 
 				bool which =  (temp < rev_temp );
@@ -261,7 +261,7 @@ public:
 					
 					
 			
-					_radix_kmers[kx_size][rid][ idx] = kinsert << ((4-kx_size)*2);
+					_radix_kmers[IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2); //[kx_size][rid]
 					
 					radix_kxmer_forward =  (mink & _mask_radix) >> _shift_radix;
 					kx_size =0;
@@ -308,7 +308,7 @@ public:
 			idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
 			
 					
-			_radix_kmers[kx_size][rid][ idx] = kinsert << ((4-kx_size)*2);
+			_radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2); // [kx_size][rid]
 			
 			
 			
@@ -320,7 +320,8 @@ public:
 		
 	}
 	
-	SuperKReader (size_t kmerSize,  uint64_t * r_idx, std::vector <vector < vector<Type> > > & radix_kmers)
+	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type ** radix_kmers )
+				  //std::vector <vector < vector<Type> > > & radix_kmers)
 	: _first(true) ,_kmerSize (kmerSize), _r_idx (r_idx), _radix_kmers(radix_kmers), _kx(4)
 	//model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _repart_table (repart_table),_mm(minim_size),
 	 {
@@ -341,7 +342,8 @@ public:
 	size_t _shift_val ;
 	size_t _shift_radix ;
 	int _kx;
-	std::vector < vector <vector<Type> > > & _radix_kmers;
+	//std::vector < vector <vector<Type> > > & _radix_kmers;
+	Type ** _radix_kmers;
 
 	uint64_t * _r_idx ;
 	bool _first;
@@ -379,7 +381,7 @@ template<size_t span>
 void PartitionsByVectorCommand<span>:: execute ()
     {
 		size_t _kx = 4 ;
-		
+		//this->_nbCores = 4;
 		Dispatcher* parallel_dispatcher = 	new Dispatcher (this->_nbCores);
 		//SerialDispatcher* parallel_dispatcher = 	new SerialDispatcher ();
 
@@ -398,21 +400,40 @@ void PartitionsByVectorCommand<span>:: execute ()
 		uint64_t * r_idx  = (uint64_t *) calloc((_kx+1)*256,sizeof(uint64_t));
 		memset(r_idx, 0 , sizeof(uint64_t)*(_kx+1)*256);
 		
-		radix_kmers.resize(_kx+1); // sapce for k0mer ... kxmer
-		for (int xx=0; xx< (_kx+1); xx ++)
-			radix_kmers[xx].resize(256);
-
-
 		
+		
+//		radix_kmers.resize(_kx+1); // sapce for k0mer ... kxmer
+//		for (int xx=0; xx< (_kx+1); xx ++)
+//			radix_kmers[xx].resize(256);
+
+
+//		for (int xx=0; xx< (_kx+1); xx ++)
+//		for(int ii=0;ii< 256; ii++)
+//		{
+//			if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
+//			  printf("should resize  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
+//			radix_kmers[xx][ii].resize(this->_pInfo->getNbKmer(this->_parti_num,ii,xx)); //hmm rien ne garantit que bonne taille capacity
+//			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
+//			
+//			printf("capacity alloced  xmer %i rad %i  :  %lu \n",xx,ii,radix_kmers[xx][ii].capacity());
+//
+//		}
+
+		_radix_kmers = (Type **) malloc(256*(_kx+1)*sizeof(Type *));
+		uint64_t * radix_sizes = (uint64_t*) malloc(256*(_kx+1)*sizeof(uint64_t));
+
 		for (int xx=0; xx< (_kx+1); xx ++)
 		for(int ii=0;ii< 256; ii++)
 		{
-		//	if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
-		//	  printf("should resize  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
-			radix_kmers[xx][ii].resize(this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
+			//if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
+			//	printf("should alloc  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
+			
+			_radix_kmers [IX(xx,ii)] = (Type *) malloc(this->_pInfo->getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
+			radix_sizes[IX(xx,ii)] = this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
 			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
 		}
-
+		
+		
 		printf("--------- fillsolid parti num %i  by vector  nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
 			   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
 		
@@ -422,7 +443,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 	
 		//printf("decompacting the super kmers  \n");
 
-		parallel_dispatcher->iterate (it, SuperKReader<span>  (this->_kmerSize, r_idx, radix_kmers), 10000); //must be even , reading by pairs
+		parallel_dispatcher->iterate (it, SuperKReader<span>  (this->_kmerSize, r_idx, _radix_kmers), 10000); //must be even , reading by pairs
 	
 		//printf("done decompacting the super kmers  \n");
 
@@ -460,7 +481,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 				
 				ICommand* cmd = 0;
 				
-				cmd = new SortCommand<span> (radix_kmers[xx],deb,fin);
+				cmd = new SortCommand<span> (_radix_kmers+ IX(xx,0) ,deb,fin,radix_sizes + IX(xx,0) ); // [xx]
 				cmds.push_back (cmd);
 				
 			}
@@ -473,7 +494,6 @@ void PartitionsByVectorCommand<span>:: execute ()
 
 
 
-        /** We sort the vector. */
 	#ifdef TIMP
 		t.stop ("tri");
 		t.start ("output solid");
@@ -504,30 +524,30 @@ void PartitionsByVectorCommand<span>:: execute ()
 		//	printf("init pointers  \n");
 		int pidx =0;
 		
-		////-------------k0 pointers-----------/////////
-		vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[0],0,0,0,255,this->_kmerSize ); // vec, prefix size, kxsize , radix min, radix max ,ksize
+		////-------------k0 pointers-----------/////////  radix_kmers[0]
+		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(0,0) ,0,0,0,255,this->_kmerSize, radix_sizes + IX(0,0) ); // vec, prefix size, kxsize , radix min, radix max ,ksize
 		
 		////-------------k1 pointers-----------/////////
 		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[1],0,1,0,255,this->_kmerSize );
+		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,0,1,0,255,this->_kmerSize, radix_sizes + IX(1, 0) );
 		int lowr = 0;
 		int maxr = 63;
 		//prefix1
 		for(unsigned int ii=0; ii<4; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[1],1,1,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,1,1,lowr,maxr,this->_kmerSize, radix_sizes + IX(1, 0)  );
 			lowr += 64;
 			maxr += 64;
 		}
 		
 		////-------------k2 pointers-----------/////////
 		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[2],0,2,0,255,this->_kmerSize );
+		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),0,2,0,255,this->_kmerSize, radix_sizes + IX(2, 0)  );
 		//prefix1
 		lowr = 0; maxr = 63;
 		for(unsigned int ii=0; ii<4; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[2],1,2,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),1,2,lowr,maxr,this->_kmerSize, radix_sizes + IX(2, 0)  );
 			lowr += 64;
 			maxr += 64;
 		}
@@ -536,7 +556,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 		lowr = 0; maxr = 15;
 		for(unsigned int ii=0; ii<16; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[2],2,2,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),2,2,lowr,maxr,this->_kmerSize, radix_sizes + IX(2, 0)  );
 			lowr += 16;
 			maxr += 16;
 		}
@@ -544,12 +564,12 @@ void PartitionsByVectorCommand<span>:: execute ()
 		////-------------k3 pointers-----------/////////
 
 		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[3],0,3,0,255,this->_kmerSize );
+		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),0,3,0,255,this->_kmerSize, radix_sizes + IX(3, 0)  );
 		//prefix1
 		lowr = 0; maxr = 63;
 		for(unsigned int ii=0; ii<4; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[3],1,3,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),1,3,lowr,maxr,this->_kmerSize, radix_sizes + IX(3, 0) );
 			lowr += 64;
 			maxr += 64;
 		}
@@ -558,7 +578,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 		lowr = 0; maxr = 15;
 		for(unsigned int ii=0; ii<16; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[3],2,3,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),2,3,lowr,maxr,this->_kmerSize, radix_sizes + IX(3, 0) );
 			lowr += 16;
 			maxr += 16;
 		}
@@ -567,7 +587,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 		lowr = 0; maxr = 3;
 		for(unsigned int ii=0; ii<64; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[3],3,3,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),3,3,lowr,maxr,this->_kmerSize, radix_sizes + IX(3, 0) );
 			lowr += 4;
 			maxr += 4;
 		}
@@ -576,12 +596,12 @@ void PartitionsByVectorCommand<span>:: execute ()
 		////-------------k4 pointers-----------/////////
 
 		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[4],0,4,0,255,this->_kmerSize );
+		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),0,4,0,255,this->_kmerSize, radix_sizes + IX(4, 0) );
 		//prefix1
 		lowr = 0; maxr = 63;
 		for(unsigned int ii=0; ii<4; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[4],1,4,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),1,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
 			lowr += 64;
 			maxr += 64;
 		}
@@ -590,7 +610,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 		lowr = 0; maxr = 15;
 		for(unsigned int ii=0; ii<16; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[4],2,4,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),2,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
 			lowr += 16;
 			maxr += 16;
 		}
@@ -599,7 +619,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 		lowr = 0; maxr = 3;
 		for(unsigned int ii=0; ii<64; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[4],3,4,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),3,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
 			lowr += 4;
 			maxr += 4;
 		}
@@ -608,7 +628,7 @@ void PartitionsByVectorCommand<span>:: execute ()
 		lowr = 0; maxr = 0;
 		for(unsigned int ii=0; ii<256; ii++)
 		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (radix_kmers[4],4,4,lowr,maxr,this->_kmerSize );
+			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),4,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
 			lowr += 1;
 			maxr += 1;
 		}
@@ -711,10 +731,23 @@ void PartitionsByVectorCommand<span>:: execute ()
 		<< "output solid: " << t.getEntryByKey("output solid") << endl;
 #endif
 
+		
+		free ( radix_sizes ) ;
+		
+			for (int xx=0; xx< (_kx+1); xx ++)
+			for(int ii=0;ii< 256; ii++)
+			{
+				free (_radix_kmers [IX(xx,ii)]);
+			}
+		
+		free(_radix_kmers);
+		
+		free(r_idx);
+		delete parallel_dispatcher;
+		
 		/** We update the progress bar. */
         this->_progress.inc (this->_pInfo->getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
 
-		//return;
 
     };
 

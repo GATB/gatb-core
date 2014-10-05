@@ -392,6 +392,8 @@ struct Kmer
          * \param[in] data : the sequence of nucleotides.
          * \param[out] kmersBuffer : the successive kmers built from the data object.
          * \return true if kmers have been extracted, false otherwise. */
+		//GR : est ce quon pourrait passer un pointeur (de taille suffisante) au lieu  vector, pour pas avoir a faire resize dessus dans tas
+		// si taille pas suffisante,
         bool build (tools::misc::Data& data, std::vector<Kmer>& kmersBuffer)  const
         {
             /** We compute the number of kmers for the provided data. Note that we have to check that we have
@@ -408,6 +410,41 @@ struct Kmer
             return true;
         }
 
+		/** Build a vector of successive kmers from a given sequence of nucleotides provided as a Data object.
+         * \param[in] data : the sequence of nucleotides.
+         * \param[in] buffer_size : the max size of provided buffer.
+         * \param[out] kmersBuffer : the successive kmers built from the data object.
+		 * \param[out] dynBuffer : allocated and result provided here if other array is too small.
+		 * \param[out] nbk : number of kmers returned
+
+         * \return true if kmers have been extracted, false otherwise. */
+		//user provide pointer and its capacity
+
+        bool build_static (tools::misc::Data& data, Kmer * kmersBuffer, u_int64_t buffer_size,  Kmer ** dynBuffer ,size_t & nbk)  const
+        {
+            /** We compute the number of kmers for the provided data. Note that we have to check that we have
+             * enough nucleotides according to the current kmer size. */
+            int32_t nbKmers = data.size() - this->getKmerSize() + 1;
+			nbk = nbKmers;
+            if (nbKmers <= 0)  { return false; }
+			
+			
+			Kmer * buff ;
+			if(nbKmers< buffer_size)
+				buff = kmersBuffer;
+			else
+			{
+				printf("allocing in heap \n");
+				*dynBuffer =  (Kmer *)malloc(nbKmers*sizeof(Kmer)); //calling user will be responsible to free this
+				buff = *dynBuffer;
+			}
+            /** We fill the vector through a functor. */
+            this->iterate (data, BuildFunctor_p <Kmer>(buff));
+			
+            return true;
+        }
+		
+		
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 outcoming neighbors
          *  - 4 incoming neighbors.
@@ -627,6 +664,14 @@ struct Kmer
             BuildFunctor (std::vector<Type>& kmersBuffer) : kmersBuffer(kmersBuffer) {}
             void operator() (const Type& kmer, size_t idx)  {  kmersBuffer[idx] = kmer;  }
         };
+		
+		template<typename Type>
+        struct BuildFunctor_p
+        {
+            Type * _kmersBuffer;
+            BuildFunctor_p (Type * kmersBuffer) : _kmersBuffer(kmersBuffer) {}
+            void operator() (const Type& kmer, size_t idx)  { _kmersBuffer[idx] = kmer;  }
+        };
     };
 
     /********************************************************************************/
@@ -759,43 +804,43 @@ struct Kmer
 		bool is_allowed(uint32_t mmer, uint32_t len)
 		{
 		
-//			u_int64_t  _mmask_m1  ;
-//			u_int64_t  _mask_0101 ;
-//			u_int64_t  _mask_ma1 ;
-//			
-//
-//				_mmask_m1  = (1 << ((len-2)*2)) -1 ;
-//				_mask_0101 = 0x5555555555555555  ;
-//				_mask_ma1  = _mask_0101 & _mmask_m1;
-//				
-//				
-//				
-//			u_int64_t a1 = mmer;
-//			a1 =   ~(( a1 )   | (  a1 >>2 ));
-//			a1 =((a1 >>1) & a1) & _mask_ma1 ;
-//			
-//			
-//			if(a1 != 0) return false;
+			u_int64_t  _mmask_m1  ;
+			u_int64_t  _mask_0101 ;
+			u_int64_t  _mask_ma1 ;
 			
-			if ((mmer & 0x3f) == 0x2a)            // TTT suffix
-				return false;
-			if ((mmer & 0x3f) == 0x2e)            // TGT suffix
-				return false;
-			if ((mmer & 0x3c) == 0x28)            // TT* suffix
-				return false;
+
+				_mmask_m1  = (1 << ((len-2)*2)) -1 ;
+				_mask_0101 = 0x5555555555555555  ;
+				_mask_ma1  = _mask_0101 & _mmask_m1;
+				
+				
+				
+			u_int64_t a1 = mmer;
+			a1 =   ~(( a1 )   | (  a1 >>2 ));
+			a1 =((a1 >>1) & a1) & _mask_ma1 ;
 			
-			for (uint32_t j = 0; j < len - 3; ++j)
-				if ((mmer & 0xf) == 0)                // AA inside
-					return false;
-				else
-					mmer >>= 2;
 			
-			if (mmer == 0)            // AAA prefix
-				return false;
-			if (mmer == 0x04)        // ACA prefix
-				return false;
-			if ((mmer & 0xf) == 0)    // *AA prefix
-				return false;
+			if(a1 != 0) return false;
+			
+//			if ((mmer & 0x3f) == 0x2a)            // TTT suffix
+//				return false;
+//			if ((mmer & 0x3f) == 0x2e)            // TGT suffix
+//				return false;
+//			if ((mmer & 0x3c) == 0x28)            // TT* suffix
+//				return false;
+//			
+//			for (uint32_t j = 0; j < len - 3; ++j)
+//				if ((mmer & 0xf) == 0)                // AA inside
+//					return false;
+//				else
+//					mmer >>= 2;
+//			
+//			if (mmer == 0)            // AAA prefix
+//				return false;
+//			if (mmer == 0x04)        // ACA prefix
+//				return false;
+//			if ((mmer & 0xf) == 0)    // *AA prefix
+//				return false;
 			
 			return true;
 		}
@@ -825,7 +870,7 @@ struct Kmer
             _minimizerDefault.set (tmp);
 			
 			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_miniModel.getKmerSize()));
-			_mmer_lut = (Type *) malloc(sizeof(Type) * nbminims_total );
+			_mmer_lut = (Type *) malloc(sizeof(Type) * nbminims_total ); //free that
 
 			for(int ii=0; ii< nbminims_total; ii++)
 			{
