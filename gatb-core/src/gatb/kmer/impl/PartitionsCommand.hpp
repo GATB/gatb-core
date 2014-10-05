@@ -63,7 +63,8 @@ namespace kmer      {
 /** \brief Implementation for genomic databases management. */
 namespace impl      {
 	
-	
+	class MemAllocator;
+
 	//class containing info of each parti : exact number of kmers per parti
 	//will be computed by fillparti, then used by fillsolids
 	//needed beacause the exact number of kmers per parti can no longer be inferred from partition file size
@@ -364,7 +365,8 @@ public:
 		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
-		size_t      kmerSize
+		size_t      kmerSize,
+	    MemAllocator * pool
 
 
     );
@@ -383,7 +385,8 @@ protected:
 	int _parti_num;
     size_t      _nbCores;
 	size_t      _kmerSize;
-
+	MemAllocator * _pool;
+	
     void insert (const Count& kmer);
 };
 
@@ -411,7 +414,8 @@ public:
 		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
-		size_t      kmerSize
+		size_t      kmerSize,
+	    MemAllocator * pool
 
     );
 
@@ -453,7 +457,8 @@ public:
 		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
-		size_t      kmerSize
+		size_t      kmerSize,
+	    MemAllocator * pool
     );
 
     void execute ();
@@ -575,6 +580,85 @@ public:
 };
 
 
+	
+//make it an allocator usable by std vector ?
+class MemAllocator
+{
+	public:
+	
+	
+	//clear all previous allocs, and alloc pool capacity
+	void reserve(u_int64_t size)
+	{
+		printf("request pool reserve %llu B \n",size);
+		if(size ==0 && mainbuffer !=NULL)
+		{
+			free(mainbuffer);
+			capacity = used_space = 0;
+			mainbuffer = NULL ;
+		}
+		
+		mainbuffer =(char *)  malloc(size);
+		capacity  = size;
+		used_space = 0;
+	}
+	
+	
+	//should be thread safe
+	char * pool_malloc(u_int64_t requested_size)
+	{
+		
+		u_int64_t synced_used_space = __sync_fetch_and_add(&used_space, requested_size);
+
+		if(requested_size> (capacity - synced_used_space))
+		{
+			printf("mem allocator full\n");
+			__sync_fetch_and_add(&used_space, -requested_size);
+			return NULL;
+		}
+		
+		
+		return mainbuffer + synced_used_space;
+	}
+	
+	u_int64_t getCapacity()
+	{
+		return capacity;
+	}
+	
+	u_int64_t getUsedSpace()
+	{
+		return used_space;
+	}
+
+	
+	void free_all()
+	{
+		used_space = 0;
+		
+	}
+	
+	MemAllocator() : capacity(0),used_space(0),mainbuffer(NULL)
+	{
+		
+	}
+
+	
+	~MemAllocator()
+	{
+		if(mainbuffer !=NULL)
+			free(mainbuffer);
+	}
+		
+	private :
+	
+	
+	char * mainbuffer;
+	u_int64_t capacity; //in bytes
+	u_int64_t used_space;
+	
+		
+};
 	
 	
 

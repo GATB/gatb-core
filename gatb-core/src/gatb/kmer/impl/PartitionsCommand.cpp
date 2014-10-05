@@ -42,7 +42,8 @@ PartitionsCommand<span>:: PartitionsCommand (
 		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
-		size_t      kmerSize
+		size_t      kmerSize,
+		MemAllocator * pool
 
 
     )
@@ -56,7 +57,8 @@ PartitionsCommand<span>:: PartitionsCommand (
 		  _pInfo(pInfo),
 		  _parti_num(parti),
 		  _nbCores(nbCores),
-	      _kmerSize(kmerSize) {};
+	      _kmerSize(kmerSize),
+		  _pool(pool) {};
 
 template<size_t span>
 PartitionsCommand<span>::~PartitionsCommand()  {
@@ -92,12 +94,13 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
 		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
-		size_t      kmerSize
+		size_t      kmerSize,
+	    MemAllocator * pool
 														
 
 														 
     )
-        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize), _hashMemory(hashMemory)  {};
+        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize,pool), _hashMemory(hashMemory)  {};
 
 template<size_t span>
 void PartitionsByHashCommand<span>:: execute ()
@@ -372,9 +375,10 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
 		PartiInfo<5> * pInfo,
 		int parti,
 		size_t      nbCores,
-		size_t      kmerSize
+		size_t      kmerSize,
+	    MemAllocator * pool
     )
-        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize)
+        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize,pool)
           {};
 
 template<size_t span>
@@ -398,6 +402,9 @@ void PartitionsByVectorCommand<span>:: execute ()
 		
 		uint64_t _sum_nbxmer =0;
 		uint64_t * r_idx  = (uint64_t *) calloc((_kx+1)*256,sizeof(uint64_t));
+	//	uint64_t   r_idx [256*5]; //256*(kx+1)
+		
+		//= (uint64_t *) calloc((_kx+1)*256,sizeof(uint64_t));
 		memset(r_idx, 0 , sizeof(uint64_t)*(_kx+1)*256);
 		
 		
@@ -419,7 +426,8 @@ void PartitionsByVectorCommand<span>:: execute ()
 //
 //		}
 
-		_radix_kmers = (Type **) malloc(256*(_kx+1)*sizeof(Type *));
+		_radix_kmers = (Type **) malloc(256*(_kx+1)*sizeof(Type *)); //make the first dims static ?  5*256
+		
 		uint64_t * radix_sizes = (uint64_t*) malloc(256*(_kx+1)*sizeof(uint64_t));
 
 		for (int xx=0; xx< (_kx+1); xx ++)
@@ -428,7 +436,11 @@ void PartitionsByVectorCommand<span>:: execute ()
 			//if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
 			//	printf("should alloc  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
 			
-			_radix_kmers [IX(xx,ii)] = (Type *) malloc(this->_pInfo->getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
+			//_radix_kmers [IX(xx,ii)] = (Type *) malloc(this->_pInfo->getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
+			
+			//use memory pool here to avoid memroy fragmentation
+			_radix_kmers [IX(xx,ii)] = (Type *) this->_pool->pool_malloc(this->_pInfo->getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
+			
 			radix_sizes[IX(xx,ii)] = this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
 			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
 		}
@@ -733,12 +745,13 @@ void PartitionsByVectorCommand<span>:: execute ()
 
 		
 		free ( radix_sizes ) ;
-		
-			for (int xx=0; xx< (_kx+1); xx ++)
-			for(int ii=0;ii< 256; ii++)
-			{
-				free (_radix_kmers [IX(xx,ii)]);
-			}
+	
+		//now managed by pool
+//			for (int xx=0; xx< (_kx+1); xx ++)
+//			for(int ii=0;ii< 256; ii++)
+//			{
+//				free (_radix_kmers [IX(xx,ii)]);
+//			}
 		
 		free(_radix_kmers);
 		

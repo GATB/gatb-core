@@ -368,7 +368,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 	
 	if (_volume == 0)   { _volume = 1; }    // tiny files fix
 
-	 u_int64_t volume_minim = _volume * 0.5 *1.2* 1.2  ; //0.5 for using kxmers   1.2 if bad repartition of minimizers ( todo sampling to assert ram usage)
+	 u_int64_t volume_minim = _volume * 0.5 *1.2  ; //0.5 for using kxmers   1.2 if bad repartition of minimizers ( todo sampling to assert ram usage)
 	
 	
     if (volume_minim == 0)   { volume_minim = 1; }    // tiny files fix
@@ -610,7 +610,7 @@ public:
 //		Kmer * dynkmers = NULL;
 //		size_t nbkmers = 0 ;
 		
-		int maxs = (temp.getSize() - _mm )/2 ;
+		int maxs = (temp.getSize() - _mm )/2 ; //and 100 max
 
 		
 
@@ -1153,8 +1153,8 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
     {
 		u_int64_t ram_total = 0;
         size_t i=0;  for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions
-						  && (ram_total ==0  || ((ram_total+(_pInfo->getNbSuperKmer(p)*(Type::getSize()/8))/MBYTE)  <= _max_memory)) ; i++, p++)  {
-			ram_total+= (_pInfo->getNbSuperKmer(p)*(Type::getSize()/8))/MBYTE;
+						  && (ram_total ==0  || ((ram_total+(_pInfo->getNbSuperKmer(p)*(Type::getSize()/8)))  <= _max_memory*MBYTE)) ; i++, p++)  {
+			ram_total+= (_pInfo->getNbSuperKmer(p)*(Type::getSize()/8));
 		}
         result.push_back (i);
     }
@@ -1188,6 +1188,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 	//for serial mode
 	//SerialDispatcher * sd  = new SerialDispatcher();
 	
+	
+	MemAllocator * pool = new MemAllocator();
+
     size_t p = 0;
     for (size_t i=0; i<coreList.size(); i++)
     {
@@ -1223,11 +1226,18 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 			//still use hash if by vector would be too large even with single part at a time
             if (memoryPartition > mem && currentNbCores==1)
             {
-                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem,pInfo,p,_nbCores_per_partition, _kmerSize);
+				if(pool->getCapacity()!=0)
+					pool->reserve(0);
+				
+                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem,pInfo,p,_nbCores_per_partition, _kmerSize,pool);
             }
             else
             {
-                cmd = new PartitionsByVectorCommand<span> (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress,pInfo,p,_nbCores_per_partition, _kmerSize);
+	           //if capa pool ==0, reserve max memo , pass pool to partibyvec, will be used  for vec kmers
+				if(pool->getCapacity()==0)
+					pool->reserve(_max_memory*MBYTE);
+				
+                cmd = new PartitionsByVectorCommand<span> (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress,pInfo,p,_nbCores_per_partition, _kmerSize,pool);
             }
 
             cmds.push_back (cmd);
@@ -1235,9 +1245,15 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 		printf("\n ");
 
         getDispatcher()->dispatchCommands (cmds, 0);
+		
+		
+		pool->free_all();
+		//free internal memory of pool here
 
     }
 
+	delete pool;
+	
 }
 
 /********************************************************************************/
