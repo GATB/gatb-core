@@ -104,16 +104,16 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
 
 template<size_t span>
 void PartitionsByHashCommand<span>:: execute ()
-    {
-        size_t count=0;
+{
+	size_t count=0;
 
-        /** We need a map for storing part of solid kmers. */
-        OAHash<Type> hash (_hashMemory); //or use hash16 to ensure always finishes ?
+	/** We need a map for storing part of solid kmers. */
+	OAHash<Type> hash (_hashMemory); //or use hash16 to ensure always finishes ?
 
-        /** We directly fill the vector from the current partition file. */
-        Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
+	/** We directly fill the vector from the current partition file. */
+	Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
 
-		//without decompactage, would be :
+	//without decompactage, would be :
 //        for (it->first(); !it->isDone(); it->next())
 //        {
 //            hash.increment (it->item());
@@ -122,70 +122,70 @@ void PartitionsByHashCommand<span>:: execute ()
 //            if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
 //        }
 
-		printf("--------- fillsolid parti num %i  by oahash -------  mem %llu  MB\n",this->_parti_num,_hashMemory/MBYTE);
+	printf("--------- fillsolid parti num %i  by oahash -------  mem %llu  MB\n",this->_parti_num,_hashMemory/MBYTE);
+	
+	
+	
+	//with decompactage
+	//superk
+	u_int8_t		nbK, rem ;
+	Type compactedK;
+	int ks = this->_kmerSize;
+	Type un = 1;
+	size_t _shift_val = un.getSize() -8;
+	Type kmerMask = (un << (ks*2)) - un;
+	size_t shift = 2*(ks-1);
+	
+	for (it->first(); !it->isDone(); it->next()) {
+		Type superk = it->item();
+		it->next();
+		Type seedk = it->item();
 		
 		
+		compactedK =  superk;
+		nbK = (compactedK >> _shift_val).getVal() & 255; // 8 bits poids fort = cpt //todo for large k values
+		rem = nbK;
 		
-		//with decompactage
-		//superk
-		u_int8_t		nbK, rem ;
-		uint64_t compactedK;
-		int ks = this->_kmerSize;
-		Type un = 1;
-		size_t _shift_val = un.getSize() -8;
-		Type kmerMask = (un << (ks*2)) - un;
-		size_t shift = 2*(ks-1);
-		
-        for (it->first(); !it->isDone(); it->next()) {
-			Type superk = it->item();
-			it->next();
-			Type seedk = it->item();
-			
-			
-			compactedK =  superk.getVal();
-			nbK = (compactedK >> _shift_val) & 255; // 8 bits poids fort = cpt //todo for large k values
-			rem = nbK;
-			
 
-			Type temp = seedk;
-			Type rev_temp = revcomp(temp,ks);
-			Type newnt ;
-			Type mink;
+		Type temp = seedk;
+		Type rev_temp = revcomp(temp,ks);
+		Type newnt ;
+		Type mink;
+		
+		for (int ii=0; ii< nbK; ii++,rem--) {
+			mink = std::min (rev_temp, temp);
 			
-			for (int ii=0; ii< nbK; ii++,rem--) {
-				mink = std::min (rev_temp, temp);
-				
-				//insert elem here
-				hash.increment (mink);
-								
-				if(rem < 2) break;
-				newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
-				
-				temp = ((temp << 2 ) |  newnt   ) & kmerMask;
-				newnt =  Type(comp_NT[newnt.getVal()]) ;
-				rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
-			}
+			//insert elem here
+			hash.increment (mink);
+							
+			if(rem < 2) break;
+			newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
 			
-			
-			
-			
+			temp = ((temp << 2 ) |  newnt   ) & kmerMask;
+			newnt =  Type(comp_NT[newnt.getVal()]) ;
+			rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
 		}
 		
 		
 		
 		
-        /** We loop over the solid kmers map. */
-        Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator();
-        LOCAL (itKmerAbundance);
+	}
+	
+	
+	
+	
+	/** We loop over the solid kmers map. */
+	Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator();
+	LOCAL (itKmerAbundance);
 
-        for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
-        {
-            /** We may add this kmer to the solid kmers bag. */
-           this->insert ((Count&) itKmerAbundance->item());
-        }
-		
-		this->_progress.inc (this->_pInfo->getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
-    };
+	for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
+	{
+		/** We may add this kmer to the solid kmers bag. */
+	   this->insert ((Count&) itKmerAbundance->item());
+	}
+	
+	this->_progress.inc (this->_pInfo->getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
+};
 
 	
 
@@ -209,11 +209,12 @@ public:
 			_seedk = elem;
 
 			
-			uint64_t compactedK;
+			Type compactedK;
 			
-			compactedK =  _superk.getVal();
-			u_int8_t nbK = (compactedK >> _shift_val    ) & 255; // 8 bits poids fort = cpt
+			compactedK =  _superk;
+			u_int8_t nbK = (compactedK >> _shift_val).getVal()  & 255; // 8 bits poids fort = cpt
 			u_int8_t rem = nbK;
+			
 			
 			Type temp = _seedk;
 			Type rev_temp = revcomp(temp,_kmerSize);

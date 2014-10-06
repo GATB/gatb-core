@@ -501,9 +501,9 @@ public:
 			int maxs = (compactedK.getSize() - 8 ) ;
 			
 			Type mm (minimk);
-			//printf("new minim %s      \n",mm.toString(system::g_msize).c_str());
+			//printf("new minim %s      nbK  %llu\n",mm.toString(_mm).c_str(),nbK.getVal());
 
-			//printf("K0 %s      \n",superK[0].toString(31).c_str());
+		//	printf("K0 %s      \n",superKp[0]->value().toString(31).c_str());
 
 			
 			bool prev_which = superKp[0]->which();
@@ -564,7 +564,9 @@ public:
 			_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
 
 			
+			//printf("should write nbk with shift %i maxs\n",maxs);
 			compactedK = compactedK | (  nbK << maxs ) ; // 56 = nb bits in type - 8
+			// 120 :  128 - 8
 			
 			//then output first and amorce
 			//		printf("WRITE A %llx\n",compactedK.getVal());
@@ -1229,6 +1231,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 				if(pool->getCapacity()!=0)
 					pool->reserve(0);
 				
+				//todo : also allow to use mem pool for oahash 
                 cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem,pInfo,p,_nbCores_per_partition, _kmerSize,pool);
             }
             else
