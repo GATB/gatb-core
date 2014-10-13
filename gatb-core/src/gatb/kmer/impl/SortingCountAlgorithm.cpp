@@ -385,7 +385,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 	_nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
 	//increase it only if ram issue
 	
-	printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
+	//printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
     u_int64_t volume_per_pass;
 
