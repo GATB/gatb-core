@@ -79,9 +79,9 @@ namespace impl      {
 			_nb_kmers_per_parti[numpart]+=val;
 		}
 		
-		inline void incSuperKmer(int numpart, u_int64_t val=1)
+		inline void incKxmer(int numpart, u_int64_t val=1)
 		{
-			_nb_superkmers_per_parti[numpart]+=val; //now used to store number of kxmers per parti
+			_nb_kxmers_per_parti[numpart]+=val; //now used to store number of kxmers per parti
 		}
 		
 		//superksize in number of kmer inside this superk
@@ -102,13 +102,10 @@ namespace impl      {
 		//numaprt, radix, size of kx mer
 		inline void incKmer_and_rad(int numpart, int radix,int x,  u_int64_t val=1) //appele ds vrai loop
 		{
-			_nb_superkmers_per_parti[numpart] += val; //now used to store number of kxmers per parti
+			_nb_kxmers_per_parti[numpart] += val; //now used to store number of kxmers per parti
 			_nb_kmers_per_parti[numpart]+= (val * (x+1)); // number of  'real' kmers
 			_nbk_per_radix_per_part[x][radix][numpart]+=val; // contains number of kx mer per part per radix per x
 		}
-		
-		
-		
 		
 		
 		PartiInfo& operator+=  (const PartiInfo& other)
@@ -124,7 +121,7 @@ namespace impl      {
 				}
 			
 				__sync_fetch_and_add( _nb_kmers_per_parti + np,        other.getNbKmer(np) );
-				__sync_fetch_and_add( _nb_superkmers_per_parti + np,   other.getNbSuperKmer(np) );
+				__sync_fetch_and_add( _nb_kxmers_per_parti + np,   other.getNbSuperKmer(np) );
 				
 			}
 			
@@ -153,7 +150,7 @@ namespace impl      {
 		
 		inline  u_int64_t   getNbSuperKmer(int numpart) const //now used for number of kxmers (indistinctive of xsize)
 		{
-			return _nb_superkmers_per_parti[numpart];
+			return _nb_kxmers_per_parti[numpart];
 		}
 		
 		
@@ -176,7 +173,7 @@ namespace impl      {
 		void clear()
 		{
 			memset(_nb_kmers_per_parti, 0, _nbpart*sizeof(u_int64_t));
-			memset(_nb_superkmers_per_parti, 0, _nbpart*sizeof(u_int64_t));
+			memset(_nb_kxmers_per_parti, 0, _nbpart*sizeof(u_int64_t));
 			memset(_superk_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
 			memset(_kmer_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
 			memset(_kxmer_per_mmer_bin, 0, _num_mm_bins *sizeof(u_int64_t));
@@ -250,7 +247,7 @@ namespace impl      {
 		PartiInfo(int nbpart, int minimsize) : _nbpart(nbpart), _mm(minimsize)
 		{
 			_nb_kmers_per_parti =  (u_int64_t  *)  calloc(nbpart,sizeof(u_int64_t));
-			_nb_superkmers_per_parti =  (u_int64_t  *)  calloc(nbpart,sizeof(u_int64_t));
+			_nb_kxmers_per_parti =  (u_int64_t  *)  calloc(nbpart,sizeof(u_int64_t));
 			
 			_num_mm_bins =   1 << (2*_mm);
 			_superk_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
@@ -278,7 +275,7 @@ namespace impl      {
 			
 			
 			_nb_kmers_per_parti =  (u_int64_t  *)  calloc(_nbpart,sizeof(u_int64_t));
-			_nb_superkmers_per_parti =  (u_int64_t  *)  calloc(_nbpart,sizeof(u_int64_t));
+			_nb_kxmers_per_parti =  (u_int64_t  *)  calloc(_nbpart,sizeof(u_int64_t));
 			_superk_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 			_kmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
 			_kxmer_per_mmer_bin = ( u_int64_t * )  calloc (_num_mm_bins ,sizeof(u_int64_t) );
@@ -296,7 +293,7 @@ namespace impl      {
 		~PartiInfo()
 		{
 			free(_nb_kmers_per_parti);
-			free(_nb_superkmers_per_parti);
+			free(_nb_kxmers_per_parti);
 			free(_superk_per_mmer_bin);
 			free(_kmer_per_mmer_bin);
 			free(_kxmer_per_mmer_bin);
@@ -313,7 +310,7 @@ namespace impl      {
 	private:
 		
 		u_int64_t  * _nb_kmers_per_parti;
-		u_int64_t  * _nb_superkmers_per_parti; //now used to store number of kxmers per parti
+		u_int64_t  * _nb_kxmers_per_parti; //now used to store number of kxmers per parti
 		u_int64_t * _superk_per_mmer_bin;
 		u_int64_t * _kmer_per_mmer_bin;
 		u_int64_t * _kxmer_per_mmer_bin;
@@ -454,7 +451,7 @@ public:
         u_int64_t&      totalKmerNbRef,
         size_t          abundance,
         IteratorListener* progress,
-		PartiInfo<5> * pInfo,
+		PartiInfo<5> * pInfo, //x+1  (space for k+0,  .. ,k+x mer)
 		int parti,
 		size_t      nbCores,
 		size_t      kmerSize,
@@ -465,44 +462,44 @@ public:
 
 private:
 
-    vector<Type> kmers;
+//    vector<Type> kmers;
 	
-	vector <   vector < vector<Type> >  >    radix_kmers; //by  xmer by radix 4nt bins //pas tres beau ,bcp indirection
+//	vector <   vector < vector<Type> >  >    radix_kmers; //by  xmer by radix 4nt bins //pas tres beau ,bcp indirection
 	Type ** _radix_kmers;
 
 };
 
 	
-	template<size_t span>
-	class SortCommand : public ICommand, public system::SmartPointer
+template<size_t span>
+class SortCommand : public ICommand, public system::SmartPointer
+{
+public:
+	typedef typename Kmer<span>::Type  Type;
+
+	SortCommand( Type **   kmervec, int begin, int end, uint64_t * radix_sizes) : _radix_kmers(kmervec),_deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
+	
+	 void execute ()
 	{
-	public:
-		typedef typename Kmer<span>::Type  Type;
 
-		SortCommand( Type **   kmervec, int begin, int end, uint64_t * radix_sizes) : _radix_kmers(kmervec),_deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
-		
-		 void execute ()
-		{
-
-			//printf("will exec  range [ %i ; %i] \n ",_deb,_fin);
-			for (int ii= _deb; ii<= _fin; ii++) {
-		
+		//printf("will exec  range [ %i ; %i] \n ",_deb,_fin);
+		for (int ii= _deb; ii<= _fin; ii++) {
+	
 //				if(_radix_kmers[ii].size() > 0)
 //					std::sort (_radix_kmers[ii].begin (), _radix_kmers[ii].end ());
-				
-				if(_radix_sizes[ii] > 0)
-					std::sort (&_radix_kmers[ii][0] , &_radix_kmers[ii][ _radix_sizes[ii]]);
-			}
 			
+			if(_radix_sizes[ii] > 0)
+				std::sort (&_radix_kmers[ii][0] , &_radix_kmers[ii][ _radix_sizes[ii]]);
 		}
 		
-		private :
-		
-		int _deb, _fin;
-		//std::vector <  vector<Type> >   & _radix_kmers;
-		Type ** _radix_kmers;
-		uint64_t * _radix_sizes;
-	};
+	}
+	
+	private :
+	
+	int _deb, _fin;
+	//std::vector <  vector<Type> >   & _radix_kmers;
+	Type ** _radix_kmers;
+	uint64_t * _radix_sizes;
+};
 	
 
 	
@@ -536,7 +533,7 @@ public:
 		_cur_idx++;
 		
 		//go to next non empty radix
-	//	while(_idx_radix<= _high_radix &&_cur_idx >= _kxmers[_idx_radix].size()  )
+	//	while(_idx_radix<= _high_radix &&_cur_idx >= _kxmers[_idx_radix].size()  ) //if using vectors
 		while(_idx_radix<= _high_radix &&_cur_idx >=   _radix_sizes[_idx_radix]    )
 		{
 			_idx_radix++;
@@ -552,7 +549,6 @@ public:
 	
 	inline Type value() const
 	{
-	//	Type res =  ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
 		Type res =  ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
 
 		return res ;
@@ -590,7 +586,7 @@ class MemAllocator
 	//clear all previous allocs, and alloc pool capacity
 	void reserve(u_int64_t size)
 	{
-		printf("request pool reserve %llu B \n",size);
+		//printf("request pool reserve %llu B \n",size);
 		if(size ==0 && mainbuffer !=NULL)
 		{
 			free(mainbuffer);
@@ -635,7 +631,6 @@ class MemAllocator
 	void free_all()
 	{
 		used_space = 0;
-		
 	}
 	
 	MemAllocator() : capacity(0),used_space(0),mainbuffer(NULL)

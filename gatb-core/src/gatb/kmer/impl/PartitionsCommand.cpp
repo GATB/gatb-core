@@ -232,7 +232,6 @@ public:
 			
 			u_int8_t rid;
 
-			//printf("--loop nbk  %i \n",nbK); //todo bug avec larger k
 			for (int ii=0; ii< nbK; ii++,rem--) {
 
 				bool which =  (temp < rev_temp );
@@ -447,8 +446,8 @@ void PartitionsByVectorCommand<span>:: execute ()
 		}
 		
 		
-		printf("--------- fillsolid parti num %i  by vector  nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
-			   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
+	//	printf("--------- fillsolid parti num %i  by vector  nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
+	//		   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
 		
         /** We directly fill the vector from the current partition file. */
         Iterator<Type>* it = this->_partition.iterator();  LOCAL (it);

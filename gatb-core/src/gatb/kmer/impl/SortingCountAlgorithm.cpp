@@ -262,7 +262,7 @@ void SortingCountAlgorithm<span>::execute ()
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
     _progress->init ();
 
-	_pInfo = new PartiInfo<5>(_nb_partitions, _minim_size); //minimsize here et ailleurs
+	_pInfo = new PartiInfo<5>(_nb_partitions, _minim_size);
 
 	
     /*************************************************************/
@@ -461,7 +461,6 @@ public:
 
     /** Shortcut. */
     typedef typename SortingCountAlgorithm<span>::Type                  Type;
-	//typedef typename SortingCountAlgorithm<span>::ModelDirect           ModelDirect;
 	typedef typename SortingCountAlgorithm<span>::ModelCanonical             ModelCanonical;
     typedef typename SortingCountAlgorithm<span>::Model 	Model;
 
@@ -470,14 +469,12 @@ public:
 	
 	
 	
-//	void compact_and_insert_superkmer ( u_int64_t minimk, std::vector<Kmer *>  &superKp)
 	
 	void compact_and_insert_superkmer ( u_int64_t minimk, Kmer ** superKp, int superKp_size)
     {
 	
 		if ((minimk % nbPass) == pass && minimk!=1000000000 ) //check if falls into pass
 		{
-		//	u_int64_t reduced_kmer = minimk / nbPass; //opt 1 pass
 			u_int64_t reduced_kmer = minimk ;
 			
 			
@@ -493,7 +490,6 @@ public:
 
 			Type radix, radix_kxmer_forward ,radix_kxmer ;
 			
-			//Type nbK ((int64_t) superKp.size());
 			Type nbK ((int64_t) superKp_size);
 
 			Type compactedK(zero);
@@ -501,9 +497,7 @@ public:
 			int maxs = (compactedK.getSize() - 8 ) ;
 			
 			Type mm (minimk);
-			//printf("new minim %s      nbK  %llu\n",mm.toString(_mm).c_str(),nbK.getVal());
 
-		//	printf("K0 %s      \n",superKp[0]->value().toString(31).c_str());
 
 			
 			bool prev_which = superKp[0]->which();
@@ -511,10 +505,8 @@ public:
 			
 			radix_kxmer_forward =  (superKp[0]->value() & _mask_radix) >> ((_kmersize - 4)*2);
 
-			//for (int ii = 1 ; ii <superKp.size(); ii++) {
 				for (int ii = 1 ; ii <superKp_size; ii++) {
 				
-				//printf("K%i %s      \n",ii,superKp[ii]->value().toString(31).c_str());
 
 				//compute here stats on  kx mer
 				//tant que tai <= xmer et which kmer[ii] == which kmer [ii-1] --> cest un kxmer
@@ -556,7 +548,6 @@ public:
 			}
 			else // si revcomp, le radix du kxmer est le debut du dernier kmer
 			{
-				//radix_kxmer =  (superKp.back()->value() & _mask_radix) >> ((_kmersize - 4)*2);
 				radix_kxmer =  (superKp[superKp_size-1]->value() & _mask_radix) >> ((_kmersize - 4)*2);
 
 			}
@@ -564,23 +555,17 @@ public:
 			_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
 
 			
-			//printf("should write nbk with shift %i maxs\n",maxs);
-			compactedK = compactedK | (  nbK << maxs ) ; // 56 = nb bits in type - 8
-			// 120 :  128 - 8
+			compactedK = compactedK | (  nbK << maxs ) ;
 			
-			//then output first and amorce
-			//		printf("WRITE A %llx\n",compactedK.getVal());
-			//		printf("WRITE B %llx\n",debk.getVal());
+
 			
 			_partition[p].insert (compactedK);
 
 			_partition[p].insert (superKp[0]->forward());
-			//_partition[p].insert (superK[0]);
 
 			
 			///// end compact
 	
-			//nbWrittenKmers+= superKp.size();
 			nbWrittenKmers+= superKp_size;
 
 		}
@@ -614,19 +599,6 @@ public:
 		
 		int maxs = (temp.getSize() - _mm )/2 ; //and 100 max
 
-		
-
-//		
-//		// We iterate the kmers (and minimizers) of the current sequence.
-//		model.iterate (sequence.getData(), [&] (const :Kmer& kmer, size_t idx)
-//					   {
-//						   ;
-//					   });
-//		
-//		
-		
-	//	model.iterate (sequence.getData(),BuildFunctor<Kmer>(kmersBuffer));
-		
 
 		if (model.build (sequence.getData(), kmers) == false)  { return; }
 	//	if (model.build_static (sequence.getData(), stakmers, 500, &dynkmers, nbkmers) == false)  { return; }
@@ -653,7 +625,6 @@ public:
 				
 			//on onvalid kmer : output previous superk utput prev
 				compact_and_insert_superkmer( prevmin,superKp,superKp_size);
-				//superKp.clear();
 				superKp_size =0;
 				
 				prevmin = 1000000000; //marking will have to restart 'from new'
@@ -668,22 +639,17 @@ public:
 			if(prevmin == 1000000000) prevmin= h;
 
 			
-			//if(   h!= prevmin || superKp.size() >= maxs) //could use (kmers[i].hasChanged() && i > 0
-				if(   h!= prevmin || superKp_size >= maxs) //could use (kmers[i].hasChanged() && i > 0
-
+		if(   h!= prevmin || superKp_size >= maxs) //could use (kmers[i].hasChanged() && i > 0
 			{
 				nb_superk ++;
 				
 				compact_and_insert_superkmer( prevmin,superKp,superKp_size);
 				
 				superKp_size =0;  superKp[superKp_size++] = & (kmers[i]);
-			//	superKp.clear(); superKp.push_back( & (kmers[i]));
 			}
 			else
 			{
 				 superKp[superKp_size++] = & (kmers[i]);
-
-				//superKp.push_back( & (kmers[i]));
 			}
 
 			prevmin =  h;
@@ -779,9 +745,6 @@ public:
 			
 			
 			//_local_pInfo.incSuperKmer_per_minimBin(minimk,superKp.size()); //for debug info, to be removed
-			
-			
-			
 			
 			int64_t zero = 0;
 			Type masknt ((int64_t) 3);
@@ -969,7 +932,7 @@ public:
 			bin_size_vec.push_back(ipair( _extern_pInfo.getNbKxmer_per_minim(ii) ,ii));
 		}
 		u_int64_t mean_size =  sumsizes /  _nbpart;
-		printf("mean size per parti should be :  %lli  (total %lli )\n",mean_size,sumsizes);
+//		printf("mean size per parti should be :  %lli  (total %lli )\n",mean_size,sumsizes);
 		
 		//init space left
 		for (int jj = 0; jj < _nbpart; jj++) {
@@ -981,11 +944,11 @@ public:
 		std::sort (bin_size_vec.begin (), bin_size_vec.end (),comp_bins);
 		
 		//debug
-				printf("20 largest estimated bin sizes \n");
-				for(int ii=0; ii<20 &&  ii< bin_size_vec.size(); ii++ ) //_nb_minims 20  print largest bins //ii<20 &&
-				{
-					printf("binsize [%llu] = %llu \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
-				}
+//				printf("20 largest estimated bin sizes \n");
+//				for(int ii=0; ii<20 &&  ii< bin_size_vec.size(); ii++ ) //_nb_minims 20  print largest bins //ii<20 &&
+//				{
+//					printf("binsize [%llu] = %llu \n",bin_size_vec[ii].second,bin_size_vec[ii].first);
+//				}
 		
 		//GC suggestion : put the largest in the emptiest (la plus grosse dans la plus grosse)
 		
@@ -1082,11 +1045,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
 
     /** We create a kmer model. */
-	Model model (_kmerSize,_minim_size); //minimsize here et ailleurs // , CustomMinimizer(_minim_size)
+	Model model (_kmerSize,_minim_size);  // , CustomMinimizer(_minim_size)
 	
 	int mmsize = model.getMmersModel().getKmerSize();
 	
-	//printf(" k / m   %zu  mmsize %i\n",_kmerSize,mmsize);
 	
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
@@ -1106,14 +1068,11 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
-    /** We launch the iteration of the sequences iterator with the created functors. */
-    // R to E: typical question from a puzzled developer: what's this last argument of iterate() (15*1000)? so to answer this, I need to find the definition of iterate(), where is it? maybe to answer this, where does getDispatcher come from? any way we could search http://gatb-core.gforge.inria.fr/ to quickly find out?
 	
 
     u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
-	//nbseq_sample = 1000;
 	printf("nb seq for sample :  %llu \n ",nbseq_sample);
-	TruncateIterator<Sequence> it_sample (*itSeq, nbseq_sample); //sample with first 5  million reads ? //mettre max de nb reads, 5M reads,  10 % des reads ?
+	TruncateIterator<Sequence> it_sample (*itSeq, nbseq_sample);
 
 	//fill bin sizes here
 	
@@ -1209,21 +1168,18 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
         ISynchronizer* synchro = System::thread().newSynchronizer();
         LOCAL (synchro);
 
-		printf("\ncomputing %zu partitions simultaneously , parti : ",currentNbCores);
+	//	printf("\ncomputing %zu partitions simultaneously , parti : ",currentNbCores);
 
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
-			printf(" %zu ",p);
+	//		printf(" %zu ",p);
 
 
             ICommand* cmd = 0;
 
-            /** We get the length of the current partition file. */
-            size_t partitionLen = (*_partitions)[p].getNbItems(); // hmm this will be unknown for a gz file, maybe estimation possible du coup utilise le hash
-
             /* Get the memory taken by this partition if loaded for sorting */
             uint64_t memoryPartition = (_pInfo->getNbSuperKmer(p)*(Type::getSize()/8)); //in bytes
-			printf("  (%llu  MB) ",memoryPartition/MBYTE);
+	//		printf("  (%llu  MB) ",memoryPartition/MBYTE);
 			
 			//still use hash if by vector would be too large even with single part at a time
             if (memoryPartition > mem && currentNbCores==1)
@@ -1231,7 +1187,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 				if(pool->getCapacity()!=0)
 					pool->reserve(0);
 				
-				//todo : also allow to use mem pool for oahash 
+				// also allow to use mem pool for oahash ? ou pas la peine
                 cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem,pInfo,p,_nbCores_per_partition, _kmerSize,pool);
             }
             else
@@ -1245,7 +1201,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers, Parti
 
             cmds.push_back (cmd);
         }
-		printf("\n ");
+	//	printf("\n ");
 
         getDispatcher()->dispatchCommands (cmds, 0);
 		

@@ -410,40 +410,6 @@ struct Kmer
             return true;
         }
 
-		/** Build a vector of successive kmers from a given sequence of nucleotides provided as a Data object.
-         * \param[in] data : the sequence of nucleotides.
-         * \param[in] buffer_size : the max size of provided buffer.
-         * \param[out] kmersBuffer : the successive kmers built from the data object.
-		 * \param[out] dynBuffer : allocated and result provided here if other array is too small.
-		 * \param[out] nbk : number of kmers returned
-
-         * \return true if kmers have been extracted, false otherwise. */
-		//user provide pointer and its capacity
-
-        bool build_static (tools::misc::Data& data, Kmer * kmersBuffer, u_int64_t buffer_size,  Kmer ** dynBuffer ,size_t & nbk)  const
-        {
-            /** We compute the number of kmers for the provided data. Note that we have to check that we have
-             * enough nucleotides according to the current kmer size. */
-            int32_t nbKmers = data.size() - this->getKmerSize() + 1;
-			nbk = nbKmers;
-            if (nbKmers <= 0)  { return false; }
-			
-			
-			Kmer * buff ;
-			if(nbKmers< buffer_size)
-				buff = kmersBuffer;
-			else
-			{
-				printf("allocing in heap \n");
-				*dynBuffer =  (Kmer *)malloc(nbKmers*sizeof(Kmer)); //calling user will be responsible to free this
-				buff = *dynBuffer;
-			}
-            /** We fill the vector through a functor. */
-            this->iterate (data, BuildFunctor_p <Kmer>(buff));
-			
-            return true;
-        }
-		
 		
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 outcoming neighbors
@@ -665,13 +631,6 @@ struct Kmer
             void operator() (const Type& kmer, size_t idx)  {  kmersBuffer[idx] = kmer;  }
         };
 		
-		template<typename Type>
-        struct BuildFunctor_p
-        {
-            Type * _kmersBuffer;
-            BuildFunctor_p (Type * kmersBuffer) : _kmersBuffer(kmersBuffer) {}
-            void operator() (const Type& kmer, size_t idx)  { _kmersBuffer[idx] = kmer;  }
-        };
     };
 
     /********************************************************************************/
@@ -870,7 +829,7 @@ struct Kmer
             _minimizerDefault.set (tmp);
 			
 			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_miniModel.getKmerSize()));
-			_mmer_lut = (Type *) malloc(sizeof(Type) * nbminims_total ); //free that
+			_mmer_lut = (Type *) malloc(sizeof(Type) * nbminims_total ); //free that in destructor
 
 			for(int ii=0; ii< nbminims_total; ii++)
 			{
@@ -880,7 +839,7 @@ struct Kmer
 //				if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
 //				if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
 //
-//				
+				
 				if(rev_mmer < mmer) mmer = rev_mmer;
 				
 				if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
