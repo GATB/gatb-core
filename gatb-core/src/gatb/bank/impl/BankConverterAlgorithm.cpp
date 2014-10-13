@@ -105,6 +105,7 @@ BankConverterAlgorithm::~BankConverterAlgorithm ()
 *********************************************************************/
 void BankConverterAlgorithm::execute ()
 {
+		
     /** We may have no conversion at all to do. */
     if (_kind == BANK_CONVERT_NONE)
     {
@@ -140,9 +141,15 @@ void BankConverterAlgorithm::execute ()
              nbSeq ++;
              sizeSeq += (*itBank)->getDataSize();
 
+
+
              /** We insert the current sequence into the output bank. */
              _bankOutput->insert (itBank->item());
+
          }
+	
+
+		 
      }
 
      /** We flush the output bank (important if it is a file output). */

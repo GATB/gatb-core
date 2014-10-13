@@ -118,6 +118,8 @@ public:
 
     friend u_int64_t hash1        (const IntegerTemplate& a,  u_int64_t seed)  {  return  boost::apply_visitor (Integer_hash1(seed),  *a);          }
     friend u_int64_t oahash       (const IntegerTemplate& a)                   {  return  boost::apply_visitor (Integer_oahash(), *a);              }
+
+	
     friend u_int64_t simplehash16 (const IntegerTemplate& a,  int shift)       {  return  boost::apply_visitor (Integer_simplehash16(shift),  *a);  }
 
     std::string toString (size_t sizeKmer) const  {  return boost::apply_visitor (Integer_toString(sizeKmer), *(*this)); }
@@ -196,6 +198,9 @@ private:
         Arg arg;
     };
 
+
+
+	
     struct Integer_hdf5 : public Visitor<hid_t,bool&>   {
         Integer_hdf5 (bool& c) : Visitor<IntegerTemplate,bool&>(c) {}
         template<typename T>  hid_t operator() (const T& a)  { return a.hdf5 (this->arg);  }};
@@ -231,6 +236,7 @@ private:
     struct Integer_oahash : public boost::static_visitor<u_int64_t>    {
         template<typename T>  u_int64_t operator() (const T& a) const  { return (oahash(a));  }};
 
+	
     struct Integer_simplehash16 : public Visitor<u_int64_t,int>    {
         Integer_simplehash16 (const int& c) : Visitor<u_int64_t,int>(c) {}
         template<typename T>  u_int64_t operator() (const T& a) const  { return (simplehash16(a,this->arg));  }};

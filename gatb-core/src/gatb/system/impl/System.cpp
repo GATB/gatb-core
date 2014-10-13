@@ -20,9 +20,17 @@
 #include <gatb/system/impl/System.hpp>
 
 /********************************************************************************/
-namespace gatb { namespace core { namespace system { namespace impl {
+namespace gatb { namespace core { namespace system {
+	
+	
+
+
+
+	
+	namespace impl {
 /********************************************************************************/
 
+	
 std::list<ThreadGroup*> ThreadGroup::_groups;
 
 /*********************************************************************

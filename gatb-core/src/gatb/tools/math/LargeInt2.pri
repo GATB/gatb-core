@@ -39,7 +39,7 @@ public:
      * \param[in] c : initial value of the large integer. */
     LargeInt<2> (const __uint128_t& c=0)  {  value[0] = c;  }
 
-     u_int64_t getVal ()  { return *value; }
+     u_int64_t getVal () const  { return *value; }
 
     static const char* getName ()  { return "LargeInt<2>"; }
 
@@ -178,6 +178,8 @@ inline LargeInt<2> revcomp (const LargeInt<2>& in, size_t sizeKmer)
 /********************************************************************************/
 inline u_int64_t hash1 (const LargeInt<2>& item, u_int64_t seed=0)
 {
+	printf("hash1 call largeint2 \n");
+
     const __uint128_t& elem = item.value[0];
 
     return NativeInt64::hash64 ((u_int64_t)(elem>>64),seed) ^
@@ -192,6 +194,8 @@ inline u_int64_t oahash (const LargeInt<2>& item)
     return NativeInt64::oahash64 ((u_int64_t)(elem>>64)) ^
            NativeInt64::oahash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)));
 }
+
+
 
 /********************************************************************************/
 inline u_int64_t simplehash16 (const LargeInt<2>& key, int  shift)
