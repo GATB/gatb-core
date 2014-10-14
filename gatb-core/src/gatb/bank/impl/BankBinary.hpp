@@ -92,6 +92,9 @@ public:
     /** \copydoc IBank::estimate */
     void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
 
+    /** \copydoc IBank::remove. */
+    void remove ();
+
     /************************************************************/
 
     /** \brief Specific Iterator impl for BankBinary class

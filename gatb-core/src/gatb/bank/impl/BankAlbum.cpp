@@ -263,6 +263,21 @@ bool BankAlbum::isOnlyFilename (const std::string& path)
     return (path[0]!='/' && path[0]!='.');
 }
 
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void BankAlbum::remove ()
+{
+    BankComposite::remove();
+    System::file().remove (_name);
+}
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :

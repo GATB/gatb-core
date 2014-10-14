@@ -292,6 +292,19 @@ void BankBinary::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& m
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+void BankBinary::remove ()
+{
+    System::file().remove (_filename);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 BankBinary::Iterator::Iterator (BankBinary& ref)
     : _ref(ref), _isDone(true), cpt_buffer(0), blocksize_toread(0), nseq_lues(0),
       read_write_buffer_size(BINREADS_BUFFER), binary_read_file(0),
