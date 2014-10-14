@@ -798,6 +798,9 @@ public:
      * we make point the delegate current item to this provided Item argument. */
     void setItem (Item& i)  {  _currentIt->setItem (i);  }
 
+    /** Get a vector holding the composite structure of the iterator. */
+    virtual std::vector<Iterator<Item>*> getComposition() { return _iterators; }
+
 private:
 
     std::vector <Iterator<Item>*>  _iterators;

@@ -171,6 +171,9 @@ public:
         _item      = &_default;
     }
 
+    /** Get a vector holding the composite structure of the iterator. */
+    virtual std::vector<Iterator<Item>*> getComposition()   {   std::vector<Iterator<Item>*> res;  res.push_back (this);  return res;    }
+
 protected:
     Item* _item;
 
