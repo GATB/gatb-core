@@ -480,7 +480,7 @@ struct build_visitor : public boost::static_visitor<>    {
         if (graph._bankConvertKind == BANK_CONVERT_TMP)
         {
             /** We can get rid of the binary bank. */
-            System::file().remove (binaryBankUri);
+            converter.getResult()->remove();
         }
     }
 
