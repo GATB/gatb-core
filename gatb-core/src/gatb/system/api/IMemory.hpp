@@ -54,6 +54,9 @@ namespace system    {
 	const   u_int64_t  MBYTE = (1ULL << 20);
 	const   u_int64_t  GBYTE = (1ULL << 30);
 	
+	
+
+	
 /********************************************************************************/
 
 /** \brief Interface providing methods for dynamic allocation.
@@ -66,7 +69,7 @@ public:
 
     /************************************************************/
     /** Alias for the size of memory blocks handled by the interface.  */
-    typedef u_int32_t BlockSize_t;
+    typedef u_int64_t BlockSize_t;
 
     /** Alias for the size of memory handled by the interface.  */
     typedef u_int64_t TotalSize_t;

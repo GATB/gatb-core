@@ -89,6 +89,44 @@ void TimeInfo::stop (const char* name)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+TimeInfo& TimeInfo::operator+= (TimeInfo& ti)
+{
+    const std::map <std::string, u_int32_t>& entries = ti.getEntries();
+
+    for (map <string, u_int32_t>::const_iterator it = entries.begin(); it != ti.getEntries().end(); ++it)
+    {
+        _entries[it->first] += it->second;
+    }
+
+    return *this;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+TimeInfo& TimeInfo::operator/= (size_t nb)
+{
+    for (map <string, u_int32_t>::const_iterator it = _entries.begin(); it != _entries.end(); ++it)
+    {
+        _entries[it->first] = (u_int32_t)  ((float)it->second / (float)nb);
+    }
+
+    return *this;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 const std::map <std::string, u_int32_t>& TimeInfo::getEntries ()
 {
     return _entries;

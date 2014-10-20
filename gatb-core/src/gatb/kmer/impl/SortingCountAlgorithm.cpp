@@ -62,6 +62,9 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
 static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
+static const char* progressFormat3 = "DSK: Collecting stats on read sample   ";
+
+static u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
 
 /*********************************************************************
 ** METHOD  :
@@ -84,7 +87,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0), _histogramUri(""),
-      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1) ,_nb_partitions_in_parallel(0)
 {
 }
 
@@ -119,7 +122,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(histogramUri),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition (1) ,_nb_partitions_in_parallel (nbCores)
 {
     setBank (bank);
 
@@ -149,7 +152,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(""),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1),_nb_partitions_in_parallel(0)
 {
     Group& group = (*_storage)(this->getName());
 
@@ -197,6 +200,8 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         _abundance              = s._abundance;
         _partitionType          = s._partitionType;
         _nbCores                = s._nbCores;
+        _nbCores_per_partition  = s._nbCores_per_partition;
+        _nb_partitions_in_parallel = s._nb_partitions_in_parallel;
         _prefix                 = s._prefix;
         _estimateSeqNb          = s._estimateSeqNb;
         _estimateSeqTotalSize   = s._estimateSeqTotalSize;
@@ -233,6 +238,7 @@ void SortingCountAlgorithm<span>::execute ()
 {
     /** We retrieve the actual number of cores. */
     _nbCores = getDispatcher()->getExecutionUnitsNumber();
+    _nb_partitions_in_parallel = _nbCores;
     assert (_nbCores > 0);
 
     /** We configure dsk by computing the number of passes and partitions we will have
@@ -247,6 +253,9 @@ void SortingCountAlgorithm<span>::execute ()
     setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
     _progress->init ();
 
+    /** We create the PartiInfo instance. */
+    PartiInfo<5> pInfo (_nb_partitions, _minim_size);
+
     /*************************************************************/
     /*                         MAIN LOOP                         */
     /*************************************************************/
@@ -255,11 +264,13 @@ void SortingCountAlgorithm<span>::execute ()
     {
         DEBUG (("SortingCountAlgorithm<span>::execute  pass [%ld,%d] \n", _current_pass+1, _nb_passes));
 
+        pInfo.clear();
+
         /** 1) We fill the partition files. */
-        fillPartitions (_current_pass, itSeq);
+        fillPartitions (_current_pass, itSeq, pInfo);
 
         /** 2) We fill the kmers solid file from the partition files. */
-        fillSolidKmers (_solidCounts->bag());
+        fillSolidKmers (_solidCounts->bag(), pInfo);
     }
 
     _progress->finish ();
@@ -269,21 +280,18 @@ void SortingCountAlgorithm<span>::execute ()
 
     /** We save the histogram if any. */
     _histogram->save ();
-	
-	
+
     /** compute auto cutoff **/
     _histogram->compute_threshold ();
 
-	/** store auto cutoff and corresponding number of solid kmers **/
-	Collection<NativeInt64>& storecutoff =   (*_storage)("dsk").getCollection<NativeInt64>("cutoff") ;
-	storecutoff.insert(_histogram->get_solid_cutoff());
-	storecutoff.flush();
-	
-	Collection<NativeInt64>& storesolids =   (*_storage)("dsk").getCollection<NativeInt64>("nbsolidsforcutoff") ;
-	storesolids.insert(_histogram->get_nbsolids_auto());
-	storesolids.flush();
-	
+    /** store auto cutoff and corresponding number of solid kmers **/
+    Collection<NativeInt64>& storecutoff =   (*_storage)("dsk").getCollection<NativeInt64>("cutoff") ;
+    storecutoff.insert(_histogram->get_solid_cutoff());
+    storecutoff.flush();
 
+    Collection<NativeInt64>& storesolids =   (*_storage)("dsk").getCollection<NativeInt64>("nbsolidsforcutoff") ;
+    storesolids.insert(_histogram->get_nbsolids_auto());
+    storesolids.flush();
 
     /** We want to remove physically the partitions. */
     _partitions->remove ();
@@ -296,6 +304,9 @@ void SortingCountAlgorithm<span>::execute ()
     getInfo()->add (2, "kmers_nb_solid",     "%ld", nbSolids);
     getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
     if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
+
+    _fillTimeInfo /= getDispatcher()->getExecutionUnitsNumber();
+    getInfo()->add (2, _fillTimeInfo.getProperties("fillsolid_time"));
 
     getInfo()->add (1, getTimeInfo().getProperties("time"));
 
@@ -316,6 +327,10 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
+    /** By default, we want to have mmers of size 8. However (for unit tests for instance),
+     * we may need to have kmer sizes less than 8; in such a case, we set by convention m=k-1. */
+    _minim_size = std::min (_kmerSize-1, (size_t)8);
+
     // optimism == 1 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, a k-mer will be seen 'optimism' times
     int optimism = 0; // guarantees always work, above 0 : assumes kmer seen (optimism+1) times (with optim 1  'OAHash: max rehashes..'  happened sometimes)
@@ -329,8 +344,13 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     u_int64_t kmersNb  = (_estimateSeqTotalSize - _estimateSeqNb * (_kmerSize-1));
     u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
 
-    _volume = kmersNb * sizeof(Type) / MBYTE;  // in MBytes
+    _volume =  kmersNb * sizeof(Type) / MBYTE;  // in MBytes
+
     if (_volume == 0)   { _volume = 1; }    // tiny files fix
+
+     u_int64_t volume_minim = _volume * 0.5 *1.2  ; //0.5 for using kxmers   1.2 if bad repartition of minimizers ( todo sampling to assert ram usage)
+
+    if (volume_minim == 0)   { volume_minim = 1; }    // tiny files fix
 
     if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, bankSize);  }
     if (_max_disk_space == 0)  { _max_disk_space = 10000; }
@@ -339,29 +359,55 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     if (_max_memory == 0)  {  _max_memory = 1000; }
 
     assert (_max_disk_space > 0);
-    _nb_passes = ( _volume / _max_disk_space ) + 1;
+    
+    //_nb_passes = ( (_volume/3) / _max_disk_space ) + 1; //minim, approx volume /3
+    _nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
+    //increase it only if ram issue
 
+    //printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
     u_int64_t volume_per_pass;
 
     do  {
+
         assert (_nb_passes > 0);
-        volume_per_pass = _volume / _nb_passes;
+        volume_per_pass = volume_minim / _nb_passes;
 
         assert (_max_memory > 0);
-        _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
+        //printf("volume_per_pass %lli  _nbCores %zu _max_memory %i \n",volume_per_pass, _nbCores,_max_memory);
 
-        if (_partitionType == 0)
-        {
-            _nb_partitions = (u_int32_t) ceil((float) _nb_partitions / load_factor);
-            _nb_partitions = ((_nb_partitions * OAHash<Type>::size_entry()) + sizeof(Type)-1) / sizeof(Type); // also adjust for hash overhead
-            _nb_partitions = std::max ((_nb_partitions/(optimism+1)), (u_int32_t)1);
-        }
+        // _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
+        _nb_partitions  = ( ( volume_per_pass* _nb_partitions_in_parallel) / _max_memory ) + 1;
 
-        if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
+        //printf("nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
+        //_nb_partitions = max_open_files; break;
+
+        if (_nb_partitions >= max_open_files &&  _nb_partitions_in_parallel >1)   { _nb_partitions_in_parallel  = _nb_partitions_in_parallel /2;  }
+        else if (_nb_partitions >= max_open_files && _nb_partitions_in_parallel == 1)   { _nb_passes++;  }
         else                                    { break;         }
 
+        //printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
+
+    if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
+
+    //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
+    int  incpart = _nb_partitions_in_parallel - _nb_partitions % _nb_partitions_in_parallel;
+    incpart = incpart % _nb_partitions_in_parallel;
+    if((max_open_files - _nb_partitions  > incpart)) _nb_partitions+= incpart ;
+
+    //_nb_partitions_in_parallel = 1 ;
+
+    //then put _nbCores_per_partition
+
+    _nbCores_per_partition =  _nbCores / _nb_partitions_in_parallel ; //how to best distrib available cores ?
+
+    // with this formula we'll sometimes use less than _nbCores (maybe enforce _nb_partitions_in_parallel is power of two ?)
+    DEBUG (("_nbCores %zu  _nb_partitions_in_parallel %zu   _nbCores_per_partition %zu  nb part %u nb passes %i\n",
+        _nbCores,_nb_partitions_in_parallel,_nbCores_per_partition,_nb_partitions,_nb_passes
+    ));
+
+    assert(_nbCores_per_partition > 0);
 
     /** We gather some statistics. */
     getInfo()->add (1, "config");
@@ -379,80 +425,333 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     getInfo()->add (2, "nb_partitions",     "%d",  _nb_partitions);
     getInfo()->add (2, "nb_bits_per_kmer",  "%d",  Type::getSize());
     getInfo()->add (2, "nb_cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
-    getInfo()->add (2, "partition_type",    "%d",  _partitionType);
+    getInfo()->add (2, "nb_cores_per_partition",     "%d",  _nbCores_per_partition);
+    getInfo()->add (2, "nb_partitions_in_parallel",  "%d",  _nb_partitions_in_parallel);
 }
 
 /********************************************************************************/
 
+/** This functor class takes a Sequence as input and split it into super kmers.
+ * Each time a new superkmer is found, the 'processSuperkmer' method is called.
+ *
+ * NOTE : 'processSuperkmer' is pure virtual and so Sequence2SuperKmer class has to be
+ * inherited for providing actual implementation of 'processSuperkmer'.
+ *
+ * NOTE : 'processSuperkmer' is virtual and called many times, which implies a
+ * time overhead. Preliminary tests seem to show that this overhead is acceptable;
+ * otherwise a template based approach could be used instead (ie Sequence2SuperKmer is
+ * templated by a functor that does the job done in 'processSuperkmer').
+ */
 template<size_t span>
-class FillPartitions
+class Sequence2SuperKmer
 {
 public:
-
     /** Shortcut. */
-    typedef typename Kmer<span>::Type                  Type;
-    typedef typename Kmer<span>::ModelCanonical        Model;
-    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
+    typedef typename SortingCountAlgorithm<span>::Type            Type;
+    typedef typename SortingCountAlgorithm<span>::ModelCanonical  ModelCanonical;
+    typedef typename SortingCountAlgorithm<span>::Model           Model;
+    typedef typename Model::Kmer                                  KmerType;
+    typedef typename Kmer<span>::SuperKmer                        SuperKmer;
 
     void operator() (Sequence& sequence)
     {
-        /** We build the kmers from the current sequence. */
-        if (model.build (sequence.getData(), kmers) == false)  { return; }
+        /** We first check whether we got kmers from the sequence or not. */
+        if (_model.build (sequence.getData(), _kmers) == false)  { return; }
 
-        /** We loop over the kmers. */
-        for (size_t i=0; i<kmers.size(); i++)
+        int maxs = (Type::getSize() - _miniSize )/2 ; //and 100 max
+
+        /** We create a superkmer object. */
+        SuperKmer superKmer (_kmersize, _miniSize, _kmers);
+
+        /** We loop over the kmers of the sequence. */
+        for (size_t i=0; i<_kmers.size(); i++)
         {
-            /** We get rid of invalid kmers (holding 'N' for instance). */
-            if (kmers[i].isValid() == false)  { continue; }
+            if (_kmers[i].isValid() == false)
+            {
+                // on invalid kmer : output previous superk utput prev
+                processSuperkmer (superKmer);
 
-            /** We hash the current kmer. */
-            u_int64_t h = oahash (kmers[i].value());
+                superKmer.minimizer = DEFAULT_MINIMIZER;  //marking will have to restart 'from new'
+                superKmer.range     = make_pair(i+1,i+1);
 
-            /** We check whether this kmer has to be processed during the current pass. */
-            if ((h % nbPass) != pass)  { continue; }
+                continue;
+            }
 
-            u_int64_t reduced_kmer = h / nbPass;
+            /** We get the value of the current minimizer. */
+            u_int64_t h = _kmers[i].minimizer().value().getVal();
 
-            /** We compute in which partition this kmer falls into. */
-            size_t p = reduced_kmer % nbPartitions;
+            /** We have to set minimizer value if not defined. */
+            if (superKmer.isValid() == false)  {  superKmer.minimizer = h;  }
 
-            /** We write the kmer into the bag. */
-            _partition[p].insert (kmers[i].value());
+            /** If the current super kmer is finished (or max size reached), we dump it. */
+            if (h != superKmer.minimizer || superKmer.size() >= maxs)
+            {
+                processSuperkmer (superKmer);
+                superKmer.range = make_pair(i,i);
+            }
 
-            nbWrittenKmers++;
+            /** We update the superkmer properties (minimizer value and kmers range). */
+            superKmer.minimizer    = h;
+            superKmer.range.second = i;
         }
 
-        if (nbWrittenKmers > 500000)   {  _progress.inc (nbWrittenKmers);  nbWrittenKmers = 0;  }
+        //output last superK
+        processSuperkmer (superKmer);
+
+        if (_nbWrittenKmers > 500000)   {  _progress.inc (_nbWrittenKmers);  _nbWrittenKmers = 0;  }
     }
 
-    FillPartitions (Model& model, size_t nbPasses, size_t currentPass, Partition<Type>* partition, u_int32_t max_memory, IteratorListener* progress)
-        : model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0),
-#ifdef PROTO_COMP
-      _partition (*partition,1<<12,max_memory, 0),
-#else
-      _partition (*partition,1<<12,0),
-#endif
-          _progress  (progress,System::thread().newSynchronizer())  {}
+    /** Constructor. */
+    Sequence2SuperKmer (
+        Model&            model,
+        size_t            nbPasses,
+        size_t            currentPass,
+        size_t            nbPartitions,
+        IteratorListener* progress
+    )
+    : _model(model), _nbPass(nbPasses), _pass(currentPass), _nbPartitions(nbPartitions),
+      _nbWrittenKmers(0), _progress (progress,System::thread().newSynchronizer()), _nbSuperKmers(0)
+    {
+        /** Shortcuts. */
+        _kmersize = model.getKmerSize();
+        _miniSize = model.getMmersModel().getKmerSize();
+    }
+
+    /** Destructor (virtual). */
+    virtual ~Sequence2SuperKmer ()  {}
+
+protected:
+
+    Model&           _model;
+    size_t           _pass;
+    size_t           _nbPass;
+    size_t           _nbPartitions;
+    vector<KmerType> _kmers;
+    size_t           _kmersize;
+    size_t           _miniSize;
+    ProgressSynchro  _progress;
+    size_t           _nbWrittenKmers;
+    size_t           _nbSuperKmers;
+
+    /** Primitive of the template method operator() */
+    virtual void processSuperkmer (SuperKmer& superKmer) { _nbSuperKmers++; }
+};
+
+/********************************************************************************/
+/** This functor class takes a Sequence as input, splits it into super kmers and
+ * get information about the distribution of minimizers.
+ */
+template<size_t span>
+class SampleRepart  : public Sequence2SuperKmer<span>
+{
+    //ie ce sera posible d avoir plus dinfo , estim ram max par exemple ?
+public:
+
+    /** Shortcut. */
+    typedef typename Sequence2SuperKmer<span>::Type             Type;
+    typedef typename Sequence2SuperKmer<span>::ModelCanonical   ModelCanonical;
+    typedef typename Sequence2SuperKmer<span>::Model            Model;
+    typedef typename Model::Kmer                           KmerType;
+    typedef typename Kmer<span>::SuperKmer                 SuperKmer;
+
+    /** */
+    void processSuperkmer (SuperKmer& superKmer)
+    {
+        DEBUG (("SampleRepart: should count superk %i \n", superKmer.size()));
+
+        if ((superKmer.minimizer % this->_nbPass) == this->_pass && superKmer.isValid() ) //check if falls into pass
+        {
+            bool prev_which = superKmer[0].which();
+            size_t kx_size = 0;
+
+            /** Shortcut. */
+            size_t superKmerLen = superKmer.size();
+
+            /** We loop over the kmer of the superkmer (except the first one).
+             *  We update the pInfo each time we find a kxmer in the superkmer. */
+            for (size_t ii=1 ; ii < superKmerLen; ii++)
+            {
+                /** A kxmer is defined by having successive canonical kmers. Here, we just care that
+                 * successive kmer values are on the same strand. */
+                if (superKmer[ii].which() != prev_which || kx_size >= _kx) // kxmer_size = 1 //cost should diminish with larger kxmer
+                {
+                    /** We increase the number of kxmer found for the current minimizer. */
+                    _local_pInfo.incKxmer_per_minimBin (superKmer.minimizer);
+                    kx_size = 0;
+                }
+                else
+                {
+                    kx_size++;
+                }
+
+                prev_which = superKmer[ii].which() ;
+            }
+
+            /** We add the pending kxmer to the bin. */
+            _local_pInfo.incKxmer_per_minimBin (superKmer.minimizer);
+        }
+    }
+
+    /** Constructor. */
+    SampleRepart (
+        Model&            model,
+        size_t            nbPasses,
+        size_t            currentPass,
+        size_t            nbPartitions,
+        IteratorListener* progress,
+        PartiInfo<5>&     pInfo
+    )
+    :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress),
+        _kx(4), _extern_pInfo(pInfo), _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize())
+    {
+    }
+
+    /** Destructor. */
+    ~SampleRepart ()
+    {
+        //add to global parti_info
+        _extern_pInfo += _local_pInfo;
+    }
+
+private:
+    size_t        _kx;
+    PartiInfo<5>& _extern_pInfo;
+    PartiInfo<5>  _local_pInfo;
+};
+
+/********************************************************************************/
+/** This functor class takes a Sequence as input, splits it into super kmers and
+ * serialize them into partitions.
+ *
+ * A superkmer is dumped into a partition 'p' chosen by some hash code of the minimizer
+ * of the superkmer. Such a hash code can be computed in several way; actually, we use
+ * a lookup table that has computed the minimizers distribution on a subset of the
+ * processed bank.
+ */
+template<size_t span>
+class FillPartitions : public Sequence2SuperKmer<span>
+{
+public:
+    /** Shortcut. */
+    typedef typename Sequence2SuperKmer<span>::Type            Type;
+    typedef typename Sequence2SuperKmer<span>::ModelCanonical  ModelCanonical;
+    typedef typename Sequence2SuperKmer<span>::Model           Model;
+    typedef typename Model::Kmer                          KmerType;
+    typedef typename Kmer<span>::SuperKmer                SuperKmer;
+
+    /** */
+    void processSuperkmer (SuperKmer& superKmer)
+    {
+        if ((superKmer.minimizer % this->_nbPass) == this->_pass && superKmer.isValid()) //check if falls into pass
+        {
+            /** We get the hash code for the current miminizer.
+             * => this will give us the partition where to dump the superkmer. */
+            size_t p = this->_repartition (superKmer.minimizer);
+
+            /** We save the superkmer into the right partition. */
+            superKmer.save (this->_partition[p]);
+
+            /*********************************************/
+            /** Now, we compute statistics about kxmers. */
+            /*********************************************/
+
+            Type radix, radix_kxmer_forward ,radix_kxmer ;
+            bool prev_which = superKmer[0].which();
+            size_t kx_size =0;
+
+            radix_kxmer_forward = getHeavyWeight (superKmer[0].value());
+
+            for (size_t ii=1 ; ii < superKmer.size(); ii++)
+            {
+                //compute here stats on  kx mer
+                //tant que tai <= xmer et which kmer[ii] == which kmer [ii-1] --> cest un kxmer
+                //do the same in sampling : gives ram estimation
+                if (superKmer[ii].which() != prev_which || kx_size >= this->_kx) // kxmer_size = 1 //cost should diminish with larger kxmer
+                {
+                    //output kxmer size kx_size,radix_kxmer
+                    //kx mer is composed of _superKp[ii-1] _superKp[ii-2] .. _superKp[ii-n] with nb elems  n  == kxmer_size +1  (un seul kmer ==k+0)
+                    if(prev_which)
+                    {
+                        radix_kxmer = radix_kxmer_forward;
+                    }
+                    else // si revcomp, le radix du kxmer est le debut du dernier kmer
+                    {
+                        radix_kxmer = getHeavyWeight (superKmer[ii-1].value());
+                    }
+
+                    this->_local_pInfo.incKmer_and_rad (p, radix_kxmer.getVal(), kx_size); //nb of superkmer per x per parti per radix
+
+                    radix_kxmer_forward =  getHeavyWeight (superKmer[ii].value());
+                    kx_size =0;
+                }
+                else
+                {
+                    kx_size++;
+                }
+
+                prev_which = superKmer[ii].which() ;
+            }
+
+            //record last kx mer
+            if(prev_which)
+            {
+                radix_kxmer = radix_kxmer_forward;
+            }
+            else // si revcomp, le radix du kxmer est le debut du dernier kmer
+            {
+                radix_kxmer =  getHeavyWeight (superKmer[superKmer.size()-1].value());
+            }
+
+            this->_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
+
+            /** We update progression information. */
+            this->_nbWrittenKmers += superKmer.size();
+        }
+    }
+
+    /** Constructor. */
+    FillPartitions (
+        Model&             model,
+        size_t             nbPasses,
+        size_t             currentPass,
+        size_t             nbPartitions,
+        IteratorListener*  progress,
+        Partition<Type>*   partition,
+        Repartitor&        repartition,
+        PartiInfo<5>&      pInfo
+    )
+    :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress),
+        _kx(4),
+        _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
+        _repartition (repartition), _partition (*partition,1<<12,0)
+    {
+        _mask_radix = (int64_t) 255 ;
+        _mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
+    }
+
+    /** Destructor. */
+    ~FillPartitions ()
+    {
+        //add to global parti_info
+        _extern_pInfo += _local_pInfo;
+    }
 
 private:
 
-    /** Local resources. */
-    Model&    model;
-    size_t    pass;
-    size_t    nbPass;
-    size_t    nbPartitions;
-    size_t    nbWrittenKmers;
-    Data      binaryData;
-    vector<Kmer> kmers;
+    size_t        _kx;
+    PartiInfo<5>& _extern_pInfo;
+    PartiInfo<5>  _local_pInfo;
+    Type          _mask_radix;
+    Repartitor&   _repartition;
 
-    /** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
+    /** Shared resources (must support concurrent accesses). */
 #ifdef PROTO_COMP
     PartitionCacheSorted<Type> _partition;
 #else
     PartitionCache<Type> _partition;
 #endif
-    
-    ProgressSynchro _progress;
+
+    Type getHeavyWeight (const Type& kmer) const  {  return (kmer & this->_mask_radix) >> ((this->_kmersize - 4)*2);  }
 };
 
 /*********************************************************************
@@ -464,14 +763,16 @@ private:
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq)
+void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo<5>& pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_partitions");
 
-    DEBUG (("SortingCountAlgorithm<span>::fillPartitions  pass \n", pass));
+    DEBUG (("SortingCountAlgorithm<span>::fillPartitions  _kmerSize=%d _minim_size=%d \n", _kmerSize, _minim_size));
 
     /** We create a kmer model. */
-    Model model (_kmerSize);
+    Model model (_kmerSize,_minim_size);  // , CustomMinimizer(_minim_size)
+
+    int mmsize = model.getMmersModel().getKmerSize();
 
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
@@ -484,16 +785,44 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     setPartitionsStorage (StorageFactory(STORAGE_FILE).create ("partitions", true, false));
 #endif
     
-	setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
+    setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
 
     setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
-    /** We launch the iteration of the sequences iterator with the created functors. */
-    // R to E: typical question from a puzzled developer: what's this last argument of iterate() (15*1000)? so to answer this, I need to find the definition of iterate(), where is it? maybe to answer this, where does getDispatcher come from? any way we could search http://gatb-core.gforge.inria.fr/ to quickly find out?
-    getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _max_memory, _progress), 15*1000);
+    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
+
+    DEBUG (("SortingCountAlgorithm<span>::fillPartitions : nb seq for sample :  %llu \n ",nbseq_sample));
+
+    PartiInfo<5> sample_info (_nb_partitions,mmsize);
+
+    /** We create an iterator over a truncated part of the input bank. */
+    Iterator<Sequence>* it_sample = createIterator (
+        new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
+        nbseq_sample,
+        progressFormat3
+    );
+    LOCAL (it_sample);
+
+    /** We compute a distribution from a part of the bank. */
+    getDispatcher()->iterate (it_sample,  SampleRepart<span> (
+        model, _nb_passes, pass, _nb_partitions, _progress, sample_info)
+    );
+
+    /** We compute the distribution of the minimizers. As a result, we will have a hash function
+     * that gives a hash code for a minimizer value. */
+    Repartitor repartitor (_partitions->size(), mmsize);
+    repartitor.computeDistrib (sample_info);
+
+    /** We save the distribution (may be useful for debloom for instance). */
+    repartitor.save (getStorageGroup());
+
+    /** We fill the partitions. */
+    getDispatcher()->iterate (itSeq, FillPartitions<span> (
+        model, _nb_passes, pass, _nb_partitions, _progress, _partitions, repartitor, pInfo
+    ));
 }
 
 /*********************************************************************
@@ -505,13 +834,19 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
+std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList (PartiInfo<5>& pInfo)
 {
     std::vector<size_t> result;
 
     for (size_t p=0; p<_nb_partitions; )
     {
-        size_t i=0;  for (i=0; i<_nbCores && p<_nb_partitions; i++, p++)  {}
+        u_int64_t ram_total = 0;
+        size_t i=0;
+        for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions
+            && (ram_total ==0  || ((ram_total+(pInfo.getNbSuperKmer(p)*(Type::getSize()/8)))  <= _max_memory*MBYTE)) ; i++, p++)
+        {
+            ram_total += (pInfo.getNbSuperKmer(p)*(Type::getSize()/8));
+        }
         result.push_back (i);
     }
 
@@ -527,7 +862,7 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList ()
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
+void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>* solidKmers, PartiInfo<5>& pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
@@ -539,7 +874,10 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
     /** We retrieve the list of cores number for dispatching N partitions in N threads.
      *  We need to know these numbers for allocating the N maps according to the maximum allowed memory.
      */
-    vector<size_t> coreList = getNbCoresList();
+    vector<size_t> coreList = getNbCoresList(pInfo); //uses _nb_partitions_in_parallel
+
+    /** We need a memory allocator. */
+    MemAllocator pool;
 
     size_t p = 0;
     for (size_t i=0; i<coreList.size(); i++)
@@ -556,33 +894,51 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
         ISynchronizer* synchro = System::thread().newSynchronizer();
         LOCAL (synchro);
 
+        DEBUG (("SortingCountAlgorithm::fillSolidKmers:  computing %zu partitions simultaneously , parti : ",currentNbCores));
+
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
-            ICommand* cmd = 0;
-
-            /** We get the length of the current partition file. */
-            size_t partitionLen = (*_partitions)[p].getNbItems(); // hmm this will be unknown for a gz file, maybe estimation possible du coup utilise le hash
+            DEBUG ((" %zu ", p));
 
             /* Get the memory taken by this partition if loaded for sorting */
-            uint64_t memoryPartition = partitionLen * sizeof(Type);
+            uint64_t memoryPartition = (pInfo.getNbSuperKmer(p)*(Type::getSize()/8)); //in bytes
+            DEBUG (("  (%llu  MB) ",memoryPartition/MBYTE));
 
-            if (memoryPartition >= mem)
+            ICommand* cmd = 0;
+
+            //still use hash if by vector would be too large even with single part at a time
+            if (memoryPartition > mem && currentNbCores==1)
             {
-                cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem);
+                if (pool.getCapacity() != 0)  {  pool.reserve(0);  }
+
+                // also allow to use mem pool for oahash ? ou pas la peine
+                cmd = new PartitionsByHashCommand<span>   (
+                    solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
+                    pInfo,p,_nbCores_per_partition, _kmerSize,pool, mem
+                );
             }
             else
             {
-                cmd = new PartitionsByVectorCommand<span> (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress);
+               //if capa pool ==0, reserve max memo , pass pool to partibyvec, will be used  for vec kmers
+                if (pool.getCapacity() == 0)  {  pool.reserve (_max_memory*MBYTE); }
+
+                cmd = new PartitionsByVectorCommand<span> (
+                    solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
+                    pInfo,p,_nbCores_per_partition, _kmerSize, pool
+                );
             }
 
             cmds.push_back (cmd);
         }
+        DEBUG (("\n"));
 
+        /** We launch the commands through a dispatcher. */
         getDispatcher()->dispatchCommands (cmds, 0);
+
+        // free internal memory of pool here
+        pool.free_all();
     }
 }
-
-/********************************************************************************/
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

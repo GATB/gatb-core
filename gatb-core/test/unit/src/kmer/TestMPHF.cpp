@@ -56,6 +56,7 @@ using namespace gatb::core::tools::storage::impl;
 
 using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::misc::impl;
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {

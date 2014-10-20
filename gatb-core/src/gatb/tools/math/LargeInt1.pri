@@ -16,7 +16,6 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
-
 /** \file LargeInt<1>.hpp
  *  \date 01/03/2013
  *  \author edrezen
@@ -33,7 +32,7 @@ public:
      * \param[in] c : initial value of the large integer. */
     LargeInt<1> (const u_int64_t& c=0)  {  value[0] = c;  }
 
-     u_int64_t getVal ()  { return *value; }
+     u_int64_t getVal () const  { return *value; }
 
     static const char* getName ()  { return "LargeInt<1>"; }
 
@@ -148,7 +147,8 @@ public:
         hash = (hash + (hash << 2)) + (hash << 4); // hash * 21
         hash = hash ^ (hash >> 28);
         hash = hash + (hash << 31);
-        return hash;
+		
+		return hash;
     }
 
     /********************************************************************************/
@@ -214,6 +214,7 @@ inline LargeInt<1> revcomp (const LargeInt<1>& x, size_t sizeKmer)
 /********************************************************************************/
 inline u_int64_t hash1 (const LargeInt<1>& key, u_int64_t seed=0)
 {
+
     return LargeInt<1>::hash64 (key.value[0], seed);
 }
 
@@ -222,7 +223,7 @@ inline u_int64_t oahash (const LargeInt<1>& key)
 {
     return LargeInt<1>::oahash64 (key.value[0]);
 }
-    
+
 /********************************************************************************/
 inline u_int64_t simplehash16 (const LargeInt<1>& key, int  shift)
 {
