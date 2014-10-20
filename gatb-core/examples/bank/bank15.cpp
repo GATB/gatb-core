@@ -24,7 +24,7 @@ int main (int argc, char* argv[])
 
     // IN A NEAR FUTURE, WE WILL HAVE STL LIKE ITERATORS.
 #if 0
-    for (BankFasta::stl_iterator it = bank.begin(); it != bank.end(); ++it)
+    for (BankFasta::iterator it = bank.begin(); it != bank.end(); ++it)
     {
         Sequence& seq = *it;
 
@@ -37,9 +37,9 @@ int main (int argc, char* argv[])
     }
 #endif
 
-    cout << "data size         : " << dataSize     << endl;
-    cout << "sequence number   : " << nbSequences  << endl;
-    cout << "sequence max size : " << seqMaxSize   << endl;
-    cout << "sequence min size : " << seqMinSize   << endl;
+    std::cout << "data size         : " << dataSize     << std::endl;
+    std::cout << "sequence number   : " << nbSequences  << std::endl;
+    std::cout << "sequence max size : " << seqMaxSize   << std::endl;
+    std::cout << "sequence min size : " << seqMinSize   << std::endl;
 }
 //! [snippet1]
