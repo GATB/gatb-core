@@ -25,6 +25,7 @@
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/kmer/impl/PartiInfo.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
@@ -34,42 +35,20 @@
 #include <gatb/tools/collections/impl/OAHash.hpp>
 #include <gatb/bank/impl/Banks.hpp>
 
-using namespace std;
+#include <gatb/tools/misc/impl/Pool.hpp>
 
-using namespace gatb::core::system;
-using namespace gatb::core::system::impl;
-
-using namespace gatb::core::tools::collections;
-using namespace gatb::core::tools::collections::impl;
-
-using namespace gatb::core::tools::misc;
-using namespace gatb::core::tools::misc::impl;
-
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
-
-using namespace gatb::core::kmer::impl;
-
+#include <queue>
 
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
-/** \brief Package for genomic databases management. */
 namespace kmer      {
-/** \brief Implementation for genomic databases management. */
 namespace impl      {
 /********************************************************************************/
 
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
+/********************************************************************************/
 template<size_t span>
-class PartitionsCommand : public ICommand, public system::SmartPointer
+class PartitionsCommand : public gatb::core::tools::dp::ICommand, public system::SmartPointer
 {
 public:
 
@@ -77,28 +56,44 @@ public:
     typedef typename Kmer<span>::Type  Type;
     typedef typename Kmer<span>::Count Count;
 
+    /** Constructor. */
     PartitionsCommand (
-        Bag<Count>* solidKmers,
-        Iterable<Type>&   partition,
-        IHistogram*    histogram,
-        ISynchronizer* synchro,
-        u_int64_t&     totalKmerNbRef,
-        size_t         abundance,
-        IteratorListener* progress
+        gatb::core::tools::collections::Bag<Count>*         solidKmers,
+        gatb::core::tools::collections::Iterable<Type>&     partition,
+        gatb::core::tools::misc::IHistogram*                histogram,
+        gatb::core::system::ISynchronizer*                  synchro,
+        u_int64_t&                                          totalKmerNbRef,
+        size_t                                              abundance,
+        gatb::core::tools::dp::IteratorListener*            progress,
+        tools::misc::impl::TimeInfo&                        timeInfo,
+        PartiInfo<5>&                                       pInfo,
+		int                                                 parti,
+		size_t                                              nbCores,
+		size_t                                              kmerSize,
+		gatb::core::tools::misc::impl::MemAllocator&        pool
     );
 
+    /** Destructor. */
     ~PartitionsCommand();
 
 protected:
-    size_t              _abundance;
-    BagCache<Count>      _solidKmers;
-    Iterable<Type>&      _partition;
-    HistogramCache      _histogram;
-    ProgressSynchro     _progress;
-    u_int64_t           _totalKmerNb;
-    u_int64_t&          _totalKmerNbRef;
-
+    size_t                                                  _abundance;
+    gatb::core::tools::collections::impl::BagCache<Count>   _solidKmers;
+    gatb::core::tools::collections::Iterable<Type>&         _partition;
+    gatb::core::tools::misc::impl::HistogramCache           _histogram;
+    gatb::core::tools::misc::impl::ProgressSynchro          _progress;
+    u_int64_t                                               _totalKmerNb;
+    u_int64_t&                                              _totalKmerNbRef;
+	PartiInfo<5>&                                           _pInfo;
+	int                                                     _parti_num;
+    size_t                                                  _nbCores;
+	size_t                                                  _kmerSize;
+	gatb::core::tools::misc::impl::MemAllocator&            _pool;
+	
     void insert (const Count& kmer);
+
+    tools::misc::impl::TimeInfo& _globalTimeInfo;
+    tools::misc::impl::TimeInfo  _timeInfo;
 };
 
 /********************************************************************************/
@@ -108,20 +103,26 @@ class PartitionsByHashCommand : public PartitionsCommand<span>
 {
 public:
 
-    /** Shortcut. */ /* R: don't know how to avoid this code duplication */
+    /** Shortcut. */ /* R: don't know how to avoid this code duplication => R1: I'm afraid it's not possible. */
     typedef typename Kmer<span>::Type  Type;
     typedef typename Kmer<span>::Count Count;
 
-
+    /** Constructor. */
     PartitionsByHashCommand (
-        Bag<Count>*      solidKmers,
-        Iterable<Type>&  partition,
-        IHistogram*     histogram,
-        ISynchronizer*  synchro,
-        u_int64_t&      totalKmerNbRef,
-        size_t          abundance,
-        IteratorListener* progress,
-        u_int64_t       hashMemory
+        gatb::core::tools::collections::Bag<Count>*         solidKmers,
+        gatb::core::tools::collections::Iterable<Type>&     partition,
+        gatb::core::tools::misc::IHistogram*                histogram,
+        gatb::core::system::ISynchronizer*                  synchro,
+        u_int64_t&                                          totalKmerNbRef,
+        size_t                                              abundance,
+        gatb::core::tools::dp::IteratorListener*            progress,
+        tools::misc::impl::TimeInfo&                        timeInfo,
+        PartiInfo<5>&                                       pInfo,
+        int                                                 parti,
+        size_t                                              nbCores,
+        size_t                                              kmerSize,
+        gatb::core::tools::misc::impl::MemAllocator&        pool,
+        u_int64_t                                           hashMemory
     );
 
     void execute ();
@@ -129,7 +130,7 @@ public:
 private:
     u_int64_t _hashMemory;
 };
-
+		
 /********************************************************************************/
 /** */
 template<size_t span>
@@ -141,26 +142,50 @@ public:
     typedef typename Kmer<span>::Type  Type;
     typedef typename Kmer<span>::Count Count;
 
+    static const size_t KX = 4 ;
+
+private:
+    //used for the priority queue
+    typedef std::pair<int, Type> kxp; //id pointer in vec_pointer , value
+    struct kxpcomp { bool operator() (kxp l,kxp r) { return ((r.second) < (l.second)); } } ;
+
+public:
+    /** Constructor. */
     PartitionsByVectorCommand (
-        Bag<Count>*  solidKmers,
-        Iterable<Type>&    partition,
-        IHistogram*     histogram,
-        ISynchronizer*  synchro,
-        u_int64_t&      totalKmerNbRef,
-        size_t          abundance,
-        IteratorListener* progress
+            gatb::core::tools::collections::Bag<Count>*         solidKmers,
+            gatb::core::tools::collections::Iterable<Type>&     partition,
+            gatb::core::tools::misc::IHistogram*                histogram,
+            gatb::core::system::ISynchronizer*                  synchro,
+            u_int64_t&                                          totalKmerNbRef,
+            size_t                                              abundance,
+            gatb::core::tools::dp::IteratorListener*            progress,
+            tools::misc::impl::TimeInfo&                        timeInfo,
+            PartiInfo<5>&                                       pInfo,
+            int                                                 parti,
+            size_t                                              nbCores,
+            size_t                                              kmerSize,
+            gatb::core::tools::misc::impl::MemAllocator&        pool
     );
+
+    /** Destructor. */
+    ~PartitionsByVectorCommand ();
 
     void execute ();
 
 private:
+	Type**    _radix_kmers;
+	uint64_t* _radix_sizes;
+	uint64_t* _r_idx;
 
-    vector<Type> kmers;
+    tools::dp::impl::Dispatcher* _dispatcher;
+
+	void executeRead   ();
+    void executeSort   ();
+    void executeDump   ();
 };
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
-
 
 #endif

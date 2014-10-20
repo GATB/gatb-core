@@ -103,8 +103,9 @@ BankSplitter::Iterator::Iterator(const BankSplitter& bank)
     _itRef->first();
     assert (_itRef->isDone() == false);
 
-    /** We create the reference Data object (that references the provided string). */
-    setDataRef (new Data ());
+    /** We create the reference Data object (that references the provided string).
+     * NOTE : we force the encoding to be the same as the referred bank. */
+    setDataRef (new Data (_itRef->item().getDataEncoding()));
     *_dataRef = (*_itRef)->getData();
 
     _offsetMax = _dataRef->size() - _readMeanSize;

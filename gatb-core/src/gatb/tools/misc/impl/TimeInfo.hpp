@@ -90,6 +90,14 @@ public:
      */
     virtual void stop (const char* name);
 
+    /** Merge the content of the current time info with the provided one.
+     * \param[in] ti : info to merged. */
+    TimeInfo& operator+= (TimeInfo& ti);
+
+    /** Didive the time (useful when gathered times from several threads).
+     * \param[in] nb : divisor. */
+    TimeInfo& operator/= (size_t nb );
+
     /** Provides (as a map) all got durations for each known label/
      * \return a map holding all retrieved timing information.
      */

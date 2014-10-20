@@ -157,6 +157,66 @@ private:
 };
 
 /********************************************************************************/
+
+//make it an allocator usable by std vector ?
+class MemAllocator
+{
+public:
+
+    //clear all previous allocs, and alloc pool capacity
+    void reserve(u_int64_t size)
+    {
+        if(size ==0 && mainbuffer !=NULL)
+        {
+            free(mainbuffer);
+            capacity = used_space = 0;
+            mainbuffer = NULL ;
+        }
+
+        mainbuffer = (char*) malloc(size);
+        capacity   = size;
+        used_space = 0;
+    }
+
+    //should be thread safe
+    char* pool_malloc(u_int64_t requested_size)
+    {
+        u_int64_t synced_used_space = __sync_fetch_and_add(&used_space, requested_size);
+
+        if (requested_size> (capacity - synced_used_space))
+        {
+            __sync_fetch_and_add(&used_space, -requested_size);
+            return NULL;
+        }
+
+        return mainbuffer + synced_used_space;
+    }
+
+    u_int64_t getCapacity ()  {  return capacity;   }
+
+    u_int64_t getUsedSpace()  {  return used_space; }
+
+
+    void free_all()
+    {
+        used_space = 0;
+    }
+
+    MemAllocator() : capacity(0),used_space(0),mainbuffer(NULL)  {}
+
+
+    ~MemAllocator()
+    {
+        if (mainbuffer != NULL)  {  free(mainbuffer);  }
+    }
+
+private :
+    char*     mainbuffer;
+    u_int64_t capacity; //in bytes
+    u_int64_t used_space;
+};
+
+/********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 

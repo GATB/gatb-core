@@ -55,6 +55,7 @@
 
 extern const unsigned char revcomp_4NT[];
 extern const unsigned char comp_NT    [];
+#include <gatb/system/api/IMemory.hpp>
 
 /********************************************************************************/
 namespace gatb  {
@@ -78,7 +79,7 @@ public:
         return buffer;
     }
 
-     u_int64_t getVal()  { return this->value[0]; }
+     u_int64_t getVal() const  { return this->value[0]; }
     static const size_t getSize ()  { return 8*sizeof(u_int64_t)*precision; }
 
     /********************************************************************************/
@@ -516,6 +517,8 @@ template<int precision>  u_int64_t oahash (const LargeInt<precision>& elem)
     }
     return result;
 }
+
+	
 
 /********************************************************************************/
 template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision>& elem, int  shift)

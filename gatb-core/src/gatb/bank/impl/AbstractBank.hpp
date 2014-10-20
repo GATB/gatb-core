@@ -64,6 +64,9 @@ public:
     /** \copydoc IBank::setEstimateThreshold */
     void setEstimateThreshold (u_int64_t nbSeq) { _estimateThreshold = nbSeq; }
 
+    /** \copydoc IBank::remove */
+    void remove () {}
+
 private:
 
     u_int64_t _estimateThreshold;

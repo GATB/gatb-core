@@ -10,6 +10,10 @@ using namespace std;
 #define INFO(a)   //a
 
 /********************************************************************************/
+
+const char* STR_NODE_TYPE = "-type";
+
+/********************************************************************************/
 class CustomTool : public Tool
 {
 public:
@@ -18,34 +22,39 @@ public:
     CustomTool () : Tool ("DotGenerator")
     {
         getParser()->push_front (new OptionOneParam (STR_URI_INPUT,  "graph file", true ));
-        getParser()->push_front (new OptionOneParam (STR_URI_OUTPUT, "dot file", true ));
+        getParser()->push_front (new OptionOneParam (STR_URI_OUTPUT, "dot file",  false ));
+        getParser()->push_front (new OptionOneParam (STR_NODE_TYPE,  "node type (0: all,  1:branching)", false, "1" ));
     }
 
-    // Actual job done by the tool is here
-    void execute ()
+    template<typename NodeType>
+    void process (const char* name)
     {
-        FILE* output = fopen (getInput()->getStr(STR_URI_OUTPUT).c_str(), "w");
+        string outputFile = getInput()->get(STR_URI_OUTPUT) ?
+            getInput()->getStr(STR_URI_OUTPUT) :
+            (System::file().getBaseName(getInput()->getStr(STR_URI_INPUT)) + ".dot");
+
+        FILE* output = fopen (outputFile.c_str(), "w");
         if (output != NULL)
         {
-            fprintf (output, "digraph branching {\n");
+            fprintf (output, "digraph %s  {\n", name);
 
             // We load the graph
             Graph graph = Graph::load (getInput()->getStr(STR_URI_INPUT));
 
-            map<Node::Value, u_int64_t> mapping;
+            map<Node, u_int64_t> mapping;
             u_int64_t count = 0;
-            Graph::Iterator<BranchingNode> it = graph.iterator<BranchingNode> ();
-            for (it.first(); !it.isDone(); it.next())  { mapping[it.item().kmer] = count++; }
+            Graph::Iterator<NodeType> it = graph.iterator<NodeType> ();
+            for (it.first(); !it.isDone(); it.next())  { mapping[it.item()] = count++; }
 
             for (it.first(); !it.isDone(); it.next())
             {
-                BranchingNode current = it.item();
+                NodeType current = it.item();
 
-                Graph::Vector<BranchingNode> neighbors = graph.successors<BranchingNode> (current);
+                Graph::Vector<NodeType> neighbors = graph.neighbors<NodeType> (current.kmer);
 
                 for (size_t i=0; i<neighbors.size(); i++)
                 {
-                    fprintf (output, "%ld -> %ld;\n", mapping[current.kmer], mapping[neighbors[i].kmer]);
+                    fprintf (output, "%s -> %s;\n", graph.toString(current.kmer).c_str(), graph.toString(neighbors[i].kmer).c_str());
                 }
             }
 
@@ -53,8 +62,18 @@ public:
 
             fclose (output);
         }
-
     }
+
+    // Actual job done by the tool is here
+    void execute ()
+    {
+        switch (getInput()->getInt(STR_NODE_TYPE))
+        {
+            case 0: process<Node>          ("all");        break;
+            case 1: process<BranchingNode> ("branching");  break;
+            default: break;
+        }
+     }
 };
 
 /********************************************************************************/
@@ -75,3 +94,4 @@ int main (int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
+

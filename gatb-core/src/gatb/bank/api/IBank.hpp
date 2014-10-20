@@ -106,6 +106,9 @@ public:
     /** Set the number of sequences read from the bank for computing estimated information
      * \param[in] nbSeq : the number of sequences to be read.*/
     virtual void setEstimateThreshold (u_int64_t nbSeq) = 0;
+
+    /** Remove physically the bank. */
+    virtual void remove () = 0;
 };
 
 /********************************************************************************/

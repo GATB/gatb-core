@@ -206,7 +206,7 @@ inline u_int64_t oahash (const NativeInt128& item)
     return NativeInt64::oahash64 ((u_int64_t)(elem>>64)) ^
            NativeInt64::oahash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)));
 }
-
+	
 /********************************************************************************/
 inline u_int64_t simplehash16 (const NativeInt128& key, int  shift)
 {

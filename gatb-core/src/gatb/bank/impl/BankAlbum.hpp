@@ -69,6 +69,11 @@ public:
      * \param[in] name : uri of the album. */
     BankAlbum (const std::string& name, bool deleteIfExists=false);
 
+    /** Constructor.
+     * \param[in] name : uri of the album. */
+    BankAlbum (const std::string& name, const std::vector<IBank*>& banks)
+        : BankComposite (banks), _name(name) {}
+
     /** \copydoc IBank::getId. */
     std::string getId ()  { return _name; }
 
@@ -77,6 +82,9 @@ public:
 
     /** Add a bank to the album. */
     IBank* addBank (const std::string& directory, const std::string& bankName);
+
+    /** \copydoc IBank::remove. */
+    void remove ();
 
 private:
 

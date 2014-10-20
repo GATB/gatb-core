@@ -60,10 +60,9 @@ static const char* progressFormat1 = "Bank: fasta to binary                  ";
 ** REMARKS :
 *********************************************************************/
 BankConverterAlgorithm::BankConverterAlgorithm (IBank* bank,  size_t kmerSize, const std::string& outputUri)
-    : Algorithm ("bankconverter"), _kind(BANK_CONVERT_TMP), _bankInput(0), _bankOutput(0), _outputUri(outputUri)
+: Algorithm ("bankconverter"), _kind(BANK_CONVERT_TMP), _bankInput(0), _bankOutput(0), _outputUri(outputUri), _kmerSize(kmerSize)
 {
     setBankInput  (bank);
-    setBankOutput (new BankBinary (outputUri, kmerSize));
 }
 
 /*********************************************************************
@@ -75,7 +74,7 @@ BankConverterAlgorithm::BankConverterAlgorithm (IBank* bank,  size_t kmerSize, c
 ** REMARKS :
 *********************************************************************/
 BankConverterAlgorithm::BankConverterAlgorithm (tools::storage::impl::Storage& storage)
-: Algorithm ("bankconverter"), _kind(BANK_CONVERT_NONE), _bankInput(0), _bankOutput(0)
+: Algorithm ("bankconverter"), _kind(BANK_CONVERT_NONE), _bankInput(0), _bankOutput(0), _kmerSize(0)
 {
     string xmlString = storage(this->getName()).getProperty ("xml");
     stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
@@ -119,43 +118,108 @@ void BankConverterAlgorithm::execute ()
     u_int64_t number, totalSize, maxSize;
     _bankInput->estimate (number, totalSize, maxSize);
 
+    /** We create the sequence iterator. */
+    Iterator<Sequence>* itSeq = _bankInput->iterator();
+    LOCAL (itSeq);
+
+    u_int64_t   nbSeq = 0;
+    u_int64_t sizeSeq = 0;
+
+    /** We get the composition of the provided sequence iterator. */
+    std::vector<Iterator<Sequence>*> iters = itSeq->getComposition();
+
+    /** We use a block for measuring the time elapsed in it. */
+    {
+        TIME_INFO (getTimeInfo(), "conversion");
+
+        /** We get information about the FASTA bank. */
+        u_int64_t number, totalSize, maxSize;
+        _bankInput->estimate (number, totalSize, maxSize);
+
+        if (iters.size() == 1)
+        {
+            /** We set the output bank. */
+            setBankOutput (createBank (itSeq, number, _outputUri, nbSeq, sizeSeq));
+        }
+
+        else if (iters.size() > 1)
+        {
+            vector<IBank*> ouputBanks;
+
+            for (size_t i=0; i<iters.size(); i++)
+            {
+                /** We set the name of the current binary bank. */
+                stringstream ss;   ss << _outputUri << i;
+
+                /** We create a new binary bank and add it to the vector of output banks. */
+                ouputBanks.push_back (createBank (iters[i], number / iters.size(), ss.str(), nbSeq, sizeSeq));
+            }
+
+            /** We set the result output bank. */
+            setBankOutput (new BankAlbum (_outputUri, ouputBanks));
+        }
+        else
+        {
+            throw Exception ("Error in BankConverterAlgorithm : nbIterators=%d", iters.size());
+        }
+    }
+
+    /** We flush the output bank (important if it is a file output). */
+    _bankOutput->flush ();
+
+    /** We gather some statistics. */
+    getInfo()->add (1, "info");
+    getInfo()->add (2, "input",            "%s",   _bankInput->getId().c_str());
+    getInfo()->add (2, "composite_number", "%d",   iters.size());
+    getInfo()->add (2, "sequences_number", "%ld",  nbSeq);
+    getInfo()->add (2, "sequences_size",   "%ld",  sizeSeq);
+    getInfo()->add (2, "output_size",      "%ld",  _bankOutput->getSize());
+    getInfo()->add (2, "ratio",            "%.3f",  (double)sizeSeq / (double)_bankOutput->getSize());
+    getInfo()->add (1, getTimeInfo().getProperties("time"));
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IBank* BankConverterAlgorithm::createBank (
+    Iterator<Sequence>* inputSequences,
+    size_t              nbInputSequences,
+    const string& outputName,
+    u_int64_t& nbSeq,
+    u_int64_t& sizeSeq
+)
+{
+    DEBUG (("BankConverterAlgorithm::createBank  nbInputSequences=%ld  outputName='%s'  nbSeq=%d \n",
+        nbInputSequences, outputName.c_str(), nbSeq
+    ));
+
+    /** We create a new binary bank. */
+    IBank* result = new BankBinary (outputName, _kmerSize);
+
     /** We need an iterator on the input bank. */
-     Iterator<Sequence>* itBank = createIterator<Sequence> (
-         _bankInput->iterator(),
-         number,
-         progressFormat1
-     );
-     LOCAL (itBank);
+    Iterator<Sequence>* itBank = createIterator<Sequence> (
+        inputSequences,
+        nbInputSequences,
+        progressFormat1
+    );
+    LOCAL (itBank);
 
-     u_int64_t   nbSeq = 0;
-     u_int64_t sizeSeq = 0;
+    /** We iterate the sequences of the input bank. */
+    for (itBank->first(); !itBank->isDone(); itBank->next())
+    {
+        nbSeq ++;
+        sizeSeq += (*itBank)->getDataSize();
 
-     /** We use a block for measuring the time elapsed in it. */
-     {
-         TIME_INFO (getTimeInfo(), "conversion");
+        /** We insert the current sequence into the output bank. */
+        result->insert (itBank->item());
+    }
 
-         /** We iterate the sequences of the input bank. */
-         for (itBank->first(); !itBank->isDone(); itBank->next())
-         {
-             nbSeq ++;
-             sizeSeq += (*itBank)->getDataSize();
-
-             /** We insert the current sequence into the output bank. */
-             _bankOutput->insert (itBank->item());
-         }
-     }
-
-     /** We flush the output bank (important if it is a file output). */
-     _bankOutput->flush ();
-
-     /** We gather some statistics. */
-     getInfo()->add (1, "info");
-     getInfo()->add (2, "input",            "%s",   _bankInput->getId().c_str());
-     getInfo()->add (2, "sequences_number", "%ld",  nbSeq);
-     getInfo()->add (2, "sequences_size",   "%ld",  sizeSeq);
-     getInfo()->add (2, "output_size",      "%ld",  _bankOutput->getSize());
-     getInfo()->add (2, "ratio",            "%.3f",  (double)sizeSeq / (double)_bankOutput->getSize());
-     getInfo()->add (1, getTimeInfo().getProperties("time"));
+    return result;
 }
 
 /********************************************************************************/

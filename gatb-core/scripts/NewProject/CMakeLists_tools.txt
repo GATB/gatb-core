@@ -19,6 +19,9 @@ add_definitions (${gatb-core-flags})
 # We add the gatb-core include directory
 include_directories (${gatb-core-includes})
 
+# We add the path for extra libraries
+link_directories (${gatb-core-extra-libraries-path})
+
 # We get the list of subdirectories names
 SUBDIRLIST(PROGRAMS ${PROJECT_SOURCE_DIR}/tools)
 

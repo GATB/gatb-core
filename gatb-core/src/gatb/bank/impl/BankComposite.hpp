@@ -92,7 +92,7 @@ public:
     void insert (const Sequence& item)   {  throw system::Exception ("Can't insert sequence in a composite bank.");  }
 
     /** \copydoc IBank::flush */
-    void flush ()  {}
+    void flush ()   {  for (size_t i=0; i<_banks.size(); i++)  { _banks[i]->flush(); } }
 
     /** \copydoc IBank::getSize */
     u_int64_t getSize ()
@@ -128,6 +128,9 @@ public:
 
     /** */
     tools::dp::Iterator<IBank*>* iteratorBanks ()  { return new tools::dp::impl::VectorIterator<IBank*> (_banks); }
+
+    /** \copydoc IBank::remove. */
+    void remove ()  {  for (size_t i=0; i<_banks.size(); i++)  { _banks[i]->remove(); } }
 
 protected:
 

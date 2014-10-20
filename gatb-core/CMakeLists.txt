@@ -146,24 +146,44 @@ set (EXECUTABLE_OUTPUT_PATH    ${PROJECT_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
 #  EXPORT FOR THIRD PARTIES 
 ################################################################################
 
+# In case you need to use external libraries, you can use the following variables:
+#   EXTRALIBS      : names of the libraries to be used
+#   EXTRALIBS_PATH : directory where the libraries are
+#   EXTRALIBS_INC  : directory of the include files for the libraries 
+# For instance, you can do the following:
+#       cmake -DEXTRALIBS="somelib"  -DEXTRALIBS_PATH="/somewhere/libs"  -DEXTRALIBS_INC="/somewhere/inc" ..
+
+IF (DEFINED EXTRALIBS)
+    set (gatb-core-extra-libraries ${EXTRALIBS})
+    set (gatb-core-extra-libraries ${gatb-core-extra-libraries} PARENT_SCOPE)
+ENDIF()
+IF (DEFINED EXTRALIBS_PATH)
+    set (gatb-core-extra-libraries-path ${EXTRALIBS_PATH})
+    set (gatb-core-extra-libraries-path ${gatb-core-extra-libraries-path} PARENT_SCOPE)
+ENDIF()
+IF (DEFINED EXTRALIBS_INC)
+    set (gatb-core-extra-libraries-inc ${EXTRALIBS_INC})
+    set (gatb-core-extra-libraries-inc ${gatb-core-extra-libraries-inc} PARENT_SCOPE)
+ENDIF()
+
 # We define the compilation flags used for compiling binary based on gatb core
 set (gatb-core-flags ${LIBRARY_COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
 # Note that we need to add boost include dependency (not working otherwise with clang)
-set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${PROJECT_SOURCE_DIR}/src  ${PROJECT_SOURCE_DIR}/thirdparty)
+set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${PROJECT_SOURCE_DIR}/src  ${PROJECT_SOURCE_DIR}/thirdparty ${gatb-core-extra-libraries-inc})
 
 # We define the libraries used for linking binary based on gatb core
-set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5)
+set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5 ${gatb-core-extra-libraries})
 
 # We define the directory where to find cmake helpers
 set (gatb-core-cmake  ${CMAKE_MODULE_PATH})
 
 # NOTE... we have to duplicate the variables for the other scopes (in particular for sub directories)
-set (gatb-core-flags     ${gatb-core-flags}     PARENT_SCOPE)
-set (gatb-core-includes  ${gatb-core-includes}  PARENT_SCOPE)
-set (gatb-core-libraries ${gatb-core-libraries} PARENT_SCOPE)
-set (gatb-core-cmake     ${gatb-core-cmake}     PARENT_SCOPE)
+set (gatb-core-flags          ${gatb-core-flags}          PARENT_SCOPE)
+set (gatb-core-includes       ${gatb-core-includes}       PARENT_SCOPE)
+set (gatb-core-libraries      ${gatb-core-libraries}      PARENT_SCOPE)
+set (gatb-core-cmake          ${gatb-core-cmake}          PARENT_SCOPE)
 
 ################################################################################
 #  LIBRARY GENERATION 
@@ -202,7 +222,6 @@ ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
 IF (DEFINED WITH_MPHF)
     ADD_DEPENDENCIES(gatbcore-static emphf_copyasis)
 ENDIF()
-
 
 ################################################################################
 #  DOCUMENTATION GENERATION 

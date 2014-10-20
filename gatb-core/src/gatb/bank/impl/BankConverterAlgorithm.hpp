@@ -70,6 +70,16 @@ private:
     void setBankOutput (IBank* bankOutput)  { SP_SETATTR(bankOutput); }
 
     std::string _outputUri;
+
+    bank::IBank* createBank (
+        tools::dp::Iterator<bank::Sequence>* inputSequences,
+        size_t nbInputSequences,
+        const std::string& outputName,
+        u_int64_t& nbSeq,
+        u_int64_t& sizeSeq
+    );
+
+    size_t _kmerSize;
 };
 
 /********************************************************************************/

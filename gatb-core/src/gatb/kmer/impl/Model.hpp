@@ -31,6 +31,8 @@
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/kmer/api/IModel.hpp>
 
+#include <gatb/tools/collections/api/Bag.hpp>
+
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/Data.hpp>
@@ -133,38 +135,107 @@ struct Kmer
          * \param[in] val : value to be set. */
         void set (const Type& val) { _value=val; }
 
+        /** Tells whether the kmer is valid or not. It may be invalid if some unwanted
+         * nucleotides characters (like N) have been used to build it.
+         * \return true if valid, false otherwise. */
+        bool isValid () const { return _isValid; }
+
     protected:
         Type _value;
+        bool _isValid;
         friend class ModelDirect;
+
+        /** Extract a mmer from a kmer. This is done by using a mask on the kmer.
+         * \param[in] mask : mask to be applied to the current kmer
+         * \param[in] size : shift size (needed for some kmer classes but not all)
+         * \return the extracted kmer.
+         */
+        KmerDirect extract      (const Type& mask, size_t size, Type * mmer_lut)  {  KmerDirect output;  output.set (this->value() & mask);  return output;  }
+        KmerDirect extractShift (const Type& mask, size_t size, Type * mmer_lut)  {  KmerDirect output = extract(mask,size,mmer_lut);  _value = _value >> 2;  return output;  }
     };
 
     /** Kmer type for the ModelCanonical class. */
-    class KmerCanonical : public KmerDirect
+    class KmerCanonical
     {
     public:
 
-        /** Set the value attribute. */
-        void set (const Type& value)  {  KmerDirect::set(value); }
+        /** Returns the value of the kmer.
+         * \return the kmer value as a Type object. */
+        const Type& value  () const { return table[choice];   }
+
+        /** Comparison operator between two instances.
+         * \param[in] t : object to be compared to
+         * \return true if the values are the same, false otherwise. */
+        bool operator< (const KmerDirect& t) const  { return this->value() < t.value(); };
+
+        /** Set the value of the kmer
+         * \param[in] val : value to be set. */
+
+        void set (const Type& val)
+        {
+            /** Not really a forward/revcomp couple, but may be useful for the minimizer default value. */
+            set (val,val);
+
+        }
 
         /** Set the forward/revcomp attributes. */
         void set (const Type& forward, const Type& revcomp)
         {
-            _forward=forward;
-            _revcomp=revcomp;
-            KmerDirect::set (std::min (_forward,_revcomp));
+            table[0]=forward;
+            table[1]=revcomp;
+            updateChoice ();
         }
+
+		
+        /** Tells whether the kmer is valid or not. It may be invalid if some unwanted
+         * nucleotides characters (like N) have been used to build it.
+         * \return true if valid, false otherwise. */
+        bool isValid () const { return _isValid; }
 
         /** Returns the forward value of this canonical kmer.
          * \return the forward value */
-        const Type& forward() const { return _forward; }
+        const Type& forward() const { return table[0]; }
 
         /** Returns the reverse complement value of this canonical kmer.
          * \return the reverse complement value */
-        const Type& revcomp() const { return _revcomp; }
+        const Type& revcomp() const { return table[1]; }
+
+        /** Tells which strand is used for the kmer.
+         * \return true if the kmer value is the forward value, false if it is the reverse complement value
+         */
+        bool which () const { return choice==0 ? true : false; }
 
     protected:
-        Type _forward;  Type _revcomp;
+        Type table[2];  char choice;
+		
+        bool _isValid;
+        void updateChoice () { choice = (table[0] < table[1]) ? 0 : 1; }
         friend class ModelCanonical;
+
+        /** Extract a mmer from a kmer. This is done by using a mask on the kmer.
+         * \param[in] mask : mask to be applied to the current kmer
+         * \param[in] size : shift size (needed for some kmer classes but not all)
+         * \return the extracted kmer.
+         */
+        KmerCanonical extract (const Type& mask, size_t size, Type * mmer_lut)
+        {
+
+            KmerCanonical output;
+			
+			output.set(mmer_lut[(this->table[0] & mask).getVal()]); //no need to recomp updateChoice with this
+			//mmer_lut takes care of revcomp and forbidden mmers
+			//output.set (this->table[0] & mask, (this->table[1] >> size) & mask);
+            //output.updateChoice();
+            return output;
+        }
+
+
+        KmerCanonical extractShift (const Type& mask, size_t size, Type * mmer_lut)
+        {
+            KmerCanonical output = extract (mask, size,mmer_lut);
+            table[0] = table[0] >> 2;   table[1] = table[1] << 2;  updateChoice();
+            return output;
+        }
     };
 
     /** Kmer type for the ModelMinimizer class. */
@@ -175,36 +246,32 @@ struct Kmer
 
         /** Returns the minimizer of the current kmer as a Model::Kmer object
          * \return the Model::Kmer instance */
-        const typename Model::Kmer& minimizer() const  {  return minimizers[minimizerIdx];  }
+        const typename Model::Kmer& minimizer() const  {  return _minimizer; }
 
-        /** Returns the position of the minimizer within the kmer.
+		
+		
+        /** Returns the position of the minimizer within the kmer. By convention,
+         * a negative value means that there is no minimizer inside the kmer.
          * \return the position of the minimizer. */
-        size_t position () const
-        {
-            /** By convention, if there is no minimizer, we return position 0. */
-            if (isDefined()==false) { return 0; }
-
-            return startIdx<minimizerIdx ? minimizerIdx-startIdx-1 : (minimizerIdx+nbMinimizer)-startIdx-1;
-        }
+        int position () const  {  return _position;  }
 
         /** Tells whether the minimizer has changed; useful while iterating kmers
          * \return true if changed, false otherwise */
-        bool hasChanged () const  {  return changed;  }
-
-        /** Tells whether the minimizer is defined within the kmer.
-         * \return true if defined, false otherwise. */
-        bool isDefined () const { return minimizerIdx!=nbMinimizer; }
+        bool hasChanged () const  {  return _changed;  }
 
     protected:
 
-
-        typename Model::Kmer minimizers[span];
-        size_t minimizerIdx;
-        size_t startIdx;
-        size_t nbMinimizer;
-        bool changed;
+        typename Model::Kmer _minimizer;
+        int16_t              _position;
+        bool                 _changed;
         friend class ModelMinimizer<Model,Comparator>;
     };
+
+    /** Shortcut.
+     *  - first  : the nucleotide value (A=0, C=1, T=2, G=3)
+     *  - second : 0 if valid, 1 if invalid (in case of N character for instance) */
+    typedef std::pair<char,char> ConvertChar;
+
 
     /** Abstract class that provides kmer management.
      *
@@ -290,7 +357,7 @@ struct Kmer
          */
         Kmer getKmer (const tools::misc::Data& data, size_t idx=0)  const
         {
-            return codeSeed (data.getBuffer() + idx, data.getEncoding());
+            return codeSeed (data.getBuffer() + idx, data.getEncoding());  // should not work with BINARY encoding
         }
 
         /** Iteration of the kmers from a data object through a functor (so lambda expressions can be used).
@@ -326,6 +393,8 @@ struct Kmer
          * \param[in] data : the sequence of nucleotides.
          * \param[out] kmersBuffer : the successive kmers built from the data object.
          * \return true if kmers have been extracted, false otherwise. */
+		//GR : est ce quon pourrait passer un pointeur (de taille suffisante) au lieu  vector, pour pas avoir a faire resize dessus dans tas
+		// si taille pas suffisante,
         bool build (tools::misc::Data& data, std::vector<Kmer>& kmersBuffer)  const
         {
             /** We compute the number of kmers for the provided data. Note that we have to check that we have
@@ -342,6 +411,7 @@ struct Kmer
             return true;
         }
 
+		
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 outcoming neighbors
          *  - 4 incoming neighbors.
@@ -416,15 +486,36 @@ struct Kmer
         /** Shortcut for easing/speeding up the recursive revcomp computation. */
         Type _revcompTable[4];
 
-        /** */
-        struct ConvertASCII    { static char get (const char* buffer, size_t idx)  { return (buffer[idx]>>1) & 3; }};
-        struct ConvertInteger  { static char get (const char* buffer, size_t idx)  { return buffer[idx]; }         };
-        struct ConvertBinary   { static char get (const char* buffer, size_t idx)  { return ((buffer[idx>>2] >> ((3-(idx&3))*2)) & 3); } };
+        /** Note for the ASCII conversion: the 4th bit is used to tell whether it is invalid or not.
+         * => it finds out that 'N' character has this 4th bit equals to 1, which is not the case
+         * for 'A', 'C', 'G' and 'T'. */
+        struct ConvertASCII    { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar((buffer[idx]>>1) & 3, (buffer[idx]>>3) & 1); }};
+        struct ConvertInteger  { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(buffer[idx],0); }         };
+        struct ConvertBinary   { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(((buffer[idx>>2] >> ((3-(idx&3))*2)) & 3),0); } };
 
-        /** */
+        /** \return -1 if valid, otherwise index of the last found bad character. */
         template<class Convert>
-        void polynom (const char* seq, Type& kmer)  const
-        {  kmer = 0;  for (size_t i=0; i<_kmerSize; ++i)  {  kmer = (kmer<<2) + Convert::get(seq,i);  }  }
+        int polynom (const char* seq, Type& kmer)  const
+        {
+            ConvertChar c;
+            int badIndex = -1;
+
+            /** We iterate 'kmersize" nucleotide to build the first kmer as a polynomial evaluation. */
+            kmer = 0;
+            for (int i=0; i<_kmerSize; ++i)
+            {
+                /** We get the current nucleotide (and its invalid status). */
+                c = Convert::get(seq,i);
+
+                /** We update the polynome value. */
+                kmer = (kmer<<2) + c.first;
+
+                /** We update the 'invalid' status: a single bad character makes the result invalid. */
+                if (c.second)  { badIndex = i; }
+            }
+
+            return badIndex;
+        }
 
         /** Generic function that switches to the correct implementation according to the encoding scheme
          * of the provided Data parameter; the provided functor class is specialized with the correct data conversion type
@@ -464,8 +555,9 @@ struct Kmer
             Functor_codeSeedRight (const Kmer& kmer, char nucl) : kmer(kmer), nucl(nucl) {}
             template<class Convert>  Result operator() (const ModelAbstract* model)
             {
+                ConvertChar c = Convert::get(&nucl,0);
                 Result result=kmer;
-                static_cast<const ModelImpl*>(model)->template next <Convert> (Convert::get(&nucl,0), result);
+                static_cast<const ModelImpl*>(model)->template next <Convert> (c.first, result, c.second==0);
                 return result;
             }
         };
@@ -498,7 +590,7 @@ struct Kmer
             typename ModelImpl::Kmer result;
 
             /** We compute the initial seed from the provided buffer. */
-            static_cast<const ModelImpl*>(this)->template first<Convert> (seq, result);
+            int indexBadChar = static_cast<const ModelImpl*>(this)->template first<Convert> (seq, result);
 
             /** We need to keep track of the computed kmers. */
             size_t idxComputed = 0;
@@ -513,10 +605,13 @@ struct Kmer
             for (size_t idx=_kmerSize; idx<length; idx++)
             {
                 /** We get the current nucleotide. */
-                char c = Convert::get (seq, idx);
+                ConvertChar c = Convert::get (seq, idx);
+
+                if (c.second)  { indexBadChar = _kmerSize-1; }
+                else           { indexBadChar--;     }
 
                 /** We compute the next kmer from the previous one. */
-                static_cast<const ModelImpl*>(this)->template next<Convert> (c, result);
+                static_cast<const ModelImpl*>(this)->template next<Convert> (c.first, result, indexBadChar<0);
 
                 /** We notify the result. */
                 this->notification<Callback> (result, ++idxComputed, callback);
@@ -536,6 +631,7 @@ struct Kmer
             BuildFunctor (std::vector<Type>& kmersBuffer) : kmersBuffer(kmersBuffer) {}
             void operator() (const Type& kmer, size_t idx)  {  kmersBuffer[idx] = kmer;  }
         };
+		
     };
 
     /********************************************************************************/
@@ -562,9 +658,11 @@ struct Kmer
          * \param[out] value : kmer as a result
          */
         template <class Convert>
-        void first (const char* buffer, Kmer& value)   const
+        int first (const char* buffer, Kmer& value)   const
         {
-            this->template polynom<Convert> (buffer, value._value);
+           int result = this->template polynom<Convert> (buffer, value._value);
+            value._isValid = result < 0;
+            return result;
         }
 
         /** Computes a kmer in a recursive way, ie. from a kmer and the next
@@ -576,9 +674,10 @@ struct Kmer
          * \param[out] value kmer as a result
          */
         template <class Convert>
-        void  next (char c, Kmer& value)   const
+        void  next (char c, Kmer& value, bool isValid)   const
         {
-            value._value = ( (value._value << 2) +  c) & this->_kmerMask;
+            value._value   = ( (value._value << 2) +  c) & this->_kmerMask;
+            value._isValid = isValid;
         }
     };
 
@@ -604,11 +703,14 @@ struct Kmer
          * \param[out] value : kmer as a result
          */
         template <class Convert>
-        void  first (const char* seq, Kmer& value)   const
+        int first (const char* seq, Kmer& value)   const
         {
-            this->template polynom<Convert> (seq, value._forward);
-            value._revcomp = this->reverse (value._forward);
-            value._value   = std::min (value._forward, value._revcomp);
+
+            int result = this->template polynom<Convert> (seq, value.table[0]);
+            value._isValid = result < 0;
+            value.table[1] = this->reverse (value.table[0]);
+            value.updateChoice();
+            return result;
         }
 
         /** Computes a kmer in a recursive way, ie. from a kmer and the next
@@ -620,11 +722,15 @@ struct Kmer
          * \param[out] value kmer as a result
          */
         template <class Convert>
-        void  next (char c, Kmer& value)   const
+        void  next (char c, Kmer& value, bool isValid)   const
         {
-            value._forward = ( (value._forward << 2) +  c) & this->_kmerMask;
-            value._revcomp = ( (value._revcomp >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
-            value._value   = std::min (value._forward, value._revcomp);
+            value.table[0] = ( (value.table[0] << 2) +  c                     ) & this->_kmerMask;
+            value.table[1] = ( (value.table[1] >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
+
+
+            value._isValid = isValid;
+
+            value.updateChoice();
         }
     };
 
@@ -641,10 +747,13 @@ struct Kmer
      * This model supports the concept of minimizer. It acts as a Model instance (given as a
      * template class) and add minimizer information to the Kmer type.
      */
-    template<class ModelType, class Comparator=ComparatorMinimizer>
+    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizer>
     class ModelMinimizer :  public ModelAbstract <ModelMinimizer<ModelType,Comparator>, KmerMinimizer<ModelType,Comparator> >
     {
     public:
+
+        /** Type of the model for kmer and mmers.  */
+        typedef ModelType Model;
 
         /** Type holding all the information of a kmer.  */
         typedef KmerMinimizer<ModelType,Comparator> Kmer;
@@ -657,120 +766,265 @@ struct Kmer
          * \param[in] minimizerSize : size of the mmers handled by the model. */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator())
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
-              _kmerModel(kmerSize), _miniModel(minimizerSize), _nbMinimizers(0), _cmp(cmp)
+              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp)
         {
             if (kmerSize <= minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
             /** We compute the number of mmers found in a kmer. */
             _nbMinimizers = _kmerModel.getKmerSize() - _miniModel.getKmerSize() + 1;
+
+            /** We need a mask to extract a mmer from a kmer. */
+
+            _mask  = ((u_int64_t)1 << (2*_miniModel.getKmerSize())) - 1;
+            _shift = 2*(_nbMinimizers-1);
+
+            /** We initialize the default value of the minimizer.
+             * The value is actually set by the Comparator instance provided as a template of the class. */
+            Type tmp;
+            _cmp.template init<ModelType> (getMmersModel(), tmp);
+            _minimizerDefault.set (tmp);
+			
+			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_miniModel.getKmerSize()));
+			_mmer_lut = (Type *) malloc(sizeof(Type) * nbminims_total ); //free that in destructor
+
+			for(int ii=0; ii< nbminims_total; ii++)
+			{
+				Type mmer = ii;
+				Type rev_mmer = revcomp(mmer, minimizerSize);
+				
+                // if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
+                // if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
+				
+				if(rev_mmer < mmer) mmer = rev_mmer;
+				
+				if (!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
+
+				_mmer_lut[ii] = mmer;
+			}
+        }
+
+        /** */
+        ~ModelMinimizer ()
+        {
+            if (_mmer_lut != 0)  { free (_mmer_lut); }
         }
 
         template <class Convert>
-        void  first (const char* seq, Kmer& value)   const
+
+        int first (const char* seq, Kmer& kmer)   const
         {
-            /** We initialize a sentinel value at the end of the mmers vector.
-             * This value will be used in case no minimizer is found.
-             * The value is actually set by the Comparator instance provided as a template of the class. */
-            _cmp.template init<ModelType> (getMmersModel(), (Type&)(value.minimizers [_nbMinimizers].value()));
+            /** We compute the first kmer. */
+            int result = _kmerModel.template first<Convert> (seq, kmer);
 
-            /** We memorize the number of minimizers. */
-            value.nbMinimizer = _nbMinimizers;
+            /** We compute the minimizer of the kmer. */
+            computeNewMinimizer (kmer);
 
-            /** We compute the kmer. */
-            _kmerModel.template first<Convert> (seq, value);
+            return result;
+        }
 
-            /** We compute N potential minimizers and put them into the circular buffer. */
-            _miniModel.template first<Convert> (seq, value.minimizers[0]);
+        template <class Convert>
+        void  next (char c, Kmer& kmer, bool isValid)   const
+        {
+            /** We compute the next kmer. */
+            _kmerModel.template next<Convert> (c, kmer, isValid);
 
-            /** We compute the following mmers from the first one.
-             *  We have consumed 'mmerSize' nucleotides so far for computing the first mmer.
-             *  The following nucleotides have therefore to be retrieved further in the
-             *  data buffer. It is important to shift the index of the current nucleotide
-             *  (and not only moving the buffer forward) because the buffer may be encoded
-             *  in different way (ascii, binary...)
+            /** We set the valid status according to the Convert result. */
+            kmer._isValid = isValid;
+
+            /** We extract the new mmer from the kmer. */
+            typename ModelType::Kmer mmer = kmer.extract (this->_mask, this->_shift,_mmer_lut);
+
+            /** We update the position of the previous minimizer. */
+            kmer._position--;
+
+            /** By default, we consider that the minimizer is still the same. */
+            kmer._changed  = false;
+
+            /** We have to update the minimizer in the following case:
+             *      1) the new mmer is the new minimizer
+             *      2) the previous minimizer is invalid or out from the new kmer window.
              */
-            size_t idxShift = _miniModel.getKmerSize()-1;
-
-            for (size_t idx=1; idx<_nbMinimizers; idx++)
+            if (_cmp (mmer.value(), kmer._minimizer.value()) == true) // .value()
             {
-                value.minimizers[idx] = value.minimizers[idx-1];
-                _miniModel.template next<Convert> (Convert::get (seq, idx+idxShift), value.minimizers[idx]);
+                kmer._minimizer = mmer; //ici intercalet une lut pour revcomp et minim interdits
+                kmer._position  = _nbMinimizers - 1;
+                kmer._changed   = true;
             }
 
-            /** We initialize the circular buffer index. */
-            value.startIdx = _nbMinimizers - 1;
-
-            /** We get the index of the the minimizer in the circular buffer. */
-            value.minimizerIdx = getMinimizerIdx (value);
-            value.changed   = true;
-        }
-
-        template <class Convert>
-        void  next (char c, Kmer& value)   const
-        {
-            /** We get a copy of the current minimizer. */
-            Type currentMinimizer = value.minimizers[value.minimizerIdx].value();
-
-            size_t nextIdx =  (value.startIdx + 1) % _nbMinimizers;
-            value.minimizers[nextIdx] = value.minimizers[value.startIdx];
-
-            _kmerModel.template next<Convert> (c, value);
-            _miniModel.template next<Convert> (c, value.minimizers[nextIdx]);
-
-            /** By default, we set the minimizer has unchanged for the 'next' call. */
-            value.changed = false;
-
-            /** We update the starting index in the circular buffer. */
-            value.startIdx = nextIdx;
-
-            /** We may have to update the minimizer index in the following cases :
-             *      1) the minimizer index is invalid
-             *      2) the minimizer index is out of the current kmer window
-             *      3) the new current mmer is best than the current minimizer
-             */
-            if (value.minimizerIdx==_nbMinimizers || value.minimizerIdx==nextIdx
-                || _cmp (value.minimizers[nextIdx].value(), value.minimizers[value.minimizerIdx].value()) )
+            else if (kmer._position < 0)
             {
-                /** We update the minimizer index. */
-                value.minimizerIdx = getMinimizerIdx (value);
-
-                /** We check whether it is a true minimizer change. Note: checking only the indexes is not enough
-                 * because we can have the same minimizer twice or more in the same kmer. */
-                if (currentMinimizer != value.minimizers[value.minimizerIdx].value())  {  value.changed = true;  }
+                computeNewMinimizer (kmer);
             }
         }
 
     private:
-        ModelType _kmerModel;
-        ModelType _miniModel;
-
-        size_t _nbMinimizers;
-
+        ModelType  _kmerModel;
+        ModelType  _miniModel;
         Comparator _cmp;
+        size_t     _nbMinimizers;
+        Type       _mask;
+
+		Type * _mmer_lut;
+        size_t     _shift;
+        typename ModelType::Kmer _minimizerDefault;
+
+        /** Tells whether a minimizer is valid or not, in order to skip minimizers
+         *  that are too frequent. */
+        bool is_allowed (uint32_t mmer, uint32_t len)
+        {
+            u_int64_t  _mmask_m1  ;
+            u_int64_t  _mask_0101 ;
+            u_int64_t  _mask_ma1 ;
+
+            _mmask_m1  = (1 << ((len-2)*2)) -1 ;
+            _mask_0101 = 0x5555555555555555  ;
+            _mask_ma1  = _mask_0101 & _mmask_m1;
+
+            u_int64_t a1 = mmer;
+            a1 =   ~(( a1 )   | (  a1 >>2 ));
+            a1 =((a1 >>1) & a1) & _mask_ma1 ;
+
+            if(a1 != 0) return false;
+
+            // if ((mmer & 0x3f) == 0x2a)   return false;   // TTT suffix
+            // if ((mmer & 0x3f) == 0x2e)   return false;   // TGT suffix
+            // if ((mmer & 0x3c) == 0x28)   return false;   // TT* suffix
+            // for (uint32_t j = 0; j < len - 3; ++j)       // AA inside
+            //      if ((mmer & 0xf) == 0)  return false;
+            //      else                    mmer >>= 2;
+            // if (mmer == 0)               return false;   // AAA prefix
+            // if (mmer == 0x04)            return false;   // ACA prefix
+            // if ((mmer & 0xf) == 0)   return false;       // *AA prefix
+
+            return true;
+        }
 
         /** Returns the minimizer of the provided vector of mmers. */
-        int getMinimizerIdx(const Kmer& kmer) const
+        void computeNewMinimizer (Kmer& kmer) const
         {
-            int result = _nbMinimizers;
-            typename ModelType::Kmer current;  current.set(kmer.minimizers[result].value());
+            /** We update the attributes of the provided kmer. Note that an invalid minimizer is
+             * memorized by convention by a negative minimizer position. */
+            kmer._minimizer = this->_minimizerDefault;
+            kmer._position  = -1;
+            kmer._changed   = true;
 
-            /** we have to loop nbMinimizers but not starting from startIdx instead of 0
-             *  => we split the loop in two parts. */
-            size_t i0 = kmer.startIdx + 1;
+            /** We need a local object that loops each mmer of the provided kmer (and we don't want
+             * to modify the kmer value of this provided kmer). */
+            Kmer loop = kmer;
 
-            for (size_t i=i0; i<_nbMinimizers; i++)
+            typename ModelType::Kmer mmer;
+
+            /** We compute each mmer and memorize the minimizer among them. */
+
+            for (int16_t idx=_nbMinimizers-1; idx>=0; idx--)
             {
-                if (_cmp(kmer.minimizers[i].value(), current.value())==true)  {  current = kmer.minimizers [result = i];  }
-            }
+                /** We extract the most left mmer in the kmer. */
+                mmer = loop.extractShift (_mask, _shift, _mmer_lut);
 
-            for (size_t i=0; i<i0; i++)
-            {
-                if (_cmp(kmer.minimizers[i].value(), current.value())==true)  {  current = kmer.minimizers [result = i];  }
+                /** We check whether this mmer is the new minimizer. */
+                if (_cmp (mmer.value(), kmer._minimizer.value()) == true)  {  kmer._minimizer = mmer;   kmer._position = idx;  }
             }
-
-            /** We return the result. */
-            return result;
         }
+    };
+
+    /************************************************************/
+    /*********************  SUPER KMER    ***********************/
+    /************************************************************/
+    class SuperKmer
+    {
+    public:
+
+        //typedef Type SType[2];
+
+        typedef ModelMinimizer<ModelCanonical> Model;
+        typedef typename Model::Kmer           Kmer;
+
+        static const u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
+
+        SuperKmer (size_t kmerSize, size_t miniSize, std::vector<Kmer>&  kmers)
+            : kmerSize(kmerSize), miniSize(miniSize), minimizer(DEFAULT_MINIMIZER), kmers(kmers), range(0,0)
+        {
+            if (kmers.empty())  { kmers.resize(kmerSize); range.second = kmers.size()-1; }
+        }
+
+        u_int64_t                minimizer;
+        std::pair<size_t,size_t> range;
+
+        Kmer& operator[] (size_t idx)  {  return kmers[idx+range.first];  }
+
+        size_t size() const { return range.second - range.first + 1; }
+
+        bool isValid() const { return minimizer != DEFAULT_MINIMIZER; }
+
+        /** */
+        void save (tools::collections::Bag<Type>& bag)
+        {
+            size_t superKmerLen = size();
+
+            int64_t zero = 0;
+            Type masknt ((int64_t) 3);
+            Type radix, radix_kxmer_forward ,radix_kxmer ;
+            Type nbK ((int64_t) size());
+            Type compactedK(zero);
+
+            for (size_t ii=1 ; ii < superKmerLen; ii++)
+            {
+                compactedK = compactedK << 2  ;
+                compactedK = compactedK | ( ((*this)[ii].forward()) & masknt) ;
+            }
+
+            int maxs = (compactedK.getSize() - 8 ) ;
+
+            compactedK = compactedK | (  nbK << maxs ) ;
+
+            bag.insert (compactedK);
+            bag.insert ((*this)[0].forward());
+        }
+
+        /** NOT USED YET. */
+        void load (tools::dp::Iterator<Type>& iter)
+        {
+            Type superk = iter.item(); iter.next();
+            Type seedk = iter.item();
+
+            u_int8_t        nbK, rem ;
+            Type compactedK;
+            int ks = kmerSize;
+            Type un = 1;
+            size_t _shift_val = Type::getSize() -8;
+            Type kmerMask = (un << (ks*2)) - un;
+            size_t shift = 2*(ks-1);
+
+            compactedK =  superk;
+            nbK = (compactedK >> _shift_val).getVal() & 255; // 8 bits poids fort = cpt //todo for large k values
+            rem = nbK;
+
+            Type temp = seedk;
+            Type rev_temp = revcomp(temp,ks);
+            Type newnt ;
+            Type mink;
+
+            /** We loop over each kmer of the current superkmer. */
+            for (int ii=0; ii<nbK; ii++,rem--)
+            {
+                mink = std::min (rev_temp, temp);
+
+                /** We set the current (canonical) kmer. */
+                kmers[ii].set (rev_temp, temp);
+
+                if(rem < 2) break;
+                newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
+
+                temp = ((temp << 2 ) |  newnt   ) & kmerMask;
+                newnt =  Type(comp_NT[newnt.getVal()]) ;
+                rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
+            }
+        }
+
+    private:
+        size_t              kmerSize;
+        size_t              miniSize;
+        std::vector<Kmer>&  kmers;
     };
 
     /************************************************************/

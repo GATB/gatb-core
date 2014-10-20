@@ -39,7 +39,7 @@ public:
      * \param[in] c : initial value of the large integer. */
     LargeInt<2> (const __uint128_t& c=0)  {  value[0] = c;  }
 
-     u_int64_t getVal ()  { return *value; }
+     u_int64_t getVal () const  { return *value; }
 
     static const char* getName ()  { return "LargeInt<2>"; }
 
@@ -64,6 +64,9 @@ public:
 
     LargeInt<2>& operator+=  (const LargeInt<2>& other)    {  value[0] += other.value[0]; return *this; }
     LargeInt<2>& operator^=  (const LargeInt<2>& other)    {  value[0] ^= other.value[0]; return *this; }
+
+    LargeInt<2>& operator<<=  (const int& coeff)  { value[0] <<= coeff; return *this; } 
+    LargeInt<2>& operator>>=  (const int& coeff)  { value[0] >>= coeff; return *this; }
 
     u_int8_t  operator[]  (size_t idx) const   {  return (value[0] >> (2*idx)) & 3; }
 
@@ -192,6 +195,8 @@ inline u_int64_t oahash (const LargeInt<2>& item)
     return NativeInt64::oahash64 ((u_int64_t)(elem>>64)) ^
            NativeInt64::oahash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)));
 }
+
+
 
 /********************************************************************************/
 inline u_int64_t simplehash16 (const LargeInt<2>& key, int  shift)
