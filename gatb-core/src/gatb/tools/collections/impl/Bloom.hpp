@@ -151,7 +151,9 @@ public:
             for (size_t i=0; i<n_hash_func; i++)
             {
                 u_int64_t h1 = _hash (item,i) & tai;
-                if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+               // if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+				if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0)  {  return false;  }
+
             }
         }
         else
@@ -159,7 +161,9 @@ public:
             for (size_t i=0; i<n_hash_func; i++)
             {
                 u_int64_t h1 = _hash (item,i) % tai;
-                if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+               // if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+				if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0)  {  return false;  }
+
             }
         }
         return true;
@@ -320,6 +324,8 @@ public:
             for (size_t i=1; i<this->n_hash_func; i++)
             {
                 u_int64_t h1 = h0  + (simplehash16( item, i) & _mask_block )   ;
+			//	u_int64_t h1 = h0  +  (this->_hash (item,i)  & _mask_block );
+
                 __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
             }
         
@@ -345,28 +351,258 @@ public:
         for (size_t i=1; i<this->n_hash_func; i++)
         {
            tab_keys[i] =  h0  + (simplehash16( item, i) & _mask_block );// with simplest hash
-            
+		//	tab_keys[i] =  h0  + (this->_hash (item,i) & _mask_block );// with simplest hash
+
         }
         
         
-        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) != bit_mask[h0 & 7])  {  return false;  }
+//        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) != bit_mask[h0 & 7])  {  return false;  }
+        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) ==0 )  {  return false;  }
         
         for (size_t i=1; i<this->n_hash_func; i++)
         {
             u_int64_t h1 = tab_keys[i];
-            if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+           // if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
+			if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0)  {  return false;  }
+
         }
         return true;
         
     }
     
     
-private:
+protected:
     u_int64_t _mask_block;
     size_t _nbits_BlockSize;
     u_int64_t _reduced_tai;
 };
 
+	
+	
+	template <typename Item> class BloomNeighborCoherent : public BloomCacheCoherent<Item>
+	{
+	public:
+		
+		/** Constructor.
+		 * \param[in] tai_bloom : size (in bits) of the bloom filter.
+		 * \param[in] nbHash : number of hash functions to use
+		 * \param[in] block_nbits : size of the block (actual 2^nbits) */
+		BloomNeighborCoherent (u_int64_t tai_bloom, size_t kmersize , size_t nbHash = 4,size_t block_nbits = 12 )  :
+		BloomCacheCoherent<Item> (tai_bloom , nbHash,block_nbits), _kmerSize(kmersize)
+		{
+			cano2[0] = 0;
+			cano2[1] = 1;
+			cano2[2] = 2;
+			cano2[3] = 3;
+			cano2[4] = 4;
+			cano2[5] = 5;
+			cano2[6] = 3;
+			cano2[7] = 7;
+			cano2[8] = 8;
+			cano2[9] = 9;
+			cano2[10] = 0;
+			cano2[11] = 8;
+			cano2[12] = 9;
+			cano2[13] = 13;
+			cano2[14] = 1;
+			cano2[15] = 5;
+			
+			Item un = 1;
+			_maskkm2 = (un << ((_kmerSize-2)*2)) - un;
+
+			_prefmask = 3 << ((_kmerSize-1)*2);
+		}
+		
+
+		/** \copydoc Bag::insert. */
+		void insert (const Item& item)
+		{
+			
+			u_int64_t h0;
+			
+			
+			Item suffix = item & 3 ;
+			Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
+			prefix += suffix;
+			u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+			
+			Item hashpart = ( item >> 2 ) & _maskkm2 ;  // delete 1 nt at each side
+			Item rev =  revcomp(hashpart,_kmerSize-2);
+			if(rev<hashpart) hashpart = rev; //transform to canonical
+
+	
+			
+			
+			
+			//h0 = ((this->_hash (item >> 2,0) ) % this->_reduced_tai)  + (suffix_val & this->_mask_block);
+			h0 = ((this->_hash (hashpart,0) ) % this->_reduced_tai)  + (pref_val & this->_mask_block);
+
+			__sync_fetch_and_or (this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
+			
+            for (size_t i=1; i<this->n_hash_func; i++)
+            {
+                u_int64_t h1 = h0  + ( (simplehash16( hashpart, i))  & this->_mask_block )   ;
+			//	u_int64_t h1 = h0  +  ( (this->_hash (item>>2,i)+ suffix_val)  & _mask_block );
+				
+                __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+            }
+			
+		}
+		
+		/** */
+		std::string  getName () const { return "cache"; }
+		
+		/** */
+		u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
+        
+		/** \copydoc Container::contains. */
+		bool contains (const Item& item)
+		{
+			
+			Item suffix = item & 3 ;
+			Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
+			prefix += suffix;
+			u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+			
+			Item hashpart = ( item >> 2 ) & _maskkm2 ;  // delete 1 nt at each side
+			Item rev =  revcomp(hashpart,_kmerSize-2);
+			if(rev<hashpart) hashpart = rev; //transform to canonical
+			
+			
+			
+			u_int64_t tab_keys [20];
+			u_int64_t h0;
+			
+			
+			h0 = ((this->_hash (hashpart,0) ) % this->_reduced_tai)  + (pref_val & this->_mask_block);
+			__builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); //preparing for read
+			
+			//compute all hashes during prefetch
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				tab_keys[i] =  h0  + (  (simplehash16( hashpart, i)  ) & this->_mask_block );// with simplest hash
+				//	tab_keys[i] =  h0  + (  (this->_hash (item>>2,i) + suffix_val ) & _mask_block );// with simplest hash
+				
+			}
+			
+			
+			if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  } //was != bit_mask[h0 & 7]
+			
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				u_int64_t h1 = tab_keys[i];
+				if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } //was != bit_mask[h0 & 7]
+			}
+			return true;
+			
+		}
+		
+		
+		//ask for all 4 neighbors of item in one call
+		bool contains4 (const Item& item, bool * resu)
+		{
+			u_int64_t tab_hashes [20];
+
+			u_int64_t h0, i0, j0, k0;
+	
+			Item elem = item >> 2 ;
+
+			
+
+			
+			h0 = this->_hash (elem,0) % this->_reduced_tai;
+			
+			__builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); //preparing for read
+
+			i0 = h0 + (1 & this->_mask_block);
+			j0 = h0 + (2 & this->_mask_block);
+			k0 = h0 + (3 & this->_mask_block);
+
+
+			
+			
+			//compute all hashes during prefetch
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				//tab_keys[i] =  h0  + (  (simplehash16( item>>2, i)  ) & this->_mask_block );// with simplest hash
+				tab_hashes[i] = simplehash16( elem, i) & this->_mask_block ;
+				
+				//	tab_keys[i] =  h0  + (  (this->_hash (item>>2,i) + suffix_val ) & _mask_block );// with simplest hash
+				
+			}
+			
+			
+			resu[0] = true;
+			resu[1] = true;
+			resu[2] = true;
+			resu[3] = true;
+
+			
+			if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0)  {  resu[0]=false;  }
+			if ((this->blooma[i0 >> 3 ] & bit_mask[i0 & 7]) == 0)  {  resu[1]=false;  }
+			if ((this->blooma[j0 >> 3 ] & bit_mask[j0 & 7]) == 0)  {  resu[2]=false;  }
+			if ((this->blooma[k0 >> 3 ] & bit_mask[k0 & 7]) == 0)  {  resu[3]=false;  }
+			
+			
+			
+			//plus rapide avec 4 boucles separees que une ci dessous avec test pour break
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				u_int64_t h1 =  h0 +  tab_hashes[i]   ;
+				if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu[0]=false; break; }
+			}
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				u_int64_t h1 =  i0 +  tab_hashes[i]   ;
+				if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu[1]=false; break; }
+			}
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				u_int64_t h1 =  j0 +  tab_hashes[i]   ;
+				if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu[2]=false; break; }
+			}
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				u_int64_t h1 =  k0 +  tab_hashes[i]   ;
+				if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu[3]=false; break; }
+			}
+
+			
+			
+			
+			/*
+			for (size_t i=1; i<this->n_hash_func; i++)
+			{
+				u_int64_t h1 =  h0 +  tab_hashes[i]   ;
+				u_int64_t i1 =  i0 +  tab_hashes[i]   ;
+				u_int64_t j1 =  j0 +  tab_hashes[i]   ;
+				u_int64_t k1 =  k0 +  tab_hashes[i]   ;
+
+				if (resu[0] && (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu[0]=false;  }  //test  resu[0] &&
+				if (resu[1] &&(this->blooma[i1 >> 3 ] & bit_mask[i1 & 7]) == 0  )  {  resu[1]=false;  }
+				if (resu[2] &&(this->blooma[j1 >> 3 ] & bit_mask[j1 & 7]) == 0  )  {  resu[2]=false;  }
+				if (resu[3] &&(this->blooma[k1 >> 3 ] & bit_mask[k1 & 7]) == 0  )  {  resu[3]=false;  }
+
+				if(resu[0]== false &&  resu[1]== false && resu[2]== false && resu[3]== false)
+					break;
+			}
+*/
+		
+			return resu[0];
+			
+		}
+		
+		
+	private:
+		unsigned int cano2[16];
+		Item _maskkm2;
+		Item _prefmask;
+
+		size_t _kmerSize;
+	};
+	
+	
+	
 /********************************************************************************/
 
 template <typename Item, size_t prec=1> class BloomGroupOld : public system::SmartPointer
@@ -839,6 +1075,7 @@ public:
             case tools::misc::BLOOM_NONE:      return new BloomNull<T>          ();
             case tools::misc::BLOOM_BASIC:     return new BloomSynchronized<T>  (tai_bloom, nbHash);
             case tools::misc::BLOOM_CACHE:     return new BloomCacheCoherent<T> (tai_bloom, nbHash);
+			case tools::misc::BLOOM_NEIGHBOR:     return new BloomNeighborCoherent<T> (tai_bloom, nbHash);
             case tools::misc::BLOOM_DEFAULT:   return new BloomCacheCoherent<T> (tai_bloom, nbHash);
             default:        throw system::Exception ("bad Bloom kind %d in createBloom", kind);
         }

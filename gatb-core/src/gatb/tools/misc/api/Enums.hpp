@@ -56,13 +56,14 @@ static const char* toString (BankConvertKind kind)
 
 /********************************************************************************/
 
-enum BloomKind  {  BLOOM_NONE, BLOOM_BASIC, BLOOM_CACHE, BLOOM_DEFAULT };
+enum BloomKind  {  BLOOM_NONE, BLOOM_BASIC, BLOOM_CACHE, BLOOM_NEIGHBOR, BLOOM_DEFAULT };
 
 static void parse (const std::string& s, BloomKind& kind)
 {
          if (s == "none")     { kind = BLOOM_NONE;  }
     else if (s == "basic")    { kind = BLOOM_BASIC;  }
     else if (s == "cache")    { kind = BLOOM_CACHE; }
+	else if (s == "neighbor")    { kind = BLOOM_NEIGHBOR; }
     else if (s == "default")  { kind = BLOOM_CACHE; }
     else   { throw system::Exception ("bad Bloom kind '%s'", s.c_str()); }
 }
@@ -74,6 +75,8 @@ static const char* toString (BloomKind kind)
         case BLOOM_NONE:      return "none";
         case BLOOM_BASIC:     return "basic";
         case BLOOM_CACHE:     return "cache";
+		case BLOOM_NEIGHBOR:     return "neighbor";
+
         case BLOOM_DEFAULT:   return "cache";
         default:        throw system::Exception ("bad Bloom kind %d", kind);
     }
