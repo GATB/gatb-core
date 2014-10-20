@@ -66,9 +66,10 @@ public:
         size_t      nbHash,
         tools::misc::BloomKind bloomKind = tools::misc::BLOOM_DEFAULT,
         size_t      nbCores = 0,
-		int		  min_abundance =0
+		int		  min_abundance =0,
+		size_t	  ksize=31
     )
-        : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind), _min_abundance(min_abundance)
+        : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind), _min_abundance(min_abundance), _ksize(ksize)
     {
     }
 
@@ -85,7 +86,7 @@ public:
 
         /** We instantiate the bloom object. */
         tools::collections::impl::IBloom<Type>* bloom =
-            tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash);
+            tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash, _ksize);
 
         /** We launch the bloom fill. */
         tools::dp::impl::Dispatcher(_nbCores).iterate (itKmers,  BuildKmerBloom (*bloom,_min_abundance));
@@ -137,6 +138,7 @@ private:
     u_int64_t _bloomSize;
     size_t    _nbHash;
     size_t    _nbCores;
+    size_t    _ksize;
 	int _min_abundance;
 	
     tools::misc::BloomKind _bloomKind;
