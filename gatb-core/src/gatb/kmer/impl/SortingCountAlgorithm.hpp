@@ -39,6 +39,7 @@
 #include <string>
 
 #include <gatb/kmer/impl/PartitionsCommand.hpp>
+#include <gatb/kmer/impl/LinearCounter.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -195,8 +196,11 @@ private:
     void setPartitions (tools::storage::impl::Partition<Type>* partitions)  {  SP_SETATTR(partitions);  }
 
     u_int64_t _totalKmerNb;
+    u_int64_t _estimatedDistinctKmerNb;
 
     struct Count2TypeAdaptor  {  Type& operator() (Count& c)  { return c.value; }  };
+
+    bool _flagEstimateNbDistinctKmers; // whether we estimate the number of distinct kmers beforehand
 };
 
 /********************************************************************************/

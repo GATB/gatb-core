@@ -104,6 +104,7 @@ public:
     virtual size_t     getNbHash   () const = 0;
 
     virtual std::string  getName   () const  = 0;
+    virtual unsigned long  weight () = 0;
 };
 
 /********************************************************************************/
@@ -227,6 +228,23 @@ public:
         fwrite (this->blooma, sizeof(unsigned char), this->nchar, file);
         fclose (file);
     }
+
+    // return the number of 1's in the Bloom, nibble by nibble
+    unsigned long weight()
+    {
+        const unsigned char oneBits[] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
+        long weight = 0;
+        for(uint64_t index = 0; index < this->nchar; index++)
+        {
+            unsigned char current_char = this->blooma[index];
+            weight += oneBits[current_char&0x0f];
+            weight += oneBits[current_char>>4];
+        }
+        return weight;
+    }
+
+
+
 };
 
 /********************************************************************************/
@@ -248,6 +266,7 @@ public:
     bool contains (const Item& item) { return false; }
     void insert (const Item& item) {}
     void flush ()  {}
+    unsigned long weight ()  {}
 private:
     u_int8_t* a;
 };
@@ -360,6 +379,11 @@ public:
         
     }
     
+    unsigned long weight()
+    {
+        std::cout << "GATB Warning, called unimpplemented BloomCacheCoherent::weight()\n";
+        return 0; // not implemented
+    }
     
 private:
     u_int64_t _mask_block;

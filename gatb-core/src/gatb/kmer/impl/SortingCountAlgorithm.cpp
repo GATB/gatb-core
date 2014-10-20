@@ -60,6 +60,7 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
 /********************************************************************************/
+static const char* progressFormat0 = "DSK: estimating nb distinct kmers        ";
 static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
 static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
 
@@ -84,7 +85,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0), _histogramUri(""),
-      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+      _partitionsStorage(0), _partitions(0), _estimatedDistinctKmerNb(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0),
+      _flagEstimateNbDistinctKmers(false)
 {
 }
 
@@ -119,7 +121,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(histogramUri),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+    _partitionsStorage(0), _partitions(0),  _estimatedDistinctKmerNb(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0),
+    _flagEstimateNbDistinctKmers(false)
 {
     setBank (bank);
 
@@ -149,7 +152,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0), _histogramUri(""),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0)
+    _partitionsStorage(0), _partitions(0),  _estimatedDistinctKmerNb(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0),
+    _flagEstimateNbDistinctKmers(false)
 {
     Group& group = (*_storage)(this->getName());
 
@@ -209,6 +213,8 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         _current_pass           = s._current_pass;
         _histogramUri           = s._histogramUri;
         _totalKmerNb            = s._totalKmerNb;
+        _estimatedDistinctKmerNb   = s._estimatedDistinctKmerNb;
+        _flagEstimateNbDistinctKmers = s._flagEstimateNbDistinctKmers;
 
         setBank                 (s._bank);
         setProgress             (s._progress);
@@ -292,7 +298,7 @@ void SortingCountAlgorithm<span>::execute ()
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
-    getInfo()->add (2, "kmers_nb_valid",     "%ld", _totalKmerNb);
+    getInfo()->add (2, "kmers_nb_distinct",  "%ld", _totalKmerNb);
     getInfo()->add (2, "kmers_nb_solid",     "%ld", nbSolids);
     getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
     if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
@@ -302,6 +308,117 @@ void SortingCountAlgorithm<span>::execute ()
     /** We save (as metadata) some information. */
     (*_storage)("dsk").addProperty ("kmer_size", Stringify::format("%d", _kmerSize));
 }
+
+// estimated the number of distinct kmers in a dataset
+// wrapper around a Linear Counter. Adapted from Kmergenie code.
+// why not a hyperloglog? it seems that the transition from the 32bit-hash initial implementation to 64bits, and supporting billions of elements, is nontrivial, so i didn't bother
+// probably deserves to be in its own file
+template<size_t span>
+class EstimateNbDistinctKmers 
+{
+public:
+
+    /** Shortcut. */
+    typedef typename Kmer<span>::Type                  Type;
+    typedef typename Kmer<span>::ModelCanonical        Model;
+    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
+
+    void estimate()
+    {
+
+        nb_distinct_kmers =(unsigned long)( (float)(linearCounter->count( )) * ((float)nbKmersTotal / (float)nbProcessedKmers)); // dubious linear extrapolation, that's all I got
+
+        abs_error = abs((long)(nb_distinct_kmers-previous_nb_distinct_kmers));
+
+        previous_nb_distinct_kmers = nb_distinct_kmers;
+
+    }
+
+    void operator() (Sequence& sequence)
+    {
+        /** We build the kmers from the current sequence. */
+        if (model.build (sequence.getData(), kmers) == false)  {  throw "reached EOF"; return; }
+
+        /** We loop over the kmers. */
+        for (size_t i=0; i<kmers.size(); i++)
+        {
+            linearCounter->add((kmers[i].value()));
+            
+
+            // heuristics to stop early, i found that it's inaccurate with low coverage (e.g. on dsk/test/FiftyK.fastq)
+            /* 
+            if (nbProcessedReads % eval_every_N_reads == 0 )
+            {
+                
+                // let's see if the estimation converges..
+                // the following stopping condition will grossly over-estimate the number of distinct kmers
+                // but I expect the correct result to be in the same order of magnitude
+                // and better to overestimate than underestimate (for both dsk and kmergenie)
+                   estimate(); 
+                   bool debug = true;
+                   if (debug)
+                       printf("linear estimator at %ld kmers, number of distinct kmers estimated now: %ld, abs error: %ld\n",nbProcessedKmers, nb_distinct_kmers, abs_error);
+                   if (abs_error < previous_nb_distinct_kmers/20) // 5% error
+                   {
+                       throw "LinearCounter converged"; // well, "converged" is a big word
+                       return;
+                   }
+                   if (!linearCounter->is_accurate())
+                   {
+                   printf("LinearCounter is inaccurate";
+                   return;
+                   }
+
+            }*/
+
+        }
+        nbProcessedKmers += kmers.size();
+        nbProcessedReads++;
+        if (nbProcessedReads % 100000 == 0) printf("nb: %ld\n",nbProcessedReads);
+
+        // disabled progress 
+        //if (nbCurProgressKmers > 500000)   {  _progress.inc (nbCurProgressKmers);  nbCurProgressKmers = 0;  }
+    }
+
+    EstimateNbDistinctKmers (Model& model, u_int32_t max_memory, unsigned long nb_kmers_total, IteratorListener* progress)
+        : model(model),  eval_every_N_reads(10000000),   nbKmersTotal(nb_kmers_total), 
+        nbProcessedKmers(0), nbCurProgressKmers(0), previous_nb_distinct_kmers(0), nbProcessedReads(0), abs_error(0)
+        //, _progress  (progress,System::thread().newSynchronizer())  
+    {
+        unsigned long size_linearCounter; // (in bits)
+        /* let's set it to just use half of all memory available at most, ok? this isn't very robust for huge dataset, so to be tested*/
+        /* if it's a tiny dataset, let's set it to total number of kmers */
+        size_linearCounter = std::min( nb_kmers_total, (unsigned long) (max_memory*8*1024*1024/2) );  
+        linearCounter =  new LinearCounter<span>(size_linearCounter);
+    }
+
+    unsigned long getEstimation()
+    {
+        estimate();
+        // soo.. if it's not accurate, let's assume we have a hugeload of kmers, and let's be safe, we return the total number of kmers
+        if (!linearCounter->is_accurate())
+        {   
+            cout << "Warning: linear counter was not accurate, returning worst-case estimation of number of distinct kmers";
+            return nbKmersTotal;
+        }
+        return nb_distinct_kmers;
+    }
+
+private:
+
+    /** Local resources. */
+    Model&    model;
+    unsigned long nbProcessedReads, nbProcessedKmers;
+    unsigned long nbCurProgressKmers;
+    unsigned long nbKmersTotal;
+    unsigned long abs_error;
+    vector<Kmer> kmers;
+    LinearCounter<span> *linearCounter;
+    int eval_every_N_reads;
+    unsigned long previous_nb_distinct_kmers, nb_distinct_kmers;
+
+    //ProgressSynchro _progress; // disabled progress
+};
 
 /*********************************************************************
 ** METHOD  :
@@ -316,11 +433,11 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
-    // optimism == 1 mean that we guarantee worst case the memory usage,
-    // any value above assumes that, on average, a k-mer will be seen 'optimism' times
-    int optimism = 0; // guarantees always work, above 0 : assumes kmer seen (optimism+1) times (with optim 1  'OAHash: max rehashes..'  happened sometimes)
-
-    /** We get some information about the bank. */
+    // optimism == 0 mean that we guarantee worst case the memory usage,
+    // any value above assumes that, on average, any distinct k-mer will be seen 'optimism+1' times
+    int optimism = 0; // 0: guarantees to always work; above 0: risky
+ 
+   /** We get some information about the bank. */
     bank->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
 
     // We get the available space (in MBytes) of the current directory.
@@ -332,7 +449,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     _volume = kmersNb * sizeof(Type) / MBYTE;  // in MBytes
     if (_volume == 0)   { _volume = 1; }    // tiny files fix
 
-    if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, bankSize);  }
+    if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, 3*bankSize);  } // used to be just bankSize until Oct 2014, changed that to 3x
     if (_max_disk_space == 0)  { _max_disk_space = 10000; }
 
     if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
@@ -343,6 +460,39 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
     u_int64_t volume_per_pass;
+  
+
+    if (_flagEstimateNbDistinctKmers)
+    {
+        /* we estimate the volume of distinct kmers vs total number of kmers.
+         * we store it in the variable "est_volume_distinct_ratio"
+         * to compute it, we need a linear counter, let's call it now */
+
+        TIME_INFO (getTimeInfo(), "estimate_distinct_kmers");
+        float est_volume_distinct_ratio; 
+        Iterator<Sequence>* itSeq = _bank->iterator();
+        LOCAL (itSeq);
+
+        //_progress->setMessage (progressFormat0); // not touching progress here anymore
+        Model model (_kmerSize);
+        EstimateNbDistinctKmers<span> estimate_nb_distinct_kmers_function(model, _max_memory, kmersNb, _progress);
+
+        /** We launch the iteration of the sequences iterator with the created functors. */
+        try {
+            itSeq->iterate (estimate_nb_distinct_kmers_function);
+        }
+        catch (const char* except)
+        {
+
+        }
+        _estimatedDistinctKmerNb = estimate_nb_distinct_kmers_function.getEstimation();
+        est_volume_distinct_ratio = (float) _estimatedDistinctKmerNb / (float)kmersNb;
+        //est_volume_distinct_ratio = 1; // for debug
+        /* est_volume_distinct_ratio == 1 mean that we guarantee worst case the memory usage,
+           the value mean that, on average, a k-mer will be seen 'est_volume_distinct_ratio' times */
+        // if wrongly estimated, the error 'OAHash: max rehashes..' can happen
+        printf ("LinearCounter done, estimated %ld number of distinct kmers, ratio to total number of kmers: %.2f\n", (long)_estimatedDistinctKmerNb, est_volume_distinct_ratio);
+    }
 
     do  {
         assert (_nb_passes > 0);
@@ -351,11 +501,21 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
         assert (_max_memory > 0);
         _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
 
-        if (_partitionType == 0)
+        if (_partitionType == 1) // adjust partition size for hash table
         {
             _nb_partitions = (u_int32_t) ceil((float) _nb_partitions / load_factor);
             _nb_partitions = ((_nb_partitions * OAHash<Type>::size_entry()) + sizeof(Type)-1) / sizeof(Type); // also adjust for hash overhead
-            _nb_partitions = std::max ((_nb_partitions/(optimism+1)), (u_int32_t)1);
+            if (_flagEstimateNbDistinctKmers)
+            {
+                // use our estimation of number of distinct kmers to refine number of partitions
+                // it's essentially a way to set optimism optimally
+                // i'm not enabling it because computing it is slow, and reward was too small
+                _nb_partitions = std::max ((u_int32_t) ceil( (float) _nb_partitions *  est_volume_distinct_ratio  * 1.3 ), (u_int32_t)1);  // 1.3 is for security
+            }
+            else
+            {
+                _nb_partitions = std::max ((_nb_partitions/(optimism+1)), (u_int32_t)1);
+            }
         }
 
         if (_nb_partitions >= max_open_files)   { _nb_passes++;  }
@@ -380,6 +540,11 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     getInfo()->add (2, "nb_bits_per_kmer",  "%d",  Type::getSize());
     getInfo()->add (2, "nb_cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
     getInfo()->add (2, "partition_type",    "%d",  _partitionType);
+    if  (_flagEstimateNbDistinctKmers)
+    {
+        getInfo()->add (2, "estimated_nb_distinct_kmers",     "%ld", _estimatedDistinctKmerNb);
+        getInfo()->add (2, "est_volume_distinct_ratio",    "%f",  est_volume_distinct_ratio);
+    }
 }
 
 /********************************************************************************/
@@ -403,7 +568,7 @@ public:
         for (size_t i=0; i<kmers.size(); i++)
         {
             /** We hash the current kmer. */
-            u_int64_t h = oahash (kmers[i].value());
+            u_int64_t h = oahash (kmers[i].value()); 
 
             /** We check whether this kmer has to be processed during the current pass. */
             if ((h % nbPass) != pass)  { continue; }
@@ -439,7 +604,6 @@ private:
     size_t    nbPass;
     size_t    nbPartitions;
     size_t    nbWrittenKmers;
-    Data      binaryData;
     vector<Kmer> kmers;
 
     /** Shared resources (must support concurrent accesses). */ //PartitionCacheSorted
@@ -489,7 +653,6 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
     /** We launch the iteration of the sequences iterator with the created functors. */
-    // R to E: typical question from a puzzled developer: what's this last argument of iterate() (15*1000)? so to answer this, I need to find the definition of iterate(), where is it? maybe to answer this, where does getDispatcher come from? any way we could search http://gatb-core.gforge.inria.fr/ to quickly find out?
     getDispatcher()->iterate (itSeq, FillPartitions<span> (model, _nb_passes, pass, _partitions, _max_memory, _progress), 15*1000);
 }
 
@@ -560,10 +723,14 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>*  solidKmers)
             /** We get the length of the current partition file. */
             size_t partitionLen = (*_partitions)[p].getNbItems(); // hmm this will be unknown for a gz file, maybe estimation possible du coup utilise le hash
 
+            printf("partition of length: %d\n",partitionLen);
+
             /* Get the memory taken by this partition if loaded for sorting */
             uint64_t memoryPartition = partitionLen * sizeof(Type);
 
-            if (memoryPartition >= mem)
+            bool forceHashing = (_partitionType == 1);
+
+            if (memoryPartition >= mem || forceHashing)
             {
                 cmd = new PartitionsByHashCommand<span>   (solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, mem);
             }
