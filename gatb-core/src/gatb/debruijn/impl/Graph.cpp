@@ -616,7 +616,7 @@ Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
+      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -734,7 +734,7 @@ Graph::Graph ()
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
       _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT),
-      _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
+      _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
 }
 
