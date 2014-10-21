@@ -24,11 +24,6 @@
 
 /** \brief Large integer class
  */
-
-
-
-
-
 template<>  class LargeInt<1> :  private misc::ArrayData<u_int64_t, 1>
 {
 public:
@@ -65,6 +60,9 @@ public:
 
     LargeInt<1>& operator+=  (const LargeInt<1>& other)    {  value[0] += other.value[0]; return *this; }
     LargeInt<1>& operator^=  (const LargeInt<1>& other)    {  value[0] ^= other.value[0]; return *this; }
+
+    LargeInt<1>& operator<<=  (const int& coeff)  { value[0] <<= coeff; return *this; } 
+    LargeInt<1>& operator>>=  (const int& coeff)  { value[0] >>= coeff; return *this; }
 
     u_int8_t  operator[]  (size_t idx) const   {  return (value[0] >> (2*idx)) & 3; }
 
@@ -167,8 +165,6 @@ public:
         return code;
     }
 
-
-
     /********************************************************************************/
     /** computes a simple, naive hash using only 16 bits from input key
      * \param[shift] in : selects which of the input byte will be used for hash computation
@@ -238,8 +234,6 @@ inline u_int64_t oahash (const LargeInt<1>& key)
 {
     return LargeInt<1>::oahash64 (key.value[0]);
 }
-
-
 
 /********************************************************************************/
 inline u_int64_t simplehash16 (const LargeInt<1>& key, int  shift)

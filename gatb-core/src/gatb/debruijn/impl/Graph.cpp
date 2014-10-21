@@ -58,6 +58,9 @@ using namespace gatb::core::kmer::impl;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
+using namespace gatb::core::tools::dp;
+using namespace gatb::core::tools::dp::impl;
+
 using namespace gatb::core::tools::storage::impl;
 
 using namespace gatb::core::tools::misc;
@@ -208,12 +211,14 @@ struct configure_visitor : public boost::static_visitor<>    {
         /** We create the kmer model. */
         data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
+#if 0
         if (graph.getState() & Graph::STATE_BANKCONVERTER_DONE)
         {
             /** We set the iterable for the solid kmers. */
             BankConverterAlgorithm algo (storage);
             graph.getInfo().add (1, algo.getInfo());
         }
+#endif
 
         if (graph.getState() & Graph::STATE_SORTING_COUNT_DONE)
         {
@@ -347,10 +352,12 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                         Bank conversion                  */
         /************************************************************/
+#if 0
         /** We create the binary bank. */
         BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
         executeAlgorithm (converter, *solidStorage, props, graph._info);
         graph.setState(Graph::STATE_BANKCONVERTER_DONE);
+#endif
 
         /************************************************************/
         /*                         Sorting count                    */
@@ -358,7 +365,7 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We create a DSK instance and execute it. */
         SortingCountAlgorithm<span> sortingCount (
             solidStorage,
-            converter.getResult(),
+            bank,
             kmerSize,
             nks,
             props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
@@ -371,9 +378,10 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We configure the variant. */
         data.setSolid (sortingCount.getSolidCounts());
 
-        /** We check that we got solid kmers. */
-        if (sortingCount.getSolidCounts()->getNbItems() == 0)  {  throw "NO SOLID KMERS FOUND...";  }
+        DEBUG ((cout << "builGraph SortingCount found " << sortingCount.getSolidCounts()->getNbItems() << " solid kmers\n"));
 
+        /** We check that we got solid kmers. */
+        if (sortingCount.getSolidCounts()->getNbItems() == 0)  {  return;  /*throw "NO SOLID KMERS FOUND...";*/  }
 
         /************************************************************/
         /*                         MPHF                             */
@@ -477,11 +485,13 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                        Clean up                          */
         /************************************************************/
+#if 0
         if (graph._bankConvertKind == BANK_CONVERT_TMP)
         {
             /** We can get rid of the binary bank. */
-            System::file().remove (binaryBankUri);
+            converter.getResult()->remove();
         }
+#endif
     }
 
     /** Algorithm configuration. */
@@ -606,7 +616,7 @@ Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
+      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -724,7 +734,7 @@ Graph::Graph ()
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
       _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT),
-      _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_EMPHF)
+      _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
 }
 
@@ -1174,7 +1184,7 @@ struct getItemsCouple_visitor : public boost::static_visitor<Graph::Vector<pair<
 
         if (direction & DIR_INCOMING)
         {
-            throw ExceptionNotImplemented();
+            throw system::ExceptionNotImplemented();
         }
 
         /** We update the size of the container according to the number of found items. */

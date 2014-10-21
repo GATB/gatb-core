@@ -175,7 +175,6 @@ public:
     /********************************************************************************/
     inline static u_int64_t hash64 (u_int64_t key, u_int64_t seed)
     {
-		printf("call hash64 \n");
         u_int64_t hash = seed;
         hash ^= (hash <<  7) ^  key * (hash >> 3) ^ (~((hash << 11) + (key ^ (hash >> 5))));
         hash = (~hash) + (hash << 21); // hash = (hash << 21) - hash - 1;
@@ -192,8 +191,6 @@ public:
     /********************************************************************************/
     inline static u_int64_t oahash64 (u_int64_t elem)
     {
-		printf("call oahash64 \n");
-
         u_int64_t code = elem;
         code = code ^ (code >> 14); //supp
         code = (~code) + (code << 18);

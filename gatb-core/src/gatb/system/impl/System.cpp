@@ -20,18 +20,14 @@
 #include <gatb/system/impl/System.hpp>
 
 /********************************************************************************/
-namespace gatb { namespace core { namespace system {
-	
-	
-
-
-
-	
-	namespace impl {
+namespace gatb { namespace core { namespace system { namespace impl {
 /********************************************************************************/
-
 	
 std::list<ThreadGroup*> ThreadGroup::_groups;
+
+static pthread_mutex_t groupsMutex;
+#define LOCK()      pthread_mutex_lock   (&groupsMutex);
+#define UNLOCK()    pthread_mutex_unlock (&groupsMutex);
 
 /*********************************************************************
 ** METHOD  :
@@ -112,8 +108,13 @@ void ThreadGroup::start ()
 *********************************************************************/
 IThreadGroup* ThreadGroup::create ()
 {
+    LOCK();
+
     ThreadGroup* tg = new ThreadGroup;
     _groups.push_back(tg);
+
+    UNLOCK();
+
     return tg;
 }
 
@@ -127,6 +128,8 @@ IThreadGroup* ThreadGroup::create ()
 *********************************************************************/
 void ThreadGroup::destroy (IThreadGroup* thr)
 {
+    LOCK();
+
     /** We look for the provided thread group. */
     for (std::list<ThreadGroup*>::iterator it = _groups.begin(); it != _groups.end(); it++)
     {
@@ -137,6 +140,8 @@ void ThreadGroup::destroy (IThreadGroup* thr)
             break;
         }
     }
+
+    UNLOCK();
 }
 
 /*********************************************************************

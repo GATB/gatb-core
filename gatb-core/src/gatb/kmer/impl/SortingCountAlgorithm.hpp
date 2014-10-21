@@ -39,6 +39,7 @@
 #include <string>
 
 #include <gatb/kmer/impl/PartitionsCommand.hpp>
+#include <gatb/kmer/impl/LinearCounter.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -71,8 +72,6 @@ template<size_t span=KMER_DEFAULT_SPAN>
 class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
-
-
 	
 	/** We define here a 'maximizer' in the mmers of a specific kmer. */
 	struct  CustomMinimizer
@@ -80,92 +79,64 @@ public:
 		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
 		{
 			optimum = model.getKmerMax();
-
 		}
 		
 		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
 		{
-		//	typename Kmer<span>::Type curr = current;
-		//	typename Kmer<span>::Type opt  = optimum;
-			
-
 			u_int64_t a = current.getVal() ;
 			u_int64_t b = optimum.getVal() ;
-			
-			
+
 			// test 3 consecutive identical nt
+			//      u_int64_t a1 = a >>2 ;
+			//      u_int64_t a2 = a >>4 ;
+			//      a1 = (~( a ^ a1)) &  (~ (a ^ a2)) ;
+			//      a1 =  ((a1 >>1) & a1) & _mask_0101 & _mmask_m1 ;
+			//      if(a1 != 0) return false;
 
-			
-//			u_int64_t a1 = a >>2 ;
-//			u_int64_t a2 = a >>4 ;
-//			
-//			a1 = (~( a ^ a1)) &  (~ (a ^ a2)) ;
-//			a1 =  ((a1 >>1) & a1) & _mask_0101 & _mmask_m1 ;
-//			
-//			if(a1 != 0) return false;
-//			
-			//test 2 consecutive aa anywhere except beginning
-			
-
-			//u_int64_t a1 =  ( ~a )  & (  ~a >>2 );
+			// test 2 consecutive aa anywhere except beginning
+			//      u_int64_t a1 =  ( ~a )  & (  ~a >>2 );
 			
 			// test si AA consecutif sauf au debut
 			u_int64_t a1 =   ~(( a )   | (  a >>2 ));
-			a1 =((a1 >>1) & a1) & _mask_ma1 ;
-			
-
-			if(a1 != 0) return false;
-
-			
+			a1 = ((a1 >>1) & a1) & _mask_ma1 ;
+			if (a1 != 0) return false;
 			return (a<b);
-			//return (current<optimum);
-			
+
+			// return (current<optimum);
 		}
 		
-		int _mm;
-		u_int64_t  _mmask_m1  ;
-		u_int64_t  _mask_0101 ;
-		u_int64_t  _mask_ma1 ;
-		
-		
-		CustomMinimizer()
-		{
-		}
-		
+		int        _mm;
+		u_int64_t  _mmask_m1;
+		u_int64_t  _mask_0101;
+		u_int64_t  _mask_ma1;
 		
 		CustomMinimizer(int minim_size)
 		{
-			_mm = minim_size;
-			
+			_mm        = minim_size;
 			_mmask_m1  = (1 << ((_mm-2)*2)) -1 ;
 			_mask_0101 = 0x5555555555555555  ;
 			_mask_ma1  = _mask_0101 & _mmask_m1;
 		}
 		
-		
 		CustomMinimizer(const CustomMinimizer& cm)
 		{
-			_mm = cm._mm;
+			_mm        = cm._mm;
 			_mmask_m1  = cm._mmask_m1;
 			_mask_0101 = cm._mask_0101;
 			_mask_ma1  = cm._mask_ma1;
-
 		}
-		
 	};
-	
-
 	
     /** Shortcuts. */
 		
-	typedef typename Kmer<span>::ModelCanonical             ModelCanonical;
-	typedef typename Kmer<span>::ModelDirect             ModelDirect;
+	typedef typename Kmer<span>::ModelCanonical  ModelCanonical;
+	typedef typename Kmer<span>::ModelDirect     ModelDirect;
 	//,CustomMinimizer
 	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical> 	Model; // ,CustomMinimizer
-	//typedef typename Kmer<span>::ModelCanonical             Model;
+	//typedef typename Kmer<span>::ModelCanonical  Model;
 
-    typedef typename kmer::impl::Kmer<span>::Type           Type;
-    typedef typename kmer::impl::Kmer<span>::Count          Count;
+    typedef typename kmer::impl::Kmer<span>::Type  Type;
+    typedef typename kmer::impl::Kmer<span>::Count Count;
 
     /** Constructor.*/
     SortingCountAlgorithm ();
@@ -220,15 +191,15 @@ private:
      * \param[in] pass  : current pass whose value is used for choosing the partition file
      * \param[in] itSeq : sequences iterator whose sequence are cut into kmers to be split.
      */
-    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq,PartiInfo<5> * pInfo);
+    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq, PartiInfo<5>& pInfo);
 
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
      */
-    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>*  solidKmers,PartiInfo<5> * pInfo);
+    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>* solidKmers, PartiInfo<5>& pInfo);
 
     /** */
-    std::vector <size_t> getNbCoresList ();
+    std::vector <size_t> getNbCoresList (PartiInfo<5>& pInfo);
 
     /** */
     tools::storage::impl::Storage* _storage;
@@ -294,15 +265,15 @@ private:
     void setPartitions (tools::storage::impl::Partition<Type>* partitions)  {  SP_SETATTR(partitions);  }
 
     u_int64_t _totalKmerNb;
-	
-	PartiInfo<5> * _pInfo; //used to store info per partition (nb of kxmers, nb of kmers )
 
     struct Count2TypeAdaptor  {  Type& operator() (Count& c)  { return c.value; }  };
+
+    tools::misc::impl::TimeInfo _fillTimeInfo;
+
+    u_int64_t _estimatedDistinctKmerNb;
+    bool _flagEstimateNbDistinctKmers; // whether we estimate the number of distinct kmers beforehand
+	
 };
-
-	
-	
-
 	
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -17,74 +17,70 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/** \file BankConverterAlgorithm.hpp
- *  \date 01/03/2013
- *  \author edrezen
- *  \brief Bank conversion from one IBank to another IBank
+/** \file LinearCounter.hpp
+ *  \brief Linear counter for kmers using a bloom
  */
 
-#ifndef _BANK_CONVERTER_ALGORITHM_HPP_
-#define _BANK_CONVERTER_ALGORITHM_HPP_
+#ifndef _GATB_CORE_KMER_IMPL_BLOOM_BUILDER_HPP_
+#define _GATB_CORE_KMER_IMPL_BLOOM_BUILDER_HPP_
 
 /********************************************************************************/
 
-#include <gatb/tools/misc/impl/Algorithm.hpp>
-#include <gatb/bank/api/IBank.hpp>
-#include <gatb/tools/storage/impl/Storage.hpp>
-#include <gatb/tools/misc/api/Enums.hpp>
+#include <gatb/kmer/impl/Model.hpp>
+
+#include <gatb/tools/collections/api/Iterable.hpp>
+#include <gatb/tools/collections/impl/Bloom.hpp>
+
+#include <gatb/tools/designpattern/api/Iterator.hpp>
+#include <gatb/tools/designpattern/impl/Command.hpp>
+
+#include <gatb/tools/misc/api/IProperty.hpp>
+#include <gatb/tools/misc/impl/TimeInfo.hpp>
+
+#include <gatb/tools/math/NativeInt8.hpp>
 
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
-namespace bank      {
+namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-class BankConverterAlgorithm : public gatb::core::tools::misc::impl::Algorithm
-{
-public:
+    /** \brief 
+     *
+     * This class is a linear counter
+     */
+    template<size_t span=KMER_DEFAULT_SPAN> class LinearCounter 
+    {
+        public:
 
-    /** */
-    BankConverterAlgorithm (IBank* bank, size_t kmerSize, const std::string& outputUri);
+            /** Shortcuts. */
+            typedef typename Kmer<span>::Type  Type;
+            typedef typename Kmer<span>::Count Count;
+            typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
 
-    /** */
-    BankConverterAlgorithm (tools::storage::impl::Storage& storage);
+            /** */
+            LinearCounter (
+                    u_int64_t   bloom_size
+                    );
 
-    /** */
-    ~BankConverterAlgorithm ();
+            void add(const Type& kmer);
+            long count();
+            bool is_accurate();
 
-    /** */
-    void execute ();
+            ~LinearCounter();
 
-    /** */
-    IBank* getResult ()  { return _bankOutput; }
 
-private:
+        private:
 
-    tools::misc::BankConvertKind _kind;
+            gatb::core::tools::collections::impl::IBloom<Type>* bloom;
 
-    IBank*      _bankInput;
-    void setBankInput (IBank* bankInput)  { SP_SETATTR(bankInput); }
+            u_int64_t _bloomSize;
 
-    IBank*      _bankOutput;
-    void setBankOutput (IBank* bankOutput)  { SP_SETATTR(bankOutput); }
-
-    std::string _outputUri;
-
-    bank::IBank* createBank (
-        tools::dp::Iterator<bank::Sequence>* inputSequences,
-        size_t nbInputSequences,
-        const std::string& outputName,
-        u_int64_t& nbSeq,
-        u_int64_t& sizeSeq
-    );
-
-    size_t _kmerSize;
-};
+    };
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _BANK_CONVERTER_ALGORITHM_HPP_ */
-
+#endif /* _GATB_CORE_KMER_IMPL_LINEARCOUNTER_HPP_ */

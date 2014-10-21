@@ -192,8 +192,6 @@ inline NativeInt128 revcomp (const NativeInt128& in, size_t sizeKmer)
 /********************************************************************************/
 inline u_int64_t hash1 (const NativeInt128& item, u_int64_t seed=0)
 {
-	printf("hash1 call Native128 \n");
-
     const __uint128_t& elem = item.value[0];
 
     return NativeInt64::hash64 ((u_int64_t)(elem>>64),seed) ^
@@ -208,8 +206,6 @@ inline u_int64_t oahash (const NativeInt128& item)
     return NativeInt64::oahash64 ((u_int64_t)(elem>>64)) ^
            NativeInt64::oahash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)));
 }
-
-
 	
 /********************************************************************************/
 inline u_int64_t simplehash16 (const NativeInt128& key, int  shift)

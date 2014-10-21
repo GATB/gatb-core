@@ -49,7 +49,8 @@ int main (int argc, char* argv[])
         bool display = argc>=5 ? atoi(argv[4]) : false;
 
         // We declare a Bank instance defined by a list of filenames
-        BankFasta bank (argv[3]);
+        IBank* bank = BankRegistery::singleton().createBank (argv[3]);
+        LOCAL (bank);
 
         // We declare a kmer model and a minimizer model
         Model model (kmerSize, mmerSize);
@@ -62,7 +63,7 @@ int main (int argc, char* argv[])
         size_t nbInvalid = 0;
 
         // We loop over sequences.
-        bank.iterate ([&] (Sequence& seq)
+        bank->iterate ([&] (Sequence& seq)
         {
             // We iterate the kmers (and minimizers) of the current sequence.
             model.iterate (seq.getData(), [&] (const Model::Kmer& kmer, size_t idx)

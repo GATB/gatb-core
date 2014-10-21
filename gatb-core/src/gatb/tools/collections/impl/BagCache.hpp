@@ -124,10 +124,6 @@ protected:
         _idx = 0;
     }
 };
-
-    
-
-
     
 /********************************************************************************/
 
@@ -163,17 +159,13 @@ public:
     /**  \copydoc Bag::insert */
     void insert (const Item& item)
     {
-        
         if (this->_idx+1 > this->_nbMax)
         {
             if (this->_synchro)  {  this->_synchro->lock();    }
             flushLocalCache ();
             if (this->_synchro)  {  this->_synchro->unlock();  }
         }
-        
         this->_items[this->_idx++] = item;
-        
-
     }
     
     /**  \copydoc Bag::flush */
@@ -186,15 +178,11 @@ public:
 
         flushCache ();
         if (this->_synchro)  {  this->_synchro->unlock();  }
-        
 
         if (this->_outsynchro)  {  this->_outsynchro->lock();    }
         this->_ref->flush();
         if (this->_outsynchro)  {  this->_outsynchro->unlock();  }
-        
-        
     }
-    
     
 private:
     Item * _sharedBuffer; // shared buffer for sorting, allocated from outside
@@ -202,9 +190,7 @@ private:
     void setOutSynchro (system::ISynchronizer* outsynchro)  { SP_SETATTR(outsynchro); }
     size_t _sharedCacheSize;
     size_t * _idxShared;
-    
 
-    
     void flushLocalCache () //flush local cache to shared buffer
     {
       //  printf("flush local cache to %p  from %p  %zu \n",_sharedBuffer + *_idxShared,this->_items,this->_idx);
@@ -233,34 +219,25 @@ private:
 
         if (*_idxShared > 0)
         {
-        //first duplicate into temp vector
+            //first duplicate into temp vector
             std::vector<Item> tempArray(_sharedBuffer, _sharedBuffer + *_idxShared);
-        *_idxShared = 0;
-        //here shared buffer is effectively flushed to temp array, safe to unlock
-        
-        if (this->_synchro)  {  this->_synchro->unlock();    }
-        std::sort (tempArray.begin(), tempArray.end());
-            
-        //flush to file using outsynchro
-        if (this->_outsynchro)  {  this->_outsynchro->lock();    }
-        this->_ref->insert (tempArray, tempArray.size());
-        if (this->_outsynchro)  {  this->_outsynchro->unlock();  }
-            
-        if (this->_synchro)  {  this->_synchro->lock();    }
-            
-        }
-        
-        
-        
-//        if (*_idxShared > 0)  { this->_ref->insert (_sharedBuffer, *_idxShared);  }
-//        *_idxShared = 0;
-        
-    }
-    
-};
+            *_idxShared = 0;
+            //here shared buffer is effectively flushed to temp array, safe to unlock
 
-    
-    
+            if (this->_synchro)  {  this->_synchro->unlock();    }
+            std::sort (tempArray.begin(), tempArray.end());
+
+            //flush to file using outsynchro
+            if (this->_outsynchro)  {  this->_outsynchro->lock();    }
+            this->_ref->insert (tempArray, tempArray.size());
+            if (this->_outsynchro)  {  this->_outsynchro->unlock();  }
+
+            if (this->_synchro)  {  this->_synchro->lock();    }
+        }
+        //  if (*_idxShared > 0)  { this->_ref->insert (_sharedBuffer, *_idxShared);  }
+        //  *_idxShared = 0;
+    }
+};
     
 /********************************************************************************/
 

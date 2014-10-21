@@ -19,8 +19,29 @@
 
 #include <gatb/kmer/impl/PartitionsCommand.hpp>
 
+using namespace std;
+
+using namespace gatb::core::system;
+using namespace gatb::core::system::impl;
+
+using namespace gatb::core::tools::collections;
+using namespace gatb::core::tools::collections::impl;
+
+using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::misc::impl;
+
+using namespace gatb::core::tools::dp;
+using namespace gatb::core::tools::dp::impl;
+
+using namespace gatb::core::kmer::impl;
+
+#define DEBUG(a)  // printf a
+
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
+/********************************************************************************/
+
+#define IX(x,rad) ((rad)+(256)*(x))
 
 /*********************************************************************
 ** METHOD  :
@@ -32,76 +53,124 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 *********************************************************************/
 template<size_t span>
 PartitionsCommand<span>:: PartitionsCommand (
-        Bag<Count>* solidKmers,
-        Iterable<Type>&   partition,
-        IHistogram*    histogram,
-        ISynchronizer* synchro,
-        u_int64_t&     totalKmerNbRef,
-        size_t         abundance,
-        IteratorListener* progress,
-		PartiInfo<5> * pInfo,
-		int parti,
-		size_t      nbCores,
-		size_t      kmerSize,
-		MemAllocator * pool
+    Bag<Count>*         solidKmers,
+    Iterable<Type>&     partition,
+    IHistogram*         histogram,
+    ISynchronizer*      synchro,
+    u_int64_t&          totalKmerNbRef,
+    size_t              abundance,
+    IteratorListener*   progress,
+    TimeInfo&           timeInfo,
+    PartiInfo<5>&       pInfo,
+    int                 parti,
+    size_t              nbCores,
+    size_t              kmerSize,
+    MemAllocator&       pool
+)
+    : _abundance(abundance),
+      _solidKmers(solidKmers, 10*1000, synchro),
+      _partition(partition),
+      _histogram(histogram),
+      _progress(progress, synchro),
+      _globalTimeInfo(timeInfo),
+      _totalKmerNb(0),
+      _totalKmerNbRef(totalKmerNbRef),
+      _pInfo(pInfo),
+      _parti_num(parti),
+      _nbCores(nbCores),
+      _kmerSize(kmerSize),
+      _pool(pool)
+{
+}
 
-
-    )
-        : _abundance(abundance),
-          _solidKmers(solidKmers, 10*1000, synchro),
-          _partition(partition),
-          _histogram(histogram),
-          _progress(progress, synchro),
-          _totalKmerNb(0),
-          _totalKmerNbRef(totalKmerNbRef),
-		  _pInfo(pInfo),
-		  _parti_num(parti),
-		  _nbCores(nbCores),
-	      _kmerSize(kmerSize),
-		  _pool(pool) {};
-
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<size_t span>
-PartitionsCommand<span>::~PartitionsCommand()  {
-        __sync_fetch_and_add (&_totalKmerNbRef, _totalKmerNb);
-    };
+PartitionsCommand<span>::~PartitionsCommand()
+{
+    __sync_fetch_and_add (&_totalKmerNbRef, _totalKmerNb);
 
+    _globalTimeInfo += _timeInfo;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<size_t span>
 void PartitionsCommand<span>::insert (const Count& kmer)
-    {
-        u_int32_t max_couv  = 2147483646;
+{
+    u_int32_t max_couv  = 2147483646;
 
-        _totalKmerNb++;
+    _totalKmerNb++;
 
-        /** We should update the abundance histogram*/
-        _histogram.inc (kmer.abundance);
+    /** We should update the abundance histogram*/
+    _histogram.inc (kmer.abundance);
 
-        /** We check that the current abundance is in the correct range. */
-        if (kmer.abundance >= this->_abundance && kmer.abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
-    };
+    /** We check that the current abundance is in the correct range. */
+    if (kmer.abundance >= this->_abundance && kmer.abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
+}
 
-/********************************************************************************/
+/*********************************************************************
+                #     #     #      #####   #     #
+                #     #    # #    #     #  #     #
+                #     #   #   #   #        #     #
+                #######  #     #   #####   #######
+                #     #  #######        #  #     #
+                #     #  #     #  #     #  #     #
+                #     #  #     #   #####   #     #
+*********************************************************************/
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 /** in this scheme we count k-mers inside a partition by a hash table */
 template<size_t span>
 PartitionsByHashCommand<span>:: PartitionsByHashCommand (
-        Bag<Count>*      solidKmers,
-        Iterable<Type>&  partition,
-        IHistogram*     histogram,
-        ISynchronizer*  synchro,
-        u_int64_t&      totalKmerNbRef,
-        size_t          abundance,
-        IteratorListener* progress,
-        u_int64_t       hashMemory,
-		PartiInfo<5> * pInfo,
-		int parti,
-		size_t      nbCores,
-		size_t      kmerSize,
-	    MemAllocator * pool
-														
+    Bag<Count>*             solidKmers,
+    Iterable<Type>&         partition,
+    IHistogram*             histogram,
+    ISynchronizer*          synchro,
+    u_int64_t&              totalKmerNbRef,
+    size_t                  abundance,
+    IteratorListener*       progress,
+    TimeInfo&               timeInfo,
+    PartiInfo<5>&           pInfo,
+    int                     parti,
+    size_t                  nbCores,
+    size_t                  kmerSize,
+    MemAllocator&           pool,
+    u_int64_t               hashMemory
+)
+    : PartitionsCommand<span> (
+        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool),
+        _hashMemory(hashMemory)
+{
+}
 
-														 
-    )
-        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize,pool), _hashMemory(hashMemory)  {};
-
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<size_t span>
 void PartitionsByHashCommand<span>:: execute ()
 {
@@ -113,18 +182,12 @@ void PartitionsByHashCommand<span>:: execute ()
 	/** We directly fill the vector from the current partition file. */
 	Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
 
-	//without decompactage, would be :
-//        for (it->first(); !it->isDone(); it->next())
-//        {
-//            hash.increment (it->item());
-//
-//            /** Some display. */
-//            if (++count == 100000)  {  this->_progress.inc (count);  count=0; }
-//        }
+	// If the partition holds kmers (and not superkmers), it would be :
+	//      for (it->first(); !it->isDone(); it->next())   {  hash.increment (it->item());  }
 
-	printf("--------- fillsolid parti num %i  by oahash -------  mem %llu  MB\n",this->_parti_num,_hashMemory/MBYTE);
-	
-	
+	DEBUG (("PartitionsByHashCommand::execute:  fillsolid parti num %i  by oahash --- mem %llu  MB\n",
+        this->_parti_num,_hashMemory/MBYTE
+    ));
 	
 	//with decompactage
 	//superk
@@ -132,30 +195,33 @@ void PartitionsByHashCommand<span>:: execute ()
 	Type compactedK;
 	int ks = this->_kmerSize;
 	Type un = 1;
-	size_t _shift_val = un.getSize() -8;
+	size_t _shift_val = Type::getSize() -8;
 	Type kmerMask = (un << (ks*2)) - un;
 	size_t shift = 2*(ks-1);
 	
-	for (it->first(); !it->isDone(); it->next()) {
+	/** We iterate the superkmers from the table. */
+	for (it->first(); !it->isDone(); it->next())
+	{
+	    /** A superkmer is encoded with two successive Type objects, so we read both of them. */
 		Type superk = it->item();
 		it->next();
 		Type seedk = it->item();
-		
 		
 		compactedK =  superk;
 		nbK = (compactedK >> _shift_val).getVal() & 255; // 8 bits poids fort = cpt //todo for large k values
 		rem = nbK;
 		
-
 		Type temp = seedk;
 		Type rev_temp = revcomp(temp,ks);
 		Type newnt ;
 		Type mink;
 		
-		for (int ii=0; ii< nbK; ii++,rem--) {
+		/** We loop over each kmer of the current superkmer. */
+		for (int ii=0; ii<nbK; ii++,rem--)
+		{
 			mink = std::min (rev_temp, temp);
 			
-			//insert elem here
+			/** We insert the kmer into the hash. */
 			hash.increment (mink);
 							
 			if(rem < 2) break;
@@ -165,15 +231,8 @@ void PartitionsByHashCommand<span>:: execute ()
 			newnt =  Type(comp_NT[newnt.getVal()]) ;
 			rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
 		}
-		
-		
-		
-		
 	}
-	
-	
-	
-	
+
 	/** We loop over the solid kmers map. */
 	Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator();
 	LOCAL (itKmerAbundance);
@@ -184,16 +243,23 @@ void PartitionsByHashCommand<span>:: execute ()
 	   this->insert ((Count&) itKmerAbundance->item());
 	}
 	
-	this->_progress.inc (this->_pInfo->getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
+	this->_progress.inc (this->_pInfo.getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
 };
 
-	
+/*********************************************************************
+        #     #  #######   #####   #######  #######  ######
+        #     #  #        #     #     #     #     #  #     #
+        #     #  #        #           #     #     #  #     #
+        #     #  #####    #           #     #     #  ######
+         #   #   #        #           #     #     #  #   #
+          # #    #        #     #     #     #     #  #    #
+           #     #######   #####      #     #######  #     #
+*********************************************************************/
 
 template<size_t span>
 class SuperKReader
 {
 	typedef typename Kmer<span>::Type  Type;
-
 public:
 
 	void operator() (Type& elem)
@@ -202,12 +268,11 @@ public:
 		if(_first)
 		{
 			_superk = elem;
-			
 			_first = false;
 		}
-		else{
+		else
+		{
 			_seedk = elem;
-
 			
 			Type compactedK;
 			
@@ -215,13 +280,11 @@ public:
 			u_int8_t nbK = (compactedK >> _shift_val).getVal()  & 255; // 8 bits poids fort = cpt
 			u_int8_t rem = nbK;
 			
-			
 			Type temp = _seedk;
 			Type rev_temp = revcomp(temp,_kmerSize);
 			Type newnt ;
 			Type mink, prev_mink;
 			uint64_t idx;
-			
 			
 			bool prev_which =  (temp < rev_temp );
 			int kx_size = -1; //next loop start at ii=0, first kmer will put it at 0
@@ -232,15 +295,12 @@ public:
 			
 			u_int8_t rid;
 
-			for (int ii=0; ii< nbK; ii++,rem--) {
-
+			for (int ii=0; ii< nbK; ii++,rem--)
+			{
 				bool which =  (temp < rev_temp );
 				mink = which ? temp : rev_temp;
 				
-			//	printf(" loop %i  which %i  kx_size %i \n",ii,which,kx_size);
-
-				
-				if(which != prev_which || kx_size >= _kx) // kxmer_size = 1
+				if (which != prev_which || kx_size >= _kx) // kxmer_size = 1
 				{
 					//output kxmer size kx_size,radix_kxmer
 					//kx mer is composed of superKp[ii-1] superKp[ii-2] .. superKp[ii-n] with nb elems  n  == kxmer_size +1  (un seul kmer ==k+0)
@@ -262,15 +322,12 @@ public:
 					//idx = _r_idx[IX(kx_size,rid)]++;
 					idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
 					
-					
-			
 					_radix_kmers[IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2); //[kx_size][rid]
 					
 					radix_kxmer_forward =  (mink & _mask_radix) >> _shift_radix;
 					kx_size =0;
 					
 					if(!which) first_revk = rev_temp;
-
 				}
 				else
 				{
@@ -280,8 +337,6 @@ public:
 				prev_which = which ;
 				prev_mink = mink;
 				
-				
-				
 				if(rem < 2) break; //no more kmers in this superkmer, the last one has just been eaten
 				newnt =  ( _superk >> ( 2*(rem-2)) ) & 3 ;
 				
@@ -289,8 +344,6 @@ public:
 				newnt =  Type(comp_NT[newnt.getVal()]) ;
 				rev_temp = ((rev_temp >> 2 ) |  (newnt << _shift) ) & _kmerMask;
 			}
-			
-			
 			
 			//record last kxmer prev_mink et monk ?
 			if(prev_which)
@@ -309,460 +362,514 @@ public:
 			rid = radix_kxmer.getVal();
 			//idx = _r_idx[IX(kx_size,rid)]++;
 			idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
-			
 					
 			_radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2); // [kx_size][rid]
-			
-			
-			
 
-			
 			_first = true;
-
 		}
-		
 	}
 	
 	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type ** radix_kmers )
-				  //std::vector <vector < vector<Type> > > & radix_kmers)
 	: _first(true) ,_kmerSize (kmerSize), _r_idx (r_idx), _radix_kmers(radix_kmers), _kx(4)
-	//model(model), pass(currentPass), nbPass(nbPasses), nbPartitions(partition->size()), nbWrittenKmers(0), _repart_table (repart_table),_mm(minim_size),
 	 {
-		 
 		 Type un = 1;
-		 _kmerMask = (un << (kmerSize*2)) - un;
+		 _kmerMask    = (un << (kmerSize*2)) - un;
 		 _mask_radix  = Type((int64_t) 255);
-		 _mask_radix =  _mask_radix << ((_kmerSize - 4)*2);
-		 _shift = 2*(kmerSize-1);
-		 _shift_val = un.getSize() -8;
+		 _mask_radix  = _mask_radix << ((_kmerSize - 4)*2);
+		 _shift       = 2*(kmerSize-1);
+		 _shift_val   = un.getSize() -8;
 		 _shift_radix = ((kmerSize - 4)*2); // radix is 4 nt long
 	}
-
 	
-	private :
+private :
 	size_t _kmerSize;
 	size_t _shift ;
 	size_t _shift_val ;
 	size_t _shift_radix ;
-	int _kx;
-	//std::vector < vector <vector<Type> > > & _radix_kmers;
-	Type ** _radix_kmers;
-
-	uint64_t * _r_idx ;
+	int    _kx;
+	Type** _radix_kmers;
+	uint64_t* _r_idx ;
 	bool _first;
 	Type _superk, _seedk;
-	
-	
 	Type _radix, _mask_radix ;
-	
-	
 	Type _kmerMask;
 };
-	
-	
-//#define TIMP
-/********************************************************************************/
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 /** in this scheme we count k-mers in a partition by sorting a vector*/
 template<size_t span>
 PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
-        Bag<Count>*  solidKmers,
-        Iterable<Type>&    partition,
-        IHistogram*     histogram,
-        ISynchronizer*  synchro,
-        u_int64_t&      totalKmerNbRef,
-        size_t          abundance,
-        IteratorListener* progress,
-		PartiInfo<5> * pInfo,
-		int parti,
-		size_t      nbCores,
-		size_t      kmerSize,
-	    MemAllocator * pool
-    )
-        : PartitionsCommand<span> (solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress,pInfo,parti,nbCores,kmerSize,pool)
-          {};
+    Bag<Count>*         solidKmers,
+    Iterable<Type>&     partition,
+    IHistogram*         histogram,
+    ISynchronizer*      synchro,
+    u_int64_t&          totalKmerNbRef,
+    size_t              abundance,
+    IteratorListener*   progress,
+    TimeInfo&           timeInfo,
+    PartiInfo<5>&       pInfo,
+    int                 parti,
+    size_t              nbCores,
+    size_t              kmerSize,
+    MemAllocator&       pool
+)
+    : PartitionsCommand<span> (
+        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool),
+        _radix_kmers (0), _radix_sizes(0), _r_idx(0)
+{
+    _dispatcher = new Dispatcher (this->_nbCores);
+}
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 template<size_t span>
-void PartitionsByVectorCommand<span>:: execute ()
+PartitionsByVectorCommand<span>:: ~PartitionsByVectorCommand ()
+{
+    if (_dispatcher)  { delete _dispatcher; }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+void PartitionsByVectorCommand<span>::execute ()
+{
+    /** We check that we got something. */
+    if (this->_partition.getNbItems() == 0)  {  return;  }
+
+    /** We configure tables. */
+    _radix_kmers = (Type**)    malloc (256*(KX+1)*sizeof(Type*)); //make the first dims static ?  5*256
+    _radix_sizes = (uint64_t*) malloc (256*(KX+1)*sizeof(uint64_t));
+    _r_idx       = (uint64_t*) calloc (256*(KX+1),sizeof(uint64_t));
+
+    /** We have 3 phases here: read, sort and dump. */
+    executeRead ();
+    executeSort ();
+    executeDump ();
+
+    /** We cleanup tables. */
+    free (_radix_sizes ) ;
+    free (_radix_kmers);
+    free (_r_idx);
+
+    /** We update the progress bar. */
+    this->_progress.inc (this->_pInfo.getNbKmer(this->_parti_num) );
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+void PartitionsByVectorCommand<span>::executeRead ()
+{
+    TIME_INFO (this->_timeInfo, "1.read");
+
+    uint64_t sum_nbxmer =0;
+
+    for (int xx=0; xx< (KX+1); xx++)
     {
-		size_t _kx = 4 ;
-		//this->_nbCores = 4;
-		Dispatcher* parallel_dispatcher = 	new Dispatcher (this->_nbCores);
-		//SerialDispatcher* parallel_dispatcher = 	new SerialDispatcher ();
+        for (int ii=0; ii< 256; ii++)
+        {
+            //use memory pool here to avoid memory fragmentation
+            _radix_kmers [IX(xx,ii)] = (Type *) this->_pool.pool_malloc (this->_pInfo.getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
 
-		#ifdef TIMP
-		 TimeInfo t;
-		t.start ("lecture");
-#endif
-        /** We get the length of the current partition file. */
-        size_t partitionLen = this->_partition.getNbItems();
+            _radix_sizes [IX(xx,ii)] = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
 
-        /** We check that we got something. */
-        if (partitionLen == 0)  {  return;  /*throw Exception ("DSK: no solid kmers found");*/  }
+            sum_nbxmer +=  this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
+        }
+    }
 
-		
-		uint64_t _sum_nbxmer =0;
-		uint64_t * r_idx  = (uint64_t *) calloc((_kx+1)*256,sizeof(uint64_t));
-	//	uint64_t   r_idx [256*5]; //256*(kx+1)
-		
-		//= (uint64_t *) calloc((_kx+1)*256,sizeof(uint64_t));
-		memset(r_idx, 0 , sizeof(uint64_t)*(_kx+1)*256);
-		
-		
-		
-//		radix_kmers.resize(_kx+1); // sapce for k0mer ... kxmer
-//		for (int xx=0; xx< (_kx+1); xx ++)
-//			radix_kmers[xx].resize(256);
+    DEBUG (("PartitionsByVectorCommand<span>::executeRead:  fillsolid parti num %i  by vector  nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores \n",
+        this->_parti_num, sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),
+        (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores
+    ));
 
+    /** We iterate the superkmers. */
+    _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers), 10000); //must be even , reading by pairs
+}
 
-//		for (int xx=0; xx< (_kx+1); xx ++)
-//		for(int ii=0;ii< 256; ii++)
-//		{
-//			if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
-//			  printf("should resize  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
-//			radix_kmers[xx][ii].resize(this->_pInfo->getNbKmer(this->_parti_num,ii,xx)); //hmm rien ne garantit que bonne taille capacity
-//			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
-//			
-//			printf("capacity alloced  xmer %i rad %i  :  %lu \n",xx,ii,radix_kmers[xx][ii].capacity());
-//
-//		}
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+class SortCommand : public gatb::core::tools::dp::ICommand, public system::SmartPointer
+{
+public:
+    typedef typename Kmer<span>::Type  Type;
 
-		_radix_kmers = (Type **) malloc(256*(_kx+1)*sizeof(Type *)); //make the first dims static ?  5*256
-		
-		uint64_t * radix_sizes = (uint64_t*) malloc(256*(_kx+1)*sizeof(uint64_t));
+    /** Constructor. */
+    SortCommand (Type** kmervec, int begin, int end, uint64_t* radix_sizes)
+        : _radix_kmers(kmervec),_deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
 
-		for (int xx=0; xx< (_kx+1); xx ++)
-		for(int ii=0;ii< 256; ii++)
-		{
-			//if( this->_pInfo->getNbKmer(this->_parti_num,ii,xx) !=0 )
-			//	printf("should alloc  xmer %i rad %i  :  %llu \n",xx,ii, this->_pInfo->getNbKmer(this->_parti_num,ii,xx));
-			
-			//_radix_kmers [IX(xx,ii)] = (Type *) malloc(this->_pInfo->getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
-			
-			//use memory pool here to avoid memroy fragmentation
-			_radix_kmers [IX(xx,ii)] = (Type *) this->_pool->pool_malloc(this->_pInfo->getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
-			
-			radix_sizes[IX(xx,ii)] = this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
-			_sum_nbxmer +=  this->_pInfo->getNbKmer(this->_parti_num,ii,xx);
-		}
-		
-		
-	//	printf("--------- fillsolid parti num %i  by vector  nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores -------\n",this->_parti_num,
-	//		   _sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),    (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores );
-		
-        /** We directly fill the vector from the current partition file. */
-        Iterator<Type>* it = this->_partition.iterator();  LOCAL (it);
-		
-	
-		//printf("decompacting the super kmers  \n");
+    /** */
+    void execute ()
+    {
+        for (int ii=_deb; ii <=_fin; ii++)
+        {
+            if (_radix_sizes[ii] > 0)  {  std::sort (&_radix_kmers[ii][0] , &_radix_kmers[ii][ _radix_sizes[ii]]);  }
+        }
+    }
 
-		parallel_dispatcher->iterate (it, SuperKReader<span>  (this->_kmerSize, r_idx, _radix_kmers), 10000); //must be even , reading by pairs
-	
-		//printf("done decompacting the super kmers  \n");
+private :
+    int       _deb;
+    int       _fin;
+    Type**    _radix_kmers;
+    uint64_t* _radix_sizes;
+};
 
-				
-		//serial mode
-//		for(int ii=0;ii< 256; ii++)
-//		{
-//				if(radix_kmers[ii].size() > 0)
-//					std::sort (radix_kmers[ii].begin (), radix_kmers[ii].end ());
-//		}
-		
-		#ifdef TIMP
-		t.stop ("lecture");
-		t.start ("tri");
-#endif
-	//	printf("sorting the kmers  \n");
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+void PartitionsByVectorCommand<span>::executeSort ()
+{
+    TIME_INFO (this->_timeInfo, "2.sort");
 
-		
-		//parall mode
-		vector<ICommand*> cmds;
-		
-		int nwork = 256 / this->_nbCores;
-				
-		// mettre dans le  SortCommand le master radix_kmers et range a traiter
-		
-		for (int xx=0; xx< (_kx+1); xx ++)
-		{
-			cmds.clear();
-			//fill cmd work vector
-			for(int tid=0;tid< this->_nbCores; tid++)
-			{
-				int deb = 0 + tid * nwork;
-				int fin = (tid+1) * nwork -1; // thread will do inclusive range [begin -- end ]
-				if(tid== this->_nbCores-1) fin = 255;
-				
-				ICommand* cmd = 0;
-				
-				cmd = new SortCommand<span> (_radix_kmers+ IX(xx,0) ,deb,fin,radix_sizes + IX(xx,0) ); // [xx]
-				cmds.push_back (cmd);
-				
-			}
-			
-			parallel_dispatcher->dispatchCommands (cmds, 0);
-			
-		}
+    vector<ICommand*> cmds;
 
-//
+    int nwork = 256 / this->_nbCores;
 
+    for (int xx=0; xx < (KX+1); xx++)
+    {
+        cmds.clear();
 
+        //fill cmd work vector
+        for (int tid=0; tid < this->_nbCores; tid++)
+        {
+            int deb = 0 + tid * nwork;
+            int fin = (tid+1) * nwork -1; // thread will do inclusive range [begin -- end ]
+            if(tid == this->_nbCores-1)  { fin = 255; }
 
-	#ifdef TIMP
-		t.stop ("tri");
-		t.start ("output solid");
-#endif
-		
-	//	printf("start scanning kx mers  \n");
+            // mettre dans le  SortCommand le master radix_kmers et range a traiter
+            cmds.push_back (new SortCommand<span> (_radix_kmers+ IX(xx,0), deb, fin, _radix_sizes + IX(xx,0) ));
+        }
 
-		vector< KxmerPointer<span>  * > vec_pointer;
-		
-		int nbkxpointers = 453; //6 for k1 mer, 27 for k2mer, 112 for k3mer  453 for k4mer
-		vec_pointer.resize(nbkxpointers);
-		int best_p;
+        _dispatcher->dispatchCommands (cmds, 0);
+    }
+}
 
-		std::priority_queue< kxp, std::vector<kxp>,kxpcomp > pq;
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+class KxmerPointer
+{
+public:
+    typedef typename Kmer<span>::Type  Type;
 
-	
-		u_int32_t abundance = 0;
-		Type previous_kmer ;
+    //on lui passe le vector dun kxmer //std::vector<vector<Type> >  & kmervec
+    KxmerPointer (
+        Type**      kmervec,
+        int         prefix_size,
+        int         x_size,
+        int         min_radix,
+        int         max_radix,
+        int         kmerSize,
+        uint64_t*   radix_sizes
+    )
+        : _kxmers(kmervec), _prefix_size(prefix_size), _x_size(x_size),
+        _cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix), _radix_sizes(radix_sizes)
+    {
+        _idx_radix = min_radix;
+        Type un = 1;
+        _kmerMask = (un << (_kmerSize*2)) - un;
 
-		//puis loop sur tous les radix 0-255
-		
-		
-	//	printf("start scanning \n");
-			
+        _shift_size = ( (4 - _prefix_size) *2) ;
+        _radixMask = Type(_idx_radix) ;
+        _radixMask = _radixMask << ((_kmerSize-4)*2);
+        _radixMask = _radixMask  << (2*_prefix_size)  ;
+    }
 
-		
-		//init the pointers to the 6 arrays
-		//	printf("init pointers  \n");
-		int pidx =0;
-		
-		////-------------k0 pointers-----------/////////  radix_kmers[0]
-		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(0,0) ,0,0,0,255,this->_kmerSize, radix_sizes + IX(0,0) ); // vec, prefix size, kxsize , radix min, radix max ,ksize
-		
-		////-------------k1 pointers-----------/////////
-		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,0,1,0,255,this->_kmerSize, radix_sizes + IX(1, 0) );
-		int lowr = 0;
-		int maxr = 63;
-		//prefix1
-		for(unsigned int ii=0; ii<4; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,1,1,lowr,maxr,this->_kmerSize, radix_sizes + IX(1, 0)  );
-			lowr += 64;
-			maxr += 64;
-		}
-		
-		////-------------k2 pointers-----------/////////
-		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),0,2,0,255,this->_kmerSize, radix_sizes + IX(2, 0)  );
-		//prefix1
-		lowr = 0; maxr = 63;
-		for(unsigned int ii=0; ii<4; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),1,2,lowr,maxr,this->_kmerSize, radix_sizes + IX(2, 0)  );
-			lowr += 64;
-			maxr += 64;
-		}
-		
-		//prefix2
-		lowr = 0; maxr = 15;
-		for(unsigned int ii=0; ii<16; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),2,2,lowr,maxr,this->_kmerSize, radix_sizes + IX(2, 0)  );
-			lowr += 16;
-			maxr += 16;
-		}
-		
-		////-------------k3 pointers-----------/////////
+    /** */
+    inline bool next ()
+    {
+        _cur_idx++;
 
-		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),0,3,0,255,this->_kmerSize, radix_sizes + IX(3, 0)  );
-		//prefix1
-		lowr = 0; maxr = 63;
-		for(unsigned int ii=0; ii<4; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),1,3,lowr,maxr,this->_kmerSize, radix_sizes + IX(3, 0) );
-			lowr += 64;
-			maxr += 64;
-		}
-		
-		//prefix2
-		lowr = 0; maxr = 15;
-		for(unsigned int ii=0; ii<16; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),2,3,lowr,maxr,this->_kmerSize, radix_sizes + IX(3, 0) );
-			lowr += 16;
-			maxr += 16;
-		}
-		
-		//prefix3
-		lowr = 0; maxr = 3;
-		for(unsigned int ii=0; ii<64; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),3,3,lowr,maxr,this->_kmerSize, radix_sizes + IX(3, 0) );
-			lowr += 4;
-			maxr += 4;
-		}
-		
-		
-		////-------------k4 pointers-----------/////////
+        // go to next non empty radix
+        while(_idx_radix<= _high_radix &&_cur_idx >=   _radix_sizes[_idx_radix])
+        {
+            _idx_radix++;
+            _cur_idx = 0;
+            //update radix mask does not happen often
+            _radixMask = Type(_idx_radix) ;
+            _radixMask = _radixMask << ((_kmerSize-4)*2);
+            _radixMask = _radixMask  << (2*_prefix_size)  ;
+        }
 
-		//prefix0
-		vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),0,4,0,255,this->_kmerSize, radix_sizes + IX(4, 0) );
-		//prefix1
-		lowr = 0; maxr = 63;
-		for(unsigned int ii=0; ii<4; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),1,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
-			lowr += 64;
-			maxr += 64;
-		}
-		
-		//prefix2
-		lowr = 0; maxr = 15;
-		for(unsigned int ii=0; ii<16; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),2,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
-			lowr += 16;
-			maxr += 16;
-		}
-		
-		//prefix3
-		lowr = 0; maxr = 3;
-		for(unsigned int ii=0; ii<64; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),3,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
-			lowr += 4;
-			maxr += 4;
-		}
-		
-		//prefix4
-		lowr = 0; maxr = 0;
-		for(unsigned int ii=0; ii<256; ii++)
-		{
-			vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),4,4,lowr,maxr,this->_kmerSize, radix_sizes + IX(4, 0) );
-			lowr += 1;
-			maxr += 1;
-		}
-		
-		
-		
+        return (_idx_radix <= _high_radix);
+    }
 
-		
-		
-		//printf("fill pq \n");
+    /** */
+    inline Type value() const
+    {
+        return ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
+    }
 
-		//fill the  priority queue with the first elems
-		for(int ii=0; ii<nbkxpointers; ii++)
-		{
-			if(vec_pointer[ii]->next())
-				pq.push(kxp(ii,vec_pointer[ii]->value()));
-		}
+private :
 
-		
-		if(pq.size() != 0) // everything empty, no kmer at all
-		{
-			//get first pointer
-			best_p = pq.top().first ; pq.pop();
-			
+    Type**      _kxmers;
+    uint64_t*   _radix_sizes;
+    int64_t     _cur_idx;
+    Type        _cur_radix;
+    Type        _kmerMask;
+    Type        _radixMask;
+    int         _idx_radix;
+    int         _low_radix;
+    int         _high_radix;
+    int         _shift_size;
+    int         _prefix_size;
+    int         _kmerSize;
+    int         _x_size; //x size of the _kxmersarray
+};
 
-			previous_kmer = vec_pointer[best_p]->value();
-			abundance = 1;
-			
-			
-			//merge-scan all 'virtual' arrays and output counts
-			while(1)
-			{
-				
-				//go forward in this array or in new array of reaches end of this one
-				if(! vec_pointer[best_p]->next())
-				{
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+void PartitionsByVectorCommand<span>::executeDump ()
+{
+    TIME_INFO (this->_timeInfo, "3.dump");
 
-					
-					//reaches end of one array
-					if(pq.size() == 0) break; //everything done
-					
-					//otherwise get new best
-					best_p = pq.top().first ; pq.pop();
+    int nbkxpointers = 453; //6 for k1 mer, 27 for k2mer, 112 for k3mer  453 for k4mer
+    vector< KxmerPointer<span>*> vec_pointer (nbkxpointers);
+    int best_p;
 
-				}
-				
-				if(vec_pointer[best_p]->value()!=previous_kmer )
-				{
+    std::priority_queue< kxp, std::vector<kxp>,kxpcomp > pq;
 
-					//if diff, changes to new array, get new min pointer
-					pq.push(kxp(best_p,vec_pointer[best_p]->value())); //push new val of this pointer in pq, will be counted later
-					
-					best_p = pq.top().first ; pq.pop();
+    u_int32_t abundance = 0;
+    Type previous_kmer ;
 
-					//if new best is diff, this is the end of this kmer
-					if(vec_pointer[best_p]->value()!=previous_kmer )
-					{
+    //init the pointers to the 6 arrays
+    int pidx =0;
 
-						this->insert (Count (previous_kmer, abundance) );
-						abundance     = 1;
-						previous_kmer = vec_pointer[best_p]->value();
-					}
-					else
-					{
+    ////////////////////////////////////////////////
+    ////-------------k0 pointers-----------/////////
+    ////////////////////////////////////////////////
 
-						abundance++;
-					}
-					
-				}
-				else
-				{
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(0,0) ,0,0,0,255,this->_kmerSize, _radix_sizes + IX(0,0) ); // vec, prefix size, kxsize , radix min, radix max ,ksize
 
-					abundance++;
-				}
-			}
-			
-			
-			//last elem
-			this->insert (Count (previous_kmer, abundance) );
-			
-		}
-		
+    ////////////////////////////////////////////////
+    ////-------------k1 pointers-----------/////////
+    ////////////////////////////////////////////////
 
+    //prefix0
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,0,1,0,255,this->_kmerSize, _radix_sizes + IX(1, 0) );
+    int lowr = 0;
+    int maxr = 63;
 
-		
-		
-		for(unsigned int ii=0; ii<nbkxpointers; ii++)
-		{
-			delete vec_pointer[ii];
-		}
-		
+    //prefix1
+    for(unsigned int ii=0; ii<4; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,1,1,lowr,maxr,this->_kmerSize, _radix_sizes + IX(1, 0)  );
+        lowr += 64;
+        maxr += 64;
+    }
 
+    ////////////////////////////////////////////////
+    ////-------------k2 pointers-----------/////////
+    ////////////////////////////////////////////////
 
-		
-#ifdef TIMP
-		t.stop ("output solid");
+    //prefix0
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),0,2,0,255,this->_kmerSize, _radix_sizes + IX(2, 0)  );
 
-		cout << "lecture: " << t.getEntryByKey("lecture") << "  "
-		<< "tri: " << t.getEntryByKey("tri") << "  "
-		<< "output solid: " << t.getEntryByKey("output solid") << endl;
-#endif
+    //prefix1
+    lowr = 0; maxr = 63;
+    for(unsigned int ii=0; ii<4; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),1,2,lowr,maxr,this->_kmerSize, _radix_sizes + IX(2, 0)  );
+        lowr += 64;
+        maxr += 64;
+    }
 
-		
-		free ( radix_sizes ) ;
-	
-		//now managed by pool
-//			for (int xx=0; xx< (_kx+1); xx ++)
-//			for(int ii=0;ii< 256; ii++)
-//			{
-//				free (_radix_kmers [IX(xx,ii)]);
-//			}
-		
-		free(_radix_kmers);
-		
-		free(r_idx);
-		delete parallel_dispatcher;
-		
-		/** We update the progress bar. */
-        this->_progress.inc (this->_pInfo->getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
+    //prefix2
+    lowr = 0; maxr = 15;
+    for(unsigned int ii=0; ii<16; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),2,2,lowr,maxr,this->_kmerSize, _radix_sizes + IX(2, 0)  );
+        lowr += 16;
+        maxr += 16;
+    }
 
+    ////////////////////////////////////////////////
+    ////-------------k3 pointers-----------/////////
+    ////////////////////////////////////////////////
 
-    };
+    //prefix0
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),0,3,0,255,this->_kmerSize, _radix_sizes + IX(3, 0)  );
+
+    //prefix1
+    lowr = 0; maxr = 63;
+    for(unsigned int ii=0; ii<4; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),1,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0) );
+        lowr += 64;
+        maxr += 64;
+    }
+
+    //prefix2
+    lowr = 0; maxr = 15;
+    for(unsigned int ii=0; ii<16; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),2,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0) );
+        lowr += 16;
+        maxr += 16;
+    }
+
+    //prefix3
+    lowr = 0; maxr = 3;
+    for(unsigned int ii=0; ii<64; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),3,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0) );
+        lowr += 4;
+        maxr += 4;
+    }
+
+    ////////////////////////////////////////////////
+    ////-------------k4 pointers-----------/////////
+    ////////////////////////////////////////////////
+
+    //prefix0
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),0,4,0,255,this->_kmerSize, _radix_sizes + IX(4, 0) );
+
+    //prefix1
+    lowr = 0; maxr = 63;
+    for(unsigned int ii=0; ii<4; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),1,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        lowr += 64;
+        maxr += 64;
+    }
+
+    //prefix2
+    lowr = 0; maxr = 15;
+    for(unsigned int ii=0; ii<16; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),2,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        lowr += 16;
+        maxr += 16;
+    }
+
+    //prefix3
+    lowr = 0; maxr = 3;
+    for(unsigned int ii=0; ii<64; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),3,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        lowr += 4;
+        maxr += 4;
+    }
+
+    //prefix4
+    lowr = 0; maxr = 0;
+    for(unsigned int ii=0; ii<256; ii++)
+    {
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),4,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        lowr += 1;
+        maxr += 1;
+    }
+
+    //fill the  priority queue with the first elems
+    for (int ii=0; ii<nbkxpointers; ii++)
+    {
+        if(vec_pointer[ii]->next())  {  pq.push(kxp(ii,vec_pointer[ii]->value()));  }
+    }
+
+    if (pq.size() != 0) // everything empty, no kmer at all
+    {
+        //get first pointer
+        best_p = pq.top().first ; pq.pop();
+
+        previous_kmer = vec_pointer[best_p]->value();
+        abundance = 1;
+
+        //merge-scan all 'virtual' arrays and output counts
+        while (1)
+        {
+            //go forward in this array or in new array of reaches end of this one
+            if (! vec_pointer[best_p]->next())
+            {
+                //reaches end of one array
+                if(pq.size() == 0) break; //everything done
+
+                //otherwise get new best
+                best_p = pq.top().first ; pq.pop();
+            }
+
+            if (vec_pointer[best_p]->value() != previous_kmer )
+            {
+                //if diff, changes to new array, get new min pointer
+                pq.push(kxp(best_p,vec_pointer[best_p]->value())); //push new val of this pointer in pq, will be counted later
+
+                best_p = pq.top().first ; pq.pop();
+
+                //if new best is diff, this is the end of this kmer
+                if(vec_pointer[best_p]->value()!=previous_kmer )
+                {
+
+                    this->insert (Count (previous_kmer, abundance) );
+                    abundance     = 1;
+                    previous_kmer = vec_pointer[best_p]->value();
+                }
+                else
+                {
+                    abundance++;
+                }
+            }
+            else
+            {
+                abundance++;
+            }
+        }
+
+        //last elem
+        this->insert (Count (previous_kmer, abundance) );
+    }
+
+    /** Cleanup. */
+    for (size_t ii=0; ii<nbkxpointers; ii++)  {  delete vec_pointer[ii];  }
+}
 
 /********************************************************************************/
 
@@ -783,7 +890,6 @@ template class PartitionsByVectorCommand <KSIZE_1>;
 template class PartitionsByVectorCommand <KSIZE_2>;
 template class PartitionsByVectorCommand <KSIZE_3>;
 template class PartitionsByVectorCommand <KSIZE_4>;
-
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

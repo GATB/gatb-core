@@ -65,6 +65,9 @@ public:
     LargeInt<2>& operator+=  (const LargeInt<2>& other)    {  value[0] += other.value[0]; return *this; }
     LargeInt<2>& operator^=  (const LargeInt<2>& other)    {  value[0] ^= other.value[0]; return *this; }
 
+    LargeInt<2>& operator<<=  (const int& coeff)  { value[0] <<= coeff; return *this; } 
+    LargeInt<2>& operator>>=  (const int& coeff)  { value[0] >>= coeff; return *this; }
+
     u_int8_t  operator[]  (size_t idx) const   {  return (value[0] >> (2*idx)) & 3; }
 
     /** Output stream overload. NOTE: for easier process, dump the value in hexadecimal.
@@ -178,8 +181,6 @@ inline LargeInt<2> revcomp (const LargeInt<2>& in, size_t sizeKmer)
 /********************************************************************************/
 inline u_int64_t hash1 (const LargeInt<2>& item, u_int64_t seed=0)
 {
-	printf("hash1 call largeint2 \n");
-
     const __uint128_t& elem = item.value[0];
 
     return NativeInt64::hash64 ((u_int64_t)(elem>>64),seed) ^
