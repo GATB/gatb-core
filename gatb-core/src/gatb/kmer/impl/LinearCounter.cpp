@@ -65,7 +65,7 @@ namespace impl          {
         long weight = bloom->weight();
         long count =  ( (-1.0*_bloomSize) * logf( (1.0*_bloomSize - weight) / _bloomSize ) );  // linear counter cardinality estimation
 
-        bool debug=true;
+        bool debug=false;
         if (debug)
         {
             printf("linear counter load factor: %0.2f\n",(1.0*weight/_bloomSize));

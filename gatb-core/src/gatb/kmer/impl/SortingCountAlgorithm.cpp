@@ -385,7 +385,7 @@ public:
         }
         nbProcessedKmers += kmers.size();
         nbProcessedReads++;
-        if (nbProcessedReads % 100000 == 0) printf("nb: %ld\n",nbProcessedReads);
+        //if (nbProcessedReads % 100000 == 0) printf("nb: %ld\n",nbProcessedReads);
 
         // disabled progress 
         //if (nbCurProgressKmers > 500000)   {  _progress.inc (nbCurProgressKmers);  nbCurProgressKmers = 0;  }
