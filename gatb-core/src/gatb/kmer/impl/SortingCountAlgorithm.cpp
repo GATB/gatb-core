@@ -89,7 +89,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0), _histogramUri(""),
       _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1) ,_nb_partitions_in_parallel(0),
-      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0),
+      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0)
 {
 }
 
@@ -330,10 +330,10 @@ class EstimateNbDistinctKmers
 public:
 
     /** Shortcut. */
-    typedef typename Kmer<span>::Type                  Type;
-    typedef typename Kmer<span>::ModelCanonical        Model;
-    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
-
+    typedef typename SortingCountAlgorithm<span>::Type            Type;
+    typedef typename SortingCountAlgorithm<span>::Model           Model;
+    typedef typename Model::Kmer           KmerType;
+ 
     void estimate()
     {
 
@@ -423,7 +423,7 @@ private:
     unsigned long nbCurProgressKmers;
     unsigned long nbKmersTotal;
     unsigned long abs_error;
-    vector<Kmer> kmers;
+    vector<KmerType> kmers;
     LinearCounter<span> *linearCounter;
     int eval_every_N_reads;
     unsigned long previous_nb_distinct_kmers, nb_distinct_kmers;
@@ -489,6 +489,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     u_int64_t volume_per_pass;
   
 
+    float est_volume_distinct_ratio; 
     if (_flagEstimateNbDistinctKmers)
     {
         /* we estimate the volume of distinct kmers vs total number of kmers.
@@ -496,12 +497,11 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
          * to compute it, we need a linear counter, let's call it now */
 
         TIME_INFO (getTimeInfo(), "estimate_distinct_kmers");
-        float est_volume_distinct_ratio; 
         Iterator<Sequence>* itSeq = _bank->iterator();
         LOCAL (itSeq);
 
         //_progress->setMessage (progressFormat0); // not touching progress here anymore
-        Model model (_kmerSize);
+        Model model (_kmerSize, _minim_size);
         EstimateNbDistinctKmers<span> estimate_nb_distinct_kmers_function(model, _max_memory, kmersNb, _progress);
 
         /** We launch the iteration of the sequences iterator with the created functors. */
@@ -1076,8 +1076,6 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>* solidKmers, PartiI
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
             DEBUG ((" %zu ", p));
-
-            printf("partition of length: %d\n",partitionLen);
 
             /* Get the memory taken by this partition if loaded for sorting */
             uint64_t memoryPartition = (pInfo.getNbSuperKmer(p)*(Type::getSize()/8)); //in bytes
