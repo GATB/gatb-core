@@ -103,7 +103,7 @@ public:
     virtual u_int64_t  getBitSize  () = 0;
     virtual size_t     getNbHash   () const = 0;
 
-	virtual bool contains4 (const Item& item, bool * resu) = 0;
+	virtual bool contains4 (const Item& item, bool * resu, bool right) = 0;
 
 	
     virtual std::string  getName   () const  = 0;
@@ -173,7 +173,7 @@ public:
         return true;
     }
 
-	virtual bool contains4 (const Item& item, bool * resu) {return false;} //not implem by default
+	virtual bool contains4 (const Item& item, bool * resu,bool right) {return false;} //not implem by default
 
     /** */
     virtual u_int8_t*& getArray     ()  { return blooma; }
@@ -272,13 +272,13 @@ public:
 
     virtual std::string  getName   () const  { return "BloomNull"; }
 
-	bool contains4 (const Item& item, bool * resu) {return false;}
+	bool contains4 (const Item& item, bool * resu,bool right) {return false;}
 
 	
     bool contains (const Item& item) { return false; }
     void insert (const Item& item) {}
     void flush ()  {}
-    unsigned long weight ()  {}
+    unsigned long weight ()  { return 0;}
 private:
     u_int8_t* a;
 };
@@ -333,7 +333,7 @@ public:
     BloomCacheCoherent (u_int64_t tai_bloom, size_t nbHash = 4,size_t block_nbits = 12)  : Bloom<Item> (tai_bloom + (1<<block_nbits), nbHash),_nbits_BlockSize(block_nbits)
     {
         _mask_block = (1<<_nbits_BlockSize) - 1;
-        _reduced_tai = this->tai -  (1<<_nbits_BlockSize) ;
+        _reduced_tai = this->tai -  2*(1<<_nbits_BlockSize) ;//2* for neighbor coherent
     }
     
     
@@ -433,7 +433,7 @@ protected:
 			cano2[8] = 8;
 			cano2[9] = 9;
 			cano2[10] = 0;
-			cano2[11] = 8;
+			cano2[11] = 4;
 			cano2[12] = 9;
 			cano2[13] = 13;
 			cano2[14] = 1;
@@ -443,7 +443,9 @@ protected:
 			_maskkm2 = (un << ((_kmerSize-2)*2)) - un;
 			_kmerMask = (un << (_kmerSize*2)) - un;
 			
-			_prefmask = 3 << ((_kmerSize-1)*2);
+			Item trois = 3;
+
+			_prefmask = trois << ((_kmerSize-1)*2); //bug was here 3 instead of item trois
 		}
 		
 
@@ -452,31 +454,40 @@ protected:
 		{
 			
 			u_int64_t h0;
+			u_int64_t racine;
 			
-			
+
 			Item suffix = item & 3 ;
 			Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
 			prefix += suffix;
+			prefix = prefix  & 15 ;
+		
 			u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
 			
+
 			Item hashpart = ( item >> 2 ) & _maskkm2 ;  // delete 1 nt at each side
-//			Item rev =  revcomp(hashpart,_kmerSize-2);
-//			if(rev<hashpart) hashpart = rev; //transform to canonical
+			Item rev =  revcomp(hashpart,_kmerSize-2);
+			if(rev<hashpart) hashpart = rev; //transform to canonical
 
 	
+//			Item km = item;
+//			rev =  revcomp(km,_kmerSize);
+//			if(rev < km) km = rev; //transform to canonical
 			
-			
-			
-			//h0 = ((this->_hash (item >> 2,0) ) % this->_reduced_tai)  + (suffix_val & this->_mask_block);
-			h0 = ((this->_hash (hashpart,0) ) % this->_reduced_tai)  + (pref_val & this->_mask_block);
 
+			racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
+			//h0 = ((this->_hash (item >> 2,0) ) % this->_reduced_tai)  + (suffix_val & this->_mask_block);
+			//h0 = racine + (this->_hash (km,0)  & this->_mask_block);
+			h0 = racine + (pref_val );
 			__sync_fetch_and_or (this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
 			
             for (size_t i=1; i<this->n_hash_func; i++)
             {
                 u_int64_t h1 = h0  + ( (simplehash16( hashpart, i))  & this->_mask_block )   ;
+			//	u_int64_t h1 = racine  + ( (simplehash16( km, i))  & this->_mask_block )   ; //ceci avec simplehash+8  semble ok
+
 			//	u_int64_t h1 = h0  +  ( (this->_hash (item>>2,i)+ suffix_val)  & _mask_block );
-				
+
                 __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
             }
 			
@@ -492,14 +503,25 @@ protected:
 		bool contains (const Item& item)
 		{
 			
+
+			u_int64_t racine;
+
+			
 			Item suffix = item & 3 ;
 			Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
 			prefix += suffix;
+			prefix = prefix  & 15 ;
+
 			u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
 			
 			Item hashpart = ( item >> 2 ) & _maskkm2 ;  // delete 1 nt at each side
-//			Item rev =  revcomp(hashpart,_kmerSize-2);
-//			if(rev<hashpart) hashpart = rev; //transform to canonical
+			Item rev =  revcomp(hashpart,_kmerSize-2);
+			if(rev<hashpart) hashpart = rev; //transform to canonical
+			
+//			
+//			Item km = item;
+//			rev =  revcomp(km,_kmerSize);
+//			if(rev < km) km = rev; //transform to canonical
 			
 			
 			
@@ -507,13 +529,19 @@ protected:
 			u_int64_t h0;
 			
 			
-			h0 = ((this->_hash (hashpart,0) ) % this->_reduced_tai)  + (pref_val & this->_mask_block);
+			racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
+			//h0 = racine + (this->_hash (km,0)  & this->_mask_block);
+			h0 = racine + (pref_val  );
+			//printf("h0 %llu\n",h0);
+
 			__builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); //preparing for read
 			
 			//compute all hashes during prefetch
 			for (size_t i=1; i<this->n_hash_func; i++)
 			{
 				tab_keys[i] =  h0  + (  (simplehash16( hashpart, i)  ) & this->_mask_block );// with simplest hash
+				//tab_keys[i] =  racine  + (  (simplehash16( km, i)  ) & this->_mask_block );
+
 				//	tab_keys[i] =  h0  + (  (this->_hash (item>>2,i) + suffix_val ) & _mask_block );// with simplest hash
 				
 			}
@@ -533,45 +561,114 @@ protected:
 		
 		//ask for all 4 neighbors of item in one call
 		// give it CAAA
-		// it wil test the 4 neighbors AAAA, AAAC, AAAT, AAAG
-		bool contains4 (const Item& item, bool * resu)
+		// if right == true  it wil test the 4 neighbors AAAA, AAAC, AAAT, AAAG
+		// if right == false : left extension   ACAA, CCAA , TCAA  , GCAA
+		
+		bool contains4 (const Item& item, bool * resu, bool right)
 		{
 			u_int64_t h0, i0, j0, k0;
-			Item elem = (item << 2) & _kmerMask ;
+			Item elem,hashpart,rev ;
+			Item un = 1;
+			Item deux = 2;
+			Item trois = 3;
 			
-			Item nei_part;
-			u_int64_t nei_val;
-			Item prefix = (elem & _prefmask)  >> ((_kmerSize-2)*2);
-			Item hashpart = ( elem >> 2 ) & _maskkm2 ;
-//			Item rev =  revcomp(hashpart,_kmerSize-2);
-//			if(rev<hashpart) hashpart = rev;
+			size_t shifts = (_kmerSize -1)*2;
+			if(right)
+			{
+				elem = (item << 2) & _kmerMask ;
+			}
+			else
+			{
+				elem = (item >> 2) ;
+			}
 			
-			u_int64_t hash_common = ((this->_hash (hashpart,0) ) % this->_reduced_tai);
+			//get the canonical of middle part
+			hashpart = ( elem >> 2 ) & _maskkm2 ;
+			rev =  revcomp(hashpart,_kmerSize-2);
+			if(rev<hashpart) hashpart = rev;
 
 			
-			__builtin_prefetch(&(this->blooma [hash_common >> 3] ), 0, 3); //preparing for read
+			u_int64_t racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
 
 			
-			
-			nei_part = prefix + 0;
-			nei_val = cano2[nei_part.getVal()];
-			h0 = hash_common + (nei_val & this->_mask_block);
-				
-			nei_part = prefix + 1;
- 			nei_val = cano2[nei_part.getVal()];
-			i0 = hash_common + (nei_val & this->_mask_block);
+			__builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); //preparing for read
 
-			nei_part = prefix + 2;
- 			nei_val = cano2[nei_part.getVal()];
-			j0 = hash_common + (nei_val & this->_mask_block);
+			Item tmp,suffix,prefix;
+			u_int64_t pref_val;
 			
 			
-			nei_part = prefix + 3;
- 			nei_val = cano2[nei_part.getVal()];
-			k0 = hash_common + (nei_val & this->_mask_block);
+			//with val of prefix+suffix  for neighbor shift
+
+			tmp = elem;
+			suffix = tmp & 3 ;
+			prefix = (tmp & _prefmask)  >> ((_kmerSize-2)*2);
+			prefix += suffix;
+			pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+			
+			h0 = racine + (pref_val  & this->_mask_block);
+
+			
+			if(right) tmp = elem+un;
+			else tmp = elem + (un<<shifts) ;
+			suffix = tmp & 3 ;
+			prefix = (tmp & _prefmask)  >> ((_kmerSize-2)*2);
+			prefix += suffix;
+			pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+			
+			i0 = racine + (pref_val  & this->_mask_block);
 			
 			
-		
+			
+			if(right) tmp = elem+deux;
+			else tmp = elem + (deux<<shifts) ;
+			suffix = tmp & 3 ;
+			prefix = (tmp & _prefmask)  >> ((_kmerSize-2)*2);
+			prefix += suffix;
+			pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+			
+			j0 = racine + (pref_val  & this->_mask_block);
+			
+			if(right) tmp = elem+trois;
+			else tmp = elem + (trois<<shifts) ;
+			suffix = tmp & 3 ;
+			prefix = (tmp & _prefmask)  >> ((_kmerSize-2)*2);
+			prefix += suffix;
+			pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+			
+			k0 = racine + (pref_val  & this->_mask_block);
+	
+			
+			
+			
+			
+			
+			/*
+			 //with full hash of kmer for neighbor shift
+			tmp = elem;
+			rev =  revcomp(tmp,_kmerSize);
+			if(rev < tmp) tmp = rev;
+			h0 = racine + (this->_hash (tmp,0)  & this->_mask_block);
+			
+			if(right) tmp = elem+un;
+			else tmp = elem + (un<<shifts) ;
+			rev =  revcomp(tmp,_kmerSize); // many revcomp, optim possible
+			if(rev < tmp) tmp = rev;
+			i0 = racine + (this->_hash (tmp,0)  & this->_mask_block);
+			
+			if(right) tmp = elem+deux;
+			else tmp = elem + (deux<<shifts) ;
+			rev =  revcomp(tmp,_kmerSize);
+			if(rev < tmp) tmp = rev;
+			j0 = racine + (this->_hash (tmp,0)  & this->_mask_block);
+			
+			if(right) tmp = elem+trois;
+			else tmp = elem + (trois<<shifts) ;
+			rev =  revcomp(tmp,_kmerSize);
+			if(rev < tmp) tmp = rev;
+			k0 = racine + (this->_hash (tmp,0)  & this->_mask_block);
+*/
+			
+
 			
 			u_int64_t tab_hashes [20];
 

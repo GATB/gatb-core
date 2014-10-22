@@ -178,7 +178,7 @@ public:
         res  ^= random_values[input & 255] ;
 
         
-//        res  ^= random_values[key & 255] ;//also always add 8 first bits
+        res  ^= random_values[key & 255] ;//also always add 8 first bits
 //		
 //		input = input  >> 8;
 //        res  ^= random_values[input & 255] ;

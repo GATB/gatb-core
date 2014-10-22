@@ -1086,7 +1086,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>* solidKmers, PartiI
             ICommand* cmd = 0;
 
             //still use hash if by vector would be too large even with single part at a time
-            if (memoryPartition > mem && currentNbCores==1 || forceHashing)
+            if ((memoryPartition > mem && currentNbCores==1 )|| forceHashing)
             {
                 if (pool.getCapacity() != 0)  {  pool.reserve(0);  }
 
