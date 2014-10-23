@@ -27,7 +27,8 @@ public:
     GraphMarker (const Graph& graph) : graph(graph)
     {
         // We insert all the nodes into our map.
-        graph.iterator<T>().iterate ([&] (const T& item)  {  this->markMap[item] = false;  });
+        auto iter = [&] (const T& item)  {  this->markMap[item] = false;  };
+        graph.iterator<T>().iterate (iter);
     }
 
     void mark (const T& item)  {  markMap [item] = true;  }

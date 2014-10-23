@@ -289,13 +289,14 @@ size_t nbBNodes=0;
 
 #if 1
         // We loop the branching nodes
-        it.iterate ([&] (BranchingNode& node)
+        auto iter1 = [&] (BranchingNode& node)
         {
             dfs.execute (node, [&] (const Edge& edge)
             {
                 unitigsSize++;
             });
-        });
+        };
+        it.iterate (iter1);
 #else
         unitigsSize = graph.getInfo().getInt("kmers_nb_solid");
 #endif
@@ -330,7 +331,7 @@ cout << "NBITS_PER_KMER=" << NBITS_PER_KMER << "  nbHash=" << nbHash << "  bloom
         BloomGroupType<Kmer<>::Type, PREC> bloomGroup (bloomSize, maxMemory, nbHash);
 
         ProgressGraphIterator<BranchingNode,ProgressTimer>  it2 (graph.iterator<BranchingNode>(), "split graph");
-        it2.iterate ([&] (const BranchingNode& node)
+        auto iter2 = [&] (const BranchingNode& node)
         {
             dfs2.execute (node, [&] (const Edge& edge)
             {
@@ -344,7 +345,8 @@ cout << "NBITS_PER_KMER=" << NBITS_PER_KMER << "  nbHash=" << nbHash << "  bloom
                     nbNodes = 0;
                 }
             });
-        });
+        };
+        it2.iterate (iter2);
 
         ////////////////////////////////////////////////////////////
         //
@@ -378,7 +380,7 @@ cout << "NBITS_PER_KMER=" << NBITS_PER_KMER << "  nbHash=" << nbHash << "  bloom
 
         // We iterate the bank
         //IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (Sequence& seq)
-        iter->iterate ([&] (Sequence& seq)
+        auto iter3 = [&] (Sequence& seq)
         {
             nbSeqTotal++;
             nbDataTotal += seq.getDataSize();
@@ -442,7 +444,9 @@ cout << "NBITS_PER_KMER=" << NBITS_PER_KMER << "  nbHash=" << nbHash << "  bloom
 //                );
                 //for (size_t i=0; i<nbParts; i++)  {  printf ("%2d ", nbOccurs[i]);  if ((i+1)%64==0) { printf ("\n"); }  }
             }
-        });
+        };
+
+        iter->iterate (iter3);
 
         // We flush the sub banks
         for (size_t i=0; i<nbParts; i++)

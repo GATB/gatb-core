@@ -399,7 +399,7 @@ public:
         debruijn_test6_fct (const Graph& graph) : graph(graph) {}
         const Graph& graph;
 
-        void operator() (const Node& node) const
+        void operator() (Node& node) const
         {
             string snode = graph.toString (node);
 
@@ -423,7 +423,8 @@ public:
         /** We create the graph. */
         Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance 1  -verbose 0");
 
-        graph.iterator<Node>().iterate (debruijn_test6_fct(graph));
+        debruijn_test6_fct fct(graph);
+        graph.iterator<Node>().iterate (fct);
     }
 
     /********************************************************************************/
@@ -434,7 +435,7 @@ public:
         Node& n1;
         Node& n2;
 
-        void operator() (const Node& current) const
+        void operator() (Node& current) const
         {
             string currentStr = graph.toString(current);
 
@@ -500,7 +501,8 @@ public:
         // GCGCC  [GGCGC --C--> GCGCC]
         // AGGCG  [AGGCG --C--> GGCGC]
 
-        graph.iterator<Node>().iterate (debruijn_test7_fct (graph, n1, n2));
+        debruijn_test7_fct fct (graph, n1, n2);
+        graph.iterator<Node>().iterate (fct);
     }
 
     /********************************************************************************/
@@ -719,7 +721,7 @@ public:
         Graph graph = Graph::create (bank,  "-kmer-size %d  -abundance %d  -verbose 0", kmerSize, nks);
 
         // We check we got the correct number of solid kmers.
-        CPPUNIT_ASSERT (graph.getInfo().getInt ("kmers_nb_valid") == strlen(seq) - kmerSize + 1);
+        CPPUNIT_ASSERT (graph.getInfo().getInt ("kmers_nb_solid") == strlen(seq) - kmerSize + 1);
 
         // We check that we have only two branching nodes.
         CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching") == 2);

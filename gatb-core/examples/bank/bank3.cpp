@@ -38,6 +38,7 @@ int main (int argc, char* argv[])
     BankFasta::Iterator it (b);
 
     // We loop over sequences in a "push" fashion (a functor is called for each sequence)
-    it.iterate (Functor());
+    Functor fct;
+    it.iterate (fct);
 }
 //! [snippet1]
