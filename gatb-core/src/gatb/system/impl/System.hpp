@@ -171,6 +171,9 @@ class ThreadGroup : public IThreadGroup, public system::SmartPointer
 public:
 
     static IThreadGroup* create ();
+	
+	static void init_mutex_if_needed ();
+
     static void destroy (IThreadGroup* thr);
 
     static IThreadGroup* find (IThread::Id id);
