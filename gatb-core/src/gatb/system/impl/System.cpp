@@ -79,6 +79,7 @@ ThreadGroup::~ThreadGroup()
 void ThreadGroup::add (void* (*mainloop) (void*), void* data)
 {
     IThread* thr = System::thread().newThread (mainloop, data);
+
 	
     _threads.push_back (thr);
 }
@@ -94,13 +95,14 @@ void ThreadGroup::add (void* (*mainloop) (void*), void* data)
 void ThreadGroup::start ()
 {
 
+
     /** We unlock the synchronizer => all threads of the group begin at the same time. */
     if (_startSynchro)  { _startSynchro->unlock(); }
 
     /** We join each thread. */
     for (std::vector<system::IThread*>::iterator it = _threads.begin(); it != _threads.end(); it++)
     {
-        (*it)->join ();
+        (*it)->join (); //un ici
     }
 }
 
