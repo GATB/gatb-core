@@ -266,7 +266,7 @@ public:
     bool contains (const Item& item) { return false; }
     void insert (const Item& item) {}
     void flush ()  {}
-    unsigned long weight ()  {}
+    unsigned long weight ()  { return 0;}
 private:
     u_int8_t* a;
 };
