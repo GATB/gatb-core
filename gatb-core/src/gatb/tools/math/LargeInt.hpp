@@ -38,6 +38,7 @@
 #include <hdf5/hdf5.h>
 
 #include <gatb/system/api/Exception.hpp>
+#include <gatb/system/api/config.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>
 
 #ifndef ASSERTS
@@ -297,7 +298,7 @@ public:
         for (int i = 1 ; i < precision - large_shift ; i++)
         {
             result.value[i] = (this->value[i+large_shift] >> small_shift);
-            if (small_shift == 0 && large_shift > 0) // gcc "bug".. u_int64_t x; x>>64 == 1<<63, x<<64 == 1
+            if (small_shift == 0) // gcc "bug".. u_int64_t x; x>>64 == 1<<63, x<<64 == 1
             {
                 result.value[i-1] =  result.value[i-1];
             }
@@ -313,13 +314,13 @@ public:
     }
 
     /********************************************************************************/
-    bool     operator!=(const LargeInt& c) const
-                    {
+    bool operator!=(const LargeInt& c) const
+    {
         for (int i = 0 ; i < precision ; i++)
             if( this->value[i] != c.value[i] )
                 return true;
         return false;
-                    }
+    }
 
     /********************************************************************************/
     bool operator==(const LargeInt& c) const
