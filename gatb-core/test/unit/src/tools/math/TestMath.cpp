@@ -35,6 +35,7 @@ class TestMath : public Test
 
         CPPUNIT_TEST_GATB (math_checkBasic);
         CPPUNIT_TEST_GATB (math_checkFibo);
+        CPPUNIT_TEST_GATB (math_test1);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -149,6 +150,24 @@ public:
         math_checkFiboTemplate <Integer, LargeInt<PREC_2> > ();
         math_checkFiboTemplate <Integer, LargeInt<PREC_3> > ();
         math_checkFiboTemplate <Integer, LargeInt<PREC_4> > ();
+    }
+
+    /********************************************************************************/
+    template <typename T> void math_test1_template ()
+    {
+        T a (1);
+        a <<= 64;
+        size_t s = 0;
+
+        CPPUNIT_ASSERT ( (a>>0) == a);
+    }
+
+    void math_test1 ()
+    {
+        math_test1_template <LargeInt<2> >();
+        math_test1_template <LargeInt<3> >();
+        math_test1_template <LargeInt<4> >();
+        math_test1_template <LargeInt<5> >();
     }
 };
 
