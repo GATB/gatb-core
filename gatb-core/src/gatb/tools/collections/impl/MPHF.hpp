@@ -129,7 +129,7 @@ public:
 private:
 
     /** Default error management. */
-    void error () const { throw gatb::core::system::ExceptionNotImplemented(); }
+    void error () const { printf("MPHF error\n"); throw gatb::core::system::ExceptionNotImplemented(); }
 };
 
 /********************************************************************************/

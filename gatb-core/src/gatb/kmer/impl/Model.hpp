@@ -413,31 +413,55 @@ struct Kmer
 
 		
         /** Iterate the neighbors of a given kmer; these neighbors are:
-         *  - 4 outcoming neighbors
+         *  - 4 outgoing neighbors
          *  - 4 incoming neighbors.
          *  This method uses a functor that will be called for each possible neighbor of the source kmer.
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
-        template<typename Functor>
-        void iterateNeighbors (const Type& source, const Functor& fct)  const
-        {
-            Type rev = core::tools::math::revcomp (source, getKmerSize());
+		template<typename Functor>
+			void iterateNeighbors (const Type& source, const Functor& fct)  const
+			{
+				iterateOutgoingNeighbors(source, fct);
+				iterateIncomingNeighbors(source, fct);
+			}
 
-            /** We compute the 8 possible neighbors. */
-            for (size_t nt=0; nt<4; nt++)
-            {
-                {
-                    Type next1 = (((source) * 4 )  + nt) & getKmerMax();
-                    Type next2 = revcomp (next1, getKmerSize());
-                    fct (std::min (next1, next2));
-                }
-                {
-                    Type next1 = (((rev) * 4 )  + nt) & getKmerMax();
-                    Type next2 = revcomp (next1, getKmerSize());
-                    fct (std::min (next1, next2));
-                }
-            }
-        }
+        /** Iterate the neighbors of a given kmer; these neighbors are:
+         *  - 4 outcoming neighbors
+         *  This method uses a functor that will be called for each possible neighbor of the source kmer.
+         *  \param[in] source : the kmer from which we want neighbors.
+         *  \param[in] fct : a functor called for each neighbor.*/
+        template<typename Functor>
+			void iterateOutgoingNeighbors (const Type& source, const Functor& fct)  const
+			{
+				/** We compute the 4 possible neighbors. */
+				for (size_t nt=0; nt<4; nt++)
+				{
+					Type next1 = (((source) * 4 )  + nt) & getKmerMax();
+					Type next2 = revcomp (next1, getKmerSize());
+					fct (std::min (next1, next2));
+				}
+			}
+
+        /** Iterate the neighbors of a given kmer; these neighbors are:
+         *  - 4 incoming neighbors
+         *  This method uses a functor that will be called for each possible neighbor of the source kmer.
+         *  \param[in] source : the kmer from which we want neighbors.
+         *  \param[in] fct : a functor called for each neighbor.*/
+		template<typename Functor>
+			void iterateIncomingNeighbors (const Type& source, const Functor& fct)  const
+			{
+				Type rev = core::tools::math::revcomp (source, getKmerSize());
+
+				/** We compute the 4 possible neighbors. */
+				for (size_t nt=0; nt<4; nt++)
+				{
+					Type next1 = (((rev) * 4 )  + nt) & getKmerMax();
+					Type next2 = revcomp (next1, getKmerSize());
+					fct (std::min (next1, next2));
+				}
+			}
+
+
 
         /************************************************************/
         /** \brief Iterator on successive kmers
