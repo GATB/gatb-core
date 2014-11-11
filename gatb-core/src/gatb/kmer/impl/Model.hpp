@@ -421,8 +421,8 @@ struct Kmer
 		template<typename Functor>
 			void iterateNeighbors (const Type& source, const Functor& fct)  const
 			{
-				iterateOutgoingNeighbors(source, fct);
-				iterateIncomingNeighbors(source, fct);
+				iterateOutgoingNeighbors(source, (Functor&) fct); // hacky to cast Functor& instead of const Functor&, but don't wanna break API yet want non-const functor
+				iterateIncomingNeighbors(source, (Functor&) fct);
 			}
 
         /** Iterate the neighbors of a given kmer; these neighbors are:
@@ -431,7 +431,7 @@ struct Kmer
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
         template<typename Functor>
-			void iterateOutgoingNeighbors (const Type& source, const Functor& fct)  const
+			void iterateOutgoingNeighbors (const Type& source, Functor& fct)  const
 			{
 				/** We compute the 4 possible neighbors. */
 				for (size_t nt=0; nt<4; nt++)
@@ -448,7 +448,7 @@ struct Kmer
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
 		template<typename Functor>
-			void iterateIncomingNeighbors (const Type& source, const Functor& fct)  const
+			void iterateIncomingNeighbors (const Type& source, Functor& fct)  const
 			{
 				Type rev = core::tools::math::revcomp (source, getKmerSize());
 
