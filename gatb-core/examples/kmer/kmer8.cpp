@@ -49,7 +49,7 @@ int main (int argc, char* argv[])
         bool display = argc>=5 ? atoi(argv[4]) : false;
 
         // We declare a Bank instance defined by a list of filenames
-        IBank* bank = BankRegistery::singleton().createBank (argv[3]);
+        IBank* bank = Bank::singleton().createBank (argv[3]);
         LOCAL (bank);
 
         // We declare a kmer model and a minimizer model

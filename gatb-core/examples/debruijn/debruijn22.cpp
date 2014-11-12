@@ -42,7 +42,7 @@ public:
         if (graph.getInfo().getInt("nks") != 1)  { throw Exception("min abundance must be 1"); }
 
         // We retrieve a handle of the bank (we get the uri from the graph properties)
-        IBank* ibank = BankRegistery::singleton().createBank (graph.getInfo().getStr("input"));
+        IBank* ibank = Bank::singleton().createBank (graph.getInfo().getStr("input"));
         LOCAL (ibank);
 
         // We convert the bank to binary form

@@ -49,11 +49,11 @@ int main (int argc, char* argv[])
 
         /** We open the output bank. */
         string outputBankUri = options->getStr(STR_URI_INPUT) + "_" + System::file().getBaseName (options->getStr(STR_URI_SEQ_IDS));
-        IBank* outputBank = BankRegistery::singleton().createBank (outputBankUri);
+        IBank* outputBank = Bank::singleton().createBank (outputBankUri);
         LOCAL (outputBank);
 
         /** We loop the input bank. */
-        IBank* inputBank = BankRegistery::singleton().createBank (options->getStr(STR_URI_INPUT));
+        IBank* inputBank = Bank::singleton().createBank (options->getStr(STR_URI_INPUT));
         LOCAL (inputBank);
 
         /** We use another iterator for filtering out some sequences. */

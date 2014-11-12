@@ -60,7 +60,7 @@
 #include <gatb/tools/math/LargeInt.hpp>
 
 #include <gatb/bank/impl/Banks.hpp>
-#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 

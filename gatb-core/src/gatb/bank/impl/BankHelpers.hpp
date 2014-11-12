@@ -29,7 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/bank/api/IBank.hpp>
-#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/AbstractBank.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/misc/api/IProperty.hpp>
@@ -159,7 +159,7 @@ public:
     IBank* createBank (const std::string& uri)
     {
         /** We create the reference bank. */
-        IBank* ref = BankRegistery::singleton().getFactory(_format)->createBank (uri);
+        IBank* ref = Bank::singleton().getFactory(_format)->createBank (uri);
 
         /** We encapsulate with a filtered bank. */
         return new BankFiltered<Filter> (ref, _filter);

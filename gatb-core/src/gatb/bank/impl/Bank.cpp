@@ -17,7 +17,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 
 #include <gatb/bank/impl/BankFasta.hpp>
 #include <gatb/bank/impl/BankBinary.hpp>
@@ -41,7 +41,7 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankRegistery::BankRegistery ()
+Bank::Bank ()
 {
     /** We register most known factories. */
     registerFactory ("album",  new BankAlbumFactory());
@@ -57,7 +57,7 @@ BankRegistery::BankRegistery ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankRegistery::~BankRegistery ()
+Bank::~Bank ()
 {
     for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
     {
@@ -74,7 +74,7 @@ BankRegistery::~BankRegistery ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void BankRegistery::registerFactory (const std::string& name, IBankFactory* instance)
+void Bank::registerFactory (const std::string& name, IBankFactory* instance)
 {
     /** We look whether the factory is already registered. */
     IBankFactory* factory = getFactory (name);
@@ -97,7 +97,7 @@ void BankRegistery::registerFactory (const std::string& name, IBankFactory* inst
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IBankFactory* BankRegistery::getFactory (const std::string& name)
+IBankFactory* Bank::getFactory (const std::string& name)
 {
     for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
     {
@@ -114,9 +114,9 @@ IBankFactory* BankRegistery::getFactory (const std::string& name)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IBank* BankRegistery::createBank (const std::string& uri)
+IBank* Bank::createBank (const std::string& uri)
 {
-    DEBUG (("BankRegistery::createBank : %s \n", uri.c_str()));
+    DEBUG (("Bank::createBank : %s \n", uri.c_str()));
 
     IBank* result = 0;
     for (list<Entry>::iterator it = _factories.begin(); result==0 && it != _factories.end(); it++)
@@ -138,7 +138,7 @@ IBank* BankRegistery::createBank (const std::string& uri)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-std::string BankRegistery::getType (const std::string& uri)
+std::string Bank::getType (const std::string& uri)
 {
     string result = "unknown";
 

@@ -22,7 +22,7 @@
 
 #include <gatb/bank/impl/Banks.hpp>
 
-#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankHelpers.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
@@ -217,7 +217,7 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a Bank instance. */
-        IBank* bank = BankRegistery::singleton().createBank(filename);
+        IBank* bank = Bank::singleton().createBank(filename);
         CPPUNIT_ASSERT (bank != NULL);
         LOCAL (bank);
 
@@ -649,7 +649,7 @@ public:
     void bank_checkRegistery_aux (const string& bankformat, const string& bankuri, size_t nbCheck)
     {
         /** We get the default factory. */
-        IBankFactory* factory = BankRegistery::singleton().getFactory (bankformat);
+        IBankFactory* factory = Bank::singleton().getFactory (bankformat);
         CPPUNIT_ASSERT (factory != 0);
 
         /** We create a bank handle. */
@@ -681,7 +681,7 @@ public:
     void bank_checkRegistery2 ()
     {
         /** We register our custom bank format. */
-        BankRegistery::singleton().registerFactory (
+        Bank::singleton().registerFactory (
             "customfasta",
             new BankFilteredFactory<FilterFunctor> ("fasta", FilterFunctor())
         );
@@ -986,13 +986,13 @@ public:
     /********************************************************************************/
     void bank_registery_types (void)
     {
-        IBank* bank1 = BankRegistery::singleton().createBank (DBPATH("sample1.fa"));
+        IBank* bank1 = Bank::singleton().createBank (DBPATH("sample1.fa"));
         CPPUNIT_ASSERT (bank1 != 0);
         LOCAL (bank1);
 
-        CPPUNIT_ASSERT (BankRegistery::singleton().getType(DBPATH("album.txt"))    == "album");
-        CPPUNIT_ASSERT (BankRegistery::singleton().getType(DBPATH("sample1.fa"))   == "fasta");
-        CPPUNIT_ASSERT (BankRegistery::singleton().getType(DBPATH("sample.fastq")) == "fasta");
+        CPPUNIT_ASSERT (Bank::singleton().getType(DBPATH("album.txt"))    == "album");
+        CPPUNIT_ASSERT (Bank::singleton().getType(DBPATH("sample1.fa"))   == "fasta");
+        CPPUNIT_ASSERT (Bank::singleton().getType(DBPATH("sample.fastq")) == "fasta");
     }
 
 };

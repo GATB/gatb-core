@@ -278,7 +278,7 @@ size_t nbBNodes=0;
         for (size_t i=0; i<nbParts; i++)
         {
             stringstream ss;  ss << "part_" << i << ".fa";
-            subBanks[i] = BankRegistery::singleton().createBank (ss.str());
+            subBanks[i] = Bank::singleton().createBank (ss.str());
         }
         cout << "BANKS CREATED" << endl;
 
@@ -353,7 +353,7 @@ cout << "NBITS_PER_KMER=" << NBITS_PER_KMER << "  nbHash=" << nbHash << "  bloom
         ////////////////////////////////////////////////////////////
 
         // We retrieve a handle of the bank (we get the uri from the graph properties)
-        IBank* bank = BankRegistery::singleton().createBank (graph.getInfo().getStr("input"));
+        IBank* bank = Bank::singleton().createBank (graph.getInfo().getStr("input"));
         LOCAL (bank);
 
         // We create a sequences iterator

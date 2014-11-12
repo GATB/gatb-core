@@ -20,7 +20,7 @@
 
 #include <gatb/system/impl/System.hpp>
 
-#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankStrings.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
@@ -162,9 +162,9 @@ public:
         LOCAL (storage);
 
         IBank* bank = new BankStrings (seqs, ARRAY_SIZE(seqs));
-        // IBank* bank = BankRegistery::singleton().createBank ("/local/databases/aphid/aphid_662451seq.fa");
-        // IBank* bank = BankRegistery::singleton().createBank ("/local/databases/aphid/aphid_1000.fa");
-        // IBank* bank = BankRegistery::singleton().createBank ("/local/databases/ref/reads/ERR011139.fasta");
+        // IBank* bank = Bank::singleton().createBank ("/local/databases/aphid/aphid_662451seq.fa");
+        // IBank* bank = Bank::singleton().createBank ("/local/databases/aphid/aphid_1000.fa");
+        // IBank* bank = Bank::singleton().createBank ("/local/databases/ref/reads/ERR011139.fasta");
 
         LOCAL (bank);
 

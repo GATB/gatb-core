@@ -33,7 +33,7 @@
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
 #include <gatb/bank/impl/Banks.hpp>
-#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 #include <gatb/bank/impl/BankConverterAlgorithm.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
@@ -715,7 +715,7 @@ Graph::Graph (tools::misc::IProperties* params)
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
 
     /** We build a Bank instance for the provided reads uri. */
-    bank::IBank* bank = BankRegistery::singleton().createBank (params->getStr(STR_URI_INPUT));
+    bank::IBank* bank = Bank::singleton().createBank (params->getStr(STR_URI_INPUT));
 
     /** We build the graph according to the wanted precision. */
     boost::apply_visitor (build_visitor (*this, bank,params),  *(GraphDataVariant*)_variant);

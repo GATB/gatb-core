@@ -18,7 +18,7 @@
 *****************************************************************************/
 
 #include <gatb/bank/impl/BankAlbum.hpp>
-#include <gatb/bank/impl/BankRegistery.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/impl/Tokenizer.hpp>
 
@@ -77,7 +77,7 @@ BankAlbum::BankAlbum (const std::string& name, bool deleteIfExists) : _name(name
                 }
 
                 /** We add a new bank. */
-                BankComposite::addBank (BankRegistery::singleton().createBank(bankUri));
+                BankComposite::addBank (Bank::singleton().createBank(bankUri));
 
                 /** We memorize the uri of this bank. */
                 _banksUri.push_back (bankUri);
@@ -174,7 +174,7 @@ IBank* BankAlbum::addBank (const std::string& bankUri)
         file->print ("%s\n", bankUri.c_str());
 
         /** We create a new bank. */
-        result = BankRegistery::singleton().createBank(bankUri);
+        result = Bank::singleton().createBank(bankUri);
 
         /** We put it into the album. */
         BankComposite::addBank (result);
@@ -215,7 +215,7 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
         file->print ("%s\n", bankName.c_str());
 
         /** We add a new bank. */
-        result = BankRegistery::singleton().createBank(bankUri);
+        result = Bank::singleton().createBank(bankUri);
 
         /** We put it into the album. */
         BankComposite::addBank (result);
@@ -306,7 +306,7 @@ IBank* BankAlbumFactory::createBank (const std::string& uri)
             DEBUG (("   %s\n", names[i].c_str()));
 
             /** We create a vector with the 'unitary' banks. */
-            banks.push_back (BankRegistery::singleton().createBank (names[i]));
+            banks.push_back (Bank::singleton().createBank (names[i]));
         }
         /** We return a composite bank. */
         return new BankComposite (banks);

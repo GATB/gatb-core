@@ -17,7 +17,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/** \file BankRegistery.hpp
+/** \file Bank.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Interface definition for genomic databases management
@@ -56,12 +56,12 @@ namespace impl      {
  *
  * This class is a Singleton (private constructor) and must be used only this way.
  */
-class BankRegistery
+class Bank
 {
 public:
 
     /** Singleton instance. */
-    static BankRegistery& singleton()  { static BankRegistery instance; return instance; }
+    static Bank& singleton()  { static Bank instance; return instance; }
 
     /** Register a new factory, associated with a name.
      * \param[in] name : name of the factory
@@ -84,10 +84,10 @@ public:
 private:
 
     /** Private due to singleton method. */
-    BankRegistery ();
+    Bank ();
 
     /** Destructor. */
-    ~BankRegistery ();
+    ~Bank ();
 
     /** The order of registration is important, so we can't rely on a map and have to use
      * a list of Entry (equivalent to <key,value> of a map). */
