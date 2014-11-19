@@ -812,19 +812,28 @@ private:
 
     void update (bool isFirst)
     {
+        if (_currentIdx >= _iterators.size()) { _isDone=true;  return; }
+
         if (!isFirst)  { _currentIdx++; }
 
         while (_currentIdx<(int)_iterators.size() && _isDone == true)
         {
+            Iterator<Item>* previous = _currentIt;
+
             /** We get the next iterator. */
             _currentIt = _iterators[_currentIdx];
             assert (_currentIt != 0);
+
+            /** We have to take the reference of the previous iterator. */
+            _currentIt->setItem (previous->item());
 
             /** We have to "first" this iterator. */
             _currentIt->first();
 
             /** We update the 'isDone' status. */
             _isDone = _currentIt->isDone();
+
+            if (_isDone==true) { _currentIdx++; }
         }
     }
 };
