@@ -67,8 +67,9 @@ public:
 
     /** */
     DebloomAlgorithm (
-        tools::storage::impl::Storage& storage,
-        tools::collections::Iterable<Count>* solidIterable,
+        tools::storage::impl::Storage&   storage,
+        tools::storage::impl::Storage&   storageSolids,
+        tools::storage::impl::Partition<Count>* solidIterable,
         size_t                      kmerSize,
         size_t                      max_memory = 0,
         size_t                      nb_cores   = 0,
@@ -82,7 +83,7 @@ public:
     DebloomAlgorithm (tools::storage::impl::Storage& storage);
 
     /** */
-    ~DebloomAlgorithm ();
+    virtual ~DebloomAlgorithm ();
 
     /** */
     void execute ();
@@ -104,10 +105,13 @@ public:
     /** */
     static float getNbBitsPerKmer (size_t kmerSize, tools::misc::DebloomKind debloomKind);
 
-private:
+    /** */
+    virtual const char* getClassName() const { return "DebloomAlgorithm"; }
+
+protected:
 
     /** */
-    void execute_aux (
+    virtual void execute_aux (
         tools::misc::IProperties* bloomProps,
         tools::misc::IProperties* cfpProps,
         u_int64_t& totalSizeBloom,
@@ -129,11 +133,13 @@ private:
 
     /** */
     tools::storage::impl::Storage& _storage;
+    tools::storage::impl::Storage& _storageSolids;
 
     tools::storage::impl::Group& _groupBloom;
     tools::storage::impl::Group& _groupDebloom;
 
     size_t       _kmerSize;
+    size_t       _miniSize;
 
     tools::misc::BloomKind   _bloomKind;
     tools::misc::DebloomKind _debloomKind;
@@ -141,8 +147,11 @@ private:
     std::string  _debloomUri;
     size_t       _max_memory;
 
-    tools::collections::Iterable<Count>* _solidIterable;
-    void setSolidIterable (tools::collections::Iterable<Count>* solidIterable)  {  SP_SETATTR(solidIterable); }
+    u_int64_t _criticalNb;
+    Type      _criticalChecksum;
+
+    tools::storage::impl::Partition<Count>* _solidIterable;
+    void setSolidIterable (tools::storage::impl::Partition<Count>* solidIterable)  {  SP_SETATTR(solidIterable); }
 
     debruijn::IContainerNode<Type>* _container;
 
@@ -157,6 +166,11 @@ private:
     );
 
     void loadDebloomStructures (tools::storage::impl::Storage& storage);
+
+    static const char* progressFormat1() { return "Debloom: read solid kmers              "; }
+    static const char* progressFormat2() { return "Debloom: build extension               "; }
+    static const char* progressFormat3() { return "Debloom: finalization                  "; }
+    static const char* progressFormat4() { return "Debloom: cascading                     "; }
 };
 
 /********************************************************************************/
