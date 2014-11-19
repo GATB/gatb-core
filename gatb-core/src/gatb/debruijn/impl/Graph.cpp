@@ -38,7 +38,7 @@
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/BloomAlgorithm.hpp>
-#include <gatb/kmer/impl/DebloomAlgorithm.hpp>
+#include <gatb/kmer/impl/DebloomAlgorithmFactory.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
 
 #include <gatb/kmer/impl/MPHFAlgorithm.hpp>
@@ -339,8 +339,10 @@ struct build_visitor : public boost::static_visitor<>    {
         if (props->get(STR_URI_SOLID_KMERS) != 0)
         {
             string solidsName = props->getStr(STR_URI_SOLID_KMERS);
-            /** By convention, the file will be deleted if its name is "none". */
-            bool autoDelete = (solidsName == "none") || (solidsName == "null");
+            /** Historically (by convention), the file was deleted if its name is "none".
+             * Now, since debloom may use the minimizer repartition function (stored in the solid file),
+             * we must not delete the solid file. */
+            bool autoDelete = false; // (solidsName == "none") || (solidsName == "null");
             solidStorage = StorageFactory(graph._storageMode).create (solidsName, true, autoDelete);
         }
         else
@@ -429,8 +431,10 @@ struct build_visitor : public boost::static_visitor<>    {
         if (graph.checkState(Graph::STATE_BLOOM_DONE))
         {
             /** We create a debloom instance and execute it. */
-            DebloomAlgorithm<span> debloom (
+            DebloomAlgorithm<span>* debloom = DebloomAlgorithmFactory<span>::create (
+                graph._debloomImpl,
                 graph.getStorage(),
+                *solidStorage,
                 sortingCount.getSolidCounts(),
                 kmerSize,
                 props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
@@ -438,12 +442,14 @@ struct build_visitor : public boost::static_visitor<>    {
                 graph._bloomKind,
                 graph._debloomKind
             );
-            executeAlgorithm (debloom, graph.getStorage(), props, graph._info);
+            LOCAL (debloom);
+
+            executeAlgorithm (*debloom, graph.getStorage(), props, graph._info);
 
             graph.setState(Graph::STATE_DEBLOOM_DONE);
 
             /** We configure the variant. */
-            data.setContainer (debloom.getContainerNode());
+            data.setContainer (debloom->getContainerNode());
         }
 
         /************************************************************/
@@ -531,27 +537,24 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
 {
     tools::misc::impl::OptionsParser parser;
 
-    if (includeMandatory == true)
-    {
-        parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_INPUT, "reads file", true ));
-    }
-
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                       false,  "31"    ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE,    "abundance threshold for solid kmers",  false,  "3"     ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BANK_CONVERT_TYPE, "convert the bank ('none', 'tmp', 'keep')",     false,  "tmp"   ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,        "output file",                          false));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                     false,  "."));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,           "verbosity level",                      false,  "1"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",               false, "2000"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",               false, "0"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,          "nb cores (0 for all)",                 false, "0"));
-    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,              "help",                                 false));
-    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,           "version",                              false));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,        "bloom type ('basic' or 'cache')",      false, "cache"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_INPUT,         "reads file", includeMandatory ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                           false,  "31"    ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE,    "abundance threshold for solid kmers",      false,  "3"     ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BANK_CONVERT_TYPE, "convert the bank ('none', 'tmp', 'keep')", false,  "tmp"   ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,        "output file",                              false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,           "verbosity level",                          false,  "1"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                   false, "2000"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                   false, "0"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,          "nb cores (0 for all)",                     false, "0"));
+    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,              "help",                                     false));
+    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,           "version",                                  false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,        "bloom type ('basic', 'cache', 'neighbor')",false, "neighbor"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,      "debloom type ('none', 'original' or 'cascading')", false, "cascading"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')", false, "stored"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')", false, "none"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers ('none' means delete by convention)", false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_IMPL,      "debloom impl ('basic', 'minimizer')",      false, "minimizer"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')",      false, "stored"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')",            false, "none"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
 
     return parser;
 }
@@ -616,7 +619,8 @@ Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
+      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT),
+      _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -678,6 +682,7 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     parse (params->getStr(STR_BANK_CONVERT_TYPE), _bankConvertKind);
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
+    parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
     parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
 
@@ -708,6 +713,7 @@ Graph::Graph (tools::misc::IProperties* params)
     parse (params->getStr(STR_BANK_CONVERT_TYPE), _bankConvertKind);
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
+    parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
     parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
 
@@ -734,7 +740,7 @@ Graph::Graph ()
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
       _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT),
-      _debloomKind(DEBLOOM_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
+      _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
 }
 
@@ -774,6 +780,7 @@ Graph& Graph::operator= (const Graph& graph)
         _bankConvertKind = graph._bankConvertKind;
         _bloomKind       = graph._bloomKind;
         _debloomKind     = graph._debloomKind;
+        _debloomImpl     = graph._debloomImpl;
         _mphfKind        = graph._mphfKind;
         _branchingKind   = graph._branchingKind;
         _state           = graph._state;

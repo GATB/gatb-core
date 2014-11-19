@@ -861,6 +861,7 @@ private:
     tools::misc::BankConvertKind _bankConvertKind;
     tools::misc::BloomKind       _bloomKind;
     tools::misc::DebloomKind     _debloomKind;
+    tools::misc::DebloomImpl     _debloomImpl;
     tools::misc::BranchingKind   _branchingKind;
     tools::misc::MPHFKind        _mphfKind;
 
