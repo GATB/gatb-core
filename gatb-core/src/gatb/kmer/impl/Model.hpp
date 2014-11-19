@@ -175,7 +175,6 @@ struct Kmer
         {
             /** Not really a forward/revcomp couple, but may be useful for the minimizer default value. */
             set (val,val);
-
         }
 
         /** Set the forward/revcomp attributes. */
@@ -248,8 +247,6 @@ struct Kmer
          * \return the Model::Kmer instance */
         const typename Model::Kmer& minimizer() const  {  return _minimizer; }
 
-		
-		
         /** Returns the position of the minimizer within the kmer. By convention,
          * a negative value means that there is no minimizer inside the kmer.
          * \return the position of the minimizer. */
@@ -411,19 +408,21 @@ struct Kmer
             return true;
         }
 
-		
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 outgoing neighbors
          *  - 4 incoming neighbors.
          *  This method uses a functor that will be called for each possible neighbor of the source kmer.
          *  \param[in] source : the kmer from which we want neighbors.
-         *  \param[in] fct : a functor called for each neighbor.*/
-		template<typename Functor>
-			void iterateNeighbors (const Type& source, const Functor& fct)  const
-			{
-				iterateOutgoingNeighbors(source, (Functor&) fct); // hacky to cast Functor& instead of const Functor&, but don't wanna break API yet want non-const functor
-				iterateIncomingNeighbors(source, (Functor&) fct);
-			}
+         *  \param[in] fct : a functor called for each neighbor.
+         *  \param[in] mask : holds 8 bits for each possible neighbor (1 means that the neighbor is computed)
+         */
+        template<typename Functor>
+        void iterateNeighbors (const Type& source, const Functor& fct, u_int8_t mask=0xFF)  const
+        {
+            // hacky to cast Functor& instead of const Functor&, but don't wanna break API yet want non-const functor
+            iterateOutgoingNeighbors(source, (Functor&) fct, (mask>>0) & 15);
+            iterateIncomingNeighbors(source, (Functor&) fct, (mask>>4) & 15);
+        }
 
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 outcoming neighbors
@@ -431,37 +430,45 @@ struct Kmer
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
         template<typename Functor>
-			void iterateOutgoingNeighbors (const Type& source, Functor& fct)  const
-			{
-				/** We compute the 4 possible neighbors. */
-				for (size_t nt=0; nt<4; nt++)
-				{
-					Type next1 = (((source) * 4 )  + nt) & getKmerMax();
-					Type next2 = revcomp (next1, getKmerSize());
-					fct (std::min (next1, next2));
-				}
-			}
+        void iterateOutgoingNeighbors (const Type& source, Functor& fct, u_int8_t mask=0x0F)  const
+        {
+            /** We compute the 4 possible neighbors. */
+            for (size_t nt=0; nt<4; nt++)
+            {
+                if (mask & (1<<nt))
+                {
+                    Type next1 = (((source) * 4 )  + nt) & getKmerMax();
+                    Type next2 = revcomp (next1, getKmerSize());
+                    fct (std::min (next1, next2));
+                }
+            }
+        }
 
         /** Iterate the neighbors of a given kmer; these neighbors are:
          *  - 4 incoming neighbors
          *  This method uses a functor that will be called for each possible neighbor of the source kmer.
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
-		template<typename Functor>
-			void iterateIncomingNeighbors (const Type& source, Functor& fct)  const
-			{
-				Type rev = core::tools::math::revcomp (source, getKmerSize());
+        template<typename Functor>
+        void iterateIncomingNeighbors (const Type& source, Functor& fct, u_int8_t mask=0x0F)  const
+        {
+            Type rev = core::tools::math::revcomp (source, getKmerSize());
 
-				/** We compute the 4 possible neighbors. */
-				for (size_t nt=0; nt<4; nt++)
-				{
-					Type next1 = (((rev) * 4 )  + nt) & getKmerMax();
-					Type next2 = revcomp (next1, getKmerSize());
-					fct (std::min (next1, next2));
-				}
-			}
+            /** We compute the 4 possible neighbors. */
+            for (size_t nt=0; nt<4; nt++)
+            {
+                /** Here, we use the complement of the current nucleotide 'nt'.
+                 * Remember : A=0, C=1, T=2, G=3  (each coded on 2 bits)
+                 * => we can get the complement by negating the most significant bit (ie "nt^2") */
 
-
+                if (mask & (1<<nt))
+                {
+                    Type next1 = (((rev) * 4 )  + (nt^2)) & getKmerMax();
+                    Type next2 = revcomp (next1, getKmerSize());
+                    fct (std::min (next1, next2));
+                }
+            }
+        }
 
         /************************************************************/
         /** \brief Iterator on successive kmers
@@ -703,7 +710,7 @@ struct Kmer
             value._value   = ( (value._value << 2) +  c) & this->_kmerMask;
             value._isValid = isValid;
         }
-    };
+	};
 
     /********************************************************************************/
 
@@ -750,8 +757,6 @@ struct Kmer
         {
             value.table[0] = ( (value.table[0] << 2) +  c                     ) & this->_kmerMask;
             value.table[1] = ( (value.table[1] >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
-
-
             value._isValid = isValid;
 
             value.updateChoice();
@@ -881,6 +886,13 @@ struct Kmer
             }
         }
 
+        /** */
+        u_int64_t getMinimizerValue (const Type& k) const
+        {
+            Kmer km; km.set(k);  this->computeNewMinimizer (km);
+            return km.minimizer().value().getVal();
+        }
+
     private:
         ModelType  _kmerModel;
         ModelType  _miniModel;
@@ -922,8 +934,8 @@ struct Kmer
 
             return true;
         }
-
-        /** Returns the minimizer of the provided vector of mmers. */
+        
+                /** Returns the minimizer of the provided vector of mmers. */
         void computeNewMinimizer (Kmer& kmer) const
         {
             /** We update the attributes of the provided kmer. Note that an invalid minimizer is
