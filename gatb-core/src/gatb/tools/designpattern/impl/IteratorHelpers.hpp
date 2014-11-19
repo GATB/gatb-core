@@ -879,3 +879,4 @@ private:
 /********************************************************************************/
 
 #endif /* _GATB_CORE_DP_ITERATOR_IMPL_ITERATOR_HELPERS_HPP_ */
+
