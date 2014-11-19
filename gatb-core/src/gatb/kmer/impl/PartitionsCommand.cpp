@@ -233,8 +233,9 @@ void PartitionsByHashCommand<span>:: execute ()
 		}
 	}
 
-	/** We loop over the solid kmers map. */
-	Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator();
+	/** We loop over the solid kmers map.
+	 * NOTE !!! we want the items to be sorted by kmer values (see finalize part of debloom). */
+	Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator(true);
 	LOCAL (itKmerAbundance);
 
 	for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
