@@ -103,9 +103,10 @@ public:
     virtual u_int64_t  getBitSize  () = 0;
     virtual size_t     getNbHash   () const = 0;
 
-	virtual bool contains4 (const Item& item, bool * resu, bool right) = 0;
+	virtual bool contains4 (const Item& item, bool resu[4], bool right) = 0;
 
-	
+    virtual u_int8_t contains8 (const Item& item) = 0;
+
     virtual std::string  getName   () const  = 0;
     virtual unsigned long  weight () = 0;
 };
@@ -174,6 +175,8 @@ public:
     }
 
 	virtual bool contains4 (const Item& item, bool * resu,bool right) {return false;} //not implem by default
+
+    virtual u_int8_t contains8 (const Item& item)  { return 0; }
 
     /** */
     virtual u_int8_t*& getArray     ()  { return blooma; }
@@ -273,6 +276,8 @@ public:
     virtual std::string  getName   () const  { return "BloomNull"; }
 
 	bool contains4 (const Item& item, bool * resu,bool right) {return false;}
+
+	u_int8_t contains8 (const Item& item)  { return 0; }
 
 	
     bool contains (const Item& item) { return false; }
@@ -410,6 +415,7 @@ protected:
 };
 
 	
+/********************************************************************************/
 	
 	template <typename Item> class BloomNeighborCoherent : public BloomCacheCoherent<Item>
 	{
@@ -422,16 +428,16 @@ protected:
 		BloomNeighborCoherent (u_int64_t tai_bloom, size_t kmersize , size_t nbHash = 4,size_t block_nbits = 12 )  :
 		BloomCacheCoherent<Item> (tai_bloom , nbHash,block_nbits), _kmerSize(kmersize)
 		{
-			cano2[0] = 0;
-			cano2[1] = 1;
-			cano2[2] = 2;
-			cano2[3] = 3;
-			cano2[4] = 4;
-			cano2[5] = 5;
-			cano2[6] = 3;
-			cano2[7] = 7;
-			cano2[8] = 8;
-			cano2[9] = 9;
+			cano2[ 0] = 0;
+			cano2[ 1] = 1;
+			cano2[ 2] = 2;
+			cano2[ 3] = 3;
+			cano2[ 4] = 4;
+			cano2[ 5] = 5;
+			cano2[ 6] = 3;
+			cano2[ 7] = 7;
+			cano2[ 8] = 8;
+			cano2[ 9] = 9;
 			cano2[10] = 0;
 			cano2[11] = 4;
 			cano2[12] = 9;
@@ -448,33 +454,27 @@ protected:
 			_prefmask = trois << ((_kmerSize-1)*2); //bug was here 3 instead of item trois
 		}
 		
-
 		/** \copydoc Bag::insert. */
 		void insert (const Item& item)
 		{
-			
 			u_int64_t h0;
 			u_int64_t racine;
 			
-
 			Item suffix = item & 3 ;
 			Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
 			prefix += suffix;
 			prefix = prefix  & 15 ;
 		
 			u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
-			
 
 			Item hashpart = ( item >> 2 ) & _maskkm2 ;  // delete 1 nt at each side
 			Item rev =  revcomp(hashpart,_kmerSize-2);
 			if(rev<hashpart) hashpart = rev; //transform to canonical
-
 	
 //			Item km = item;
 //			rev =  revcomp(km,_kmerSize);
 //			if(rev < km) km = rev; //transform to canonical
 			
-
 			racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
 			//h0 = ((this->_hash (item >> 2,0) ) % this->_reduced_tai)  + (suffix_val & this->_mask_block);
 			//h0 = racine + (this->_hash (km,0)  & this->_mask_block);
@@ -484,17 +484,14 @@ protected:
             for (size_t i=1; i<this->n_hash_func; i++)
             {
                 u_int64_t h1 = h0  + ( (simplehash16( hashpart, i))  & this->_mask_block )   ;
-			//	u_int64_t h1 = racine  + ( (simplehash16( km, i))  & this->_mask_block )   ; //ceci avec simplehash+8  semble ok
-
-			//	u_int64_t h1 = h0  +  ( (this->_hash (item>>2,i)+ suffix_val)  & _mask_block );
-
+                //	u_int64_t h1 = racine  + ( (simplehash16( km, i))  & this->_mask_block )   ; //ceci avec simplehash+8  semble ok
+                //	u_int64_t h1 = h0  +  ( (this->_hash (item>>2,i)+ suffix_val)  & _mask_block );
                 __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
             }
-			
 		}
 		
 		/** */
-		std::string  getName () const { return "cache"; }
+		std::string  getName () const { return "neighbor"; }
 		
 		/** */
 		u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
@@ -502,10 +499,7 @@ protected:
 		/** \copydoc Container::contains. */
 		bool contains (const Item& item)
 		{
-			
-
 			u_int64_t racine;
-
 			
 			Item suffix = item & 3 ;
 			Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
@@ -517,17 +511,13 @@ protected:
 			Item hashpart = ( item >> 2 ) & _maskkm2 ;  // delete 1 nt at each side
 			Item rev =  revcomp(hashpart,_kmerSize-2);
 			if(rev<hashpart) hashpart = rev; //transform to canonical
-			
-//			
-//			Item km = item;
-//			rev =  revcomp(km,_kmerSize);
-//			if(rev < km) km = rev; //transform to canonical
-			
-			
+
+            // Item km = item;
+            // rev =  revcomp(km,_kmerSize);
+            // if(rev < km) km = rev; //transform to canonical
 			
 			u_int64_t tab_keys [20];
 			u_int64_t h0;
-			
 			
 			racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
 			//h0 = racine + (this->_hash (km,0)  & this->_mask_block);
@@ -540,12 +530,9 @@ protected:
 			for (size_t i=1; i<this->n_hash_func; i++)
 			{
 				tab_keys[i] =  h0  + (  (simplehash16( hashpart, i)  ) & this->_mask_block );// with simplest hash
-				//tab_keys[i] =  racine  + (  (simplehash16( km, i)  ) & this->_mask_block );
-
-				//	tab_keys[i] =  h0  + (  (this->_hash (item>>2,i) + suffix_val ) & _mask_block );// with simplest hash
-				
+				// tab_keys[i] =  racine  + (  (simplehash16( km, i)  ) & this->_mask_block );
+				// tab_keys[i] =  h0  + (  (this->_hash (item>>2,i) + suffix_val ) & _mask_block );// with simplest hash
 			}
-			
 			
 			if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  } //was != bit_mask[h0 & 7]
 			
@@ -555,9 +542,7 @@ protected:
 				if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } //was != bit_mask[h0 & 7]
 			}
 			return true;
-			
 		}
-		
 		
 		//ask for all 4 neighbors of item in one call
 		// give it CAAA
@@ -573,29 +558,21 @@ protected:
 			Item trois = 3;
 			
 			size_t shifts = (_kmerSize -1)*2;
-			if(right)
-			{
-				elem = (item << 2) & _kmerMask ;
-			}
-			else
-			{
-				elem = (item >> 2) ;
-			}
 			
+			if (right)  {  elem = (item << 2) & _kmerMask ;  }
+			else        {  elem = (item >> 2) ;              }
+
 			//get the canonical of middle part
 			hashpart = ( elem >> 2 ) & _maskkm2 ;
 			rev =  revcomp(hashpart,_kmerSize-2);
 			if(rev<hashpart) hashpart = rev;
 
-			
 			u_int64_t racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
 
-			
 			__builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); //preparing for read
 
 			Item tmp,suffix,prefix;
 			u_int64_t pref_val;
-			
 			
 			//with val of prefix+suffix  for neighbor shift
 
@@ -606,7 +583,6 @@ protected:
 			pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
 			
 			h0 = racine + (pref_val  & this->_mask_block);
-
 			
 			if(right) tmp = elem+un;
 			else tmp = elem + (un<<shifts) ;
@@ -616,8 +592,6 @@ protected:
 			pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
 			
 			i0 = racine + (pref_val  & this->_mask_block);
-			
-			
 			
 			if(right) tmp = elem+deux;
 			else tmp = elem + (deux<<shifts) ;
@@ -637,11 +611,6 @@ protected:
 			
 			k0 = racine + (pref_val  & this->_mask_block);
 	
-			
-			
-			
-			
-			
 			/*
 			 //with full hash of kmer for neighbor shift
 			tmp = elem;
@@ -666,13 +635,9 @@ protected:
 			rev =  revcomp(tmp,_kmerSize);
 			if(rev < tmp) tmp = rev;
 			k0 = racine + (this->_hash (tmp,0)  & this->_mask_block);
-*/
-			
-
+			 */
 			
 			u_int64_t tab_hashes [20];
-
-
 			
 			//compute all hashes during prefetch
 			for (size_t i=1; i<this->n_hash_func; i++)
@@ -680,19 +645,15 @@ protected:
 				tab_hashes[i] = simplehash16( hashpart, i) & this->_mask_block ;
 			}
 			
-			
 			resu[0] = true;
 			resu[1] = true;
 			resu[2] = true;
 			resu[3] = true;
 
-			
 			if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0)  {  resu[0]=false;  }
 			if ((this->blooma[i0 >> 3 ] & bit_mask[i0 & 7]) == 0)  {  resu[1]=false;  }
 			if ((this->blooma[j0 >> 3 ] & bit_mask[j0 & 7]) == 0)  {  resu[2]=false;  }
 			if ((this->blooma[k0 >> 3 ] & bit_mask[k0 & 7]) == 0)  {  resu[3]=false;  }
-			
-			
 			
 			//plus rapide avec 4 boucles separees que une ci dessous avec test pour break
 			for (size_t i=1; i<this->n_hash_func; i++)
@@ -715,9 +676,6 @@ protected:
 				u_int64_t h1 =  k0 +  tab_hashes[i]   ;
 				if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu[3]=false; break; }
 			}
-
-			
-			
 			
 			/*
 			for (size_t i=1; i<this->n_hash_func; i++)
@@ -735,12 +693,22 @@ protected:
 				if(resu[0]== false &&  resu[1]== false && resu[2]== false && resu[3]== false)
 					break;
 			}
-*/
+			 */
 		
 			return resu[0]; //not used
-			
 		}
-		
+
+		/** */
+		u_int8_t contains8 (const Item& item)
+	    {
+		    u_int8_t result = 0;
+		    bool resu[8];
+	        this->contains4 (item, resu+0, true);
+            this->contains4 (item, resu+4, false);
+            for (size_t i=0; i<8; i++)  { result += resu[i] ? (1<<i) : 0; }
+            return result;
+	    }
+
 		
 	private:
 		unsigned int cano2[16];
@@ -1217,24 +1185,29 @@ public:
     static BloomFactory& singleton()  { static BloomFactory instance; return instance; }
 
     /** */
-    template<typename T> IBloom<T>* createBloom (tools::misc::BloomKind kind, u_int64_t tai_bloom, size_t nbHash, size_t kmersize = 31)
+    template<typename T> IBloom<T>* createBloom (tools::misc::BloomKind kind, u_int64_t tai_bloom, size_t nbHash, size_t kmersize)
     {
         switch (kind)
         {
-            case tools::misc::BLOOM_NONE:      return new BloomNull<T>          ();
-            case tools::misc::BLOOM_BASIC:     return new BloomSynchronized<T>  (tai_bloom, nbHash);
-            case tools::misc::BLOOM_CACHE:     return new BloomCacheCoherent<T> (tai_bloom, nbHash);
-			case tools::misc::BLOOM_NEIGHBOR:     return new BloomNeighborCoherent<T> (tai_bloom,kmersize, nbHash);
-            case tools::misc::BLOOM_DEFAULT:   return new BloomCacheCoherent<T> (tai_bloom, nbHash);
+            case tools::misc::BLOOM_NONE:      return new BloomNull<T>             ();
+            case tools::misc::BLOOM_BASIC:     return new BloomSynchronized<T>     (tai_bloom, nbHash);
+            case tools::misc::BLOOM_CACHE:     return new BloomCacheCoherent<T>    (tai_bloom, nbHash);
+			case tools::misc::BLOOM_NEIGHBOR:  return new BloomNeighborCoherent<T> (tai_bloom, kmersize, nbHash);
+            case tools::misc::BLOOM_DEFAULT:   return new BloomCacheCoherent<T>    (tai_bloom, nbHash);
             default:        throw system::Exception ("bad Bloom kind %d in createBloom", kind);
         }
     }
 
     /** */
-    template<typename T> IBloom<T>* createBloom (std::string name, std::string sizeStr, std::string nbHashStr)
+    template<typename T> IBloom<T>* createBloom (
+        const std::string& name,
+        const std::string& sizeStr,
+        const std::string& nbHashStr,
+        const std::string& kmerSizeStr
+    )
     {
         tools::misc::BloomKind kind;  parse (name, kind);
-        return createBloom<T> (kind, (u_int64_t)atol (sizeStr.c_str()), (size_t)atol (nbHashStr.c_str()));
+        return createBloom<T> (kind, (u_int64_t)atol (sizeStr.c_str()), (size_t)atol (nbHashStr.c_str()), atol (kmerSizeStr.c_str()));
     }
 };
 

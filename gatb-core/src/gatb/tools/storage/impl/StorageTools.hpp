@@ -74,7 +74,7 @@ public:
     }
 
     /** */
-    template<typename T>  void saveBloom (Group& group, const std::string& name, collections::impl::IBloom<T>* bloom)
+    template<typename T>  void saveBloom (Group& group, const std::string& name, collections::impl::IBloom<T>* bloom, size_t kmerSize)
     {
         collections::Collection<math::NativeInt8>* bloomCollection = & group.getCollection<math::NativeInt8> (name);
 
@@ -82,10 +82,12 @@ public:
 
         std::stringstream ss1;  ss1 <<  bloom->getBitSize();
         std::stringstream ss2;  ss2 <<  bloom->getNbHash();
+        std::stringstream ss3;  ss3 <<  kmerSize;
 
-        bloomCollection->addProperty ("size",    ss1.str());
-        bloomCollection->addProperty ("nb_hash", ss2.str());
-        bloomCollection->addProperty ("type",    bloom->getName());
+        bloomCollection->addProperty ("size",      ss1.str());
+        bloomCollection->addProperty ("nb_hash",   ss2.str());
+        bloomCollection->addProperty ("type",      bloom->getName());
+        bloomCollection->addProperty ("kmer_size", ss3.str());
     }
 
     /** */
@@ -98,7 +100,8 @@ public:
         tools::collections::impl::IBloom<T>* bloom = tools::collections::impl::BloomFactory::singleton().createBloom<T> (
             bloomArray->getProperty("type"),
             bloomArray->getProperty("size"),
-            bloomArray->getProperty("nb_hash")
+            bloomArray->getProperty("nb_hash"),
+            bloomArray->getProperty("kmer_size")
         );
 
         /** We set the bloom with the provided array given as an iterable of NativeInt8 objects. */
