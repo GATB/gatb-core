@@ -49,7 +49,7 @@ namespace impl          {
     {
         tools::misc::BloomKind bloomKind = tools::misc::BLOOM_BASIC;
         bloom = tools::collections::impl::BloomFactory::singleton().createBloom<Type> (
-                                bloomKind, (u_int64_t)(bloom_size), 1
+                                bloomKind, (u_int64_t)(bloom_size), 1, 31
                                                         );
     }
 
