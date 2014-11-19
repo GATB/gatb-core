@@ -42,7 +42,7 @@ namespace misc      {
  *      - ease translation in different languages
  *      - entry point for strings obfuscation if needed
  *
- * // rayan's remark: I respecfully disagree, this is not useful: we won't translate and we won't obfuscate
+ * // rayan's remark: I respectfully disagree, this is not useful: we won't translate and we won't obfuscate
  *
  * It could also be possible to read the strings from a configuration file.
  *
@@ -101,6 +101,7 @@ public:
     const char* version        ()  { return "-version";        }
     const char* bloom_type     ()  { return "-bloom";          }
     const char* debloom_type   ()  { return "-debloom";        }
+    const char* debloom_impl   ()  { return "-debloom-impl";   }
     const char* branching_type ()  { return "-branching-nodes";}
     const char* mphf_type ()       { return "-mphf";}
     const char* uri_solid_kmers()  { return "-solid-kmers-out";    }
@@ -139,6 +140,7 @@ public:
 #define STR_VERSION             gatb::core::tools::misc::StringRepository::singleton().version ()
 #define STR_BLOOM_TYPE          gatb::core::tools::misc::StringRepository::singleton().bloom_type()
 #define STR_DEBLOOM_TYPE        gatb::core::tools::misc::StringRepository::singleton().debloom_type()
+#define STR_DEBLOOM_IMPL        gatb::core::tools::misc::StringRepository::singleton().debloom_impl()
 #define STR_BRANCHING_TYPE      gatb::core::tools::misc::StringRepository::singleton().branching_type()
 #define STR_MPHF_TYPE           gatb::core::tools::misc::StringRepository::singleton().mphf_type()
 #define STR_URI_SOLID_KMERS     gatb::core::tools::misc::StringRepository::singleton().uri_solid_kmers()

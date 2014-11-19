@@ -60,11 +60,11 @@ enum BloomKind  {  BLOOM_NONE, BLOOM_BASIC, BLOOM_CACHE, BLOOM_NEIGHBOR, BLOOM_D
 
 static void parse (const std::string& s, BloomKind& kind)
 {
-         if (s == "none")     { kind = BLOOM_NONE;  }
-    else if (s == "basic")    { kind = BLOOM_BASIC;  }
-    else if (s == "cache")    { kind = BLOOM_CACHE; }
+         if (s == "none")        { kind = BLOOM_NONE;  }
+    else if (s == "basic")       { kind = BLOOM_BASIC;  }
+    else if (s == "cache")       { kind = BLOOM_CACHE; }
 	else if (s == "neighbor")    { kind = BLOOM_NEIGHBOR; }
-    else if (s == "default")  { kind = BLOOM_CACHE; }
+    else if (s == "default")     { kind = BLOOM_CACHE; }
     else   { throw system::Exception ("bad Bloom kind '%s'", s.c_str()); }
 }
 
@@ -109,6 +109,29 @@ static std::string toString (DebloomKind kind)
 
 /********************************************************************************/
 
+enum DebloomImpl  { DEBLOOM_IMPL_BASIC, DEBLOOM_IMPL_MINIMIZER, DEBLOOM_IMPL_DEFAULT };
+
+static void parse (const std::string& s, DebloomImpl& kind)
+{
+         if (s == "basic")       { kind = DEBLOOM_IMPL_BASIC;      }
+    else if (s == "minimizer")   { kind = DEBLOOM_IMPL_MINIMIZER;  }
+    else if (s == "default")     { kind = DEBLOOM_IMPL_MINIMIZER; }
+    else   { throw system::Exception ("bad debloom impl '%s'", s.c_str()); }
+}
+
+static std::string toString (DebloomImpl kind)
+{
+    switch (kind)
+    {
+        case DEBLOOM_IMPL_BASIC:      return "basic";
+        case DEBLOOM_IMPL_MINIMIZER:  return "minimizer";
+        case DEBLOOM_IMPL_DEFAULT:    return "minimizer";
+        default:        throw system::Exception ("bad debloom impl %d", kind);
+    }
+}
+
+/********************************************************************************/
+
 enum BranchingKind  { BRANCHING_NONE, BRANCHING_STORED };
 
 static void parse (const std::string& s, BranchingKind& kind)
@@ -148,7 +171,6 @@ static std::string toString (MPHFKind kind)
         default:        throw system::Exception ("bad mphf kind %d", kind);
     }
 }
-
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
