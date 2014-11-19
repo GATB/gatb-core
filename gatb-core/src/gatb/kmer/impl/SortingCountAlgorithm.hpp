@@ -66,8 +66,8 @@ namespace impl      {
 template<size_t span=KMER_DEFAULT_SPAN>
 class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
-public:
-	
+private:
+
 	/** We define here a 'maximizer' in the mmers of a specific kmer. */
 	struct  CustomMinimizer
 	{
@@ -122,6 +122,7 @@ public:
 		}
 	};
 	
+public:
     /** Shortcuts. */
 		
 	typedef typename Kmer<span>::ModelCanonical  ModelCanonical;

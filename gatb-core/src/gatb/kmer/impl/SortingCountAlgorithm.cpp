@@ -324,6 +324,15 @@ void SortingCountAlgorithm<span>::execute ()
     (*_storage)("dsk").addProperty ("kmer_size", Stringify::format("%d", _kmerSize));
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+
 // estimated the number of distinct kmers in a dataset
 // wrapper around a Linear Counter. Adapted from Kmergenie code.
 // why not a hyperloglog? it seems that the transition from the 32bit-hash initial implementation to 64bits, and supporting billions of elements, is nontrivial, so i didn't bother
@@ -334,21 +343,21 @@ class EstimateNbDistinctKmers
 public:
 
     /** Shortcut. */
-    typedef typename SortingCountAlgorithm<span>::Type            Type;
-    typedef typename SortingCountAlgorithm<span>::Model           Model;
-    typedef typename Model::Kmer           KmerType;
- 
+    typedef typename SortingCountAlgorithm<span>::Type  Type;
+    typedef typename SortingCountAlgorithm<span>::Model Model;
+    typedef typename Model::Kmer                        KmerType;
+
+    /** */
     void estimate()
     {
-
         nb_distinct_kmers =(unsigned long)( (float)(linearCounter->count( )) * ((float)nbKmersTotal / (float)nbProcessedKmers)); // dubious linear extrapolation, that's all I got
 
         abs_error = abs((long)(nb_distinct_kmers-previous_nb_distinct_kmers));
 
         previous_nb_distinct_kmers = nb_distinct_kmers;
-
     }
 
+    /** */
     void operator() (Sequence& sequence)
     {
         /** We build the kmers from the current sequence. */
@@ -431,8 +440,6 @@ private:
     LinearCounter<span> *linearCounter;
     int eval_every_N_reads;
     unsigned long previous_nb_distinct_kmers, nb_distinct_kmers;
-
-    //ProgressSynchro _progress; // disabled progress
 };
 
 /*********************************************************************
