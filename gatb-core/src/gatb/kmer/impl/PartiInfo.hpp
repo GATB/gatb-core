@@ -351,7 +351,7 @@ private:
     /** Get the repartition table. It is built at first call. */
     const Table& getRepartTable()
     {
-        if (_repart_table.empty()) { throw system::Exception ("Repartitor : table has not been initialized"); }
+		// if (_repart_table.empty()) { throw system::Exception ("Repartitor : table has not been initialized"); }
         return _repart_table;
     }
 
