@@ -33,6 +33,8 @@
 #include <cassert>
 #include <gatb/tools/storage/impl/CollectionFile.hpp>
 
+#define DEBUG_STORAGE(a)  //printf a
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -48,6 +50,7 @@ public:
     /** */
     static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
     {
+        DEBUG_STORAGE (("StorageFileFactory::createStorage  name='%s'\n", name.c_str()));
         return new Storage (STORAGE_FILE, name, autoRemove);
     }
 
@@ -60,6 +63,8 @@ public:
     /** */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
+        DEBUG_STORAGE (("StorageFileFactory::createGroup  name='%s'\n", name.c_str()));
+
         ICell* root = ICell::getRoot (parent);
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
@@ -71,6 +76,8 @@ public:
     template<typename Type>
     static Partition<Type>* createPartition (ICell* parent, const std::string& name, size_t nb)
     {
+        DEBUG_STORAGE (("StorageFileFactory::createPartition  name='%s'\n", name.c_str()));
+
         ICell* root = ICell::getRoot (parent);
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
@@ -83,18 +90,21 @@ public:
     template<typename Type>
     static CollectionNode<Type>* createCollection (ICell* parent, const std::string& name, system::ISynchronizer* synchro)
     {
-        /** We define the full qualified id of the current collection to be created. */
-        std::string actualName = std::string("tmp.") + name;
-
         ICell* root = ICell::getRoot (parent);
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
+
+        /** We define the full qualified id of the current collection to be created. */
+        std::string actualName = storage->getId() + std::string(".") + parent->getFullId() + std::string(".") + name;
+
+        DEBUG_STORAGE (("StorageFileFactory::createCollection  name='%s'  actualName='%s' \n", name.c_str(), actualName.c_str() ));
 
         return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionFile<Type>(actualName));
     }
 };
 
-
+/********************************************************************************/
+/********************************************************************************/
 
 class StorageGzFileFactory
 {
