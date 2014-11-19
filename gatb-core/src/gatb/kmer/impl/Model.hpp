@@ -43,6 +43,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <bitset>
 
 extern const char bin2NT[] ;
 extern const char binrev[] ;
@@ -409,19 +410,19 @@ struct Kmer
         }
 
         /** Iterate the neighbors of a given kmer; these neighbors are:
-         *  - 4 outgoing neighbors
-         *  - 4 incoming neighbors.
+         *  - 4 outgoing neighbors (with nt A,C,T,G)
+         *  - 4 incoming neighbors (with nt A,C,T,G)
          *  This method uses a functor that will be called for each possible neighbor of the source kmer.
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.
          *  \param[in] mask : holds 8 bits for each possible neighbor (1 means that the neighbor is computed)
          */
         template<typename Functor>
-        void iterateNeighbors (const Type& source, const Functor& fct, u_int8_t mask=0xFF)  const
+        void iterateNeighbors (const Type& source, const Functor& fct, const std::bitset<8>& mask = 0xFF)  const
         {
             // hacky to cast Functor& instead of const Functor&, but don't wanna break API yet want non-const functor
-            iterateOutgoingNeighbors(source, (Functor&) fct, (mask>>0) & 15);
-            iterateIncomingNeighbors(source, (Functor&) fct, (mask>>4) & 15);
+            iterateOutgoingNeighbors(source, (Functor&) fct, std::bitset<4> ( (mask.to_ulong() >> 0) & 15));
+            iterateIncomingNeighbors(source, (Functor&) fct, std::bitset<4> ( (mask.to_ulong() >> 4) & 15));
         }
 
         /** Iterate the neighbors of a given kmer; these neighbors are:
@@ -430,12 +431,12 @@ struct Kmer
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
         template<typename Functor>
-        void iterateOutgoingNeighbors (const Type& source, Functor& fct, u_int8_t mask=0x0F)  const
+        void iterateOutgoingNeighbors (const Type& source, Functor& fct, const std::bitset<4>& mask = 0x0F)  const
         {
             /** We compute the 4 possible neighbors. */
             for (size_t nt=0; nt<4; nt++)
             {
-                if (mask & (1<<nt))
+                if (mask[nt] == true)
                 {
                     Type next1 = (((source) * 4 )  + nt) & getKmerMax();
                     Type next2 = revcomp (next1, getKmerSize());
@@ -450,18 +451,19 @@ struct Kmer
          *  \param[in] source : the kmer from which we want neighbors.
          *  \param[in] fct : a functor called for each neighbor.*/
         template<typename Functor>
-        void iterateIncomingNeighbors (const Type& source, Functor& fct, u_int8_t mask=0x0F)  const
+        void iterateIncomingNeighbors (const Type& source, Functor& fct, const std::bitset<4>& mask = 0x0F)  const
         {
             Type rev = core::tools::math::revcomp (source, getKmerSize());
 
             /** We compute the 4 possible neighbors. */
             for (size_t nt=0; nt<4; nt++)
             {
-                /** Here, we use the complement of the current nucleotide 'nt'.
+                /** Here, we use the complement of the current nucleotide 'nt', the idea is to have the same
+                 * nucleotide iteration than the iterateOutgoingNeighbors method.
                  * Remember : A=0, C=1, T=2, G=3  (each coded on 2 bits)
                  * => we can get the complement by negating the most significant bit (ie "nt^2") */
 
-                if (mask & (1<<nt))
+                if (mask[nt] == true)
                 {
                     Type next1 = (((rev) * 4 )  + (nt^2)) & getKmerMax();
                     Type next2 = revcomp (next1, getKmerSize());

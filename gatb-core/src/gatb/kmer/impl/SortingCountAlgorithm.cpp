@@ -1087,13 +1087,23 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
          * Note that _max_memory has initially been divided by the user provided cores number. */
         u_int64_t mem = (_max_memory*MBYTE)/currentNbCores;
 
-        ISynchronizer* synchro = System::thread().newSynchronizer();
-        LOCAL (synchro);
+        /** We need to cache the solid kmers partitions.
+         *  NOTE : it is important to save solid kmers by big chunks (ie cache size) in each partition.
+         *  Indeed, if we directly iterate the solid kmers through a Partition::iterator() object,
+         *  one partition is iterated after another one, which doesn't reflect the way they are in filesystem,
+         *  (ie by chunks of solid kmers) which may lead to many moves into the global HDF5 file.
+         *  One solution is to make sure that the written chunks of solid kmers are big enough: here
+         *  we accept to provide at most 2% of the max memory, or chunks of 200.000 items.
+         */
+        size_t cacheSize = std::min ((u_int64_t)(200*1000), mem/(50*sizeof(Count)));
 
         DEBUG (("SortingCountAlgorithm::fillSolidKmers:  computing %zu partitions simultaneously , parti : ",currentNbCores));
 
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
+            ISynchronizer* synchro = System::thread().newSynchronizer();
+            LOCAL (synchro);
+
             /** We get the pth collection for storing solid kmers for the current partition. */
             Bag<Count>* solidKmers = & (*_solidCounts)[p];
 
@@ -1115,7 +1125,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
                 // also allow to use mem pool for oahash ? ou pas la peine
                 cmd = new PartitionsByHashCommand<span>   (
                     solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
-                    pInfo,p,_nbCores_per_partition, _kmerSize,pool, mem
+                    pInfo,p,_nbCores_per_partition, _kmerSize,pool, cacheSize, mem
                 );
             }
             else
@@ -1125,12 +1135,14 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
 
                 cmd = new PartitionsByVectorCommand<span> (
                     solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
-                    pInfo,p,_nbCores_per_partition, _kmerSize, pool
+                    pInfo,p,_nbCores_per_partition, _kmerSize, pool, cacheSize
                 );
             }
 
             cmds.push_back (cmd);
-        }
+
+        } /* end of for (size_t j=0; j<currentNbCores... */
+
         DEBUG (("\n"));
 
         /** We launch the commands through a dispatcher. */

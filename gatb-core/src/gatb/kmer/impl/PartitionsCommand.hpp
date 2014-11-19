@@ -70,7 +70,8 @@ public:
 		int                                                 parti,
 		size_t                                              nbCores,
 		size_t                                              kmerSize,
-		gatb::core::tools::misc::impl::MemAllocator&        pool
+		gatb::core::tools::misc::impl::MemAllocator&        pool,
+	    size_t                                              cacheSize
     );
 
     /** Destructor. */
@@ -122,6 +123,7 @@ public:
         size_t                                              nbCores,
         size_t                                              kmerSize,
         gatb::core::tools::misc::impl::MemAllocator&        pool,
+        size_t                                              cacheSize,
         u_int64_t                                           hashMemory
     );
 
@@ -164,7 +166,8 @@ public:
             int                                                 parti,
             size_t                                              nbCores,
             size_t                                              kmerSize,
-            gatb::core::tools::misc::impl::MemAllocator&        pool
+            gatb::core::tools::misc::impl::MemAllocator&        pool,
+            size_t                                              cacheSize
     );
 
     /** Destructor. */

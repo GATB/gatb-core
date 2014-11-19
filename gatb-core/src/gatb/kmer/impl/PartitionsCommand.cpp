@@ -65,10 +65,11 @@ PartitionsCommand<span>:: PartitionsCommand (
     int                 parti,
     size_t              nbCores,
     size_t              kmerSize,
-    MemAllocator&       pool
+    MemAllocator&       pool,
+    size_t              cacheSize
 )
     : _abundance(abundance),
-      _solidKmers(solidKmers, 10*1000, synchro),
+      _solidKmers(solidKmers, cacheSize, synchro),
       _partition(partition),
       _histogram(histogram),
       _progress(progress, synchro),
@@ -155,10 +156,11 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
     size_t                  nbCores,
     size_t                  kmerSize,
     MemAllocator&           pool,
+    size_t                  cacheSize,
     u_int64_t               hashMemory
 )
     : PartitionsCommand<span> (
-        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool),
+        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
         _hashMemory(hashMemory)
 {
 }
@@ -419,10 +421,11 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
     int                 parti,
     size_t              nbCores,
     size_t              kmerSize,
-    MemAllocator&       pool
+    MemAllocator&       pool,
+    size_t              cacheSize
 )
     : PartitionsCommand<span> (
-        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool),
+        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
         _radix_kmers (0), _radix_sizes(0), _r_idx(0)
 {
     _dispatcher = new Dispatcher (this->_nbCores);

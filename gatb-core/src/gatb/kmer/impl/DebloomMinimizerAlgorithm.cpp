@@ -151,7 +151,7 @@ struct FunctorKmersExtension
         /** We want to know which neighbors of the current kmer are in the Bloom filter.
          * Note that, according to the Bloom filter implementation, we can have optimized
          * way to get 8 answers in one shot. */
-        u_int8_t mask =  bloom->contains8 (kmer.value);
+        bitset<8> mask =  bloom->contains8 (kmer.value);
 
         /** We iterate the neighbors (only those found in the Bloom filter). */
         model.iterateNeighbors (kmer.value, functorNeighbors, mask);
