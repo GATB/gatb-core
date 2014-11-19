@@ -293,7 +293,7 @@ public:
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidCounts()->getNbItems());
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, sortingCount.getSolidCounts(), kmerSize);
+        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();
