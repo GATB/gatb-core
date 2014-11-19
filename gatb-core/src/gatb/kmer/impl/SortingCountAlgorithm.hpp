@@ -50,11 +50,6 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-	
-	
-
-	
-	
 /** \brief Class performing the kmer counting (also known as 'DSK')
 	
  *
@@ -172,7 +167,7 @@ public:
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
-    tools::collections::Iterable<Count>* getSolidCounts ()  { return _solidCounts; }
+    tools::storage::impl::Partition<Count>* getSolidCounts ()  { return _solidCounts; }
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
@@ -196,7 +191,7 @@ private:
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
      */
-    void fillSolidKmers (gatb::core::tools::collections::Bag<Count>* solidKmers, PartiInfo<5>& pInfo);
+    void fillSolidKmers (PartiInfo<5>& pInfo);
 
     /** */
     std::vector <size_t> getNbCoresList (PartiInfo<5>& pInfo);
@@ -212,9 +207,8 @@ private:
     tools::collections::Iterable<Type>* _solidKmers;
     void setSolidKmers (tools::collections::Iterable<Type>* solidKmers)  { SP_SETATTR(solidKmers); }
 
-    /** */
-    tools::storage::impl::CollectionNode<Count>* _solidCounts;
-    void setSolidCounts (tools::storage::impl::CollectionNode<Count>* solidCounts)
+    tools::storage::impl::Partition<Count>* _solidCounts;
+    void setSolidCounts (tools::storage::impl::Partition<Count>* solidCounts)
     {
         SP_SETATTR(solidCounts);
         setSolidKmers (solidCounts ? new tools::collections::impl::IterableAdaptor<Count,Type,Count2TypeAdaptor> (*_solidCounts) : 0);
@@ -227,7 +221,7 @@ private:
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
     size_t      _nb_partitions_in_parallel;
-    size_t      _minim_size;;
+    size_t      _minim_size;
 
     std::string _prefix;
     std::string _histogramUri;

@@ -130,7 +130,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidCounts (& (*_storage)("dsk").getCollection<Count> ("solid"));
+	// setSolidCounts (& (*_storage)("dsk").getCollection<Count> ("solid"));
 
     /** We set the histogram instance. */
     setHistogram (new Histogram  (10000, & (*_storage)("dsk").getCollection<Histogram::Entry>("histogram") ));
@@ -149,7 +149,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
   : Algorithm("dsk", 0, 0),
     _storage(&storage),
     _bank(0),
-    _kmerSize(0), _abundance(0),
+    _kmerSize(0), _minim_size(0), _abundance(0),
     _partitionType(0), _nbCores(0), _prefix(""),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
@@ -160,8 +160,12 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
 {
     Group& group = (*_storage)(this->getName());
 
+    /** We retrieve the number of partitions. */
+    string nbPartStr = group.getProperty ("nb_partitions");
+    _nb_partitions = atoi (nbPartStr.c_str());
+
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidCounts (& group.getCollection<Count> ("solid"));
+    setSolidCounts (& group.getPartition<Count> ("solid", _nb_partitions));
 
     string xmlString = group.getProperty ("xml");
     stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
@@ -276,13 +280,13 @@ void SortingCountAlgorithm<span>::execute ()
         fillPartitions (_current_pass, itSeq, pInfo);
 
         /** 2) We fill the kmers solid file from the partition files. */
-        fillSolidKmers (_solidCounts->bag(), pInfo);
+        fillSolidKmers (pInfo);
     }
 
     _progress->finish ();
 
     /** We flush the solid kmers file. */
-    _solidCounts->bag()->flush();
+    _solidCounts->flush();
 
     /** We save the histogram if any. */
     _histogram->save ();
@@ -302,7 +306,7 @@ void SortingCountAlgorithm<span>::execute ()
     /** We want to remove physically the partitions. */
     _partitions->remove ();
 
-    u_int64_t nbSolids = _solidCounts->iterable()->getNbItems();
+    u_int64_t nbSolids = _solidCounts->getNbItems();
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
@@ -444,7 +448,6 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 {
     float load_factor = 0.7;
 
-
    /** We get some information about the bank. */
 
     /** By default, we want to have mmers of size 8. However (for unit tests for instance),
@@ -580,12 +583,21 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     assert(_nbCores_per_partition > 0);
 
+    /** Now, we can define the output solid partition. */
+    setSolidCounts (& (*_storage)("dsk").getPartition<Count> ("solid", _nb_partitions));
+
+    /** We save the number of partitions. */
+    stringstream ss; ss << _nb_partitions;
+    (*_storage)("dsk").addProperty ("nb_partitions", ss.str());
+
     /** We gather some statistics. */
     getInfo()->add (1, "config");
+    getInfo()->add (2, "bank_uri",          "%s",  _bank->getId().c_str());
+    getInfo()->add (2, "bank_size",         "%ld", _bank->getSize());
     getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);
+    getInfo()->add (2, "mini_size",         "%ld", _minim_size);
     getInfo()->add (2, "abundance",         "%ld", _abundance);
     getInfo()->add (2, "available_space",   "%ld", available_space);
-    getInfo()->add (2, "bank_size",         "%ld", bankSize);
     getInfo()->add (2, "sequence_number",   "%ld", _estimateSeqNb);
     getInfo()->add (2, "sequence_volume",   "%ld", _estimateSeqTotalSize / MBYTE);
     getInfo()->add (2, "kmers_number",      "%ld", kmersNb);
@@ -1039,7 +1051,7 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList (PartiInfo<5>& p
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>* solidKmers, PartiInfo<5>& pInfo)
+void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
@@ -1075,6 +1087,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers (Bag<Count>* solidKmers, PartiI
 
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
+            /** We get the pth collection for storing solid kmers for the current partition. */
+            Bag<Count>* solidKmers = & (*_solidCounts)[p];
+
             DEBUG ((" %zu ", p));
 
             /* Get the memory taken by this partition if loaded for sorting */
