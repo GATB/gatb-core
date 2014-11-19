@@ -232,6 +232,34 @@ inline collections::Collection<Type>& Partition<Type>::operator[] (size_t idx)
 /*********************************************************************
 *********************************************************************/
 template<typename Type>
+inline dp::Iterator<Type>* Partition<Type>::iterator ()
+{
+    std::vector <dp::Iterator<Type>*> iterators;
+    for (size_t i=0; i<this->size(); i++) { iterators.push_back ((*this)[i].iterator()); }
+    return new dp::impl::CompositeIterator<Type> (iterators);
+}
+
+/*********************************************************************
+*********************************************************************/
+template<typename Type>
+inline int64_t Partition<Type>::getNbItems ()
+{
+    int64_t result = 0;   for (size_t i=0; i<this->size(); i++) { result += (*this)[i].getNbItems(); }
+    return result;
+}
+
+/*********************************************************************
+*********************************************************************/
+template<typename Type>
+inline int64_t Partition<Type>::estimateNbItems ()
+{
+    int64_t result = 0;   for (size_t i=0; i<this->size(); i++) { result += (*this)[i].estimateNbItems(); }
+    return result;
+}
+
+/*********************************************************************
+*********************************************************************/
+template<typename Type>
 inline void Partition<Type>::flush ()
 {
     for (size_t i=0; i<_typedCollections.size(); i++)  { _typedCollections[i]->flush();  }

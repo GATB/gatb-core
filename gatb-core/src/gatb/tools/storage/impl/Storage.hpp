@@ -44,6 +44,8 @@
 
 #include <gatb/tools/math/NativeInt8.hpp>
 
+#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+
 #include <string>
 #include <sstream>
 #include <list>
@@ -194,7 +196,7 @@ protected:
  * It is defined as a subclass of Group.
  */
 template<typename Type>
-class Partition : public Group
+class Partition : public Group, public tools::collections::Iterable<Type>
 {
 public:
 
@@ -217,6 +219,15 @@ public:
      * \return the wanted collection.
      */
     collections::Collection<Type>& operator[] (size_t idx);
+
+    /** \copydoc Iterable::iterator */
+    dp::Iterator<Type>* iterator ();
+
+    /** \copydoc Iterable::getNbItems */
+    int64_t getNbItems ();
+
+    /** \copydoc Iterable::estimateNbItems */
+    int64_t estimateNbItems ();
 
     /** Flush the whole partition (ie flush each collection). */
     void flush ();
