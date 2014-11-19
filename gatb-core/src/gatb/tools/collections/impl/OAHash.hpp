@@ -33,6 +33,7 @@
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/api/Abundance.hpp>
+#include <algorithm>
 
 /********************************************************************************/
 namespace gatb          {
@@ -125,7 +126,8 @@ public:
     }
 
     /** */
-    dp::Iterator <misc::Abundance<Item> >* iterator ()  {  return new Iterator (*this);  }
+    dp::Iterator <misc::Abundance<Item> >* iterator (bool sorted=false)
+    {  if (sorted==false) { return new Iterator(*this); } else { return new IteratorSorted (*this);  } }
 
 
     /************************************************************/
@@ -170,6 +172,53 @@ public:
         element_pair*  iterator;
         element_pair*  iteratorMax;
         bool           done;
+    };
+
+    /************************************************************/
+    class IteratorSorted : public tools::dp::Iterator <misc::Abundance<Item> >
+    {
+    public:
+
+        IteratorSorted (OAHash<Item>& aRef) : _ref(aRef), _idx(0), _nb(0)
+        {
+            if (_ref.hash_size > (1ULL<<32))  { throw system::Exception ("OAHash::sort  too many items..."); }
+
+            for (u_int64_t idx=0; idx<_ref.hash_size; idx++)
+            {
+                if (_ref.data[idx].abundance != 0)  { _offsets.push_back (idx); }
+            }
+
+            _nb = _offsets.size();
+
+            std::sort (_offsets.begin(), _offsets.end(), CmpPair(_ref,_offsets));
+        }
+
+        /** \copydoc tools::dp::Iterator::first */
+        void first()  {  _idx = -1;  next ();  }
+
+        /** \copydoc tools::dp::Iterator::next */
+        void next()  {  ++_idx;  if (_idx < _nb ) { *(this->_item) = (_ref.data[_offsets[_idx]]); }
+        }
+
+        /** \copydoc tools::dp::Iterator::isDone */
+        bool isDone ()   {  return _idx >= _nb; }
+
+        /** \copydoc tools::dp::Iterator::item */
+        misc::Abundance<Item>& item ()     { return *this->_item; }
+
+    private:
+        OAHash<Item>&           _ref;
+        std::vector<u_int32_t>  _offsets;
+        int64_t                 _idx;
+        int64_t                 _nb;
+
+        struct CmpPair
+        {
+            element_pair*           _data;
+            std::vector<u_int32_t>& _offsets;
+            CmpPair (OAHash<Item>& ref, std::vector<u_int32_t>& offsets) : _data(ref.data), _offsets(offsets) {}
+            bool operator() (u_int32_t i1, u_int32_t i2)  {  return _data[i1].value < _data[i2].value;  }
+        };
     };
 
 protected:
