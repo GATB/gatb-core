@@ -175,7 +175,7 @@ void BloomAlgorithm<span>::execute ()
     LOCAL (itKmers);
 
     /** We use a bloom builder. */
-    BloomBuilder<span> builder (estimatedBloomSize, nbHash, _bloomKind, getDispatcher()->getExecutionUnitsNumber());
+    BloomBuilder<span> builder (estimatedBloomSize, nbHash, _kmerSize, _bloomKind, getDispatcher()->getExecutionUnitsNumber());
 
     /** We instantiate the bloom object. */
     IBloom<Type>* bloom = 0;
@@ -186,7 +186,7 @@ void BloomAlgorithm<span>::execute ()
     LOCAL (bloom);
 
     /** We save the bloom. */
-    StorageTools::singleton().saveBloom<Type> (_storage.getGroup(this->getName()), "bloom", bloom);
+    StorageTools::singleton().saveBloom<Type> (_storage.getGroup(this->getName()), "bloom", bloom, _kmerSize);
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");

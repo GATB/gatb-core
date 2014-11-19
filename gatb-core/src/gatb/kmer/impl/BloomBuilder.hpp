@@ -64,10 +64,10 @@ public:
     BloomBuilder (
         u_int64_t   bloomSize,
         size_t      nbHash,
+        size_t      ksize,
         tools::misc::BloomKind bloomKind = tools::misc::BLOOM_DEFAULT,
         size_t      nbCores = 0,
-		int		  min_abundance =0,
-		size_t	  ksize=31
+		int		    min_abundance =0
     )
         : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind), _min_abundance(min_abundance), _ksize(ksize)
     {
@@ -115,7 +115,7 @@ public:
 
         /** We instantiate the bloom object. */
         tools::collections::impl::IBloom<Type>* bloom =
-            tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash);
+            tools::collections::impl::BloomFactory::singleton().createBloom<Type> (_bloomKind, _bloomSize, _nbHash, _ksize);
 
         /** We set the bloom with the provided array given as an iterable of NativeInt8 objects. */
         bloomIterable->getItems ((tools::math::NativeInt8*&)bloom->getArray());
