@@ -785,7 +785,7 @@ public:
         size_t kmerSize = strlen (sequences[0]);
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance 1  -verbose 0 -mphf emphf", kmerSize);
 
         Graph::Iterator<Node> it = graph.iterator<Node> ();
 
