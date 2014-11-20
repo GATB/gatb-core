@@ -19,6 +19,7 @@
 #include <CppunitCommon.hpp>
 
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 
@@ -57,9 +58,9 @@ int main (int argc, char **argv)
     TestResultCollector collectedresults;
     testresult.addListener (&collectedresults);
 
-#if 0
+#if 1
     BriefTestProgressListener progress;
-    testresult.addListener (&progress);
+    if (getenv ("CPPUNIT_VERBOSE")) {  testresult.addListener (&progress);  }
 #endif
 
     TextTestRunner runner;
