@@ -31,6 +31,7 @@
 #include <gatb/tools/misc/api/IProperty.hpp>
 
 #include <string>
+#include <iostream>
 #include <sstream>
 #include <stack>
 #include <cstdio>
@@ -258,12 +259,8 @@ class RawDumpPropertiesVisitor : public IPropertiesVisitor
 public:
 
     /** Constructor.
-     * \param file : file where to serialize the instance. */
-    RawDumpPropertiesVisitor (FILE* file = stdout) : _file(file),_fileToClose(false) {}
-
-    /** Constructor.
      * \param filename : uri of the file where to serialize the instance. */
-    RawDumpPropertiesVisitor (const std::string& filename);
+    RawDumpPropertiesVisitor (std::ostream& os = std::cout);
 
     /** Desctructor. */
     virtual ~RawDumpPropertiesVisitor ();
@@ -278,8 +275,7 @@ public:
     void visitProperty (IProperty* prop);
 
 private:
-    FILE* _file;
-    bool _fileToClose;
+    std::ostream& _os;
 };
 
 

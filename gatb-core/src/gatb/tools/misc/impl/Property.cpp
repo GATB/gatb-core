@@ -466,7 +466,7 @@ void Properties::readFile (const string& filename)
 void Properties::dump (std::ostream& s)
 {
     /** We dump some execution information. */
-    RawDumpPropertiesVisitor visit;
+    RawDumpPropertiesVisitor visit (s);
     this->accept (&visit);
 }
 
@@ -928,11 +928,9 @@ void XmlDumpPropertiesVisitor::safeprintf (const char* format, ...)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-RawDumpPropertiesVisitor::RawDumpPropertiesVisitor (const std::string& filename)
-    : _file(0), _fileToClose(true)
+RawDumpPropertiesVisitor::RawDumpPropertiesVisitor (std::ostream& os)
+    : _os(os)
 {
-    /** We open the file. */
-    _file = fopen (filename.c_str(), "w");
 }
 
 /*********************************************************************
@@ -945,7 +943,7 @@ RawDumpPropertiesVisitor::RawDumpPropertiesVisitor (const std::string& filename)
 *********************************************************************/
 RawDumpPropertiesVisitor::~RawDumpPropertiesVisitor ()
 {
-    if (_fileToClose  &&  _file)  { fclose (_file); }
+    _os.flush();
 }
 
 /*********************************************************************
@@ -958,22 +956,23 @@ RawDumpPropertiesVisitor::~RawDumpPropertiesVisitor ()
 *********************************************************************/
 void RawDumpPropertiesVisitor::visitProperty (IProperty* prop)
 {
-    if (_file != 0)
+    int width = 40;
+
+    char buffer[1024];
+
+    string indent;
+    for (size_t i=0; i<prop->depth; i++)  { indent += "    "; }
+
+    if (prop->getValue().empty() == false)
     {
-        int width = 40;
-
-        string indent;
-        for (size_t i=0; i<prop->depth; i++)  { indent += "    "; }
-
-        if (prop->getValue().empty() == false)
-        {
-            fprintf (_file, "%s%-*s : %s\n", indent.c_str(), width, prop->key.c_str(), prop->value.c_str());
-        }
-        else
-        {
-            fprintf (_file, "%s%-*s\n", indent.c_str(), width, prop->key.c_str());
-        }
+        snprintf (buffer, sizeof(buffer), "%s%-*s : %s\n", indent.c_str(), width, prop->key.c_str(), prop->value.c_str());
     }
+    else
+    {
+        snprintf (buffer, sizeof(buffer), "%s%-*s\n", indent.c_str(), width, prop->key.c_str());
+    }
+
+    _os << buffer;
 }
 
 /********************************************************************************/
