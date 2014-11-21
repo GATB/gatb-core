@@ -251,6 +251,9 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
 #else
             /** Unknown option => add it to the warning list. */
             _warnings.push_back (tools::misc::impl::Stringify::format("Unknown '%s'", txt));
+
+            /** We throw an exception if the current option is not recognized. */
+            throw OptionFailure (*this);
 #endif
         }
     }
