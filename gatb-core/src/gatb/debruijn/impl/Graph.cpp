@@ -553,8 +553,13 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,      "debloom type ('none', 'original' or 'cascading')", false, "cascading"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_IMPL,      "debloom impl ('basic', 'minimizer')",      false, "minimizer"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')",      false, "stored"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')",            false, "none"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
+
+    /** We activate MPHF option only if available. */
+    if (MPHF<char>::enabled)
+    {
+        parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')",            false, "none"));
+    }
 
     return parser;
 }
@@ -684,7 +689,10 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
-    parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
+
+    /** This one is conditional. */
+    if (params->get(STR_MPHF_TYPE)) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
+    else                            { _mphfKind = MPHF_NONE; }
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
@@ -715,7 +723,10 @@ Graph::Graph (tools::misc::IProperties* params)
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
-    parse (params->getStr(STR_MPHF_TYPE),         _mphfKind);
+
+    /** This one is conditional. */
+    if (params->get(STR_MPHF_TYPE)) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
+    else                            { _mphfKind = MPHF_NONE; }
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize);
