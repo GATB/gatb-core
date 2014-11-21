@@ -2,7 +2,8 @@
 #  HDF5 GENERATION 
 ################################################################################
 
-SET (HDF5_ENABLE_THREADSAFE       ON)
+#SET (HDF5_ENABLE_THREADSAFE       ON)
+#SET (H5_HAVE_THREADSAFE 1)
 
 ##########  MOMENTARY DEACTIVATED => CRASH ON MACOS TO BE INVESTIGATED  ##########
 SET (HDF5_BUILD_TOOLS             ON CACHE BOOL "Build HDF5 Tools")
