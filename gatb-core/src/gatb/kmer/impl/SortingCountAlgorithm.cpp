@@ -315,6 +315,8 @@ void SortingCountAlgorithm<span>::execute ()
     getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
     if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
 
+    getInfo()->add (2, "partcmd", "hash:%d vector:%d", _partCmdTypes.first, _partCmdTypes.second);
+
     _fillTimeInfo /= getDispatcher()->getExecutionUnitsNumber();
     getInfo()->add (2, _fillTimeInfo.getProperties("fillsolid_time"));
 
@@ -978,7 +980,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     setPartitionsStorage (StorageFactory(STORAGE_COMPRESSED_FILE).create ("partitions", true, false));
     //setPartitionsStorage (StorageFactory(STORAGE_GZFILE).create ("partitions", true, false));
 #else
-    setPartitionsStorage (StorageFactory(STORAGE_FILE).create ("partitions", true, false));
+    setPartitionsStorage (StorageFactory(STORAGE_FILE).create ("dsk_partitions", true, false));
 #endif
     
     setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
@@ -1127,6 +1129,8 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
                     solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
                     pInfo,p,_nbCores_per_partition, _kmerSize,pool, cacheSize, mem
                 );
+
+                _partCmdTypes.first ++;
             }
             else
             {
@@ -1137,6 +1141,8 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
                     solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
                     pInfo,p,_nbCores_per_partition, _kmerSize, pool, cacheSize
                 );
+
+                _partCmdTypes.second ++;
             }
 
             cmds.push_back (cmd);

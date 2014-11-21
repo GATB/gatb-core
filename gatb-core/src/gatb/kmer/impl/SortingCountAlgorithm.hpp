@@ -268,6 +268,7 @@ private:
     u_int64_t _estimatedDistinctKmerNb;
     bool _flagEstimateNbDistinctKmers; // whether we estimate the number of distinct kmers beforehand
 	
+    std::pair<int,int> _partCmdTypes;
 };
 	
 /********************************************************************************/

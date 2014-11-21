@@ -273,7 +273,7 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     size_t nbPartitions = this->_solidIterable->size();
 
     /** We use a temporary partition that will hold the neighbors extension of the solid kmers. */
-    Storage* cfpPartitions = StorageFactory(STORAGE_HDF5).create ("partitions", true, false);
+    Storage* cfpPartitions = StorageFactory(STORAGE_HDF5).create ("debloom_partitions", true, false);
     LOCAL (cfpPartitions);
     Partition<Type>* debloomParts = & (*cfpPartitions)().getPartition<Type> ("parts", nbPartitions);
 
