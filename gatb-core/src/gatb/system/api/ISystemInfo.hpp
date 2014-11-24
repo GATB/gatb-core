@@ -27,6 +27,7 @@
 #define _GATB_CORE_SYSTEM_ISYSTEM_INFO_HPP_
 
 #include <gatb/system/api/types.hpp>
+#include <gatb/system/api/ISmartPointer.hpp>
 #include <string>
 
 /********************************************************************************/
@@ -94,8 +95,34 @@ public:
      * \return the buffers memory size */
     virtual u_int64_t getMemoryBuffers () const = 0;
 
+    /** Get the size (in bytes) of the memory peak of the current process
+     * \return the memory peak value */
+    virtual u_int64_t getMemoryPeak () const  { return 0; }
+
     /** Destructor. */
     virtual ~ISystemInfo ()  {}
+
+    /********************************************************************************/
+
+    /** \brief Interface providing a way to get CPU usage information
+     */
+    class CpuInfo : public SmartPointer
+    {
+    public:
+
+        /** Start CPU information acquisition. */
+        virtual void start () = 0;
+
+        /** Stop CPU information acquisition. */
+        virtual void stop () = 0;
+
+        /** Get the CPU usage between start and stop. */
+        virtual double getUsage() = 0;
+    };
+
+    /** Create a CpuInfo object
+     * \return the created object. */
+    virtual CpuInfo* createCpuInfo () = 0;
 };
 
 /********************************************************************************/

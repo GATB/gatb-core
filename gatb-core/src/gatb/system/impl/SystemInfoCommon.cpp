@@ -41,6 +41,10 @@ namespace gatb { namespace core { namespace system { namespace impl {
 #ifdef __linux__
 
 #include "sys/sysinfo.h"
+#include <unistd.h>
+#include <sys/resource.h>
+#include <sys/times.h>
+#include <sys/vtimes.h>
 
 /********************************************************************************/
 size_t SystemInfoLinux::getNbCores () const
@@ -102,6 +106,71 @@ u_int64_t SystemInfoLinux::getMemoryBuffers () const
     u_int64_t result = memInfo.bufferram;
     result *= memInfo.mem_unit;
     return result;
+}
+
+/********************************************************************************/
+u_int64_t SystemInfoLinux::getMemoryPeak () const
+{
+    struct rusage rusage;
+    getrusage (RUSAGE_SELF, &rusage);
+    return (u_int64_t) (rusage.ru_maxrss * 1024L);
+}
+
+/********************************************************************************/
+/** \brief Interface providing a way to get CPU usage information
+ */
+class CpuInfoLinux : public ISystemInfo::CpuInfo
+{
+public:
+
+    /** Start CPU information acquisition. */
+    virtual void start ()
+    {
+        struct tms timeSample;
+        CPU0     = times (&timeSample);
+        SysCPU0  = timeSample.tms_stime;
+        UserCPU0 = timeSample.tms_utime;
+    }
+
+    /** Stop CPU information acquisition. */
+    virtual void stop ()
+    {
+        struct tms timeSample;
+        CPU1     = times (&timeSample);
+        SysCPU1  = timeSample.tms_stime;
+        UserCPU1 = timeSample.tms_utime;
+    }
+
+    /** Get the CPU usage between start and stop. */
+    virtual double getUsage()
+    {
+        double percent = 0;
+
+        if (CPU1 <= CPU0 || SysCPU1 < SysCPU0 ||  UserCPU1 < UserCPU0)
+        {
+            percent = -1.0;
+        }
+        else
+        {
+            percent = (SysCPU1 - SysCPU0) +  (UserCPU1 - UserCPU0);
+            percent /= (CPU1 - CPU0);
+            percent *= 100;
+        }
+        return percent;
+    }
+
+private:
+
+    clock_t CPU0, SysCPU0, UserCPU0;
+    clock_t CPU1, SysCPU1, UserCPU1;
+};
+
+/********************************************************************************/
+
+/** \copydoc ISystemInfo::createCpuInfo */
+ISystemInfo::CpuInfo* SystemInfoLinux::createCpuInfo ()
+{
+    return new CpuInfoLinux();
 }
 
 #endif

@@ -68,6 +68,34 @@ public:
 
     /** \copydoc ISystemInfo::getMemoryProject */
     u_int64_t getMemoryProject () const  {  return std::min (getMemoryPhysicalFree() / (2*MBYTE), (u_int64_t)(5*1024)); }
+
+    /** \copydoc ISystemInfo::getMemoryPeak */
+    u_int64_t getMemoryPeak () const  { return 0; }
+
+private:
+
+    /********************************************************************************/
+
+    /** \brief Interface providing a way to get CPU usage information
+     */
+    class CpuInfoCommon : public ISystemInfo::CpuInfo
+    {
+    public:
+
+        /** Start CPU information acquisition. */
+        virtual void start () {}
+
+        /** Stop CPU information acquisition. */
+        virtual void stop () {}
+
+        /** Get the CPU usage between start and stop. */
+        virtual double getUsage()  { return -1.0; }
+    };
+
+public:
+
+    /** \copydoc ISystemInfo::createCpuInfo */
+    virtual CpuInfo* createCpuInfo ()  { return new CpuInfoCommon(); }
 };
 
 /********************************************************************************/
@@ -90,6 +118,12 @@ public:
 
     /** \copydoc ISystemInfo::getMemoryBuffers */
     u_int64_t getMemoryBuffers () const ;
+
+    /** \copydoc ISystemInfo::getMemoryPeak */
+    u_int64_t getMemoryPeak () const;
+
+    /** \copydoc ISystemInfo::createCpuInfo */
+    virtual CpuInfo* createCpuInfo ();
 };
 
 /********************************************************************************/
