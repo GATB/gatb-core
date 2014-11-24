@@ -459,7 +459,12 @@ struct build_visitor : public boost::static_visitor<>    {
         {
             if (graph._branchingKind != BRANCHING_NONE)
             {
-                BranchingAlgorithm<span> branchingAlgo (graph, graph.getStorage(), graph._branchingKind);
+                BranchingAlgorithm<span> branchingAlgo (
+                    graph,
+                    graph.getStorage(),
+                    graph._branchingKind,
+                    props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
+                );
                 executeAlgorithm (branchingAlgo, graph.getStorage(), props, graph._info);
 
                 graph.setState(Graph::STATE_BRANCHING_DONE);
@@ -505,9 +510,10 @@ struct build_visitor : public boost::static_visitor<>    {
     {
         algorithm.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
 
-        algorithm.execute();
+        algorithm.run ();
 
         info.add (1, algorithm.getInfo());
+        info.add (1, algorithm.getSystemInfo());
 
         /** We memorize information of the algorithm execution as a property of the corresponding group. */
         storage.getGroup(algorithm.getName()).addProperty("xml", string("\n") + algorithm.getInfo()->getXML());

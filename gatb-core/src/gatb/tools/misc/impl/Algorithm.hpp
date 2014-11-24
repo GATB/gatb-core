@@ -65,6 +65,9 @@ public:
      * \return the algorithm name. */
     std::string getName () const  { return _name; }
 
+    /** Run the algorithm, ie. call 'execute'. */
+    void run ();
+
     /** */
     virtual void execute () = 0;
 
@@ -72,6 +75,7 @@ public:
     virtual IProperties*            getInput      ()  { return _input;      }
     virtual IProperties*            getOutput     ()  { return _output;     }
     virtual IProperties*            getInfo       ()  { return _info;       }
+    virtual IProperties*            getSystemInfo ()  { return _systemInfo; }
     virtual dp::IDispatcher*        getDispatcher ()  { return _dispatcher; }
     virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
 
@@ -107,6 +111,7 @@ protected:
     void setInput      (IProperties*            input)       { SP_SETATTR (input);      }
     void setOutput     (IProperties*            output)      { SP_SETATTR (output);     }
     void setInfo       (IProperties*            info)        { SP_SETATTR (info);       }
+    void setSystemInfo (IProperties*            systemInfo)  { SP_SETATTR (systemInfo); }
     void setDispatcher (dp::IDispatcher*        dispatcher)  { SP_SETATTR (dispatcher); }
 
 private:
@@ -119,6 +124,8 @@ private:
     IProperties* _output;
 
     IProperties* _info;
+
+    IProperties* _systemInfo;
 
     dp::IDispatcher* _dispatcher;
 
