@@ -315,7 +315,24 @@ void SortingCountAlgorithm<span>::execute ()
     getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
     if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
 
-    getInfo()->add (2, "partcmd", "hash:%d vector:%d", _partCmdTypes.first, _partCmdTypes.second);
+    size_t smallestPartition = ~0;
+    size_t biggestPartition  = 0;
+    for (size_t i=0; i<_solidCounts->size(); i++)
+    {
+        size_t currentNb = (*_solidCounts)[i].getNbItems();
+        smallestPartition = std::min (smallestPartition, currentNb);
+        biggestPartition  = std::max (biggestPartition,  currentNb);
+    }
+    getInfo()->add (2, "partitions");
+    getInfo()->add (3, "nb_partitions", "%ld", _solidCounts->size());
+    getInfo()->add (3, "nb_items",      "%ld", _solidCounts->getNbItems());
+    getInfo()->add (3, "part_biggest",  "%ld", biggestPartition);
+    getInfo()->add (3, "part_smallest", "%ld", smallestPartition);
+    if (_solidCounts->size())
+    {
+        getInfo()->add (3, "part_mean",     "%.1f", (double)nbSolids / (double)_solidCounts->size());
+    }
+    getInfo()->add (3, "cmd",           "hash:%d vector:%d", _partCmdTypes.first, _partCmdTypes.second);
 
     _fillTimeInfo /= getDispatcher()->getExecutionUnitsNumber();
     getInfo()->add (2, _fillTimeInfo.getProperties("fillsolid_time"));
