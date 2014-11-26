@@ -18,6 +18,13 @@
 *****************************************************************************/
 
 #include <gatb/gatb_core.hpp>
+#include <sstream>
+
+/********************************************************************************/
+static const char* STR_EMAIL        = "-email";
+static const char* STR_EMAIL_FORMAT = "-email-fmt";
+
+void sendEmail (IProperties* options, IProperties* graphInfo);
 
 /********************************************************************************/
 int main (int argc, char* argv[])
@@ -25,6 +32,10 @@ int main (int argc, char* argv[])
     /** We create a command line parser. */
     OptionsParser parser = Graph::getOptionsParser();
     parser.setName ("dbgh5");
+
+    /** We add an option to send the statistics by email. */
+    parser.push_back (new OptionOneParam (STR_EMAIL,        "send statistics to the given email address", false));
+    parser.push_back (new OptionOneParam (STR_EMAIL_FORMAT, "'raw' or 'xml'",                             false, "raw"));
 
     try
     {
@@ -36,6 +47,9 @@ int main (int argc, char* argv[])
 
          /** We dump some information about the graph. */
          if (options->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
+
+         /** We may have to send statistics by email. */
+         if (options->get(STR_EMAIL))  {  sendEmail (options, &graph.getInfo());  }
     }
     catch (OptionFailure& e)
     {
@@ -62,4 +76,37 @@ int main (int argc, char* argv[])
     }
 
     return EXIT_SUCCESS;
+}
+
+/********************************************************************************/
+void sendEmail (IProperties* options, IProperties* graphInfo)
+{
+    std::string outfmt = options->getStr(STR_EMAIL_FORMAT);
+
+    /** We build the mail content. */
+    std::stringstream output;
+    if (outfmt == "raw")
+    {
+        RawDumpPropertiesVisitor visit (output);
+        graphInfo->accept (&visit);
+    }
+    else if (outfmt == "xml")
+    {
+        XmlDumpPropertiesVisitor visit (output);
+        graphInfo->accept (&visit);
+    }
+    else
+    {
+        /** Unknown format. */
+        throw Exception ("Unable to send email because of unknown format '%s'", outfmt.c_str());
+    }
+
+    /** We build the mail command. */
+    std::stringstream cmd;
+    cmd << "echo \"" << output.str()
+        << "\" | mail -s \"[dbgh5] " << System::file().getBaseName(options->getStr(STR_URI_INPUT)) << "\" "
+        << options->getStr(STR_EMAIL);
+
+    /** We execute the command. */
+   ::system (cmd.str().c_str());
 }
