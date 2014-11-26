@@ -144,6 +144,8 @@ public:
     /** Get the CPU usage between start and stop. */
     virtual double getUsage()
     {
+        stop ();
+
         double percent = 0;
 
         if (CPU1 <= CPU0 || SysCPU1 < SysCPU0 ||  UserCPU1 < UserCPU0)
