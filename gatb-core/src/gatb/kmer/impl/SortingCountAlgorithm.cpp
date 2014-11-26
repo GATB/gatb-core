@@ -1034,6 +1034,9 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We save the distribution (may be useful for debloom for instance). */
     repartitor.save (getStorageGroup());
 
+	/** We have to reinit the progress instance since it may have been used by SampleRepart before. */
+    _progress->init();
+
     /** We fill the partitions. */
     getDispatcher()->iterate (itSeq, FillPartitions<span> (
         model, _nb_passes, pass, _nb_partitions, _progress, _partitions, repartitor, pInfo
