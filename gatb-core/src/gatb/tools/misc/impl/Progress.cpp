@@ -269,27 +269,113 @@ void ProgressTimer::update ()
     /** A little check. */
     if (elapsed > 0  &&  done > 0)
     {
-        double speed  = done        / elapsed;
-        double rem    = (todo-done) / speed;
-
-        if (done>todo) rem=0;
-        int min_e  = (int)(elapsed / 60) ;
-        elapsed -= min_e*60;
-        int min_r  = (int)(rem / 60) ;
-        rem -= min_r*60;
-
-        /** We format the string to be displayed. */
-        snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g  %%     elapsed: %6i min %-4.0f  sec      estimated remaining: %6i min %-4.0f  sec ",
-            13,
-            message.c_str(),
-            100*(double)done/todo,
-            min_e,elapsed,min_r,rem
-        );
+        fillBuffer (elapsed);
 
         /** We dump the string. */
         os << buffer;
         os.flush();
     }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void ProgressTimer::fillBuffer (double elapsed)
+{
+    double speed  = done        / elapsed;
+    double rem    = (todo-done) / speed;
+
+    if (done>todo) rem=0;
+
+    int min_e  = (int)(elapsed / 60) ;
+    elapsed -= min_e*60;
+    int min_r  = (int)(rem / 60) ;
+    rem -= min_r*60;
+
+    /** We format the string to be displayed. */
+    snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g  %%     elapsed: %6i min %-4.0f  sec    estimated remaining: %6i min %-4.0f  sec",
+        13,
+        message.c_str(),
+        100*(double)done/todo,
+        min_e,elapsed,min_r,rem
+    );
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ProgressTimerAndSystem::ProgressTimerAndSystem (u_int64_t ntasks, const char* msg, std::ostream& os)
+    : ProgressTimer (ntasks, msg, os), _cpuinfo(0), _memMax(0)
+{
+    setCpuInfo(System::info().createCpuInfo());
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+ProgressTimerAndSystem::~ProgressTimerAndSystem ()
+{
+    setCpuInfo (0);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void ProgressTimerAndSystem::fillBuffer (double elapsed)
+{
+    /** We get the memory used by the current process. */
+    u_int64_t mem = System::info().getMemorySelfUsed() / 1024;
+    if (_memMax<mem)  { _memMax=mem; }
+
+    /** We format the string to be displayed. */
+    char tmp[128];
+    snprintf (tmp, sizeof(tmp), "  cpu: %6.1f %%   mem: [%5d,%5d] MB ",
+        _cpuinfo->getUsage(),
+        mem, _memMax
+    );
+
+    /** We call the parent method. */
+    ProgressTimer::fillBuffer (elapsed);
+
+    /** We concat to the final buffer. */
+    strcat (buffer, tmp);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void ProgressTimerAndSystem::postInit ()
+{
+    ProgressTimer::postInit ();
+
+    _cpuinfo->start();
+
+    _memMax = 0;
 }
 
 /********************************************************************************/

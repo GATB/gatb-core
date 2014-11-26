@@ -117,7 +117,7 @@ protected:
     double        partial;
     double        steps ; //steps = _todo/subidv
     std::ostream& os;
-    char          buffer[256];
+    char          buffer[512];
 
     friend class ProgressProxy;
 };
@@ -149,8 +149,40 @@ protected:
     void postInit ();
     void postFinish ();
 
+    virtual void fillBuffer (double elapsed);
+
     system::ITime::Value  heure_debut;
     system::ITime::Value  heure_actuelle;
+};
+
+/********************************************************************************/
+
+/** \brief Progress information display feature with timing and system information
+ */
+class  ProgressTimerAndSystem : public ProgressTimer
+{
+public:
+
+    /** Constructor.
+     * \param[in] ntasks : nb of items to be processed
+     * \param[in] msg : message to be displayed
+     * \param[in] os  : output stream where progress information is to be displayed
+     */
+    ProgressTimerAndSystem (u_int64_t ntasks, const char* msg, std::ostream& os=std::cerr);
+
+    /** Destructor. */
+    ~ProgressTimerAndSystem ();
+
+protected:
+
+    void postInit ();
+
+    virtual void fillBuffer (double elapsed);
+
+    system::ISystemInfo::CpuInfo* _cpuinfo;
+    void setCpuInfo (system::ISystemInfo::CpuInfo* cpuinfo)  { SP_SETATTR(cpuinfo); }
+
+    u_int64_t _memMax;
 };
 
 /********************************************************************************/

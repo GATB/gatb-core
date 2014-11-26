@@ -97,7 +97,6 @@ void Algorithm::run ()
 
     /** We gather some system information. */
     getSystemInfo()->add (1, "system");
-    getSystemInfo()->add (2, "memory_peak", "%ld", System::info().getMemoryPeak()/KBYTE);
     getSystemInfo()->add (2, "cpu",         "%.1f", cpuinfo->getUsage());
 }
 
@@ -116,8 +115,9 @@ dp::IteratorListener* Algorithm::createIteratorListener (size_t nbIterations, co
     switch (getInput()->getInt(STR_VERBOSE))
     {
         case 0: default:    return new IteratorListener ();
-        case 1:             return new ProgressTimer (nbIterations, message);
-        case 2:             return new Progress      (nbIterations, message);
+        case 1:             return new ProgressTimerAndSystem   (nbIterations, message);
+        case 2:             return new ProgressTimer            (nbIterations, message);
+        case 3:             return new Progress                 (nbIterations, message);
     }
 }
 
