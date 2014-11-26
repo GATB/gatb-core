@@ -95,9 +95,9 @@ public:
      * \return the buffers memory size */
     virtual u_int64_t getMemoryBuffers () const = 0;
 
-    /** Get the size (in bytes) of the memory peak of the current process
-     * \return the memory peak value */
-    virtual u_int64_t getMemoryPeak () const  { return 0; }
+    /** Get the size (in KBytes) of the memory used by the current process
+     * \return the memory value */
+    virtual u_int64_t getMemorySelfUsed() const = 0;
 
     /** Destructor. */
     virtual ~ISystemInfo ()  {}
