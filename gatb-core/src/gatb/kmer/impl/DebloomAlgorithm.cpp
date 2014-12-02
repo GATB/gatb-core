@@ -558,7 +558,7 @@ void DebloomAlgorithm<span>::createCFP (
     u_int64_t& totalSize_bits
 )
 {
-    DEBUG (("DebloomAlgorithm<span>::createCFP   criticalCollection->size=%ld \n", criticalCollection->getNbItems() ));
+    DEBUG (("DebloomAlgorithm<span>::createCFP   criticalCollection->size=%lld \n", criticalCollection->getNbItems() ));
 
 #if 0
     _criticalChecksum = 0;
