@@ -196,6 +196,14 @@ u_int64_t SystemInfoLinux::getMemorySelfUsed () const
     return result;
 }
 
+/********************************************************************************/
+u_int64_t SystemInfoLinux::getMemorySelfMaxUsed () const
+{
+    u_int64_t result = 0;
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage)==0)  {  result = usage.ru_maxrss;  }
+    return result;
+}
 #endif
 
 /*********************************************************************

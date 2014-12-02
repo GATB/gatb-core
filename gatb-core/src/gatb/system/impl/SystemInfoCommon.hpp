@@ -72,6 +72,9 @@ public:
     /** \copydoc ISystemInfo::getMemorySelfUsed */
     u_int64_t getMemorySelfUsed() const  { return 0; }
 
+    /** \copydoc ISystemInfo::getMemorySelfUsed */
+    u_int64_t getMemorySelfMaxUsed() const  { return 0; }
+
     /** \copydoc ISystemInfo::createCpuInfo */
     virtual CpuInfo* createCpuInfo (); //  { return new CpuInfoCommon(); }
 };
@@ -99,6 +102,9 @@ public:
 
     /** \copydoc ISystemInfo::getMemorySelfUsed */
     u_int64_t getMemorySelfUsed() const;
+
+    /** \copydoc ISystemInfo::getMemorySelfUsed */
+    u_int64_t getMemorySelfMaxUsed() const;
 };
 
 /********************************************************************************/

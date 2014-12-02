@@ -99,6 +99,10 @@ public:
      * \return the memory value */
     virtual u_int64_t getMemorySelfUsed() const = 0;
 
+    /** Get the size (in KBytes) of the max memory used by the current process
+     * \return the memory value */
+    virtual u_int64_t getMemorySelfMaxUsed() const = 0;
+
     /** Destructor. */
     virtual ~ISystemInfo ()  {}
 
