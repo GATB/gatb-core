@@ -35,3 +35,7 @@
 #define PREC_2  ((KSIZE_2+31)/32)
 #define PREC_3  ((KSIZE_3+31)/32)
 #define PREC_4  ((KSIZE_4+31)/32)
+
+
+#define GATB_HDF5_NB_ITEMS_PER_BLOCK (4*1024)
+#define GATB_HDF5_CLEANUP_WORKAROUND (0x5)
