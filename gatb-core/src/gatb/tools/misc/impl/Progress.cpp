@@ -122,7 +122,7 @@ void Progress::inc (u_int64_t ntasks_done)
 
     while (partial >= steps)
     {
-        update ();
+        update (false);
         partial -= steps;
     }
 }
@@ -162,7 +162,7 @@ void Progress::setMessage (const char* format, ...)
 
     message.assign (buffer);
 
-    update ();
+    update (false);
 }
 
 /*********************************************************************
@@ -201,7 +201,7 @@ void Progress::postFinish ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Progress::update ()
+void Progress::update (bool first)
 {
     os << "-";
     os.flush();
@@ -234,6 +234,8 @@ void ProgressTimer::postInit ()
 
     /** We get the current hour (in msec) */
     heure_debut = System::time().getTimeStamp();
+
+    update (true);
 }
 
 /*********************************************************************
@@ -258,7 +260,7 @@ void ProgressTimer::postFinish ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void ProgressTimer::update ()
+void ProgressTimer::update (bool force)
 {
     /** We get the current hour (in msec) */
     heure_actuelle = System::time().getTimeStamp();
@@ -267,7 +269,7 @@ void ProgressTimer::update ()
     double elapsed = (heure_actuelle - heure_debut) / 1000.0;
 
     /** A little check. */
-    if (elapsed > 0  &&  done > 0)
+    if (force || (elapsed > 0  &&  done > 0))
     {
         fillBuffer (elapsed);
 
@@ -287,8 +289,8 @@ void ProgressTimer::update ()
 *********************************************************************/
 void ProgressTimer::fillBuffer (double elapsed)
 {
-    double speed  = done        / elapsed;
-    double rem    = (todo-done) / speed;
+    double speed  = elapsed > 0 ?  done / elapsed     : 0;
+    double rem    = elapsed > 0 ? (todo-done) / speed : 0;
 
     if (done>todo) rem=0;
 
@@ -347,11 +349,13 @@ void ProgressTimerAndSystem::fillBuffer (double elapsed)
     u_int64_t mem = System::info().getMemorySelfUsed() / 1024;
     if (_memMax<mem)  { _memMax=mem; }
 
+    u_int64_t memMaxProcess = System::info().getMemorySelfMaxUsed() / 1024;
+
     /** We format the string to be displayed. */
     char tmp[128];
-    snprintf (tmp, sizeof(tmp), "  cpu: %6.1f %%   mem: [%5d,%5d] MB ",
+    snprintf (tmp, sizeof(tmp), "  cpu: %6.1f %%   mem: [%5lld,%5lld,%5lld] MB ",
         _cpuinfo->getUsage(),
-        mem, _memMax
+        mem, _memMax, memMaxProcess
     );
 
     /** We call the parent method. */
@@ -371,11 +375,10 @@ void ProgressTimerAndSystem::fillBuffer (double elapsed)
 *********************************************************************/
 void ProgressTimerAndSystem::postInit ()
 {
-    ProgressTimer::postInit ();
-
     _cpuinfo->start();
-
     _memMax = 0;
+
+    ProgressTimer::postInit ();
 }
 
 /********************************************************************************/

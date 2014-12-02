@@ -106,7 +106,7 @@ public:
 
 protected:
 
-    virtual void update     ();
+    virtual void update     (bool force);
     virtual void postInit   ();
     virtual void postFinish ();
 
@@ -145,7 +145,7 @@ public:
 
 protected:
 
-    void update ();
+    void update (bool force);
     void postInit ();
     void postFinish ();
 
