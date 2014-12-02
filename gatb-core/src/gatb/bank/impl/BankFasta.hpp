@@ -94,7 +94,7 @@ public:
     void insert (const Sequence& item);
 
     /** \copydoc IBank::flush */
-    void flush ()  {}
+    void flush ();
 
     /** \copydoc IBank::getSize */
     u_int64_t getSize ()  { return filesizes; }

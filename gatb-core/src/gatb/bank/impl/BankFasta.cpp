@@ -151,7 +151,6 @@ BankFasta::~BankFasta ()
 {
     if (_insertHandle    != 0)  { fclose  (_insertHandle);    }
     if (_gz_insertHandle != 0)  { gzclose (_gz_insertHandle); }
-    
 }
 
 /*********************************************************************
@@ -223,13 +222,25 @@ void BankFasta::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& ma
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+void BankFasta::flush ()
+{
+    if (_insertHandle    != 0)  { fflush  (_insertHandle);              }
+    if (_gz_insertHandle != 0)  { gzflush (_gz_insertHandle, Z_FINISH); }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void BankFasta::insert (const Sequence& item)
 {
-
     /** We open the last file if needed. */
     if (_insertHandle == 0  &&  _filenames.empty()==false)
     {
-
         _insertHandle = fopen (_filenames[_filenames.size()-1].c_str(), "w");
     }
 
