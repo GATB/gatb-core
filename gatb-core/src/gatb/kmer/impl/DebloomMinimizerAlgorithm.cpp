@@ -101,14 +101,14 @@ struct FunctorKmersExtension
 {
     struct FunctorNeighbors
     {
-        IBloom<Type>*       bloom;
+        IBloom<Type>*         bloom;
         ModelMini&           _modelMini;
         vector<Type>&        _solids;
         PartitionCache<Type> _partition;
         Repartitor&          _repart;
 
         FunctorNeighbors (
-                IBloom<Type>*       bloom,
+            IBloom<Type>*       bloom,
             ModelMini&          modelMini,
             vector<Type>&       solids,
             Partition<Type>*    extentParts,
@@ -265,9 +265,7 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     bloom->use ();
     totalSizeBloom = bloom->getBitSize();
 
-    DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux  _solidIterable->getNbItems()=%ld  totalSizeBloom=%ld \n",
-        _solidIterable->getNbItems(), totalSizeBloom
-    ));
+    DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux  totalSizeBloom=%lld \n", totalSizeBloom));
 
     /** We get the number of partitions in the solid kmers set. */
     size_t nbPartitions = this->_solidIterable->size();
@@ -282,6 +280,8 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     /*************************************************/
     {
         TIME_INFO (this->getTimeInfo(), "fill_debloom_file");
+
+        DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux   fill_debloom_file BEGIN   nbParts=%ld\n", nbPartitions));
 
         /** We create an iterator for progress information. */
         Iterator<int>* itParts = this->createIterator (
@@ -316,7 +316,7 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
         /** We flush the built partition. */
         debloomParts->flush();
 
-        DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux   extendBag.size()=%ld \n", System::file().getSize(_debloomUri) ));
+        DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux   fill_debloom_file END \n"));
     }
 
     /** We get rid of the bloom. */
@@ -328,11 +328,15 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     {
         TIME_INFO (this->getTimeInfo(), "finalize_debloom_file");
 
+        DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux   finalize_debloom_file BEGIN \n"));
+
         ISynchronizer* synchro = System::thread().newSynchronizer();  LOCAL (synchro);
 
         /** We create an iterator for progress information. */
         Iterator<int>* itParts = this->createIterator (new Range<int>::Iterator (0,nbPartitions-1), nbPartitions, DebloomAlgorithm<span>::progressFormat3());
         LOCAL (itParts);
+
+        size_t nbCoresMax = this->getDispatcher()->getExecutionUnitsNumber();
 
         for (itParts->first (); !itParts->isDone(); )
         {
@@ -341,10 +345,7 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
             size_t cfpSize = 0;
             size_t nbCores = 0;
 
-            for ( ;  !itParts->isDone()  &&
-                    (nbCores<this->getDispatcher()->getExecutionUnitsNumber() || cfpSize < this->_max_memory*MBYTE);
-                    itParts->next()
-            )
+            for ( ;  !itParts->isDone() && (nbCores<nbCoresMax && cfpSize < this->_max_memory*MBYTE);  itParts->next())
             {
                 /** Shortcut. */
                 size_t p = itParts->item();
@@ -363,6 +364,8 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
 
         /** We can remove the temporary partition. */
         cfpPartitions->remove();
+
+        DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux   finalize_debloom_file END \n"));
     }
 
     /*************************************************************/
