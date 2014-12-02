@@ -106,6 +106,7 @@ public:
     const char* mphf_type ()       { return "-mphf";}
     const char* uri_solid_kmers()  { return "-solid-kmers-out";    }
     const char* bank_convert_type ()  { return "-bank-convert";   }
+    const char* integer_precision   ()  { return "-integer-precision";}
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -120,6 +121,7 @@ public:
 #define STR_URI_DB              gatb::core::tools::misc::StringRepository::singleton().db ()
 #define STR_URI_FILE            gatb::core::tools::misc::StringRepository::singleton().file ()
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
+#define STR_INTEGER_PRECISION   gatb::core::tools::misc::StringRepository::singleton().integer_precision ()
 #define STR_KMER_ABUNDANCE      gatb::core::tools::misc::StringRepository::singleton().kmer_abundance ()
 #define STR_MAX_MEMORY          gatb::core::tools::misc::StringRepository::singleton().max_memory ()
 #define STR_MAX_DISK            gatb::core::tools::misc::StringRepository::singleton().max_disk ()
