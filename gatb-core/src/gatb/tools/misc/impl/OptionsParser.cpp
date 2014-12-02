@@ -488,7 +488,7 @@ void OptionsParser::displayHelp (FILE* fp)
 
     for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
     {
-        if (!(*it)->getLabel().empty())
+        if (!(*it)->getLabel().empty() && (*it)->isVisible())
         {
             if ((*it)->getNbArgs() > 0)
             {
@@ -680,6 +680,21 @@ const Option* OptionsParser::getSeenOption (const std::string& label)
     }
 
     return result;
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParser::hide (const char* label)
+{
+	Option* opt = lookForOption ((char*)label);
+
+	if (opt != 0)  { opt->hide (); }
 }
 
 /********************************************************************************/

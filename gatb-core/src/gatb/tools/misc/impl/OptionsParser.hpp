@@ -75,7 +75,7 @@ public:
         const std::string& include,
         const std::string& exclude
     )
-        : _name(name), _nbArgs(nbArgs), _mandatory(mandatory), _help(help), _multiple(multiple), _include(include), _exclude(exclude), _param(defaultValue)
+        : _name(name), _nbArgs(nbArgs), _mandatory(mandatory), _help(help), _multiple(multiple), _include(include), _exclude(exclude), _param(defaultValue), _isVisible(true)
     {
     }
 
@@ -126,6 +126,12 @@ protected:
      */
     const std::string& getExclude ()  const { return _exclude; }
 
+    /** */
+    bool isVisible () const {  return _isVisible;  }
+
+    /** */
+    void hide ()  { _isVisible = false; }
+
     /** When an option is recognized in the argumenst list, we look the number of waited args and put
      * them in a list of string objects. This is this list that is given as argument of the proceed() method
      * that mainly will affect the given args to the variable given to the instanciation of the
@@ -141,6 +147,7 @@ protected:
     std::string     _include;
     std::string     _exclude;
     std::string     _param;
+    bool            _isVisible;
 
     /* Since the CheckOption class is responsable to the full job, we let it access to the internal informations
      of one Option. */
@@ -280,19 +287,22 @@ public:
      */
     int push_back (Option* opt);
 
-	
 	/** remove an option to the pool of recognized options.
      * \param[in] label : label to be removed to the parser.
      * \return the number of known options
      */
     int remove (const char * label);
-	
-	
+
     /** Add an option to the pool of recognized options.
      * \param[in] opt : option to be registered to the parser.
      * \return the number of known options
      */
     int push_front (Option* opt);
+
+    /** Hide the given option (ie. not displayed in help).
+     * \param[in] label : label of the option.
+     */
+    void hide (const char* label);
 
     /** Perform the analyze of the arguments.
      * \param[in] argc : number of command line arguments.
