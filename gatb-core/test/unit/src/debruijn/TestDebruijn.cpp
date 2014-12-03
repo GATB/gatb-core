@@ -71,6 +71,8 @@ using namespace gatb::core::tools::collections::impl;
 using namespace gatb::core::tools::storage;
 using namespace gatb::core::tools::storage::impl;
 
+extern std::string DBPATH (const string& a);
+
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
@@ -101,6 +103,7 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test13);
         CPPUNIT_TEST_GATB (debruijn_mutation);
         CPPUNIT_TEST_GATB (debruijn_build);
+        CPPUNIT_TEST_GATB (debruijn_checksum);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -916,6 +919,116 @@ public:
         };
 
         debruijn_build_aux (sequences, ARRAY_SIZE(sequences));
+    }
+
+    /********************************************************************************/
+    void debruijn_checksum_aux2 (
+        const string& readfile,
+        size_t kmerSize,
+        size_t integerPrecision,
+        size_t nbBranching,
+        const string& checksum,
+        const string& bloom,
+        const string& debloom,
+        const string& debloomImpl
+    )
+    {
+        size_t maxMem[]  = { 500, 4000 };
+        size_t nbCores[] = { 1, 4 };
+
+        for (size_t i=0; i<ARRAY_SIZE(maxMem); i++)
+        {
+            for (size_t j=0; j<ARRAY_SIZE(nbCores); j++)
+            {
+                //printf ("file=%s k=%d  prec=%d  bloom=%s  debloom=%s  debloomImpl=%s  mem=%d  nbCores=%d\n",
+                //    readfile.c_str(), kmerSize, integerPrecision, bloom.c_str(), debloom.c_str(), debloomImpl.c_str(), maxMem[i], nbCores[j]
+                //);
+
+                Graph graph = Graph::create (
+                    "-verbose 0 -in %s -kmer-size %d -integer-precision %d  -bloom %s  -debloom %s  -debloom-impl %s  -max-memory %d  -nb-cores %d",
+                    readfile.c_str(),
+                    kmerSize,
+                    integerPrecision,
+                    bloom.c_str(),
+                    debloom.c_str(),
+                    debloomImpl.c_str(),
+                    maxMem[i],
+                    nbCores[j]
+                );
+                CPPUNIT_ASSERT (graph.getInfo().getStr ("checksum_branching") == checksum);
+                CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching")       == nbBranching);
+            }
+        }
+    }
+
+    void debruijn_checksum_aux (
+        const string readfile,
+        size_t kmerSize,
+        size_t integerPrecision,
+        size_t nbBranching,
+        const string& checksum,
+        bool all = false
+    )
+    {
+        if (all)
+        {
+            debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "basic",    "original",  "basic");
+            debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "cache",    "original",  "basic");
+            debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "neighbor", "original",  "basic");
+
+            debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "basic",    "cascading", "basic");
+            debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "cache",    "cascading", "basic");
+            debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "neighbor", "cascading", "basic");
+        }
+
+        debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "neighbor", "original",  "minimizer");
+        debruijn_checksum_aux2 (readfile, kmerSize, integerPrecision, nbBranching, checksum, "neighbor", "cascading", "minimizer");
+    }
+
+    void debruijn_checksum ()
+    {
+        /** The nbBranching and checksum values have been computed with the SVN version of minia (minia-1.6906).
+         *  Now we compare to the values produced by gatb-core. */
+
+        string filepath;
+
+        /*****************************************/
+        /**          FILE reads1.fa              */
+        /*****************************************/
+        filepath = DBPATH("reads1.fa");
+
+        debruijn_checksum_aux (filepath,  31,  1, 24,   "30eb72bc69eca0d3", true);
+        debruijn_checksum_aux (filepath,  31,  2, 24, "2.30eb72bc69eca0d3", true);
+        debruijn_checksum_aux (filepath,  31,  3, 24, "2.30eb72bc69eca0d3", true);
+        debruijn_checksum_aux (filepath,  31,  4, 24, "2.30eb72bc69eca0d3", true);
+
+        debruijn_checksum_aux (filepath,  63,  2,  8, "92acb8443ed65990.7b4298b762ce39ff", true);
+        debruijn_checksum_aux (filepath,  63,  3,  8, "92acb8443ed65990.7b4298b762ce39ff", true);
+        debruijn_checksum_aux (filepath,  63,  4,  8, "92acb8443ed65990.7b4298b762ce39ff", true);
+
+        debruijn_checksum_aux (filepath,  95,  3,  4, "71ed998e1b26a8e0.1a1d73f05438c413.1c6405c67a8fab0a", true);
+        debruijn_checksum_aux (filepath,  95,  4,  4, "71ed998e1b26a8e0.1a1d73f05438c413.1c6405c67a8fab0a", true);
+
+        debruijn_checksum_aux (filepath, 127,  4,  4, "5a5d5720302692fd.214182472e05744f.5c6b807cecb99db2.c5655b04b6a7b8fe", true);
+
+        /*****************************************/
+        /**          FILE reads3.fa.gz           */
+        /*****************************************/
+        filepath = DBPATH("reads3.fa.gz");
+
+        debruijn_checksum_aux (filepath,  31,  1, 2956,    "d238698aa54e0ce2");
+        debruijn_checksum_aux (filepath,  31,  2, 2956, "cc.d238698aa54e0ce2");
+        debruijn_checksum_aux (filepath,  31,  3, 2956, "cc.d238698aa54e0ce2");
+        debruijn_checksum_aux (filepath,  31,  4, 2956, "cc.d238698aa54e0ce2");
+
+        debruijn_checksum_aux (filepath,  63,  2,  969,    "f0a5da085cc20ee8.90af6e8e523e8b96");
+        debruijn_checksum_aux (filepath,  63,  3,  969, "40.f0a5da085cc20ee8.90af6e8e523e8b96");
+        debruijn_checksum_aux (filepath,  63,  4,  969, "40.f0a5da085cc20ee8.90af6e8e523e8b96");
+
+        debruijn_checksum_aux (filepath,  95,  3,  600,    "99817bec5ebde83b.97a71a71c72636c7.4cd2353be480a3b4");
+        debruijn_checksum_aux (filepath,  95,  4,  600, "2c.99817bec5ebde83b.97a71a71c72636c7.4cd2353be480a3b4");
+
+        debruijn_checksum_aux (filepath, 127,  4,  424, "50c7d59f28890ef3.23f38c0611dc341c.525fd5f6a6fa045b.6f1255d3695f039d");
     }
 };
 
