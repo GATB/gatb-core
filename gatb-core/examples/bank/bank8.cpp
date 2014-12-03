@@ -68,7 +68,18 @@ int main (int argc, char* argv[])
 
                 for (size_t i=0; i< (itBinary->getDataSize()+3)/4; i++)
                 {
-                    cout << setfill('0') << setw(2) << hex << (int) (itBinary->getData()[i] & 0xFF) << " ";
+                    cout << "[" << setfill('0') << setw(2) << hex << (int) (itBinary->getData()[i] & 0xFF) << " ";
+
+                    // We convert back from binary to ASCII
+                    char b = (itBinary->getData()[i] & 0xFF) ;
+
+                    static char tableASCII[] = {'A', 'C', 'T', 'G'};
+
+                    cout << tableASCII[(b>>6)&3]
+                         << tableASCII[(b>>4)&3]
+                         << tableASCII[(b>>2)&3]
+                         << tableASCII[(b>>0)&3]
+                         << "] ";
 
                     if ((i+1)%32==0)  { cout << endl; }
                 }
