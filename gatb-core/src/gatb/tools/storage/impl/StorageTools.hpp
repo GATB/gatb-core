@@ -78,7 +78,21 @@ public:
     {
         collections::Collection<math::NativeInt8>* bloomCollection = & group.getCollection<math::NativeInt8> (name);
 
-        bloomCollection->insert ((math::NativeInt8*)bloom->getArray(), bloom->getSize());
+        if (bloomMode == 0)
+        {
+            bloomCollection->insert ((math::NativeInt8*)bloom->getArray(), bloom->getSize());
+        }
+        else
+        {
+            // Now we declare an input stream on the collection
+            tools::storage::impl::Storage::ostream os (group, name);
+
+            // We write some information in this stream
+            os.write (reinterpret_cast<char const*>(bloom->getArray()), bloom->getSize()*sizeof(char));
+
+            // We have to flush the stream in order to be sure everything is ok
+            os.flush();
+        }
 
         std::stringstream ss1;  ss1 <<  bloom->getBitSize();
         std::stringstream ss2;  ss2 <<  bloom->getNbHash();
@@ -104,12 +118,31 @@ public:
             bloomArray->getProperty("kmer_size")
         );
 
-        /** We set the bloom with the provided array given as an iterable of NativeInt8 objects. */
-        bloomArray->getItems ((tools::math::NativeInt8*&)bloom->getArray());
+        if (bloomMode == 0)
+        {
+            /** We set the bloom with the provided array given as an iterable of NativeInt8 objects. */
+            bloomArray->getItems ((tools::math::NativeInt8*&)bloom->getArray());
+        }
+        else
+        {
+            tools::storage::impl::Storage::istream is (group, name);
+
+            // We read the data from the input stream
+            is.read (reinterpret_cast<char*>(bloom->getArray()), bloom->getSize()*sizeof(char));
+        }
 
         /** We return the result. */
         return bloom;
     }
+
+private:
+
+    /** We keep the possibility to load/save Bloom filters in two different ways.
+     * The old one (with 'insert') has the drawback that the Bloom filter was read/written in
+     * one shot, which made big memory usage by HDF5 (one buffer for memory, one buffer for file).
+     * The new way uses io streams for HDF5 (splits the read/write operations in chunks), which
+     * may use less memory. */
+    static const int bloomMode = 1;  // 0: uses insert    1: uses Storage:[oi]stream
 };
 
 /********************************************************************************/
