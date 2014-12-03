@@ -353,9 +353,9 @@ struct Kmer
          * \param[in] idx : start index in the data object (default to 0)
          * \return a pair with the built kmer and a boolean set to yes if the kmer is understood in the forward strand
          */
-        Kmer getKmer (const tools::misc::Data& data, size_t idx=0)  const
+        Kmer getKmer (const tools::misc::Data& data, size_t startIndex=0)  const
         {
-            return codeSeed (data.getBuffer() + idx, data.getEncoding());  // should not work with BINARY encoding
+            return codeSeed (data.getBuffer(), data.getEncoding(), startIndex);
         }
 
         /** Iteration of the kmers from a data object through a functor (so lambda expressions can be used).
@@ -372,9 +372,9 @@ struct Kmer
          * \param[in] seq : the sequence
          * \param[in] encoding : encoding mode of the sequence
          * \return the kmer for the given nucleotides. */
-        Kmer codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding) const
+        Kmer codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding, size_t startIndex=0) const
         {
-            return execute<Functor_codeSeed> (encoding, Functor_codeSeed(seq));
+            return execute<Functor_codeSeed> (encoding, Functor_codeSeed(seq, startIndex));
         }
 
         /** Compute the next right kmer given a current kmer and a nucleotide.
@@ -528,7 +528,7 @@ struct Kmer
 
         /** \return -1 if valid, otherwise index of the last found bad character. */
         template<class Convert>
-        int polynom (const char* seq, Type& kmer)  const
+        int polynom (const char* seq, Type& kmer, size_t startIndex)  const
         {
             ConvertChar c;
             int badIndex = -1;
@@ -538,7 +538,7 @@ struct Kmer
             for (int i=0; i<_kmerSize; ++i)
             {
                 /** We get the current nucleotide (and its invalid status). */
-                c = Convert::get(seq,i);
+                c = Convert::get(seq,i+startIndex);
 
                 /** We update the polynome value. */
                 kmer = (kmer<<2) + c.first;
@@ -571,11 +571,12 @@ struct Kmer
         {
             typedef typename ModelImpl::Kmer Result;
             const char* buffer;
-            Functor_codeSeed (const char* buffer) : buffer(buffer) {}
+            size_t startIndex;
+            Functor_codeSeed (const char* buffer, size_t startIndex) : buffer(buffer), startIndex(startIndex) {}
             template<class Convert>  Result operator() (const ModelAbstract* model)
             {
                 Result result;
-                static_cast<const ModelImpl*>(model)->template first <Convert> (buffer, result);
+                static_cast<const ModelImpl*>(model)->template first <Convert> (buffer, result, startIndex);
                 return result;
             }
         };
@@ -623,7 +624,7 @@ struct Kmer
             typename ModelImpl::Kmer result;
 
             /** We compute the initial seed from the provided buffer. */
-            int indexBadChar = static_cast<const ModelImpl*>(this)->template first<Convert> (seq, result);
+            int indexBadChar = static_cast<const ModelImpl*>(this)->template first<Convert> (seq, result, 0);
 
             /** We need to keep track of the computed kmers. */
             size_t idxComputed = 0;
@@ -691,9 +692,9 @@ struct Kmer
          * \param[out] value : kmer as a result
          */
         template <class Convert>
-        int first (const char* buffer, Kmer& value)   const
+        int first (const char* buffer, Kmer& value, size_t startIndex)   const
         {
-           int result = this->template polynom<Convert> (buffer, value._value);
+           int result = this->template polynom<Convert> (buffer, value._value, startIndex);
             value._isValid = result < 0;
             return result;
         }
@@ -736,10 +737,10 @@ struct Kmer
          * \param[out] value : kmer as a result
          */
         template <class Convert>
-        int first (const char* seq, Kmer& value)   const
+        int first (const char* seq, Kmer& value, size_t startIndex)   const
         {
 
-            int result = this->template polynom<Convert> (seq, value.table[0]);
+            int result = this->template polynom<Convert> (seq, value.table[0], startIndex);
             value._isValid = result < 0;
             value.table[1] = this->reverse (value.table[0]);
             value.updateChoice();
@@ -842,10 +843,10 @@ struct Kmer
 
         template <class Convert>
 
-        int first (const char* seq, Kmer& kmer)   const
+        int first (const char* seq, Kmer& kmer, size_t startIndex)   const
         {
             /** We compute the first kmer. */
-            int result = _kmerModel.template first<Convert> (seq, kmer);
+            int result = _kmerModel.template first<Convert> (seq, kmer, startIndex);
 
             /** We compute the minimizer of the kmer. */
             computeNewMinimizer (kmer);
@@ -937,7 +938,7 @@ struct Kmer
             return true;
         }
         
-                /** Returns the minimizer of the provided vector of mmers. */
+        /** Returns the minimizer of the provided vector of mmers. */
         void computeNewMinimizer (Kmer& kmer) const
         {
             /** We update the attributes of the provided kmer. Note that an invalid minimizer is
