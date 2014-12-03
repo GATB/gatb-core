@@ -31,6 +31,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/storage/impl/CollectionHDF5.hpp>
+#include <gatb/tools/storage/impl/CollectionHDF5Patch.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <hdf5/hdf5.h>
 #include <typeinfo>
@@ -112,7 +113,9 @@ public:
 
         std::string actualName = parent->getFullId('/') + "/" + name;
 
-        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionHDF5<Type>(storage->getId(), actualName, synchro));
+        /** NOTE: we use here CollectionHDF5Patch and not CollectionHDF5 in order to reduce resources leaks due to HDF5.
+         * (see also comments in CollectionHDF5Patch). */
+        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionHDF5Patch<Type>(storage->getId(), actualName, synchro));
     }
 
 private:
