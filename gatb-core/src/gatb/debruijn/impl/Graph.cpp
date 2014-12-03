@@ -129,14 +129,14 @@ struct GraphData
 
     /** Required attributes. */
     Model*                _model;
-    Iterable<Count>*      _solid;
+    Partition<Count>*     _solid;
     IContainerNode<Type>* _container;
     Collection<Count>*    _branching;
     Map*                  _abundance;
 
     /** Setters. */
     void setModel       (Model*                 model)      { SP_SETATTR (model);     }
-    void setSolid       (Iterable<Count>*       solid)      { SP_SETATTR (solid);     }
+    void setSolid       (Partition<Count>*      solid)      { SP_SETATTR (solid);     }
     void setContainer   (IContainerNode<Type>*  container)  { SP_SETATTR (container); }
     void setBranching   (Collection<Count>*     branching)  { SP_SETATTR (branching); }
     void setAbundance   (Map*                   abundance)  { SP_SETATTR (abundance); }
@@ -173,8 +173,11 @@ typedef boost::variant <
  * each Graph instance has its data variant correctly set thanks to this "setVariant"
  * function.
  */
-static void setVariant (GraphDataVariant& data, size_t kmerSize)
+static void setVariant (GraphDataVariant& data, size_t kmerSize, size_t integerPrecision=0)
 {
+	/** We may force the kmer size and not use the optimized KSIZE value. */
+	if (integerPrecision > 0)  { kmerSize = integerPrecision*32 - 1; }
+
     /** Here is the link between the kmer size (or precision) and the specific type to be used for the variant. */
          if (kmerSize < KSIZE_1)  {  data = GraphData<KSIZE_1> (); }
     else if (kmerSize < KSIZE_2)  {  data = GraphData<KSIZE_2> (); }
@@ -414,7 +417,7 @@ struct build_visitor : public boost::static_visitor<>    {
             {
                 BloomAlgorithm<span> bloomAlgo (
                     graph.getStorage(),
-                    sortingCount.getSolidCounts(),
+                    data._solid,
                     kmerSize,
                     DebloomAlgorithm<span>::getNbBitsPerKmer (kmerSize, graph._debloomKind),
                     props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
@@ -435,7 +438,7 @@ struct build_visitor : public boost::static_visitor<>    {
                 graph._debloomImpl,
                 graph.getStorage(),
                 *solidStorage,
-                sortingCount.getSolidCounts(),
+                data._solid,
                 kmerSize,
                 props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
                 props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
@@ -560,12 +563,16 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_IMPL,      "debloom impl ('basic', 'minimizer')",      false, "minimizer"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')",      false, "stored"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_INTEGER_PRECISION,  "integers precision (0 for optimized value)", false, "0"));
 
     /** We activate MPHF option only if available. */
     if (MPHF<char>::enabled)
     {
         parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')",            false, "none"));
     }
+
+    /** We hide some options not meant to be used by all people. */
+    parser.hide (STR_INTEGER_PRECISION);
 
     return parser;
 }
@@ -689,6 +696,8 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
 
+    size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
+
     /** We get other user parameters. */
     parse (params->getStr(STR_BANK_CONVERT_TYPE), _bankConvertKind);
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
@@ -701,7 +710,7 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     else                            { _mphfKind = MPHF_NONE; }
 
     /** We configure the data variant according to the provided kmer size. */
-    setVariant (*((GraphDataVariant*)_variant), _kmerSize);
+    setVariant (*((GraphDataVariant*)_variant), _kmerSize, integerPrecision);
 
     /** We build the graph according to the wanted precision. */
     boost::apply_visitor (build_visitor (*this, bank,params),  *(GraphDataVariant*)_variant);
@@ -723,6 +732,8 @@ Graph::Graph (tools::misc::IProperties* params)
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
 
+    size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
+
     /** We get other user parameters. */
     parse (params->getStr(STR_BANK_CONVERT_TYPE), _bankConvertKind);
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
@@ -735,7 +746,7 @@ Graph::Graph (tools::misc::IProperties* params)
     else                            { _mphfKind = MPHF_NONE; }
 
     /** We configure the data variant according to the provided kmer size. */
-    setVariant (*((GraphDataVariant*)_variant), _kmerSize);
+    setVariant (*((GraphDataVariant*)_variant), _kmerSize, integerPrecision);
 
     /** We build a Bank instance for the provided reads uri. */
     bank::IBank* bank = Bank::singleton().createBank (params->getStr(STR_URI_INPUT));
