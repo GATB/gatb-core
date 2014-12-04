@@ -42,6 +42,16 @@ namespace impl      {
 
 /** \brief Class providing factories for building IBank objects.
  *
+ * The Bank class can be used of a front end for banks management in GATB.
+ *
+ * Actually, its main purpose is to provide IBank instances from a given URI (likely
+ * to be a FASTA file for instance).
+ *
+ * By using this class, clients can use genomic banks without knowing their actual
+ * type: they only rely on the IBank interface. This means that developing tools
+ * this way make them independent of format of the input bank (at least for the
+ * supported input format by GATB).
+ *
  * This class registers IBankFactory instances, which allows to create IBank objects
  * through a call to 'createBank'.
  *

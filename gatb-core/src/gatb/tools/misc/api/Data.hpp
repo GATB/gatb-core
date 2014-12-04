@@ -84,7 +84,7 @@ public:
         return *this;
     }
 
-    /**  */
+    /** Set the content of this data as a referenced of another Data object. */
     void setRef (Data* ref, size_t offset, size_t length)
     {
         /** We call the parent method. */

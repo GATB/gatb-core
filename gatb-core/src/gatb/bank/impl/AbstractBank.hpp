@@ -38,6 +38,12 @@ namespace impl      {
 /********************************************************************************/
 
 /** \brief Abstract implementation of IBank for factorizing common behavior.
+ *
+ * This abstract implementation of the IBank interface provides some methods having the
+ * same behavior for most implementations.
+ *
+ * Note that it implements the system::ISmartPointer interface as well, so it can be
+ * used as a smart pointer.
  */
 class AbstractBank : public IBank, public system::SmartPointer
 {

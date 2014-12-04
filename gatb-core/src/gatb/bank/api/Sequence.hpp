@@ -38,13 +38,35 @@ namespace bank      {
 /********************************************************************************/
 
 /** \brief Interface for what we need to read genomic databases.
+ *
+ * A sequence holds several data :
+ *  - comment (as a text)
+ *  - genomic data
+ *  - quality information (for fastq format, empty in other cases).
+ *
+ *  The genomic data is hold in a tools::misc::Data attribute and is supposed to
+ *  hold nucleotides.
+ *
+ *  Actually, the inner format may be of different kind (ASCII, INTEGER, BINARY).
+ *
+ *  The buffer holding the nucleotides is located in the Data attribute, so have a look
+ *  there to have further details on where the buffer can be allocated. Note just here
+ *  that the buffer could be stored in the Data object itself, or may be a reference to a
+ *  buffer allocated in another place.
+ *
+ *  The class Sequence is closely related to the IBank interface.
+ *
+ *  \see IBank
  */
 struct Sequence
 {
-    /** Constructor. */
+    /** Constructor.
+     * \param[in] encoding : encoding scheme of the genomic data of the sequence */
     Sequence (tools::misc::Data::Encoding_e encoding = tools::misc::Data::ASCII) : _data(encoding), _index(0)  {}
 
-    /** Constructor. */
+    /** Constructor. For testing mainly : allows to set the genomic data through an ascii representation.
+     * For instance, one can provide "ACTTACGCAGAT" as argument of this constructor.
+     * \param[in] seq : the genomic data as an ascii string */
     Sequence (char* seq) : _data(seq), _index(0)  {}
 
     /** Destructor. */
@@ -53,46 +75,70 @@ struct Sequence
     /** \return description of the sequence */
     virtual const std::string& getComment ()  const  { return _comment; }
 
-    /** \return quality of the sequence */
+    /** \return quality of the sequence (set if the underlying bank is a fastq file). */
     virtual const std::string& getQuality ()  const  { return _quality; }
     
     /** \return the data as a Data structure. */
     virtual tools::misc::Data& getData () { return _data; }
 
-    /** \return buffer holding the sequence residues. */
+    /** Return the raw buffer holding the genomic data. IMPORTANT : getting genomic data this way
+     * implies that the user knows what is the underlying encoding scheme in order to decode it
+     * (may be ASCII, INTEGER or BINARY)
+     * \return buffer holding the genomic data as a raw buffer. */
     virtual char* getDataBuffer ()  const { return _data.getBuffer(); }
 
-    /** \return number of residues of the sequence. */
+    /** \return number of nucleotides in the sequence. */
     virtual size_t getDataSize () const  { return _data.size(); }
 
-    /** \return format of the data. */
+    /** \return encoding scheme of the data. */
     virtual tools::misc::Data::Encoding_e getDataEncoding () const  { return _data.getEncoding(); }
 
-    /** \return index of the sequence in its database. */
+    /** Return the index of the sequence. It may be the index of the sequence in the database that
+     * holds the sequence.
+     * \return index of the sequence. */
     virtual size_t getIndex () const  { return _index; }
 
-    void setDataRef (tools::misc::Data* ref, int offset, int length)
-    {
-        _data.setRef (ref, offset, length);
-    }
+    /** Set the genomic data as a reference on a Data object (more precisely on a range in this data).
+     * This method may be used when one wants that the genomic data of the sequence points to an
+     * already existing buffer of nucleotides, which means that the sequence doesn't allocate any
+     * memory for storing the genomic data, it only relies on data stored somewhere else.
+     * This is mainly a shortcut to the gatb::core::tools::misc::Data::setRef method.
+     * \param[in] ref : the referred Data instance holding the genomic data
+     * \param[in] offset : starting index in the referred data
+     * \param[in] length : length of the genomic data of the current sequence. */
+    void setDataRef (tools::misc::Data* ref, int offset, int length)  {  _data.setRef (ref, offset, length);  }
 
-    /** Set the index of the sequence. Should be called by a IBank iterator. */
+    /** Set the index of the sequence. Typically, it should be called by a IBank iterator that knows what is
+     * the index of the currently iterated sequence.
+     * \param[in] index : index of the sequence */
     void setIndex (size_t index)  { _index = index; }
 
-    /** */
+    /** Get an ascii representation of the sequence. IMPORTANT ! this implementation supposes that the
+     * format of the Data attribute is ASCII. No conversion is done in case of other formats.
+     * \return the ascii representation of the sequence. */
     std::string toString () const { return std::string (this->getDataBuffer(), this->getDataSize()); }
 
-    std::string _comment;
+    /** Set the comment of the sequence (likely to be called by a IBank iterator).
+     * \param[in] cmt : comment of the sequence */
     void setComment (const std::string& cmt)  { _comment = cmt; }
+
+    /** Set the quality string of the sequence (likely to be called by a fastq iterator).
+     * \param[in] qual : quality string of the sequence. */
     void setQuality (const std::string& qual)  { _quality = qual; }
 
+    /** Comment attribute (note: should be private with a setter and getter). */
+    std::string _comment;
+
+    /** Quality attribute (note: should be private with a setter and getter). */
     std::string _quality;
 
 private:
+
+    /** Object holding the genomic data of the sequence (ie a succession of nucleotides). */
     tools::misc::Data _data;
 
+    /** Index of the sequence (likely to be set by a IBank iterator). */
     size_t _index;
-    
 };
 
 /********************************************************************************/

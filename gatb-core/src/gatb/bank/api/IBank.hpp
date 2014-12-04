@@ -53,7 +53,7 @@ namespace bank      {
  *  - read sequences from some container.
  *  - insert sequences into some container.
  *
- * Typical implementation of this interface is a FASTA bank parser.
+ * One typical implementation of this interface is a FASTA bank parser.
  *
  * The key point here is that clients should use this interface instead of specific
  * implementations, wherever they need to get nucleotides sequences from some container.
@@ -61,12 +61,24 @@ namespace bank      {
  * By doing this, such clients will support many bank formats (according to the fact that
  * a IBank implementation provides such a service). They will also support "fake" banks, for
  * instance random generated sequences or any kind of synthetic data.
+ *
+ * From a design point of view, IBank is an Iterable (something we can get iterators from) and
+ * a Bag (something we can insert items into); in both cases, the item type is Sequence
+ *
+ * Some kind of factory method exists for using IBank instances: this is the gatb::core::bank::impl::Bank
+ * class. This class allows to get a IBank instance by providing an URI. The actual implementation
+ * class of the IBank interface is computed by analyzing the URI string itself, or the content of the
+ * file defined by the URI. So, tools developers should in general get IBank instances this way, so their
+ * tool would support different kind of input bank formats.
+ *
+ * \see Sequence
+ * \see IBankFactory
  */
 class IBank : public tools::collections::Iterable<Sequence>, public tools::collections::Bag<Sequence>
 {
 public:
 
-    /** Get an unique identifier for the bank (could be an URI for instance).
+    /** Get an unique identifier for the bank (could be the URI of a FASTA file for instance).
      * \return the identifier */
     virtual std::string getId () = 0;
 
@@ -120,6 +132,9 @@ public:
  *
  * Such an identifier can be an uri (FASTA banks for instance), or any mechanism allowing
  * to retrieve enough information for creating instances of a specific IBank implementation.
+ *
+ * Actually, the gatb::core::bank::impl::Bank class relies on a list of registered IBankFactory
+ * instances.
  */
 class IBankFactory : public system::SmartPointer
 {
