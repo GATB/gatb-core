@@ -104,6 +104,7 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_mutation);
         CPPUNIT_TEST_GATB (debruijn_build);
         CPPUNIT_TEST_GATB (debruijn_checksum);
+        CPPUNIT_TEST_GATB (debruijn_checkbranching);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -1029,6 +1030,28 @@ public:
         debruijn_checksum_aux (filepath,  95,  4,  600, "2c.99817bec5ebde83b.97a71a71c72636c7.4cd2353be480a3b4");
 
         debruijn_checksum_aux (filepath, 127,  4,  424, "50c7d59f28890ef3.23f38c0611dc341c.525fd5f6a6fa045b.6f1255d3695f039d");
+    }
+
+    /********************************************************************************/
+
+    /** Check that the branching are sorted. */
+    void debruijn_checkbranching ()
+    {
+        string filepath = DBPATH("reads3.fa.gz");
+
+        /** We create a graph. */
+        Graph graph = Graph::create ("-verbose 0 -in %s ", filepath.c_str());
+
+        Node::Value previous = 0;
+        size_t i=0;
+
+        /** We iterate the branching nodes. */
+        Graph::Iterator<BranchingNode> it = graph.iterator<BranchingNode> ();
+        for (it.first(); !it.isDone(); it.next(), i++)
+        {
+            if (i > 0) {  CPPUNIT_ASSERT (previous < it->kmer);  }
+            previous = it->kmer;
+        }
     }
 };
 
