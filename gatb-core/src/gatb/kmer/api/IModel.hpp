@@ -45,13 +45,19 @@ enum KmerMode
 
 /********************************************************************************/
 
+/** Enumeration for strand. */
 enum Strand
 {
+    /** enum for the forward strand */
     STRAND_FORWARD = (1<<0),
+    /** enum for the reverse strand */
     STRAND_REVCOMP = (1<<1),
     STRAND_ALL     = STRAND_FORWARD + STRAND_REVCOMP
 };
 
+/** Ascii representation of a Strand object  ("FWD" or "REV")
+ * \param[in] s : the strand
+ * \return the Ascii representation */
 inline std::string toString (Strand s)
 {
          if (s == STRAND_FORWARD)  { return std::string("FWD"); }
@@ -63,21 +69,33 @@ inline Strand StrandReverse (const Strand& s)  {  return (s==STRAND_FORWARD ? ST
 
 /********************************************************************************/
 
+/** Enumeration for nucleotides. */
 enum Nucleotide
 {
+    /** enum for the A nucleotide */
     NUCL_A   = 0,
+    /** enum for the C nucleotide */
     NUCL_C   = 1,
+    /** enum for the T nucleotide */
     NUCL_T   = 2,
+    /** enum for the G nucleotide */
     NUCL_G   = 3,
     NUCL_UNKNOWN = 4
 };
 
+/** Ascii representation of a Nucleotide object ('A', 'C', 'T' or 'G')
+ * \param[in] nt : the nucleotide
+ * \return the Ascii representation */
 inline char ascii (Nucleotide nt)
 {
     static char table[] = {'A', 'C', 'T', 'G', 'N' };
     return table[(int)nt];
 }
 
+/** Reverse complement of a nucleotide (A->T, C->G, T->A, G->C)
+ * \param[in] nt : the nucleotide to be reversed
+ * \return the reversed nucleotide
+ */
 inline Nucleotide reverse (Nucleotide nt)
 {
     static Nucleotide table[] = {NUCL_T, NUCL_G, NUCL_A, NUCL_C, NUCL_UNKNOWN};
