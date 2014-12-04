@@ -201,7 +201,10 @@ void BranchingAlgorithm<span>::execute ()
     priority_queue <BranchingIteratorPair, vector<BranchingIteratorPair>, Compare<BranchingIteratorPair> > pq;
     for (size_t i=0; i<functorData.size(); i++)
     {
-        pq.push (make_pair (functorData[i].branchingNodes.begin(), functorData[i].branchingNodes.end()));
+        if (functorData[i].branchingNodes.empty() == false)
+        {
+            pq.push (make_pair (functorData[i].branchingNodes.begin(), functorData[i].branchingNodes.end()));
+        }
     }
 
     /** We process the merge/sort. */
