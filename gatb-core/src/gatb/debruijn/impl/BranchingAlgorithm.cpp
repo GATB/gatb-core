@@ -146,6 +146,14 @@ public:
 
 /*********************************************************************/
 
+template <typename T>
+struct Compare
+{
+    /** Biggest values first. */
+    bool operator() (const T& a, const T& b)  {  return ! (*(a.first) < *(b.first));  }
+};
+
+
 template<size_t span>
 void BranchingAlgorithm<span>::execute ()
 {
@@ -190,7 +198,7 @@ void BranchingAlgorithm<span>::execute ()
     Type checksum = 0;
 
     /** We initialize our priority queue. */
-    priority_queue<BranchingIteratorPair> pq;
+    priority_queue <BranchingIteratorPair, vector<BranchingIteratorPair>, Compare<BranchingIteratorPair> > pq;
     for (size_t i=0; i<functorData.size(); i++)
     {
         pq.push (make_pair (functorData[i].branchingNodes.begin(), functorData[i].branchingNodes.end()));
