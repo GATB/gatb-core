@@ -50,6 +50,13 @@ public:
             (iterable.getNbItems() >= 0 ? iterable.getNbItems() : iterable.estimateNbItems()) / divide,
             new Listener ((iterable.getNbItems() >= 0 ? iterable.getNbItems() : iterable.estimateNbItems()), msg)
     ) {}
+
+    ProgressIterator (tools::dp::Iterator<Type>* iterator, const char* msg, size_t nbItems)
+        : tools::dp::impl::SubjectIterator<Type> (
+            iterator,
+            nbItems / 100,
+            new Listener (nbItems, msg)
+    ) {}
 };
 
 /********************************************************************************/
