@@ -98,11 +98,11 @@ public:
         typename ModelType::Iterator itKmer1 (model);
         typename ModelType::Iterator itKmer2 (model);
 
-        PairedIterator<Iterator, Kmer, Kmer> itKmer (itKmer1, itKmer2);
+        PairedIterator<Kmer, Kmer> itKmer (&itKmer1, &itKmer2);
 
         /** We loop the two banks with a paired iterator. */
         BankBinary::Iterator itSeq2 (bank2);
-        PairedIterator<Iterator, Sequence,Sequence> itSeq (itSeq1, itSeq2);
+        PairedIterator<Sequence,Sequence> itSeq (&itSeq1, &itSeq2);
 
         /** We loop the sequences of the two banks. */
         for (itSeq.first(); !itSeq.isDone();  itSeq.next())

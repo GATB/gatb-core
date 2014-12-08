@@ -260,7 +260,7 @@ public:
         ListIterator<float> it2 (l2);
 
         /** We declare a paired iterator on the two iterators. */
-        PairedIterator<ListIterator, int,float> it (it1, it2);
+        PairedIterator<int,float> it (&it1, &it2);
         for (it.first(); !it.isDone(); it.next(), i++)
         {
             CPPUNIT_ASSERT (it->first  == values1[i]);
