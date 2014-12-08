@@ -312,7 +312,7 @@ public:
         vector<IBank*> banks;
         banks.push_back (new BankStrings ("ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAGAT"
                                           "TCCCCAGGCCCCTACACCCAATGTGGAACCGGGGTCCCGAATGAAAATGCTGCTGTTCCCTGGAGGTGTTCT", NULL));
-        banks.push_back (Bank::singleton().createBank (DBPATH("reads1.fa")));
+        banks.push_back (Bank::open (DBPATH("reads1.fa")));
         banks.push_back (new BankRandom (500, 200));
 
         size_t   kmerSizes[] = { 12,31, 33,63, 65,95, 97,127 };

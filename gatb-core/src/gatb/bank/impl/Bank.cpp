@@ -44,9 +44,11 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 Bank::Bank ()
 {
     /** We register most known factories. */
-    registerFactory ("album",  new BankAlbumFactory());
-    registerFactory ("fasta",  new BankFastaFactory());
-    registerFactory ("binary", new BankBinaryFactory());
+    _registerFactory_ ("album",  new BankAlbumFactory(),  false);
+    _registerFactory_ ("fasta",  new BankFastaFactory(),  false);
+    _registerFactory_ ("binary", new BankBinaryFactory(), false);
+
+    DEBUG (("Bank::Bank,  found %ld factories\n", _factories.size()));
 }
 
 /*********************************************************************
@@ -74,13 +76,17 @@ Bank::~Bank ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Bank::registerFactory (const std::string& name, IBankFactory* instance)
+void Bank::_registerFactory_ (const std::string& name, IBankFactory* instance, bool beginning)
 {
     /** We look whether the factory is already registered. */
-    IBankFactory* factory = getFactory (name);
+    IBankFactory* factory = _getFactory_ (name);
+
+    DEBUG (("Bank::registerFactory : name='%s'  instance=%p  => factory=%p \n", name.c_str(), instance, factory));
+
     if (factory == 0)
     {
-        _factories.push_back (Entry (name, instance));
+        if (beginning)  { _factories.push_front (Entry (name, instance));  }
+        else            { _factories.push_back  (Entry (name, instance));  }
         instance->use();
     }
     else
@@ -97,7 +103,24 @@ void Bank::registerFactory (const std::string& name, IBankFactory* instance)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IBankFactory* Bank::getFactory (const std::string& name)
+bool Bank::_unregisterFactory_ (const std::string& name)
+{
+    for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
+    {
+        if (it->name == name)  { _factories.erase(it);  return true; }
+    }
+    return false;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+IBankFactory* Bank::_getFactory_ (const std::string& name)
 {
     for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
     {
@@ -114,9 +137,9 @@ IBankFactory* Bank::getFactory (const std::string& name)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IBank* Bank::createBank (const std::string& uri)
+IBank* Bank::_open_ (const std::string& uri)
 {
-    DEBUG (("Bank::createBank : %s \n", uri.c_str()));
+    DEBUG (("Bank::open : %s  nbFactories=%ld \n", uri.c_str(), _factories.size()));
 
     IBank* result = 0;
     for (list<Entry>::iterator it = _factories.begin(); result==0 && it != _factories.end(); it++)
@@ -138,7 +161,7 @@ IBank* Bank::createBank (const std::string& uri)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-std::string Bank::getType (const std::string& uri)
+std::string Bank::_getType_ (const std::string& uri)
 {
     string result = "unknown";
 

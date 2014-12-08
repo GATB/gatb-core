@@ -37,7 +37,7 @@ namespace core      {
 namespace bank      {
 /********************************************************************************/
 
-/** \brief Interface for what we need to read genomic databases.
+/** \brief Structure holding genomic information.
  *
  * A sequence holds several data :
  *  - comment (as a text)
@@ -47,7 +47,10 @@ namespace bank      {
  *  The genomic data is hold in a tools::misc::Data attribute and is supposed to
  *  hold nucleotides.
  *
- *  Actually, the inner format may be of different kind (ASCII, INTEGER, BINARY).
+ *  Actually, the inner format may be of different kind (ASCII, INTEGER, BINARY) and
+ *  depends on the type of the bank that provides Sequence objects. For instance:
+ *      - a FASTA bank will provide Sequence instances whose data is in ASCII
+ *      - a BINARY bank will provide Sequence instances whose data is in BINARY
  *
  *  The buffer holding the nucleotides is located in the Data attribute, so have a look
  *  there to have further details on where the buffer can be allocated. Note just here
@@ -55,6 +58,9 @@ namespace bank      {
  *  buffer allocated in another place.
  *
  *  The class Sequence is closely related to the IBank interface.
+ *
+ * Example of use:
+ * \snippet bank16.cpp  snippet16_seq
  *
  *  \see IBank
  */

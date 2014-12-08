@@ -40,23 +40,39 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Algorithm implementation that converts a bank into a binary one
+ *
+ * This algorithm converts an input IBank instance into a binary output bank.
+ *
+ * It subclasses gatb::core::tools::misc::impl::Algorithm in order to get all the features
+ * of its parent class.
+ *
+ * Historically, it was used by DSK to work on a binary bank instead of a FASTA
+ * bank (ie. less I/O operations because of smaller size of binary banks)
+ */
 class BankConverterAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
 
-    /** */
+    /** Constructor.
+     * \param[in] bank : bank to be converted (likely in FASTA format)
+     * \param[in] kmerSize : kmer size
+     * \param[in] outputUri : uri of the output binary bank. */
     BankConverterAlgorithm (IBank* bank, size_t kmerSize, const std::string& outputUri);
 
-    /** */
+    /** Constructor. Used only to retrieved statistics/information gathered during
+     * a previous execution of a BankConverterAlgorithm instance
+     * \param[in] storage : storage instance where we get information from. */
     BankConverterAlgorithm (tools::storage::impl::Storage& storage);
 
-    /** */
+    /** Destructor. */
     ~BankConverterAlgorithm ();
 
-    /** */
+    /** \copydoc gatb::core::tools::misc::impl::Algorithm::execute */
     void execute ();
 
-    /** */
+    /** Return the output binary bank
+     * \return the IBank instance */
     IBank* getResult ()  { return _bankOutput; }
 
 private:

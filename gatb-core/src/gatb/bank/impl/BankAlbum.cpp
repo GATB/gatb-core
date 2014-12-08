@@ -77,7 +77,7 @@ BankAlbum::BankAlbum (const std::string& name, bool deleteIfExists) : _name(name
                 }
 
                 /** We add a new bank. */
-                BankComposite::addBank (Bank::singleton().createBank(bankUri));
+                BankComposite::addBank (Bank::open(bankUri));
 
                 /** We memorize the uri of this bank. */
                 _banksUri.push_back (bankUri);
@@ -174,7 +174,7 @@ IBank* BankAlbum::addBank (const std::string& bankUri)
         file->print ("%s\n", bankUri.c_str());
 
         /** We create a new bank. */
-        result = Bank::singleton().createBank(bankUri);
+        result = Bank::open(bankUri);
 
         /** We put it into the album. */
         BankComposite::addBank (result);
@@ -215,7 +215,7 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
         file->print ("%s\n", bankName.c_str());
 
         /** We add a new bank. */
-        result = Bank::singleton().createBank(bankUri);
+        result = Bank::open(bankUri);
 
         /** We put it into the album. */
         BankComposite::addBank (result);
@@ -306,7 +306,7 @@ IBank* BankAlbumFactory::createBank (const std::string& uri)
             DEBUG (("   %s\n", names[i].c_str()));
 
             /** We create a vector with the 'unitary' banks. */
-            banks.push_back (Bank::singleton().createBank (names[i]));
+            banks.push_back (Bank::open (names[i]));
         }
         /** We return a composite bank. */
         return new BankComposite (banks);

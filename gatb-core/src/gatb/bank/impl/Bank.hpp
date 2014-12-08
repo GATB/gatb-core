@@ -20,7 +20,7 @@
 /** \file Bank.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Interface definition for genomic databases management
+ *  \brief User front end for opening genomic banks in a generic way
  */
 
 #ifndef _GATB_CORE_BANK_IMPL_BANK_FACTORY_HPP_
@@ -40,56 +40,73 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Class providing factories for building IBank objects.
+/** \brief Class providing factories for opening IBank objects.
  *
- * The Bank class can be used of a front end for banks management in GATB.
+ * The Bank class can be used as a front end for banks management in GATB.
  *
  * Actually, its main purpose is to provide IBank instances from a given URI (likely
  * to be a FASTA file for instance).
  *
- * By using this class, clients can use genomic banks without knowing their actual
+ * By using this class, clients can open genomic banks without knowing their actual
  * type: they only rely on the IBank interface. This means that developing tools
- * this way make them independent of format of the input bank (at least for the
+ * this way make them independent of the format of the input bank (at least for the
  * supported input format by GATB).
- *
- * This class registers IBankFactory instances, which allows to create IBank objects
- * through a call to 'createBank'.
  *
  * Today, the following factories are registered:
  *  1) BankAlbumFactory
  *  2) BankFastaFactory
  *  3) BankBinaryFactory
  *
- * During a call to 'createBank', each factory is tried (in the order of registration)
+ * During a call to 'open', each factory is tried (in the order of registration)
  * until a correct IBank object is returned; if no valid IBank is found, an exception
  * is thrown.
  *
- * This class is a Singleton (private constructor) and must be used only this way.
+ * Example of use:
+ * \snippet bank16.cpp  snippet16_bank
+ *
+ * NOTE : In case of a brand new bank creation, there is no corresponding method to 'open'
+ * because one has to know exactly the format of the bank (it is not possible in general
+ * to deduce the format only by analyzing the URI string).
+ *
+ * This class is a Singleton (private constructor) and its static public members are
+ * accessed to this singleton.
+ *
+ * For developers adding new implementations of the IBank interface, they should register a
+ * IBankFactory instance for their new class. Doing so make their new bank format available
+ * through the Bank::open method.
  */
 class Bank
 {
 public:
 
-    /** Singleton instance. */
-    static Bank& singleton()  { static Bank instance; return instance; }
-
-    /** Register a new factory, associated with a name.
-     * \param[in] name : name of the factory
-     * \param[in] instance : IBank factory */
-    void registerFactory (const std::string& name, IBankFactory* instance);
-
-    /** Get a bank handle.
+    /** Open a bank and get a IBank instance. Since the instance is created by a new
+     * statement, the client has to release the IBank when it is no longer used (otherwise
+     * a memory leak will happen).
      * \param[in] uri : uri of the bank.
-     * \return the bank handle. */
-    IBank* createBank (const std::string& uri);
+     * \return the IBank instance. */
+    static IBank* open (const std::string& uri)  { return singleton()._open_ (uri); }
 
     /** Get the type of the bank as a string
      * \param[in] uri : uri of the bank.
      * \return the bank type as a string. */
-    std::string getType (const std::string& uri);
+    static std::string getType (const std::string& uri)  { return singleton()._getType_(uri); }
+
+    /** Register a new factory, associated with a name.
+     * Note that the position of the registered factory in the list of factories may be important; for instance,
+     * if we want to add a custom fasta file factory, we should add it at the beginning in order to be sure that
+     * our custom data format will be used by default.
+     * \param[in] name : name of the factory
+     * \param[in] instance : IBank factory
+     * \param[in] beginning : if true add the factory in the first position of the factories list, if false in the last position. */
+    static void registerFactory (const std::string& name, IBankFactory* instance, bool beginning)  { singleton()._registerFactory_ (name, instance, beginning); }
+
+    /** Unregister a factory given its name.
+     * \param[in] name : name of the factory to be unregistered.
+     * \return true if the factory has been unregistered, false otherwise. */
+    static bool unregisterFactory (const std::string& name)  { return singleton()._unregisterFactory_ (name); }
 
     /** Get a factory for a given name. */
-    IBankFactory* getFactory (const std::string& name);
+    static IBankFactory* getFactory (const std::string& name)  { return singleton()._getFactory_(name); }
 
 private:
 
@@ -109,6 +126,24 @@ private:
     };
 
     std::list<Entry> _factories;
+
+    /** Singleton instance. */
+    static Bank& singleton()  { static Bank instance; return instance; }
+
+    /** Wrapper for 'open' method. */
+    IBank* _open_ (const std::string& uri);
+
+    /** Wrapper for 'getType' method. */
+    std::string _getType_ (const std::string& uri);
+
+    /** Wrapper for 'registerFactory' method. */
+    void _registerFactory_ (const std::string& name, IBankFactory* instance, bool beginning);
+
+    /** Wrapper for 'unregisterFactory' method. */
+    bool _unregisterFactory_ (const std::string& name);
+
+    /** Wrapper for 'getFactory' method. */
+    IBankFactory* _getFactory_ (const std::string& name);
 };
 
 /********************************************************************************/

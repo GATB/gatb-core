@@ -217,7 +217,7 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare a Bank instance. */
-        IBank* bank = Bank::singleton().createBank(filename);
+        IBank* bank = Bank::open(filename);
         CPPUNIT_ASSERT (bank != NULL);
         LOCAL (bank);
 
@@ -648,12 +648,8 @@ public:
     /********************************************************************************/
     void bank_checkRegistery_aux (const string& bankformat, const string& bankuri, size_t nbCheck)
     {
-        /** We get the default factory. */
-        IBankFactory* factory = Bank::singleton().getFactory (bankformat);
-        CPPUNIT_ASSERT (factory != 0);
-
         /** We create a bank handle. */
-        IBank* bank = factory->createBank (DBPATH(bankuri));
+        IBank* bank = Bank::open (DBPATH(bankuri));
         LOCAL (bank);
 
         /** We create a bank iterator. */
@@ -680,14 +676,20 @@ public:
 
     void bank_checkRegistery2 ()
     {
+        string factoryName = "customfasta";
+
         /** We register our custom bank format. */
-        Bank::singleton().registerFactory (
-            "customfasta",
-            new BankFilteredFactory<FilterFunctor> ("fasta", FilterFunctor())
+        Bank::registerFactory (
+                factoryName,
+            new BankFilteredFactory<FilterFunctor> ("fasta", FilterFunctor()),
+            true  // => put this factory in first position to override fasta factory
         );
 
         /** We should have only half the number of sequences of the original database. */
-        bank_checkRegistery_aux ("customfasta", "sample1.fa", 10);
+        bank_checkRegistery_aux (factoryName, "sample1.fa", 10);
+
+        /** We have to unregister our custom factory now (default fasta factory will be used again). */
+        CPPUNIT_ASSERT (Bank::unregisterFactory (factoryName) == true);
     }
 
     /********************************************************************************/
@@ -986,13 +988,13 @@ public:
     /********************************************************************************/
     void bank_registery_types (void)
     {
-        IBank* bank1 = Bank::singleton().createBank (DBPATH("sample1.fa"));
+        IBank* bank1 = Bank::open (DBPATH("sample1.fa"));
         CPPUNIT_ASSERT (bank1 != 0);
         LOCAL (bank1);
 
-        CPPUNIT_ASSERT (Bank::singleton().getType(DBPATH("album.txt"))    == "album");
-        CPPUNIT_ASSERT (Bank::singleton().getType(DBPATH("sample1.fa"))   == "fasta");
-        CPPUNIT_ASSERT (Bank::singleton().getType(DBPATH("sample.fastq")) == "fasta");
+        CPPUNIT_ASSERT (Bank::getType(DBPATH("album.txt"))    == "album");
+        CPPUNIT_ASSERT (Bank::getType(DBPATH("sample1.fa"))   == "fasta");
+        CPPUNIT_ASSERT (Bank::getType(DBPATH("sample.fastq")) == "fasta");
     }
 
 };

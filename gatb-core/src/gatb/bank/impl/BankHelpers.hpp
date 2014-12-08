@@ -41,7 +41,7 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Interface for reading genomic databases.
+/** \brief Utility class holding useful methods for bank management
  */
 class BankHelper
 {
@@ -61,6 +61,13 @@ public:
 
 /********************************************************************************/
 
+/** \brief Bank implementation that delegates work to a referred bank.
+ *
+ * Implementation of the Proxy design pattern for the IBank interface.
+ *
+ * This class is not intended to be used by end users; it is rather used for
+ * being subclassed.
+ */
 class BankDelegate : public AbstractBank
 {
 public:
@@ -73,50 +80,37 @@ public:
     /** Destructor. */
     ~BankDelegate () { setRef(0); }
 
-    /** */
+    /** \copydoc AbstractBank::getId */
     std::string getId ()  { return _ref->getId(); }
 
-    /** \copydoc tools::collections::Iterable::iterator */
+    /** \copydoc AbstractBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return _ref->iterator(); }
 
-    /**  */
+    /** \copydoc AbstractBank::getNbItems */
     int64_t getNbItems () { return _ref->getNbItems(); }
 
-    /** \copydoc tools::collections::Bag */
+    /** \copydoc AbstractBank::insert */
     void insert (const Sequence& item)   { _ref->insert (item); }
 
-    /** */
+    /** \copydoc AbstractBank::flush */
     void flush ()  {  _ref->flush ();  }
 
-    /** Return the size of the bank (comments + data)
-     *
-     * The returned value may be an approximation in some case. For instance, if we use
-     * a zipped bank, an implementation may be not able to give accurate answer to the
-     * size of the original file.
-     *
-     * \return the bank size.*/
+    /** \copydoc AbstractBank::getSize */
     u_int64_t getSize ()  { return _ref->getSize(); }
 
-    /** Give an estimation of sequences information in the bank:
-     *      - sequences number
-     *      - sequences size (in bytes)
-     *      - max size size (in bytes)
-     * \return the sequences number estimation. */
+    /** \copydoc AbstractBank::estimate */
     void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)  {  _ref->estimate (number, totalSize, maxSize);  }
 
-    /** Shortcut to 'estimate' method.
-     * \return estimation of the number of sequences */
+    /** \copydoc AbstractBank::estimateNbItems */
     int64_t estimateNbItems () { return _ref->estimateNbItems(); }
 
-    /** Shortcut to 'estimate' method.
-     * \return estimation of the size of sequences */
+    /** \copydoc AbstractBank::estimateSequencesSize */
     u_int64_t estimateSequencesSize ()  { return _ref->estimateSequencesSize(); }
 
-    /** \return the number of sequences read from the bank for computing estimated information */
+    /** \copydoc AbstractBank::getEstimateThreshold */
     u_int64_t getEstimateThreshold ()  { return _ref->getEstimateThreshold(); }
 
-    /** Set the number of sequences read from the bank for computing estimated information
-     * \param[in] nbSeq : the number of sequences to be read.*/
+    /** \copydoc AbstractBank::setEstimateThreshold */
     void setEstimateThreshold (u_int64_t nbSeq)  { _ref->setEstimateThreshold(nbSeq); }
 
 protected:
@@ -127,6 +121,17 @@ protected:
 
 /********************************************************************************/
 
+/** \brief Bank that can filter sequences through a provided functor.
+ *
+ * This is an utility class that allows to filter a referred bank with a functor.
+ *
+ * The functor must define the following method:
+ * \code
+ * bool operator() (const Sequence& seq)
+ * \endcode
+ *
+ * -> true means that the sequence is iterated, false the sequence is filtered out.
+ */
 template<typename Filter> class BankFiltered : public BankDelegate
 {
 public:
@@ -150,16 +155,22 @@ private:
 
 /********************************************************************************/
 
+/** \brief Bank factory associated to the BankFiltered class
+ */
 template<typename Filter> class BankFilteredFactory : public IBankFactory
 {
 public:
 
+    /** Constructor.
+     * \param[in] delegateFormat : format of the delegate bank to be created
+     * \param[in] filter : functor used to filtering out some sequences of the referred bank. */
     BankFilteredFactory (const std::string& delegateFormat, const Filter& filter) : _format(delegateFormat), _filter(filter)  {}
 
+    /** \copydoc IBankFactory::createBank */
     IBank* createBank (const std::string& uri)
     {
         /** We create the reference bank. */
-        IBank* ref = Bank::singleton().getFactory(_format)->createBank (uri);
+        IBank* ref = Bank::getFactory(_format)->createBank (uri);
 
         /** We encapsulate with a filtered bank. */
         return new BankFiltered<Filter> (ref, _filter);
@@ -170,7 +181,6 @@ private:
     std::string _format;
     Filter      _filter;
 };
-
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

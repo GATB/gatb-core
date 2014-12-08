@@ -20,7 +20,7 @@
 /** \file BankBinary.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Implementation of IBank interface with compressed format.
+ *  \brief Binary bank format
  */
 
 #ifndef _GATB_CORE_BANK__IMPL_BANK_BINARY_HPP_
@@ -51,6 +51,15 @@ namespace impl      {
  *             - a sequence length (on 4 bytes)
  *             - the nucleotides of the sequences (4 nucleotides encoded in 1 byte)
  * - number of sequences (on 4 bytes)
+ *
+ * Historically, BinaryBank has been used in the first step of the DSK tool to convert
+ * one input FASTA file into a binary format. DSK used to read several times the reads
+ * so having a binary (and so compressed) format had the nice effect to have less I/O
+ * operations and therefore less execution time.
+ *
+ * Example of use:
+ * \snippet bank8.cpp  snippet8_binary
+ *
  */
 class BankBinary : public AbstractBank
 {
@@ -166,11 +175,12 @@ protected:
 
 /********************************************************************************/
 
-/** */
+/** \brief Factory for the BankBinary class. */
 class BankBinaryFactory : public IBankFactory
 {
 public:
 
+    /** \copydoc IBankFactory::createBank */
     IBank* createBank (const std::string& uri) { return new BankBinary (uri); }
 };
 

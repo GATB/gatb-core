@@ -30,30 +30,22 @@ int main (int argc, char* argv[])
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
+        //! [snippet8_binary]
         // We declare an input Bank
         BankFasta inputBank (argv[1]);
 
         // We declare an output Bank
         BankBinary outputBank (argv[2]);
 
-        // We create a sequence iterator for the bank
-        BankFasta::Iterator* itInput = new BankFasta::Iterator (inputBank);
+        // We create a sequence iterator on the input bank (with progress information).
+        ProgressIterator<Sequence> itSeq (inputBank, "Converting input file into binary format");
 
-        // We create an iterator over the input bank and encapsulate it with progress notification.
-        SubjectIterator<Sequence> itSeq (itInput, 100000);
-
-        // We create some listener to be notified every N iterations and attach it to the iterator.
-        itSeq.addObserver (new ProgressTimer (inputBank.estimateNbItems(), "Converting input file into binary format"));
-
-        // We loop over sequences.
-        for (itSeq.first(); !itSeq.isDone(); itSeq.next())
-        {
-            // We insert the current sequence into the output bank.
-            outputBank.insert (*itSeq);
-        }
+        // We insert each sequence of the input bank into the output bank.
+        for (itSeq.first(); !itSeq.isDone(); itSeq.next())  {  outputBank.insert (itSeq.item());  }
 
         // We make sure that the output bank is flushed correctly.
         outputBank.flush ();
+        //! [snippet8_binary]
 
         if (argc >= 4  && atoi(argv[3])==1)
         {

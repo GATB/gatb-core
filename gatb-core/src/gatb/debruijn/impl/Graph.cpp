@@ -749,7 +749,7 @@ Graph::Graph (tools::misc::IProperties* params)
     setVariant (*((GraphDataVariant*)_variant), _kmerSize, integerPrecision);
 
     /** We build a Bank instance for the provided reads uri. */
-    bank::IBank* bank = Bank::singleton().createBank (params->getStr(STR_URI_INPUT));
+    bank::IBank* bank = Bank::open (params->getStr(STR_URI_INPUT));
 
     /** We build the graph according to the wanted precision. */
     boost::apply_visitor (build_visitor (*this, bank,params),  *(GraphDataVariant*)_variant);

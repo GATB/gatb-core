@@ -38,7 +38,7 @@ int main (int argc, char* argv[])
         u_int64_t maxDbSize = options->getInt(STR_MAX_INPUT_SIZE);
 
         // We declare an input Bank
-        IBank* inputBank = Bank::singleton().createBank (options->getStr(STR_URI_INPUT));
+        IBank* inputBank = Bank::open (options->getStr(STR_URI_INPUT));
         LOCAL (inputBank);
 
         // We get the basename of the input bank.
@@ -57,18 +57,14 @@ int main (int argc, char* argv[])
         // We create the album bank.
         BankAlbum album (outputDir + "/album.txt");
 
-        // We create a sequence iterator for the bank
-        Iterator<Sequence>* itInput = inputBank->iterator();
-
         /** We get estimations about the bank. */
         u_int64_t number, totalSize, maxSize;
         inputBank->estimate (number, totalSize, maxSize);
 
         u_int64_t estimationNbSeqToIterate = nbBanks <= 0 ? number  : (number*maxDbSize*nbBanks) / totalSize;
 
-        // We create an iterator over the input bank and encapsulate it with progress notification.
-        SubjectIterator<Sequence> itSeq (itInput, 1000);
-        itSeq.addObserver (new ProgressTimer (estimationNbSeqToIterate, "split"));
+        // We create an iterator over the input bank
+        ProgressIterator<Sequence> itSeq (*inputBank, "split");
 
         // We loop over sequences to get the exact number of sequences.
           int64_t nbBanksOutput = -1;

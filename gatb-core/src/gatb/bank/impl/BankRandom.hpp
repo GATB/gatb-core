@@ -20,7 +20,7 @@
 /** \file BankRandom.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Interface definition for genomic databases management
+ *  \brief Random bank format
  */
 
 #ifndef _GATB_CORE_BANK_IMPL_BANK_RANDOM_HPP_
@@ -40,7 +40,9 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Interface for reading genomic databases.
+/** \brief Implementation of IBank for random banks
+ *
+ * This class generates random genomic data and can be used for test purpose.
  */
 class BankRandom : public AbstractBank
 {

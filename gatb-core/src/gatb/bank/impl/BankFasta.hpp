@@ -20,7 +20,7 @@
 /** \file BankFasta.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Interface definition for genomic databases management
+ *  \brief FASTA bank format
  */
 
 #ifndef _GATB_CORE_BANK_IMPL_BANK_FASTA_HPP_
@@ -51,7 +51,13 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Interface for reading genomic databases.
+/** \brief Implementation of IBank for FASTA format
+ *
+ *  This class provides FASTA management in GATB.
+ *
+ *  Actually, it provides FASTA and FASTQ formats, both in uncompressed and gzip formats.
+ *
+ *  In case of FASTQ files, the iterated Sequence objects will provide quality information.
  *
  * Sample of use:
  * \snippet bank1.cpp  snippet1_bank
@@ -87,7 +93,7 @@ public:
     /** \copydoc IBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return new Iterator (*this); }
 
-    /** */
+    /** \copydoc IBank::getNbItems */
     int64_t getNbItems () { return -1; }
 
     /** \copydoc IBank::insert */
@@ -233,11 +239,12 @@ protected:
 
 /********************************************************************************/
 
-/** */
+/** \brief Factory for the BankFasta class. */
 class BankFastaFactory : public IBankFactory
 {
 public:
 
+    /** \copydoc IBankFactory::createBank */
     IBank* createBank (const std::string& uri);
 };
 

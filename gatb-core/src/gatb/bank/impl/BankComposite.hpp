@@ -20,7 +20,7 @@
 /** \file BankComposite.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Interface definition for genomic databases management
+ *  \brief Composite bank, ie. a bank made of other banks
  */
 
 #ifndef _GATB_CORE_BANK_IMPL_BANK_COMPOSITE_HPP_
@@ -41,7 +41,18 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** */
+/** \brief IBank implementation for composite banks
+ *
+ * This class implements the Composite design pattern and allows to handle compound
+ * banks the same way as a single one.
+ *
+ * This is mainly a base class for other subclasses (see BankAlbum) and is not often
+ * instantiated directly.
+ *
+ * Most of the methods of IBank are implemented by iterating the list of referred banks.
+ *
+ * A BankComposite can be created with a vector of IBank instances to be referred.
+ */
 class BankComposite : public AbstractBank
 {
 public:
@@ -49,8 +60,7 @@ public:
     /** Returns the name of the bank format. */
     static const char* name()  { return "composite"; }
 
-    /** Default constructor.
-     * \param[in] filenames : uri list of the banks. */
+    /** Default constructor (no referred bank). */
     BankComposite () : _nbItems(0), _size(0)  {}
 
     /** Constructor.
@@ -81,7 +91,7 @@ public:
         return new tools::dp::impl::CompositeIterator<Sequence> (iterators);
     }
 
-    /** */
+    /** \copydoc IBank::getNbItems */
     int64_t getNbItems ()
     {
         if (_nbItems == 0)  {  for (size_t i=0; i<_banks.size(); i++)  { _nbItems += _banks[i]->getNbItems(); } }
@@ -117,16 +127,20 @@ public:
     /** \return maximum number of files. */
     static const size_t getMaxNbFiles ()  { return 30; }
 
-    /** */
+    /** Return the vector of IBank objects.
+     * \return the IBank objects. */
     const std::vector<IBank*>& getBanks() const { return _banks; }
 
-    /** */
+    /** Get the number of referred banks.
+     * \return the number of referred banks */
     size_t getNbBanks () const { return _banks.size();  }
 
-    /** Direct iteration of the IBank instances. */
+    /** Direct iteration of the IBank instances.
+     * \param[in] fct : functor that will be called with each referred IBank object. */
     template<typename Functor> void iterateBanks (Functor fct)  {  for (size_t i=0; i<_banks.size(); i++)  { fct (*_banks[i], i); }  }
 
-    /** */
+    /** Returns an iterator on the IBank objects (heap allocation)
+     * \return the IBank iterator. */
     tools::dp::Iterator<IBank*>* iteratorBanks ()  { return new tools::dp::impl::VectorIterator<IBank*> (_banks); }
 
     /** \copydoc IBank::remove. */
