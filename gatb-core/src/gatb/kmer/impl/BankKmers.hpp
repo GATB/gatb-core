@@ -150,6 +150,45 @@ private:
 };
 
 /********************************************************************************/
+
+/** Statistics about the bank. */
+struct BankStats
+{
+    BankStats ()
+    : sequencesNb(0), sequencesMinLength(~0), sequencesMaxLength(0), sequencesTotalLength(0), sequencesTotalLengthSquare(0),
+      kmersNbValid(0), kmersNbInvalid(0) {}
+
+    void update (bank::Sequence& sequence)
+    {
+        sequencesNb++;
+        sequencesTotalLength       += sequence.getDataSize();
+        sequencesTotalLengthSquare += sequence.getDataSize() * sequence.getDataSize();
+        if (sequencesMinLength > sequence.getDataSize())  {  sequencesMinLength = sequence.getDataSize(); }
+        if (sequencesMaxLength < sequence.getDataSize())  {  sequencesMaxLength = sequence.getDataSize(); }
+    }
+
+    BankStats& operator+= (const BankStats& other)
+    {
+        sequencesNb                += other.sequencesNb;
+        sequencesTotalLength       += other.sequencesTotalLength;
+        sequencesTotalLengthSquare += other.sequencesTotalLengthSquare;
+        kmersNbValid               += other.kmersNbValid;
+        kmersNbInvalid             += other.kmersNbInvalid;
+        sequencesMinLength          = std::min (sequencesMinLength, other.sequencesMinLength);
+        sequencesMaxLength          = std::max (sequencesMaxLength, other.sequencesMaxLength);
+        return *this;
+    }
+
+    u_int64_t sequencesNb;
+    u_int64_t sequencesMinLength;
+    u_int64_t sequencesMaxLength;
+    u_int64_t sequencesTotalLength;
+    u_int64_t sequencesTotalLengthSquare;
+    u_int64_t kmersNbValid;
+    u_int64_t kmersNbInvalid;
+};
+
+/********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
