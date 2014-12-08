@@ -314,15 +314,13 @@ void SortingCountAlgorithm<span>::execute ()
         getInfo()->add (1, "bank");
         getInfo()->add (2, "bank_uri",          "%s",   _bank->getId().c_str());
         getInfo()->add (2, "bank_size",         "%lld", _bank->getSize());
+        getInfo()->add (2, "bank_total_nt",     "%lld", _bankStats.sequencesTotalLength);
         getInfo()->add (2, "sequences");
         getInfo()->add (3, "seq_number",        "%ld",  _bankStats.sequencesNb);
         getInfo()->add (3, "seq_size_min",      "%ld",  _bankStats.sequencesMinLength);
         getInfo()->add (3, "seq_size_max",      "%ld",  _bankStats.sequencesMaxLength);
-        getInfo()->add (3, "seq_size_mean",     "%.1f", (double)_bankStats.sequencesTotalLength / (double)_bankStats.sequencesNb);
-        getInfo()->add (3, "seq_size_deviation","%.1f",
-            sqrt ((double)_bankStats.sequencesTotalLengthSquare / (double)_bankStats.sequencesNb -
-                pow ((double)_bankStats.sequencesTotalLength / (double)_bankStats.sequencesNb, 2))
-        );
+        getInfo()->add (3, "seq_size_mean",     "%.1f", _bankStats.getSeqMean());
+        getInfo()->add (3, "seq_size_deviation","%.1f", _bankStats.getSeqDeviation());
         getInfo()->add (2, "kmers");
         getInfo()->add (3, "kmers_nb_valid",   "%lld", _bankStats.kmersNbValid);
         getInfo()->add (3, "kmers_nb_invalid", "%lld", _bankStats.kmersNbInvalid);
@@ -340,6 +338,10 @@ void SortingCountAlgorithm<span>::execute ()
     getInfo()->add (3, "cutoff",            "%ld",  _histogram->get_solid_cutoff());
     getInfo()->add (3, "nb_ge_cutoff",      "%ld",  _histogram->get_nbsolids_auto());
     getInfo()->add (3, "percent_ge_cutoff", "%.1f", nbSolids > 0 ? 100.0 * (double)_histogram->get_nbsolids_auto() / (double)_bankStats.kmersNbValid : 0);
+    getInfo()->add (3, "first_peak",         "%ld",  _histogram->get_first_peak());
+
+    double N = ((double)_histogram->get_first_peak() * _bankStats.getSeqMean()) / (_bankStats.getSeqMean() - _kmerSize + 1);
+    if (N > 0)  {  getInfo()->add (3, "genome_size_estimate", "%.0f",  (double)_bankStats.sequencesTotalLength / N);  }
 
     size_t smallestPartition = ~0;
     size_t biggestPartition  = 0;
