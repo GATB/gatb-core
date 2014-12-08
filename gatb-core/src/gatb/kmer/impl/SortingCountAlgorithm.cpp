@@ -315,6 +315,11 @@ void SortingCountAlgorithm<span>::execute ()
     getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
     if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
 
+    getInfo()->add (2, "histogram");
+    getInfo()->add (3, "cutoff",            "%ld",  _histogram->get_solid_cutoff());
+    getInfo()->add (3, "nb_ge_cutoff",      "%ld",  _histogram->get_nbsolids_auto());
+    getInfo()->add (3, "percent_ge_cutoff", "%.1f", nbSolids > 0 ? 100.0 * (double)_histogram->get_nbsolids_auto() / (double)nbSolids : 0);
+
     size_t smallestPartition = ~0;
     size_t biggestPartition  = 0;
     for (size_t i=0; i<_solidCounts->size(); i++)
