@@ -32,6 +32,7 @@ int main (int argc, char* argv[])
     // and at the end, all the local sums will be summed into the final one.
     // By doing this, we don't have any more concurrent accesses issues.
 
+    //! [snippet5_threadobject]
     // In order to ease this approach, we use a ThreadObject object. Such an object
     // will provide local sums for each executing thread. After the iteration, it also
     // provides a mean to get all the local sums and modify the global sum accordingly.
@@ -54,6 +55,7 @@ int main (int argc, char* argv[])
         // current 'localSum' computed by one of the threads.
         *sum += localSum;
     });
+    //! [snippet5_threadobject]
 
     cout << "sum=" << *sum << "  (result should be " << nmax*(nmax+1)/2 << ")" << endl;
 
