@@ -53,7 +53,9 @@ class CommonFile : public IFile
 {
 public:
 
-    /** Constructor. */
+    /** Constructor.
+     * \param[in] path : full path of the file
+     * \param[in] mode : read/write mode (same as fopen function) */
     CommonFile (const char* path, const char* mode) : _path(path), _handle(0), _isStdout(false)
     {
         _isStdout = path && strcmp(path,"stdout")==0;

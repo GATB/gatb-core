@@ -51,7 +51,8 @@ class TimeAbstract : public ITime
 {
 public:
 
-    /** */
+    /** Constructor.
+     * \param[in] unit : unit used for this instance */
     TimeAbstract (Unit unit) : _unit (unit)  {}
 
     /** \copydoc ITime::getUnit */
@@ -89,7 +90,7 @@ class TimeSystem : public TimeAbstract
 {
 public:
 
-    /** */
+    /** \copydoc TimeAbstract::TimeAbstract */
     TimeSystem (Unit unit) : TimeAbstract (unit)
     {
         /** We have to check that the provided unit is ok. */
@@ -137,7 +138,7 @@ class TimeCycle : public TimeAbstract
 {
 public:
 
-    /** */
+    /** Constructor */
     TimeCycle () : TimeAbstract (UNDEFINED)  {}
 
     /** \copydoc ITime::getTimeStamp */

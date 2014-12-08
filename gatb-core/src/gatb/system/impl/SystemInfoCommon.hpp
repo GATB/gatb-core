@@ -41,6 +41,14 @@ namespace system    {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Abstract class for ISystemInfo interface.
+ *
+ * This class factorizes some methods with implementations common to
+ * several operating systems.
+ *
+ * It is still abstract since it doesn't implement all methods of
+ * ISystemInfo
+ */
 class SystemInfoCommon : public ISystemInfo
 {
 public:
@@ -81,6 +89,8 @@ public:
 
 /********************************************************************************/
 
+/** \brief Linux implementation for ISystemInfo interface.
+ */
 class SystemInfoLinux : public SystemInfoCommon
 {
 public:
@@ -109,6 +119,8 @@ public:
 
 /********************************************************************************/
 
+/** \brief MacOs implementation for ISystemInfo interface.
+ */
 class SystemInfoMacos : public SystemInfoCommon
 {
 public:
@@ -134,6 +146,11 @@ public:
 
 /********************************************************************************/
 
+/** \brief Windows implementation for ISystemInfo interface.
+ *
+ * IMPORTANT ! Windows implementation is not fully done. Using it may lead to
+ * ExceptionNotImplemented exception.
+ */
 class SystemInfoWindows : public SystemInfoCommon
 {
 public:

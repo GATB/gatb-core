@@ -22,7 +22,7 @@
  *  \date 01/03/2013
  *  \author edrezen
  *
- *   We define here some types used thoughout the code.
+ *   We define here some types used throughout the code.
  *
  *   Important: we define typedefs such as int16_t or u_int64_t. It is a good idea to use such typedefs
  *   instead of direct 'unsigned long' or 'short' for instance, because the actual number of used bytes

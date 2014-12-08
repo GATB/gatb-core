@@ -66,6 +66,14 @@ public:
 
 /********************************************************************************/
 
+/** \brief Interface that defines a group of threads
+ *
+ * This interface allows to manage a group of threads; it may be
+ * used to access a shared object by different threads.
+ *
+ * This class is not intended to be used by end users; instead, the
+ * ThreadObject class can be used.
+ */
 class IThreadGroup : virtual public ISmartPointer
 {
 public:
@@ -77,21 +85,45 @@ public:
         void*         data;
     };
 
+    /** Destructor */
     virtual ~IThreadGroup () {}
 
+    /** Add a thread to the group. A thread is created and the provided
+     * mainloop is launched as the main function of this thread.
+     * \param[in] mainloop : mainloop of the added thread. */
     virtual void add (void* (*mainloop) (void*), void* data) = 0;
 
+    /** Start all the threads of the group at the same time. Implementations
+     * should ensure this by some synchronization mechanism. */
     virtual void start () = 0;
 
+    /** Get the synchronizer associated to this threads group.
+     * \return the ISynchronizer instance. */
     virtual ISynchronizer* getSynchro() = 0;
 
+    /** Get the number of threads in the group.
+     * \return the number of threads */
     virtual size_t size() const = 0;
 
+    /** Get the ith thread of the group.
+     * \param[in] idx : index of the thread in the group
+     * \return the thread */
     virtual IThread* operator[] (size_t idx) = 0;
 
-    /** */
+    /** This method is used to gather exceptions occurring during the
+     * execution of the threads of the group. By doing this, we can
+     * launch an ExceptionComposite when all the threads of the group
+     * are finished.
+     * \param[in] e : exception thrown by one of the thread. */
     virtual void addException (system::Exception e) = 0;
+
+    /** Tells whether or not exceptions have been added to the thread group.
+     * \return true if some exception has been added, false otherwise */
     virtual bool hasExceptions() const = 0;
+
+    /** Get an exception that holds all the information of exceptions that have
+     * occurred during the execution of the threads of the group.
+     * \return the gathering exception. */
     virtual Exception getException () const = 0;
 };
 

@@ -53,6 +53,8 @@ namespace system    {
 /********************************************************************************/
 
  /** \brief Exception class for operating system failures
+  *
+  * This class is used in GATB-CORE for throwing typed exceptions.
   */
  class Exception
  {
@@ -90,10 +92,20 @@ namespace system    {
  };
 
  /********************************************************************************/
+
+ /** \brief Composite exception
+  *
+  * This class allows to build one exception message from the messages of several
+  * exceptions.
+  *
+  * It may be used for instance by the ThreadGroup class.
+  */
  class ExceptionComposite : public Exception
  {
  public:
 
+	 /** Constructor
+	  * \param[in] exceptions : list of exceptions from which the composite message is built. */
      ExceptionComposite (const std::list<Exception>& exceptions)
      {
          std::stringstream ss;
@@ -113,7 +125,9 @@ namespace system    {
  {
  public:
 
-    /** Constructor. The error message is built by calling strerror function. */
+    /** Constructor. The error message is built by calling strerror function.
+     * \param[in] format : printf-like prototype
+     */
     ExceptionErrno (const char* format, ...)
     {
         va_list args;  va_start (args, format);  init (format, args);  va_end (args);
