@@ -31,6 +31,7 @@
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/kmer/impl/BankKmers.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
 #include <gatb/tools/collections/api/Iterable.hpp>
@@ -269,6 +270,8 @@ private:
     bool _flagEstimateNbDistinctKmers; // whether we estimate the number of distinct kmers beforehand
 	
     std::pair<int,int> _partCmdTypes;
+
+    BankStats _bankStats;
 };
 	
 /********************************************************************************/

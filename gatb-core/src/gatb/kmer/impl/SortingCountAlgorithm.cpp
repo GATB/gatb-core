@@ -309,16 +309,37 @@ void SortingCountAlgorithm<span>::execute ()
     u_int64_t nbSolids = _solidCounts->getNbItems();
 
     /** We gather some statistics. */
+    if (_bankStats.sequencesNb > 0)
+    {
+        getInfo()->add (1, "bank");
+        getInfo()->add (2, "bank_uri",          "%s",   _bank->getId().c_str());
+        getInfo()->add (2, "bank_size",         "%lld", _bank->getSize());
+        getInfo()->add (2, "sequences");
+        getInfo()->add (3, "seq_number",        "%ld",  _bankStats.sequencesNb);
+        getInfo()->add (3, "seq_size_min",      "%ld",  _bankStats.sequencesMinLength);
+        getInfo()->add (3, "seq_size_max",      "%ld",  _bankStats.sequencesMaxLength);
+        getInfo()->add (3, "seq_size_mean",     "%.1f", (double)_bankStats.sequencesTotalLength / (double)_bankStats.sequencesNb);
+        getInfo()->add (3, "seq_size_deviation","%.1f",
+            sqrt ((double)_bankStats.sequencesTotalLengthSquare / (double)_bankStats.sequencesNb -
+                pow ((double)_bankStats.sequencesTotalLength / (double)_bankStats.sequencesNb, 2))
+        );
+        getInfo()->add (2, "kmers");
+        getInfo()->add (3, "kmers_nb_valid",   "%lld", _bankStats.kmersNbValid);
+        getInfo()->add (3, "kmers_nb_invalid", "%lld", _bankStats.kmersNbInvalid);
+    }
+
     getInfo()->add (1, "stats");
-    getInfo()->add (2, "kmers_nb_distinct",  "%ld", _totalKmerNb);
-    getInfo()->add (2, "kmers_nb_solid",     "%ld", nbSolids);
-    getInfo()->add (2, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
-    if (_totalKmerNb > 0)  {  getInfo()->add (2, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
+
+    getInfo()->add (2, "kmers");
+    getInfo()->add (3, "kmers_nb_distinct",  "%ld", _totalKmerNb);
+    getInfo()->add (3, "kmers_nb_solid",     "%ld", nbSolids);
+    getInfo()->add (3, "kmers_nb_weak",      "%ld", _totalKmerNb - nbSolids);
+    if (_totalKmerNb > 0)  {  getInfo()->add (3, "kmers_percent_weak", "%.1f", 100.0 - 100.0 * (double)nbSolids / (double)_totalKmerNb  );  }
 
     getInfo()->add (2, "histogram");
     getInfo()->add (3, "cutoff",            "%ld",  _histogram->get_solid_cutoff());
     getInfo()->add (3, "nb_ge_cutoff",      "%ld",  _histogram->get_nbsolids_auto());
-    getInfo()->add (3, "percent_ge_cutoff", "%.1f", nbSolids > 0 ? 100.0 * (double)_histogram->get_nbsolids_auto() / (double)nbSolids : 0);
+    getInfo()->add (3, "percent_ge_cutoff", "%.1f", nbSolids > 0 ? 100.0 * (double)_histogram->get_nbsolids_auto() / (double)_bankStats.kmersNbValid : 0);
 
     size_t smallestPartition = ~0;
     size_t biggestPartition  = 0;
@@ -623,8 +644,6 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     /** We gather some statistics. */
     getInfo()->add (1, "config");
-    getInfo()->add (2, "bank_uri",          "%s",  _bank->getId().c_str());
-    getInfo()->add (2, "bank_size",         "%ld", _bank->getSize());
     getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);
     getInfo()->add (2, "mini_size",         "%ld", _minim_size);
     getInfo()->add (2, "abundance",         "%ld", _abundance);
@@ -675,6 +694,9 @@ public:
 
     void operator() (Sequence& sequence)
     {
+        /** We update statistics about the bank. */
+        _bankStatsLocal.update (sequence);
+
         /** We first check whether we got kmers from the sequence or not. */
         if (_model.build (sequence.getData(), _kmers) == false)  { return; }
 
@@ -694,8 +716,12 @@ public:
                 superKmer.minimizer = DEFAULT_MINIMIZER;  //marking will have to restart 'from new'
                 superKmer.range     = make_pair(i+1,i+1);
 
+                _bankStatsLocal.kmersNbInvalid ++;
+
                 continue;
             }
+
+            _bankStatsLocal.kmersNbValid ++;
 
             /** We get the value of the current minimizer. */
             u_int64_t h = _kmers[i].minimizer().value().getVal();
@@ -727,10 +753,12 @@ public:
         size_t            nbPasses,
         size_t            currentPass,
         size_t            nbPartitions,
-        IteratorListener* progress
+        IteratorListener* progress,
+        BankStats&        bankStats
     )
     : _model(model), _nbPass(nbPasses), _pass(currentPass), _nbPartitions(nbPartitions),
-      _nbWrittenKmers(0), _progress (progress,System::thread().newSynchronizer()), _nbSuperKmers(0)
+      _nbWrittenKmers(0), _progress (progress,System::thread().newSynchronizer()), _nbSuperKmers(0),
+      _bankStatsGlobal(bankStats)
     {
         /** Shortcuts. */
         _kmersize = model.getKmerSize();
@@ -738,7 +766,7 @@ public:
     }
 
     /** Destructor (virtual). */
-    virtual ~Sequence2SuperKmer ()  {}
+    virtual ~Sequence2SuperKmer ()  {  _bankStatsGlobal += _bankStatsLocal;  }
 
 protected:
 
@@ -752,6 +780,8 @@ protected:
     ProgressSynchro  _progress;
     size_t           _nbWrittenKmers;
     size_t           _nbSuperKmers;
+    BankStats&       _bankStatsGlobal;
+    BankStats        _bankStatsLocal;
 
     /** Primitive of the template method operator() */
     virtual void processSuperkmer (SuperKmer& superKmer) { _nbSuperKmers++; }
@@ -819,9 +849,10 @@ public:
         size_t            currentPass,
         size_t            nbPartitions,
         IteratorListener* progress,
+        BankStats&        bankStats,
         PartiInfo<5>&     pInfo
     )
-    :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress),
+    :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
         _kx(4), _extern_pInfo(pInfo), _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize())
     {
     }
@@ -936,11 +967,12 @@ public:
         size_t             currentPass,
         size_t             nbPartitions,
         IteratorListener*  progress,
+        BankStats&         bankStats,
         Partition<Type>*   partition,
         Repartitor&        repartition,
         PartiInfo<5>&      pInfo
     )
-    :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress),
+    :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
         _kx(4),
         _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
         _repartition (repartition), _partition (*partition,1<<12,0)
@@ -1026,9 +1058,11 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     );
     LOCAL (it_sample);
 
+    BankStats bstatsDummy;
+
     /** We compute a distribution from a part of the bank. */
     getDispatcher()->iterate (it_sample,  SampleRepart<span> (
-        model, _nb_passes, pass, _nb_partitions, _progress, sample_info)
+        model, _nb_passes, pass, _nb_partitions, _progress, bstatsDummy, sample_info)
     );
 
     /** We compute the distribution of the minimizers. As a result, we will have a hash function
@@ -1044,7 +1078,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     /** We fill the partitions. */
     getDispatcher()->iterate (itSeq, FillPartitions<span> (
-        model, _nb_passes, pass, _nb_partitions, _progress, _partitions, repartitor, pInfo
+        model, _nb_passes, pass, _nb_partitions, _progress, _bankStats, _partitions, repartitor, pInfo
     ));
 }
 
