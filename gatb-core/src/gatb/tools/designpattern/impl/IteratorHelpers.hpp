@@ -177,7 +177,7 @@ private:
  * We define a an iterator for two iterators, by iterating each of the two iterators
  * and providing a pair of the two currently iterated items.
  */
-template <template<class> class IteratorType, class T1, class T2>
+template <class T1, class T2=T1>
 class PairedIterator : public Iterator < std::pair<T1,T2> >
 {
 public:
@@ -186,25 +186,25 @@ public:
      * \param[in] it1 : first iterator.
      * \param[in] it2 : second iterator.
      */
-    PairedIterator (IteratorType<T1>& it1, IteratorType<T2>& it2)  : _it1(it1), _it2(it2) { }
+    PairedIterator (Iterator<T1>* it1, Iterator<T2>* it2)  : _it1(it1), _it2(it2) { }
 
     /** Destructor. */
     virtual ~PairedIterator ()  {}
 
     /** \copydoc Iterator::first */
-    void first()  {  _it1.first();  _it2.first();  }
+    void first()  {  _it1->first();  _it2->first();  }
 
     /** \copydoc Iterator::next */
-    void next()  {  _it1.next ();  _it2.next ();  }
+    void next()  {  _it1->next ();  _it2->next ();  }
 
     /** \copydoc Iterator::isDone */
-    bool isDone() { return _it1.isDone() || _it2.isDone(); }
+    bool isDone() { return _it1->isDone() || _it2->isDone(); }
 
     /** \copydoc Iterator::item */
     std::pair<T1,T2>& item ()
     {
-        _current.first  = _it1.item();
-        _current.second = _it2.item();
+        _current.first  = _it1->item();
+        _current.second = _it2->item();
 
         return _current;
     }
@@ -212,10 +212,10 @@ public:
 private:
 
     /** First iterator. */
-    IteratorType<T1>& _it1;
+    Iterator<T1>* _it1;
 
     /** Second iterator. */
-    IteratorType<T2>& _it2;
+    Iterator<T2>* _it2;
 
     /** Current item in the iteration. */
     std::pair<T1,T2> _current;
@@ -267,6 +267,16 @@ public:
             (*lookup)->forget();
             _listeners.erase (lookup);
             _hasListeners = _listeners.empty() == false;
+        }
+    }
+
+    /** Set a message to the observers. */
+    void setMessage (const char* message)
+    {
+        /** We remove all observers. */
+        for (std::set<IteratorListener*>::iterator it = _listeners.begin(); it != _listeners.end(); it++)
+        {
+            (*it)->setMessage (message);
         }
     }
 
