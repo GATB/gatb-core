@@ -30,6 +30,7 @@
 
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/bank/impl/AbstractBank.hpp>
+#include <cmath>
 
 /********************************************************************************/
 namespace gatb      {
@@ -177,6 +178,17 @@ struct BankStats
         sequencesMinLength          = std::min (sequencesMinLength, other.sequencesMinLength);
         sequencesMaxLength          = std::max (sequencesMaxLength, other.sequencesMaxLength);
         return *this;
+    }
+
+    /** */
+    double getSeqMean ()  {  return (sequencesNb > 0 ?  (double)sequencesTotalLength / (double)sequencesNb : 0.0);  }
+
+    /** */
+    double getSeqDeviation ()
+    {
+        double result = 0.0;
+        if (sequencesNb > 0)  {  result = sqrt ((double)sequencesTotalLengthSquare / (double)sequencesNb - pow(getSeqMean(),2));  }
+        return result;
     }
 
     u_int64_t sequencesNb;
