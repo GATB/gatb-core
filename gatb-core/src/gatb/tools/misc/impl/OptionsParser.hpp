@@ -279,7 +279,7 @@ public:
 
     /** Add the options of the provided parser.
      * \param[in] parser : the parser from which we add the options. */
-    void add (OptionsParser& parser) { push_back (parser); }
+    void add (const OptionsParser& parser) { push_back (parser); }
 
     /** Add an option to the pool of recognized options.
      * \param[in] opt : option to be registered to the parser.
