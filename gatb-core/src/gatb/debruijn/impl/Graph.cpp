@@ -466,7 +466,8 @@ struct build_visitor : public boost::static_visitor<>    {
                     graph,
                     graph.getStorage(),
                     graph._branchingKind,
-                    props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
+                    props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
+                    props
                 );
                 executeAlgorithm (branchingAlgo, graph.getStorage(), props, graph._info);
 
@@ -562,6 +563,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,      "debloom type ('none', 'original' or 'cascading')", false, "cascading"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_IMPL,      "debloom impl ('basic', 'minimizer')",      false, "minimizer"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')",      false, "stored"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_TOPOLOGY_STATS,    "topological information level (0 for none)", false, "0"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_INTEGER_PRECISION,  "integers precision (0 for optimized value)", false, "0"));
 

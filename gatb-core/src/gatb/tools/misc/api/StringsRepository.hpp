@@ -103,6 +103,7 @@ public:
     const char* debloom_type   ()  { return "-debloom";        }
     const char* debloom_impl   ()  { return "-debloom-impl";   }
     const char* branching_type ()  { return "-branching-nodes";}
+    const char* topology_stats ()  { return "-topology-stats";}
     const char* mphf_type ()       { return "-mphf";}
     const char* uri_solid_kmers()  { return "-solid-kmers-out";    }
     const char* bank_convert_type ()  { return "-bank-convert";   }
@@ -144,6 +145,7 @@ public:
 #define STR_DEBLOOM_TYPE        gatb::core::tools::misc::StringRepository::singleton().debloom_type()
 #define STR_DEBLOOM_IMPL        gatb::core::tools::misc::StringRepository::singleton().debloom_impl()
 #define STR_BRANCHING_TYPE      gatb::core::tools::misc::StringRepository::singleton().branching_type()
+#define STR_TOPOLOGY_STATS      gatb::core::tools::misc::StringRepository::singleton().topology_stats()
 #define STR_MPHF_TYPE           gatb::core::tools::misc::StringRepository::singleton().mphf_type()
 #define STR_URI_SOLID_KMERS     gatb::core::tools::misc::StringRepository::singleton().uri_solid_kmers()
 #define STR_BANK_CONVERT_TYPE   gatb::core::tools::misc::StringRepository::singleton().bank_convert_type()

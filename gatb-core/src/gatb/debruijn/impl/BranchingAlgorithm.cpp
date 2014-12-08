@@ -103,12 +103,15 @@ BranchingAlgorithm<span>::~BranchingAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+typedef pair<size_t,size_t> InOut_t;
+bool CompareFct (const pair<InOut_t,size_t>& a, const pair<InOut_t,size_t>& b) { return a.second > b.second; }
+
 template<typename Count, typename Type>
 struct FunctorData
 {
-	FunctorData() { checksum=0; }
+	FunctorData() {  }
     std::vector<Count> branchingNodes;
-    Type checksum;
+    map <InOut_t, size_t> topology;
 };
 
 template<typename Count, typename Type>
@@ -122,13 +125,17 @@ struct FunctorNodes
 
     void operator() (const Node& node)
     {
-        if (graph->isBranching(node))
+        // We get branching nodes neighbors for the current branching node.
+        Graph::Vector<Node> successors   = graph->successors  <Node> (node);
+        Graph::Vector<Node> predecessors = graph->predecessors<Node> (node);
+
+        if ( ! (successors.size()==1 && predecessors.size()==1) )
         {
         	FunctorData<Count,Type>& data = functorData();
 
         	data.branchingNodes.push_back (Count (node.kmer.get<Type>(), node.abundance));
 
-        	data.checksum += node.kmer.get<Type>();
+        	data.topology [make_pair(predecessors.size(), successors.size())] ++;
         }
     }
 };
@@ -241,6 +248,33 @@ void BranchingAlgorithm<span>::execute ()
 
     stringstream ss;  ss << checksum;
     getInfo()->add (2, "checksum_branching", "%s", ss.str().c_str());
+
+    if (getInput()->get(STR_TOPOLOGY_STATS) && getInput()->getInt(STR_TOPOLOGY_STATS) > 0)
+    {
+        /** We get some topological information. */
+        for (size_t i=0; i<functorData.size(); i++)
+        {
+            for (map<InOut_t, size_t>::iterator it = functorData[i].topology.begin();  it != functorData[i].topology.end(); ++it)
+            {
+                functorData->topology[it->first] += it->second;
+            }
+        }
+
+        /** We sort the statistics. */
+        vector < pair<InOut_t,size_t> >  topologyStats;
+        for (map<InOut_t, size_t>::iterator it = functorData->topology.begin();  it != functorData->topology.end(); ++it)  { topologyStats.push_back (*it); }
+        sort (topologyStats.begin(), topologyStats.end(), CompareFct);
+
+        getInfo()->add (1, "topology");
+        for (size_t i=0; i<topologyStats.size(); i++)
+        {
+            getInfo()->add (3, "neighborhood", "[in=%ld out=%ld]  nb : %8ld   percent. : %5.2f",
+                topologyStats[i].first.first, topologyStats[i].first.second, topologyStats[i].second,
+                _branchingCollection->getNbItems() > 0 ?
+                100.0*(float)topologyStats[i].second / (float)_branchingCollection->getNbItems() : 0
+            );
+        }
+    }
 
     getInfo()->add (1, "time");
     getInfo()->add (2, "build", "%.3f", status.time / 1000.0);
