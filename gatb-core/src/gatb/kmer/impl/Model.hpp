@@ -1074,12 +1074,12 @@ struct Kmer
      * This structure is useful for methods that counts kmer, such as the SortingCount algorithm.
      * It is also interesting to save [kmer,abundance] in a HDF5 format.
      *
-     * By default, the abundance value is coded on 16 bits, so abundance up to 1<<16 can be used.
+     * By default, the abundance value is coded on 32 bits, so abundance up to 1<<32 can be used.
      */
-    struct Count : tools::misc::Abundance<Type,u_int16_t>
+    struct Count : tools::misc::Abundance<Type,u_int32_t>
     {
         /** Shortcut. */
-        typedef u_int16_t Number;
+        typedef u_int32_t Number;
 
         /** Constructor.
          * \param[in] val : integer value of the kmer
