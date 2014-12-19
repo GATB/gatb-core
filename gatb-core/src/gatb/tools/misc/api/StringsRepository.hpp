@@ -82,6 +82,8 @@ public:
     const char* file           ()  { return "-file";           }
     const char* kmer_size      ()  { return "-kmer-size";      }
     const char* kmer_abundance ()  { return "-abundance"; }
+    const char* kmer_abundance_min ()  { return "-abundance-min"; }
+    const char* kmer_abundance_max ()  { return "-abundance-max"; }
     const char* max_memory     ()  { return "-max-memory";     }
     const char* max_disk       ()  { return "-max-disk";       }
     const char* kmer_solid     ()  { return "-kmer-solid";     }
@@ -90,7 +92,7 @@ public:
     const char* progress_bar   ()  { return "-bargraph";       }
     const char* nb_cores       ()  { return "-nb-cores";       }
     const char* partition_type ()  { return "-partition-type"; }
-    const char* uri_histogram  ()  { return "-histo";          }
+    const char* histogram_max  ()  { return "-histo-max";      }
     const char* uri_debloom    ()  { return "-debloom";        }
     const char* uri_input      ()  { return "-in";             }
     const char* uri_output     ()  { return "-out";            }
@@ -107,7 +109,8 @@ public:
     const char* mphf_type ()       { return "-mphf";}
     const char* uri_solid_kmers()  { return "-solid-kmers-out";    }
     const char* bank_convert_type ()  { return "-bank-convert";   }
-    const char* integer_precision   ()  { return "-integer-precision";}
+    const char* integer_precision ()  { return "-integer-precision";}
+    const char* solidity_kind  ()  { return "-solidity-kind"; }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -124,6 +127,8 @@ public:
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
 #define STR_INTEGER_PRECISION   gatb::core::tools::misc::StringRepository::singleton().integer_precision ()
 #define STR_KMER_ABUNDANCE      gatb::core::tools::misc::StringRepository::singleton().kmer_abundance ()
+#define STR_KMER_ABUNDANCE_MIN  gatb::core::tools::misc::StringRepository::singleton().kmer_abundance_min ()
+#define STR_KMER_ABUNDANCE_MAX  gatb::core::tools::misc::StringRepository::singleton().kmer_abundance_max ()
 #define STR_MAX_MEMORY          gatb::core::tools::misc::StringRepository::singleton().max_memory ()
 #define STR_MAX_DISK            gatb::core::tools::misc::StringRepository::singleton().max_disk ()
 #define STR_KMER_SOLID          gatb::core::tools::misc::StringRepository::singleton().kmer_solid ()
@@ -132,7 +137,7 @@ public:
 #define STR_PROGRESS_BAR        gatb::core::tools::misc::StringRepository::singleton().progress_bar ()
 #define STR_NB_CORES            gatb::core::tools::misc::StringRepository::singleton().nb_cores ()
 #define STR_PARTITION_TYPE      gatb::core::tools::misc::StringRepository::singleton().partition_type ()
-#define STR_URI_HISTOGRAM       gatb::core::tools::misc::StringRepository::singleton().uri_histogram ()
+#define STR_HISTOGRAM_MAX       gatb::core::tools::misc::StringRepository::singleton().histogram_max ()
 #define STR_URI_DEBLOOM         gatb::core::tools::misc::StringRepository::singleton().uri_debloom ()
 #define STR_URI_INPUT           gatb::core::tools::misc::StringRepository::singleton().uri_input ()
 #define STR_URI_OUTPUT          gatb::core::tools::misc::StringRepository::singleton().uri_output ()
@@ -149,6 +154,7 @@ public:
 #define STR_MPHF_TYPE           gatb::core::tools::misc::StringRepository::singleton().mphf_type()
 #define STR_URI_SOLID_KMERS     gatb::core::tools::misc::StringRepository::singleton().uri_solid_kmers()
 #define STR_BANK_CONVERT_TYPE   gatb::core::tools::misc::StringRepository::singleton().bank_convert_type()
+#define STR_SOLIDITY_KIND       gatb::core::tools::misc::StringRepository::singleton().solidity_kind()
 
 /********************************************************************************/
 
