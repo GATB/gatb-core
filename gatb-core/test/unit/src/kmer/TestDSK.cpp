@@ -23,9 +23,12 @@
 #include <gatb/bank/impl/Banks.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
+#include <gatb/kmer/impl/Model.hpp>
+#include <gatb/kmer/impl/BankKmers.hpp>
 
 #include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
+#include <gatb/tools/misc/impl/Histogram.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
@@ -85,6 +88,11 @@ class TestDSK : public Test
         CPPUNIT_TEST_GATB (DSK_check2);
         CPPUNIT_TEST_GATB (DSK_check3);
 
+        CPPUNIT_TEST_GATB (DSK_perBank1);
+        CPPUNIT_TEST_GATB (DSK_perBank2);
+
+        CPPUNIT_TEST_GATB (DSK_perBankKmer);
+
     CPPUNIT_TEST_SUITE_GATB_END();
 
 public:
@@ -100,7 +108,7 @@ public:
         Storage* storage = StorageFactory(STORAGE_HDF5).create("foo", true, true);   LOCAL (storage);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> dsk (storage, new BankStrings (sequences, nbSequences), kmerSize, nks);
+        SortingCountAlgorithm<> dsk (storage, new BankStrings (sequences, nbSequences), kmerSize, make_pair(nks,0));
 
         /** We launch DSK. */
         dsk.execute();
@@ -222,7 +230,7 @@ public:
         Storage* storage = StorageFactory(STORAGE_FILE).create("foo", true, true);   LOCAL (storage);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> sortingCount (storage, new BankStrings (s1, 0), kmerSize, nks);
+        SortingCountAlgorithm<span> sortingCount (storage, new BankStrings (s1, 0), kmerSize, make_pair(nks,0));
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -312,7 +320,7 @@ public:
         Storage* storage = StorageFactory(STORAGE_FILE).create("foo", true, true);   LOCAL (storage);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> sortingCount (storage, bank, kmerSize, nks);
+        SortingCountAlgorithm<span> sortingCount (storage, bank, kmerSize, make_pair(nks,0));
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -385,6 +393,220 @@ public:
         DSK_check3_aux<KSIZE_1> (bank, kmerSize, nks);
         // FIXME: DSK_check3_aux<KSIZE_2> (bank, kmerSize, nks);
         // FIXME: DSK_check3_aux<KSIZE_3> (bank, kmerSize, nks);
+    }
+
+    /********************************************************************************/
+    template<size_t span>
+    void DSK_perBank_aux (IBank* bank, size_t kmerSize, size_t nksMin, size_t nksMax, KmerSolidityKind solidityKind, size_t checkNb)
+    {
+        size_t maxMemory    = 0;
+        size_t maxDiskSpace = 0;
+        size_t nbCores      = 1;
+
+        /** We create a storage instance. */
+        Storage* storage = StorageFactory(STORAGE_HDF5).create("output", true, true);   LOCAL (storage);
+
+        /** We create a DSK instance. */
+        SortingCountAlgorithm<span> sortingCount (
+            storage,
+            bank,
+            kmerSize,
+            make_pair(nksMin,nksMax),
+            maxMemory,
+            maxDiskSpace,
+            nbCores,
+            solidityKind
+        );
+
+        /** We launch DSK. */
+        sortingCount.execute();
+
+        // cout << *sortingCount.getInfo() << endl;
+        // Group& sortingGroup = storage->getGroup("dsk");
+        // Collection<IHistogram::Entry>& histo = sortingGroup.getCollection<IHistogram::Entry>("histogram");
+        // Iterator<IHistogram::Entry>* itHisto = new TruncateIterator<IHistogram::Entry> (*histo.iterator(), 12);
+        // for (itHisto->first(); !itHisto->isDone(); itHisto->next())  { cout << itHisto->item().index << " " << itHisto->item().abundance << endl; }
+        // printf ("min=%ld  max=%ld  nb=%ld  check=%ld \n",
+        //    nksMin, nksMax, sortingCount.getSolidCounts()->getNbItems(),checkNb
+        // );
+
+        CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == checkNb);
+    }
+
+    /********************************************************************************/
+    void DSK_perBank1 ()
+    {
+        size_t nksMax = 0;
+
+        const char* seqs[] = {      //  KMERS ARE...
+            "CGCTACAGCAGCTAGTT",    // CGCTACAGCAGCTAG  GCTACAGCAGCTAGT  CTACAGCAGCTAGTT
+            "GCTACAGCAGCTAGTTA",    //                  GCTACAGCAGCTAGT  CTACAGCAGCTAGTT  TACAGCAGCTAGTTA
+            "CTACAGCAGCTAGTTAC"     //                                   CTACAGCAGCTAGTT  TACAGCAGCTAGTTA  ACAGCAGCTAGTTAC
+        };
+
+        // CTACAGCAGCTAGTT is the only kmer to be present at least in each sequence
+        // We have 5 different kmers
+
+        BankComposite* album = new BankAlbum ("foo", true);  LOCAL (album);
+
+        for (size_t i=0; i<ARRAY_SIZE(seqs); i++) {   album->addBank (new BankStrings(seqs[i],NULL)); }
+
+        // Checks for abundance==1
+        DSK_perBank_aux<KSIZE_1> (album, 15, 1, nksMax, KMER_SOLIDITY_MIN, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 15, 1, nksMax, KMER_SOLIDITY_MAX, 5);
+        DSK_perBank_aux<KSIZE_1> (album, 15, 1, nksMax, KMER_SOLIDITY_SUM, 5);
+
+        // Checks for abundance==2
+        DSK_perBank_aux<KSIZE_1> (album, 15, 2, nksMax, KMER_SOLIDITY_MIN, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 15, 2, nksMax, KMER_SOLIDITY_MAX, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 15, 2, nksMax, KMER_SOLIDITY_SUM, 3);
+
+        // Checks for abundance==3
+        DSK_perBank_aux<KSIZE_1> (album, 15, 3, nksMax, KMER_SOLIDITY_MIN, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 15, 3, nksMax, KMER_SOLIDITY_MAX, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 15, 3, nksMax, KMER_SOLIDITY_SUM, 1);
+    }
+
+    /********************************************************************************/
+    void DSK_perBank2 ()
+    {
+        size_t nksMax = 100000;
+
+        const char* seqs[] = {
+            "CGCTATCGCTA",    // CGCTA  GCTAT  CTATC  TATCG  ATCGC  TCGCT  CGCTA
+            "CGCTATAGTTA",    // CGCTA  GCTAT  CTATA  TATAG  ATAGT  TAGTT  AGTTA
+            "CGCTAACGCTA"     // CGCTA  GCTAA  CTAAC  TAACG  AACGC  ACGCT  CGCTA
+        };
+
+        //  KMERS ARE... (with revcomp)
+        // CGCTA-TAGCG  GCTAT-ATAGC  CTATC-GATAG  TATCG-CGATA  ATCGC-GCGAT  TCGCT-AGCGA  CGCTA-TAGCG
+        // CGCTA-TAGCG  GCTAT-ATAGC  CTATA-TATAG  TATAG-CTATA  ATAGT-ACTAT  TAGTT-AACTA  AGTTA-TAACT
+        // CGCTA-TAGCG  GCTAA-TTAGC  CTAAC-GTTAG  TAACG-CGTTA  AACGC-GCGTT  ACGCT-AGCGT  CGCTA-TAGCG
+
+        // CANONICAL KMERS ARE
+        // CGCTA  ATAGC  CTATC  CGATA  ATCGC  AGCGA  CGCTA
+        // CGCTA  ATAGC  CTATA  CTATA  ACTAT  AACTA  AGTTA
+        // CGCTA  TTAGC  CTAAC  CGTTA  AACGC  ACGCT  CGCTA
+
+        // UNIQUE KMERS ARE
+        // (CGCTA,5)  (ATAGC,2)  (CTATC,1)  (CGATA,1)  (ATCGC,1)  (AGCGA,1)
+        // (CTATA,2)  (ACTAT,1)  (AACTA,1)  (AGTTA,1)
+        // (TTAGC,1)  (CTAAC,1)  (CGTTA,1)  (AACGC,1)  (ACGCT,1)
+
+        BankComposite* album = new BankAlbum ("foo", true);  LOCAL (album);
+
+        for (size_t i=0; i<ARRAY_SIZE(seqs); i++) {   album->addBank (new BankStrings(seqs[i],NULL)); }
+
+        // Checks for abundance==1
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_MIN, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_MAX, 15);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_SUM, 15);
+
+        // Checks for abundance==2
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_MIN, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_MAX, 2);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_SUM, 3);
+
+        // Checks for abundance==3
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_MIN, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_MAX, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_SUM, 1);
+
+        // Checks for abundance=[1,1]
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_MIN, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_MAX, 13);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_SUM, 12);
+
+        // Checks for abundance=[1,2]
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_MIN, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_MAX, 15);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_SUM, 14);
+
+        // Checks for abundance=[1,3]
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_MIN, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_MAX, 15);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_SUM, 14);
+
+        // Checks for abundance=[2,2]
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_MIN, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_MAX, 2);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_SUM, 2);
+
+        // Checks for abundance=[3,3]
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_MIN, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_MAX, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_SUM, 0);
+
+        // Checks for abundance=[3,5]
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_MIN, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_MAX, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_SUM, 1);
+    }
+
+    /********************************************************************************/
+    void DSK_perBankKmer_aux (size_t kmerSize, size_t nbBanksMax)
+    {
+        /** We create a bank holding all 4^k kmers =>  we will have 4^k/2 canonical kmers with abundance==2  */
+        IBank* kmersBank = new BankKmers(kmerSize);  LOCAL (kmersBank);
+
+        u_int64_t nbKmers          = (1<<(2*kmerSize));
+        u_int64_t nbKmersCanonical = nbKmers / 2;
+
+        vector<IBank*> banks;
+        vector<IBank*> banksComposite;
+
+        for (size_t i=0; i<nbBanksMax; i++)
+        {
+            /** We add the bank into the vector of banks. */
+            banks.push_back (kmersBank);
+
+            /** We create a new album. */
+            stringstream ss;  ss << "foo" << i;
+
+            BankComposite* compo = new BankAlbum (ss.str(), true);
+            for (size_t j=0; j<banks.size(); j++)  { compo->addBank (kmersBank); }
+            banksComposite.push_back (compo);
+        }
+
+        for (size_t i=0; i<banksComposite.size(); i++)  { banksComposite[i]->use();  }
+
+        size_t abundMax = 100000;
+
+        /** Now, we should have N albums Ai (i in [1..N]), with Ai holding i times the kmers bank. */
+        for (size_t i=0; i<banksComposite.size(); i++)
+        {
+            /** Shortcut. */
+            IBank* current = banksComposite[i];
+
+            /** We check the number of items. */
+            CPPUNIT_ASSERT (current->getNbItems() == (i+1)*nbKmers);
+
+            for (size_t abundMin=1; abundMin<=nbBanksMax; abundMin++)
+            {
+                /** For mode "min" : each bank can have at most coverage==2 for each kmer. */
+                size_t checkMin = abundMin > 2 ? 0 : nbKmersCanonical;
+
+                /** For mode "max" : all bank have coverage==2 for each kmer. */
+                size_t checkMax = abundMin > 2 ? 0 : nbKmersCanonical;
+
+                /** For mode "sum" : N times composite banks have 2N coverage for each kmer. */
+                size_t checkSum = abundMin > 2*(i+1) ? 0 : nbKmersCanonical;
+
+                DSK_perBank_aux<KSIZE_1> (current, kmerSize, abundMin, abundMax, KMER_SOLIDITY_MIN, checkMin);
+                DSK_perBank_aux<KSIZE_1> (current, kmerSize, abundMin, abundMax, KMER_SOLIDITY_MAX, checkMax);
+                DSK_perBank_aux<KSIZE_1> (current, kmerSize, abundMin, abundMax, KMER_SOLIDITY_SUM, checkSum);
+            }
+        }
+
+        for (size_t i=0; i<banksComposite.size(); i++)  { banksComposite[i]->forget();  }
+    }
+
+    /********************************************************************************/
+    void DSK_perBankKmer ()
+    {
+        /** We can't use even kmer sizes because of palindroms (could have some kmers with coverage 1 instead of 2). */
+        DSK_perBankKmer_aux ( 9, 4);
+        DSK_perBankKmer_aux (11, 3);
     }
 };
 
