@@ -288,7 +288,7 @@ public:
         LOCAL (storage);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (storage, bank, kmerSize, nks);
+        SortingCountAlgorithm<> sortingCount (storage, bank, kmerSize, make_pair(nks,0));
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -349,7 +349,7 @@ public:
                 /** We create the graph. */
                 Graph graph = Graph::create (
                     new BankStrings (sequences[i], 0),
-                    "-kmer-size %d  -abundance 1  -verbose 0", kmerSizes[j]
+                    "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSizes[j]
                 );
 
                 debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
@@ -367,7 +367,7 @@ public:
         char* rev = (char*) "AGGTACCTACTTATAATTATACATGGT";
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance 1  -verbose 0");
+        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0");
 
         Graph::Iterator<Node> it = graph.iterator<Node>();  it.first();
 
@@ -425,7 +425,7 @@ public:
         char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance 1  -verbose 0");
+        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0");
 
         debruijn_test6_fct fct(graph);
         graph.iterator<Node>().iterate (fct);
@@ -491,7 +491,7 @@ public:
     void debruijn_test7 ()
     {
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings ("AGGCGC", 0),  "-kmer-size 5  -abundance 1  -verbose 0");
+        Graph graph = Graph::create (new BankStrings ("AGGCGC", 0),  "-kmer-size 5  -abundance-min 1  -verbose 0");
 
         /** We should get two kmers:
          *      - AGGCG / CGCCT
@@ -513,7 +513,7 @@ public:
     void debruijn_test8_aux (char* seq, size_t kmerSize)
     {
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
 
         // We get the first node.
         Node node = graph.buildNode (seq);
@@ -553,7 +553,7 @@ public:
         //  difference here                ^
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
 
         /** We get the first node. */
         Node node = graph.buildNode (seq1);
@@ -581,7 +581,7 @@ public:
         //  difference here              ^
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
 
         /** We get the first node. */
         Node node = graph.buildNode (seq1);
@@ -619,7 +619,7 @@ public:
         };
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
 
         // We get the first node (should be AGGCGCT); this is a branching node.
         Node node = graph.buildNode ((char*)sequences[0]);
@@ -657,7 +657,7 @@ public:
         };
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
 
         // We get the first node (should be AGGCGCT); this is a branching node.
         Node node = graph.buildNode ((char*)sequences[0]);
@@ -722,7 +722,7 @@ public:
         IBank* bank = new BankSplitter (new BankStrings (seq, NULL), readSize, kmerSize-1, coverage);
 
         // We create the graph.
-        Graph graph = Graph::create (bank,  "-kmer-size %d  -abundance %d  -verbose 0", kmerSize, nks);
+        Graph graph = Graph::create (bank,  "-kmer-size %d  -abundance-min %d  -verbose 0", kmerSize, nks);
 
         // We check we got the correct number of solid kmers.
         CPPUNIT_ASSERT (graph.getInfo().getInt ("kmers_nb_solid") == strlen(seq) - kmerSize + 1);
@@ -737,7 +737,7 @@ public:
         size_t kmerSize = strlen (sequences[0]);
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
 
         // We get the first node (should be AGGCGCT); this is a branching node.
         Node node = graph.buildNode ((char*)sequences[0]);
@@ -789,7 +789,7 @@ public:
         size_t kmerSize = strlen (sequences[0]);
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance 1  -verbose 0 -mphf emphf", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0 -mphf emphf", kmerSize);
 
         Graph::Iterator<Node> it = graph.iterator<Node> ();
 
@@ -873,9 +873,9 @@ public:
         IBank* inputBank = new BankStrings (sequences, nbSequences);
         LOCAL (inputBank);
 
-        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance 1  -verbose 0",                        "g1");
-        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance 1  -verbose 0 -branching-nodes none",  "g2");
-        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance 1  -verbose 0 -solid-kmers-out none",  "g3");
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0",                        "g1");
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0 -branching-nodes none",  "g2");
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0 -solid-kmers-out none",  "g3");
 
         debruijn_build_entry r1 = debruijn_build_aux_aux ("g1", true,  true);
         debruijn_build_entry r2 = debruijn_build_aux_aux ("g2", true,  true);
