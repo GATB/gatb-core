@@ -83,6 +83,10 @@ public:
         return _id;
     }
 
+    /** Add a bank into the composite
+     * \param[in] bank : the bank to be added. */
+    void addBank (IBank* bank)  { bank->use();  _banks.push_back(bank); }
+
     /** \copydoc IBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()
     {
@@ -150,9 +154,6 @@ protected:
 
     /** List of the banks. */
     std::vector<IBank*> _banks;
-
-    /** */
-    void addBank (IBank* bank)  { bank->use();  _banks.push_back(bank); }
 
     u_int64_t _nbItems;
     u_int64_t _size;
