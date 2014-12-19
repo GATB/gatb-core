@@ -94,7 +94,7 @@ public:
         LOCAL (storage);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (storage, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, nks);
+        SortingCountAlgorithm<> sortingCount (storage, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, make_pair(nks,0));
 
         /** We launch DSK. */
         sortingCount.execute();
