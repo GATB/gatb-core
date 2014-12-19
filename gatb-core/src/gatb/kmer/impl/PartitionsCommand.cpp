@@ -58,7 +58,7 @@ PartitionsCommand<span>:: PartitionsCommand (
     IHistogram*         histogram,
     ISynchronizer*      synchro,
     u_int64_t&          totalKmerNbRef,
-    size_t              abundance,
+    std::pair<size_t,size_t> abundance,
     IteratorListener*   progress,
     TimeInfo&           timeInfo,
     PartiInfo<5>&       pInfo,
@@ -111,15 +111,38 @@ PartitionsCommand<span>::~PartitionsCommand()
 template<size_t span>
 void PartitionsCommand<span>::insert (const Count& kmer)
 {
-    u_int32_t max_couv  = 2147483646;
-
     _totalKmerNb++;
 
     /** We should update the abundance histogram*/
     _histogram.inc (kmer.abundance);
 
     /** We check that the current abundance is in the correct range. */
-    if (kmer.abundance >= this->_abundance && kmer.abundance <= max_couv)  {  this->_solidKmers.insert (kmer);  }
+    if (kmer.abundance >= this->_abundance.first && kmer.abundance <= this->_abundance.second)  {  this->_solidKmers.insert (kmer);  }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& counter)
+{
+    _totalKmerNb++;
+
+    /** Shortcut. */
+    u_int16_t actualCount = counter.computeSum();
+
+    /** We should update the abundance histogram*/
+    _histogram.inc (actualCount);
+
+    /** We check that the current abundance is in the correct range. */
+    if (counter.isSolid () == true)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
+
+    //if (actualCount >= this->_abundance && actualCount <= max_couv)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
 }
 
 /*********************************************************************
@@ -148,7 +171,7 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
     IHistogram*             histogram,
     ISynchronizer*          synchro,
     u_int64_t&              totalKmerNbRef,
-    size_t                  abundance,
+    std::pair<size_t,size_t> abundance,
     IteratorListener*       progress,
     TimeInfo&               timeInfo,
     PartiInfo<5>&           pInfo,
@@ -325,7 +348,8 @@ public:
 					//idx = _r_idx[IX(kx_size,rid)]++;
 					idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
 					
-					_radix_kmers[IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2); //[kx_size][rid]
+					_radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2);  //[kx_size][rid]
+					if (_bankIdMatrix)  { _bankIdMatrix[IX(kx_size,rid)][ idx] = _bankId; }
 					
 					radix_kxmer_forward =  (mink & _mask_radix) >> _shift_radix;
 					kx_size =0;
@@ -366,14 +390,15 @@ public:
 			//idx = _r_idx[IX(kx_size,rid)]++;
 			idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
 					
-			_radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2); // [kx_size][rid]
+			_radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2);   // [kx_size][rid]
+			if (_bankIdMatrix)  { _bankIdMatrix[IX(kx_size,rid)][ idx] = _bankId; }
 
 			_first = true;
 		}
 	}
 	
-	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type ** radix_kmers )
-	: _first(true) ,_kmerSize (kmerSize), _r_idx (r_idx), _radix_kmers(radix_kmers), _kx(4)
+	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type** radix_kmers, u_int8_t** bankIdMatrix, size_t bankId=0)
+	: _first(true) ,_kmerSize (kmerSize), _r_idx (r_idx), _radix_kmers(radix_kmers), _bankIdMatrix(bankIdMatrix), _kx(4), _bankId(bankId)
 	 {
 		 Type un = 1;
 		 _kmerMask    = (un << (kmerSize*2)) - un;
@@ -385,17 +410,20 @@ public:
 	}
 	
 private :
+
 	size_t _kmerSize;
 	size_t _shift ;
 	size_t _shift_val ;
 	size_t _shift_radix ;
 	int    _kx;
 	Type** _radix_kmers;
+	u_int8_t** _bankIdMatrix;
 	uint64_t* _r_idx ;
 	bool _first;
 	Type _superk, _seedk;
 	Type _radix, _mask_radix ;
 	Type _kmerMask;
+	size_t _bankId;
 };
 
 /*********************************************************************
@@ -414,7 +442,7 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
     IHistogram*         histogram,
     ISynchronizer*      synchro,
     u_int64_t&          totalKmerNbRef,
-    size_t              abundance,
+    pair<size_t,size_t> abundance,
     IteratorListener*   progress,
     TimeInfo&           timeInfo,
     PartiInfo<5>&       pInfo,
@@ -422,11 +450,13 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
     size_t              nbCores,
     size_t              kmerSize,
     MemAllocator&       pool,
-    size_t              cacheSize
+    size_t              cacheSize,
+    KmerSolidityKind    solidityKind,
+    vector<size_t>&     offsets
 )
     : PartitionsCommand<span> (
         solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
-        _radix_kmers (0), _radix_sizes(0), _r_idx(0)
+        _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0), _solidityKind(solidityKind), _nbItemsPerBankPerPart(offsets)
 {
     _dispatcher = new Dispatcher (this->_nbCores);
 }
@@ -460,9 +490,13 @@ void PartitionsByVectorCommand<span>::execute ()
     if (this->_partition.getNbItems() == 0)  {  return;  }
 
     /** We configure tables. */
-    _radix_kmers = (Type**)    malloc (256*(KX+1)*sizeof(Type*)); //make the first dims static ?  5*256
-    _radix_sizes = (uint64_t*) malloc (256*(KX+1)*sizeof(uint64_t));
-    _r_idx       = (uint64_t*) calloc (256*(KX+1),sizeof(uint64_t));
+    _radix_kmers  = (Type**)     malloc (256*(KX+1)*sizeof(Type*)); //make the first dims static ?  5*256
+    _radix_sizes  = (uint64_t*)  malloc (256*(KX+1)*sizeof(uint64_t));
+    _r_idx        = (uint64_t*)  calloc (256*(KX+1),sizeof(uint64_t));
+
+    /** We need extra information for kmers counting in case of several input banks. */
+    if (_nbItemsPerBankPerPart.size() > 1) { _bankIdMatrix = (u_int8_t**) malloc (256*(KX+1)*sizeof(u_int8_t*)); }
+    else                                   { _bankIdMatrix = 0; }
 
     /** We have 3 phases here: read, sort and dump. */
     executeRead ();
@@ -470,9 +504,10 @@ void PartitionsByVectorCommand<span>::execute ()
     executeDump ();
 
     /** We cleanup tables. */
-    free (_radix_sizes ) ;
+    free (_radix_sizes) ;
     free (_radix_kmers);
     free (_r_idx);
+    if (_bankIdMatrix)  { free (_bankIdMatrix); }
 
     /** We update the progress bar. */
     this->_progress.inc (this->_pInfo.getNbKmer(this->_parti_num) );
@@ -491,28 +526,75 @@ void PartitionsByVectorCommand<span>::executeRead ()
 {
     TIME_INFO (this->_timeInfo, "1.read");
 
-    uint64_t sum_nbxmer =0;
+    /** Recall that the attribute _offsets has a size equals to the number of banks + 1 as input
+     * and for each bank, it holds the number of items found for the currently processed partition.
+     *
+     *               bank0   bank1   ...   bankI
+     *   offsets :    xxx     xxx           xxx
+     *               <------------------------->
+     *                current partition content
+     */
+    DEBUG (("_offsets.size=%d  OFFSETS: ", _nbItemsPerBankPerPart.size() ));
+    for (size_t j=0; j<_nbItemsPerBankPerPart.size(); j++)  {  DEBUG (("%6d ", _nbItemsPerBankPerPart[j]));  }  DEBUG (("\n"));
 
+    uint64_t sum_nbxmer =0;
     for (int xx=0; xx< (KX+1); xx++)
     {
         for (int ii=0; ii< 256; ii++)
         {
+            /** Shortcut. */
+            size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
+
             //use memory pool here to avoid memory fragmentation
-            _radix_kmers [IX(xx,ii)] = (Type *) this->_pool.pool_malloc (this->_pInfo.getNbKmer(this->_parti_num,ii,xx) * sizeof(Type));
+            _radix_kmers  [IX(xx,ii)] = (Type*)     this->_pool.pool_malloc (nbKmers * sizeof(Type),     "kmers alloc");
+            _radix_sizes  [IX(xx,ii)] = nbKmers;
 
-            _radix_sizes [IX(xx,ii)] = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
+            if (_bankIdMatrix)
+            {
+                _bankIdMatrix [IX(xx,ii)] = (u_int8_t*) this->_pool.pool_malloc (nbKmers * sizeof(u_int8_t), "bank ids alloc");
+            }
 
-            sum_nbxmer +=  this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
+            sum_nbxmer +=  nbKmers;
         }
     }
 
     DEBUG (("PartitionsByVectorCommand<span>::executeRead:  fillsolid parti num %i  by vector  nb kxmer / nbkmers      %lli / %lli     %f   with %zu nbcores \n",
-        this->_parti_num, sum_nbxmer, this->_pInfo->getNbKmer(this->_parti_num),
-        (double) _sum_nbxmer /  this->_pInfo->getNbKmer(this->_parti_num),this->_nbCores
+        this->_parti_num, sum_nbxmer, this->_pInfo.getNbKmer(this->_parti_num),
+        (double) sum_nbxmer /  this->_pInfo.getNbKmer(this->_parti_num),this->_nbCores
     ));
 
-    /** We iterate the superkmers. */
-    _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers), 10000); //must be even , reading by pairs
+    /** HOW TO COUNT KMERS BY SET OF READS ?
+     * Now, we are going to read the temporary partition built during the previous phase and fill
+     * the _radix_kmers attribute. We also need to know in _radix_kmers what is the contribution of
+     * each bank. We therefore need to iterate the current partition by bank (using the information
+     * of _offsets). */
+
+    if (_bankIdMatrix)
+    {
+        /** We create an iterator over all the items. */
+        Iterator<Type>* itGlobal = this->_partition.iterator();
+        LOCAL (itGlobal);
+
+        /** We iterate the banks. */
+        for (size_t b=0; b<_nbItemsPerBankPerPart.size(); b++)
+        {
+            /** We truncate the global iterator.
+             * NB : we initialize (ie call 'first') the global iterator only at first call (for b==0). */
+            Iterator<Type>* itLocal = new TruncateIterator<Type> (*itGlobal, _nbItemsPerBankPerPart[b], b==0 ? true : false);
+            LOCAL (itLocal);
+
+            /** We iterate this local iterator. */
+            _dispatcher->iterate (itLocal, SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _bankIdMatrix, b), 10000); //must be even , reading by pairs
+        }
+
+        /** We check that the global iterator is finished. */
+        if (itGlobal->isDone() == false)  { throw Exception ("PartitionsByVectorCommand: iteration should be finished"); }
+    }
+    else
+    {
+        /** We iterate the superkmers. */
+        _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, 0, 0), 10000); //must be even , reading by pairs
+    }
 }
 
 /*********************************************************************
@@ -530,23 +612,73 @@ public:
     typedef typename Kmer<span>::Type  Type;
 
     /** Constructor. */
-    SortCommand (Type** kmervec, int begin, int end, uint64_t* radix_sizes)
-        : _radix_kmers(kmervec),_deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
+    SortCommand (Type** kmervec, u_int8_t** bankIdMatrix, int begin, int end, uint64_t* radix_sizes)
+        : _radix_kmers(kmervec), _bankIdMatrix(bankIdMatrix), _deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
 
     /** */
     void execute ()
     {
+        vector<size_t> idx;
+        vector<Tmp>    tmp;
+
         for (int ii=_deb; ii <=_fin; ii++)
         {
-            if (_radix_sizes[ii] > 0)  {  std::sort (&_radix_kmers[ii][0] , &_radix_kmers[ii][ _radix_sizes[ii]]);  }
+            if (_radix_sizes[ii] > 0)
+            {
+                /** Shortcuts. */
+                Type* kmers = _radix_kmers  [ii];
+
+                if (_bankIdMatrix)
+                {
+                    /** NOT OPTIMAL AT ALL... in particular we have to use 'idx' and 'tmp' vectors
+                     * which may use (a lot of ?) memory. */
+
+                    /** Shortcut. */
+                    u_int8_t* banksId = _bankIdMatrix [ii];
+
+                    /** NOTE: we sort the indexes, not the items. */
+                    idx.resize (_radix_sizes[ii]);
+                    for (int i=0; i<idx.size(); i++)  { idx[i]=i; }
+
+                    std::sort (idx.begin(), idx.end(), Cmp(kmers));
+
+                    /** Now, we have to reorder the two provided vectors with the same order. */
+                    tmp.resize (idx.size());
+                    for (int i=0; i<idx.size(); i++)
+                    {
+                        tmp[i].kmer = kmers  [idx[i]];
+                        tmp[i].id   = banksId[idx[i]];
+                    }
+                    for (int i=0; i<idx.size(); i++)
+                    {
+                        kmers  [i] = tmp[i].kmer;
+                        banksId[i] = tmp[i].id;
+                    }
+                }
+                else
+                {
+                    std::sort (&kmers[0] , &kmers[ _radix_sizes[ii]]);
+                }
+            }
         }
     }
 
 private :
-    int       _deb;
-    int       _fin;
-    Type**    _radix_kmers;
-    uint64_t* _radix_sizes;
+
+    struct Tmp { Type kmer;  u_int8_t id;};
+
+    struct Cmp
+    {
+        Type* _kmers;
+        Cmp (Type* kmers) : _kmers(kmers) {}
+        bool operator() (size_t a, size_t b)  { return _kmers[a] < _kmers[b]; }
+    };
+
+    int        _deb;
+    int        _fin;
+    Type**     _radix_kmers;
+    u_int8_t** _bankIdMatrix;
+    uint64_t*  _radix_sizes;
 };
 
 /*********************************************************************
@@ -578,7 +710,12 @@ void PartitionsByVectorCommand<span>::executeSort ()
             if(tid == this->_nbCores-1)  { fin = 255; }
 
             // mettre dans le  SortCommand le master radix_kmers et range a traiter
-            cmds.push_back (new SortCommand<span> (_radix_kmers+ IX(xx,0), deb, fin, _radix_sizes + IX(xx,0) ));
+            cmds.push_back (new SortCommand<span> (
+                _radix_kmers+ IX(xx,0),
+                (_bankIdMatrix ? _bankIdMatrix+ IX(xx,0) : 0),
+                deb, fin,
+                _radix_sizes + IX(xx,0)
+            ));
         }
 
         _dispatcher->dispatchCommands (cmds, 0);
@@ -607,10 +744,11 @@ public:
         int         min_radix,
         int         max_radix,
         int         kmerSize,
-        uint64_t*   radix_sizes
+        uint64_t*   radix_sizes,
+        u_int8_t**  bankIdMatrix
     )
         : _kxmers(kmervec), _prefix_size(prefix_size), _x_size(x_size),
-        _cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix), _radix_sizes(radix_sizes)
+        _cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix), _radix_sizes(radix_sizes), _bankIdMatrix(0)
     {
         _idx_radix = min_radix;
         Type un = 1;
@@ -620,6 +758,8 @@ public:
         _radixMask = Type(_idx_radix) ;
         _radixMask = _radixMask << ((_kmerSize-4)*2);
         _radixMask = _radixMask  << (2*_prefix_size)  ;
+
+        if (bankIdMatrix) { _bankIdMatrix = bankIdMatrix + IX(x_size,0); }
     }
 
     /** */
@@ -642,14 +782,15 @@ public:
     }
 
     /** */
-    inline Type value() const
-    {
-        return ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;
-    }
+    inline Type    value   () const  {  return ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;  }
+
+    /** */
+    inline u_int8_t getBankId () const  {  return _bankIdMatrix ? _bankIdMatrix [_idx_radix][_cur_idx] : 0;  }
 
 private :
 
     Type**      _kxmers;
+    u_int8_t**  _bankIdMatrix;
     uint64_t*   _radix_sizes;
     int64_t     _cur_idx;
     Type        _cur_radix;
@@ -672,6 +813,7 @@ private :
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+
 template<size_t span>
 void PartitionsByVectorCommand<span>::executeDump ()
 {
@@ -683,7 +825,8 @@ void PartitionsByVectorCommand<span>::executeDump ()
 
     std::priority_queue< kxp, std::vector<kxp>,kxpcomp > pq;
 
-    u_int32_t abundance = 0;
+    SolidityCounter solidCounter (_solidityKind, this->_abundance, _nbItemsPerBankPerPart.size());
+
     Type previous_kmer ;
 
     //init the pointers to the 6 arrays
@@ -693,21 +836,21 @@ void PartitionsByVectorCommand<span>::executeDump ()
     ////-------------k0 pointers-----------/////////
     ////////////////////////////////////////////////
 
-    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(0,0) ,0,0,0,255,this->_kmerSize, _radix_sizes + IX(0,0) ); // vec, prefix size, kxsize , radix min, radix max ,ksize
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(0,0) ,0,0,0,255,this->_kmerSize, _radix_sizes + IX(0,0), _bankIdMatrix); // vec, prefix size, kxsize , radix min, radix max ,ksize
 
     ////////////////////////////////////////////////
     ////-------------k1 pointers-----------/////////
     ////////////////////////////////////////////////
 
     //prefix0
-    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,0,1,0,255,this->_kmerSize, _radix_sizes + IX(1, 0) );
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,0,1,0,255,this->_kmerSize, _radix_sizes + IX(1, 0), _bankIdMatrix);
     int lowr = 0;
     int maxr = 63;
 
     //prefix1
     for(unsigned int ii=0; ii<4; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,1,1,lowr,maxr,this->_kmerSize, _radix_sizes + IX(1, 0)  );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(1,0) ,1,1,lowr,maxr,this->_kmerSize, _radix_sizes + IX(1, 0), _bankIdMatrix);
         lowr += 64;
         maxr += 64;
     }
@@ -717,13 +860,13 @@ void PartitionsByVectorCommand<span>::executeDump ()
     ////////////////////////////////////////////////
 
     //prefix0
-    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),0,2,0,255,this->_kmerSize, _radix_sizes + IX(2, 0)  );
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),0,2,0,255,this->_kmerSize, _radix_sizes + IX(2, 0), _bankIdMatrix);
 
     //prefix1
     lowr = 0; maxr = 63;
     for(unsigned int ii=0; ii<4; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),1,2,lowr,maxr,this->_kmerSize, _radix_sizes + IX(2, 0)  );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),1,2,lowr,maxr,this->_kmerSize, _radix_sizes + IX(2, 0), _bankIdMatrix);
         lowr += 64;
         maxr += 64;
     }
@@ -732,7 +875,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
     lowr = 0; maxr = 15;
     for(unsigned int ii=0; ii<16; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),2,2,lowr,maxr,this->_kmerSize, _radix_sizes + IX(2, 0)  );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(2,0),2,2,lowr,maxr,this->_kmerSize, _radix_sizes + IX(2, 0), _bankIdMatrix);
         lowr += 16;
         maxr += 16;
     }
@@ -742,13 +885,13 @@ void PartitionsByVectorCommand<span>::executeDump ()
     ////////////////////////////////////////////////
 
     //prefix0
-    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),0,3,0,255,this->_kmerSize, _radix_sizes + IX(3, 0)  );
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),0,3,0,255,this->_kmerSize, _radix_sizes + IX(3, 0), _bankIdMatrix);
 
     //prefix1
     lowr = 0; maxr = 63;
     for(unsigned int ii=0; ii<4; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),1,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0) );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),1,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0), _bankIdMatrix);
         lowr += 64;
         maxr += 64;
     }
@@ -757,7 +900,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
     lowr = 0; maxr = 15;
     for(unsigned int ii=0; ii<16; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),2,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0) );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),2,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0), _bankIdMatrix);
         lowr += 16;
         maxr += 16;
     }
@@ -766,7 +909,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
     lowr = 0; maxr = 3;
     for(unsigned int ii=0; ii<64; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),3,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0) );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(3,0),3,3,lowr,maxr,this->_kmerSize, _radix_sizes + IX(3, 0), _bankIdMatrix);
         lowr += 4;
         maxr += 4;
     }
@@ -776,13 +919,13 @@ void PartitionsByVectorCommand<span>::executeDump ()
     ////////////////////////////////////////////////
 
     //prefix0
-    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),0,4,0,255,this->_kmerSize, _radix_sizes + IX(4, 0) );
+    vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),0,4,0,255,this->_kmerSize, _radix_sizes + IX(4, 0), _bankIdMatrix);
 
     //prefix1
     lowr = 0; maxr = 63;
     for(unsigned int ii=0; ii<4; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),1,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),1,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0), _bankIdMatrix);
         lowr += 64;
         maxr += 64;
     }
@@ -791,7 +934,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
     lowr = 0; maxr = 15;
     for(unsigned int ii=0; ii<16; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),2,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),2,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0), _bankIdMatrix);
         lowr += 16;
         maxr += 16;
     }
@@ -800,7 +943,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
     lowr = 0; maxr = 3;
     for(unsigned int ii=0; ii<64; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),3,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),3,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0), _bankIdMatrix);
         lowr += 4;
         maxr += 4;
     }
@@ -809,7 +952,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
     lowr = 0; maxr = 0;
     for(unsigned int ii=0; ii<256; ii++)
     {
-        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),4,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0) );
+        vec_pointer[pidx++] = new KxmerPointer<span> (_radix_kmers+ IX(4,0),4,4,lowr,maxr,this->_kmerSize, _radix_sizes + IX(4, 0), _bankIdMatrix);
         lowr += 1;
         maxr += 1;
     }
@@ -826,7 +969,8 @@ void PartitionsByVectorCommand<span>::executeDump ()
         best_p = pq.top().first ; pq.pop();
 
         previous_kmer = vec_pointer[best_p]->value();
-        abundance = 1;
+
+        solidCounter.init (vec_pointer[best_p]->getBankId());
 
         //merge-scan all 'virtual' arrays and output counts
         while (1)
@@ -851,24 +995,24 @@ void PartitionsByVectorCommand<span>::executeDump ()
                 //if new best is diff, this is the end of this kmer
                 if(vec_pointer[best_p]->value()!=previous_kmer )
                 {
+                    this->insert (previous_kmer, solidCounter);
 
-                    this->insert (Count (previous_kmer, abundance) );
-                    abundance     = 1;
+                    solidCounter.init (vec_pointer[best_p]->getBankId());
                     previous_kmer = vec_pointer[best_p]->value();
                 }
                 else
                 {
-                    abundance++;
+                    solidCounter.increase (vec_pointer[best_p]->getBankId());
                 }
             }
             else
             {
-                abundance++;
+                solidCounter.increase (vec_pointer[best_p]->getBankId());
             }
         }
 
         //last elem
-        this->insert (Count (previous_kmer, abundance) );
+        this->insert (previous_kmer, solidCounter);
     }
 
     /** Cleanup. */

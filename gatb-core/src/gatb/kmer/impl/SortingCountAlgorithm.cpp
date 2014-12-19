@@ -54,7 +54,6 @@ using namespace gatb::core::tools::math;
 
 using namespace gatb::core::kmer::impl;
 
-
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
@@ -82,14 +81,14 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
     : Algorithm("dsk", 0, 0),
       _storage(0),
       _bank(0),
-      _kmerSize(0), _abundance(0),
+      _kmerSize(0), _abundance(make_pair(0,~0)),
       _partitionType(0), _nbCores(0), _prefix(""),
       _progress (0),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
-      _histogram (0), _histogramUri(""),
+      _histogram (0),
       _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1) ,_nb_partitions_in_parallel(0),
-      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0)
+      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0), _solidityKind(KMER_SOLIDITY_DEFAULT)
 {
 }
 
@@ -106,13 +105,14 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     Storage* storage,
     gatb::core::bank::IBank* bank,
     size_t      kmerSize,
-    size_t      abundance,
+    std::pair<size_t,size_t> abundance,
     u_int32_t   max_memory,
     u_int64_t   max_disk_space,
     size_t      nbCores,
+    KmerSolidityKind solidityKind,
+    size_t      histogramMax,
     size_t      partitionType,
     const std::string& prefix,
-    const std::string& histogramUri,
     gatb::core::tools::misc::IProperties* options
 )
   : Algorithm("dsk", nbCores, options),
@@ -123,9 +123,10 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
-    _histogram (0), _histogramUri(histogramUri),
+    _histogram (0),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition (1) ,_nb_partitions_in_parallel (nbCores),
-    _flagEstimateNbDistinctKmers(false),  _estimatedDistinctKmerNb(0)
+    _flagEstimateNbDistinctKmers(false),  _estimatedDistinctKmerNb(0),
+    _solidityKind(solidityKind)
 {
     setBank (bank);
 
@@ -133,7 +134,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
 	// setSolidCounts (& (*_storage)("dsk").getCollection<Count> ("solid"));
 
     /** We set the histogram instance. */
-    setHistogram (new Histogram  (10000, & (*_storage)("dsk").getCollection<Histogram::Entry>("histogram") ));
+    setHistogram (new Histogram  (histogramMax, & (*_storage)("dsk").getCollection<Histogram::Entry>("histogram") ));
 }
 
 /*********************************************************************
@@ -149,14 +150,15 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
   : Algorithm("dsk", 0, 0),
     _storage(&storage),
     _bank(0),
-    _kmerSize(0), _minim_size(0), _abundance(0),
+    _kmerSize(0), _minim_size(0), _abundance(make_pair(0,~0)),
     _partitionType(0), _nbCores(0), _prefix(""),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
-    _histogram (0), _histogramUri(""),
+    _histogram (0),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1),_nb_partitions_in_parallel(0),
-    _flagEstimateNbDistinctKmers(false),_estimatedDistinctKmerNb(0)
+    _flagEstimateNbDistinctKmers(false),_estimatedDistinctKmerNb(0),
+    _solidityKind(KMER_SOLIDITY_DEFAULT)
 {
     Group& group = (*_storage)(this->getName());
 
@@ -220,10 +222,10 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         _nb_passes              = s._nb_passes;
         _nb_partitions          = s._nb_partitions;
         _current_pass           = s._current_pass;
-        _histogramUri           = s._histogramUri;
         _totalKmerNb            = s._totalKmerNb;
         _estimatedDistinctKmerNb   = s._estimatedDistinctKmerNb;
         _flagEstimateNbDistinctKmers = s._flagEstimateNbDistinctKmers;
+        _solidityKind           = s._solidityKind;
 
         setBank                 (s._bank);
         setProgress             (s._progress);
@@ -648,7 +650,9 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     getInfo()->add (1, "config");
     getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);
     getInfo()->add (2, "mini_size",         "%ld", _minim_size);
-    getInfo()->add (2, "abundance",         "%ld", _abundance);
+    getInfo()->add (2, "solidity_kind",      "%s", toString(_solidityKind).c_str());
+    getInfo()->add (2, "abundance_min",     "%ld", _abundance.first);
+    getInfo()->add (2, "abundance_max",     "%ld", _abundance.second);
     getInfo()->add (2, "available_space",   "%ld", available_space);
     getInfo()->add (2, "sequence_number",   "%ld", _estimateSeqNb);
     getInfo()->add (2, "sequence_volume",   "%ld", _estimateSeqTotalSize / MBYTE);
@@ -1078,10 +1082,43 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 	/** We have to reinit the progress instance since it may have been used by SampleRepart before. */
     _progress->init();
 
-    /** We fill the partitions. */
-    getDispatcher()->iterate (itSeq, FillPartitions<span> (
-        model, _nb_passes, pass, _nb_partitions, _progress, _bankStats, _partitions, repartitor, pInfo
-    ));
+    /** We may have several input banks instead of a single one. */
+    std::vector<Iterator<Sequence>*> itBanks =  itSeq->getComposition();
+
+    /** We first reset the vector holding the kmers number for each partition and for each bank.
+     * It can be seen as the following matrix:
+     *
+     *           part0  part1  part2 ... partJ
+     *   bank0    xxx    xxx    xxx       xxx
+     *   bank1    xxx    xxx    xxx       xxx
+     *    ...
+     *   bankI    xxx    xxx    xxx       xxx
+     *
+     *   Here xxx is the number of items found for the bank I in the partition J
+     */
+    _nbKmersPerPartitionPerBank.clear();
+
+    /** We launch the iteration of the sequences iterator with the created functors. */
+    for (size_t i=0; i<itBanks.size(); i++)
+    {
+        /** We fill the partitions. */
+        getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
+            model, _nb_passes, pass, _nb_partitions, _progress, _bankStats, _partitions, repartitor, pInfo
+        ));
+
+        /** We flush the partitions in order to be sure to have the exact number of items per partition. */
+        _partitions->flush();
+
+        /** We get a snapshot of items number in each partition. */
+        vector<size_t> nbItems;
+        for (size_t p=0; p<_nb_partitions; p++)
+        {
+            nbItems.push_back ((*_partitions)[p].getNbItems());
+        }
+
+        /** We add the current number of kmers in each partition for the reached ith bank. */
+        _nbKmersPerPartitionPerBank.push_back (nbItems);
+    }
 }
 
 /*********************************************************************
@@ -1102,10 +1139,11 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList (PartiInfo<5>& p
         u_int64_t ram_total = 0;
         size_t i=0;
         for (i=0; i< _nb_partitions_in_parallel && p<_nb_partitions
-            && (ram_total ==0  || ((ram_total+(pInfo.getNbSuperKmer(p)*(Type::getSize()/8)))  <= _max_memory*MBYTE)) ; i++, p++)
+            && (ram_total ==0  || ((ram_total+(pInfo.getNbSuperKmer(p)*getSizeofPerItem()))  <= _max_memory*MBYTE)) ; i++, p++)
         {
-            ram_total += (pInfo.getNbSuperKmer(p)*(Type::getSize()/8));
+            ram_total += pInfo.getNbSuperKmer(p)*getSizeofPerItem();
         }
+
         result.push_back (i);
     }
 
@@ -1173,15 +1211,19 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
             DEBUG ((" %zu ", p));
 
             /* Get the memory taken by this partition if loaded for sorting */
-            uint64_t memoryPartition = (pInfo.getNbSuperKmer(p)*(Type::getSize()/8)); //in bytes
+            uint64_t memoryPartition = (pInfo.getNbSuperKmer(p)*getSizeofPerItem()); //in bytes
             DEBUG (("  (%llu  MB) ",memoryPartition/MBYTE));
 
             bool forceHashing = (_partitionType == 1);
 
+            /** If we have several input banks, we may have to compute kmer solidity for each bank, which
+             * can be currently done only with sorted vector. */
+            bool forceVector  = _nbKmersPerPartitionPerBank.size() > 1;
+
             ICommand* cmd = 0;
 
             //still use hash if by vector would be too large even with single part at a time
-            if ((memoryPartition > mem && currentNbCores==1) || forceHashing)
+            if ( ((memoryPartition > mem && currentNbCores==1) || forceHashing) && !forceVector)
             {
                 if (pool.getCapacity() != 0)  {  pool.reserve(0);  }
 
@@ -1195,12 +1237,53 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
             }
             else
             {
+                u_int64_t memoryPoolSize = _max_memory*MBYTE;
+
+                /** In case of forcing sorted vector (multiple banks counting for instance), we may have a
+                 * partition bigger than the max memory. */
+                if (forceVector  &&  pInfo.getNbSuperKmer(p)*getSizeofPerItem() >= memoryPoolSize)
+                {
+                    static const int EXCEED_FACTOR = 2;
+
+                    if (pInfo.getNbSuperKmer(p)*getSizeofPerItem()  < EXCEED_FACTOR*memoryPoolSize)
+                    {
+                        /** We accept in this case to exceed the allowed memory. */
+                        memoryPoolSize = pInfo.getNbSuperKmer(p)*getSizeofPerItem();
+                    }
+                    else
+                    {
+                        /** We launch an exception. */
+                        throw Exception ("memory issue: %lld required and %lld available",
+                            pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize
+                        );
+                    }
+                }
+
                //if capa pool ==0, reserve max memo , pass pool to partibyvec, will be used  for vec kmers
-                if (pool.getCapacity() == 0)  {  pool.reserve (_max_memory*MBYTE); }
+                if (pool.getCapacity() == 0)  {  pool.reserve (memoryPoolSize); }
+
+                /** Recall that we got the following matrix in _nbKmersPerPartitionPerBank
+                 *
+                 *           part0  part1  part2 ... partJ
+                 *   bank0    xxx    xxx    xxx       xxx
+                 *   bank1    xxx    xxx    xxx       xxx
+                 *    ...
+                 *   bankI    xxx    xxx    xxx       xxx
+                 *
+                 *   Now, for the current partition p, we want the number of items found for each bank.
+                 *
+                 *              bank0   bank1   ...   bankI
+                 *   offsets :   xxx     xxx           xxx
+                 */
+                vector<size_t> nbItemsPerBankPerPart;
+                for (size_t i=0; i<_nbKmersPerPartitionPerBank.size(); i++)
+                {
+                    nbItemsPerBankPerPart.push_back (_nbKmersPerPartitionPerBank[i][p] - (i==0 ? 0 : _nbKmersPerPartitionPerBank[i-1][p]) );
+                }
 
                 cmd = new PartitionsByVectorCommand<span> (
                     solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
-                    pInfo,p,_nbCores_per_partition, _kmerSize, pool, cacheSize
+                    pInfo,p,_nbCores_per_partition, _kmerSize, pool, cacheSize, _solidityKind, nbItemsPerBankPerPart
                 );
 
                 _partCmdTypes.second ++;

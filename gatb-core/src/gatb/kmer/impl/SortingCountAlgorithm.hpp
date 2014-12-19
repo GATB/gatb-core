@@ -143,13 +143,14 @@ public:
         tools::storage::impl::Storage* storage,
         gatb::core::bank::IBank* bank,
         size_t              kmerSize,
-        size_t              abundance,
+        std::pair<size_t,size_t> abundance,
         u_int32_t           max_memory     = 0,
         u_int64_t           max_disk_space = 0,
         size_t              nbCores        = 0,
+        tools::misc::KmerSolidityKind solidityKind = tools::misc::KMER_SOLIDITY_DEFAULT,
+        size_t              histogramMax   = 10000,
         size_t              partitionType  = 0,
         const std::string&  prefix         = "tmp.",
-        const std::string&  histogramUri   = "histogram",
         gatb::core::tools::misc::IProperties* options = 0
     );
 
@@ -218,7 +219,7 @@ private:
 
     /** Shortcuts for the user input parameters. . */
     size_t      _kmerSize;
-    size_t      _abundance;
+    std::pair<size_t,size_t> _abundance;
     size_t      _partitionType;
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
@@ -226,7 +227,6 @@ private:
     size_t      _minim_size;
 
     std::string _prefix;
-    std::string _histogramUri;
 
     gatb::core::tools::dp::IteratorListener* _progress;
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
@@ -260,6 +260,10 @@ private:
     tools::storage::impl::Partition<Type>* _partitions;
     void setPartitions (tools::storage::impl::Partition<Type>* partitions)  {  SP_SETATTR(partitions);  }
 
+    /** Get the memory size (in bytes) to be used by each item.
+     * IMPORTANT : we may have to count both the size of Type and the size for the bank id. */
+    int getSizeofPerItem () const { return Type::getSize()/8 + (_nbKmersPerPartitionPerBank.size()>1 ? sizeof(u_int8_t) : 0); }
+
     u_int64_t _totalKmerNb;
 
     struct Count2TypeAdaptor  {  Type& operator() (Count& c)  { return c.value; }  };
@@ -272,6 +276,10 @@ private:
     std::pair<int,int> _partCmdTypes;
 
     BankStats _bankStats;
+
+    std::vector <std::vector<size_t> > _nbKmersPerPartitionPerBank;
+
+    tools::misc::KmerSolidityKind _solidityKind;
 };
 	
 /********************************************************************************/

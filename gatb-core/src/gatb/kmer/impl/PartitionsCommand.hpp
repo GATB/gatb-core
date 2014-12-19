@@ -36,8 +36,10 @@
 #include <gatb/bank/impl/Banks.hpp>
 
 #include <gatb/tools/misc/impl/Pool.hpp>
+#include <gatb/tools/misc/api/Enums.hpp>
 
 #include <queue>
+#include <limits>
 
 /********************************************************************************/
 namespace gatb      {
@@ -45,6 +47,80 @@ namespace core      {
 namespace kmer      {
 namespace impl      {
 /********************************************************************************/
+
+/** Idea : make this class template with specialization in case there is only one bank. */
+class SolidityCounter
+{
+public:
+
+    /** We define the integer type for getting abundance values. */
+    typedef u_int32_t Int;
+
+    /** We also define the maximum value for this integer type. */
+    static Int MAX() { return std::numeric_limits<Int>::max(); }
+
+    SolidityCounter (tools::misc::KmerSolidityKind solidityKind, const std::pair<Int,Int>& threshold, size_t nbBanks=1)
+        : _solidityKind(solidityKind), _threshold(threshold), _abundancePerBank(nbBanks)
+    {
+        /** By convention, if max<min, we use max=MAX. */
+        if (_threshold.second < _threshold.first)  {  _threshold.second = MAX(); }
+    }
+
+    size_t size() const  { return _abundancePerBank.size(); }
+
+    void init (size_t idxBank=0)
+    {
+        for (size_t k=0; k<_abundancePerBank.size(); k++)  { _abundancePerBank[k]=0; }
+        _abundancePerBank [idxBank]= 1;
+    }
+
+    void increase (size_t idxBank=0)  {  _abundancePerBank [idxBank] ++;  }
+
+    Int operator[] (size_t idxBank) const  { return _abundancePerBank[idxBank]; }
+
+    bool isSolid () const
+    {
+        /** Optimization. */
+        if (size()==1)  { return (*this)[0] >= _threshold.first &&  (*this)[0] <= _threshold.second; }
+
+        Int m = 0;
+
+        /** By default we compute the sum. */
+        for (size_t i=0; i<size(); i++)  { m += (*this)[i]; }
+
+        switch (_solidityKind)
+        {
+            case tools::misc::KMER_SOLIDITY_MIN:
+                m = ~0;  for (size_t i=0; i<size(); i++)  { if ((*this)[i] < m)  { m = (*this)[i]; } }
+                break;
+
+            case tools::misc::KMER_SOLIDITY_MAX:
+                m = 0;  for (size_t i=0; i<size(); i++)  { if ((*this)[i] > m)  { m = (*this)[i]; } }
+                break;
+
+            case tools::misc::KMER_SOLIDITY_SUM:
+            case tools::misc::KMER_SOLIDITY_DEFAULT:
+            default:
+                /** The sum is already computed as initialization value of 'm'. */
+                break;
+        }
+
+        return (m >= _threshold.first) && (m <= _threshold.second);
+    }
+
+    Int computeSum () const
+    {
+        /** Optimization. */
+        if (size()==1)  { return (*this)[0]; }
+
+        Int sum=0; for (size_t k=0; k<_abundancePerBank.size(); k++)  { sum+=_abundancePerBank[k]; }  return sum;
+    }
+
+private:
+    tools::misc::KmerSolidityKind _solidityKind;
+    std::pair<Int,Int>            _threshold;
+    std::vector<Int>              _abundancePerBank;
+};
 
 /********************************************************************************/
 template<size_t span>
@@ -63,7 +139,7 @@ public:
         gatb::core::tools::misc::IHistogram*                histogram,
         gatb::core::system::ISynchronizer*                  synchro,
         u_int64_t&                                          totalKmerNbRef,
-        size_t                                              abundance,
+        std::pair<size_t,size_t>                            abundance,
         gatb::core::tools::dp::IteratorListener*            progress,
         tools::misc::impl::TimeInfo&                        timeInfo,
         PartiInfo<5>&                                       pInfo,
@@ -78,7 +154,7 @@ public:
     ~PartitionsCommand();
 
 protected:
-    size_t                                                  _abundance;
+    std::pair<size_t,size_t>                                _abundance;
     gatb::core::tools::collections::impl::BagCache<Count>   _solidKmers;
     gatb::core::tools::collections::Iterable<Type>&         _partition;
     gatb::core::tools::misc::impl::HistogramCache           _histogram;
@@ -92,6 +168,8 @@ protected:
 	gatb::core::tools::misc::impl::MemAllocator&            _pool;
 	
     void insert (const Count& kmer);
+
+    void insert (const Type& kmer, const SolidityCounter& count);
 
     tools::misc::impl::TimeInfo& _globalTimeInfo;
     tools::misc::impl::TimeInfo  _timeInfo;
@@ -115,7 +193,7 @@ public:
         gatb::core::tools::misc::IHistogram*                histogram,
         gatb::core::system::ISynchronizer*                  synchro,
         u_int64_t&                                          totalKmerNbRef,
-        size_t                                              abundance,
+        std::pair<size_t,size_t>                            abundance,
         gatb::core::tools::dp::IteratorListener*            progress,
         tools::misc::impl::TimeInfo&                        timeInfo,
         PartiInfo<5>&                                       pInfo,
@@ -159,7 +237,7 @@ public:
             gatb::core::tools::misc::IHistogram*                histogram,
             gatb::core::system::ISynchronizer*                  synchro,
             u_int64_t&                                          totalKmerNbRef,
-            size_t                                              abundance,
+            std::pair<size_t,size_t>                            abundance,
             gatb::core::tools::dp::IteratorListener*            progress,
             tools::misc::impl::TimeInfo&                        timeInfo,
             PartiInfo<5>&                                       pInfo,
@@ -167,7 +245,9 @@ public:
             size_t                                              nbCores,
             size_t                                              kmerSize,
             gatb::core::tools::misc::impl::MemAllocator&        pool,
-            size_t                                              cacheSize
+            size_t                                              cacheSize,
+            tools::misc::KmerSolidityKind                       solidityKind,
+            std::vector<size_t>&                                offsets
     );
 
     /** Destructor. */
@@ -176,15 +256,21 @@ public:
     void execute ();
 
 private:
-	Type**    _radix_kmers;
-	uint64_t* _radix_sizes;
-	uint64_t* _r_idx;
 
-    tools::dp::impl::Dispatcher* _dispatcher;
+    Type**     _radix_kmers;
+    u_int8_t** _bankIdMatrix;
+	uint64_t*  _radix_sizes;
+	uint64_t*  _r_idx;
+
+    tools::dp::IDispatcher* _dispatcher;
 
 	void executeRead   ();
     void executeSort   ();
     void executeDump   ();
+
+    std::vector<size_t> _nbItemsPerBankPerPart;
+
+    tools::misc::KmerSolidityKind _solidityKind;
 };
 
 /********************************************************************************/
