@@ -304,8 +304,9 @@ struct build_visitor : public boost::static_visitor<>    {
 
         LOCAL (bank);
 
-        size_t kmerSize = props->get(STR_KMER_SIZE)      ? props->getInt(STR_KMER_SIZE)       : 31;
-        size_t nks      = props->get(STR_KMER_ABUNDANCE) ? props->getInt(STR_KMER_ABUNDANCE)  : 3;
+        size_t kmerSize = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
+        size_t nksMin   = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
+        size_t nksMax   = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
 
         string output = props->get(STR_URI_OUTPUT) ?
             props->getStr(STR_URI_OUTPUT)   :
@@ -367,15 +368,19 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                         Sorting count                    */
         /************************************************************/
+        KmerSolidityKind solidityKind;  parse (props->getStr(STR_SOLIDITY_KIND), solidityKind);
+
         /** We create a DSK instance and execute it. */
         SortingCountAlgorithm<span> sortingCount (
             solidStorage,
             bank,
             kmerSize,
-            nks,
-            props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
-            props->get(STR_MAX_DISK)   ? props->getInt(STR_MAX_DISK)   : 0,
-            props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
+            make_pair (nksMin, nksMax),
+            props->get(STR_MAX_MEMORY)    ? props->getInt(STR_MAX_MEMORY) : 0,
+            props->get(STR_MAX_DISK)      ? props->getInt(STR_MAX_DISK)   : 0,
+            props->get(STR_NB_CORES)      ? props->getInt(STR_NB_CORES)   : 0,
+            solidityKind,
+            props->get(STR_HISTOGRAM_MAX) ? props->getInt(STR_HISTOGRAM_MAX) : 0
         );
         executeAlgorithm (sortingCount, *solidStorage, props, graph._info);
         graph.setState(Graph::STATE_SORTING_COUNT_DONE);
@@ -549,7 +554,9 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
 
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_INPUT,         "reads file", includeMandatory ));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                           false,  "31"    ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE,    "abundance threshold for solid kmers",      false,  "3"     ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE_MIN,"min abundance threshold for solid kmers",  false,  "3"     ));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",  false,  "4294967295"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",  false, "10000"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BANK_CONVERT_TYPE, "convert the bank ('none', 'tmp', 'keep')", false,  "tmp"   ));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,        "output file",                              false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
@@ -564,8 +571,10 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_IMPL,      "debloom impl ('basic', 'minimizer')",      false, "minimizer"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')",      false, "stored"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_TOPOLOGY_STATS,    "topological information level (0 for none)", false, "0"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min or max)",  false, "sum"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_INTEGER_PRECISION,  "integers precision (0 for optimized value)", false, "0"));
+
 
     /** We activate MPHF option only if available. */
     if (MPHF<char>::enabled)
