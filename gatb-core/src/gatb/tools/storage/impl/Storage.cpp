@@ -34,7 +34,7 @@ namespace gatb { namespace core {  namespace tools {  namespace storage {  names
 ** REMARKS :
 *********************************************************************/
 Storage::Storage (StorageMode_e mode, const std::string& name, bool autoRemove)
-    : Cell(0, ""), _factory(0), _root(0), _autoRemove(autoRemove)
+    : Cell(0, ""), _name(name), _factory(0), _root(0), _autoRemove(autoRemove)
 {
     setFactory (new StorageFactory (mode));
 }

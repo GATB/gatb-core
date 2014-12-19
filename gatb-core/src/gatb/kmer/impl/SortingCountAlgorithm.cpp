@@ -1035,12 +1035,15 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
 
+    /** We build the temporary storage name from the output storage name. */
+    string tmpStorageName = _storage->getName() + string("_partitions");
+
     /** We create the partition files for the current pass. */
 #ifdef PROTO_COMP
     setPartitionsStorage (StorageFactory(STORAGE_COMPRESSED_FILE).create ("partitions", true, false));
     //setPartitionsStorage (StorageFactory(STORAGE_GZFILE).create ("partitions", true, false));
 #else
-    setPartitionsStorage (StorageFactory(STORAGE_FILE).create ("dsk_partitions", true, false));
+    setPartitionsStorage (StorageFactory(STORAGE_FILE).create (tmpStorageName, true, false));
 #endif
     
     setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass

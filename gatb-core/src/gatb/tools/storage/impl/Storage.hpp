@@ -381,6 +381,9 @@ public:
     /** Destructor */
     ~Storage ();
 
+    /** Get the name of the storage. */
+    std::string getName() const { return _name; }
+
     Group& root () { return *getRoot(); }
 
     /** Facility for retrieving the root group.
@@ -414,6 +417,8 @@ public:
     };
 
 protected:
+
+    std::string _name;
 
     StorageFactory* _factory;
     void setFactory (StorageFactory* factory);

@@ -95,7 +95,7 @@ public:
         assert (storage != 0);
 
         /** We define the full qualified id of the current collection to be created. */
-        std::string actualName = storage->getId() + std::string(".") + parent->getFullId() + std::string(".") + name;
+        std::string actualName = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + name;
 
         DEBUG_STORAGE (("StorageFileFactory::createCollection  name='%s'  actualName='%s' \n", name.c_str(), actualName.c_str() ));
 
