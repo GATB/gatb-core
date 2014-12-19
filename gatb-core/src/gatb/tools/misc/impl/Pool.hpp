@@ -179,13 +179,18 @@ public:
     }
 
     //should be thread safe
-    char* pool_malloc(u_int64_t requested_size)
+    char* pool_malloc(u_int64_t requested_size, const char* message="")
     {
         u_int64_t synced_used_space = __sync_fetch_and_add(&used_space, requested_size);
 
         if (requested_size> (capacity - synced_used_space))
         {
             __sync_fetch_and_add(&used_space, -requested_size);
+
+            throw system::Exception ("Pool allocation failed for %lld bytes (%s). Current usage is %lld and capacity is %lld",
+                requested_size, message, used_space, capacity
+            );
+
             return NULL;
         }
 
