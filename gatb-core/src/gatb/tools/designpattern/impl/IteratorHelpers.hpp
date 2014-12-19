@@ -479,28 +479,54 @@ public:
     /** Constructor.
      * \param[in] ref : the referred iterator
      * \param[in] limit : the maximal number of iterations. */
-    TruncateIterator (Iterator<Item>& ref, u_int64_t limit) : _ref(ref), _limit(limit), _currentIdx(0) {}
+    TruncateIterator (Iterator<Item>& ref, u_int64_t limit, bool initRef=true)
+        : _ref(ref), _limit(limit), _currentIdx(0), _initRef(initRef), _isDone(true)  {}
 
     /** \copydoc  Iterator::first */
-    void first() { _currentIdx=0;  _ref.first(); }
+    void first()
+    {
+        _currentIdx=0;
+        if (_initRef)  { _ref.first(); }
+
+        /** We check whether the iteration is finished or not. */
+        _isDone = _ref.isDone() || _currentIdx >= _limit;
+
+        /** IMPORTANT : we need to copy the referred item => we just can't rely on a simple
+         * pointer (in case of usage of Dispatcher for instance where a buffer of items is kept
+         * and could be wrong if the referred items doesn't exist any more when accessing the
+         * buffer). */
+        if (!_isDone)  { *(this->_item) = _ref.item(); }
+    }
 
     /** \copydoc  Iterator::next */
-    void next()  { _currentIdx++;  _ref.next(); }
+    void next()
+    {
+        _currentIdx++;
+        _ref.next();
+
+        /** We check whether the iteration is finished or not. */
+        _isDone = _ref.isDone() || _currentIdx >= _limit;
+
+        /** IMPORTANT : we need to copy the referred item => we just can't rely on a simple
+         * pointer (in case of usage of Dispatcher for instance where a buffer of items is kept
+         * and could be wrong if the referred items doesn't exist any more when accessing the
+         * buffer). */
+        if (!_isDone)  { *(this->_item) = _ref.item(); }
+    }
 
     /** \copydoc  Iterator::isDone */
-    bool isDone() { return _ref.isDone() || _currentIdx >= _limit; }
+    bool isDone()  {  return _isDone;  }
 
     /** \copydoc  Iterator::item */
-    Item& item ()  { return _ref.item(); }
-
-    /** \copydoc  Iterator::setItem */
-    void setItem (Item& i)  { _ref.setItem(i); }
+    Item& item ()  {  return *(this->_item);  }
 
 private:
 
     Iterator<Item>& _ref;
     u_int64_t       _limit;
     u_int64_t       _currentIdx;
+    bool            _initRef;
+    bool            _isDone;
 };
 
 /********************************************************************************/
