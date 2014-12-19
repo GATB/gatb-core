@@ -253,7 +253,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
             _warnings.push_back (tools::misc::impl::Stringify::format("Unknown '%s'", txt));
 
             /** We throw an exception if the current option is not recognized. */
-            throw OptionFailure (*this);
+            //throw OptionFailure (*this); //do this at the end
 #endif
         }
     }
@@ -274,6 +274,8 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
 
     /** We fill the properties. */
     buildProperties ();
+
+	if (!_warnings.empty())   {  throw OptionFailure (*this);  }
 
     /* And we return the errors number. */
     return _properties;

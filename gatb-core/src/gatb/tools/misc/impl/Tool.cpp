@@ -283,20 +283,28 @@ IProperties* ToolComposite::run (int argc, char* argv[])
         try
         {
             /** We parse the user parameters. */
-            IProperties* input = (*it)->getParser()->parse (argc, argv);
+            (*it)->getParser()->parse (argc, argv);
 
             /** We may display the help for the tool. */
             if ((*it)->getParser()->saw (STR_HELP))  {  (*it)->getParser()->displayHelp (stdout);  }
 
-
+			IProperties* input =  (*it)->getParser()->getProperties() ;
             /** We add the input into the vector that gather the tools inputs. */
             inputs.push_back (input);
         }
         catch (OptionFailure& e)
         {
-            e.getParser().displayErrors (stdout);
-            e.getParser().displayHelp   (stdout);
-            return NULL;
+			/** We may display the help for the tool. */
+			if ((*it)->getParser()->saw (STR_HELP))  {  (*it)->getParser()->displayHelp (stdout);  }
+
+			IProperties* input =  (*it)->getParser()->getProperties() ;
+
+			/** We add the input into the vector that gather the tools inputs. */
+			inputs.push_back (input);
+			
+//            e.getParser().displayErrors (stdout);
+//            e.getParser().displayHelp   (stdout);
+//            return NULL;
         }
 #endif
     }

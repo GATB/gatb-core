@@ -31,11 +31,11 @@ using namespace gatb::core::tools::misc;
 
 #define DEBUG(a)  //printf a
 
-#define BINREADS_BUFFER 100000
-
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace bank {  namespace impl {
 /********************************************************************************/
+
+static u_int64_t BINREADS_BUFFER = 100000;
 
 int NT2int(char nt)
 {
@@ -295,6 +295,19 @@ void BankBinary::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& m
 void BankBinary::remove ()
 {
     System::file().remove (_filename);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void  BankBinary::setBufferSize (u_int64_t bufferSize)
+{
+    BINREADS_BUFFER = bufferSize;
 }
 
 /*********************************************************************

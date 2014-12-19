@@ -104,6 +104,11 @@ public:
     /** \copydoc IBank::remove. */
     void remove ();
 
+    /** Set default buffer size (static method). 
+      * \param[in] bufferSize : size of the buffer.    
+      */
+    static void setBufferSize (u_int64_t bufferSize);
+
     /************************************************************/
 
     /** \brief Specific Iterator impl for BankBinary class
