@@ -22,7 +22,7 @@ int main (int argc, char* argv[])
     {
         std::cerr << "You must provide the following." << std::endl;
         std::cerr << "  1) HDF5 file" << std::endl;
-        std::cerr << "  2) 1 (display kmers) or 0 (no display)" << std::endl;
+        std::cerr << "  2) 0 (no display)  1 (display kmers)   2 (display abundance distrib) or  " << std::endl;
 
         return EXIT_FAILURE;
     }
@@ -57,30 +57,41 @@ int main (int argc, char* argv[])
     size_t nbKmers = 0;
 
     // We create an iterator for our [kmer,abundance] values
-    Iterator<Kmer<>::Count>* iter = solidKmers.iterator();
-    LOCAL (iter);
+    ProgressIterator<Kmer<>::Count> iter (solidKmers);
 
     Kmer<>::Type checksum;
+    map<u_int64_t,u_int64_t> distrib;
 
     // We iterate the solid kmers from the retrieved collection
-    for (iter->first(); !iter->isDone(); iter->next())
+    for (iter.first(); !iter.isDone(); iter.next())
     {
         // shortcut
-        Kmer<>::Count& count = iter->item();
+        Kmer<>::Count& count = iter.item();
 
         // We update the checksum.
         checksum += count.value;
+
+        // We update the distribution
+        distrib [count.abundance] ++;
 
         // We dump the solid kmer information:
         //   1) nucleotides
         //   2) raw value (integer)
         //   3) abundance
-        if (display)
+        if (display==1)
         {
             cout << "[" << ++nbKmers << "]  " << model.toString(count.value) << "  " << count.value << "  "  << count.abundance << endl;
         }
     }
 
     cout << "kmer checksum:  " << checksum << endl;
+
+    if (display==2)
+    {
+        for (map<u_int64_t,u_int64_t>::iterator it = distrib.begin(); it != distrib.end(); ++it)
+        {
+            cout << it->first << "  "  << it->second << endl;
+        }
+    }
 }
 //! [snippet1]
