@@ -131,8 +131,10 @@ public:
             _ss.str ("");  _ss << "seq_" << _kmer;
             _item->setComment (_ss.str().c_str());
 
-            /** We set the data for the sequence. */
-            _item->getData().setRef ((char*)_kmerString.data(), _kmerString.size());
+            /** We set the data for the sequence.
+             * NOTE : we use 'set' and not 'setRef' since we want a true copy.
+             * => mandatory in case this iterator is used through a parallel dispatcher. */
+            _item->getData().set ((char*)_kmerString.data(), _kmerString.size());
         }
 
         /** */
