@@ -1,6 +1,7 @@
 // We include what we need for the test
 #include <gatb/gatb_core.hpp>
 
+#include <fstream>
 #include <queue>
 #include <stack>
 #include <map>
@@ -33,35 +34,36 @@ public:
             getInput()->getStr(STR_URI_OUTPUT) :
             (System::file().getBaseName(getInput()->getStr(STR_URI_INPUT)) + ".dot");
 
-        FILE* output = fopen (outputFile.c_str(), "w");
-        if (output != NULL)
+        ofstream output (outputFile.c_str());
+
+        output << "digraph " << name << "{\n";
+
+        // We load the graph
+        Graph graph = Graph::load (getInput()->getStr(STR_URI_INPUT));
+
+        map<Node, u_int64_t> mapping;
+        u_int64_t count = 0;
+
+        Graph::Iterator<NodeType> itMap = graph.iterator<NodeType> ();
+        for (itMap.first(); !itMap.isDone(); itMap.next())  { mapping[itMap.item()] = count++; }
+
+        ProgressGraphIterator<NodeType,ProgressTimer> it = graph.iterator<NodeType> ();
+        for (it.first(); !it.isDone(); it.next())
         {
-            fprintf (output, "digraph %s  {\n", name);
+            NodeType current = it.item();
 
-            // We load the graph
-            Graph graph = Graph::load (getInput()->getStr(STR_URI_INPUT));
+            Graph::Vector<NodeType> neighbors = graph.neighbors<NodeType> (current.kmer);
 
-            map<Node, u_int64_t> mapping;
-            u_int64_t count = 0;
-            Graph::Iterator<NodeType> it = graph.iterator<NodeType> ();
-            for (it.first(); !it.isDone(); it.next())  { mapping[it.item()] = count++; }
-
-            for (it.first(); !it.isDone(); it.next())
+            for (size_t i=0; i<neighbors.size(); i++)
             {
-                NodeType current = it.item();
-
-                Graph::Vector<NodeType> neighbors = graph.neighbors<NodeType> (current.kmer);
-
-                for (size_t i=0; i<neighbors.size(); i++)
-                {
-                    fprintf (output, "%s -> %s;\n", graph.toString(current.kmer).c_str(), graph.toString(neighbors[i].kmer).c_str());
-                }
+                output << mapping[current.kmer] << " -> " <<  mapping[neighbors[i].kmer] << " ;\n";
+                //output << current.kmer << " -> " <<  neighbors[i].kmer << " ;\n";
             }
-
-            fprintf (output, "}\n");
-
-            fclose (output);
         }
+
+        output << "}\n";
+
+        output.close();
     }
 
     // Actual job done by the tool is here
