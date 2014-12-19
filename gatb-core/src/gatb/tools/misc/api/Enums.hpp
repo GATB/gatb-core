@@ -173,6 +173,30 @@ static std::string toString (MPHFKind kind)
 }
 
 /********************************************************************************/
+
+enum KmerSolidityKind  { KMER_SOLIDITY_MIN, KMER_SOLIDITY_MAX, KMER_SOLIDITY_SUM, KMER_SOLIDITY_DEFAULT };
+
+static void parse (const std::string& s, KmerSolidityKind& kind)
+{
+         if (s == "min")    { kind = KMER_SOLIDITY_MIN;  }
+    else if (s == "max")    { kind = KMER_SOLIDITY_MAX;  }
+    else if (s == "sum")    { kind = KMER_SOLIDITY_SUM;  }
+    else   { throw system::Exception ("bad kmer solidity kind '%s'", s.c_str()); }
+}
+
+static std::string toString (KmerSolidityKind kind)
+{
+    switch (kind)
+    {
+        case KMER_SOLIDITY_MIN:     return "min";
+        case KMER_SOLIDITY_MAX:     return "max";
+        case KMER_SOLIDITY_SUM:     return "sum";
+        case KMER_SOLIDITY_DEFAULT: return "sum";
+        default:    throw system::Exception ("bad kmer solidity kind %d", kind);
+    }
+}
+
+/********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
