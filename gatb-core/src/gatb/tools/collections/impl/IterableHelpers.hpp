@@ -97,6 +97,25 @@ private:
 };
 
 /********************************************************************************/
+
+/** \brief some helper methods for Iterable objects. */
+class IterableHelpers
+{
+public:
+
+    template<typename T>
+    static bool getItems (Iterable<T>& iterable, std::vector<T>& items)
+    {
+        size_t nbItems = items.size();
+
+        dp::Iterator<T>* it = iterable.iterator();  LOCAL (it);
+        it->get (items);
+
+        return items.size() == nbItems;
+    }
+};
+
+/********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
