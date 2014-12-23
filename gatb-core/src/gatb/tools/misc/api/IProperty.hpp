@@ -184,6 +184,13 @@ public:
      */
     virtual void       add (size_t depth, IProperties* prop) = 0;
 
+    /** Add all the IProperty instances contained in the provided IProperties instance. Note that a depth is provided
+     *  and is added to the depth of each added IProperty instance.
+     * \param[in] depth : depth to be added to each depth of added instances.
+     * \param[in] prop  : instance holding IProperty instances to be added
+     */
+    virtual void       add (size_t depth, IProperties& prop) = 0;
+
     /** */
     virtual void add (IProperty* prop, va_list args) = 0;
 

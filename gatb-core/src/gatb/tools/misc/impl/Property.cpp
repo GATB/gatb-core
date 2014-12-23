@@ -242,6 +242,22 @@ void Properties::add (size_t depth, IProperties* properties)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+void Properties::add (size_t depth, IProperties& properties)
+{
+    /** We accept a visitor. */
+    set<string>  nokeys;
+    InsertionVisitor v (depth, this, nokeys);
+    properties.accept (&v);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void Properties::add (IProperty* prop, va_list args)
 {
     if (prop != 0)
