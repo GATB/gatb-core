@@ -100,6 +100,9 @@ public:
     /** \copydoc IProperties::add(size_t,IProperties*)  */
     void add (size_t depth, IProperties* prop);
 
+    /** \copydoc IProperties::add(size_t,IProperties*)  */
+    void  add (size_t depth, IProperties& prop);
+
     /**  */
     void add (IProperty* p, va_list args);
 
