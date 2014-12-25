@@ -609,7 +609,15 @@ Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
     va_end (args);
     if (buffer != NULL)  {  commandLine = buffer;  free (buffer);  }
 
-    return  Graph (bank, parser.parse(commandLine));
+    try
+    {
+        return  Graph (bank, parser.parse(commandLine));
+    }
+    catch (OptionFailure& e)
+    {
+        e.getParser().displayErrors (stdout);
+        throw system::Exception ("Graph construction failure because of bad parameters (notify a developer)");
+    }
 }
 
 /*********************************************************************
@@ -633,7 +641,15 @@ Graph  Graph::create (const char* fmt, ...)
     va_end (args);
     if (buffer != NULL)  {  commandLine = buffer;  free (buffer);  }
 
-    return  Graph (parser.parse(commandLine));
+    try
+    {
+        return  Graph (parser.parse(commandLine));
+    }
+    catch (OptionFailure& e)
+    {
+        e.getParser().displayErrors (stdout);
+        throw system::Exception ("Graph construction failure because of bad parameters (notify a developer)");
+    }
 }
 
 /*********************************************************************
