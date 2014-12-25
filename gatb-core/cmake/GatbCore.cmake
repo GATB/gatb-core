@@ -29,7 +29,7 @@ ENDFUNCTION()
 SET (GATB_CORE_INSTALL_EXCLUDE "1")
 
 # We look for the gatb-core directory
-LOOKUP_PATH ("gatb-core" "../../thirdparty/gatb-core/gatb-core;thirdparty/gatb-core" ${PROJECT_SOURCE_DIR} GATB_CORE_PATH)
+LOOKUP_PATH ("gatb-core" "../../thirdparty/gatb-core/gatb-core;thirdparty/gatb-core;gatb-core/gatb-core" ${PROJECT_SOURCE_DIR} GATB_CORE_PATH)
 
 # we depend on gatb-core; here, we define where to find all the required material
 add_subdirectory (${GATB_CORE_PATH}  "${CMAKE_CURRENT_BINARY_DIR}/ext/gatb-core")
