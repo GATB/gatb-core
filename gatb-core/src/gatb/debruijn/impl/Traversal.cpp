@@ -116,9 +116,9 @@ Traversal::Traversal (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-int Traversal::traverse (const Node& startingNode, Direction dir, Path& consensus)
+int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction dir, Path& consensus)
 {
-    Node currentNode = startingNode;
+    currentNode = startingNode;
     Node previousNode;
 
     int nnt = 0;

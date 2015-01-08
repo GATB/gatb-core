@@ -205,6 +205,10 @@ struct Kmer
          */
         bool which () const { return choice==0 ? true : false; }
 
+        /** Tells which strand is used.
+         * \return the used strand. */
+        Strand strand() const { return which() ? STRAND_FORWARD : STRAND_REVCOMP; }
+
     protected:
         Type table[2];  char choice;
 		
