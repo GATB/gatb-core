@@ -67,6 +67,12 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set (use_mphf 1)
     endif()
 
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.7) 
+        set (dont_use_tr1 0)
+    else()
+        set (dont_use_tr1 1)
+    endif()
+
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
@@ -84,6 +90,12 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         set (use_mphf 0)
     else()
         set (use_mphf 1)
+    endif()
+
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
+        set (dont_use_tr1 0)
+    else()
+        set (dont_use_tr1 1)
     endif()
 
 else()
@@ -115,14 +127,19 @@ if (use_new_cxx)
     # We set a flag for lambda expressions
     set (WITH_LAMBDA_EXPRESSION "1")
     # We add compilation flags to the global flags
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION  ${CXX_STD_VERSION}")
- endif()
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION ${CXX_STD_VERSION}")
+endif()
 
 if (use_mphf)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
         message ("-------------------------------------------------------------------------------------")
         message ("-- WILL COMPILE MPHF! (COMPILER VERSION IS HIGH ENOUGH) ")
         message ("-------------------------------------------------------------------------------------")
+endif()
+
+# We also set a flag for TR1 management
+if (dont_use_tr1)
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DDONT_USE_TR1 ")
 endif()
 
 # In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
