@@ -22,7 +22,7 @@
 #include <gatb/tools/misc/impl/Stringify.hpp>
 
 #include <cstdio>
-#define DEBUG(a)    // a
+#define DEBUG(a)    //a
 #define VERBOSE(a)
 #define INFO(a)
 
@@ -141,7 +141,7 @@ void IterativeExtensions<span>::construct_linear_seqs (
     /** We first reset the terminator. */
     terminator.reset(); // distinct extensions may share kmers, however, a unique extension doesn't.
 
-    DEBUG ((cout << "[IterativeExtensions::construct_linear_seqs]  output=" << output_file << "  L=" << L
+    DEBUG ((cout << "[IterativeExtensions::construct_linear_seqs]  output=" << outputBank->getId() << "  L=" << L
         << "  search=" << searchMode << " swf=" << swf << endl
     ));
 
@@ -195,13 +195,13 @@ void IterativeExtensions<span>::construct_linear_seqs (
             kmers_to_traverse.erase (kmers_to_traverse.begin());
         }
 
+        /** We compute the extension on the right. */
+        int len_right = traversal->traverse (ksd.node, endNode, DIR_OUTCOMING, rightTraversal);
+
         DEBUG ((cout << "------> kmer=" << std::hex << ksd.node.kmer.get<kmer_type>() << std::dec
             << "  strand=" << toString(ksd.node.strand) << "  depth=" << ksd.depth
             << "  len_right=" << len_right << endl
         ));
-
-        /** We compute the extension on the right. */
-        int len_right = traversal->traverse (ksd.node, endNode, DIR_OUTCOMING, rightTraversal);
 
         /** We build the sequence to be inserted in the output bank. */
         buildSequence (ksd.node, rightTraversal, nbNodes, ksd.depth, seq);
