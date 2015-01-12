@@ -210,19 +210,19 @@ public:
     /** Constructor. */
     PartiInfo(int nbpart, int minimsize) : _nbpart(nbpart), _mm(minimsize)
     {
-        _nb_kmers_per_parti  = (u_int64_t*) calloc (nbpart, sizeof(u_int64_t));
-        _nb_kxmers_per_parti = (u_int64_t*) calloc (nbpart, sizeof(u_int64_t));
+        _nb_kmers_per_parti  = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
+        _nb_kxmers_per_parti = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
 
         _num_mm_bins =   1 << (2*_mm);
-        _superk_per_mmer_bin = (u_int64_t*) calloc (_num_mm_bins, sizeof(u_int64_t));
-        _kmer_per_mmer_bin   = (u_int64_t*) calloc (_num_mm_bins, sizeof(u_int64_t));
-        _kxmer_per_mmer_bin  = (u_int64_t*) calloc (_num_mm_bins, sizeof(u_int64_t));
+        _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
+        _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
+        _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
 
         for(int xx=0; xx<xmer; xx++)
         {
             for(int ii=0; ii<256; ii++)
             {
-                _nbk_per_radix_per_part[xx][ii] = (u_int64_t*) calloc (nbpart, sizeof(u_int64_t));
+                _nbk_per_radix_per_part[xx][ii] = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
             }
         }
     }
@@ -235,17 +235,17 @@ public:
         _nbpart      = cr._nbpart;
         _mm          = cr._mm;
 
-        _nb_kmers_per_parti  = (u_int64_t*) calloc (_nbpart,      sizeof(u_int64_t));
-        _nb_kxmers_per_parti = (u_int64_t*) calloc (_nbpart,      sizeof(u_int64_t));
-        _superk_per_mmer_bin = (u_int64_t*) calloc (_num_mm_bins, sizeof(u_int64_t));
-        _kmer_per_mmer_bin   = (u_int64_t*) calloc (_num_mm_bins, sizeof(u_int64_t));
-        _kxmer_per_mmer_bin  = (u_int64_t*) calloc (_num_mm_bins, sizeof(u_int64_t));
+        _nb_kmers_per_parti  = (u_int64_t*) CALLOC (_nbpart,      sizeof(u_int64_t));
+        _nb_kxmers_per_parti = (u_int64_t*) CALLOC (_nbpart,      sizeof(u_int64_t));
+        _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
+        _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
+        _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
 
         for(int xx=0; xx<xmer; xx++)
         {
             for(int ii=0; ii<256; ii++)
             {
-                _nbk_per_radix_per_part[xx][ii] = (u_int64_t  *) calloc(_nbpart,sizeof(u_int64_t));
+                _nbk_per_radix_per_part[xx][ii] = (u_int64_t  *) CALLOC(_nbpart,sizeof(u_int64_t));
             }
         }
 
@@ -256,13 +256,13 @@ public:
     /** Destructor. */
     ~PartiInfo()
     {
-        free (_nb_kmers_per_parti);
-        free (_nb_kxmers_per_parti);
-        free (_superk_per_mmer_bin);
-        free (_kmer_per_mmer_bin);
-        free (_kxmer_per_mmer_bin);
+        FREE (_nb_kmers_per_parti);
+        FREE (_nb_kxmers_per_parti);
+        FREE (_superk_per_mmer_bin);
+        FREE (_kmer_per_mmer_bin);
+        FREE (_kxmer_per_mmer_bin);
 
-        for(int xx=0; xx<xmer; xx++)  {  for(int ii=0; ii<256; ii++)  {  free(_nbk_per_radix_per_part[xx][ii]);  }  }
+        for(int xx=0; xx<xmer; xx++)  {  for(int ii=0; ii<256; ii++)  {  FREE(_nbk_per_radix_per_part[xx][ii]);  }  }
 
         //	printf("print info destroyed %p  _nb_kmers_per_parti %p \n",this,_nb_kmers_per_parti);
     }

@@ -821,7 +821,7 @@ struct Kmer
             _minimizerDefault.set (tmp);
 			
 			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_miniModel.getKmerSize()));
-			_mmer_lut = (Type *) malloc(sizeof(Type) * nbminims_total ); //free that in destructor
+			_mmer_lut = (Type *) MALLOC(sizeof(Type) * nbminims_total ); //free that in destructor
 
 			for(int ii=0; ii< nbminims_total; ii++)
 			{
@@ -842,7 +842,7 @@ struct Kmer
         /** */
         ~ModelMinimizer ()
         {
-            if (_mmer_lut != 0)  { free (_mmer_lut); }
+            if (_mmer_lut != 0)  { FREE (_mmer_lut); }
         }
 
         template <class Convert>

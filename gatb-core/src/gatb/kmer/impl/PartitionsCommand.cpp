@@ -490,12 +490,12 @@ void PartitionsByVectorCommand<span>::execute ()
     if (this->_partition.getNbItems() == 0)  {  return;  }
 
     /** We configure tables. */
-    _radix_kmers  = (Type**)     malloc (256*(KX+1)*sizeof(Type*)); //make the first dims static ?  5*256
-    _radix_sizes  = (uint64_t*)  malloc (256*(KX+1)*sizeof(uint64_t));
-    _r_idx        = (uint64_t*)  calloc (256*(KX+1),sizeof(uint64_t));
+    _radix_kmers  = (Type**)     MALLOC (256*(KX+1)*sizeof(Type*)); //make the first dims static ?  5*256
+    _radix_sizes  = (uint64_t*)  MALLOC (256*(KX+1)*sizeof(uint64_t));
+    _r_idx        = (uint64_t*)  CALLOC (256*(KX+1),sizeof(uint64_t));
 
     /** We need extra information for kmers counting in case of several input banks. */
-    if (_nbItemsPerBankPerPart.size() > 1) { _bankIdMatrix = (u_int8_t**) malloc (256*(KX+1)*sizeof(u_int8_t*)); }
+    if (_nbItemsPerBankPerPart.size() > 1) { _bankIdMatrix = (u_int8_t**) MALLOC (256*(KX+1)*sizeof(u_int8_t*)); }
     else                                   { _bankIdMatrix = 0; }
 
     /** We have 3 phases here: read, sort and dump. */
@@ -504,10 +504,10 @@ void PartitionsByVectorCommand<span>::execute ()
     executeDump ();
 
     /** We cleanup tables. */
-    free (_radix_sizes) ;
-    free (_radix_kmers);
-    free (_r_idx);
-    if (_bankIdMatrix)  { free (_bankIdMatrix); }
+    FREE (_radix_sizes) ;
+    FREE (_radix_kmers);
+    FREE (_r_idx);
+    if (_bankIdMatrix)  { FREE (_bankIdMatrix); }
 
     /** We update the progress bar. */
     this->_progress.inc (this->_pInfo.getNbKmer(this->_parti_num) );
