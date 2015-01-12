@@ -44,10 +44,11 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-OptionsParser::OptionsParser (const string& name)  : _name(name), _properties(0)
+OptionsParser::OptionsParser (const string& name)
 {
-    _proceed=0;
-    setProperties (new Properties());
+    setName (name);
+    _proceed    = 0;
+    _currentArg = 0;
 }
 
 /*********************************************************************
@@ -60,8 +61,6 @@ OptionsParser::OptionsParser (const string& name)  : _name(name), _properties(0)
  *********************************************************************/
 OptionsParser::~OptionsParser ()
 {
-    setProperties (0);
-
     for (std::list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
     {
         (*it)->forget();
@@ -135,6 +134,38 @@ int OptionsParser::push_back (Option* option)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
+void OptionsParser::add (IOptionsParser* parser)
+{
+    /** UGGLY... */
+    OptionsParser* p1 = dynamic_cast<OptionsParser*> (parser);
+    if (p1)
+    {
+        for (list<Option*>::const_iterator it = p1->getOptions().begin(); it != p1->getOptions().end(); ++it)
+        {
+            this->push_back (*it);
+        }
+    }
+
+    /** UGGLY... */
+    OptionsParserComposite* p2 = dynamic_cast<OptionsParserComposite*> (parser);
+    if (p2)
+    {
+        for (vector<IOptionsParser*>::const_iterator it = p2->getParsers().begin(); it != p2->getParsers().end(); ++it)
+        {
+            this->add (*it);
+        }
+    }
+
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
 int OptionsParser::remove (const char * label)
 {
     for (std::list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
@@ -192,6 +223,14 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
     _seenOptions.clear();
     char* exclude;
 
+    _argIdxOk.resize (argc);
+
+    /** We have to reset all options to their default values. */
+    for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
+    {
+        (*it)->_param =  (*it)->_defaultParam;
+    }
+
     char* txt=0;
     while ( (txt = nextArg ()) != 0)
     {
@@ -219,7 +258,7 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
                 {
                     char buffer[128];
                     snprintf (buffer, sizeof(buffer), "Option %s already seen, ignored...", optionMatch->getLabel().c_str());
-                    _warnings.push_back (buffer);
+                    _warnings.push_back (make_pair(_currentArg-1,buffer));
                 }
                 else if ( (exclude = checkExcludingOptions (optionMatch)) != 0)
                 {
@@ -239,22 +278,18 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
                         res, _seenOptions.size(), _currentArg
                     ));
 
+                    /** We tag the arguments that have been correctly parsed. */
+                    size_t startIdx = _currentArg-optionMatch->getNbArgs()-1;
+                    for (size_t k=0; k<=optionMatch->getNbArgs(); k++)  {  _argIdxOk[startIdx+k] = true;  }
+
                     res=0;  // reduce warning
                 }
             }
         }
         else
         {
-#if 0
-            /* This is an NOT a recognized option. We try to find an No_Option. */
-            giveToNoOption (txt);
-#else
             /** Unknown option => add it to the warning list. */
-            _warnings.push_back (tools::misc::impl::Stringify::format("Unknown '%s'", txt));
-
-            /** We throw an exception if the current option is not recognized. */
-            //throw OptionFailure (*this); //do this at the end
-#endif
+            _warnings.push_back (make_pair (_currentArg-1,Stringify::format("Unknown '%s'", txt)));
         }
     }
 
@@ -269,13 +304,10 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
     /** We may launch an exception if needed. */
     if (!_errors.empty())   {  throw OptionFailure (*this);  }
 
-    /** We may launch an exception if needed. */
-    //if (!_warnings.empty())   {  throw OptionFailure (*this);  }
-
     /** We fill the properties. */
     buildProperties ();
 
-	if (!_warnings.empty())   {  throw OptionFailure (*this);  }
+	//if (!_warnings.empty())   {  throw OptionFailure (*this);  }
 
     /* And we return the errors number. */
     return _properties;
@@ -289,56 +321,9 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-misc::IProperties* OptionsParser::parse (const std::string& s)
-{
-    IProperties* result = 0;
-    int    argc   = 0;
-    size_t idx    = 0;
-
-    /** We tokenize the string and count the number of tokens. */
-    TokenizerIterator it1 (s.c_str(), " ");
-    for (it1.first(); !it1.isDone(); it1.next())  { argc++; }
-
-    argc++;
-
-    /** We allocate a table of char* */
-    char** argv = (char**) calloc (argc, sizeof(char*));
-
-    argv[idx++] = strdup ("foo");
-
-    /** We fill the table with the tokens. */
-    TokenizerIterator it2 (s.c_str(), " ");
-    for (it2.first(); !it2.isDone(); it2.next())
-    {
-        argv[idx++] = strdup (it2.item());
-    }
-
-    for (int i=0; i<argc; i++)  {  DEBUG (("   item='%s' \n", argv[i]));  }
-
-    /** We parse the arguments. */
-    result = parse (argc, argv);
-
-    DEBUG (("OptionsParser::parse  argc=%d => idx=%ld  result=%d  seenOptions=%ld\n", argc, idx, result, _seenOptions.size() ));
-
-    /** Some clean up. */
-    for (int i=0; i<argc; i++)  {  free (argv[i]);  }
-    free (argv);
-
-    /** We return the result. */
-    return _properties;
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
 void OptionsParser::buildProperties ()
 {
-    _properties->add (0, "input");
+    setProperties (new Properties());
 
     for (std::list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
     {
@@ -347,7 +332,7 @@ void OptionsParser::buildProperties ()
 
         if (saw(opt->getLabel()) || opt->getParam().empty()==false)
         {
-            _properties->add (1, (*it)->getLabel(), (*it)->getParam());
+            _properties->add (0, (*it)->getLabel(), (*it)->getParam());
         }
     }
 }
@@ -426,11 +411,11 @@ void OptionsParser::getOptionArgs (const Option* option, std::list<std::string>&
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::displayErrors (FILE* fp)
+void OptionsParser::displayErrors (std::ostream& os, size_t level)  const
 {
-    for (list<string>::iterator it = _errors.begin();  it != _errors.end();  it++)
+    for (list<string>::const_iterator it = _errors.begin();  it != _errors.end();  it++)
     {
-        fprintf (fp, "Error : %s\n", it->c_str());
+        os << /*indent(os,level)*/  "Error : " << it->c_str() << endl;
     }
 }
 
@@ -442,30 +427,22 @@ void OptionsParser::displayErrors (FILE* fp)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::displayVersion (FILE* fp)
+void OptionsParser::displayWarnings (std::ostream& os, size_t level, std::vector<bool>* idx)  const
 {
-    fprintf (fp, "* version %s (%s)\n* built on %s with compiler '%s'\n* supported kmer sizes %d %d %d %d\n",
-        System::info().getVersion().c_str(),
-        System::info().getBuildDate().c_str(),
-        System::info().getBuildSystem().c_str(),
-        System::info().getBuildCompiler().c_str(),
-        KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4
-    );
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::displayWarnings (FILE* fp)
-{
-    for (list<string>::iterator it = _warnings.begin();  it != _warnings.end();  it++)
+    for (list<pair<size_t,string> >::const_iterator it = _warnings.begin();  it != _warnings.end();  it++)
     {
-        fprintf (fp, "Warning : %s\n", it->c_str());
+        bool shouldPrint = true;
+
+        if (idx)
+        {
+            if ((*idx)[it->first]==false)  { shouldPrint = true;   (*idx) [it->first] = true;  }
+            else                           { shouldPrint = false; }
+        }
+
+        if (shouldPrint)
+        {
+            os << /*indent(os,level)*/ "Warning : " << it->second.c_str() << endl;
+        }
     }
 }
 
@@ -477,33 +454,40 @@ void OptionsParser::displayWarnings (FILE* fp)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::displayHelp (FILE* fp)
+void OptionsParser::displayHelp (std::ostream& os, size_t level)  const
 {
     /** We first look for the longest option name. */
     size_t maxLen=0;
-    for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
+    for (list<Option*>::const_iterator it = _options.begin();  it != _options.end();  it++)
     {
         if (!(*it)->getLabel().empty())  {  maxLen = std::max (maxLen, (*it)->getLabel().size());  }
     }
 
-    fprintf (fp, "USAGE for '%s'\n", _name.c_str());
+    os << endl;
+    indent(os,level) <<  "[" << _name << " options]" << endl;
 
-    for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
+    for (list<Option*>::const_iterator it = _options.begin();  it != _options.end();  it++)
     {
         if (!(*it)->getLabel().empty() && (*it)->isVisible())
         {
             if ((*it)->getNbArgs() > 0)
             {
-                fprintf (fp, "    %-*s (%d arg) :    %s  [default '%s']\n",  (int)maxLen,
+                indent(os,level) << Stringify::format ("    %-*s (%d arg) :    %s",
+                    (int)maxLen,
                     (*it)->getLabel().c_str(),
                     (int)(*it)->getNbArgs(),
                     (*it)->getHelp().c_str(),
-                    (*it)->getParam().c_str()
+                    (*it)->getDefaultParam().c_str()
                 );
+
+                if ((*it)->isMandatory()==false)  {  os << Stringify::format ("  [default '%s']", (*it)->getDefaultParam().c_str());  }
+
+                os << endl;
             }
             else
             {
-                fprintf (fp, "    %-*s (%d arg) :    %s\n",  (int)maxLen,
+                indent(os,level) << Stringify::format ("    %-*s (%d arg) :    %s\n",
+                    (int)maxLen,
                     (*it)->getLabel().c_str(),
                     (int)(*it)->getNbArgs(),
                     (*it)->getHelp().c_str()
@@ -697,6 +681,229 @@ void OptionsParser::hide (const char* label)
 	Option* opt = lookForOption ((char*)label);
 
 	if (opt != 0)  { opt->hide (); }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+OptionsParserAbstract::OptionsParserAbstract () : _properties(0), _visible(true)
+{
+    setProperties (new Properties());
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+misc::IProperties* OptionsParserAbstract::parseString (const std::string& s)
+{
+    int    argc   = 0;
+    size_t idx    = 0;
+
+    /** We tokenize the string and count the number of tokens. */
+    TokenizerIterator it1 (s.c_str(), " ");
+    for (it1.first(); !it1.isDone(); it1.next())  { argc++; }
+
+    argc++;
+
+    /** We allocate a table of char* */
+    char** argv = (char**) calloc (argc, sizeof(char*));
+
+    argv[idx++] = strdup ("foo");
+
+    /** We fill the table with the tokens. */
+    TokenizerIterator it2 (s.c_str(), " ");
+    for (it2.first(); !it2.isDone(); it2.next())
+    {
+        argv[idx++] = strdup (it2.item());
+    }
+
+    for (int i=0; i<argc; i++)  {  DEBUG (("   item='%s' \n", argv[i]));  }
+
+    /** We parse the arguments. */
+    _properties = this->parse (argc, argv);
+
+    DEBUG (("OptionsParser::parseString  argc=%d => idx=%ld\n", argc, idx));
+
+    /** Some clean up. */
+    for (int i=0; i<argc; i++)  {  free (argv[i]);  }
+    free (argv);
+
+    /** We return the result. */
+    return _properties;
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParserAbstract::displayVersion (std::ostream& os, size_t level)  const
+{
+    indent(os,level)  << Stringify::format ("* version %s (%s)\n* built on %s with compiler '%s'\n* supported kmer sizes %d %d %d %d",
+        System::info().getVersion().c_str(),
+        System::info().getBuildDate().c_str(),
+        System::info().getBuildSystem().c_str(),
+        System::info().getBuildCompiler().c_str(),
+        KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4
+    ) << endl;
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+OptionsParserComposite::~OptionsParserComposite ()
+{
+    for (size_t i=0; i<_parsers.size(); i++)  {  _parsers[i]->forget(); }
+    _parsers.clear();
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+misc::IProperties* OptionsParserComposite::parse (int argc, char* argv[])
+{
+    setProperties (new Properties ());
+
+    bool hasExceptions = false;
+
+    /** We loop over each known parser. */
+    for (size_t i=0; i<_parsers.size(); i++)
+    {
+        try
+        {
+            /** We parse the options with the current parser. */
+            _parsers[i]->parse (argc, argv);
+        }
+        catch (OptionFailure& e)
+        {
+            hasExceptions = true;
+        }
+        catch (Exception& e)
+        {
+            hasExceptions = true;
+        }
+
+        /** We add the found options to the global one. */
+        _properties->add (0, _parsers[i]->getProperties());
+    }
+
+    _argIdxOk.resize(argc);
+
+    /** We merge information of correctly parsed arguments. */
+    for (size_t i=0; i<_parsers.size(); i++)
+    {
+        for (size_t j=0; j<argc; j++)  {  _argIdxOk[j] = _argIdxOk[j] | _parsers[i]->getParsedArgIndexes()[j];  }
+    }
+
+    /** We count the number of arguments correctly parsed. */
+    size_t nbParsed=0;   for (size_t j=0; j<argc; j++)  {  nbParsed += _argIdxOk[j] ? 1 : 0;  }
+
+    bool shouldSendException = (argc == 1) || (hasExceptions == true) || (hasExceptions == false &&  nbParsed != argc-1);
+
+    /** The parsing is correct if we have arguments or we had no exception and if the number of parsed arguments is ok. */
+    if (shouldSendException)
+    {
+        /** We set the parsing mask for all parsers. */
+        for (size_t i=0; i<_parsers.size(); i++) { _parsers[i]->setParsedArgIndexes (_argIdxOk); }
+
+        /** We throw an exception. */
+        throw OptionFailure(*this);
+    }
+
+    return _properties;
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParserComposite::displayErrors (std::ostream& os, size_t level)  const
+{
+    /** We loop over each known parser. */
+    for (size_t i=0; i<_parsers.size(); i++)  {  _parsers[i]->displayErrors (os, level+1);  }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParserComposite::displayWarnings (std::ostream& os, size_t level, std::vector<bool>* idx) const
+{
+    std::vector<bool> warningsIdx = idx==0 ? getParsedArgIndexes() : *idx;
+
+    /** We loop over each known parser. */
+    for (size_t i=0; i<_parsers.size(); i++)  {  _parsers[i]->displayWarnings (os, level+1, &warningsIdx);  }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParserComposite::displayHelp (std::ostream& os, size_t level) const
+{
+    if (isVisible() == true)
+    {
+        os << endl;
+        indent(os,level) <<  "[" << _name << " options]" << endl;
+
+        /** We loop over each known parser. */
+        for (size_t i=0; i<_parsers.size(); i++) { if (_parsers[i]->isVisible())  {  _parsers[i]->displayHelp (os, level+1);  }  }
+    }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+IOptionsParser* OptionsParserComposite::getParser (const std::string& name)
+{
+    IOptionsParser* result = 0;
+
+    for (size_t i=0; result==0 && i<_parsers.size(); i++)
+    {
+        if (_parsers[i]->getName() == name)  { result = _parsers[i]; }
+    }
+
+    return result;
 }
 
 /********************************************************************************/
