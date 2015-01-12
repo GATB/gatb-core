@@ -163,6 +163,11 @@ public:
     /** operator=.*/
     SortingCountAlgorithm& operator= (const SortingCountAlgorithm& s);
 
+    /** Get an option parser for kmers counting parameters. Dynamic allocation, so must be released when no more used.
+     * \param[in] mandatory : tells whether an argument has to be mandatory
+     * \return an instance of IOptionsParser. */
+    static tools::misc::impl::IOptionsParser* getOptionsParser (bool mandatory=true);
+
     /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
      * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
      */

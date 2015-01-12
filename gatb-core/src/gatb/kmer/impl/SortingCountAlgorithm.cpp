@@ -246,6 +246,32 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
+IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
+{
+    OptionsParser* parser = new OptionsParser ("kmer count");
+
+    parser->push_back (new OptionOneParam (STR_URI_INPUT,         "reads file", mandatory ));
+    parser->push_back (new OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                           false,  "31"    ));
+    parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN,"min abundance threshold for solid kmers",  false,  "3"     ));
+    parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",  false,  "4294967295"));
+    parser->push_back (new OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",  false, "10000"));
+    parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min or max)",  false, "sum"));
+    parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
+    parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                              false));
+    parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
+
+    return parser;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
 void SortingCountAlgorithm<span>::execute ()
 {
     /** We retrieve the actual number of cores. */
