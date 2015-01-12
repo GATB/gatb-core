@@ -128,7 +128,7 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
 
         hsize_t dims = 1;
         H5Sget_simple_extent_dims (space_id, &dims, NULL);
-        char** rdata = (char **) malloc (dims * sizeof (char *));
+        char** rdata = (char **) MALLOC (dims * sizeof (char *));
 
         status = H5Aread (attrId, datatype, rdata);
 
@@ -137,7 +137,7 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
 
         /** We release buffers. */
         status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
-        free (rdata);
+        FREE (rdata);
 
         /** We close resources. */
         H5Aclose (attrId);
@@ -406,7 +406,7 @@ public:
         _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
         _nbRead(0), _memspaceId(0), _total(0)
     {
-        _data = (Item*) malloc (_blockSize*sizeof(Item));
+        _data = (Item*) MALLOC (_blockSize*sizeof(Item));
         memset (_data, 0, _blockSize*sizeof(Item));
         _total = _ref->_nbItems;
     }
@@ -417,7 +417,7 @@ public:
           _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
           _nbRead(0), _memspaceId(0), _total(0)
     {
-        _data = (Item*) malloc (_blockSize*sizeof(Item));
+        _data = (Item*) MALLOC (_blockSize*sizeof(Item));
         memset (_data, 0, _blockSize*sizeof(Item));
 
         _total = _ref->_common->_nbItems;
@@ -436,8 +436,8 @@ public:
             _memspaceId = it._memspaceId;
             _total      = it._total;
 
-            if (_data)  { free (_data); }
-            _data = (Item*) malloc (_blockSize*sizeof(Item));
+            if (_data)  { FREE (_data); }
+            _data = (Item*) MALLOC (_blockSize*sizeof(Item));
             memcpy (_data, it._data, _blockSize*sizeof(Item));
         }
         return *this;
@@ -446,7 +446,7 @@ public:
     /** */
     ~HDF5IteratorPatch()
     {
-        if (_data)  { free (_data); }
+        if (_data)  { FREE (_data); }
 
         /** We clean the reference instance. */
         _ref->_common->clean();

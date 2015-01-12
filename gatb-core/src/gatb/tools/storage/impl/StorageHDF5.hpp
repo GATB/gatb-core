@@ -272,7 +272,7 @@ private:
 
                 hsize_t dims = 1;
                 H5Sget_simple_extent_dims (space_id, &dims, NULL);
-                char** rdata = (char **) malloc (dims * sizeof (char *));
+                char** rdata = (char **) MALLOC (dims * sizeof (char *));
 
                 status = H5Aread (attrId, datatype, rdata);
 
@@ -281,7 +281,7 @@ private:
 
                 /** We release buffers. */
                 status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
-                free (rdata);
+                FREE (rdata);
 
                 /** We close resources. */
                 H5Aclose (attrId);

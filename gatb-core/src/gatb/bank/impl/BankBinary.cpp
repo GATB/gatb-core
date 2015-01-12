@@ -87,7 +87,7 @@ BankBinary::BankBinary (const std::string& filename, size_t nbValidLetters)
 
     //open (true);
 
-    buffer = (unsigned char *) malloc(read_write_buffer_size*sizeof(unsigned char));
+    buffer = (unsigned char *) MALLOC (read_write_buffer_size*sizeof(unsigned char));
 
     cpt_buffer = 0;
 }
@@ -104,7 +104,7 @@ BankBinary::~BankBinary ()
 {
     if(buffer!=NULL)
     {
-        free (buffer); //buffer =NULL;
+        FREE (buffer); //buffer =NULL;
     }
 }
 
@@ -182,7 +182,7 @@ void BankBinary::insert (const Sequence& seq)
         if(read_write_buffer_size < readlen)
         {
             read_write_buffer_size = 2*readlen; // too large but ok
-            buffer =  (unsigned char *) realloc(buffer,sizeof(unsigned char) * read_write_buffer_size);
+            buffer =  (unsigned char *) REALLOC (buffer,sizeof(unsigned char) * read_write_buffer_size);
         }
         
         /** We write the length of the read. */
