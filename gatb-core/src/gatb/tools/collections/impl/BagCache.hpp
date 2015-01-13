@@ -51,7 +51,7 @@ public:
     /** Constructor */
     BagCache () : _ref(0), _nbMax(0), _synchro(0), _items(0), _idx(0)  {}
 
-    /** Constructor. */
+    /** Constructor. Cache size is in terms of number of items (I think) */
     BagCache (Bag<Item>* ref, size_t cacheSize, system::ISynchronizer* synchro=0)
         : _ref(0), _nbMax(cacheSize), _synchro(0), _items(0), _idx(0)
     {

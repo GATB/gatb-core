@@ -197,6 +197,28 @@ static std::string toString (KmerSolidityKind kind)
 }
 
 /********************************************************************************/
+
+/** Provide different modes for graph traversal stop criteria. */
+enum ExtendStopMode_e
+{
+    /** Stop traversal after the first unitig/contig. */
+    ExtendStopMode_after_first_contig,
+    /** Stop traversal when the maximum depth is reached. */
+    ExtendStopMode_until_max_depth
+};
+
+/********************************************************************************/
+
+/** Provide different modes of graph traversal for building extensions. */
+enum SearchMode_e
+{
+    /** Breadth first traversal. */
+    SearchMode_Breadth,
+    /** Depth first traversal. */
+    SearchMode_Depth
+};
+
+/********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 

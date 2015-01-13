@@ -82,7 +82,13 @@ public:
     virtual std::string getName() const = 0;
 
     /** */
-    virtual int traverse (const Node& node, Direction dir, Path& resulting_sequence);
+    int traverse (const Node& node, Direction dir, Path& resulting_sequence)
+    {
+        Node endingNode;  return traverse (node, endingNode, dir, resulting_sequence);
+    }
+
+    /** */
+    int traverse (const Node& startingNode, Node& endingNode, Direction dir, Path& resulting_sequence);
 
     /** */
     int getMaxDepth() const  { return max_depth; };
