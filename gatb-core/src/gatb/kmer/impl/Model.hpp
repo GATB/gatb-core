@@ -844,7 +844,7 @@ struct Kmer
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
               _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp), _freq_order(freq_order)
         {
-            if (kmerSize <= minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
+            if (kmerSize < minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
             /** We compute the number of mmers found in a kmer. */
             _nbMinimizers = _kmerModel.getKmerSize() - _miniModel.getKmerSize() + 1;
