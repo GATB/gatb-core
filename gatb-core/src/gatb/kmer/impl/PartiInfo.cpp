@@ -23,7 +23,7 @@
 // We use the required packages
 using namespace std;
 
-#define DEBUG(a)  //printf a
+#define DEBUG(a) // printf a
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {

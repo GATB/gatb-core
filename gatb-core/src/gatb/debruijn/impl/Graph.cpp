@@ -307,6 +307,7 @@ struct build_visitor : public boost::static_visitor<>    {
         size_t kmerSize = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
         size_t nksMin   = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
         size_t nksMax   = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
+        size_t minimizerType = props->get(STR_MINIMIZER_TYPE) ? props->getInt(STR_MINIMIZER_TYPE)     : 0; 
 
         string output = props->get(STR_URI_OUTPUT) ?
             props->getStr(STR_URI_OUTPUT)   :
@@ -380,7 +381,9 @@ struct build_visitor : public boost::static_visitor<>    {
             props->get(STR_MAX_DISK)      ? props->getInt(STR_MAX_DISK)   : 0,
             props->get(STR_NB_CORES)      ? props->getInt(STR_NB_CORES)   : 0,
             solidityKind,
-            props->get(STR_HISTOGRAM_MAX) ? props->getInt(STR_HISTOGRAM_MAX) : 0
+            props->get(STR_HISTOGRAM_MAX) ? props->getInt(STR_HISTOGRAM_MAX) : 0,
+            0,
+            minimizerType
         );
         executeAlgorithm (sortingCount, *solidStorage, props, graph._info);
         graph.setState(Graph::STATE_SORTING_COUNT_DONE);
@@ -574,6 +577,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory)
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min or max)",  false, "sum"));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
     parser.push_back (new tools::misc::impl::OptionOneParam (STR_INTEGER_PRECISION,  "integers precision (0 for optimized value)", false, "0"));
+    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MINIMIZER_TYPE,  "minimizer type (0=lexi, 1=freq)", false, "0"));
 
 
     /** We activate MPHF option only if available. */

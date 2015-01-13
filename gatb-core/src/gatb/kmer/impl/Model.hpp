@@ -778,12 +778,52 @@ struct Kmer
         bool operator() (const Type& current, const Type& best) const { return current < best; }
     };
 
+    /* compare the minimizers by frequency, if information is available, else lexicographical */
+    /* maybe this code can be factorized with ComparatorMinimizer or also one can say that it subsumes it 
+     * (at the cost of accessing has_frequency for each comparison) */
+    struct ComparatorMinimizerFrequency
+    {
+        template<class Model>  void init (const Model& model, Type& best) 
+        {   
+            best = model.getKmerMax(); 
+            has_frequency = false;
+        }
+
+        void include_frequency (uint32_t *freq_order) 
+        { 
+            _freq_order = freq_order;
+            has_frequency = true;
+        }
+
+        bool operator() (const Type& a_t, const Type& b_t) const { 
+            u_int64_t a = a_t.getVal();
+            u_int64_t b = b_t.getVal();
+
+            if (has_frequency)
+            {
+                //printf("testing freq order of %d %d: %d %d, min is gonna be: %d\n",a,b,_freq_order[a], _freq_order[b], (_freq_order[a] < _freq_order[b]) ? a : b);
+                if (_freq_order[a] == _freq_order[b])
+                    return a < b;
+                return _freq_order[a] < _freq_order[b];
+            }
+            else
+            {
+                return a < b; 
+            }
+        }
+
+        private:
+        uint32_t* _freq_order;
+        bool has_frequency;
+    };
+
+
     /** \brief Model that handles kmers of the Model type + a minimizer
      *
      * This model supports the concept of minimizer. It acts as a Model instance (given as a
      * template class) and add minimizer information to the Kmer type.
      */
-    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizer>
+    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizerFrequency> // TODO: decide whether we keep that as default or not
     class ModelMinimizer :  public ModelAbstract <ModelMinimizer<ModelType,Comparator>, KmerMinimizer<ModelType,Comparator> >
     {
     public:
@@ -800,9 +840,9 @@ struct Kmer
         /** Constructor.
          * \param[in] kmerSize      : size of the kmers handled by the model.
          * \param[in] minimizerSize : size of the mmers handled by the model. */
-        ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator())
+        ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator(), uint32_t *freq_order=NULL)
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
-              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp)
+              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp), _freq_order(freq_order)
         {
             if (kmerSize <= minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
@@ -832,11 +872,15 @@ struct Kmer
                 // if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
 				
 				if(rev_mmer < mmer) mmer = rev_mmer;
-				
-				if (!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
+			
+                if (!is_allowed(mmer.getVal(),minimizerSize)) 
+                    mmer = _mask;
 
 				_mmer_lut[ii] = mmer;
 			}
+
+            if (freq_order)
+                setMinimizersFrequency(freq_order);
         }
 
         /** */
@@ -900,6 +944,20 @@ struct Kmer
             return km.minimizer().value().getVal();
         }
 
+        void setMinimizersFrequency(uint32_t *freq_order)
+        {
+            _cmp.include_frequency(freq_order);
+        }
+
+        // hack to access compare int's, for bcalm, needs to be made cleaner later
+        bool compareIntMinimizers( size_t a, size_t b)
+        {
+            if (!_freq_order) return a <= b;
+            if (_freq_order[a] == _freq_order[b])
+                return a <= b;
+            return _freq_order[a] <= _freq_order[b];
+        }
+
     private:
         ModelType  _kmerModel;
         ModelType  _miniModel;
@@ -911,10 +969,14 @@ struct Kmer
         size_t     _shift;
         typename ModelType::Kmer _minimizerDefault;
 
+        uint32_t *_freq_order;
+
         /** Tells whether a minimizer is valid or not, in order to skip minimizers
          *  that are too frequent. */
         bool is_allowed (uint32_t mmer, uint32_t len)
         {
+            if (_freq_order) return true; // every minimizer is allowed in freq order
+
             u_int64_t  _mmask_m1  ;
             u_int64_t  _mask_0101 ;
             u_int64_t  _mask_ma1 ;

@@ -150,6 +150,7 @@ public:
         tools::misc::KmerSolidityKind solidityKind = tools::misc::KMER_SOLIDITY_DEFAULT,
         size_t              histogramMax   = 10000,
         size_t              partitionType  = 0,
+        size_t              minimizerType  = 0,
         const std::string&  prefix         = "tmp.",
         gatb::core::tools::misc::IProperties* options = 0
     );
@@ -221,6 +222,7 @@ private:
     size_t      _kmerSize;
     std::pair<size_t,size_t> _abundance;
     size_t      _partitionType;
+    size_t      _minimizerType;
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
     size_t      _nb_partitions_in_parallel;
