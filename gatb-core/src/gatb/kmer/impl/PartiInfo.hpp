@@ -338,12 +338,27 @@ private:
 
     typedef std::pair<u_int64_t,u_int64_t> ipair; //taille bin, numero bin
 
+    class itriple
+    {
+        public:
+            u_int64_t first;
+            u_int64_t second;
+            u_int64_t third;
+
+            itriple( u_int64_t first,  u_int64_t second,  u_int64_t third) : first(first), second(second), third(third) {}
+            itriple() : first(0), second(0), third(0) {}
+    };
+
     struct compBin {
         bool operator() (ipair l,ipair r) { return l.first > r.first; }
     } comp_bins;
 
     struct compSpace {
         bool operator() (ipair l,ipair r) { return l.second > r.second; } //for partition, pair is parti number, space ued
+    } ;
+
+    struct compSpaceTriple {
+        bool operator() (itriple l, itriple r) { return l.second > r.second; } // same as compSpace
     } ;
 
     typedef std::vector<Value> Table;

@@ -620,6 +620,8 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     } while (1);
 
     if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
+    
+    if (_nb_partitions < 70  ) _nb_partitions = 70; // FIXME HACK RAYAN FOR BCALM
 
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _nb_partitions_in_parallel - _nb_partitions % _nb_partitions_in_parallel;
@@ -1053,7 +1055,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We update the message of the progress bar. */
     _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
 
-    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
+    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.15) ,u_int64_t( 10000000ULL) ) ;
 
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions : nb seq for sample :  %llu \n ",nbseq_sample));
 
