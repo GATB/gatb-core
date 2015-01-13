@@ -837,7 +837,6 @@ public:
                 if (superKmer[ii].which() != prev_which || kx_size >= _kx) // kxmer_size = 1 //cost should diminish with larger kxmer
                 {
                     /** We increase the number of kxmer found for the current minimizer. */
-                    printf("minimizer of superkmer: %d\n",superKmer.minimizer);
                     _local_pInfo.incKxmer_per_minimBin (superKmer.minimizer);
                     kx_size = 0;
                 }
