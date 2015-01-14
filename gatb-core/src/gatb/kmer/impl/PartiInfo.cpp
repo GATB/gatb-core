@@ -100,6 +100,29 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
     }
 }
 
+
+// simple version of the code above in the case where we use frequency-based minimizers, and we just want to group minimizers according to their ordering
+void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::pair<int,int> > &counts)
+
+{
+    /** We allocate a table whose size is the number of possible minimizers. */
+    _repart_table.resize (_nb_minims);
+
+    for (int ii=0; ii< _nb_minims; ii++)
+    {
+        _repart_table[ii] = 0; // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+    }
+
+    int step = counts.size() / _nbpart;
+   
+   // TODO: that can probably be improved by taking into accont sizes 
+    for (unsigned int i = 0; i < counts.size(); i++)
+    {
+        _repart_table[counts[i].second] = std::min((int)(i / step), _nbpart-1);
+    }
+}
+
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :

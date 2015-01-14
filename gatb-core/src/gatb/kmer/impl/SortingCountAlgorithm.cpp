@@ -1121,6 +1121,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
       because right after we'll start using minimizers to compute the distribution 
       of superkmers in bins */
     uint32_t *freq_order = NULL;
+    std::vector<std::pair<int, int> > counts;
     if (_minimizerType == 1)
     {
         u_int64_t rg = ((u_int64_t)1 << (2*_minim_size));
@@ -1147,7 +1148,6 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
         it_sample->iterate(mmersfrequency);*/
 
         /* sort frequencies */
-        vector<pair<int, int> > counts;
         for (int i(0); i < rg; i++)
         {
             if (m_mer_counts[i] > 0)
@@ -1204,7 +1204,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We compute the distribution of the minimizers. As a result, we will have a hash function
      * that gives a hash code for a minimizer value. */
     Repartitor repartitor (_partitions->size(), mmsize);
-    repartitor.computeDistrib (sample_info);
+    if (_minimizerType == 1)
+        repartitor.justGroup (sample_info, counts);
+    else
+        repartitor.computeDistrib (sample_info);
 
     /** We save the distribution (may be useful for debloom for instance). */
     repartitor.save (getStorageGroup());
