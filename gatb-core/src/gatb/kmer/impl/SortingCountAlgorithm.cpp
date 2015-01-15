@@ -542,8 +542,6 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     if (_minim_size == 0)
         _minim_size = 8;
 
-    printf("minim size: %d k: %d\n",_minim_size, _kmerSize);
-
     _minim_size = std::min ((int)_kmerSize-1, (int)_minim_size);
 
     // optimism == 0 mean that we guarantee worst case the memory usage,
