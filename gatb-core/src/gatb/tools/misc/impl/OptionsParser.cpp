@@ -75,43 +75,7 @@ OptionsParser::~OptionsParser ()
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::push_back (const OptionsParser& parser)
-{
-    const std::list<Option*>& options = parser.getOptions ();
-
-    for (std::list<Option*>::const_iterator it = options.begin(); it != options.end(); it++)
-    {
-        this->push_back (*it);
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::push_front (OptionsParser& parser)
-{
-    const std::list<Option*>& options = parser.getOptions ();
-
-    for (std::list<Option*>::const_iterator it = options.begin(); it != options.end(); it++)
-    {
-        this->push_front (*it);
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-int OptionsParser::push_back (Option* option)
+void OptionsParser::add (Option* option)
 {
     DEBUG (("OptionsParser::add  this=%p  option=%s\n", this, option->getLabel().c_str()));
 
@@ -122,8 +86,6 @@ int OptionsParser::push_back (Option* option)
         /* We add the option in the list. */
         _options.push_back (option);
     }
-
-    return _options.size();
 }
 
 /*********************************************************************
@@ -142,7 +104,7 @@ void OptionsParser::add (IOptionsParser* parser)
     {
         for (list<Option*>::const_iterator it = p1->getOptions().begin(); it != p1->getOptions().end(); ++it)
         {
-            this->push_back (*it);
+            this->add (*it);
         }
     }
 
@@ -178,29 +140,6 @@ int OptionsParser::remove (const char * label)
 		
     }
 	return _options.size();
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-int OptionsParser::push_front (Option* option)
-{
-    DEBUG (("OptionsParser::add  this=%p  option=%s\n", this, option->getLabel().c_str()));
-
-    if (option != 0)
-    {
-        option->use ();
-
-        /* We add the option in the list. */
-        _options.push_front (option);
-    }
-
-    return _options.size();
 }
 
 /*********************************************************************

@@ -127,7 +127,7 @@ protected:
     void setInput      (IProperties*            input)       { SP_SETATTR (input);      }
     void setOutput     (IProperties*            output)      { SP_SETATTR (output);     }
     void setInfo       (IProperties*            info)        { SP_SETATTR (info);       }
-    void setParser     (OptionsParser*          parser)      { SP_SETATTR (parser);     }
+    void setParser     (IOptionsParser*         parser)      { SP_SETATTR (parser);     }
     void setDispatcher (dp::IDispatcher*        dispatcher)  { SP_SETATTR (dispatcher); }
 
 protected:
@@ -141,7 +141,7 @@ protected:
 
     IProperties* _info;
 
-    OptionsParser* _parser;
+    IOptionsParser* _parser;
 
     dp::IDispatcher* _dispatcher;
 

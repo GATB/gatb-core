@@ -303,8 +303,14 @@ public:
     /** Get a parser given its name. */
     virtual IOptionsParser* getParser (const std::string& name) = 0;
 
-    /** Add a parser child to this composite. */
+    /** Add an option to the parser. */
+    virtual void add (Option* option) = 0;
+
+    /** Add a parser child. */
     virtual void add (IOptionsParser* parser) = 0;
+
+    /** Add an option to the parser (same as 'add'). */
+    virtual void push_back (Option* option) = 0;
 
     /** Display errors (if there are some).
      * \param[in] os : the output stream where to dump the errors
@@ -356,6 +362,9 @@ public:
 
     /** \copydoc IOptionsParser::parse */
     misc::IProperties* getProperties ()  { return _properties; }
+
+    /** \copydoc IOptionsParser::push_back */
+    void push_back (Option* option) { add(option); }
 
     /** \copydoc IOptionsParser::setVisible */
     void setVisible (bool status) { _visible = status; }
@@ -432,11 +441,13 @@ public:
         _parsers.push_back(parser);
     }
 
+    /** \copydoc IOptionsParser::add */
+    void add (Option* option) {}
+
 private:
 
     std::vector<IOptionsParser*> _parsers;
 };
-
 
 /********************************************************************************/
 
@@ -477,19 +488,11 @@ public:
     /** Destructor. */
     ~OptionsParser ();
 
-    /** Add the options of the provided parser.
-     * \param[in] parser : the parser from which we add the options. */
-    void push_back (const OptionsParser& parser);
-
-    /** Add the options of the provided parser.
-     * \param[in] parser : the parser from which we add the options. */
-    void push_front (OptionsParser& parser);
-
     /** Add an option to the pool of recognized options.
      * \param[in] opt : option to be registered to the parser.
      * \return the number of known options
      */
-    int push_back (Option* opt);
+    void add (Option* opt);
 
     /** \copydoc IOptionsParser::add */
     void add (IOptionsParser* parser);
@@ -499,12 +502,6 @@ public:
      * \return the number of known options
      */
     int remove (const char * label);
-
-    /** Add an option to the pool of recognized options.
-     * \param[in] opt : option to be registered to the parser.
-     * \return the number of known options
-     */
-    int push_front (Option* opt);
 
     /** Hide the given option (ie. not displayed in help).
      * \param[in] label : label of the option.
