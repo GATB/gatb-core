@@ -23,7 +23,7 @@
 // We use the required packages
 using namespace std;
 
-#define DEBUG(a)  //printf a
+#define DEBUG(a) // printf a
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
@@ -43,7 +43,7 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
     _repart_table.resize (_nb_minims);
 
     std::vector<ipair> bin_size_vec;
-    std::priority_queue< ipair, std::vector<ipair>,compSpace > pq;
+    std::priority_queue< itriple, std::vector<itriple>,compSpaceTriple > pq;
 
     //sum total bins size
     u_int64_t sumsizes =0;
@@ -59,7 +59,7 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
     DEBUG (("Repartitor : mean size per parti should be :  %lli  (total %lli )\n",mean_size,sumsizes));
 
     //init space left
-    for (int jj = 0; jj < _nbpart; jj++)  {  pq.push (ipair(jj,0));  }
+    for (int jj = 0; jj < _nbpart; jj++)  {  pq.push (itriple(jj,0,0));  }
 
     //sort minim bins per size
     std::sort (bin_size_vec.begin (), bin_size_vec.end (), comp_bins);
@@ -72,7 +72,7 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
 
     //GC suggestion : put the largest in the emptiest (la plus grosse dans la plus grosse)
 
-    ipair smallest_parti;
+    itriple smallest_parti;
 
     int cur_minim = 0;
     while (cur_minim < _nb_minims)
@@ -85,7 +85,11 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
 
         //update space used in this bin, push it back in the pq
         smallest_parti.second += bin_size_vec[cur_minim].first;
-        pq.push (smallest_parti);
+        smallest_parti.third ++;
+
+        if (smallest_parti.third < 1000) // don't put more than 1000 minimizers in a single bin, bcalm won't like it
+            pq.push (smallest_parti);
+
 
         DEBUG (("Repartitor : affected minim %llu to part %llu  space used %llu  (msize %llu) \n",
             bin_size_vec[cur_minim].second,smallest_parti.first,
@@ -95,6 +99,29 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
         cur_minim++;
     }
 }
+
+
+// simple version of the code above in the case where we use frequency-based minimizers, and we just want to group minimizers according to their ordering
+void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::pair<int,int> > &counts)
+
+{
+    /** We allocate a table whose size is the number of possible minimizers. */
+    _repart_table.resize (_nb_minims);
+
+    for (int ii=0; ii< _nb_minims; ii++)
+    {
+        _repart_table[ii] = 0; // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+    }
+
+    int step = counts.size() / _nbpart;
+   
+   // TODO: that can probably be improved by taking into accont sizes 
+    for (unsigned int i = 0; i < counts.size(); i++)
+    {
+        _repart_table[counts[i].second] = std::min((int)(i / step), _nbpart-1);
+    }
+}
+
 
 /*********************************************************************
 ** METHOD  :

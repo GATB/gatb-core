@@ -82,7 +82,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _storage(0),
       _bank(0),
       _kmerSize(0), _abundance(make_pair(0,~0)),
-      _partitionType(0), _nbCores(0), _prefix(""),
+      _partitionType(0), _minimizerType(0), _nbCores(0), _prefix(""),
       _progress (0),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -112,6 +112,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     KmerSolidityKind solidityKind,
     size_t      histogramMax,
     size_t      partitionType,
+    size_t      minimizerType,
     const std::string& prefix,
     gatb::core::tools::misc::IProperties* options
 )
@@ -119,7 +120,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _storage(storage),
     _bank(0),
     _kmerSize(kmerSize), _abundance(abundance),
-    _partitionType(partitionType), _nbCores(nbCores), _prefix(prefix),
+    _partitionType(partitionType), _minimizerType(minimizerType), _nbCores(nbCores), _prefix(prefix),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -151,7 +152,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _storage(&storage),
     _bank(0),
     _kmerSize(0), _minim_size(0), _abundance(make_pair(0,~0)),
-    _partitionType(0), _nbCores(0), _prefix(""),
+    _partitionType(0), _minimizerType(0), _nbCores(0), _prefix(""),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -209,6 +210,7 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         _kmerSize               = s._kmerSize;
         _abundance              = s._abundance;
         _partitionType          = s._partitionType;
+        _minimizerType          = s._minimizerType;
         _nbCores                = s._nbCores;
         _nbCores_per_partition  = s._nbCores_per_partition;
         _nb_partitions_in_parallel = s._nb_partitions_in_parallel;
@@ -259,6 +261,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                              false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
+    parser->push_back (new OptionOneParam (STR_MINIMIZER_TYPE,    "minimizer type (0=lexi, 1=freq)",          false,  "0"));
 
     return parser;
 }
@@ -646,6 +649,8 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     } while (1);
 
     if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
+    
+    if (_nb_partitions < 70  ) _nb_partitions = 70; // FIXME HACK RAYAN FOR BCALM
 
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _nb_partitions_in_parallel - _nb_partitions % _nb_partitions_in_parallel;
@@ -691,6 +696,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     getInfo()->add (2, "nb_bits_per_kmer",  "%d",  Type::getSize());
     getInfo()->add (2, "nb_cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
     getInfo()->add (2, "partition_type",    "%d",  _partitionType);
+    getInfo()->add (2, "minimizer_type",    "%s",  (_minimizerType == 0) ? "lexicographic (kmc2 heuristic)" : "frequency");
     if  (_flagEstimateNbDistinctKmers)
     {
         getInfo()->add (2, "estimated_nb_distinct_kmers",     "%ld", _estimatedDistinctKmerNb);
@@ -902,6 +908,66 @@ private:
     PartiInfo<5>  _local_pInfo;
 };
 
+
+template<size_t span>
+class MmersFrequency
+{
+public:
+    /** Shortcut. */
+    typedef typename SortingCountAlgorithm<span>::Type            Type;
+    typedef typename SortingCountAlgorithm<span>::ModelCanonical  ModelCanonical;
+    typedef typename SortingCountAlgorithm<span>::Model           Model;
+    typedef typename Model::Kmer                                  KmerType;
+
+	typedef typename Kmer<span>::ModelDirect     ModelDirect;
+	typedef typename ModelDirect::Kmer     KmerTypeDirect;
+
+    void operator() (Sequence& sequence)
+    {
+        /** We first check whether we got mmers from the sequence or not. */
+        if (_minimodel->build (sequence.getData(), _mmers) == false)  { return; }
+
+        /** We loop over the mmers of the sequence. */
+        for (size_t i=0; i<_mmers.size(); i++)
+        {
+            if (_mmers[i].isValid() == false)
+                continue;
+
+            /** increment m-mer count */
+            _m_mer_counts[_mmers[i].value().getVal()] ++;
+        }
+
+        if (_nbProcessedMmers > 500000)   {  _progress.inc (_nbProcessedMmers);  _nbProcessedMmers = 0;  }
+    }
+
+    /** Constructor. */
+    MmersFrequency (
+        int mmerSize,
+        IteratorListener* progress,
+        uint32_t*         m_mer_counts
+    )
+    : 
+      _nbProcessedMmers(0), _progress (progress,System::thread().newSynchronizer()),
+      _m_mer_counts(m_mer_counts)
+    {
+        _minimodel = new ModelDirect(mmerSize); // FIXME: should it be ModelCanonical??
+        u_int64_t nbminim = (uint64_t)pow(4,mmerSize);
+
+        for (int i = 0; i < (int)pow(4,mmerSize); i++)
+            _m_mer_counts[i] = 0;
+    }
+
+protected:
+
+    ModelDirect*           _minimodel;
+    vector<KmerTypeDirect> _mmers;
+    size_t           _mmersize;
+    ProgressSynchro  _progress;
+    uint32_t*        _m_mer_counts;
+    size_t           _nbProcessedMmers;
+};
+
+
 /********************************************************************************/
 /** This functor class takes a Sequence as input, splits it into super kmers and
  * serialize them into partitions.
@@ -1053,11 +1119,6 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions  _kmerSize=%d _minim_size=%d \n", _kmerSize, _minim_size));
 
-    /** We create a kmer model. */
-    Model model (_kmerSize,_minim_size);  // , CustomMinimizer(_minim_size)
-
-    int mmsize = model.getMmersModel().getKmerSize();
-
     /** We delete the previous partitions storage. */
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
 
@@ -1083,6 +1144,73 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     DEBUG (("SortingCountAlgorithm<span>::fillPartitions : nb seq for sample :  %llu \n ",nbseq_sample));
 
+    /* now is a good time to switch to frequency-based minimizers if required:
+      because right after we'll start using minimizers to compute the distribution 
+      of superkmers in bins */
+    uint32_t *freq_order = NULL;
+    std::vector<std::pair<int, int> > counts;
+    if (_minimizerType == 1)
+    {
+        u_int64_t rg = ((u_int64_t)1 << (2*_minim_size));
+        //cout << "\nAllocating " << ((rg*sizeof(uint32_t))/1024) << " KB for " << _minim_size <<"-mers frequency counting (" << rg << " elements total)" << endl;
+        uint32_t *m_mer_counts = new uint32_t[rg];
+        Model model( _kmerSize,_minim_size);
+
+        // can we reuse the it_sample variable above?
+        Iterator<Sequence>* it_sample = createIterator (
+                new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
+                nbseq_sample,
+                "Approximating frequencies of minimizers" 
+                );
+        LOCAL (it_sample);
+
+        /** We compute an estimation of minimizers frequencies from a part of the bank. */
+        // actually.. let's try with the whole thing (itSeq instead of it_sample)
+        getDispatcher()->iterate (it_sample,  MmersFrequency<span> (
+            _minim_size, _progress, m_mer_counts)
+        );
+       
+        // single threaded, for debugging
+        /*MmersFrequency<span> mmersfrequency(model, _progress, bstatsDummy, m_mer_counts);
+        it_sample->iterate(mmersfrequency);*/
+
+        /* sort frequencies */
+        for (int i(0); i < rg; i++)
+        {
+            if (m_mer_counts[i] > 0)
+                counts.push_back(make_pair(m_mer_counts[i],i));
+        }
+        delete[] m_mer_counts;
+
+        sort(counts.begin(),counts.end());
+
+        /* assign frequency to minimizers */
+        freq_order = new uint32_t[rg];
+
+        for (int i = 0; i < rg ; i++)
+            freq_order[i] = rg; // set everything not seen to highest value (not a minimizer)
+
+        for (unsigned int i = 0; i < counts.size(); i++)
+        {
+            freq_order[counts[i].second] = i;
+        }
+
+        // small but necessary trick: the largest minimizer has to have largest rank, as it's used as the default "largest" value 
+        freq_order[rg-1] = rg-1;
+
+        model.setMinimizersFrequency(freq_order);
+   
+        // save this function 
+        tools::storage::impl::Storage::ostream os (getStorageGroup(), "minimFrequency");
+        os.write ((const char*)freq_order,    sizeof(uint32_t) * rg);
+        os.flush();
+    }
+
+    /** We create a kmer model; using the frequency order if we're in that mode */
+    Model model( _kmerSize,_minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequency(), freq_order);
+
+    int mmsize = model.getMmersModel().getKmerSize();
+
     PartiInfo<5> sample_info (_nb_partitions,mmsize);
 
     /** We create an iterator over a truncated part of the input bank. */
@@ -1095,7 +1223,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     BankStats bstatsDummy;
 
-    /** We compute a distribution from a part of the bank. */
+    /** We compute a distribution of Superkmers from a part of the bank. */
     getDispatcher()->iterate (it_sample,  SampleRepart<span> (
         model, _nb_passes, pass, _nb_partitions, _progress, bstatsDummy, sample_info)
     );
@@ -1103,7 +1231,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We compute the distribution of the minimizers. As a result, we will have a hash function
      * that gives a hash code for a minimizer value. */
     Repartitor repartitor (_partitions->size(), mmsize);
-    repartitor.computeDistrib (sample_info);
+    if (_minimizerType == 1)
+        repartitor.justGroup (sample_info, counts);
+    else
+        repartitor.computeDistrib (sample_info);
 
     /** We save the distribution (may be useful for debloom for instance). */
     repartitor.save (getStorageGroup());
