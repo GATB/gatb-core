@@ -100,10 +100,8 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
     }
 }
 
-
 // simple version of the code above in the case where we use frequency-based minimizers, and we just want to group minimizers according to their ordering
-void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::pair<int,int> > &counts)
-
+void Repartitor::justGroupNaive (const PartiInfo<5>& extern_pInfo, std::vector <std::pair<int,int> > &counts)
 {
     /** We allocate a table whose size is the number of possible minimizers. */
     _repart_table.resize (_nb_minims);
@@ -114,13 +112,51 @@ void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::
     }
 
     int step = counts.size() / _nbpart;
-   
-   // TODO: that can probably be improved by taking into accont sizes 
+    
     for (unsigned int i = 0; i < counts.size(); i++)
     {
         _repart_table[counts[i].second] = std::min((int)(i / step), _nbpart-1);
     }
+    
 }
+
+// much more effective version of the function above, using estimation of number of kmers per bucket
+void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::pair<int,int> > &counts)
+{
+    /** We allocate a table whose size is the number of possible minimizers. */
+    _repart_table.resize (_nb_minims);
+
+    for (int ii=0; ii< _nb_minims; ii++)
+    {
+        _repart_table[ii] = 0; // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+    }
+
+    //sum total count size
+    u_int64_t total_counts =0;
+    for (unsigned int i = 0; i < counts.size(); i++)
+        total_counts += counts[i].first;
+
+    u_int64_t sumsizes =0;
+    for (int ii=0; ii< _nb_minims; ii++)
+        sumsizes += extern_pInfo.getNbKmer_per_minim(ii);
+ 
+    u_int64_t mean_size = sumsizes / _nbpart;
+    
+    u_int64_t acc = 0, j = 0;
+    for (unsigned int i = 0; i < counts.size(); i++)
+    {
+        _repart_table[counts[i].second] = j;
+
+        acc += extern_pInfo.getNbKmer_per_minim(counts[i].second);
+        if (acc > mean_size)
+        {
+            acc = 0;
+            if (j < _nbpart)
+                j++;
+        }
+    }
+}
+
 
 
 /*********************************************************************

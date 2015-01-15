@@ -113,13 +113,14 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     size_t      histogramMax,
     size_t      partitionType,
     size_t      minimizerType,
+    size_t      minimizerSize,
     const std::string& prefix,
     gatb::core::tools::misc::IProperties* options
 )
   : Algorithm("dsk", nbCores, options),
     _storage(storage),
     _bank(0),
-    _kmerSize(kmerSize), _abundance(abundance),
+    _kmerSize(kmerSize), _minim_size(minimizerSize), _abundance(abundance),
     _partitionType(partitionType), _minimizerType(minimizerType), _nbCores(nbCores), _prefix(prefix),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
@@ -510,7 +511,12 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     /** By default, we want to have mmers of size 8. However (for unit tests for instance),
      * we may need to have kmer sizes less than 8; in such a case, we set by convention m=k-1. */
-    _minim_size = std::min (_kmerSize-1, (size_t)8);
+    if (_minim_size == 0)
+        _minim_size = 8;
+
+    printf("minim size: %d k: %d\n",_minim_size, _kmerSize);
+
+    _minim_size = std::min ((int)_kmerSize-1, (int)_minim_size);
 
     // optimism == 0 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, any distinct k-mer will be seen 'optimism+1' times
@@ -623,8 +629,6 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
     
-    if (_nb_partitions < 70  ) _nb_partitions = 70; // FIXME HACK RAYAN FOR BCALM
-
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _nb_partitions_in_parallel - _nb_partitions % _nb_partitions_in_parallel;
     incpart = incpart % _nb_partitions_in_parallel;
@@ -824,9 +828,12 @@ public:
         {
             bool prev_which = superKmer[0].which();
             size_t kx_size = 0;
-
+                    
             /** Shortcut. */
             size_t superKmerLen = superKmer.size();
+            
+            /** We increase superkmer counter the current minimizer. */
+            _local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmerLen);
 
             /** We loop over the kmer of the superkmer (except the first one).
              *  We update the pInfo each time we find a kxmer in the superkmer. */

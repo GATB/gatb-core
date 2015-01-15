@@ -317,6 +317,7 @@ public:
     /** Compute the hash function for the minimizer.
      * \param[in] pInfo : information about the distribution of the minimizers. */
     void computeDistrib (const PartiInfo<5>& pInfo);
+    void justGroupNaive (const PartiInfo<5>& pInfo,  std::vector <std::pair<int,int> > &counts);
     void justGroup      (const PartiInfo<5>& pInfo,  std::vector <std::pair<int,int> > &counts);
 
     /** Returns the hash value for the given minimizer value.
