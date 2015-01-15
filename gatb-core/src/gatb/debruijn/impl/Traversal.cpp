@@ -769,7 +769,7 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
         }
 
         if (debug && consensuses.size() > 1)
-            printf("path: %s mean abundance: %d\n",p_str.c_str(),mean_abundance);
+            printf("path: %s mean abundance: %ld\n",p_str.c_str(),mean_abundance);
     }
 
     return res;
