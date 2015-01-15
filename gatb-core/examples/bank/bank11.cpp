@@ -17,7 +17,8 @@ int main (int argc, char* argv[])
 {
     /** We create a command line parser. */
     OptionsParser parser ("KmerIteration");
-    parser.push_back (new OptionOneParam (STR_KMER_SIZE,   "kmer size",   true));
+    parser.push_back (new OptionOneParam (STR_KMER_SIZE,   "kmer size",          true));
+    parser.push_back (new OptionOneParam (STR_URI_OUTPUT,  "output fasta bank",  false));
 
     try
     {
@@ -27,15 +28,21 @@ int main (int argc, char* argv[])
         /** We create a kmers bank with the provided kmer size. */
         BankKmers bank (options->getInt(STR_KMER_SIZE));
 
+        /** We create the output bank. */
+        string outputName = options->get(STR_URI_OUTPUT) ?
+            options->getStr(STR_URI_OUTPUT) :
+            Stringify::format ("bank_k%d.fa", options->getInt(STR_KMER_SIZE));
+
+        BankFasta outputBank (outputName);
+
         /** We create a Sequence iterator. */
-        Iterator<Sequence>* it = bank.iterator();
-        LOCAL (it);
+        ProgressIterator<Sequence> it (bank);
 
         /** We iterate the bank. */
-        for (it->first(); !it->isDone(); it->next())
-        {
-            cout << "seq: " << it->item().toString() << endl;
-        }
+        for (it.first(); !it.isDone(); it.next())  {  outputBank.insert (it.item());  }
+
+        /** We flush the output bank. */
+        outputBank.flush();
     }
 
     catch (OptionFailure& e)
