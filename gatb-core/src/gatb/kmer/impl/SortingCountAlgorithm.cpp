@@ -951,9 +951,9 @@ public:
       _m_mer_counts(m_mer_counts)
     {
         _minimodel = new ModelDirect(mmerSize); // FIXME: should it be ModelCanonical??
-        u_int64_t nbminim = (uint64_t)pow(4,mmerSize);
+        u_int64_t nbminim = (uint64_t)pow(4.0,mmerSize);
 
-        for (int i = 0; i < (int)pow(4,mmerSize); i++)
+        for (int i = 0; i < nbminim; i++)
             _m_mer_counts[i] = 0;
     }
 
