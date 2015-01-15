@@ -30,10 +30,12 @@
 
 #include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/tools/misc/api/IProperty.hpp>
+#include <gatb/system/api/Exception.hpp>
 
 #include <list>
 #include <string>
-#include <stdio.h>
+#include <vector>
+#include <cstdio>
 
 /********************************************************************************/
 namespace gatb      {
@@ -75,7 +77,8 @@ public:
         const std::string& include,
         const std::string& exclude
     )
-        : _name(name), _nbArgs(nbArgs), _mandatory(mandatory), _help(help), _multiple(multiple), _include(include), _exclude(exclude), _param(defaultValue), _isVisible(true)
+        : _name(name), _nbArgs(nbArgs), _mandatory(mandatory), _help(help), _multiple(multiple), _include(include), _exclude(exclude),
+          _param(defaultValue), _defaultParam(defaultValue), _isVisible(true)
     {
     }
 
@@ -91,6 +94,11 @@ public:
      * \return the parameter.
      */
     const std::string& getParam ()  const { return _param; }
+
+    /** Parameter string
+     * \return the parameter.
+     */
+    const std::string& getDefaultParam ()  const { return _defaultParam; }
 
 protected:
 
@@ -147,6 +155,7 @@ protected:
     std::string     _include;
     std::string     _exclude;
     std::string     _param;
+    std::string     _defaultParam;
     bool            _isVisible;
 
     /* Since the CheckOption class is responsable to the full job, we let it access to the internal informations
@@ -231,6 +240,216 @@ public:
 
 /********************************************************************************/
 
+/** \brief Parser that analyzes command line options.
+ *
+ * Client can use this class for registering command line options specifications
+ * and then can use it for parsing some command line options, typically given
+ * as arguments of the 'main' function.
+ *
+ * Code sample:
+ * \code
+ * int main (int argc, char* argv[])
+ * {
+ *      // we create a parser
+ *      OptionsParser parser;
+ *
+ *      // we register some options to it
+ *      parser.add (new OptionOneParam ("-p", "Program Name [plastp, tplastn, plastx or tplastx]") );
+ *      parser.add (new OptionOneParam ("-d", "Subject database file") );
+ *      parser.add (new OptionOneParam ("-i", "Query database file") );
+ *      parser.add (new OptionOneParam ("-h", "Help") );
+ *
+ *      // we parse the provided options
+ *      int nbErrors = parser.parse (argc, argv);
+ *
+ *      // we retrieve options information as properties
+ *      dp::IProperties* props = parser.getProperties ();
+ * }
+ * \endcode
+ */
+class IOptionsParser : public system::SmartPointer
+{
+public:
+
+    /** Associate a name to the parser.
+     * \param[in] name : the name of the parser. */
+    virtual void setName (const std::string& name) = 0;
+
+    /** Perform the analyze of the arguments.
+     * \param[in] argc : number of command line arguments.
+     * \param[in] argv : table of arguments
+     * \return number of parsing errors.
+     */
+    virtual misc::IProperties* parse (int argc, char* argv[]) = 0;
+
+    /** Perform the analyze of the arguments.
+     * \param[in] s : string containing the options to be parsed
+     * \return number of parsing errors.
+     */
+    virtual misc::IProperties*  parseString (const std::string& s) = 0;
+
+    /** */
+    virtual misc::IProperties* getProperties ()  = 0;
+
+    /** Get name. */
+    virtual const std::string& getName () const = 0;
+
+    /** Set visibility status. */
+    virtual void setVisible (bool status) = 0;
+
+    /** Get visibility status. */
+    virtual bool isVisible() const = 0;
+
+    /** Get a parser given its name. */
+    virtual IOptionsParser* getParser (const std::string& name) = 0;
+
+    /** Add an option to the parser. */
+    virtual void add (Option* option) = 0;
+
+    /** Add a parser child. */
+    virtual void add (IOptionsParser* parser) = 0;
+
+    /** Add an option to the parser (same as 'add'). */
+    virtual void push_back (Option* option) = 0;
+
+    /** Display errors (if there are some).
+     * \param[in] os : the output stream where to dump the errors
+     */
+    virtual void displayErrors (std::ostream& os, size_t level=0) const = 0;
+
+    /** Display warnings (if there are some).
+     * \param[in]  os : the output stream where to dump the warnings
+     */
+    virtual void displayWarnings (std::ostream& os, size_t level=0, std::vector<bool>* idx=0) const = 0;
+
+    /** Display the help of each options recorded.
+     * \param[in]  os : the output stream where to dump the help
+     */
+    virtual void displayHelp (std::ostream& os, size_t level=0) const = 0;
+
+    /** Display version and other information
+     * \param[in]  os : the output stream where to dump the information
+     */
+    virtual void displayVersion (std::ostream& os, size_t level=0) const = 0;
+
+    /** List of arg index ok. */
+    virtual const std::vector<bool>& getParsedArgIndexes() const = 0;
+
+    /** List of arg index ok. */
+    virtual void setParsedArgIndexes (const std::vector<bool>& v) = 0;
+};
+
+/********************************************************************************/
+
+class OptionsParserAbstract : public IOptionsParser
+{
+public:
+
+    /** Constructor. */
+    OptionsParserAbstract ();
+
+    /** Destructor. */
+    virtual ~OptionsParserAbstract () { setProperties (0); }
+
+    /** \copydoc IOptionsParser::setName */
+    void setName (const std::string& name)  { _name=name; }
+
+    /** \copydoc IOptionsParser::getName */
+    const std::string& getName () const  { return _name; }
+
+    /** \copydoc IOptionsParser::parse */
+    misc::IProperties* parseString (const std::string& s);
+
+    /** \copydoc IOptionsParser::parse */
+    misc::IProperties* getProperties ()  { return _properties; }
+
+    /** \copydoc IOptionsParser::push_back */
+    void push_back (Option* option) { add(option); }
+
+    /** \copydoc IOptionsParser::setVisible */
+    void setVisible (bool status) { _visible = status; }
+
+    /** \copydoc IOptionsParser::isVisible */
+    bool isVisible() const { return _visible; }
+
+    /** \copydoc IOptionsParser::getParser */
+    IOptionsParser* getParser (const std::string& name)  { return 0; }
+
+    /** \copydoc IOptionsParser::displayVersion */
+    void displayVersion (std::ostream& os, size_t level=0) const ;
+
+    /** \copydoc IOptionsParser::getParsedArgIndexes */
+    const std::vector<bool>& getParsedArgIndexes() const { return _argIdxOk; }
+
+    /** \copydoc IOptionsParser::getParsedArgIndexes */
+    void setParsedArgIndexes (const std::vector<bool>& v)  { _argIdxOk = v; }
+
+protected:
+
+    std::string _name;
+
+    bool _visible;
+
+    /** */
+    int _argc;
+
+    /** */
+    char** _argv;
+
+    std::vector<bool> _argIdxOk;
+
+    misc::IProperties* _properties;
+    void setProperties (misc::IProperties* properties)  { SP_SETATTR(properties); }
+
+    std::ostream& indent (std::ostream& os, size_t level)  const { for (size_t i=0; i<level; i++)  { os << "   "; }  return os; }
+};
+
+/********************************************************************************/
+
+class OptionsParserComposite : public OptionsParserAbstract
+{
+public:
+
+    /** Constructor. */
+    OptionsParserComposite (const std::string& name="")   { setName(name); }
+
+    /** Destructor. */
+    ~OptionsParserComposite ();
+
+    /** \copydoc IOptionsParser::parse */
+    misc::IProperties* parse (int argc, char* argv[]);
+
+    /** \copydoc IOptionsParser::displayErrors */
+    void displayErrors (std::ostream& os, size_t level=0) const ;
+
+    /** \copydoc IOptionsParser::displayWarnings */
+    void displayWarnings (std::ostream& os, size_t level=0, std::vector<bool>* idx=0) const;
+
+    /** \copydoc IOptionsParser::displayHelp */
+    void displayHelp (std::ostream& os, size_t level=0) const;
+
+    /** \copydoc IOptionsParser::getParser */
+    IOptionsParser* getParser (const std::string& name);
+
+    /** */
+    const std::vector<IOptionsParser*>& getParsers() const { return  _parsers; }
+
+    /** \copydoc IOptionsParser::add */
+    void add (IOptionsParser* parser)
+    {
+        parser->use();
+        _parsers.push_back(parser);
+    }
+
+    /** \copydoc IOptionsParser::add */
+    void add (Option* option) {}
+
+private:
+
+    std::vector<IOptionsParser*> _parsers;
+};
+
+/********************************************************************************/
 
 /** \brief Parser that analyzes command line options.
  *
@@ -259,7 +478,7 @@ public:
  * }
  * \endcode
  */
-class OptionsParser : public system::SmartPointer
+class OptionsParser : public OptionsParserAbstract
 {
 public:
 
@@ -269,35 +488,20 @@ public:
     /** Destructor. */
     ~OptionsParser ();
 
-    /** Add the options of the provided parser.
-     * \param[in] parser : the parser from which we add the options. */
-    void push_back (const OptionsParser& parser);
-
-    /** Add the options of the provided parser.
-     * \param[in] parser : the parser from which we add the options. */
-    void push_front (OptionsParser& parser);
-
-    /** Add the options of the provided parser.
-     * \param[in] parser : the parser from which we add the options. */
-    void add (const OptionsParser& parser) { push_back (parser); }
-
     /** Add an option to the pool of recognized options.
      * \param[in] opt : option to be registered to the parser.
      * \return the number of known options
      */
-    int push_back (Option* opt);
+    void add (Option* opt);
+
+    /** \copydoc IOptionsParser::add */
+    void add (IOptionsParser* parser);
 
 	/** remove an option to the pool of recognized options.
      * \param[in] label : label to be removed to the parser.
      * \return the number of known options
      */
     int remove (const char * label);
-
-    /** Add an option to the pool of recognized options.
-     * \param[in] opt : option to be registered to the parser.
-     * \return the number of known options
-     */
-    int push_front (Option* opt);
 
     /** Hide the given option (ie. not displayed in help).
      * \param[in] label : label of the option.
@@ -311,31 +515,14 @@ public:
      */
     misc::IProperties* parse (int argc, char* argv[]);
 
-    /** Perform the analyze of the arguments.
-     * \param[in] s : string containing the options to be parsed
-     * \return number of parsing errors.
-     */
-    misc::IProperties*  parse (const std::string& s);
+    /** \copydoc IOptionsParser::displayErrors */
+    void displayErrors (std::ostream& os, size_t level=0) const;
 
-    /** Display errors (if there are some).
-     * \param[in] fp : the file descriptor where to dump the errors
-     */
-    void displayErrors (FILE* fp = stdout);
+    /** \copydoc IOptionsParser::displayWarnings */
+    void displayWarnings (std::ostream& os, size_t level=0, std::vector<bool>* idx=0)  const;
 
-    /** Display warnings (if there are some).
-     * \param[in] fp : the file descriptor where to dump the warnings
-     */
-    void displayWarnings (FILE* fp = stdout);
-
-    /** Display the help of each options recorded.
-     * \param[in] fp : the file descriptor where to dump the help
-     */
-    void displayHelp (FILE* fp = stdout);
-
-    /** Display version and other information
-     * \param[in] fp : the file descriptor where to dump the information
-     */
-    void displayVersion (FILE* fp = stdout);
+    /** \copydoc IOptionsParser::displayHelp */
+    void displayHelp (std::ostream& os, size_t level=0)  const;
 
     /** Tells (after Proceed) if one option whose name is given has been seen or not.
      * \param[in] txt : the option name to be checked
@@ -363,17 +550,9 @@ public:
      */
     const std::list<Option*>& getOptions () const { return _options; }
 
-    /** */
-    void setName (const std::string& name)  { _name = name; }
-
 private:
 
     /** */
-    std::string _name;
-
-    /** */
-    misc::IProperties* _properties;
-    void setProperties (misc::IProperties* properties)  { SP_SETATTR(properties); }
     void buildProperties ();
 
     /** List of Options*. */
@@ -383,7 +562,7 @@ private:
     std::list<std::string> _errors;
 
     /** List of Text* of warnings. */
-    std::list<std::string> _warnings;
+    std::list <std::pair<size_t,std::string> > _warnings;
 
     /** List of seen options. */
     std::list<Option*> _seenOptions;
@@ -391,10 +570,6 @@ private:
     /** */
     char _proceed;
 
-    /** */
-    int _argc;
-    /** */
-    char** _argv;
     /** */
     int _currentArg;
 
@@ -431,17 +606,16 @@ class OptionFailure
 public:
 
     /** Constructor.
-     * \param[in] parser : the parser that threw the exception.
-     */
-    OptionFailure (OptionsParser& parser) : _parser(parser)  {}
+     * \param[in] parser : the parser that threw the exception. */
+    OptionFailure (IOptionsParser& parser) :_parser(&parser) {}
 
     /** Getter on the parser.
      * \return the parser.
      */
-    OptionsParser& getParser ()  { return _parser; }
+    IOptionsParser& getParser ()  { return *_parser; }
 
 private:
-    OptionsParser& _parser;
+    IOptionsParser* _parser;
 };
 
 /********************************************************************************/

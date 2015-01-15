@@ -638,7 +638,7 @@ bool BankFasta::Iterator::get_next_seq (Vector<char>& data)
 void BankFasta::Iterator::init ()
 {
     /** We initialize the array of files. */
-    buffered_file = (void**) calloc (getMaxNbFiles(), sizeof(void*));
+    buffered_file = (void**) CALLOC (getMaxNbFiles(), sizeof(void*));
 
     /** Shortcut. */
     vector<string>& fnames = _ref._filenames;
@@ -704,7 +704,7 @@ void BankFasta::Iterator::finalize ()
     }
 
     /** We release the array of files. */
-    free (buffered_file);
+    FREE (buffered_file);
 }
 
 /*********************************************************************

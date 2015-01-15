@@ -290,7 +290,9 @@ public:
      */
     void memory_basicAlloc ()
     {
-        MemoryBounded mem (System::memory(), 2048*KBYTE, 11*2048*KBYTE);
+
+        MemoryBounded allocator (System::memory(), 2048*KBYTE, 11*2048*KBYTE);
+        MemoryCommon mem (allocator, MemoryOperationsCommon::singleton());
 
         Check::singleton().memory_basicAlloc (System::memory());
         Check::singleton().memory_basicAlloc (mem);
@@ -314,7 +316,8 @@ public:
         size_t blockSizeLength  = sizeof(blockSizeTable) / sizeof(blockSizeTable[0]);
 
         /** We create a bounded memory allocator. */
-        MemoryBounded mem (System::memory(), 2048*KBYTE, 11*2048*KBYTE);
+        MemoryBounded allocator (System::memory(), 2048*KBYTE, 11*2048*KBYTE);
+        MemoryCommon mem (allocator, MemoryOperationsCommon::singleton());
 
         /** Note: since the getMemUsage is not completely accurate for the generic allocator,
          * we use big block sizes in order not to have failed tests here. */
@@ -335,7 +338,8 @@ public:
      */
     void memory_hugeAlloc ()
     {
-        MemoryBounded mem (System::memory(), KBYTE, 100*KBYTE);
+        MemoryBounded allocator (System::memory(), KBYTE, 100*KBYTE);
+        MemoryCommon mem (allocator, MemoryOperationsCommon::singleton());
 
         Check::singleton().memory_hugeAlloc (mem);
     }
@@ -348,7 +352,8 @@ public:
      */
     void memory_realloc ()
     {
-        MemoryBounded mem (System::memory(), MBYTE, 100*MBYTE);
+        MemoryBounded allocator (System::memory(), MBYTE, 100*MBYTE);
+        MemoryCommon mem (allocator, MemoryOperationsCommon::singleton());
 
         Check::singleton().memory_realloc (System::memory());
         Check::singleton().memory_realloc (mem);
@@ -364,7 +369,8 @@ public:
      */
     void memory_boundedAllocator ()
     {
-        MemoryBounded mem (System::memory(), 128*KBYTE, 64*MBYTE);
+        MemoryBounded allocator (System::memory(), 128*KBYTE, 64*MBYTE);
+        MemoryCommon mem (allocator, MemoryOperationsCommon::singleton());
 
         Check::singleton().memory_boundedAllocator (mem);
     }
@@ -498,7 +504,8 @@ public:
 
         size_t nb = 0;
 
-        MemoryBounded mem (System::memory(), 1*len, total);
+        MemoryBounded allocator (System::memory(), 1*len, total);
+        MemoryCommon mem (allocator, MemoryOperationsCommon::singleton());
 
         while (true)
         {

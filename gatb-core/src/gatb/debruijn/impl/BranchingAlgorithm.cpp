@@ -32,6 +32,8 @@ using namespace gatb::core::system::impl;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
+using namespace gatb::core::tools::misc::impl;
+
 using namespace gatb::core::tools::math;
 
 #define DEBUG(a)  printf a
@@ -93,6 +95,25 @@ template<size_t span>
 BranchingAlgorithm<span>::~BranchingAlgorithm ()
 {
     setBranchingCollection(0);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+IOptionsParser* BranchingAlgorithm<span>::getOptionsParser ()
+{
+    OptionsParser* parser = new OptionsParser ("branching");
+
+    parser->push_back (new OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')",      false, "stored"));
+    parser->push_back (new OptionOneParam (STR_TOPOLOGY_STATS,    "topological information level (0 for none)", false, "0"));
+
+    return parser;
 }
 
 /*********************************************************************

@@ -50,20 +50,6 @@ namespace impl      {
 
 /********************************************************************************/
 
-#if 0
-    #define MALLOC      System::memory().malloc
-    #define CALLOC      System::memory().calloc
-    #define REALLOC     System::memory().realloc
-    #define FREE        System::memory().free
-#else
-    #define MALLOC      malloc
-    #define CALLOC      calloc
-    #define REALLOC     realloc
-    #define FREE        free
-#endif
-
-/********************************************************************************/
-
  /** \brief Entry point providing access to operating system resources.
   *
   *  The IResource class provides a unique entry point for accessing different kinds
@@ -134,11 +120,11 @@ class System
      static IMemory&         memory  ()
      {
 #ifdef __linux__
-        static MemoryCommon instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
+        static MemoryCommon instance (allocator(), MemoryOperationsCommon::singleton());  return instance;
 #endif
 
 #ifdef __APPLE__
-        static MemoryCommon instance (MemoryAllocatorStdlib::singleton(), MemoryOperationsCommon::singleton());  return instance;
+        static MemoryCommon instance (allocator(), MemoryOperationsCommon::singleton());  return instance;
 #endif
 
 #ifdef __WINDOWS__
@@ -160,6 +146,17 @@ class System
 
 #ifdef __WINDOWS__
         #warning "TO BE DONE..."
+#endif
+     }
+
+ private:
+
+     static IMemoryAllocator& allocator()
+     {
+#ifdef GATB_USE_CUSTOM_ALLOCATOR
+         static MemorySizeStore instance (MemoryAllocatorStdlib::singleton());  return instance;
+#else
+         return MemoryAllocatorStdlib::singleton();
 #endif
      }
 };
@@ -347,5 +344,23 @@ private:
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
+
+#ifdef GATB_USE_CUSTOM_ALLOCATOR
+    #define MALLOC      gatb::core::system::impl::System::memory().malloc
+    #define CALLOC      gatb::core::system::impl::System::memory().calloc
+    #define REALLOC     gatb::core::system::impl::System::memory().realloc
+    #define FREE        gatb::core::system::impl::System::memory().free
+
+    inline void* operator new      (size_t s)   { return MALLOC(s); }
+    inline void* operator new[]    (size_t s)   { return MALLOC(s); }
+    inline void  operator delete   (void* ptr)  { FREE(ptr); }
+    inline void  operator delete[] (void* ptr ) { FREE(ptr); }
+
+#else
+    #define MALLOC      malloc
+    #define CALLOC      calloc
+    #define REALLOC     realloc
+    #define FREE        free
+#endif
 
 #endif /* _GATB_SYSTEM_IMPL_SYSTEM_HPP_ */

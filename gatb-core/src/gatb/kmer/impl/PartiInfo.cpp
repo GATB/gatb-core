@@ -209,7 +209,7 @@ void Repartitor::save (tools::storage::impl::Group& group)
 void Repartitor::printInfo ()
 {
     size_t nbMinimizers = 1 << (_mm*2);
-    printf("Repartitor : nbMinimizers=%d\n", nbMinimizers);
+    printf("Repartitor : nbMinimizers=%ld\n", nbMinimizers);
     for(int ii=0; ii<nbMinimizers; ii++ )  {  printf("   table[%i] = %i \n",ii,_repart_table[ii]); }
 }
 

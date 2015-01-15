@@ -24,55 +24,58 @@
 static const char* STR_EMAIL        = "-email";
 static const char* STR_EMAIL_FORMAT = "-email-fmt";
 
-void sendEmail (IProperties* options, IProperties* graphInfo);
+int  manageException (IOptionsParser* parser, IProperties* options, const std::string& message);
+void sendEmail       (IProperties* options, IProperties* graphInfo);
 
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
     /** We create a command line parser. */
-    OptionsParser parser = Graph::getOptionsParser();
-    parser.setName ("dbgh5");
+    IOptionsParser* parser = Graph::getOptionsParser();  LOCAL (parser);
 
-    /** We add an option to send the statistics by email. */
-    parser.push_back (new OptionOneParam (STR_EMAIL,        "send statistics to the given email address", false));
-    parser.push_back (new OptionOneParam (STR_EMAIL_FORMAT, "'raw' or 'xml'",                             false, "raw"));
+    OptionsParser* parserGeneral = dynamic_cast<OptionsParser*> (parser->getParser ("general"));
+    if (parserGeneral != 0)
+    {
+        /** We add an option to send the statistics by email. */
+        parserGeneral->push_back (new OptionOneParam (STR_EMAIL,        "send statistics to the given email address", false));
+        parserGeneral->push_back (new OptionOneParam (STR_EMAIL_FORMAT, "'raw' or 'xml'",                             false, "raw"));
+    }
 
     try
     {
         /** We parse the user options. */
-        IProperties* options = parser.parse (argc, argv);
+        IProperties* options = parser->parse (argc, argv);
 
-         /** We create the graph with the provided options. */
-         Graph graph = Graph::create (options);
+        if (options->get(STR_HELP))     {  parser->displayHelp    (std::cout);  return EXIT_SUCCESS; }
+        if (options->get(STR_VERSION))  {  parser->displayVersion (std::cout);  return EXIT_SUCCESS; }
 
-         /** We dump some information about the graph. */
-         if (options->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
+        /** We create the graph with the provided options. */
+        Graph graph = Graph::create (options);
 
-         /** We may have to send statistics by email. */
-         if (options->get(STR_EMAIL))  {  sendEmail (options, &graph.getInfo());  }
+        /** We dump some information about the graph. */
+        if (options->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
+
+        /** We may have to send statistics by email. */
+        if (options->get(STR_EMAIL))  {  sendEmail (options, &graph.getInfo());  }
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors   (stdout);
-        e.getParser().displayWarnings (stdout);
-        e.getParser().displayHelp     (stdout);
-        e.getParser().displayVersion  (stdout);
+        e.getParser().displayErrors   (std::cout);
+        e.getParser().displayWarnings (std::cout);
+        e.getParser().displayHelp     (std::cout);
         return EXIT_FAILURE;
     }
     catch (Exception& e)
     {
-        std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
-        return EXIT_FAILURE;
+        return manageException (parser, parser->getProperties(), e.getMessage());
     }
     catch (std::string& msg)
     {
-        std::cout << std::endl << "EXCEPTION: " << msg << std::endl;
-        return EXIT_FAILURE;
+        return manageException (parser, parser->getProperties(), msg);
     }
     catch (const char* msg)
     {
-        std::cout << std::endl << "EXCEPTION: " << msg << std::endl;
-        return EXIT_FAILURE;
+        return manageException (parser, parser->getProperties(), msg);
     }
 
     return EXIT_SUCCESS;
@@ -110,3 +113,25 @@ void sendEmail (IProperties* options, IProperties* graphInfo)
     /** We execute the command. */
    ::system (cmd.str().c_str());
 }
+
+/********************************************************************************/
+int manageException (IOptionsParser* parser, IProperties* options, const std::string& message)
+{
+    std::cout << std::endl << "EXCEPTION: " << message << std::endl;
+
+    if (parser != 0)
+    {
+        parser->displayErrors   (std::cout);
+        parser->displayWarnings (std::cout);
+        parser->displayHelp     (std::cout);
+    }
+
+    if (options && options->get(STR_EMAIL))
+    {
+        Properties props;  props.add(0, "error", message.c_str());
+        sendEmail (options, &props);
+    }
+
+    return EXIT_FAILURE;
+}
+

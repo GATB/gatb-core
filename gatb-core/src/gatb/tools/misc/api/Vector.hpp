@@ -29,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/system/api/ISmartPointer.hpp>
+#include <gatb/system/impl/System.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -67,7 +68,7 @@ public:
     /** Destructor. */
     ~Vector ()
     {
-        if (_isAllocated && _buffer) {  free (_buffer); }
+        if (_isAllocated && _buffer) {  FREE (_buffer); }
 
         /** We get rid of the referred data if any. */
         setRef (0);
@@ -89,7 +90,7 @@ public:
     void resize (size_t aSize)
     {
         _size        = aSize;
-        _buffer      = (char*) realloc (_buffer, _size*sizeof(char));
+        _buffer      = (char*) REALLOC (_buffer, _size*sizeof(char));
         _isAllocated = true;
     }
 
@@ -126,7 +127,7 @@ public:
     {
         _size        = length;
         if (_isAllocated == false)  { _buffer = 0; }
-        _buffer      = (char*) realloc (_buffer, _size*sizeof(char));
+        _buffer      = (char*) REALLOC (_buffer, _size*sizeof(char));
         _isAllocated = true;
         memcpy (_buffer, buffer, _size*sizeof(char));
     }

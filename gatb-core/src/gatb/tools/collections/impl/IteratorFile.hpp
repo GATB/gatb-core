@@ -60,7 +60,7 @@ public:
         _filename(it._filename), _file(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(it._cacheItemsNb), _isDone(true)
     {
         _file    = system::impl::System::file().newFile (_filename, "rb");
-        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
+        _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
     }
 
     /** Constructor. */
@@ -69,14 +69,14 @@ public:
 
     {
         _file    = system::impl::System::file().newFile (filename, "rb");
-        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
+        _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
     }
 
     /** Destructor. */
     ~IteratorFile ()
     {
         if (_file)  { delete _file;  }
-        if (_buffer) { free (_buffer); }
+        if (_buffer) { FREE (_buffer); }
     }
 
     /** Affectation. */
@@ -85,7 +85,7 @@ public:
         if (this != &it)
         {
             if (_file)    { delete _file; }
-            if (_buffer)  { free(_buffer); }
+            if (_buffer)  { FREE(_buffer); }
 
             _filename     = it._filename;
             _cpt_buffer   = it._cpt_buffer;
@@ -94,7 +94,7 @@ public:
             _isDone       = it._isDone;
 
             _file    = system::impl::System::file().newFile (it._filename, "rb");
-            _buffer  = (Item*) malloc (sizeof(Item) * it._cacheItemsNb);
+            _buffer  = (Item*) MALLOC (sizeof(Item) * it._cacheItemsNb);
         }
         return *this;
     }
@@ -163,7 +163,7 @@ public:
     _filename(it._filename), _gzfile(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(it._cacheItemsNb), _isDone(true)
     {
         _gzfile =   gzopen(_filename.c_str(),"rb");
-        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
+        _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
     }
     
     /** Constructor. */
@@ -172,14 +172,14 @@ public:
     
     {
         _gzfile =   gzopen(_filename.c_str(),"rb");
-        _buffer  = (Item*) malloc (sizeof(Item) * _cacheItemsNb);
+        _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
     }
     
     /** Destructor. */
     ~IteratorGzFile ()
     {
         if (_gzfile)  { gzclose(_gzfile);   }
-        if (_buffer) { free (_buffer); }
+        if (_buffer) { FREE (_buffer); }
     }
     
     /** Affectation. */
@@ -188,7 +188,7 @@ public:
         if (this != &it)
         {
             if (_gzfile)    {  gzclose(_gzfile);  }
-            if (_buffer)  { free(_buffer); }
+            if (_buffer)  { FREE(_buffer); }
             
             _filename     = it._filename;
             _cpt_buffer   = it._cpt_buffer;
@@ -197,7 +197,7 @@ public:
             _isDone       = it._isDone;
             
             _gzfile =   gzopen(_filename.c_str(),"r");
-            _buffer  = (Item*) malloc (sizeof(Item) * it._cacheItemsNb);
+            _buffer  = (Item*) MALLOC (sizeof(Item) * it._cacheItemsNb);
         }
         return *this;
     }
@@ -273,7 +273,7 @@ public:
     _filename(it._filename), _file(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(it._cacheItemsNb), _isDone(true),_abundance(0)
     {
         _file    = system::impl::System::file().newFile (_filename, "rb");
-        _buffer  = (u_int8_t*) malloc (sizeof(u_int8_t) * _cacheItemsNb);
+        _buffer  = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _cacheItemsNb);
     }
     
     /** Constructor. */
@@ -282,14 +282,14 @@ public:
     
     {
         _file    = system::impl::System::file().newFile (filename, "rb");
-        _buffer  = (u_int8_t*) malloc (sizeof(u_int8_t) * _cacheItemsNb);
+        _buffer  = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _cacheItemsNb);
     }
     
     /** Destructor. */
     ~IteratorCountCompressedFile ()
     {
         if (_file)  { delete _file;  }
-        if (_buffer) { free (_buffer); }
+        if (_buffer) { FREE (_buffer); }
     }
     
     /** Affectation. */
@@ -298,7 +298,7 @@ public:
         if (this != &it)
         {
             if (_file)    { delete _file; }
-            if (_buffer)  { free(_buffer); }
+            if (_buffer)  { FREE(_buffer); }
             
             _filename     = it._filename;
             _cpt_buffer   = it._cpt_buffer;
@@ -307,7 +307,7 @@ public:
             _isDone       = it._isDone;
             _abundance    = it._abundance;
             _file    = system::impl::System::file().newFile (it._filename, "rb");
-            _buffer  = (u_int8_t*) malloc (sizeof(u_int8_t) * it._cacheItemsNb);
+            _buffer  = (u_int8_t*) MALLOC (sizeof(u_int8_t) * it._cacheItemsNb);
         }
         return *this;
     }

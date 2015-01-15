@@ -22,9 +22,9 @@ public:
     // Constructor
     CustomTool () : Tool ("DotGenerator")
     {
-        getParser()->push_front (new OptionOneParam (STR_URI_INPUT,  "graph file", true ));
-        getParser()->push_front (new OptionOneParam (STR_URI_OUTPUT, "dot file",  false ));
-        getParser()->push_front (new OptionOneParam (STR_NODE_TYPE,  "node type (0: all,  1:branching)", false, "1" ));
+        _parser->push_front (new OptionOneParam (STR_URI_INPUT,  "graph file", true ));
+        _parser->push_front (new OptionOneParam (STR_URI_OUTPUT, "dot file",  false ));
+        _parser->push_front (new OptionOneParam (STR_NODE_TYPE,  "node type (0: all,  1:branching)", false, "1" ));
     }
 
     template<typename NodeType>

@@ -31,6 +31,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/collections/api/Collection.hpp>
+#include <gatb/system/impl/System.hpp>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -112,7 +113,7 @@ public:
         va_start (args, fmt);
         int res = vasprintf (&buffer, fmt, args);
         va_end (args);
-        if (buffer != NULL)  {  value = buffer;  free (buffer);  }
+        if (buffer != NULL)  {  value = buffer;  FREE (buffer);  }
         this->addProperty (key, value);
     }
 

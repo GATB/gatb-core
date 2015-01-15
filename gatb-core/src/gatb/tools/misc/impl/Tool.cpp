@@ -58,9 +58,6 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     _parser->push_back (new OptionOneParam (STR_NB_CORES,       "number of cores",                      false, "0"  ));
     _parser->push_back (new OptionOneParam (STR_VERBOSE,        "verbosity level",                      false,  "1"));
     _parser->push_back (new OptionNoParam  (STR_HELP,           "display help about possible options",  false       ));
-    // _parser->push_back (new OptionOneParam (STR_PROGRESS_BAR,   "progress bar mode (0 none, 1 dash, 2 time)",  false, "2" ));
-    // _parser->push_back (new OptionOneParam (STR_PREFIX,         "prefix to be appended to temp files",  false, ""   ));
-    // _parser->push_back (new OptionOneParam (STR_STATS_XML,      "dump exec info into a XML file",       false       ));
 }
 
 /*********************************************************************
@@ -97,10 +94,10 @@ IProperties* Tool::run (int argc, char* argv[])
         /** We parse the user parameters. */
         IProperties* params = getParser()->parse (argc, argv);
 
-        if (getParser()->saw (STR_HELP))
+        if (params->get(STR_HELP))
         {
             /** We just display the help for the tool. */
-            getParser()->displayHelp (stdout);
+            getParser()->displayHelp (std::cout);
             return NULL;
         }
         else
@@ -111,8 +108,8 @@ IProperties* Tool::run (int argc, char* argv[])
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (stdout);
-        e.getParser().displayHelp   (stdout);
+        e.getParser().displayErrors (std::cout);
+        e.getParser().displayHelp   (std::cout);
         return NULL;
     }
 }
@@ -286,7 +283,7 @@ IProperties* ToolComposite::run (int argc, char* argv[])
             (*it)->getParser()->parse (argc, argv);
 
             /** We may display the help for the tool. */
-            if ((*it)->getParser()->saw (STR_HELP))  {  (*it)->getParser()->displayHelp (stdout);  }
+            if ((*it)->getParser()->getProperties()->get(STR_HELP))  {  (*it)->getParser()->displayHelp (std::cout);  }
 
 			IProperties* input =  (*it)->getParser()->getProperties() ;
             /** We add the input into the vector that gather the tools inputs. */
@@ -295,7 +292,7 @@ IProperties* ToolComposite::run (int argc, char* argv[])
         catch (OptionFailure& e)
         {
 			/** We may display the help for the tool. */
-			if ((*it)->getParser()->saw (STR_HELP))  {  (*it)->getParser()->displayHelp (stdout);  }
+			if ((*it)->getParser()->getProperties()->get (STR_HELP))  {  (*it)->getParser()->displayHelp (std::cout);  }
 
 			IProperties* input =  (*it)->getParser()->getProperties() ;
 

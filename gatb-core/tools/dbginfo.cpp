@@ -42,8 +42,8 @@ int main (int argc, char* argv[])
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (stdout);
-        e.getParser().displayHelp   (stdout);
+        e.getParser().displayErrors (std::cout);
+        e.getParser().displayHelp   (std::cout);
         return EXIT_FAILURE;
     }
 

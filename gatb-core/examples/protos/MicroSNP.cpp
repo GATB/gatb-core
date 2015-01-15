@@ -9,7 +9,7 @@ public:
 
     MicroSNP () : Tool ("MicroSNP")
     {
-        getParser()->push_back (Graph::getOptionsParser());
+        getParser()->add (Graph::getOptionsParser());
     }
 
     void execute ()
