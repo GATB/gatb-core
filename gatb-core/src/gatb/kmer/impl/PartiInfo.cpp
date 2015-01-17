@@ -120,6 +120,7 @@ void Repartitor::justGroupNaive (const PartiInfo<5>& extern_pInfo, std::vector <
     
 }
 
+
 // much more effective version of the function above, using estimation of number of kmers per bucket
 void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::pair<int,int> > &counts)
 {
@@ -156,6 +157,41 @@ void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::
         }
     }
 }
+
+
+// lexi case
+void Repartitor::justGroupLexi (const PartiInfo<5>& extern_pInfo)
+{
+    /** We allocate a table whose size is the number of possible minimizers. */
+    _repart_table.resize (_nb_minims);
+
+    for (int ii=0; ii< _nb_minims; ii++)
+    {
+        _repart_table[ii] = 0; // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+    }
+
+    u_int64_t sumsizes =0;
+    for (int ii=0; ii< _nb_minims; ii++)
+        sumsizes += extern_pInfo.getNbKmer_per_minim(ii);
+ 
+    u_int64_t mean_size = sumsizes / _nbpart;
+    
+    u_int64_t acc = 0, j = 0;
+    for (unsigned int i = 0; i < _nb_minims; i++)
+    {
+        _repart_table[i] = j;
+        acc += extern_pInfo.getNbKmer_per_minim(i);
+        if (acc > mean_size)
+        {
+            acc = 0;
+            if (j < _nbpart)
+                j++;
+        }
+
+    }
+    
+}
+
 
 
 

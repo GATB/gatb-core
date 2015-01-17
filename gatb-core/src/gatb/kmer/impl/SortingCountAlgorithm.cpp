@@ -1240,7 +1240,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     if (_minimizerType == 1)
         repartitor.justGroup (sample_info, counts);
     else
+    {
         repartitor.computeDistrib (sample_info);
+        repartitor.justGroupLexi (sample_info); // FIXME; actually i need the minimizers to remain in order in Bcalm, so using this suboptimal but okay repartition
+    }
 
     /** We save the distribution (may be useful for debloom for instance). */
     repartitor.save (getStorageGroup());

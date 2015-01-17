@@ -319,6 +319,7 @@ public:
     void computeDistrib (const PartiInfo<5>& pInfo);
     void justGroupNaive (const PartiInfo<5>& pInfo,  std::vector <std::pair<int,int> > &counts);
     void justGroup      (const PartiInfo<5>& pInfo,  std::vector <std::pair<int,int> > &counts);
+    void justGroupLexi  (const PartiInfo<5>& extern_pInfo);
 
     /** Returns the hash value for the given minimizer value.
      * \param[in] minimizerValue : minimizer value as an integer.
