@@ -94,9 +94,7 @@ int main (int argc, char* argv[])
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (cout);
-        e.getParser().displayHelp   (cout);
-        return EXIT_FAILURE;
+        return e.displayErrors (cout);
     }
     catch (Exception& e)
     {
