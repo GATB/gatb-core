@@ -75,6 +75,7 @@
 #include <gatb/debruijn/impl/Traversal.hpp>
 #include <gatb/debruijn/impl/Frontline.hpp>
 #include <gatb/debruijn/impl/IterativeExtensions.hpp>
+#include <gatb/debruijn/impl/BranchingAlgorithm.hpp>
 
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
