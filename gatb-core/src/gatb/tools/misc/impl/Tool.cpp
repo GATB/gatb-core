@@ -52,7 +52,9 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     _info->add (0, _name);
 
     /** We create an options parser. */
-    setParser (getOptionsParser());
+    setParser (new OptionsParser(name));
+
+    getParser()->push_back (getOptionsParser());
 }
 
 /*********************************************************************
