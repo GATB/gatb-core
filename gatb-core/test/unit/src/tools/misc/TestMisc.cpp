@@ -232,7 +232,7 @@ public:
     /********************************************************************************/
     void parser_check1_aux (IOptionsParser* parser, const string& str, bool ok, size_t nbProps, const string& check)
     {
-        IProperties* props = 0;
+        IProperties* props;
         try
         {
             props = parser->parseString (str);
@@ -273,15 +273,15 @@ public:
         OptionsParser* parser3 = new OptionsParser ("debloom");
         parser3->push_back (new OptionOneParam ("-c",  "option c", false));
 
-        OptionsParserComposite* composite = new OptionsParserComposite ("dbgh5");
+        OptionsParser* composite = new OptionsParser ("dbgh5");
         LOCAL (composite);
 
-        composite->add (parser1);
-        composite->add (parser2);
-        composite->add (parser3);
+        composite->push_back (parser1);
+        composite->push_back (parser2);
+        composite->push_back (parser3);
 
-        parser_check1_aux (parser1, "-a 1", true, 1, "<-a>1</-a>");
-        parser_check1_aux (parser1, "-b 2", true, 1, "<-a>1</-a>");
+        parser_check1_aux (parser1, "-a 1", true,  1, "<-a>1</-a>");
+        parser_check1_aux (parser1, "-b 2", false, 1, "<-a>1</-a>");
 
         parser_check1_aux (parser2, "-a 3", false, 1, "");
         parser_check1_aux (parser2, "-b 4", true,  1, "<-b>4</-b>");
