@@ -85,11 +85,7 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
 
         //update space used in this bin, push it back in the pq
         smallest_parti.second += bin_size_vec[cur_minim].first;
-        smallest_parti.third ++;
-
-        if (smallest_parti.third < 1000) // don't put more than 1000 minimizers in a single bin, bcalm won't like it
-            pq.push (smallest_parti);
-
+        smallest_parti.third ++; // how many minimizers are in this bin (just for info)
 
         DEBUG (("Repartitor : affected minim %llu to part %llu  space used %llu  (msize %llu) \n",
             bin_size_vec[cur_minim].second,smallest_parti.first,

@@ -655,8 +655,6 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
     
-    if (_nb_partitions < 70  ) _nb_partitions = 70; // FIXME HACK RAYAN FOR BCALM
-
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _nb_partitions_in_parallel - _nb_partitions % _nb_partitions_in_parallel;
     incpart = incpart % _nb_partitions_in_parallel;
