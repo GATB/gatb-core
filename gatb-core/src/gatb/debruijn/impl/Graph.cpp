@@ -28,6 +28,7 @@
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/LibraryInfo.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
+#include <gatb/tools/misc/impl/Tool.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
@@ -295,7 +296,7 @@ struct build_visitor : public boost::static_visitor<>    {
 
         LOCAL (bank);
 
-        size_t kmerSize = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
+        size_t kmerSize      = props->get(STR_KMER_SIZE)               ? props->getInt(STR_KMER_SIZE)           : 31;
         size_t nksMin   = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
         size_t nksMax   = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
         size_t minimizerType = props->get(STR_MINIMIZER_TYPE) ? props->getInt(STR_MINIMIZER_TYPE)     : 0; 
@@ -528,37 +529,29 @@ struct build_visitor : public boost::static_visitor<>    {
 IOptionsParser* Graph::getOptionsParser (bool includeMandatory)
 {
     /** We build the root options parser. */
-    OptionsParserComposite* parser = new OptionsParserComposite ("dbgh5");
+    OptionsParser* parser = new OptionsParser ("graph");
 
     /** We add children parser to it (kmer count, bloom/debloom, branching). */
-    parser->add (SortingCountAlgorithm<>::getOptionsParser(includeMandatory));
-    parser->add (DebloomAlgorithm<>::getOptionsParser());
-    parser->add (BranchingAlgorithm<>::getOptionsParser());
-
-    /** We create a "general options" parser. */
-    OptionsParser* parserGeneral  = new OptionsParser ("general");
-    parserGeneral->push_back (new OptionOneParam (STR_VERBOSE,           "verbosity level",                          false,  "1"));
-    parserGeneral->push_back (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                   false, "2000"));
-    parserGeneral->push_back (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                   false, "0"));
-    parserGeneral->push_back (new OptionOneParam (STR_NB_CORES,          "nb cores (0 for all)",                     false, "0"));
-    parserGeneral->push_back (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0"));
-    parserGeneral->push_back (new OptionNoParam  (STR_HELP,              "help",                                     false));
-    parserGeneral->push_back (new OptionNoParam  (STR_VERSION,           "version",                                  false));
-
-    /** We add it to the root parser. */
-    parser->add (parserGeneral);
+    parser->push_back (SortingCountAlgorithm<>::getOptionsParser(includeMandatory));
+    parser->push_back (DebloomAlgorithm<>::getOptionsParser());
+    parser->push_back (BranchingAlgorithm<>::getOptionsParser());
 
     /** We activate MPHF option only if available. */
     if (MPHF<char>::enabled)
     {
-        OptionsParser* parserEmphf  = new OptionsParser ("emphf");
-        parser->add (parserEmphf);
-
+        IOptionsParser* parserEmphf  = new OptionsParser ("emphf");
         parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf')", false, "none"));
+        parser->push_back  (parserEmphf);
     }
 
-    /** We hide some options not meant to be used by all people. */
-    parserGeneral->hide (STR_INTEGER_PRECISION);
+    /** We create a "general options" parser. */
+    IOptionsParser* parserGeneral  = Tool::getOptionsParser();
+    parserGeneral->push_front (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                    false, "2000"));
+    parserGeneral->push_front (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                    false, "0"));
+    parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
+
+    /** We add it to the root parser. */
+    parser->push_back  (parserGeneral);
 
     return parser;
 }
@@ -590,7 +583,7 @@ Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (std::cout);
+        e.displayErrors (std::cout);
 
         throw system::Exception ("Graph construction failure because of bad parameters (notify a developer)");
     }
@@ -623,7 +616,7 @@ Graph  Graph::create (const char* fmt, ...)
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (std::cout);
+        e.displayErrors (std::cout);
         throw system::Exception ("Graph construction failure because of bad parameters (notify a developer)");
     }
 }

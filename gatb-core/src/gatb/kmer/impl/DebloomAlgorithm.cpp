@@ -209,7 +209,7 @@ struct FunctorKmersExtension
 template<size_t span>
 IOptionsParser* DebloomAlgorithm<span>::getOptionsParser ()
 {
-    OptionsParser* parser = new OptionsParser ("bloom");
+    IOptionsParser* parser = new OptionsParser ("bloom");
 
     parser->push_back (new OptionOneParam (STR_BLOOM_TYPE,        "bloom type ('basic', 'cache', 'neighbor')",false, "neighbor"));
     parser->push_back (new OptionOneParam (STR_DEBLOOM_TYPE,      "debloom type ('none', 'original' or 'cascading')", false, "cascading"));

@@ -52,12 +52,7 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     _info->add (0, _name);
 
     /** We create an options parser. */
-    setParser (new OptionsParser (_name));
-
-    /** We configure this parser with some options useful for each tool. */
-    _parser->push_back (new OptionOneParam (STR_NB_CORES,       "number of cores",                      false, "0"  ));
-    _parser->push_back (new OptionOneParam (STR_VERBOSE,        "verbosity level",                      false,  "1"));
-    _parser->push_back (new OptionNoParam  (STR_HELP,           "display help about possible options",  false       ));
+    setParser (getOptionsParser());
 }
 
 /*********************************************************************
@@ -85,6 +80,24 @@ Tool::~Tool ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+tools::misc::IOptionsParser* Tool::getOptionsParser ()
+{
+    IOptionsParser* parser = new OptionsParser ("general");
+
+    parser->push_back (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
+    parser->push_back (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
+
+    return parser;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 IProperties* Tool::run (int argc, char* argv[])
 {
     DEBUG (("Tool::run(argc,argv) => tool='%s'  \n", getName().c_str() ));
@@ -92,24 +105,14 @@ IProperties* Tool::run (int argc, char* argv[])
     try
     {
         /** We parse the user parameters. */
-        IProperties* params = getParser()->parse (argc, argv);
+        IProperties* props = getParser()->parse (argc, argv);
 
-        if (params->get(STR_HELP))
-        {
-            /** We just display the help for the tool. */
-            getParser()->displayHelp (std::cout);
-            return NULL;
-        }
-        else
-        {
-            /** We run the tool. */
-            return run (params);
-        }
+        /** We run the tool. */
+        return run (props);
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (std::cout);
-        e.getParser().displayHelp   (std::cout);
+        e.displayErrors (std::cout);
         return NULL;
     }
 }
@@ -282,8 +285,6 @@ IProperties* ToolComposite::run (int argc, char* argv[])
             /** We parse the user parameters. */
             (*it)->getParser()->parse (argc, argv);
 
-            /** We may display the help for the tool. */
-            if ((*it)->getParser()->getProperties()->get(STR_HELP))  {  (*it)->getParser()->displayHelp (std::cout);  }
 
 			IProperties* input =  (*it)->getParser()->getProperties() ;
             /** We add the input into the vector that gather the tools inputs. */
@@ -291,9 +292,6 @@ IProperties* ToolComposite::run (int argc, char* argv[])
         }
         catch (OptionFailure& e)
         {
-			/** We may display the help for the tool. */
-			if ((*it)->getParser()->getProperties()->get (STR_HELP))  {  (*it)->getParser()->displayHelp (std::cout);  }
-
 			IProperties* input =  (*it)->getParser()->getProperties() ;
 
 			/** We add the input into the vector that gather the tools inputs. */

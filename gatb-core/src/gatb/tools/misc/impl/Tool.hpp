@@ -77,6 +77,9 @@ public:
     virtual void execute () = 0;
 
     /** */
+    static tools::misc::IOptionsParser* getOptionsParser ();
+
+    /** */
     virtual IProperties*            getInput      ()  { return _input;      }
     virtual IProperties*            getOutput     ()  { return _output;     }
     virtual IProperties*            getInfo       ()  { return _info;       }

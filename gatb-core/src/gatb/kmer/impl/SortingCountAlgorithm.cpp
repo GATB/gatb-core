@@ -250,7 +250,7 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
 template<size_t span>
 IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
 {
-    OptionsParser* parser = new OptionsParser ("kmer count");
+    IOptionsParser* parser = new OptionsParser ("kmer count");
 
     parser->push_back (new OptionOneParam (STR_URI_INPUT,         "reads file", mandatory ));
     parser->push_back (new OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                           false,  "31"    ));
