@@ -87,6 +87,8 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
         smallest_parti.second += bin_size_vec[cur_minim].first;
         smallest_parti.third ++; // how many minimizers are in this bin (just for info)
 
+        pq.push (smallest_parti);
+
         DEBUG (("Repartitor : affected minim %llu to part %llu  space used %llu  (msize %llu) \n",
             bin_size_vec[cur_minim].second,smallest_parti.first,
             smallest_parti.second , bin_size_vec[cur_minim].first
