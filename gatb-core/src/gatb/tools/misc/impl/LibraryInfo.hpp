@@ -30,6 +30,7 @@
 
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -45,6 +46,7 @@ class LibraryInfo
 {
 public:
 
+    /** */
     static IProperties& getInfo()
     {
         static system::SmartObject singleton;
@@ -65,6 +67,18 @@ public:
             singleton.setRef (props);
         }
         return * (dynamic_cast<IProperties*>(singleton.getRef()));
+    }
+
+    /** */
+    static void displayVersion (std::ostream& os)
+    {
+        os << Stringify::format ("* version %s (%s)\n* built on %s with compiler '%s'\n* supported kmer sizes %d %d %d %d",
+            system::impl::System::info().getVersion().c_str(),
+            system::impl::System::info().getBuildDate().c_str(),
+            system::impl::System::info().getBuildSystem().c_str(),
+            system::impl::System::info().getBuildCompiler().c_str(),
+            KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4
+        ) << std::endl;
     }
 };
 
