@@ -137,15 +137,6 @@ public:
      * \return a list of parsers.*/
     virtual const std::list<IOptionsParser*>& getParsers () const = 0;
 
-//    /*************************************************************/
-//    /********************   Console display   ********************/
-//    /*************************************************************/
-//
-//    /** Display the help of each options recorded.
-//     * \param[in]  os : the output stream where to dump the help
-//     */
-//    virtual void displayHelp (std::ostream& os, size_t level=0, size_t nameMaxLen=0) const = 0;
-//
     /*************************************************************/
     /*********************   Miscellaneous   *********************/
     /*************************************************************/
