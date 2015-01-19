@@ -24,7 +24,7 @@
 static const char* STR_EMAIL        = "-email";
 static const char* STR_EMAIL_FORMAT = "-email-fmt";
 
-int  manageException (IOptionsParser* parser, IProperties* options, const std::string& message);
+int  manageException (IProperties* options, const std::string& message);
 void sendEmail       (IProperties* options, IProperties* graphInfo);
 
 /********************************************************************************/
@@ -33,7 +33,7 @@ int main (int argc, char* argv[])
     /** We create a command line parser. */
     IOptionsParser* parser = Graph::getOptionsParser();  LOCAL (parser);
 
-    OptionsParser* parserGeneral = dynamic_cast<OptionsParser*> (parser->getParser ("general"));
+    IOptionsParser* parserGeneral = parser->getParser ("general");
     if (parserGeneral != 0)
     {
         /** We add an option to send the statistics by email. */
@@ -44,38 +44,32 @@ int main (int argc, char* argv[])
     try
     {
         /** We parse the user options. */
-        IProperties* options = parser->parse (argc, argv);
-
-        if (options->get(STR_HELP))     {  parser->displayHelp    (std::cout);  return EXIT_SUCCESS; }
-        if (options->get(STR_VERSION))  {  parser->displayVersion (std::cout);  return EXIT_SUCCESS; }
+        IProperties* props = parser->parse (argc, argv);
 
         /** We create the graph with the provided options. */
-        Graph graph = Graph::create (options);
+        Graph graph = Graph::create (props);
 
         /** We dump some information about the graph. */
-        if (options->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
+        if (props->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
 
         /** We may have to send statistics by email. */
-        if (options->get(STR_EMAIL))  {  sendEmail (options, &graph.getInfo());  }
+        if (props->get(STR_EMAIL))  {  sendEmail (props, &graph.getInfo());  }
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors   (std::cout);
-        e.getParser().displayWarnings (std::cout);
-        e.getParser().displayHelp     (std::cout);
-        return EXIT_FAILURE;
+        return e.displayErrors (std::cout);
     }
     catch (Exception& e)
     {
-        return manageException (parser, parser->getProperties(), e.getMessage());
+        return manageException (parser->getProperties(), e.getMessage());
     }
     catch (std::string& msg)
     {
-        return manageException (parser, parser->getProperties(), msg);
+        return manageException (parser->getProperties(), msg);
     }
     catch (const char* msg)
     {
-        return manageException (parser, parser->getProperties(), msg);
+        return manageException (parser->getProperties(), msg);
     }
 
     return EXIT_SUCCESS;
@@ -115,16 +109,9 @@ void sendEmail (IProperties* options, IProperties* graphInfo)
 }
 
 /********************************************************************************/
-int manageException (IOptionsParser* parser, IProperties* options, const std::string& message)
+int manageException (IProperties* options, const std::string& message)
 {
     std::cout << std::endl << "EXCEPTION: " << message << std::endl;
-
-    if (parser != 0)
-    {
-        parser->displayErrors   (std::cout);
-        parser->displayWarnings (std::cout);
-        parser->displayHelp     (std::cout);
-    }
 
     if (options && options->get(STR_EMAIL))
     {
