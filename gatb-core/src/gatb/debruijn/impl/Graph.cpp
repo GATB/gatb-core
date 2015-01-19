@@ -296,10 +296,11 @@ struct build_visitor : public boost::static_visitor<>    {
 
         LOCAL (bank);
 
-        size_t kmerSize      = props->get(STR_KMER_SIZE)               ? props->getInt(STR_KMER_SIZE)           : 31;
-        size_t nksMin   = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
-        size_t nksMax   = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
-        size_t minimizerType = props->get(STR_MINIMIZER_TYPE) ? props->getInt(STR_MINIMIZER_TYPE)     : 0; 
+        size_t kmerSize      = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
+        size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
+        size_t nksMin        = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
+        size_t nksMax        = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
+        size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
 
         string output = props->get(STR_URI_OUTPUT) ?
             props->getStr(STR_URI_OUTPUT)   :
@@ -365,7 +366,8 @@ struct build_visitor : public boost::static_visitor<>    {
             solidityKind,
             props->get(STR_HISTOGRAM_MAX) ? props->getInt(STR_HISTOGRAM_MAX) : 0,
             0,
-            minimizerType
+            minimizerType,
+            minimizerSize
         );
         executeAlgorithm (sortingCount, *solidStorage, props, graph._info);
         graph.setState(Graph::STATE_SORTING_COUNT_DONE);
@@ -528,6 +530,7 @@ struct build_visitor : public boost::static_visitor<>    {
 *********************************************************************/
 IOptionsParser* Graph::getOptionsParser (bool includeMandatory)
 {
+
     /** We build the root options parser. */
     OptionsParser* parser = new OptionsParser ("graph");
 

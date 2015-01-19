@@ -113,13 +113,14 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     size_t      histogramMax,
     size_t      partitionType,
     size_t      minimizerType,
+    size_t      minimizerSize,
     const std::string& prefix,
     gatb::core::tools::misc::IProperties* options
 )
   : Algorithm("dsk", nbCores, options),
     _storage(storage),
     _bank(0),
-    _kmerSize(kmerSize), _abundance(abundance),
+    _kmerSize(kmerSize), _minim_size(minimizerSize), _abundance(abundance),
     _partitionType(partitionType), _minimizerType(minimizerType), _nbCores(nbCores), _prefix(prefix),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
@@ -262,6 +263,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                              false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
     parser->push_back (new OptionOneParam (STR_MINIMIZER_TYPE,    "minimizer type (0=lexi, 1=freq)",          false,  "0"));
+    parser->push_back (new OptionOneParam (STR_MINIMIZER_SIZE,    "size of a minimizer",                      false,  "8"));
 
     return parser;
 }
@@ -537,7 +539,10 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     /** By default, we want to have mmers of size 8. However (for unit tests for instance),
      * we may need to have kmer sizes less than 8; in such a case, we set by convention m=k-1. */
-    _minim_size = std::min (_kmerSize-1, (size_t)8);
+    if (_minim_size == 0)
+        _minim_size = 8;
+
+    _minim_size = std::min ((int)_kmerSize-1, (int)_minim_size);
 
     // optimism == 0 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, any distinct k-mer will be seen 'optimism+1' times
@@ -851,9 +856,12 @@ public:
         {
             bool prev_which = superKmer[0].which();
             size_t kx_size = 0;
-
+                    
             /** Shortcut. */
             size_t superKmerLen = superKmer.size();
+            
+            /** We increase superkmer counter the current minimizer. */
+            _local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmerLen);
 
             /** We loop over the kmer of the superkmer (except the first one).
              *  We update the pInfo each time we find a kxmer in the superkmer. */
@@ -1234,7 +1242,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     if (_minimizerType == 1)
         repartitor.justGroup (sample_info, counts);
     else
+    {
         repartitor.computeDistrib (sample_info);
+        repartitor.justGroupLexi (sample_info); // FIXME; actually i need the minimizers to remain in order in Bcalm, so using this suboptimal but okay repartition
+    }
 
     /** We save the distribution (may be useful for debloom for instance). */
     repartitor.save (getStorageGroup());

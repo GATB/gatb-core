@@ -151,6 +151,7 @@ public:
         size_t              histogramMax   = 10000,
         size_t              partitionType  = 0,
         size_t              minimizerType  = 0,
+        size_t              minimizerSize  = 0,
         const std::string&  prefix         = "tmp.",
         gatb::core::tools::misc::IProperties* options = 0
     );
@@ -228,6 +229,7 @@ private:
     std::pair<size_t,size_t> _abundance;
     size_t      _partitionType;
     size_t      _minimizerType;
+    size_t      _minimizerSize;
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
     size_t      _nb_partitions_in_parallel;
