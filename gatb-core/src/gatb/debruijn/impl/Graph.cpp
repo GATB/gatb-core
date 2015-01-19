@@ -548,10 +548,12 @@ IOptionsParser* Graph::getOptionsParser (bool includeMandatory)
     }
 
     /** We create a "general options" parser. */
-    IOptionsParser* parserGeneral  = Tool::getOptionsParser();
+    IOptionsParser* parserGeneral  = new OptionsParser ("general");
+    parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
+    parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
     parserGeneral->push_front (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                    false, "2000"));
     parserGeneral->push_front (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                    false, "0"));
-    parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
+    parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
 
     /** We add it to the root parser. */
     parser->push_back  (parserGeneral);

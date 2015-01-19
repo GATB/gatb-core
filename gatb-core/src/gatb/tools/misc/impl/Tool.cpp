@@ -21,6 +21,7 @@
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/tools/misc/impl/LibraryInfo.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
 #define DEBUG(a)  //printf a
@@ -54,7 +55,8 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
     /** We create an options parser. */
     setParser (new OptionsParser(name));
 
-    getParser()->push_back (getOptionsParser());
+    getParser()->push_back (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
+    getParser()->push_back (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
 }
 
 /*********************************************************************
@@ -72,24 +74,6 @@ Tool::~Tool ()
     setInfo       (0);
     setParser     (0);
     setDispatcher (0);
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-tools::misc::IOptionsParser* Tool::getOptionsParser ()
-{
-    IOptionsParser* parser = new OptionsParser ("general");
-
-    parser->push_back (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
-    parser->push_back (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
-
-    return parser;
 }
 
 /*********************************************************************
@@ -131,6 +115,12 @@ IProperties* Tool::run (IProperties* input)
 {
     /** We keep the input parameters. */
     setInput (input);
+
+    if (getInput()->get(STR_VERSION) != 0)
+    {
+        LibraryInfo::displayVersion (cout);
+        return _output;
+    }
 
     /** We define one dispatcher. */
     if (_input->getInt(STR_NB_CORES) == 1)

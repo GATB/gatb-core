@@ -121,12 +121,13 @@ public:
     /*************************************************************/
 
     /** Add a parser child at the back of known parsers.
-     * \param[in] parser ; the child parser */
-    virtual void push_back (IOptionsParser* parser) = 0;
+     * \param[in] expandDepth : while depth is less than expandDepth, put all the children and not the 'parser' itself. */
+    virtual void push_back (IOptionsParser* parser, size_t expandDepth=0) = 0;
 
     /** Add a parser child at the front of known parsers.
-     * \param[in] parser ; the child parser */
-    virtual void push_front (IOptionsParser* parser) = 0;
+     * \param[in] parser : the child parser
+     * \param[in] expandDepth : while depth is less than expandDepth, put all the children and not the 'parser' itself. */
+    virtual void push_front (IOptionsParser* parser, size_t expandDepth=0) = 0;
 
     /** Get a parser given its name.
      * \param[in] name : name of the parser to be retrieved
@@ -135,14 +136,14 @@ public:
 
     /** Get the children parsers.
      * \return a list of parsers.*/
-    virtual const std::list<IOptionsParser*>& getParsers () const = 0;
+    virtual std::list<IOptionsParser*>& getParsers () = 0;
 
     /*************************************************************/
     /*********************   Miscellaneous   *********************/
     /*************************************************************/
 
     /** Visitor design pattern. */
-    virtual void accept (IOptionsParserVisitor& visitor, size_t depth) = 0;
+    virtual void accept (IOptionsParserVisitor& visitor, size_t depth=0) = 0;
 
     /** Structure that provides parsing results. */
     struct Result

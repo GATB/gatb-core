@@ -91,16 +91,16 @@ public:
     /*************************************************************/
 
     /** \copydoc IOptionsParser::push_back */
-    void push_back (IOptionsParser* parser)  { parser->use(); _parsers.push_back (parser); }
+    void push_back (IOptionsParser* parser, size_t expandDepth=0);
 
     /** \copydoc IOptionsParser::push_front */
-    void push_front (IOptionsParser* parser) { parser->use(); _parsers.push_front (parser); }
+    void push_front (IOptionsParser* parser, size_t expandDepth=0);
 
     /** \copydoc IOptionsParser::getParser */
     IOptionsParser* getParser (const std::string& name);
 
     /** \copydoc IOptionsParser::getParsers */
-    const std::list<IOptionsParser*>& getParsers ()  const { return _parsers; }
+    std::list<IOptionsParser*>& getParsers ()  { return _parsers; }
 
     /*************************************************************/
     /*********************   Miscellaneous   *********************/
@@ -280,12 +280,17 @@ public:
      * \param[in] parser : the parser that threw the exception. */
     OptionFailure (IOptionsParser* parser, IOptionsParser::Result result) :_parser(parser), _result(result)  {}
 
+    /** Constructor.
+     * \param[in] parser : the parser that threw the exception. */
+    OptionFailure (IOptionsParser* parser, const std::string& msg) :_parser(parser), _msg(msg)  {}
+
     /** */
     int displayErrors (std::ostream& os) const;
 
 protected:
     IOptionsParser*        _parser;
     IOptionsParser::Result _result;
+    std::string            _msg;
 };
 
 /********************************************************************************/

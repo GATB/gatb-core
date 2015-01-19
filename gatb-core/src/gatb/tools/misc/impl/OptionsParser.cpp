@@ -286,6 +286,68 @@ bool OptionsParser::saw (const std::string& name) const
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
+struct PushParserVisitor : public HierarchyParserVisitor
+{
+    bool   front;
+    size_t expandDepth;
+    std::list<IOptionsParser*>& parsers;
+
+    PushParserVisitor (bool front, size_t depth, std::list<IOptionsParser*>& parsers)
+        : front(front), expandDepth(depth), parsers(parsers) {}
+
+    void visitOptionsParser (impl::OptionsParser& object, size_t depth)
+    {
+        if (depth < expandDepth)  { HierarchyParserVisitor::visitOptionsParser (object, depth);  }
+        else                      { add (object); }
+    }
+
+    void visitOption (impl::Option& object, size_t depth)   {  add (object); }
+
+    void add (IOptionsParser& object)
+    {
+        if (front)  {  object.use();  parsers.push_front (&object); }
+        else        {  object.use();  parsers.push_back  (&object); }
+    }
+};
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParser::push_back (IOptionsParser* parser, size_t expandDepth)
+{
+    LOCAL (parser);
+    PushParserVisitor visitor (false, expandDepth, _parsers);
+    parser->accept (visitor);
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParser::push_front (IOptionsParser* parser, size_t expandDepth)
+{
+    LOCAL (parser);
+    PushParserVisitor visitor (true, expandDepth, _parsers);
+    parser->accept (visitor);
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
 IOptionsParser* OptionsParser::getParser (const std::string& name)
 {
     DEBUG (("OptionsParser::getParser  '%s'  look for '%s'  parsers.size=%ld   equal=%d\n",
@@ -391,6 +453,8 @@ int OptionFailure::displayErrors (std::ostream& os) const
     {
         os << "ERROR: " << *it << std::endl;
     }
+
+    if (_msg.empty() == false)  { os << _msg << endl; }
 
     OptionsHelpVisitor visitor (os);
     _parser->accept (visitor, 0);
