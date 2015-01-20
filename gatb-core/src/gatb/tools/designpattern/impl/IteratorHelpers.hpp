@@ -186,28 +186,44 @@ public:
      * \param[in] it1 : first iterator.
      * \param[in] it2 : second iterator.
      */
-    PairedIterator (Iterator<T1>* it1, Iterator<T2>* it2)  : _it1(it1), _it2(it2) { }
+    PairedIterator (Iterator<T1>* it1, Iterator<T2>* it2)  : _it1(it1), _it2(it2), _isDone(true) { }
 
     /** Destructor. */
     virtual ~PairedIterator ()  {}
 
     /** \copydoc Iterator::first */
-    void first()  {  _it1->first();  _it2->first();  }
+    void first()
+    {
+        _it1->first();
+        _it2->first();
+
+        _isDone = _it1->isDone() || _it2->isDone();
+
+        if (_isDone==false)
+        {
+            _current.first  = _it1->item();
+            _current.second = _it2->item();
+        }
+    }
 
     /** \copydoc Iterator::next */
-    void next()  {  _it1->next ();  _it2->next ();  }
+    void next()
+    {
+        _it1->next ();  _it2->next ();
+
+        _isDone = _it1->isDone() || _it2->isDone();
+        if (_isDone==false)
+        {
+            _current.first  = _it1->item();
+            _current.second = _it2->item();
+        }
+    }
 
     /** \copydoc Iterator::isDone */
-    bool isDone() { return _it1->isDone() || _it2->isDone(); }
+    bool isDone() { return _isDone;  }
 
     /** \copydoc Iterator::item */
-    std::pair<T1,T2>& item ()
-    {
-        _current.first  = _it1->item();
-        _current.second = _it2->item();
-
-        return _current;
-    }
+    std::pair<T1,T2>& item () { return _current; }
 
 private:
 
@@ -216,6 +232,9 @@ private:
 
     /** Second iterator. */
     Iterator<T2>* _it2;
+
+    /** Finish status. */
+    bool _isDone;
 
     /** Current item in the iteration. */
     std::pair<T1,T2> _current;
