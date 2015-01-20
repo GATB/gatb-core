@@ -37,6 +37,26 @@ namespace gatb {  namespace core {  namespace bank {  namespace impl {
 
 static u_int64_t BINREADS_BUFFER = 100000;
 
+/********************************************************************************/
+
+static u_int64_t MAGIC_NUMBER = 0x12345678;  // set to 0 for no usage of magic number
+
+static void writeMagic (FILE* file)
+{
+    if (MAGIC_NUMBER != 0)  {  fwrite (&MAGIC_NUMBER, sizeof(MAGIC_NUMBER), 1, file);  }
+}
+
+static bool checkMagic (FILE* file)
+{
+    if (MAGIC_NUMBER == 0)  { return true; }
+
+    u_int64_t value = 0;
+    fread (&value, sizeof(value), 1, file);
+    return  value==MAGIC_NUMBER;
+}
+
+/********************************************************************************/
+
 int NT2int(char nt)
 {
     int i;
@@ -252,6 +272,9 @@ void BankBinary::open (bool write)
     {
         throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, _filename.c_str());
     }
+
+    /** We write the magic number. */
+    if (write == true)  {  writeMagic (binary_read_file);  }
 }
 
 /*********************************************************************
@@ -318,6 +341,28 @@ void  BankBinary::setBufferSize (u_int64_t bufferSize)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+bool BankBinary::check (const std::string& uri)
+{
+    bool result = false;
+
+    FILE* file = fopen (uri.c_str(), "rb");
+    if (file != NULL)
+    {
+        result = checkMagic (file);
+        fclose (file);
+    }
+
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 BankBinary::Iterator::Iterator (BankBinary& ref)
     : _ref(ref), _isDone(true), cpt_buffer(0), blocksize_toread(0), nseq_lues(0),
       read_write_buffer_size(BINREADS_BUFFER), binary_read_file(0),
@@ -359,7 +404,13 @@ void BankBinary::Iterator::first()
         if (binary_read_file == 0)  {  throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, _ref._filename.c_str());  }
     }
 
-    if (binary_read_file != 0)  {  rewind (binary_read_file); }
+    if (binary_read_file != 0)
+    {
+        rewind (binary_read_file);
+
+        /** We read the magic number. */
+        if (checkMagic(binary_read_file)==false)  {  throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, _ref._filename.c_str());  }
+    }
 
     /** We reinitialize some attributes. */
     _isDone          = false;

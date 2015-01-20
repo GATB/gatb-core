@@ -109,6 +109,9 @@ public:
       */
     static void setBufferSize (u_int64_t bufferSize);
 
+    /** Check that the given uri is a correct binary bank. */
+    static bool check (const std::string& uri);
+
     /************************************************************/
 
     /** \brief Specific Iterator impl for BankBinary class
@@ -186,7 +189,10 @@ class BankBinaryFactory : public IBankFactory
 public:
 
     /** \copydoc IBankFactory::createBank */
-    IBank* createBank (const std::string& uri) { return new BankBinary (uri); }
+    IBank* createBank (const std::string& uri)
+    {
+        return BankBinary::check(uri) ? new BankBinary (uri) : 0;
+    }
 };
 
 /********************************************************************************/
