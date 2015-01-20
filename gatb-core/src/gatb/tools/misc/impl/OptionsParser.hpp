@@ -228,7 +228,10 @@ public:
     }
 
     /** \copydoc Option::proceed */
-    void proceed (const std::list<std::string>& args, IProperties& props)  { }
+    void proceed (const std::list<std::string>& args, IProperties& props)
+    {
+        props.add (0, getName(), "");
+    }
 };
 
 /********************************************************************************/
