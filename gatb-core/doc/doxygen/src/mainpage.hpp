@@ -24,18 +24,19 @@
  *
  *  GATB means "Genome Assembly Tool Box".
  *
- *  It can be seen as software components providing services for assembling genomes of various kinds.
+ *  It can be seen as software components providing services for assembling and analyzing genomes of various kinds.
  *
  ****************************************************************************************************
  ****************************************************************************************************
  * \section purpose Purpose of the GATB core library
  *
  * First, GATB core holds a C++ library that provides an easy way to handle a central structure in the
- * GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>. This
- * structure is today widely used in <a href="http://en.wikibooks.org/wiki/Next_Generation_Sequencing_(NGS)">NGS</a>
- * software like assembly software.
+ * GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>.
+ * This kind of data structure is today widely used in
+ * <a href="http://en.wikibooks.org/wiki/Next_Generation_Sequencing_(NGS)">NGS</a>
+ * software (like assembly software).
  *
- * More precisely, the library provides means to build De Bruijn graphs with a low memory footprint,
+ * More precisely, the library provides means to build and use De Bruijn graphs with a low memory footprint,
  * which comes initially from the <a href="http://minia.genouest.org">minia</a> assembly tool.
  *
  * The documentation you are reading is the official documentation of the gatb::core reference API. The
@@ -62,7 +63,7 @@
  * \section howto How can I use the GATB core library ?
  *
  * As a starting point, it is strongly recommended to have a look at \ref snippets_page. You will find
- * there information about compilation process and how to create a new project based on gatb::core.
+ * there information about the compilation process and how to create a new project based on gatb::core.
  *
  * You will find also a lot of snippets showing gatb::core
  * in action.

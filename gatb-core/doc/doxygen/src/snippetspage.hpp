@@ -46,11 +46,17 @@
  * cd GATB; mkdir build ; cd build ; cmake .. ; make
  * \endcode
  *
+ * You can force compilation in debug mode by calling cmake in a specific way:
+ * \code
+ * cmake -Ddebug=1 ..
+ * \endcode
+ *
  * Several artifacts are generated:
  *
  *  - the gatb core library is available in the generated <tt>build/lib</tt> directory
  *  - the gatb core binaries are available in the generated <tt>build/bin</tt> directory
- *  - the HTML documentation is available from <tt>build/doc/html/index.html</tt>
+ *
+ * you can type 'make help' to know all the available targets.
  *
  * If CppUnit is installed, a unit tests binary should be generated; you can launch it with
  * \code
@@ -67,7 +73,7 @@
  *
  * In order to compile them, you will first need to compile the library.
  *
- * A simple way to generate the snippets is to launch
+ * A simple way to generate the snippets is to type:
  * \code
  * make examples
  * \endcode
@@ -77,7 +83,7 @@
  ************************************************************************************
  *
  * It is possible to create a new project based on gatb::core with a script provided in
- * the distribution. It is still based on cmake.
+ * the distribution (see directory 'scripts').
  *
  * You have to provide a name for the project and the location of the generated directory holding
  * all the needed material. For instance:
@@ -108,6 +114,12 @@
  * the gatb::core library and the header files), so you can move it wherever you want.
  * Note also that you won't have to do any tricky configuration to build the binary; you
  * just have to do cmake+make and you will have your binaries in the build/tools directory.
+ *
+ * Finally, you have two targets to archive the project:
+ *      - make package  => package of the binaries
+ *      - make package_source => package of the sources
+ *
+ * The source archive holds all the material needed for compilation.
  *
  ************************************************************************************
  ************************************************************************************
