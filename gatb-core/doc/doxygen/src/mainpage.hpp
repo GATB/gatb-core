@@ -73,7 +73,8 @@
  *
  * You can get support on the BioStars forum <a href="http://www.biostars.org/p/101393">here</a>.
  *
- * You can also have general information about the <a href="http://gatb.inria.fr">GATB project</a>
+ * You can also have general information about the <a href="http://gatb.inria.fr">GATB project</a>. You will
+ * find <a href="http://gatb.inria.fr/tutorials">here</a> high level tutorials about GATB.
  *
  ****************************************************************************************************
  ****************************************************************************************************
@@ -82,5 +83,5 @@
  * You can also read the related pages:
  *      - \ref download_page
  *      - \ref design_page
- *      - \ref tests_page
+ *      - \ref dbgh5_page
  */

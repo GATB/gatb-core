@@ -16,28 +16,3 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/**\page tests_page Unit tests for the library
- *
- * This is the entry point for the unit tests of the gatb::core component.
- *
- * These unit tests use CPPUNIT.
- *
- ************************************************************************************
- * \section tests_system Operating system unit tests
- *
- * The tests are located in:
- *      - gatb::tests::TestSystem
- *
- ************************************************************************************
- * \section tests_tools Tools unit tests
- *
- * The tests are located in:
- *      - gatb::tests::TestIterators
- *      - gatb::tests::TestMisc
- *
- *************************************************************************************
- * \section tests_bank Bank unit tests
- *
- * The tests are located in:
- *      - gatb::tests::TestBank
- */
