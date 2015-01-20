@@ -95,6 +95,15 @@ Such a project can be a start for building applications based on GATB-CORE.
 ----------------------------------------------------------------------------------
 # Notes for GATB-core developers
 
-to compile in debug mode, type:
+To compile in debug mode, type.
 
  mkdir build ; cd build && cmake -Ddebug=1 .. && make -j
+
+
+To run unit tests, compile using the command above (-Ddebug=1 isn't necessary) and type:
+
+    bin/gatb-core-cppunit
+
+One may set the environment variable CPPUNIT_VERBOSE to 1 to known which tests pass.
+The gatb-core-cppunit command may also take as argument the categories of tests that
+show up in the verbose output, e.g. 'bin/gatb-core-cppunit TestBank'.
