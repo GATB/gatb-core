@@ -137,7 +137,11 @@ public:
         bool isDone ()  { return _isDone; }
 
         /** \copydoc tools::dp::Iterator::item */
-        Sequence& item ()     { return *_item; }
+        Sequence& item ()
+        {
+            _item->getData().setEncoding (tools::misc::Data::BINARY);
+            return *_item;
+        }
 
         /** Estimation of the sequences information. */
         void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);

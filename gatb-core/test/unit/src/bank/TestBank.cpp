@@ -580,7 +580,7 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare the two banks. */
-        BankFasta       bank1 (filename);
+        BankFasta  bank1 (filename);
         BankBinary bank2 (filenameBin);
 
         /** We convert the fasta bank in binary format. */
@@ -593,8 +593,11 @@ public:
         /** We check that the binary file size is smaller than the original file (should be about 25%). */
         if (checkSize)  {  CPPUNIT_ASSERT (System::file().getSize (filename) >= 4 * System::file().getSize (filenameBin));  }
 
+        Iterator<Sequence>* it1 = bank1.iterator();  LOCAL (it1);
+        Iterator<Sequence>* it2 = bank2.iterator();  LOCAL (it2);
+
         /** We check that both banks have the same nucleotides. */
-        PairedIterator<Sequence> itPair (bank1.iterator(), bank2.iterator());
+        PairedIterator<Sequence> itPair (it1, it2);
         for (itPair.first(); !itPair.isDone(); itPair.next())
         {
             Sequence& s1 = itPair.item().first;

@@ -80,7 +80,21 @@ public:
     /** */
     Data& operator= (const Data& d)
     {
-        if (this != &d)  {  this->set (d.getBuffer(), d.size());  }
+        if (this != &d)
+        {
+            /** Special case for binary encoding => we have 4 nucleotides in one byte. */
+            if (d.getEncoding() == BINARY)
+            {
+                this->set (d.getBuffer(), d.size()/4+1);
+                this->setSize(d.size());
+                this->encoding = BINARY;
+            }
+            else
+            {
+                this->set (d.getBuffer(), d.size());
+                this->encoding = d.getEncoding();
+            }
+        }
         return *this;
     }
 
@@ -103,6 +117,8 @@ public:
 
     /** \return format of the data. */
     Encoding_e getEncoding ()  const  { return encoding; }
+
+    void setEncoding (Encoding_e encoding)  { this->encoding = encoding; }
 
     /** Conversion from one encoding scheme to another.
      *  TO BE IMPROVED (support only one kind of conversion, from binary to ascii)
