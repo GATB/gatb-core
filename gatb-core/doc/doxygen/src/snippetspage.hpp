@@ -19,6 +19,7 @@
 /**\page snippets_page How to use the library ?
  *
  * \subpage compilation           \n
+ * \subpage new_project           \n
  * \subpage snippets_graph        \n
  * \subpage snippets_bank         \n
  * \subpage snippets_kmer         \n
@@ -48,14 +49,16 @@
  * Several artifacts are generated:
  *
  *  - the gatb core library is available in the generated <tt>build/lib</tt> directory
+ *  - the gatb core binaries are available in the generated <tt>build/bin</tt> directory
  *  - the HTML documentation is available from <tt>build/doc/html/index.html</tt>
- *  - the unit tests binary is available in <tt>build/test/GatbToolsTest</tt>
  *
- * About the unit tests binary, you can launch it with
+ * If CppUnit is installed, a unit tests binary should be generated; you can launch it with
  * \code
  * bin/gatb-core-cppunit
  * \endcode
- * You can use the exit status code of the command to know the success status (0 for success)
+ * You can use the exit status code of the command to know the success status (0 for success).
+ *
+ * Note that one may set the environment variable CPPUNIT_VERBOSE to 1 to known which tests pass.
  *
  ************************************************************************************
  * \section compilation_snippets Compiling the snippets
@@ -64,11 +67,47 @@
  *
  * In order to compile them, you will first need to compile the library.
  *
- * Then, you can use the following command for compiling one snippet:
+ * A simple way to generate the snippets is to launch
  * \code
- * g++ examples/debruijn/debruijn15.cpp -Iinclude -Llib -lgatbcore -ldl -lpthread -lz -lhdf5 -std=c++0x -O3
+ * make examples
  * \endcode
- * \n
+ *
+ *************************************************************************************
+ * \page new_project Quick project creation
+ ************************************************************************************
+ *
+ * It is possible to create a new project based on gatb::core with a script provided in
+ * the distribution. It is still based on cmake.
+ *
+ * You have to provide a name for the project and the location of the generated directory holding
+ * all the needed material. For instance:
+ * \code
+ * sh scripts/NewProject/NewProject.sh MyProject /tmp
+ * \endcode
+ *
+ * Then you can go in the generated directory and browse its content:
+ * \code
+ * cd /tmp/MyProject; ls -l
+ * \endcode
+ *
+ * By default, the generated project is designed to produce two binaries called
+ * MyProject_1 and MyProject_2. For instance, the associated sources for the MyProject_1
+ * tool are located in the directory tools/MyProject_1/src. The sources may be used as
+ * a skeleton to build an application based on gatb::core.
+ *
+ * Note that you can keep only one tool, for instance MyProject_1 and rename it as you
+ * want. You can also add as many tools as you want in the 'tools' directory.
+ *
+ * For compiling the project, you have to follow the same process than compiling the
+ * distribution:
+ * \code
+ * cd /tmp/MyProject; mkdir build ; cd build ; cmake .. ; make
+ * \endcode
+ *
+ * Note that all the needed material is included in the generated project (in particular
+ * the gatb::core library and the header files), so you can move it wherever you want.
+ * Note also that you won't have to do any tricky configuration to build the binary; you
+ * just have to do cmake+make and you will have your binaries in the build/tools directory.
  *
  ************************************************************************************
  ************************************************************************************

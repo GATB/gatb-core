@@ -23,6 +23,6 @@
  * \section download Download archives
  *
  * You can go to the following links:
- *  - <a href="http://gatb.inria.fr/gatb/binaries">gatb-core binaries</a>
- *  - <a href="http://gatb.inria.fr/gatb/git">gatb-core sources</a>
+ *  - <a href="http://gatb.inria.fr/binaries-url">gatb-core binaries</a>
+ *  - <a href="http://gatb.inria.fr/sources-url">gatb-core sources</a>
  */

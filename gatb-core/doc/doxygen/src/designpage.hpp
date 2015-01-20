@@ -75,9 +75,7 @@
  * The gatb::core::bank package holds operations related to genomic databases management.
  *
  * In particular, we define a gatb::core::bank::IBank interface that is an iterable over gatb::core::bank::Sequence
- * instances.
- *
- * \image html BankGlobal.png "Global view of the gatb::core::bank package"
+ * instances. This interface has a lot of implementations, including FASTA format.
  *
  *
  ******************************************************************************************************
@@ -89,4 +87,18 @@
  * kmer model for iterating all the kmer from the sequences.
  *
  *
+ *******************************************************************************************************
+ * \subsection coredesign_debruijn Package gatb::core::debruijn
+ *
+ * The gatb::core::debruijn package holds operations related to De Bruijn graph.
+ *
+ * The main API is the gatb::core::debruijn::impl::Graph class. It holds several features:
+ *      - create graph
+ *      - load graph
+ *      - iterate nodes of the graph
+ *      - get neighbors of a node
+ *
+ * The implementation of the class relies on a probabilistic data structure named
+ * <a href="http://en.wikipedia.org/wiki/Bloom_filter">Bloom filter</a>. Its usage allows to
+ * have a very low memory footprint, even for big graphs.
  */
