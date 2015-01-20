@@ -53,13 +53,12 @@
  ****************************************************************************************************
  * \section dbgh5_options Options
  *
- * dbgh5 is highly configurable; you can just type 'dbgh5' and you will get all the available options.
- * The minimal requirement is the input set of reads, so you can just type for instance:
+ * dbgh5 is highly configurable; the minimal requirement is the input set of reads, so you can just type for instance:
  * \code
  * dbgh5 -in /somewhere/myreads.fasta
  * \endcode
  *
- * The options are:
+ * you can just type 'dbgh5' and you will get all the available options.
  * \code
 [graph options]
 
