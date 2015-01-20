@@ -126,6 +126,18 @@ public:
         out.setSize (in.size());
     }
 
+    /** Shortcut.
+     *  - first  : the nucleotide value (A=0, C=1, T=2, G=3)
+     *  - second : 0 if valid, 1 if invalid (in case of N character for instance) */
+    typedef std::pair<char,char> ConvertChar;
+
+    /** Note for the ASCII conversion: the 4th bit is used to tell whether it is invalid or not.
+     * => it finds out that 'N' character has this 4th bit equals to 1, which is not the case
+     * for 'A', 'C', 'G' and 'T'. */
+    struct ConvertASCII    { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar((buffer[idx]>>1) & 3, (buffer[idx]>>3) & 1); }};
+    struct ConvertInteger  { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(buffer[idx],0); }         };
+    struct ConvertBinary   { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(((buffer[idx>>2] >> ((3-(idx&3))*2)) & 3),0); } };
+
 private:
 
     /** Encoding scheme of the data instance. */

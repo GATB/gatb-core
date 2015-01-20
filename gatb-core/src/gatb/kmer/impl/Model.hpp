@@ -269,12 +269,6 @@ struct Kmer
         friend class ModelMinimizer<Model,Comparator>;
     };
 
-    /** Shortcut.
-     *  - first  : the nucleotide value (A=0, C=1, T=2, G=3)
-     *  - second : 0 if valid, 1 if invalid (in case of N character for instance) */
-    typedef std::pair<char,char> ConvertChar;
-
-
     /** Abstract class that provides kmer management.
      *
      * This class is the base class for kmer management. It provides several services on this purpose
@@ -514,6 +508,12 @@ struct Kmer
 
     protected:
 
+        /** Shortcuts. */
+        typedef tools::misc::Data::ConvertChar      ConvertChar;
+        typedef tools::misc::Data::ConvertASCII     ConvertASCII;
+        typedef tools::misc::Data::ConvertInteger   ConvertInteger;
+        typedef tools::misc::Data::ConvertBinary    ConvertBinary;
+
         /** Size of a kmer for this model. */
         size_t  _kmerSize;
 
@@ -522,13 +522,6 @@ struct Kmer
 
         /** Shortcut for easing/speeding up the recursive revcomp computation. */
         Type _revcompTable[4];
-
-        /** Note for the ASCII conversion: the 4th bit is used to tell whether it is invalid or not.
-         * => it finds out that 'N' character has this 4th bit equals to 1, which is not the case
-         * for 'A', 'C', 'G' and 'T'. */
-        struct ConvertASCII    { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar((buffer[idx]>>1) & 3, (buffer[idx]>>3) & 1); }};
-        struct ConvertInteger  { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(buffer[idx],0); }         };
-        struct ConvertBinary   { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(((buffer[idx>>2] >> ((3-(idx&3))*2)) & 3),0); } };
 
         /** \return -1 if valid, otherwise index of the last found bad character. */
         template<class Convert>
