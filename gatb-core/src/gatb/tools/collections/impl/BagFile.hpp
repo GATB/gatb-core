@@ -163,7 +163,7 @@ public:
         _buffer_size = 16384;
         /** We get a handle on the file. */
         _file = system::impl::System::file().newFile (filename, "wb+");
-        _bufferOut  = (u_int8_t*) malloc (sizeof(u_int8_t) * _buffer_size);
+        _bufferOut  = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _buffer_size);
         _idx=0;
         _size_item = sizeof(Item);
         _sizeOutput =0;

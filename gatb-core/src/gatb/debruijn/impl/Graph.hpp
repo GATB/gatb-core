@@ -454,7 +454,7 @@ public:
     /** Get a parser object that knows the user options for building a graph.
      * \return the options parser object.
      */
-    static tools::misc::impl::OptionsParser getOptionsParser (bool includeMandatory=true, bool enableMphf=false);
+    static tools::misc::IOptionsParser* getOptionsParser (bool includeMandatory=true, bool enablemphf=false );
 
     /********************************************************************************/
     template<typename Item, int NB=8>
@@ -858,7 +858,6 @@ private:
     tools::misc::impl::Properties _info;
 
     /** */
-    tools::misc::BankConvertKind _bankConvertKind;
     tools::misc::BloomKind       _bloomKind;
     tools::misc::DebloomKind     _debloomKind;
     tools::misc::DebloomImpl     _debloomImpl;

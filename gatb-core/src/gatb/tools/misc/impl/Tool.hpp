@@ -80,7 +80,7 @@ public:
     virtual IProperties*            getInput      ()  { return _input;      }
     virtual IProperties*            getOutput     ()  { return _output;     }
     virtual IProperties*            getInfo       ()  { return _info;       }
-    virtual OptionsParser*          getParser     ()  { return _parser;     }
+    virtual IOptionsParser*         getParser     ()  { return _parser;     }
     virtual dp::IDispatcher*        getDispatcher ()  { return _dispatcher; }
     virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
 
@@ -127,10 +127,10 @@ protected:
     void setInput      (IProperties*            input)       { SP_SETATTR (input);      }
     void setOutput     (IProperties*            output)      { SP_SETATTR (output);     }
     void setInfo       (IProperties*            info)        { SP_SETATTR (info);       }
-    void setParser     (OptionsParser*          parser)      { SP_SETATTR (parser);     }
+    void setParser     (IOptionsParser*         parser)      { SP_SETATTR (parser);     }
     void setDispatcher (dp::IDispatcher*        dispatcher)  { SP_SETATTR (dispatcher); }
 
-private:
+protected:
 
     /** Name of the tool (set at construction). */
     std::string _name;
@@ -141,7 +141,7 @@ private:
 
     IProperties* _info;
 
-    OptionsParser* _parser;
+    IOptionsParser* _parser;
 
     dp::IDispatcher* _dispatcher;
 
@@ -191,7 +191,7 @@ public:
     ToolProxy (Tool* ref) : Tool("proxy"), _ref (ref)  {}
 
     /** */
-    virtual OptionsParser* getParser ()  {  return _ref->getParser();  }
+    virtual IOptionsParser* getParser ()  {  return _ref->getParser();  }
 
     /** */
     virtual IProperties* getInput  ()  { return _ref->getInput();     }

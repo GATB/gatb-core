@@ -61,11 +61,11 @@ public:
     {
         hash_size = max_memory / sizeof(element_pair);
         if (hash_size == 0)  {  throw system::Exception ("empty OAHash allocated");  }
-        data = (element_pair *) calloc( hash_size, sizeof(element_pair));  //create hashtable
+        data = (element_pair *) CALLOC ( hash_size, sizeof(element_pair));  //create hashtable
     }
 
     /** Destructor. */
-    ~OAHash()  {  free (data);  }
+    ~OAHash()  {  FREE (data);  }
 
     /** */
     void insert (const Item& graine, int value)

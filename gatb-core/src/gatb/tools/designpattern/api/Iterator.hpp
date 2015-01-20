@@ -109,7 +109,7 @@ template <class Item> class Iterator : public system::SmartPointer
 public:
 
     /** */
-    Iterator () : _item(&_default), _isRunning(false) {}
+    Iterator () : _item(&_default), _isRunning(IDDLE) {}
 
     /** Method that initializes the iteration. */
     virtual void first() = 0;
@@ -143,20 +143,29 @@ public:
     virtual void setItem (Item& i)  {  _item = &i;  }
 
     /** Retrieve some iterated items in a vector.
+     * NOTE: In general, this method should be protected against concurrent accesses (IteratorCommand::execute)
      * \param[in] current : vector to be filled with iterated items. May be resized if not enough items available
      * \return true if the iteration is not finished, false otherwise. */
     bool get (std::vector<Item>& current)
     {
+        /** We must check first that the iterator is not already finished.
+         * This is important when several threads are calling at the same time this method; if one thread consumes
+         * all the items, the other threads should not go into the 'for' loop below (otherwise, 'first' or 'next'
+         * would be called, which must not be)
+         */
+        if (_isRunning==FINISHED)  {  current.clear(); return false; }
+
         size_t i=0;
         for (i=0; i<current.size(); i++)
         {
             setItem (current[i]);
 
-            if (_isRunning == false)  { first ();  _isRunning=true; }
-            else                      { next  ();                   }
+            if (_isRunning == IDDLE)  { first ();  _isRunning=STARTED; }
+            else                      { next  ();                      }
 
             if (isDone())
             {
+                _isRunning=FINISHED;
                 current.resize (i);
                 return false;
             }
@@ -167,7 +176,7 @@ public:
     /** Reset the iterator. */
     virtual void reset ()
     {
-        _isRunning = false;
+        _isRunning = IDDLE;
         _item      = &_default;
     }
 
@@ -179,7 +188,9 @@ protected:
 
 private:
     Item  _default;
-    bool  _isRunning;
+
+    enum Status { IDDLE, STARTED, FINISHED };
+    Status  _isRunning;
 };
 
 /********************************************************************************/

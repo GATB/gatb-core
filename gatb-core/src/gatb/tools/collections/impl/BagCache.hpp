@@ -57,7 +57,7 @@ public:
     {
         setRef     (ref);
         setSynchro (synchro);
-        _items = (Item*) system::impl::System::memory().calloc (_nbMax, sizeof(Item));
+        _items = (Item*) CALLOC (_nbMax, sizeof(Item));
         system::impl::System::memory().memset (_items, 0, _nbMax*sizeof(Item));
     }
 
@@ -67,7 +67,7 @@ public:
         setRef     (b._ref);
         setSynchro (b._synchro);
 
-        _items = (Item*) system::impl::System::memory().calloc (_nbMax, sizeof(Item));
+        _items = (Item*) CALLOC (_nbMax, sizeof(Item));
         system::impl::System::memory().memset (_items, 0, _nbMax*sizeof(Item));
     }
 
@@ -81,7 +81,7 @@ public:
         setRef     (0);
         setSynchro (0);
 
-        system::impl::System::memory().free (_items);
+        FREE (_items);
     }
 
     /**  \copydoc Bag::insert */

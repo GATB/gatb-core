@@ -109,6 +109,9 @@ public:
       */
     static void setBufferSize (u_int64_t bufferSize);
 
+    /** Check that the given uri is a correct binary bank. */
+    static bool check (const std::string& uri);
+
     /************************************************************/
 
     /** \brief Specific Iterator impl for BankBinary class
@@ -134,7 +137,11 @@ public:
         bool isDone ()  { return _isDone; }
 
         /** \copydoc tools::dp::Iterator::item */
-        Sequence& item ()     { return *_item; }
+        Sequence& item ()
+        {
+            _item->getData().setEncoding (tools::misc::Data::BINARY);
+            return *_item;
+        }
 
         /** Estimation of the sequences information. */
         void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
@@ -186,7 +193,10 @@ class BankBinaryFactory : public IBankFactory
 public:
 
     /** \copydoc IBankFactory::createBank */
-    IBank* createBank (const std::string& uri) { return new BankBinary (uri); }
+    IBank* createBank (const std::string& uri)
+    {
+        return BankBinary::check(uri) ? new BankBinary (uri) : 0;
+    }
 };
 
 /********************************************************************************/

@@ -150,6 +150,8 @@ public:
         tools::misc::KmerSolidityKind solidityKind = tools::misc::KMER_SOLIDITY_DEFAULT,
         size_t              histogramMax   = 10000,
         size_t              partitionType  = 0,
+        size_t              minimizerType  = 0,
+        size_t              minimizerSize  = 0,
         const std::string&  prefix         = "tmp.",
         gatb::core::tools::misc::IProperties* options = 0
     );
@@ -162,6 +164,11 @@ public:
 
     /** operator=.*/
     SortingCountAlgorithm& operator= (const SortingCountAlgorithm& s);
+
+    /** Get an option parser for kmers counting parameters. Dynamic allocation, so must be released when no more used.
+     * \param[in] mandatory : tells whether an argument has to be mandatory
+     * \return an instance of IOptionsParser. */
+    static tools::misc::IOptionsParser* getOptionsParser (bool mandatory=true);
 
     /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
      * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
@@ -221,6 +228,8 @@ private:
     size_t      _kmerSize;
     std::pair<size_t,size_t> _abundance;
     size_t      _partitionType;
+    size_t      _minimizerType;
+    size_t      _minimizerSize;
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
     size_t      _nb_partitions_in_parallel;

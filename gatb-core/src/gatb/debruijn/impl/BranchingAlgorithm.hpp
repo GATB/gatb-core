@@ -64,6 +64,11 @@ public:
     /** Destructor. */
     ~BranchingAlgorithm ();
 
+    /** Get an option parser for branching parameters. Dynamic allocation, so must be released when no more used.
+     * \param[in] mandatory : tells whether an argument has to be mandatory
+     * \return an instance of IOptionsParser. */
+    static tools::misc::IOptionsParser* getOptionsParser ();
+
     /** */
     void execute ();
 

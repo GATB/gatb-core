@@ -62,10 +62,10 @@ public:
     {
         setBag (bag);
 
-        _histogram = (Entry*) system::impl::System::memory().calloc (_length + 1, sizeof (Entry));
+        _histogram = (Entry*) CALLOC (_length + 1, sizeof (Entry));
         memset (_histogram, 0, sizeof(Entry)*(_length + 1));
 
-		_histogram_smoothed = (Entry*) system::impl::System::memory().calloc (_length + 1, sizeof (Entry));
+		_histogram_smoothed = (Entry*) CALLOC (_length + 1, sizeof (Entry));
         memset (_histogram_smoothed, 0, sizeof(Entry)*(_length + 1));
 		
         for (size_t i=0; i<_length+1; i++)
@@ -81,8 +81,8 @@ public:
     virtual ~Histogram ()
     {
         setBag(0);
-        system::impl::System::memory().free (_histogram);
-        system::impl::System::memory().free (_histogram_smoothed);
+        FREE (_histogram);
+        FREE (_histogram_smoothed);
     }
 
     /** \copydoc IHistogram::inc */

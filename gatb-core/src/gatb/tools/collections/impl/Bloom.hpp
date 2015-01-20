@@ -127,7 +127,7 @@ public:
         : _hash(nbHash), n_hash_func(nbHash), blooma(0), tai(tai_bloom), nchar(0), isSizePowOf2(false)
     {
         nchar  = (1+tai/8LL);
-        blooma = (unsigned char *) system::impl::System::memory().malloc (nchar*sizeof(unsigned char)); // 1 bit per elem
+        blooma = (unsigned char *) MALLOC (nchar*sizeof(unsigned char)); // 1 bit per elem
         system::impl::System::memory().memset (blooma, 0, nchar*sizeof(unsigned char));
 
         /** We look whether the provided size is a power of 2 or not.
@@ -733,7 +733,7 @@ public:
     BloomGroupOld (u_int64_t size, size_t nbHash=4)
         : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
     {
-        _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+        _blooma = (Result*) MALLOC (_size*sizeof(Result));
         system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
     }
 
@@ -745,7 +745,7 @@ public:
     }
 
     /** */
-    ~BloomGroupOld ()  {  system::impl::System::memory().free (_blooma); }
+    ~BloomGroupOld ()  {  FREE (_blooma); }
 
     /** */
     std::string getName () const { return "BloomGroupOld"; }
@@ -812,7 +812,7 @@ for (size_t i=0; i<10; i++)
             file->fread (&_size, sizeof(_size), 1);
 
             /** We allocate the array. */
-            _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+            _blooma = (Result*) MALLOC (_size*sizeof(Result));
             system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
 
             /** We read the blooms info. */
@@ -900,7 +900,7 @@ public:
         }
         printf ("===> size=%ld   allocMemory=%ld\n", _size, sizeof(Result)*_size);
 
-        _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+        _blooma = (Result*) MALLOC (_size*sizeof(Result));
         system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
     }
 
@@ -912,7 +912,7 @@ public:
     }
 
     /** */
-    ~BloomGroup ()  {  system::impl::System::memory().free (_blooma); }
+    ~BloomGroup ()  {  FREE (_blooma); }
 
     /** */
     std::string getName () const { return "BloomGroup"; }
@@ -952,7 +952,7 @@ public:
             file->fread (&_size, sizeof(_size), 1);
 
             /** We allocate the array. */
-            _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+            _blooma = (Result*) MALLOC (_size*sizeof(Result));
             system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
 
             /** We read the blooms info. */
@@ -1036,7 +1036,7 @@ public:
     {
         _size += (1<<_nbits_BlockSize);
 
-        _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+        _blooma = (Result*) MALLOC (_size*sizeof(Result));
         system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
 
         _mask_block   = (1<<_nbits_BlockSize) - 1;
@@ -1100,7 +1100,7 @@ public:
             file->fread (&_nbits_BlockSize, sizeof(_nbits_BlockSize), 1);
 
             /** We allocate the array. */
-            _blooma = (Result*) system::impl::System::memory().malloc (_size*sizeof(Result));
+            _blooma = (Result*) MALLOC (_size*sizeof(Result));
             system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
 
             /** We read the blooms info. */

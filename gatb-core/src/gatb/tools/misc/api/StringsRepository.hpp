@@ -81,6 +81,7 @@ public:
     const char* db             ()  { return "-db";             }
     const char* file           ()  { return "-file";           }
     const char* kmer_size      ()  { return "-kmer-size";      }
+    const char* minimizer_size ()  { return "-minimizer-size"; }
     const char* kmer_abundance ()  { return "-abundance"; }
     const char* kmer_abundance_min ()  { return "-abundance-min"; }
     const char* kmer_abundance_max ()  { return "-abundance-max"; }
@@ -111,6 +112,7 @@ public:
     const char* bank_convert_type ()  { return "-bank-convert";   }
     const char* integer_precision ()  { return "-integer-precision";}
     const char* solidity_kind  ()  { return "-solidity-kind"; }
+    const char* minimizer_type ()  { return "-minimizer-type"; }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -125,6 +127,7 @@ public:
 #define STR_URI_DB              gatb::core::tools::misc::StringRepository::singleton().db ()
 #define STR_URI_FILE            gatb::core::tools::misc::StringRepository::singleton().file ()
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
+#define STR_MINIMIZER_SIZE      gatb::core::tools::misc::StringRepository::singleton().minimizer_size ()
 #define STR_INTEGER_PRECISION   gatb::core::tools::misc::StringRepository::singleton().integer_precision ()
 #define STR_KMER_ABUNDANCE      gatb::core::tools::misc::StringRepository::singleton().kmer_abundance ()
 #define STR_KMER_ABUNDANCE_MIN  gatb::core::tools::misc::StringRepository::singleton().kmer_abundance_min ()
@@ -155,6 +158,7 @@ public:
 #define STR_URI_SOLID_KMERS     gatb::core::tools::misc::StringRepository::singleton().uri_solid_kmers()
 #define STR_BANK_CONVERT_TYPE   gatb::core::tools::misc::StringRepository::singleton().bank_convert_type()
 #define STR_SOLIDITY_KIND       gatb::core::tools::misc::StringRepository::singleton().solidity_kind()
+#define STR_MINIMIZER_TYPE      gatb::core::tools::misc::StringRepository::singleton().minimizer_type()
 
 /********************************************************************************/
 

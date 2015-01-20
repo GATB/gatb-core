@@ -25,6 +25,9 @@
 #include <gatb/tools/misc/api/Vector.hpp>
 #include <gatb/tools/misc/api/Macros.hpp>
 
+#include <gatb/tools/misc/impl/OptionsParser.hpp>
+#include <gatb/tools/misc/impl/Property.hpp>
+
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include <memory>
@@ -36,6 +39,7 @@ using namespace gatb::core::system::impl;
 
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::misc::impl;
 
 #define ABS(a)  ((a)<0 ? -(a) : (a))
 
@@ -56,6 +60,7 @@ class TestMisc : public Test
         // DEACTIVATED BECAUSE OF MACOS (TO BE INVESTIGATED...)  CPPUNIT_TEST_GATB (vector_check1);
         CPPUNIT_TEST_GATB (vector_check2);
         CPPUNIT_TEST_GATB (vector_check3);
+        CPPUNIT_TEST_GATB (parser_check1);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -222,6 +227,70 @@ public:
         CPPUNIT_ASSERT (ref3[0] == 8);
         CPPUNIT_ASSERT (ref3[1] == 13);
         CPPUNIT_ASSERT (ref3[2] == 21);
+    }
+
+    /********************************************************************************/
+    void parser_check1_aux (IOptionsParser* parser, const string& str, bool ok, size_t nbProps, const string& check)
+    {
+        IProperties* props;
+        try
+        {
+            props = parser->parseString (str);
+
+            /** We can't be here. */
+            CPPUNIT_ASSERT (ok);
+        }
+        catch (OptionFailure& e)
+        {
+            CPPUNIT_ASSERT (!ok);
+        }
+
+        if (ok)
+        {
+            CPPUNIT_ASSERT (props != 0);
+
+            if (props->getKeys().size() > 0)
+            {
+                stringstream ss;
+                XmlDumpPropertiesVisitor xml (ss, false, false);
+                props->accept (&xml);
+
+                CPPUNIT_ASSERT (check == ss.str());
+            }
+
+            CPPUNIT_ASSERT (props->getKeys().size() == nbProps);
+        }
+    }
+
+    void parser_check1 ()
+    {
+        OptionsParser* parser1 = new OptionsParser ("dsk");
+        parser1->push_back (new OptionOneParam ("-a",  "option a", false, "1"));
+
+        OptionsParser* parser2 = new OptionsParser ("bloom");
+        parser2->push_back (new OptionOneParam ("-b",  "option b", true));
+
+        OptionsParser* parser3 = new OptionsParser ("debloom");
+        parser3->push_back (new OptionOneParam ("-c",  "option c", false));
+
+        OptionsParser* composite = new OptionsParser ("dbgh5");
+        LOCAL (composite);
+
+        composite->push_back (parser1);
+        composite->push_back (parser2);
+        composite->push_back (parser3);
+
+        parser_check1_aux (parser1, "-a 1", true,  1, "<-a>1</-a>");
+        parser_check1_aux (parser1, "-b 2", false, 1, "<-a>1</-a>");
+
+        parser_check1_aux (parser2, "-a 3", false, 1, "");
+        parser_check1_aux (parser2, "-b 4", true,  1, "<-b>4</-b>");
+
+        parser_check1_aux (parser3, "-c 5", true, 1, "<-c>5</-c>");
+
+        parser_check1_aux (composite, "-a 5 -b 6 -c 7", true,  3, "<-a>5</-a><-b>6</-b><-c>7</-c>");
+        parser_check1_aux (composite, "-a 8 -b 9",      true,  2, "<-a>8</-a><-b>9</-b>");
+        parser_check1_aux (composite, "-a 10 -c 11",    false, 0, "");
     }
 };
 

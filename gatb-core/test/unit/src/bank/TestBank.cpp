@@ -44,6 +44,8 @@ using namespace gatb::core::bank::impl;
 using namespace gatb::core::tools::dp;
 using namespace gatb::core::tools::dp::impl;
 
+using namespace gatb::core::tools::misc;
+
 #define ABS(a)  ((a)<0 ? -(a) : (a))
 
 extern std::string DBPATH (const string& a);
@@ -578,7 +580,7 @@ public:
         CPPUNIT_ASSERT (System::file().doesExist (filename) == true);
 
         /** We declare the two banks. */
-        BankFasta       bank1 (filename);
+        BankFasta  bank1 (filename);
         BankBinary bank2 (filenameBin);
 
         /** We convert the fasta bank in binary format. */
@@ -590,6 +592,31 @@ public:
 
         /** We check that the binary file size is smaller than the original file (should be about 25%). */
         if (checkSize)  {  CPPUNIT_ASSERT (System::file().getSize (filename) >= 4 * System::file().getSize (filenameBin));  }
+
+        Iterator<Sequence>* it1 = bank1.iterator();  LOCAL (it1);
+        Iterator<Sequence>* it2 = bank2.iterator();  LOCAL (it2);
+
+        /** We check that both banks have the same nucleotides. */
+        PairedIterator<Sequence> itPair (it1, it2);
+        for (itPair.first(); !itPair.isDone(); itPair.next())
+        {
+            Sequence& s1 = itPair.item().first;
+            Sequence& s2 = itPair.item().second;
+
+            CPPUNIT_ASSERT (s1.getDataSize() == s2.getDataSize());
+
+            size_t len = s1.getDataSize();
+
+            char* b1 = s1.getDataBuffer();
+            char* b2 = s2.getDataBuffer();
+
+            for (size_t i=0; i<len; i++)
+            {
+                Data::ConvertChar c1 = Data::ConvertASCII::get  (b1, i);
+                Data::ConvertChar c2 = Data::ConvertBinary::get (b2, i);
+                CPPUNIT_ASSERT (c1.first == c2.first);
+            }
+        }
 
         /** We suppress the binary file and check that the binary bank doesn't exist any more. */
         CPPUNIT_ASSERT (System::file().remove (filenameBin) == 0);

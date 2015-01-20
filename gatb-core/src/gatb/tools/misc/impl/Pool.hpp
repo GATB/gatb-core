@@ -64,12 +64,12 @@ public:
     {
         n_pools = 0; n_cells=0;
         //allocation table de pool :
-        tab_pool = (cell**)  system::impl::System::memory().malloc (N_POOL*sizeof(cell*) );
+        tab_pool = (cell**)  MALLOC (N_POOL*sizeof(cell*) );
 
         tab_pool[0]=0; n_pools++; // la premiere pool est NULL, pour conversion null_internal -> null
 
         //allocation de la premiere pool :
-        pool_courante =(cell*)  system::impl::System::memory().malloc (TAI_POOL*sizeof(cell) );
+        pool_courante =(cell*)  MALLOC (TAI_POOL*sizeof(cell) );
         tab_pool[n_pools] = pool_courante;
         n_pools++;
     }
@@ -78,9 +78,9 @@ public:
     ~Pool()
     {
         // la pool 0 est NULL
-        for(size_t i=1;i<n_pools;i++)  {  system::impl::System::memory().free( tab_pool[i] );  }
+        for(size_t i=1;i<n_pools;i++)  {  FREE ( tab_pool[i] );  }
 
-        system::impl::System::memory().free(tab_pool);
+        FREE (tab_pool);
     }
 
     /**  allocate cell, return internal pointer type ( 32bits) */
@@ -103,7 +103,7 @@ public:
                 // will happen when  4G cells are allocated, representing 64 Go
                 throw system::Exception ("Internal memory allocator is full!");
             }
-            pool_courante =(cell*)  system::impl::System::memory().malloc(TAI_POOL*sizeof(cell) );
+            pool_courante =(cell*)  MALLOC (TAI_POOL*sizeof(cell) );
             tab_pool[n_pools] = pool_courante;
             n_pools++;
             n_cells = 1;
@@ -129,7 +129,7 @@ public:
     {
         for(size_t i=2;i<n_pools;i++) // garde la premiere pool pour usage futur
         {
-            system::impl::System::memory().free( tab_pool[i] );
+            FREE ( tab_pool[i] );
         }
 
         //on repasse sur premiere pool
@@ -168,12 +168,12 @@ public:
     {
         if(size ==0 && mainbuffer !=NULL)
         {
-            free(mainbuffer);
+            FREE (mainbuffer);
             capacity = used_space = 0;
             mainbuffer = NULL ;
         }
 
-        mainbuffer = (char*) malloc(size);
+        mainbuffer = (char*) MALLOC(size);
         capacity   = size;
         used_space = 0;
     }
@@ -212,7 +212,7 @@ public:
 
     ~MemAllocator()
     {
-        if (mainbuffer != NULL)  {  free(mainbuffer);  }
+        if (mainbuffer != NULL)  {  FREE (mainbuffer);  }
     }
 
 private :

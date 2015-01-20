@@ -23,8 +23,8 @@
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/system/impl/System.hpp>
 
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
 
 #define DEBUG(a)  //printf a
 
@@ -44,9 +44,137 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-OptionsParser::OptionsParser (const string& name)  : _name(name), _properties(0)
+struct HierarchyParserVisitor : public IOptionsParserVisitor
 {
-    _proceed=0;
+    void visitOptionsParser (impl::OptionsParser& object, size_t depth)
+    {
+        for (std::list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
+        {
+            (*it)->accept (*this, depth+1);
+        }
+    }
+};
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+struct PostParserVisitor : public HierarchyParserVisitor
+{
+    PostParserVisitor (const set<string>& foundParsers, IOptionsParser::Result& result)
+        : foundParsers(foundParsers), result(result) {}
+
+    void visitOption (Option& object, size_t depth)
+    {
+        /** The current Option may have been not seen during the parsing. */
+        if (foundParsers.find(object.getName()) == foundParsers.end())
+        {
+            /** This option is mandatory, so this is an error. */
+            if (object.isMandatory()==true)
+            {
+                result.errors.push_back (Stringify::format ("Option '%s' is mandatory", object.getName().c_str()));
+            }
+            /** This option is not mandatory, so we use its default value. */
+            else if (object.getDefaultValue().empty()==false)
+            {
+                result.properties.add (0, object.getName(), object.getDefaultValue());
+            }
+        }
+    }
+
+    const set<string>&      foundParsers;
+    IOptionsParser::Result& result;
+};
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+struct ParserVisitor : public IOptionsParserVisitor
+{
+    int argc; char** argv;
+    IOptionsParser::Result result;
+
+    ParserVisitor (int argc, char** argv) : argc(argc), argv(argv) {}
+
+    IOptionsParser::Result& getResult () { return result; }
+
+    void visitOptionsParser (OptionsParser& object, size_t depth)
+    {
+        set<string> foundParsers;
+
+        /** We loop the arguments. */
+        for (argc--,argv++; argc>0; argc--, argv++)
+        {
+            char* txt = argv[0];
+
+            IOptionsParser* match = object.getParser (txt);
+
+            if (match != 0)
+            {
+                /** We parse recursively with the found parser. */
+                match->accept (*this, depth+1);
+
+                /** We keep a track of found parsers. */
+                foundParsers.insert (match->getName());
+            }
+            else
+            {
+                result.errors.push_back (Stringify::format("Unknown '%s'", txt));
+            }
+        }
+
+        PostParserVisitor visitor (foundParsers, result);
+        object.accept (visitor);
+    }
+
+    void visitOption (Option& object, size_t depth)
+    {
+        /** We go to the first argument of the current option. */
+        argc--; argv++;
+
+        /** We retrieve the arguments of the option. */
+        std::list<std::string> optionArgs;
+        for (int i=0; argc>0; argc--, argv++)
+        {
+            optionArgs.push_back (argv[0]);
+
+            if (++i>=object.getNbArgs())  { break; }
+        }
+
+        if (optionArgs.size() == object.getNbArgs())
+        {
+            object.proceed (optionArgs, result.properties);
+        }
+        else
+        {
+            char buffer [128];
+            snprintf (buffer, sizeof(buffer), "Too few arguments for the %s option...", object.getName().c_str());
+            result.errors.push_back (buffer);
+        }
+    }
+};
+
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+OptionsParser::OptionsParser (const std::string& name)
+    : _name(name), _visible(true), _properties(0)
+{
     setProperties (new Properties());
 }
 
@@ -60,12 +188,12 @@ OptionsParser::OptionsParser (const string& name)  : _name(name), _properties(0)
  *********************************************************************/
 OptionsParser::~OptionsParser ()
 {
-    setProperties (0);
-
-    for (std::list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
+    for (list<IOptionsParser*>::const_iterator it = _parsers.begin(); it != _parsers.end(); ++it)
     {
         (*it)->forget();
     }
+
+    setProperties (0);
 }
 
 /*********************************************************************
@@ -76,208 +204,18 @@ OptionsParser::~OptionsParser ()
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::push_back (const OptionsParser& parser)
+misc::IProperties* OptionsParser::parse (int argc, char** argv)
 {
-    const std::list<Option*>& options = parser.getOptions ();
+    /** We parse the arguments through a visitor. */
+    ParserVisitor visitor (argc, argv);
+    this->accept (visitor);
 
-    for (std::list<Option*>::const_iterator it = options.begin(); it != options.end(); it++)
-    {
-        this->push_back (*it);
-    }
-}
+    /** We launch an exception in case we got errors during the parsing. */
+    if (!visitor.getResult().errors.empty())  {  throw OptionFailure (this, visitor.getResult());  }
 
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::push_front (OptionsParser& parser)
-{
-    const std::list<Option*>& options = parser.getOptions ();
+    /** We set the properties. */
+    setProperties (new Properties (visitor.getResult().properties));
 
-    for (std::list<Option*>::const_iterator it = options.begin(); it != options.end(); it++)
-    {
-        this->push_front (*it);
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-int OptionsParser::push_back (Option* option)
-{
-    DEBUG (("OptionsParser::add  this=%p  option=%s\n", this, option->getLabel().c_str()));
-
-    if (option != 0)
-    {
-        option->use ();
-
-        /* We add the option in the list. */
-        _options.push_back (option);
-    }
-
-    return _options.size();
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-int OptionsParser::remove (const char * label)
-{
-    for (std::list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
-    {
-		if(  ! strcmp ((*it)->getLabel().c_str(), label) )
-		{
-			_options.erase(it);
-			break;
-		}
-		
-    }
-	return _options.size();
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-int OptionsParser::push_front (Option* option)
-{
-    DEBUG (("OptionsParser::add  this=%p  option=%s\n", this, option->getLabel().c_str()));
-
-    if (option != 0)
-    {
-        option->use ();
-
-        /* We add the option in the list. */
-        _options.push_front (option);
-    }
-
-    return _options.size();
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-misc::IProperties* OptionsParser::parse (int argc, char* argv[])
-{
-    DEBUG (("OptionsParser::parse  this=%p  argc=%d\n", this, argc));
-
-    /* Some initializations. */
-    _argc=argc; _argv=argv; _currentArg=1;
-    _proceed=1;
-    _errors.clear();
-    _warnings.clear();
-    _seenOptions.clear();
-    char* exclude;
-
-    char* txt=0;
-    while ( (txt = nextArg ()) != 0)
-    {
-        DEBUG (("OptionsParser::parse:  _currentArg=%d  txt=%p \n", _currentArg, txt));
-
-        /* We look if is matches one of the recognized options. */
-        Option* optionMatch = lookForOption (txt);
-        DEBUG (("OptionsParser::parse:  txt='%s'  optionMatch=%p \n", txt, optionMatch));
-
-        if (optionMatch != 0)
-        {
-            /* This is a recognized option. So we try to retrieve the args that should follow. */
-            std::list<std::string> optionArgs;
-            getOptionArgs (optionMatch, optionArgs);
-
-            DEBUG (("OptionsParser::parse:  optionMatch.size=%ld  optionArgs.size=%ld\n",
-                optionMatch->getNbArgs(),
-                optionArgs.size()
-            ));
-
-            if (optionArgs.size() == optionMatch->getNbArgs())
-            {
-                /* We first look if this option has not already been met. */
-                if (!optionMatch->canBeMultiple () && saw (optionMatch->getLabel()))
-                {
-                    char buffer[128];
-                    snprintf (buffer, sizeof(buffer), "Option %s already seen, ignored...", optionMatch->getLabel().c_str());
-                    _warnings.push_back (buffer);
-                }
-                else if ( (exclude = checkExcludingOptions (optionMatch)) != 0)
-                {
-                    char buffer[128];
-                    snprintf (buffer, sizeof(buffer), "Option %s can't be used with option %s, ignored...",
-                        optionMatch->getLabel().c_str(),
-                        exclude
-                    );
-                    _errors.push_back (buffer);
-                }
-                else
-                {
-                    int res = optionMatch->proceed (optionArgs);
-                    _seenOptions.push_back (optionMatch);
-
-                    DEBUG (("OptionsParser::parse:  proceed the option => res=%ld  seenOptions=%ld  _currentArg=%d\n",
-                        res, _seenOptions.size(), _currentArg
-                    ));
-
-                    res=0;  // reduce warning
-                }
-            }
-        }
-        else
-        {
-#if 0
-            /* This is an NOT a recognized option. We try to find an No_Option. */
-            giveToNoOption (txt);
-#else
-            /** Unknown option => add it to the warning list. */
-            _warnings.push_back (tools::misc::impl::Stringify::format("Unknown '%s'", txt));
-
-            /** We throw an exception if the current option is not recognized. */
-            //throw OptionFailure (*this); //do this at the end
-#endif
-        }
-    }
-
-    /** We check mandatory options. */
-    checkMandatoryOptions ();
-
-    /* Now, we check that the accepted options are used with with include options. */
-    checkIncludingOptions ();
-
-    DEBUG (("OptionsParser::parse  errorsNb=%d  warningsNb=%d \n", _errors.size(), _warnings.size()));
-
-    /** We may launch an exception if needed. */
-    if (!_errors.empty())   {  throw OptionFailure (*this);  }
-
-    /** We may launch an exception if needed. */
-    //if (!_warnings.empty())   {  throw OptionFailure (*this);  }
-
-    /** We fill the properties. */
-    buildProperties ();
-
-	if (!_warnings.empty())   {  throw OptionFailure (*this);  }
-
-    /* And we return the errors number. */
     return _properties;
 }
 
@@ -289,9 +227,8 @@ misc::IProperties* OptionsParser::parse (int argc, char* argv[])
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-misc::IProperties* OptionsParser::parse (const std::string& s)
+misc::IProperties* OptionsParser::parseString (const std::string& s)
 {
-    IProperties* result = 0;
     int    argc   = 0;
     size_t idx    = 0;
 
@@ -304,7 +241,7 @@ misc::IProperties* OptionsParser::parse (const std::string& s)
     /** We allocate a table of char* */
     char** argv = (char**) calloc (argc, sizeof(char*));
 
-    argv[idx++] = strdup ("foo");
+    argv[idx++] = strdup (getName().c_str());
 
     /** We fill the table with the tokens. */
     TokenizerIterator it2 (s.c_str(), " ");
@@ -316,16 +253,16 @@ misc::IProperties* OptionsParser::parse (const std::string& s)
     for (int i=0; i<argc; i++)  {  DEBUG (("   item='%s' \n", argv[i]));  }
 
     /** We parse the arguments. */
-    result = parse (argc, argv);
+    misc::IProperties* result = this->parse (argc, argv);
 
-    DEBUG (("OptionsParser::parse  argc=%d => idx=%ld  result=%d  seenOptions=%ld\n", argc, idx, result, _seenOptions.size() ));
+    DEBUG (("OptionsParser::parseString  argc=%d => idx=%ld\n", argc, idx));
 
     /** Some clean up. */
     for (int i=0; i<argc; i++)  {  free (argv[i]);  }
     free (argv);
 
     /** We return the result. */
-    return _properties;
+    return result;
 }
 
 /*********************************************************************
@@ -336,57 +273,94 @@ misc::IProperties* OptionsParser::parse (const std::string& s)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::buildProperties ()
+bool OptionsParser::saw (const std::string& name) const
 {
-    _properties->add (0, "input");
+    return (_properties != 0  && _properties->get(name) != 0);
+}
 
-    for (std::list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+struct PushParserVisitor : public HierarchyParserVisitor
+{
+    bool   front;
+    size_t expandDepth;
+    std::list<IOptionsParser*>& parsers;
+
+    PushParserVisitor (bool front, size_t depth, std::list<IOptionsParser*>& parsers)
+        : front(front), expandDepth(depth), parsers(parsers) {}
+
+    void visitOptionsParser (impl::OptionsParser& object, size_t depth)
     {
-        /** Shortcut. */
-        Option* opt = *it;
-
-        if (saw(opt->getLabel()) || opt->getParam().empty()==false)
-        {
-            _properties->add (1, (*it)->getLabel(), (*it)->getParam());
-        }
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-char* OptionsParser::nextArg ()
-{
-    DEBUG (("\nCheckOption::nextArg:  _currentArg=%d  _argc=%d \n", _currentArg, _argc));
-
-    return (_currentArg >= _argc ? (char*)0 : _argv[_currentArg++]);
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-Option* OptionsParser::lookForOption (char* txt)
-{
-    Option* result = 0;
-
-    DEBUG (("CheckOption::lookForOption:  txt='%s'  _options.size=%ld  \n", txt, _options.size()));
-
-    for (list<Option*>::iterator it = _options.begin(); !result &&  it != _options.end(); it++)
-    {
-        if ((*it)->getLabel().compare (txt) == 0)  {  result = *it; }
+        if (depth < expandDepth)  { HierarchyParserVisitor::visitOptionsParser (object, depth);  }
+        else                      { add (object); }
     }
 
-    DEBUG (("CheckOption::lookForOption:  _options.size=%ld  => found=%d \n", _options.size(), result!=0));
+    void visitOption (impl::Option& object, size_t depth)   {  add (object); }
+
+    void add (IOptionsParser& object)
+    {
+        if (front)  {  object.use();  parsers.push_front (&object); }
+        else        {  object.use();  parsers.push_back  (&object); }
+    }
+};
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParser::push_back (IOptionsParser* parser, size_t expandDepth)
+{
+    LOCAL (parser);
+    PushParserVisitor visitor (false, expandDepth, _parsers);
+    parser->accept (visitor);
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsParser::push_front (IOptionsParser* parser, size_t expandDepth)
+{
+    LOCAL (parser);
+    PushParserVisitor visitor (true, expandDepth, _parsers);
+    parser->accept (visitor);
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+IOptionsParser* OptionsParser::getParser (const std::string& name)
+{
+    DEBUG (("OptionsParser::getParser  '%s'  look for '%s'  parsers.size=%ld   equal=%d\n",
+        getName().c_str(), name.c_str(), _parsers.size(), name == getName()
+    ));
+
+    if (name == getName()) { return  this; }
+
+    IOptionsParser* result = 0;
+    for (list<IOptionsParser*>::iterator it = _parsers.begin(); result==0 && it != _parsers.end(); ++it)
+    {
+        result = (*it)->getParser(name);
+    }
 
     return result;
 }
@@ -399,119 +373,71 @@ Option* OptionsParser::lookForOption (char* txt)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::getOptionArgs (const Option* option, std::list<std::string>& result)
+class OptionsHelpVisitor : public HierarchyParserVisitor
 {
-    char* txt;
-    int i=1;
-    int n = option->getNbArgs();
-    while ( (i<=n) && (txt=nextArg()) )
+public:
+
+    OptionsHelpVisitor (std::ostream& os) : os(os),nameMaxLen(0) {}
+
+    void visitOptionsParser (OptionsParser& object, size_t depth)
     {
-        result.push_back (txt);
-        i++;
-    }
-
-    if (i<=n)
-    {
-        char buffer [128];
-        snprintf (buffer, sizeof(buffer), "Too few arguments for the %s option...", option->getLabel().c_str());
-        _errors.push_back (buffer);
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::displayErrors (FILE* fp)
-{
-    for (list<string>::iterator it = _errors.begin();  it != _errors.end();  it++)
-    {
-        fprintf (fp, "Error : %s\n", it->c_str());
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::displayVersion (FILE* fp)
-{
-    fprintf (fp, "* version %s (%s)\n* built on %s with compiler '%s'\n* supported kmer sizes %d %d %d %d\n",
-        System::info().getVersion().c_str(),
-        System::info().getBuildDate().c_str(),
-        System::info().getBuildSystem().c_str(),
-        System::info().getBuildCompiler().c_str(),
-        KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4
-    );
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::displayWarnings (FILE* fp)
-{
-    for (list<string>::iterator it = _warnings.begin();  it != _warnings.end();  it++)
-    {
-        fprintf (fp, "Warning : %s\n", it->c_str());
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::displayHelp (FILE* fp)
-{
-    /** We first look for the longest option name. */
-    size_t maxLen=0;
-    for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
-    {
-        if (!(*it)->getLabel().empty())  {  maxLen = std::max (maxLen, (*it)->getLabel().size());  }
-    }
-
-    fprintf (fp, "USAGE for '%s'\n", _name.c_str());
-
-    for (list<Option*>::iterator it = _options.begin();  it != _options.end();  it++)
-    {
-        if (!(*it)->getLabel().empty() && (*it)->isVisible())
+        if (object.isVisible() == true)
         {
-            if ((*it)->getNbArgs() > 0)
+            /** We first look for the longest option name. */
+            nameMaxLen=0;
+            for (list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
             {
-                fprintf (fp, "    %-*s (%d arg) :    %s  [default '%s']\n",  (int)maxLen,
-                    (*it)->getLabel().c_str(),
-                    (int)(*it)->getNbArgs(),
-                    (*it)->getHelp().c_str(),
-                    (*it)->getParam().c_str()
+                if (!(*it)->getName().empty())  {  nameMaxLen = std::max (nameMaxLen, (*it)->getName().size());  }
+            }
+
+            os << endl;
+            indent(os,depth) <<  "[" << object.getName() << " options]" << endl;
+
+            /** We loop over each known parser. */
+            for (list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
+            {
+                if ((*it)->isVisible())  {  (*it)->accept (*this, depth+1); }
+            }
+        }
+    }
+
+    void visitOption (Option& object, size_t depth)
+    {
+        if (!object.getName().empty() && object.isVisible())
+        {
+            if (object.getNbArgs() > 0)
+            {
+                indent(os,depth) << Stringify::format ("    %-*s (%d arg) :    %s",
+                    (int)nameMaxLen,
+                    object.getName().c_str(),
+                    (int)object.getNbArgs(),
+                    object.getHelp().c_str(),
+                    object.getDefaultValue().c_str()
                 );
+
+                if (object.isMandatory()==false)  {  os << Stringify::format ("  [default '%s']", object.getDefaultValue().c_str());  }
+
+                os << endl;
             }
             else
             {
-                fprintf (fp, "    %-*s (%d arg) :    %s\n",  (int)maxLen,
-                    (*it)->getLabel().c_str(),
-                    (int)(*it)->getNbArgs(),
-                    (*it)->getHelp().c_str()
+                indent(os,depth) << Stringify::format ("    %-*s (%d arg) :    %s\n",
+                    (int)nameMaxLen,
+                    object.getName().c_str(),
+                    (int)object.getNbArgs(),
+                    object.getHelp().c_str()
                 );
             }
         }
     }
-}
+
+private:
+
+    std::ostream& os;
+    size_t        nameMaxLen;
+
+    std::ostream& indent (std::ostream& os, size_t level)  const { for (size_t i=0; i<level; i++)  { os << "   "; }  return os; }
+};
 
 /*********************************************************************
  ** METHOD  :
@@ -521,182 +447,19 @@ void OptionsParser::displayHelp (FILE* fp)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::giveToNoOption (char* txt)
+int OptionFailure::displayErrors (std::ostream& os) const
 {
-    Option* option = 0;
-
-    for (list<Option*>::iterator it = _options.begin();  option==0  &&  it != _options.end();  it++)
+    for (std::list<std::string>::const_iterator it = _result.errors.begin(); it != _result.errors.end(); ++it)
     {
-        if ((*it)->getLabel().empty())  {  option = (*it);  }
+        os << "ERROR: " << *it << std::endl;
     }
 
-    if (option != 0)
-    {
-        list<string> args;
-        args.push_back (txt);
-        option->proceed (args);
-    }
-}
+    if (_msg.empty() == false)  { os << _msg << endl; }
 
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-bool OptionsParser::saw (const std::string& txt)
-{
-    bool found = false;
+    OptionsHelpVisitor visitor (os);
+    _parser->accept (visitor, 0);
 
-    for (std::list<Option*>::iterator it = _seenOptions.begin();  !found && it != _seenOptions.end();  it++)
-    {
-        found = (*it)->getLabel().compare(txt) == 0;
-    }
-
-    DEBUG (("CheckOption::saw: txt='%s'  _seenOptions.size=%ld  => found=%d \n",
-        txt.c_str(), _seenOptions.size(), found
-    ));
-
-    return found;
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-char* OptionsParser::checkExcludingOptions (const Option* option)
-{
-    if (option->getExclude().empty())
-    {
-        return (char*)0;
-    }
-
-    short found=0;
-
-    for (list<Option*>::iterator it = _seenOptions.begin(); it != _seenOptions.end(); it++)
-    {
-        if (strstr ((*it)->getExclude().c_str(), option->getLabel().c_str()))
-        {
-            found=1;
-            break;
-        }
-    }
-    return (found ? (char*) option->getLabel().c_str() : (char*)0);
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::checkIncludingOptions ()
-{
-    for (list<Option*>::iterator it = _seenOptions.begin(); it != _seenOptions.end(); it++)
-    {
-        string include = (*it)->getInclude ();
-        if (! include.empty ())
-        {
-            short inner_found=0;
-
-            for (list<Option*>::iterator itInner = _seenOptions.begin(); itInner != _seenOptions.end(); itInner++)
-            {
-                if (strstr (include.c_str(), (*itInner)->getLabel().c_str()))
-                {
-                    inner_found=1;
-                    break;
-                }
-            }
-            if (!inner_found)
-            {
-                char buffer[128];
-                snprintf (buffer, sizeof(buffer),
-                    "Option %s must be used with one of the following options : %s",
-                    (*it)->getLabel().c_str(),
-                    include.c_str()
-                );
-
-                _errors.push_back (buffer);
-            }
-        }
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::checkMandatoryOptions ()
-{
-    for (list<Option*>::iterator it = _options.begin(); it != _options.end(); it++)
-    {
-        bool found = false;
-
-        for (list<Option*>::iterator itInner = _seenOptions.begin(); !found &&  itInner != _seenOptions.end(); itInner++)
-        {
-            found = (*it)->getLabel() == (*itInner)->getLabel();
-        }
-
-        DEBUG (("OptionsParser::checkMandatoryOptions : label=%s  mandatory=%d  found=%d\n",
-            (*it)->getLabel().c_str(),
-            (*it)->isMandatory(),
-            found
-        ));
-
-        if ((*it)->isMandatory() && !found)
-        {
-            char buffer[128];
-            snprintf (buffer, sizeof(buffer), "Option '%s' is mandatory", (*it)->getLabel().c_str());
-            _errors.push_back (buffer);
-        }
-    }
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-const Option* OptionsParser::getSeenOption (const std::string& label)
-{
-    const Option* result = 0;
-
-    for (list<Option*>::iterator it = _seenOptions.begin();  !result && it != _seenOptions.end(); it++)
-    {
-        if ((*it)->getLabel().compare (label) == 0)   { result = (*it); }
-    }
-
-    return result;
-}
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
-void OptionsParser::hide (const char* label)
-{
-	Option* opt = lookForOption ((char*)label);
-
-	if (opt != 0)  { opt->hide (); }
+    return EXIT_FAILURE;
 }
 
 /********************************************************************************/

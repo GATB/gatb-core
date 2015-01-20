@@ -28,6 +28,7 @@
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/LibraryInfo.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
+#include <gatb/tools/misc/impl/Tool.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
@@ -214,15 +215,6 @@ struct configure_visitor : public boost::static_visitor<>    {
         /** We create the kmer model. */
         data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
-#if 0
-        if (graph.getState() & Graph::STATE_BANKCONVERTER_DONE)
-        {
-            /** We set the iterable for the solid kmers. */
-            BankConverterAlgorithm algo (storage);
-            graph.getInfo().add (1, algo.getInfo());
-        }
-#endif
-
         if (graph.getState() & Graph::STATE_SORTING_COUNT_DONE)
         {
             /** We set the iterable for the solid kmers. */
@@ -304,9 +296,11 @@ struct build_visitor : public boost::static_visitor<>    {
 
         LOCAL (bank);
 
-        size_t kmerSize = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
-        size_t nksMin   = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
-        size_t nksMax   = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
+        size_t kmerSize      = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
+        size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
+        size_t nksMin        = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
+        size_t nksMax        = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
+        size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
 
         string output = props->get(STR_URI_OUTPUT) ?
             props->getStr(STR_URI_OUTPUT)   :
@@ -356,16 +350,6 @@ struct build_visitor : public boost::static_visitor<>    {
         LOCAL (solidStorage);
 
         /************************************************************/
-        /*                         Bank conversion                  */
-        /************************************************************/
-#if 0
-        /** We create the binary bank. */
-        BankConverterAlgorithm converter (bank, kmerSize, binaryBankUri);
-        executeAlgorithm (converter, *solidStorage, props, graph._info);
-        graph.setState(Graph::STATE_BANKCONVERTER_DONE);
-#endif
-
-        /************************************************************/
         /*                         Sorting count                    */
         /************************************************************/
         KmerSolidityKind solidityKind;  parse (props->getStr(STR_SOLIDITY_KIND), solidityKind);
@@ -380,7 +364,10 @@ struct build_visitor : public boost::static_visitor<>    {
             props->get(STR_MAX_DISK)      ? props->getInt(STR_MAX_DISK)   : 0,
             props->get(STR_NB_CORES)      ? props->getInt(STR_NB_CORES)   : 0,
             solidityKind,
-            props->get(STR_HISTOGRAM_MAX) ? props->getInt(STR_HISTOGRAM_MAX) : 0
+            props->get(STR_HISTOGRAM_MAX) ? props->getInt(STR_HISTOGRAM_MAX) : 0,
+            0,
+            minimizerType,
+            minimizerSize
         );
         executeAlgorithm (sortingCount, *solidStorage, props, graph._info);
         graph.setState(Graph::STATE_SORTING_COUNT_DONE);
@@ -505,13 +492,6 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         /*                        Clean up                          */
         /************************************************************/
-#if 0
-        if (graph._bankConvertKind == BANK_CONVERT_TMP)
-        {
-            /** We can get rid of the binary bank. */
-            converter.getResult()->remove();
-        }
-#endif
     }
 
     /** Algorithm configuration. */
@@ -548,42 +528,35 @@ struct build_visitor : public boost::static_visitor<>    {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory, bool enableMphf)
+IOptionsParser* Graph::getOptionsParser (bool includeMandatory, bool enableMphf)
 {
-    tools::misc::impl::OptionsParser parser;
 
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_INPUT,         "reads file", includeMandatory ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                           false,  "31"    ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE_MIN,"min abundance threshold for solid kmers",  false,  "3"     ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",  false,  "4294967295"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",  false, "10000"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BANK_CONVERT_TYPE, "convert the bank ('none', 'tmp', 'keep')", false,  "tmp"   ));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT,        "output file",                              false));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_VERBOSE,           "verbosity level",                          false,  "1"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                   false, "2000"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                   false, "0"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_NB_CORES,          "nb cores (0 for all)",                     false, "0"));
-    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_HELP,              "help",                                     false));
-    parser.push_back (new tools::misc::impl::OptionNoParam  (STR_VERSION,           "version",                                  false));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BLOOM_TYPE,        "bloom type ('basic', 'cache', 'neighbor')",false, "neighbor"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_TYPE,      "debloom type ('none', 'original' or 'cascading')", false, "cascading"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_DEBLOOM_IMPL,      "debloom impl ('basic', 'minimizer')",      false, "minimizer"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_BRANCHING_TYPE,    "branching type ('none' or 'stored')",      false, "stored"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_TOPOLOGY_STATS,    "topological information level (0 for none)", false, "0"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min or max)",  false, "sum"));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
-    parser.push_back (new tools::misc::impl::OptionOneParam (STR_INTEGER_PRECISION,  "integers precision (0 for optimized value)", false, "0"));
+    /** We build the root options parser. */
+    OptionsParser* parser = new OptionsParser ("graph");
 
+    /** We add children parser to it (kmer count, bloom/debloom, branching). */
+    parser->push_back (SortingCountAlgorithm<>::getOptionsParser(includeMandatory));
+    parser->push_back (DebloomAlgorithm<>::getOptionsParser());
+    parser->push_back (BranchingAlgorithm<>::getOptionsParser());
 
     /** We activate MPHF option only if available. */
     if (MPHF<char>::enabled)
     {
-        parser.push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE,         "mphf type ('none' or 'emphf')",            false, enableMphf ? "emphf":"none"));
+        IOptionsParser* parserEmphf  = new OptionsParser ("emphf");
+        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf')", false,  enableMphf ? "emphf":"none"));
+        parser->push_back  (parserEmphf);
     }
 
-    /** We hide some options not meant to be used by all people. */
-    parser.hide (STR_INTEGER_PRECISION);
+    /** We create a "general options" parser. */
+    IOptionsParser* parserGeneral  = new OptionsParser ("general");
+    parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
+    parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
+    parserGeneral->push_front (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                    false, "2000"));
+    parserGeneral->push_front (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                    false, "0"));
+    parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
+
+    /** We add it to the root parser. */
+    parser->push_back  (parserGeneral);
 
     return parser;
 }
@@ -598,7 +571,7 @@ tools::misc::impl::OptionsParser Graph::getOptionsParser (bool includeMandatory,
 *********************************************************************/
 Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
 {
-    OptionsParser parser = getOptionsParser (false);
+    IOptionsParser* parser = getOptionsParser (false);   LOCAL(parser);
 
     /** We build the command line from the format and the ellipsis. */
     std::string commandLine;
@@ -607,15 +580,16 @@ Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
     va_start (args, fmt);
     int res = vasprintf (&buffer, fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  free (buffer);  }
+    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
-        return  Graph (bank, parser.parse(commandLine));
+        return  Graph (bank, parser->parseString(commandLine));
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (stdout);
+        e.displayErrors (std::cout);
+
         throw system::Exception ("Graph construction failure because of bad parameters (notify a developer)");
     }
 }
@@ -630,7 +604,7 @@ Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
 *********************************************************************/
 Graph  Graph::create (const char* fmt, ...)
 {
-    OptionsParser parser = getOptionsParser (true);
+    IOptionsParser* parser = getOptionsParser (true);   LOCAL (parser);
 
     /** We build the command line from the format and the ellipsis. */
     std::string commandLine;
@@ -639,15 +613,15 @@ Graph  Graph::create (const char* fmt, ...)
     va_start (args, fmt);
     int res = vasprintf (&buffer, fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  free (buffer);  }
+    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
-        return  Graph (parser.parse(commandLine));
+        return  Graph (parser->parseString(commandLine));
     }
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (stdout);
+        e.displayErrors (std::cout);
         throw system::Exception ("Graph construction failure because of bad parameters (notify a developer)");
     }
 }
@@ -664,7 +638,7 @@ Graph::Graph (size_t kmerSize)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(kmerSize), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT),
+      _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT),
       _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
     /** We configure the data variant according to the provided kmer size. */
@@ -726,7 +700,6 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
 
     /** We get other user parameters. */
-    parse (params->getStr(STR_BANK_CONVERT_TYPE), _bankConvertKind);
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
@@ -762,7 +735,6 @@ Graph::Graph (tools::misc::IProperties* params)
     size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
 
     /** We get other user parameters. */
-    parse (params->getStr(STR_BANK_CONVERT_TYPE), _bankConvertKind);
     parse (params->getStr(STR_BLOOM_TYPE),        _bloomKind);
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
@@ -794,7 +766,7 @@ Graph::Graph ()
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
       _state(Graph::STATE_INIT_DONE),
-      _bankConvertKind(BANK_CONVERT_TMP), _bloomKind(BLOOM_DEFAULT),
+      _bloomKind(BLOOM_DEFAULT),
       _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
 }
@@ -832,7 +804,6 @@ Graph& Graph::operator= (const Graph& graph)
         _storageMode     = graph._storageMode;
         _name            = graph._name;
         _info            = graph._info;
-        _bankConvertKind = graph._bankConvertKind;
         _bloomKind       = graph._bloomKind;
         _debloomKind     = graph._debloomKind;
         _debloomImpl     = graph._debloomImpl;
