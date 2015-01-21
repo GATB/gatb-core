@@ -121,7 +121,7 @@ public:
     void setEncoding (Encoding_e encoding)  { this->encoding = encoding; }
 
     /** Conversion from one encoding scheme to another.
-     *  TO BE IMPROVED (support only one kind of conversion, from binary to ascii)
+     *  TO BE IMPROVED (support only one kind of conversion, from binary to integer)
      * \param[in] in  : input data
      * \param[in] out : output data */
     static void convert (Data& in, Data& out)
