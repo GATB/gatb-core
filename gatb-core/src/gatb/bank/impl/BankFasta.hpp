@@ -70,19 +70,8 @@ public:
     static const char* name()  { return "fasta"; }
 
     /** Constructor.
-     * \param[in] filenames : uri list of the banks. */
-    BankFasta (const std::vector<std::string>& filenames);
-
-    /** Constructor.
-     * \param[in] argc : number of filenames
-     * \param[in] argv : filenames
-     */
-    BankFasta (int argc, char* argv[]);
-
-    /** Constructor.
      * \param[in] filename : uri of the bank. */
     BankFasta (const std::string& filename, bool output_fastq = false, bool output_gz = false);
-
 
     /** Destructor. */
     ~BankFasta ();

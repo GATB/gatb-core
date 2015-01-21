@@ -100,36 +100,6 @@ struct buffered_strings_t
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-BankFasta::BankFasta (const std::vector<std::string>& filenames)
-    : _filenames(filenames), filesizes(0), nb_files(0), _insertHandle(0), _gz_insertHandle(0)
-{
-    init ();
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-BankFasta::BankFasta (int argc, char* argv[])
-    : filesizes(0), nb_files(0), _insertHandle(0), _gz_insertHandle(0)
-{
-    for (size_t i=0; i<argc; i++)  { _filenames.push_back (argv[i]); }
-
-    init ();
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
 BankFasta::BankFasta (const std::string& filename, bool output_fastq, bool output_gz)
     : filesizes(0), nb_files(0), _insertHandle(0), _gz_insertHandle(0)
 {
