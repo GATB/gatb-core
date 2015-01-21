@@ -769,7 +769,6 @@ struct Kmer
     {
         template<class Model>  void init (const Model& model, Type& best) const { best = model.getKmerMax(); }
         bool operator() (const Type& current, const Type& best) const { return current < best; }
-        void include_frequency (uint32_t* freq_order) {}
     };
 
     /* compare the minimizers by frequency, if information is available, else lexicographical */
