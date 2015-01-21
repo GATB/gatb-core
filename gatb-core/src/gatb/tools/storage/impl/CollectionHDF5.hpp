@@ -400,10 +400,10 @@ public:
         status = H5Tclose (_typeId);
     }
 
-    /** \copydoc Collection::remove */
+    /** \copydoc tools::collections::Collection::remove */
     void remove ()  {}
 
-    /** \copydoc Collection::addProperty */
+    /** \copydoc tools::collections::Collection::addProperty */
     void addProperty (const std::string& key, const std::string value)
     {
         hid_t datatype = H5Tcopy (H5T_C_S1);  H5Tset_size (datatype, H5T_VARIABLE);
@@ -424,7 +424,7 @@ public:
         H5Sclose (space_id);
     }
 
-    /** \copydoc Collection::getProperty */
+    /** \copydoc tools::collections::Collection::getProperty */
     std::string getProperty (const std::string& key)
     {
         std::string result;

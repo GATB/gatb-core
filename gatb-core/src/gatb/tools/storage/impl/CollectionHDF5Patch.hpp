@@ -111,7 +111,7 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
         H5Sclose (space_id);
     }
 
-    /** \copydoc Collection::getProperty */
+    /** \copydoc tools::collections::Collection::getProperty */
     std::string getProperty (const std::string& key)
     {
         system::LocalSynchronizer localsynchro (_synchro);
@@ -530,17 +530,17 @@ public:
         this->setIterable (new IterableHDF5Patch<Item> (common));
     }
 
-    /** \copydoc Collection::remove */
+    /** \copydoc tools::collections::Collection::remove */
     void remove ()  {}
 
-    /** \copydoc Collection::addProperty */
+    /** \copydoc tools::collections::Collection::addProperty */
     void addProperty (const std::string& key, const std::string value)
     {
         BagHDF5Patch<Item>* theBag = dynamic_cast<BagHDF5Patch<Item>*> (this->bag());
         if (theBag != 0)  {  theBag->_common->addProperty (key, value);  }
     }
 
-    /** \copydoc Collection::getProperty */
+    /** \copydoc tools::collections::Collection::getProperty */
     std::string getProperty (const std::string& key)
     {
         std::string result;

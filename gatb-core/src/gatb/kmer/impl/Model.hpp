@@ -158,6 +158,7 @@ struct Kmer
         /** Extract a mmer from a kmer. This is done by using a mask on the kmer.
          * \param[in] mask : mask to be applied to the current kmer
          * \param[in] size : shift size (needed for some kmer classes but not all)
+         * \param[in] mmer_lut : lookup table of minimizers
          * \return the extracted kmer.
          */
         KmerDirect extract      (const Type& mask, size_t size, Type * mmer_lut)  {  KmerDirect output;  output.set (this->value() & mask);  return output;  }
@@ -249,9 +250,10 @@ struct Kmer
         /** Extract a mmer from a kmer. This is done by using a mask on the kmer.
          * \param[in] mask : mask to be applied to the current kmer
          * \param[in] size : shift size (needed for some kmer classes but not all)
+         * \param[in] mmer_lut : lookup table of minimizers
          * \return the extracted kmer.
          */
-        KmerCanonical extract (const Type& mask, size_t size, Type * mmer_lut)
+        KmerCanonical extract (const Type& mask, size_t size, Type* mmer_lut)
         {
 
             KmerCanonical output;
@@ -396,7 +398,7 @@ struct Kmer
          * The result is a pair holding the built kmer and a boolean set to yes if the built kmer has to be understood in
          * the forward sense, false otherwise.
          * \param[in] data : the data from which we extract a kmer
-         * \param[in] idx : start index in the data object (default to 0)
+         * \param[in] startIndex : start index in the data object (default to 0)
          * \return a pair with the built kmer and a boolean set to yes if the kmer is understood in the forward strand
          */
         Kmer getKmer (const tools::misc::Data& data, size_t startIndex=0)  const
@@ -410,7 +412,7 @@ struct Kmer
          *  Example of use:
          * \snippet kmer8.cpp  snippet1_iterate
          * \param[in] data : the sequence of nucleotides as a Data object.
-         * \param[in] fct  : functor that handles one kmer */
+         * \param[in] callback  : functor that handles one kmer */
         template<typename Callback>
         bool iterate (tools::misc::Data& data, Callback callback) const
         {
@@ -421,6 +423,7 @@ struct Kmer
          *  Note that we don't check if we have enough nucleotides in the provided data.
          * \param[in] seq : the sequence
          * \param[in] encoding : encoding mode of the sequence
+         * \param[in] startIndex : index of the first nucleotide in the seq buffer
          * \return the kmer for the given nucleotides. */
         Kmer codeSeed (const char* seq, tools::misc::Data::Encoding_e encoding, size_t startIndex=0) const
         {
@@ -479,7 +482,9 @@ struct Kmer
          *  - 4 outcoming neighbors
          *  This method uses a functor that will be called for each possible neighbor of the source kmer.
          *  \param[in] source : the kmer from which we want neighbors.
-         *  \param[in] fct : a functor called for each neighbor.*/
+         *  \param[in] fct : a functor called for each neighbor.
+         *  \param[in] mask : mask of the neighbors to be used
+         */
         template<typename Functor>
         void iterateOutgoingNeighbors (const Type& source, Functor& fct, const std::bitset<4>& mask = 0x0F)  const
         {
@@ -499,7 +504,9 @@ struct Kmer
          *  - 4 incoming neighbors
          *  This method uses a functor that will be called for each possible neighbor of the source kmer.
          *  \param[in] source : the kmer from which we want neighbors.
-         *  \param[in] fct : a functor called for each neighbor.*/
+         *  \param[in] fct : a functor called for each neighbor.
+         *  \param[in] mask : mask of the neighbors to be used
+         */
         template<typename Functor>
         void iterateIncomingNeighbors (const Type& source, Functor& fct, const std::bitset<4>& mask = 0x0F)  const
         {
@@ -793,7 +800,7 @@ struct Kmer
 
         /** Computes a kmer from a buffer holding nucleotides encoded in some format.
          * The way to interpret the buffer is done through the provided Convert template class.
-         * \param[in] buffer : holds the nucleotides sequence from which the kmer has to be computed
+         * \param[in] seq : holds the nucleotides sequence from which the kmer has to be computed
          * \param[out] value : kmer as a result
          * \param[in] startIndex : index of the first nucleotide of the kmer to retrieve in the buffer
          */
@@ -955,8 +962,8 @@ struct Kmer
 
         /** Computes a kmer from a buffer holding nucleotides encoded in some format.
          * The way to interpret the buffer is done through the provided Convert template class.
-         * \param[in] buffer : holds the nucleotides sequence from which the kmer has to be computed
-         * \param[out] value : kmer as a result
+         * \param[in] seq : holds the nucleotides sequence from which the kmer has to be computed
+         * \param[out] kmer : kmer as a result
          * \param[in] startIndex : index of the first nucleotide of the kmer to retrieve in the buffer
          */
         template <class Convert>
@@ -976,7 +983,7 @@ struct Kmer
          * index of the nucleotide within the buffer.
          * The way to interpret the buffer is done through the provided Convert template class.
          * \param[in] c : next nucleotide
-         * \param[out] value : kmer to be updated with the provided next nucleotide
+         * \param[out] kmer : kmer to be updated with the provided next nucleotide
          * \param[in] isValid : tells whether the updated kmer is valid or not
          */
         template <class Convert>

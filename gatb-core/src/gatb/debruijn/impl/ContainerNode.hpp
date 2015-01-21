@@ -17,7 +17,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/** \file ContainerCascading.hpp
+/** \file ContainerNode.hpp
  *  \date 01/03/2013
  *  \author edrezen
  *  \brief Container implementation

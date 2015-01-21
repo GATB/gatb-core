@@ -62,16 +62,16 @@ public:
     /** \copydoc ISystemInfo::getBuildCompiler */
     std::string getBuildCompiler () const  { return STR_COMPILER; }
 
-    /** \copydoc ISystemInfo::buildOptions */
+    /** \copydoc ISystemInfo::getBuildOptions */
     std::string getBuildOptions () const { return STR_COMPILATION_FLAGS; }
 
-    /** \copydoc ISystemInfo::getOsName */
+    /** \copydoc ISystemInfo::getBuildSystem */
     std::string getBuildSystem () const { return STR_OPERATING_SYSTEM; }
 
     /** \copydoc ISystemInfo::getHomeDirectory */
     std::string getHomeDirectory ()  const {  return getenv("HOME") ? getenv("HOME") : ".";  }
 
-    /** \copydoc ISystemInfo::getMemoryProject */
+    /** \copydoc ISystemInfo::getMemoryPhysicalFree */
     u_int64_t getMemoryPhysicalFree () const  { return getMemoryPhysicalTotal()-getMemoryPhysicalUsed(); }
 
     /** \copydoc ISystemInfo::getMemoryProject */

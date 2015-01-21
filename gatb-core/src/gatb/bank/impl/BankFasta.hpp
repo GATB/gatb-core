@@ -70,7 +70,10 @@ public:
     static const char* name()  { return "fasta"; }
 
     /** Constructor.
-     * \param[in] filename : uri of the bank. */
+     * \param[in] filename : uri of the bank.
+     * \param[in] output_fastq : tells whether the file is in fastq or not.
+     * \param[in] output_gz: tells whether the file is gzipped or not
+     */
     BankFasta (const std::string& filename, bool output_fastq = false, bool output_gz = false);
 
     /** Destructor. */

@@ -64,7 +64,8 @@ public:
     BankComposite () : _nbItems(0), _size(0)  {}
 
     /** Constructor.
-     * \param[in] filenames : uri list of the banks. */
+     * \param[in] banks : list of banks to be associated to the album.
+     */
     BankComposite (const std::vector<IBank*>& banks) : _nbItems(0), _size(0)
     {
         for (size_t i=0; i<banks.size(); i++)  {  this->addBank (banks[i]); }

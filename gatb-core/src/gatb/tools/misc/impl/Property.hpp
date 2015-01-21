@@ -262,7 +262,7 @@ class RawDumpPropertiesVisitor : public IPropertiesVisitor
 public:
 
     /** Constructor.
-     * \param filename : uri of the file where to serialize the instance. */
+     * \param os : output stream where the visitor can dump information. */
     RawDumpPropertiesVisitor (std::ostream& os = std::cout);
 
     /** Desctructor. */

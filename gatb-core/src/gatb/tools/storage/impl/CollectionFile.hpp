@@ -64,7 +64,7 @@ public:
     /** Destructor. */
     virtual ~CollectionFile() {}
 
-    /** \copydoc Collection::remove */
+    /** \copydoc tools::collections::Collection::remove */
     void remove ()  {  gatb::core::system::impl::System::file().remove (_name);  }
 
 private:
@@ -89,7 +89,7 @@ public:
     /** Destructor. */
     virtual ~CollectionGzFile() {}
     
-    /** \copydoc Collection::remove */
+    /** \copydoc tools::collections::Collection::remove */
     void remove ()  {  gatb::core::system::impl::System::file().remove (_name);  }
     
 private:
@@ -113,7 +113,7 @@ public:
     /** Destructor. */
     virtual ~CollectionCountFile() {}
     
-    /** \copydoc Collection::remove */
+    /** \copydoc tools::collections::Collection::remove */
     void remove ()  {  gatb::core::system::impl::System::file().remove (_name);  }
     
 private:

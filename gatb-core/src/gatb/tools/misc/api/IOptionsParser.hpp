@@ -66,8 +66,8 @@ public:
  * as arguments of the 'main' function.
  *
  * This interface is intended to be implemented as a Composite design pattern,
- * so we will have a 'leaf' implementation (see \ref Option) and a 'composite'
- * implementation (see \ref  OptionsParser)
+ * so we will have a 'leaf' implementation (see Option) and a 'composite'
+ * implementation (see OptionsParser)
  */
 class IOptionsParser : public system::SmartPointer
 {
@@ -121,6 +121,7 @@ public:
     /*************************************************************/
 
     /** Add a parser child at the back of known parsers.
+     * \param[in] parser : the child parser
      * \param[in] expandDepth : while depth is less than expandDepth, put all the children and not the 'parser' itself. */
     virtual void push_back (IOptionsParser* parser, size_t expandDepth=0) = 0;
 

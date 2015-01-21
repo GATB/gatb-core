@@ -54,13 +54,13 @@ public:
         _totalNumber = ((u_int64_t)1) << (2*_model.getKmerSize());
     }
 
-    /** \copydoc IBank::getId */
+    /** \copydoc bank::IBank::getId */
     std::string getId ()  {  std::stringstream ss; ss << "Kmers" << _model.getKmerSize();  return ss.str();  }
 
-    /** \copydoc IBank::getNbItems */
+    /** \copydoc bank::IBank::getNbItems */
     int64_t getNbItems () { return _totalNumber; }
 
-    /** \copydoc IBank::estimate */
+    /** \copydoc bank::IBank::estimate */
     void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
     {
         number    = _totalNumber;
@@ -74,7 +74,7 @@ public:
     /** \copydoc tools::collections::Bag::flush */
     void flush ()  { throw system::Exception ("Can't flush BankKmers"); }
 
-    /** \copydoc IBank::getSize */
+    /** \copydoc bank::IBank::getSize */
     u_int64_t getSize () { return _totalNumber * _model.getKmerSize(); }
 
     /* */

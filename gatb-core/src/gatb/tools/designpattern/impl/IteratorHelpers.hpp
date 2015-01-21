@@ -497,7 +497,9 @@ public:
 
     /** Constructor.
      * \param[in] ref : the referred iterator
-     * \param[in] limit : the maximal number of iterations. */
+     * \param[in] limit : the maximal number of iterations.
+     * \param[in] initRef : will call 'first' on the reference if true
+     */
     TruncateIterator (Iterator<Item>& ref, u_int64_t limit, bool initRef=true)
         : _ref(ref), _limit(limit), _currentIdx(0), _initRef(initRef), _isDone(true)  {}
 

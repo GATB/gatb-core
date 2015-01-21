@@ -235,8 +235,12 @@ public:
         return iterate ((Iterator<Item>*)&iterator, functor, groupSize, false);
     }
 
-    /** */
+    /** Set the number of items to be retrieved from the iterator by one thread in a synchronized way.
+     * \param[in] groupSize : number of items to be retrieved. */
     virtual void   setGroupSize (size_t groupSize) = 0;
+
+    /** Get the number of items to be retrieved from the iterator by one thread in a synchronized way.
+     * \return the number of items. */
     virtual size_t getGroupSize () const = 0;
 
 protected:

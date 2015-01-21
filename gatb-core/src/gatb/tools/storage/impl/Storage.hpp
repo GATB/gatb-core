@@ -102,6 +102,7 @@ public:
      *      - its bag part
      *      - its iterable part
      *      - its remove part
+     * \param[in] factory : factory to be used
      * \param[in] parent : parent node
      * \param[in] id  : identifier of the collection to be created
      * \param[in] ref : referred collection.
@@ -111,7 +112,7 @@ public:
     /** Destructor. */
     virtual ~CollectionNode();
 
-    /** \copydoc dp::ICell::remove */
+    /** \copydoc tools::storage::ICell::remove */
     void remove ();
 
     /** */
@@ -201,6 +202,7 @@ class Partition : public Group, public tools::collections::Iterable<Type>
 public:
 
     /** Constructor.
+     * \param[in] factory : factory to be used
      * \param[in] parent : the parent node
      * \param[in] id : the identifier of the instance to be created
      * \param[in] nbCollections : number of collections for this partition
@@ -220,13 +222,13 @@ public:
      */
     collections::Collection<Type>& operator[] (size_t idx);
 
-    /** \copydoc Iterable::iterator */
+    /** \copydoc tools::collections::Iterable::iterator */
     dp::Iterator<Type>* iterator ();
 
-    /** \copydoc Iterable::getNbItems */
+    /** \copydoc tools::collections::Iterable::getNbItems */
     int64_t getNbItems ();
 
-    /** \copydoc Iterable::estimateNbItems */
+    /** \copydoc tools::collections::Iterable::estimateNbItems */
     int64_t estimateNbItems ();
 
     /** Flush the whole partition (ie flush each collection). */
@@ -374,6 +376,7 @@ class Storage : public Cell
 public:
 
     /** Constructor.
+     * \param[in] mode : storage mode
      * \param[in] name : name of the storage.
      * \param[in] autoRemove : tells whether the storage has to be physically deleted when this object is deleted. */
     Storage (StorageMode_e mode, const std::string& name, bool autoRemove=false);

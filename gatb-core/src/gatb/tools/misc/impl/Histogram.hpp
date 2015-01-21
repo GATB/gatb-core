@@ -107,7 +107,7 @@ public:
     size_t getLength() { return _length; }
 
     /** \copydoc IHistogram::get */
-    u_int64_t& get (u_int16_t i)  { return _histogram[i].abundance; }
+    u_int64_t& get (u_int16_t idx)  { return _histogram[idx].abundance; }
 
 private:
 
@@ -132,7 +132,7 @@ class HistogramNull : public IHistogram, public system::SmartPointer
 public:
 
     /** \copydoc IHistogram::inc */
-    void inc (u_int16_t abundance) {}
+    void inc (u_int16_t index) {}
 
     /** \copydoc IHistogram::save */
     void save ()  {}
@@ -153,7 +153,7 @@ public:
     size_t getLength() { return 0; }
 
     /** \copydoc IHistogram::get */
-    u_int64_t& get (u_int16_t i)  { static u_int64_t foo; return foo; }
+    u_int64_t& get (u_int16_t idx)  { static u_int64_t foo; return foo; }
 };
 
 /********************************************************************************/
@@ -204,7 +204,7 @@ public:
     size_t getLength() { return _localHisto.getLength(); }
 
     /** \copydoc IHistogram::get */
-    u_int64_t& get (u_int16_t i)  { return _localHisto.get(i); }
+    u_int64_t& get (u_int16_t idx)  { return _localHisto.get(idx); }
 
 private:
 

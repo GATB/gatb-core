@@ -77,10 +77,10 @@ public:
     /** \copydoc IOptionsParser::parse */
     misc::IProperties* parse (int argc, char** argv);
 
-    /** \copydoc IOptionsParser::parse */
+    /** \copydoc IOptionsParser::parseString */
     misc::IProperties* parseString (const std::string& s);
 
-    /** \copydoc IOptionsParser::parse */
+    /** \copydoc IOptionsParser::getProperties */
     misc::IProperties* getProperties ()  { return _properties; }
 
     /** \copydoc IOptionsParser::saw */
@@ -139,8 +139,6 @@ public:
      * \param[in] defaultValue : default value for the option
      * \param[in] visible : tells whether this option may be shown in help
      * \param[in] help : textual help for this option
-     * \param[in] include : list of names of options that must be used with the current one
-     * \param[in] exclude : list of names of options that must not be used with the current one
      */
     Option (
         const std::string&  name,
@@ -158,7 +156,8 @@ public:
     /** Desctructor. */
     virtual ~Option() {}
 
-    /** \copydoc IOptionsParser::getDefaultValue */
+    /** Get the default value for the option
+     * \return the default value (may be empty) */
     std::string getDefaultValue () const { return _defaultParam; }
 
     /** Tells whether the option is mandatory or not.
@@ -280,14 +279,18 @@ class OptionFailure
 public:
 
     /** Constructor.
-     * \param[in] parser : the parser that threw the exception. */
+     * \param[in] parser : the parser that threw the exception.
+     * \param[in] result : information gathered during the parsing. */
     OptionFailure (IOptionsParser* parser, IOptionsParser::Result result) :_parser(parser), _result(result)  {}
 
     /** Constructor.
-     * \param[in] parser : the parser that threw the exception. */
+     * \param[in] parser : the parser that threw the exception.
+     * \param[in] msg : message to be displayed */
     OptionFailure (IOptionsParser* parser, const std::string& msg) :_parser(parser), _msg(msg)  {}
 
-    /** */
+    /** Display information about the failure on the provided output stream
+     * \param[out] os : output stream to be used
+     * \return EXIT_FAILURE */
     int displayErrors (std::ostream& os) const;
 
 protected:

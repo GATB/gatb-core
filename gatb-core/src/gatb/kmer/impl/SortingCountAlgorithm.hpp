@@ -143,7 +143,7 @@ public:
      * \param[in] kmerSize : size of kmers
      * \param[in] abundance : range [min,max] of abundances for the solidity criteria
      * \param[in] max_memory : max memory to be used (in MBytes)
-     * \param[in] max_disk : max disk to be used (in MBytes)
+     * \param[in] max_disk_space : max disk to be used (in MBytes)
      * \param[in] nbCores : number of cores to be used; 0 means all available cores
      * \param[in] solidityKind : criteria for solidity computation
      * \param[in] histogramMax : max number of values for the kmers histogram

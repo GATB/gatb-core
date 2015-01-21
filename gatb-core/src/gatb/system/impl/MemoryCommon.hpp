@@ -110,7 +110,6 @@ public:
 
     /** Constructor.
      * \param[in] alloc : the referred memory allocator.
-     * \param[in] ope   : the referred memory operations.
      */
     MemorySizeStore (IMemoryAllocator& alloc)
         :  _alloc(alloc), _nbBlocks(0), _currentMemory(0), _peakMemory(0) {}
@@ -251,7 +250,7 @@ class MemoryBounded : public MemorySizeStore
 public:
 
     /** Constructor.
-     * \param[in] ref : the referred IMemory instance
+     * \param[in] alloc : the referred IMemoryAllocator instance
      * \param[in] maxBlockSize : maximum size allowed for one block allocation
      * \param[in] maxTotalSize : maximum size allowed for the sum of blocks allocation
      * */

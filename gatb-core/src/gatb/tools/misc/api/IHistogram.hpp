@@ -116,7 +116,7 @@ public:
     virtual u_int16_t get_first_peak () = 0;
 
     /** Retrieve the value for x.
-     * \param[in] x : x value.
+     * \param[in] idx : x value.
      * \return y(x). */
     virtual u_int64_t& get (u_int16_t idx) = 0;
 };

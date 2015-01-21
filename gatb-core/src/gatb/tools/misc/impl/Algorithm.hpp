@@ -68,7 +68,7 @@ public:
     /** Run the algorithm, ie. call 'execute'. */
     void run ();
 
-    /** */
+    /** Execution of the algorithm. Abstract method, must be refined in subclasses. */
     virtual void execute () = 0;
 
     /** */

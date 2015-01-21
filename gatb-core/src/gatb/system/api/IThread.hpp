@@ -90,7 +90,9 @@ public:
 
     /** Add a thread to the group. A thread is created and the provided
      * mainloop is launched as the main function of this thread.
-     * \param[in] mainloop : mainloop of the added thread. */
+     * \param[in] mainloop : mainloop of the added thread.
+     * \param[in] data : data to be given to the main loop
+     */
     virtual void add (void* (*mainloop) (void*), void* data) = 0;
 
     /** Start all the threads of the group at the same time. Implementations

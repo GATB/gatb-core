@@ -84,11 +84,13 @@ public:
     static const char* name()  { return "album"; }
 
     /** Constructor.
-     * \param[in] name : uri of the album. */
+     * \param[in] name : uri of the album.
+     * \param[in] deleteIfExists : delete the album file if it exists. */
     BankAlbum (const std::string& name, bool deleteIfExists=false);
 
     /** Constructor.
-     * \param[in] name : uri of the album. */
+     * \param[in] name : uri of the album.
+     * \param[in] banks : vector of banks instance to be added to the album. */
     BankAlbum (const std::string& name, const std::vector<IBank*>& banks)
         : BankComposite (banks), _name(name) {}
 

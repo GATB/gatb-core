@@ -73,8 +73,8 @@ public:
     MPHF () : isBuilt(false), nbKeys(0)  {}
 
     /** Build the hash function from a set of items.
-     * \param[in] iterator : keys iterator
-     * \param[in] nbItems : number of keys (if known) */
+     * \param[in] iterable : keys iterator
+     * \param[in] progress : object that listens to the event of the algorithm */
     void build (tools::collections::Iterable<Key>* iterable, tools::dp::IteratorListener* progress=0)
     {
         if (isBuilt==true) { throw system::Exception ("MFHP: built already done"); }

@@ -99,6 +99,7 @@ public:
 
     /** Constructor.
      * \param[in] nbUnits : number of threads to be used. If 0 is provided, one tries to guess the number of available cores.
+     * \param[in] groupSize : number of items to be retrieved from the iterator by one thread in a synchronized way
      */
     Dispatcher (size_t nbUnits=0, size_t groupSize=0);
 
