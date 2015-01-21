@@ -14,25 +14,36 @@ using namespace std;
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We check that the user provides at least one option (supposed to be in HDF5 format).
-    if (argc < 2)
-    {
-        cerr << "You must provide a HDF5 file." << endl;
-        return EXIT_FAILURE;
-    }
+    /** We create a command line parser. */
+    OptionsParser parser ("GraphStats");
+    parser.push_back (new OptionOneParam (STR_URI_GRAPH, "graph input",  true));
 
-    // We create the graph with the bank and other options
-    Graph graph = Graph::load (argv[1]);
-
-    // We iterate the branching nodes
-    Dispatcher().iterate (graph.iterator<BranchingNode> (), [&] (const BranchingNode& node)
+    try
     {
-        // We iterate the successors of the current node
-        graph.successors<BranchingEdge>(node).iterate ([&] (const BranchingEdge& edge)
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+        // We load the graph
+        Graph graph = Graph::load (options->getStr(STR_URI_GRAPH));
+
+        // We iterate the branching nodes
+        Dispatcher().iterate (graph.iterator<BranchingNode> (), [&] (const BranchingNode& node)
         {
-            if (edge.from == edge.to)  {  cout << "CYCLE: " << graph.toString (edge) << endl;  }
+            // We iterate the successors of the current node
+            graph.successors<BranchingEdge>(node).iterate ([&] (const BranchingEdge& edge)
+            {
+                if (edge.from == edge.to)  {  cout << "CYCLE: " << graph.toString (edge) << endl;  }
+            });
         });
-    });
+    }
+    catch (OptionFailure& e)
+    {
+        return e.displayErrors (std::cout);
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+    }
 
     return EXIT_SUCCESS;
 }

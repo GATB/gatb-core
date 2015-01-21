@@ -54,6 +54,7 @@ int main (int argc, char* argv[])
         BankFasta b (filename);
 
         // We create an iterator over this bank.
+        // Note : here, we must use specifically BankFasta::Iterator in order to set the mode
         BankFasta::Iterator itSeq (b, mode);
 
         // We encapsulate it with a truncation iterator
@@ -82,7 +83,7 @@ int main (int argc, char* argv[])
             }
         }
     }
-    catch (gatb::core::system::Exception& e)
+    catch (Exception& e)
     {
         cerr << "EXCEPTION: " << e.getMessage() << endl;
     }

@@ -17,13 +17,22 @@ int main (int argc, char* argv[])
     typedef Kmer<SPAN>::ModelCanonical ModelCanon;
     typedef Kmer<SPAN>::ModelMinimizer <ModelCanon> Model;
 
+    size_t kmerSize = 33;
+    size_t mmerSize = 11;
+
+    /** We create a command line parser. */
+    OptionsParser parser ("GraphStats");
+    parser.push_back (new OptionOneParam (STR_URI_INPUT, "bank input",  true));
+
     try
     {
-        size_t kmerSize = 33;
-        size_t mmerSize = 11;
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+        string filename = options->getStr (STR_URI_INPUT);
 
         /** We create the solid kmers. */
-        Graph graph = Graph::create ("-in %s -kmer-size %d  -bloom none -out toto.h5  -abundance 1", argv[1], kmerSize);
+        Graph graph = Graph::create ("-in %s -kmer-size %d  -bloom none -out toto.h5  -abundance-min 1", filename.c_str(), kmerSize);
 
         /** We get the information of the solid kmers from the HDF5 file. */
         Storage* storage = StorageFactory(STORAGE_HDF5).load ("toto.h5");   LOCAL (storage);
@@ -41,7 +50,7 @@ int main (int argc, char* argv[])
         Model  modelK1 (kmerSize-1, mmerSize);
 
         // We declare an output Bank
-        BankBinary outputBank (System::file().getBaseName(argv[1]) + ".bin");
+        BankBinary outputBank (System::file().getBaseName(filename) + ".bin");
 
         /** We create a sequence with BINARY encoding. */
         Sequence seq (Data::ASCII);
@@ -93,10 +102,13 @@ int main (int argc, char* argv[])
             cout << "mini=" << mini.value() << "  " << modelK1.getMmersModel().toString (mini.value()) << endl;
         });
     }
-
+    catch (OptionFailure& e)
+    {
+        return e.displayErrors (std::cout);
+    }
     catch (Exception& e)
     {
-        cerr << "EXCEPTION : " << e.getMessage() << endl;
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 }
 //! [snippet1]

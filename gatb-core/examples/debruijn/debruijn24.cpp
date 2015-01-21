@@ -15,14 +15,14 @@ using namespace std;
 const char* STR_NODE_TYPE = "-type";
 
 /********************************************************************************/
-class CustomTool : public Tool
+class DotGeneratorTool : public Tool
 {
 public:
 
     // Constructor
-    CustomTool () : Tool ("DotGenerator")
+    DotGeneratorTool () : Tool ("DotGenerator")
     {
-        _parser->push_front (new OptionOneParam (STR_URI_INPUT,  "graph file", true ));
+        _parser->push_front (new OptionOneParam (STR_URI_GRAPH,  "graph file", true ));
         _parser->push_front (new OptionOneParam (STR_URI_OUTPUT, "dot file",  false ));
         _parser->push_front (new OptionOneParam (STR_NODE_TYPE,  "node type (0: all,  1:branching)", false, "1" ));
     }
@@ -32,14 +32,14 @@ public:
     {
         string outputFile = getInput()->get(STR_URI_OUTPUT) ?
             getInput()->getStr(STR_URI_OUTPUT) :
-            (System::file().getBaseName(getInput()->getStr(STR_URI_INPUT)) + ".dot");
+            (System::file().getBaseName(getInput()->getStr(STR_URI_GRAPH)) + ".dot");
 
         ofstream output (outputFile.c_str());
 
         output << "digraph " << name << "{\n";
 
         // We load the graph
-        Graph graph = Graph::load (getInput()->getStr(STR_URI_INPUT));
+        Graph graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
 
         map<Node, u_int64_t> mapping;
         u_int64_t count = 0;
@@ -80,13 +80,22 @@ public:
 
 /********************************************************************************/
 /*                                                                              */
+/*                   Generate dot file from a graph.                            */
+/*                                                                              */
+/*  This snippet generates a dot file from a graph file. You can then generate  */
+/*  a pdf file with "dot -Tpdf graph.dot -o graph.pdf"                          */
+/*                                                                              */
+/*  NOTE: de Bruijn graphs may be huge and complex, so dot is not the best tool */
+/*  to display such graphs. You should use it on small graphs with only a few   */
+/*  hundreds of nodes.                                                          */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
     try
     {
         // We run the tool with the provided command line arguments.
-        CustomTool().run (argc, argv);
+        DotGeneratorTool().run (argc, argv);
     }
     catch (Exception& e)
     {

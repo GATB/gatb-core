@@ -25,21 +25,28 @@ int main (int argc, char* argv[])
         "AGGCGCTTGGGAGAGGATGATGAAA"
     };
 
-    // We create the graph.
-    Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance 1  -verbose 0", kmerSize);
-
-    // We get the first node (should be AGGCGCT); this is a branching node.
-    Node node = graph.buildNode ((char*)sequences[0]);
-
-    // We retrieve the branching neighbors for the node.
-    Graph::Vector<BranchingNode> branchingNeighbors = graph.successors<BranchingNode> (node);
-
-    std::cout << "We found " << branchingNeighbors.size() << " branching neighbors from node " << graph.toString(node) << std::endl;
-
-    // We loop over the branching neighbors. Here, we should have 3 branching neighbors, being the same GGGAGAG
-    for (size_t i=0; i<branchingNeighbors.size(); i++)
+    try
     {
-        std::cout << graph.toString (branchingNeighbors[i])  << std::endl;
+        // We create the graph.
+        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+
+        // We get the first node (should be AGGCGCT); this is a branching node.
+        Node node = graph.buildNode ((char*)sequences[0]);
+
+        // We retrieve the branching neighbors for the node.
+        Graph::Vector<BranchingNode> branchingNeighbors = graph.successors<BranchingNode> (node);
+
+        std::cout << "We found " << branchingNeighbors.size() << " branching neighbors from node " << graph.toString(node) << std::endl;
+
+        // We loop over the branching neighbors. Here, we should have 3 branching neighbors, being the same GGGAGAG
+        for (size_t i=0; i<branchingNeighbors.size(); i++)
+        {
+            std::cout << graph.toString (branchingNeighbors[i])  << std::endl;
+        }
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 
     return EXIT_SUCCESS;

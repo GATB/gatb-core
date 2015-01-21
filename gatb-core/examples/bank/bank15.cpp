@@ -20,11 +20,12 @@ int main (int argc, char* argv[])
     u_int64_t nbSequences=0, dataSize=0, seqMaxSize=0, seqMinSize=~0;
 
     // We declare a Bank instance.
-    BankFasta bank (filename);
+    IBank* bank = Bank::open (filename);
+    LOCAL (bank);
 
     // IN A NEAR FUTURE, WE WILL HAVE STL LIKE ITERATORS.
 #if 0
-    for (BankFasta::iterator it = bank.begin(); it != bank.end(); ++it)
+    for (BankFasta::iterator it = bank->begin(); it != bank->end(); ++it)
     {
         Sequence& seq = *it;
 

@@ -13,29 +13,45 @@
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We get the file name from the user arguments
-    const char* filename = argc >= 2 ? argv[1] : "";
+    /** We create a command line parser. */
+    OptionsParser parser ("BankStats");
+    parser.push_back (new OptionOneParam (STR_URI_INPUT, "bank input",   true));
 
-    // We get information about the bank.
-    u_int64_t nbSequences=0, dataSize=0, seqMaxSize=0, seqMinSize=~0;
-
-    // We declare a Bank instance.
-    BankFasta bank (filename);
-
-    ProgressIterator<Sequence,Progress> it (bank, "iterate", 1000);
-    for (it.first(); !it.isDone(); it.next())
+    try
     {
-        Data& data = it.item().getData();
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
 
-        nbSequences ++;
-        if (data.size() > seqMaxSize)  { seqMaxSize = data.size(); }
-        if (data.size() < seqMinSize)  { seqMinSize = data.size(); }
-        dataSize += data.size ();
+        // We get information about the bank.
+        u_int64_t nbSequences=0, dataSize=0, seqMaxSize=0, seqMinSize=~0;
+
+        // We declare an input Bank and use it locally
+        IBank* inputBank = Bank::open (options->getStr(STR_URI_INPUT));
+        LOCAL (inputBank);
+
+        ProgressIterator<Sequence> it (*inputBank, "iterate");
+        for (it.first(); !it.isDone(); it.next())
+        {
+            Data& data = it.item().getData();
+
+            nbSequences ++;
+            if (data.size() > seqMaxSize)  { seqMaxSize = data.size(); }
+            if (data.size() < seqMinSize)  { seqMinSize = data.size(); }
+            dataSize += data.size ();
+        }
+
+        std::cout << "data size         : " << dataSize     << std::endl;
+        std::cout << "sequence number   : " << nbSequences  << std::endl;
+        std::cout << "sequence max size : " << seqMaxSize   << std::endl;
+        std::cout << "sequence min size : " << seqMinSize   << std::endl;
     }
-
-    std::cout << "data size         : " << dataSize     << std::endl;
-    std::cout << "sequence number   : " << nbSequences  << std::endl;
-    std::cout << "sequence max size : " << seqMaxSize   << std::endl;
-    std::cout << "sequence min size : " << seqMinSize   << std::endl;
+    catch (OptionFailure& e)
+    {
+        return e.displayErrors (std::cout);
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+    }
 }
 //! [snippet1]

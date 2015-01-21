@@ -9,6 +9,9 @@ using namespace std;
 
 /********************************************************************************/
 /*                  ostream and istream with HDF5                               */
+/*                                                                              */
+/*  This snippet shows how to use binary input/output streams with HDF5.        */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -52,5 +55,8 @@ int main (int argc, char* argv[])
 
     // We check that we read correct values.
     cout << "check : " << (memcmp(buffer, table, nbItems*sizeof(float)) == 0) << endl;
+
+    // cleanup
+    delete[] buffer;
 }
 //! [snippet1]

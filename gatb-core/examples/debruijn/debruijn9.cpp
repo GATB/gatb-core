@@ -11,44 +11,51 @@
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We create the graph with a bank holding one sequence, and use a specific kmer size and kmer solid abundance to 1
-    Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance 1  -verbose 0");
-
-    // We get an iterator for all nodes of the graph.
-    Graph::Iterator<Node> it = graph.iterator<Node> ();
-
-    // We check that we have only two possible nodes
-    assert (it.size() == 2);
-
-    // We loop each node.
-    for (it.first(); !it.isDone(); it.next())
+    try
     {
-        // A shortcut.
-        Node& current = it.item();
+        // We create the graph with a bank holding one sequence, and use a specific kmer size and kmer solid abundance to 1
+        Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance-min 1  -verbose 0");
 
-        // We get the ascii representation of the current iterated node
-        std::string s = graph.toString (current);
+        // We get an iterator for all nodes of the graph.
+        Graph::Iterator<Node> it = graph.iterator<Node> ();
 
-        // We check that it is correct.
-        assert (s=="AATG" || s=="ATGC");
+        // We check that we have only two possible nodes
+        assert (it.size() == 2);
 
-        if (s=="AATG")
+        // We loop each node.
+        for (it.first(); !it.isDone(); it.next())
         {
-            // We get the neighbors of this specific current
-            Graph::Vector<Node> neighbors = graph.successors<Node> (current);
+            // A shortcut.
+            Node& current = it.item();
 
-            // We check that we got only one successor
-            assert (neighbors.size() == 1);
+            // We get the ascii representation of the current iterated node
+            std::string s = graph.toString (current);
 
-            // Another way to check the number of successors
-            assert (graph.outdegree(current) == 1);
+            // We check that it is correct.
+            assert (s=="AATG" || s=="ATGC");
 
-            // We check this is the correct neighbor
-            assert (graph.toString(neighbors[0]) == "ATGC");
+            if (s=="AATG")
+            {
+                // We get the neighbors of this specific current
+                Graph::Vector<Node> neighbors = graph.successors<Node> (current);
+
+                // We check that we got only one successor
+                assert (neighbors.size() == 1);
+
+                // Another way to check the number of successors
+                assert (graph.outdegree(current) == 1);
+
+                // We check this is the correct neighbor
+                assert (graph.toString(neighbors[0]) == "ATGC");
+            }
         }
-    }
 
-    std::cout << "Test OK" << std::endl;
+        std::cout << "Test OK" << std::endl;
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+    }
 
     return EXIT_SUCCESS;
 }

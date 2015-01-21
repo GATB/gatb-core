@@ -23,25 +23,26 @@ struct FilterFunctor  {  bool operator ()  (Sequence& seq) const  {  return seq.
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 2)
+    if (argc < 3)
     {
-        cerr << "you must provide at least the size threshold and the FASTA file path. Arguments are:" << endl;
-        cerr << "   1) minimum size threshold (default 500)" << endl;
-        cerr << "   2) FASTA files" << endl;
+        cerr << "you must provide at least the size threshold and the bank file path. Arguments are:" << endl;
+        cerr << "   1) bank" << endl;
+        cerr << "   2) minimum size threshold (default 500)" << endl;
         return EXIT_FAILURE;
     }
-
-    // We set the threshold with given parameter
-    threshold = atoi (argv[1]);
 
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
-        // We declare a Bank instance defined by a list of filenames
-        BankFasta b (argc-2, argv+2);
+        // We declare an input Bank and use it locally
+        IBank* inputBank = Bank::open (argv[1]);
+        LOCAL (inputBank);
+
+        // We set the threshold with given parameter
+        threshold = atoi (argv[2]);
 
         // We use another iterator for filtering out some sequences.
-        FilterIterator<Sequence,FilterFunctor> itSeq (b.iterator(), FilterFunctor());
+        FilterIterator<Sequence,FilterFunctor> itSeq (inputBank->iterator(), FilterFunctor());
         
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
@@ -53,7 +54,7 @@ int main (int argc, char* argv[])
             cout << itSeq->toString() << endl;
         }
     }
-    catch (gatb::core::system::Exception& e)
+    catch (Exception& e)
     {
         cerr << "EXCEPTION: " << e.getMessage() << endl;
     }

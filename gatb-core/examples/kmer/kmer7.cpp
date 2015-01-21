@@ -45,13 +45,14 @@ int main (int argc, char* argv[])
         Kmer<>::ModelDirect model (kmerSize);
 
         // We open the bank.
-        BankFasta bank (options->getStr(STR_URI_INPUT));
+        IBank* bank = Bank::open (options->getStr(STR_URI_INPUT));
+        LOCAL (bank);
 
         vector<NativeInt64> distrib (nbKmers);
         size_t totalKmers = 0;
 
         // We define an iterator that encapsulates the sequences iterator with progress feedback
-        ProgressIterator<Sequence> iter (bank, "iterate bank");
+        ProgressIterator<Sequence> iter (*bank, "iterate bank");
 
         // We loop the bank
         for (iter.first(); !iter.isDone(); iter.next())

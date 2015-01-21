@@ -12,7 +12,7 @@ int main (int argc, char* argv[])
 {
     IOptionsParser* root = new OptionsParser ("root");
 
-    root->push_back (SortingCountAlgorithm<>::getOptionsParser());
+    root->push_back (SortingCountAlgorithm<>::getOptionsParser(false));
     root->push_back (DebloomAlgorithm<>::getOptionsParser());
 
     IOptionsParser* child1 = new OptionsParser ("child1");

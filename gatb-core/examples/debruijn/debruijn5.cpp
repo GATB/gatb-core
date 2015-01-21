@@ -15,8 +15,15 @@ int main (int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    // We create the graph with the bank and other options
-    Graph graph = Graph::load (argv[1]);
+    try
+    {
+        // We create the graph with the bank and other options
+        Graph graph = Graph::load (argv[1]);
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+    }
 
     return EXIT_SUCCESS;
 }

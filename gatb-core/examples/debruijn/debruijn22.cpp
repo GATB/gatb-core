@@ -29,114 +29,121 @@ public:
 
     BranchingNodeMapping () : Tool ("BranchingNodeMapping")
     {
-        getParser()->push_back (new OptionOneParam (STR_URI_INPUT,  "graph file",  true));
+        getParser()->push_back (new OptionOneParam (STR_URI_GRAPH,  "graph file",  true));
         getParser()->push_back (new OptionOneParam (STR_URI_OUTPUT, "output file", false, "output"));
     }
 
     void execute ()
     {
-        // We load the graph with the provided graph uri.
-        Graph graph = Graph::load (getInput()->getStr(STR_URI_INPUT));
-
-        // We check that the sorting count got all the kmers
-        if (graph.getInfo().getInt("nks") != 1)  { throw Exception("min abundance must be 1"); }
-
-        // We retrieve a handle of the bank (we get the uri from the graph properties)
-        IBank* ibank = Bank::singleton().createBank (graph.getInfo().getStr("input"));
-        LOCAL (ibank);
-
-        // We convert the bank to binary form
-        BankConverterAlgorithm converter (ibank, graph.getKmerSize(), "bank.bin");
-        converter.execute();
-        IBank* bank = converter.getResult();
-        LOCAL (bank);
-
-        // We create a kmer model for iterating kmers of sequences.
-        Kmer<>::ModelCanonical model (graph.getKmerSize());
-
-        size_t totalNbKmers     = 0;
-        size_t totalNbBranching = 0;
-
-        // We create a sequences iterator
-        Iterator<Sequence>* iter = this->createIterator<Sequence> (*bank, "iterate bank");
-        LOCAL (iter);
-
-        // We need a map for building the distribution.
-        ThreadObject<map<int,int> > distrib;
-
-        // We iterate the bank
-        IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (Sequence& seq)
+        try
         {
-            // We get a reference on the local distribution for the current thread
-            map<int,int>& localDistrib = distrib();
+            // We load the graph with the provided graph uri.
+            Graph graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
 
-            // We compute the number of kmers in the current sequence
-            int nbKmers = seq.getDataSize() - graph.getKmerSize() + 1;
+            // We check that the sorting count got all the kmers
+            if (graph.getInfo().getInt("abundance_min") != 1)  { throw Exception("min abundance must be 1"); }
 
-            if (nbKmers > 0)
+            // We retrieve a handle of the bank (we get the uri from the graph properties)
+            IBank* ibank = Bank::open (graph.getInfo().getStr("bank_uri"));
+            LOCAL (ibank);
+
+            // We convert the bank to binary form
+            BankConverterAlgorithm converter (ibank, graph.getKmerSize(), "bank.bin");
+            converter.execute();
+            IBank* bank = converter.getResult();
+            LOCAL (bank);
+
+            // We create a kmer model for iterating kmers of sequences.
+            Kmer<>::ModelCanonical model (graph.getKmerSize());
+
+            size_t totalNbKmers     = 0;
+            size_t totalNbBranching = 0;
+
+            // We create a sequences iterator
+            Iterator<Sequence>* iter = this->createIterator<Sequence> (*bank, "iterate bank");
+            LOCAL (iter);
+
+            // We need a map for building the distribution.
+            ThreadObject<map<int,int> > distrib;
+
+            // We iterate the bank
+            IDispatcher::Status status = getDispatcher()->iterate (iter, [&] (Sequence& seq)
             {
-                int nbBranching = 0;
+                // We get a reference on the local distribution for the current thread
+                map<int,int>& localDistrib = distrib();
 
-                // We iterate the kmers of the current sequence
-                model.iterate (seq.getData(), [&] (const Kmer<>::ModelCanonical::Kmer& kmer, size_t rank)
+                // We compute the number of kmers in the current sequence
+                int nbKmers = seq.getDataSize() - graph.getKmerSize() + 1;
+
+                if (nbKmers > 0)
                 {
-                    // We count the branching nodes.
-                    if (graph.isBranching (Node::Value(kmer.value())))  {  nbBranching++;  }
-                });
+                    int nbBranching = 0;
 
-                // We increase the (local) distribution for this number of branching nodes per sequence
-                localDistrib[nbBranching] ++;
+                    // We iterate the kmers of the current sequence
+                    model.iterate (seq.getData(), [&] (const Kmer<>::ModelCanonical::Kmer& kmer, size_t rank)
+                    {
+                        // We count the branching nodes.
+                        if (graph.isBranching (Node::Value(kmer.value())))  {  nbBranching++;  }
+                    });
 
-                // We also increase the number of seen kmers (synchronization required).
-                __sync_fetch_and_add (&totalNbKmers, nbKmers);
-            }
-        });
+                    // We increase the (local) distribution for this number of branching nodes per sequence
+                    localDistrib[nbBranching] ++;
 
-        // We merge the (local) distributions filled by each thread into the final distribution
-        distrib.foreach ([&] (map<int,int>& localDistrib)
-        {
-            for (map<int,int>::iterator it = localDistrib.begin(); it != localDistrib.end(); it++)
+                    // We also increase the number of seen kmers (synchronization required).
+                    __sync_fetch_and_add (&totalNbKmers, nbKmers);
+                }
+            });
+
+            // We merge the (local) distributions filled by each thread into the final distribution
+            distrib.foreach ([&] (map<int,int>& localDistrib)
             {
-                (*distrib)[it->first] += it->second;
-                totalNbBranching += it->first * it->second;
+                for (map<int,int>::iterator it = localDistrib.begin(); it != localDistrib.end(); it++)
+                {
+                    (*distrib)[it->first] += it->second;
+                    totalNbBranching += it->first * it->second;
+                }
+            });
+
+            // We gather some statistics.
+            getInfo()->add (1, "stats");
+
+            getInfo()->add (2, "nb_kmers", "");
+            getInfo()->add (3, "total",  "%ld", totalNbKmers);
+            getInfo()->add (3, "unique", "%ld", graph.getInfo().getInt("kmers_nb_solid"));
+            getInfo()->add (3, "ratio",  "%.3f", (float)totalNbKmers / (float)graph.getInfo().getInt("kmers_nb_solid"));
+
+            getInfo()->add (2, "nb_branching", "");
+            getInfo()->add (3, "total", "%ld", totalNbBranching);
+            getInfo()->add (3, "unique", "%ld", graph.getInfo().getInt("nb_branching"));
+            getInfo()->add (3, "ratio",  "%.3f", (float)totalNbBranching / (float)graph.getInfo().getInt("nb_branching"));
+
+            getInfo()->add (2, "percentage",   "");
+            getInfo()->add (3, "total",    "%.3f", 100 * (float)totalNbBranching / (float)totalNbKmers);
+            getInfo()->add (3, "unique",   "%.3f", 100 * (float)graph.getInfo().getInt("nb_branching") / (float)graph.getInfo().getInt("kmers_nb_solid"));
+
+            getInfo()->add (1, "exec");
+            getInfo()->add (2, "time",     "%.3f", (float)status.time / 1000.0);
+            getInfo()->add (2, "nb_cores", "%d", status.nbCores);
+
+            // We create the output file
+            Storage* storage = StorageFactory(STORAGE_HDF5).create(getInput()->getStr(STR_URI_OUTPUT), true, false);
+            LOCAL (storage);
+
+            // We create the collection in the output storage
+            typedef Abundance<NativeInt64, u_int32_t> DistribEntry;
+            Collection<DistribEntry>& outDistrib = storage->root().getCollection<DistribEntry>("distrib");
+
+            // We dump the distribution in the output file
+            for (map<int,int>::iterator it = (*distrib).begin(); it != (*distrib).end(); it++)
+            {
+                outDistrib.insert (DistribEntry(it->first, it->second));
             }
-        });
-
-        // We gather some statistics.
-        getInfo()->add (1, "stats");
-
-        getInfo()->add (2, "nb_kmers", "");
-        getInfo()->add (3, "total",  "%ld", totalNbKmers);
-        getInfo()->add (3, "unique", "%ld", graph.getInfo().getInt("kmers_nb_solid"));
-        getInfo()->add (3, "ratio",  "%.3f", (float)totalNbKmers / (float)graph.getInfo().getInt("kmers_nb_solid"));
-
-        getInfo()->add (2, "nb_branching", "");
-        getInfo()->add (3, "total", "%ld", totalNbBranching);
-        getInfo()->add (3, "unique", "%ld", graph.getInfo().getInt("nb_branching"));
-        getInfo()->add (3, "ratio",  "%.3f", (float)totalNbBranching / (float)graph.getInfo().getInt("nb_branching"));
-
-        getInfo()->add (2, "percentage",   "");
-        getInfo()->add (3, "total",    "%.3f", 100 * (float)totalNbBranching / (float)totalNbKmers);
-        getInfo()->add (3, "unique",   "%.3f", 100 * (float)graph.getInfo().getInt("nb_branching") / (float)graph.getInfo().getInt("kmers_nb_solid"));
-
-        getInfo()->add (1, "exec");
-        getInfo()->add (2, "time",     "%.3f", (float)status.time / 1000.0);
-        getInfo()->add (2, "nb_cores", "%d", status.nbCores);
-
-        // We create the output file
-        Storage* storage = StorageFactory(STORAGE_HDF5).create(getInput()->getStr(STR_URI_OUTPUT), true, false);
-        LOCAL (storage);
-
-        // We create the collection in the output storage
-        typedef Abundance<NativeInt64, u_int32_t> DistribEntry;
-        Collection<DistribEntry>& outDistrib = storage->root().getCollection<DistribEntry>("distrib");
-
-        // We dump the distribution in the output file
-        for (map<int,int>::iterator it = (*distrib).begin(); it != (*distrib).end(); it++)
-        {
-            outDistrib.insert (DistribEntry(it->first, it->second));
+            outDistrib.flush();
         }
-        outDistrib.flush();
+        catch (Exception& e)
+        {
+            std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+        }
     }
 };
 

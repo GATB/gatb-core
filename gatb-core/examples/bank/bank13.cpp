@@ -33,11 +33,11 @@ int main (int argc, char* argv[])
         double percentThreshold = options->getDouble(STR_FILTER_RATIO);
 
         /** We open the input bank. */
-        IBank* inBank = Bank::singleton().createBank (options->getStr(STR_URI_INPUT));
+        IBank* inBank = Bank::open (options->getStr(STR_URI_INPUT));
         LOCAL (inBank);
 
         /** We create the output inBank. */
-        IBank* outBank = Bank::singleton().createBank (options->getStr(STR_URI_INPUT) + "_filtered");
+        IBank* outBank = new BankFasta (options->getStr(STR_URI_INPUT) + "_filtered");
         LOCAL (outBank);
 
         /** We iterate the inBank. NOTE: WE USE A LAMBDA EXPRESSION HERE. */
@@ -61,11 +61,9 @@ int main (int argc, char* argv[])
 
     catch (OptionFailure& e)
     {
-        e.getParser().displayErrors (stdout);
-        e.getParser().displayHelp   (stdout);
-        return EXIT_FAILURE;
+        return e.displayErrors (cout);
     }
-    catch (gatb::core::system::Exception& e)
+    catch (Exception& e)
     {
         cerr << "EXCEPTION: " << e.getMessage() << endl;
     }

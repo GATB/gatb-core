@@ -44,6 +44,8 @@ struct CustomMinimizer
     {
         return current < optimum;
     }
+
+    void include_frequency (uint32_t* freq_order) {}
 };
 
 /** We define here a 'maximizer' in the mmers of a specific kmer. */
@@ -58,6 +60,8 @@ struct CustomMaximizer
     {
         return !(current < optimum);
     }
+
+    void include_frequency (uint32_t* freq_order) {}
 };
 
 /** Some shortcuts. */
@@ -69,31 +73,33 @@ typedef Kmer<span>::ModelMinimizer<ModelDirect,CustomMaximizer> ModelMaximizer;
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 4)
-    {
-        cerr << "you must provide at least 3 arguments. Arguments are:" << endl;
-        cerr << "   1) kmer size"                   << endl;
-        cerr << "   2) minimizer size"              << endl;
-        cerr << "   3) FASTA file"                  << endl;
-        cerr << "   4) verbose (0/1, 0 by default)" << endl;
-        return EXIT_FAILURE;
-    }
+    /** We create a command line parser. */
+    OptionsParser parser ("KmerTest");
+    parser.push_back (new OptionOneParam (STR_URI_INPUT,      "bank input",     true));
+    parser.push_back (new OptionOneParam (STR_KMER_SIZE,      "kmer size",      true));
+    parser.push_back (new OptionOneParam (STR_MINIMIZER_SIZE, "minimizer size", true));
+    parser.push_back (new OptionNoParam  (STR_VERBOSE,        "display kmers",  false));
 
-    // We get the kmer and minimizer sizes.
-    size_t kmerSize = atoi(argv[1]);
-    size_t mmerSize = atoi(argv[2]);
-
-    // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+        string bankFilename = options->getStr(STR_URI_INPUT);
+
+        // We get the kmer and minimizer sizes.
+        size_t kmerSize = options->getInt(STR_KMER_SIZE);
+        size_t mmerSize = options->getInt(STR_MINIMIZER_SIZE);
+
+        // We define a try/catch block in case some method fails (bad filename for instance)
         u_int64_t nbSequences   = 0;
         u_int64_t nbKmers       = 0;
         u_int64_t nbMinimizers  = 0;
         u_int64_t nbMinimizers2 = 0;
-        bool display = argc>=5 ? atoi(argv[4]) : false;
+        bool display = options->get(STR_VERBOSE) != 0;
 
-        // We declare a Bank instance defined by a list of filenames
-        BankFasta b (argv[3]);
+        // We declare a bank instance defined by a list of filenames
+        IBank* bank = Bank::open (bankFilename);
 
         // We declare a kmer model and a minimizer model
         ModelMinimizer model (kmerSize, mmerSize);
@@ -102,7 +108,7 @@ int main (int argc, char* argv[])
         const ModelDirect& modelMinimizer = model.getMmersModel();
 
         // We create an iterator over this bank.
-        ProgressIterator<Sequence> itSeq (b);
+        ProgressIterator<Sequence> itSeq (*bank);
 
         // We loop over sequences.
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
@@ -116,10 +122,10 @@ int main (int argc, char* argv[])
                 if (display)
                 {
                     std::cout << "KMER=" << model.toString(kmer.value()) << "  "
-                              << (kmer.hasChanged() ? "NEW" : "OLD") << " "
-                              << "MINIMIZER=" << modelMinimizer.toString(kmer.minimizer().value()) << " "
-                              << "at position " << kmer.position()
-                              << std::endl;
+                          << (kmer.hasChanged() ? "NEW" : "OLD") << " "
+                          << "MINIMIZER=" << modelMinimizer.toString(kmer.minimizer().value()) << " "
+                          << "at position " << kmer.position()
+                          << std::endl;
                 }
 
                 // We may have to update the number of different minimizer in the current sequence
@@ -141,7 +147,7 @@ int main (int argc, char* argv[])
         // We dump results
         Properties info;
         info.add (0, "info");
-        info.add (1, "bank",          "%s",   argv[3]);
+        info.add (1, "bank",          "%s",   bankFilename.c_str());
         info.add (1, "kmer_size",     "%ld",  kmerSize);
         info.add (1, "mmer_size",     "%ld",  mmerSize);
         info.add (1, "nb_sequences",  "%ld",  nbSequences);
@@ -151,10 +157,13 @@ int main (int argc, char* argv[])
         info.add (1, "deviation",     "%.2f", devia);
         cout << info << endl;
     }
-
-    catch (gatb::core::system::Exception& e)
+    catch (OptionFailure& e)
     {
-        cerr << "EXCEPTION: " << e.getMessage() << endl;
+        return e.displayErrors (std::cout);
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 
     return EXIT_SUCCESS;

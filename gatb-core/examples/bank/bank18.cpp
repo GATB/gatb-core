@@ -14,28 +14,44 @@
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 3)  {  std::cout << "You must provide two banks" << std::endl;    return EXIT_FAILURE; }
+    static const char* STR_BANK1 = "-one";
+    static const char* STR_BANK2 = "-two";
 
-    // We get the file names from the user arguments
-    const char* file1 = argv[1];
-    const char* file2 = argv[2];
+    /** We create a command line parser. */
+    OptionsParser parser ("TwoBanks");
+    parser.push_back (new OptionOneParam (STR_BANK1, "bank one",   true));
+    parser.push_back (new OptionOneParam (STR_BANK2, "bank two",   true));
 
-    // We open the two banks
-    IBank* bank1 = Bank::open (file1);  LOCAL (bank1);
-    IBank* bank2 = Bank::open (file2);  LOCAL (bank2);
-
-    // We get one iterator for each bank
-    Iterator<Sequence>* it1 = bank1->iterator();  LOCAL (it1);
-    Iterator<Sequence>* it2 = bank2->iterator();  LOCAL (it2);
-
-    // We iterate the two banks
-    PairedIterator<Sequence> itPair (it1, it2);
-    for (itPair.first(); !itPair.isDone(); itPair.next())
+    try
     {
-        Sequence& s1 = itPair.item().first;
-        Sequence& s2 = itPair.item().second;
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
 
-        std::cout << "seq1.len=" << s1.getDataSize() << " seq2.len=" << s2.getDataSize() << std::endl;
+        // We open the two banks
+        IBank* bank1 = Bank::open (options->getStr(STR_BANK1));  LOCAL (bank1);
+        IBank* bank2 = Bank::open (options->getStr(STR_BANK2));  LOCAL (bank2);
+
+        // We get one iterator for each bank
+        Iterator<Sequence>* it1 = bank1->iterator();  LOCAL (it1);
+        Iterator<Sequence>* it2 = bank2->iterator();  LOCAL (it2);
+
+        // We iterate the two banks
+        PairedIterator<Sequence> itPair (it1, it2);
+        for (itPair.first(); !itPair.isDone(); itPair.next())
+        {
+            Sequence& s1 = itPair.item().first;
+            Sequence& s2 = itPair.item().second;
+
+            std::cout << "seq1.len=" << s1.getDataSize() << " seq2.len=" << s2.getDataSize() << std::endl;
+        }
+    }
+    catch (OptionFailure& e)
+    {
+        return e.displayErrors (std::cout);
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 }
 //! [snippet1]

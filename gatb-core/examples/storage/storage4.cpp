@@ -8,6 +8,8 @@ using namespace std;
 /********************************************************************************/
 /*                  Read two Collections from a Storage file.                   */
 /*                                                                              */
+/*  This snippet reads items created during 'storage2'                          */
+/*                                                                              */
 /* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
 /* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
 /*                                                                              */

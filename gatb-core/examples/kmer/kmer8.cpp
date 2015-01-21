@@ -28,28 +28,28 @@ typedef ModelMinimizer  Model;
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    if (argc < 4)
-    {
-        cerr << "you must provide at least 3 arguments. Arguments are:" << endl;
-        cerr << "   1) kmer size"                   << endl;
-        cerr << "   2) minimizer size"              << endl;
-        cerr << "   3) FASTA file"                  << endl;
-        cerr << "   4) verbose (0/1, 0 by default)" << endl;
-        return EXIT_FAILURE;
-    }
+    /** We create a command line parser. */
+    OptionsParser parser ("KmerTest");
+    parser.push_back (new OptionOneParam (STR_URI_INPUT,      "bank input",     true));
+    parser.push_back (new OptionOneParam (STR_KMER_SIZE,      "kmer size",      true));
+    parser.push_back (new OptionOneParam (STR_MINIMIZER_SIZE, "minimizer size", true));
+    parser.push_back (new OptionNoParam  (STR_VERBOSE,        "display kmers",  false));
 
-    // We get the kmer and minimizer sizes.
-    size_t kmerSize = atoi(argv[1]);
-    size_t mmerSize = atoi(argv[2]);
-
-    // We define a try/catch block in case some method fails (bad filename for instance)
     try
     {
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+        // We get the kmer and minimizer sizes.
+        size_t kmerSize = options->getInt(STR_KMER_SIZE);
+        size_t mmerSize = options->getInt(STR_MINIMIZER_SIZE);
+
+        // We define a try/catch block in case some method fails (bad filename for instance)
         u_int64_t nbKmers       = 0;
-        bool display = argc>=5 ? atoi(argv[4]) : false;
+        bool display = options->get(STR_VERBOSE) != 0;
 
         // We declare a Bank instance defined by a list of filenames
-        IBank* bank = Bank::singleton().createBank (argv[3]);
+        IBank* bank = Bank::open (options->getStr(STR_URI_INPUT));
         LOCAL (bank);
 
         // We declare a kmer model and a minimizer model
@@ -62,9 +62,15 @@ int main (int argc, char* argv[])
         size_t nbChanged = 0;
         size_t nbInvalid = 0;
 
+        // We define an iterator that encapsulates the sequences iterator with progress feedback
+        ProgressIterator<Sequence> iter (*bank, "iterate bank");
+
         // We loop over sequences.
-        bank->iterate ([&] (Sequence& seq)
+        for (iter.first(); !iter.isDone(); iter.next())
         {
+            // Shortcut
+            Sequence& seq = iter.item();
+
             // We iterate the kmers (and minimizers) of the current sequence.
             model.iterate (seq.getData(), [&] (const Model::Kmer& kmer, size_t idx)
             {
@@ -73,18 +79,21 @@ int main (int argc, char* argv[])
                 if (kmer.isValid()    == false)  { nbInvalid++;  }
                 checksum += kmer.minimizer().value();
             });
-        });
+        }
 
-        cout << "nbKmers   : " << nbKmers << endl;
+        cout << "nbKmers   : " << nbKmers   << endl;
         cout << "nbInvalid : " << nbInvalid << endl;
         cout << "nbChanged : " << nbChanged << endl;
         cout << "ratio     : " << (nbChanged > 0 ? (double)nbKmers / (double)nbChanged : 0) << endl;
-        cout << "checksum  : " << checksum << endl;
+        cout << "checksum  : " << checksum  << endl;
     }
-
-    catch (gatb::core::system::Exception& e)
+    catch (OptionFailure& e)
     {
-        cerr << "EXCEPTION: " << e.getMessage() << endl;
+        return e.displayErrors (std::cout);
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 
     return EXIT_SUCCESS;

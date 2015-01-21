@@ -17,7 +17,7 @@ struct FilterFunctor
 };
 
 /********************************************************************************/
-/*           Iterate a bank whose sequences are each kmer of a model.           */
+/*           Extract sequences from a bank.                                     */
 /*                                                                              */
 /* This snippet shows how to extract some sequences for a given list of indexes.*/
 /* These indexes are read from an input file, one index per line.               */
@@ -27,8 +27,8 @@ int main (int argc, char* argv[])
 {
     /** We create a command line parser. */
     OptionsParser parser ("BankFilter");
-    parser.push_back (new OptionOneParam (STR_URI_INPUT,     "bank reference",   true));
-    parser.push_back (new OptionOneParam (STR_URI_SEQ_IDS,  "file holding indexes of bank",   true));
+    parser.push_back (new OptionOneParam (STR_URI_INPUT,    "bank reference",               true));
+    parser.push_back (new OptionOneParam (STR_URI_SEQ_IDS,  "file holding indexes of bank", true));
 
     try
     {
@@ -73,7 +73,7 @@ int main (int argc, char* argv[])
     {
         return e.displayErrors (cout);
     }
-    catch (gatb::core::system::Exception& e)
+    catch (Exception& e)
     {
         cerr << "EXCEPTION: " << e.getMessage() << endl;
     }

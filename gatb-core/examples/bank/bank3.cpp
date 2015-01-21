@@ -31,14 +31,22 @@ struct Functor {  void operator ()  (Sequence& s)  const
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We declare a Bank instance defined by a list of filenames
-    BankFasta b (argc-1, argv+1);
+    if (argc < 2)
+    {
+        std::cerr << "you must provide a bank." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // We declare an input Bank and use it locally
+    IBank* inputBank = Bank::open (argv[1]);
+    LOCAL (inputBank);
 
     // We create an iterator over this bank.
-    BankFasta::Iterator it (b);
+    Iterator<Sequence>* it = inputBank->iterator();
+    LOCAL (it);
 
     // We loop over sequences in a "push" fashion (a functor is called for each sequence)
     Functor fct;
-    it.iterate (fct);
+    it->iterate (fct);
 }
 //! [snippet1]

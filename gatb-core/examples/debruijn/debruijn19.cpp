@@ -121,83 +121,94 @@ private:
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We check that the user provides at least one option (supposed to be in HDF5 format).
-    if (argc < 2)
+    /** We create a command line parser. */
+    OptionsParser parser ("GraphStats");
+    parser.push_back (new OptionOneParam (STR_URI_GRAPH, "graph input",  true));
+
+    try
     {
-        cerr << "You must provide a HDF5 file." << endl;
-        return EXIT_FAILURE;
+        /** We parse the user options. */
+        IProperties* options = parser.parse (argc, argv);
+
+        // We load the graph
+        Graph graph = Graph::load (options->getStr(STR_URI_GRAPH));
+
+        // We create a graph marker.
+        GraphMarker<BranchingNode> marker (graph);
+
+        // We create an object for Breadth First Search for the de Bruijn graph.
+        BFS<BranchingNode> bfs (graph);
+
+        // We want to compute the distribution of connected components of the branching nodes.
+        //    - key is a connected component class (for a given number of branching nodes for this component)
+        //    - value is the number of times this component class occurs in the branching sub graph
+        map<size_t,size_t> distrib;
+
+        // We get an iterator for branching nodes of the graph. We use a progress iterator to get some progress feedback
+        ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
+
+        // We want to know the number of connected components
+        size_t nbConnectedComponents = 0;
+
+        // We want time duration of the iteration
+        TimeInfo ti;
+        ti.start ("compute");
+
+        // We loop the branching nodes
+        for (itBranching.first(); !itBranching.isDone(); itBranching.next())
+        {
+            // We skip already visited nodes.
+            if (marker.isMarked (*itBranching))  { continue; }
+
+            // We launch the breadth first search; we get as a result the set of branching nodes in this component
+            const set<BranchingNode>& component = bfs.run (*itBranching);
+
+            // We mark the nodes for this connected component
+            marker.mark (component);
+
+            // We update our distribution
+            distrib[component.size()] ++;
+
+            // We update the number of connected components.
+            nbConnectedComponents++;
+        }
+
+        ti.stop ("compute");
+
+        // We compute the total number of branching nodes in all connected components.
+        size_t sum = 0;   for (map<size_t,size_t>::iterator it = distrib.begin(); it != distrib.end(); it++)  {  sum += it->first*it->second; }
+
+        // Note: it must be equal to the number of branching nodes of the graph
+        assert (sum == itBranching.size());
+
+        // We aggregate the computed information
+        Properties props ("connected_components");
+        props.add (1, "graph_name",              "%s", graph.getName().c_str());
+        props.add (1, "nb_branching_nodes",      "%d", sum);
+        props.add (1, "nb_connected_classes",    "%d", distrib.size());
+        props.add (1, "nb_connected_components", "%d", nbConnectedComponents);
+        for (map<size_t,size_t>::iterator it = distrib.begin(); it!=distrib.end(); it++)
+        {
+            props.add (2, "component");
+            props.add (3, "nb_nodes",    "%d", it->first);
+            props.add (3, "nb_occurs",   "%d", it->second);
+            props.add (3, "freq_nodes",  "%f", 100.0*(float)(it->first*it->second) / (float)sum);
+            //props.add (3, "freq_occurs", "%f", 100.0*(float)it->second / (float)sum);
+        }
+        props.add (1, ti.getProperties("time"));
+
+        // We dump the results in a XML file in the current directory
+        XmlDumpPropertiesVisitor v (graph.getName() + ".xml", false);
+        props.accept (&v);
     }
-
-    // We create the graph with the bank and other options
-    Graph graph = Graph::load (argv[1]);
-
-    // We create a graph marker.
-    GraphMarker<BranchingNode> marker (graph);
-
-    // We create an object for Breadth First Search for the de Bruijn graph.
-    BFS<BranchingNode> bfs (graph);
-
-    // We want to compute the distribution of connected components of the branching nodes.
-    //    - key is a connected component class (for a given number of branching nodes for this component)
-    //    - value is the number of times this component class occurs in the branching sub graph
-    map<size_t,size_t> distrib;
-
-    // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
-    ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
-
-    // We want to know the number of connected components
-    size_t nbConnectedComponents = 0;
-
-    // We want time duration of the iteration
-    TimeInfo ti;
-    ti.start ("compute");
-
-    // We loop the branching nodes
-    for (itBranching.first(); !itBranching.isDone(); itBranching.next())
+    catch (OptionFailure& e)
     {
-        // We skip already visited nodes.
-        if (marker.isMarked (*itBranching))  { continue; }
-
-        // We launch the breadth first search; we get as a result the set of branching nodes in this component
-        const set<BranchingNode>& component = bfs.run (*itBranching);
-
-        // We mark the nodes for this connected component
-        marker.mark (component);
-
-        // We update our distribution
-        distrib[component.size()] ++;
-
-        // We update the number of connected components.
-        nbConnectedComponents++;
+        return e.displayErrors (std::cout);
     }
-
-    ti.stop ("compute");
-
-    // We compute the total number of branching nodes in all connected components.
-    size_t sum = 0;   for (map<size_t,size_t>::iterator it = distrib.begin(); it != distrib.end(); it++)  {  sum += it->first*it->second; }
-
-    // Note: it must be equal to the number of branching nodes of the graph
-    assert (sum == itBranching.size());
-
-    // We aggregate the computed information
-    Properties props ("connected_components");
-    props.add (1, "graph_name",              "%s", graph.getName().c_str());
-    props.add (1, "nb_branching_nodes",      "%d", sum);
-    props.add (1, "nb_connected_classes",    "%d", distrib.size());
-    props.add (1, "nb_connected_components", "%d", nbConnectedComponents);
-    for (map<size_t,size_t>::iterator it = distrib.begin(); it!=distrib.end(); it++)
+    catch (Exception& e)
     {
-        props.add (2, "component");
-        props.add (3, "nb_nodes",    "%d", it->first);
-        props.add (3, "nb_occurs",   "%d", it->second);
-        props.add (3, "freq_nodes",  "%f", 100.0*(float)(it->first*it->second) / (float)sum);
-        //props.add (3, "freq_occurs", "%f", 100.0*(float)it->second / (float)sum);
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
-    props.add (1, ti.getProperties("time"));
-
-    // We dump the results in a XML file in the current directory
-    XmlDumpPropertiesVisitor v (graph.getName() + ".xml", false);
-    props.accept (&v);
 
     return EXIT_SUCCESS;
 }

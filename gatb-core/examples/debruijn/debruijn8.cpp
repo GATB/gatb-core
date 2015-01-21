@@ -15,19 +15,26 @@ int main (int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    // We create the graph with the bank and other options
-    Graph graph = Graph::load (argv[1]);
-
-    // We get an iterator for all nodes of the graph.
-    Graph::Iterator<BranchingNode> it = graph.iterator<BranchingNode> ();
-
-    // We loop each node. Note the structure of the for loop.
-    for (it.first(); !it.isDone(); it.next())
+    try
     {
-        // The currently iterated branching node is available with it.item()
+        // We load the graph from the given graph file
+        Graph graph = Graph::load (argv[1]);
 
-        // We dump an ascii representation of the current node.
-        std::cout << "[" << it.rank() << "] " << graph.toString (it.item()) << std::endl;
+        // We get an iterator for branching nodes of the graph.
+        Graph::Iterator<BranchingNode> it = graph.iterator<BranchingNode> ();
+
+        // We loop each node. Note the structure of the for loop.
+        for (it.first(); !it.isDone(); it.next())
+        {
+            // The currently iterated branching node is available with it.item()
+
+            // We dump an ascii representation of the current node.
+            std::cout << "[" << it.rank() << "] " << graph.toString (it.item()) << std::endl;
+        }
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 
     return EXIT_SUCCESS;

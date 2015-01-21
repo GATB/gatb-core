@@ -49,7 +49,7 @@ int main (int argc, char* argv[])
     {
         return e.displayErrors (cout);
     }
-    catch (gatb::core::system::Exception& e)
+    catch (Exception& e)
     {
         cerr << "EXCEPTION: " << e.getMessage() << endl;
     }

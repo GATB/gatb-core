@@ -5,6 +5,10 @@
 
 /********************************************************************************/
 /*             Graph creation from command line options                         */
+/*                                                                              */
+/*  This snippet is similar to the dbgh5 software.                              */
+/*  Here, we just show the minimal requirement to create a de Bruijn graph.     */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
@@ -13,7 +17,8 @@ int main (int argc, char* argv[])
     LOCAL (parser);
 
     // We use a try/catch block in case we have some command line parsing issue.
-    try  {
+    try
+    {
         // We parse the user options.
         parser->parse (argc, argv);
 
@@ -26,6 +31,10 @@ int main (int argc, char* argv[])
     catch (OptionFailure& e)
     {
         return e.displayErrors (std::cout);
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 
     return EXIT_SUCCESS;

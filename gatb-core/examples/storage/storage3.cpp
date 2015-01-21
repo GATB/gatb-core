@@ -7,6 +7,9 @@ using namespace std;
 
 /********************************************************************************/
 /*                  Read a Collection from a Storage file.                      */
+/*                                                                              */
+/*  This snippet reads items created during 'storage1'                          */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
