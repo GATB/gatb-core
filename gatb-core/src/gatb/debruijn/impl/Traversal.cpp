@@ -25,6 +25,7 @@
 #include <gatb/debruijn/impl/Frontline.hpp>
 
 using namespace std;
+using namespace gatb::core::tools::misc;
 
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
@@ -42,20 +43,20 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** REMARKS :
 *********************************************************************/
 Traversal* Traversal::create (
-    Kind&               type,
-    const Graph&        graph,
-    Terminator&         terminator,
-    int                 max_len,
-    int                 max_depth,
-    int                 max_breadth
+    TraversalKind   type,
+    const Graph&    graph,
+    Terminator&     terminator,
+    int             max_len,
+    int             max_depth,
+    int             max_breadth
 )
 {
     Traversal* result = 0;
 
-         if (type == UNITIG)  { result = new SimplePathsTraversal (graph, terminator, max_len, max_depth, max_breadth); }
-    else if (type == CONTIG)  { result = new MonumentTraversal    (graph, terminator, max_len, max_depth, max_breadth); }
-    else if (type == NONE)    { result = new NullTraversal        (graph, terminator, max_len, max_depth, max_breadth); }
-    else                      { result = new MonumentTraversal    (graph, terminator, max_len, max_depth, max_breadth); }
+         if (type == TRAVERSAL_UNITIG)  { result = new SimplePathsTraversal (graph, terminator, max_len, max_depth, max_breadth); }
+    else if (type == TRAVERSAL_CONTIG)  { result = new MonumentTraversal    (graph, terminator, max_len, max_depth, max_breadth); }
+    else if (type == TRAVERSAL_NONE)    { result = new NullTraversal        (graph, terminator, max_len, max_depth, max_breadth); }
+    else                                { result = new MonumentTraversal    (graph, terminator, max_len, max_depth, max_breadth); }
 
     return result;
 }
@@ -77,11 +78,7 @@ Traversal* Traversal::create (
     int                 max_breadth
 )
 {
-    Kind typeEnum;
-         if (type == "unitig")    { typeEnum = UNITIG; }
-    else if (type == "monument")  { typeEnum = CONTIG; }
-    else if (type == "null")      { typeEnum = NONE; }
-    else                          { typeEnum = CONTIG; }
+    TraversalKind typeEnum;  parse (type, typeEnum);
 
     return create (typeEnum, graph, terminator, max_len, max_depth, max_breadth);
 }

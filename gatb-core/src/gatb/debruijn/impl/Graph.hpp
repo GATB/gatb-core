@@ -725,6 +725,11 @@ public:
      * \return the fake node. */
     Node buildNode (const tools::misc::Data& data, size_t offset=0) const;
 
+    /** Build a fake node (ie. not necessarily in the De Bruijn graph). Mainly for test purpose.
+     * \param[in] sequence : a sequence of nucleotides in ASCII format
+     * \return the fake node. */
+    Node buildNode (const char* sequence) const;
+
     /** Return the reverse complement node of the provided one.
      * param[in] node : the node to be reverted
      * \return the reverted node.  */

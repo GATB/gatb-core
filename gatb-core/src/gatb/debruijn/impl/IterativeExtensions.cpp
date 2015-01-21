@@ -103,7 +103,7 @@ template<size_t span>
 IterativeExtensions<span>::IterativeExtensions (
     const Graph&        graph,
     Terminator&         terminator,
-    Traversal::Kind     traversalKind,
+    TraversalKind       traversalKind,
     ExtendStopMode_e    whenToStop,
     SearchMode_e        searchMode,
     bool                dontOutputFirstNucl,

@@ -193,7 +193,7 @@ static void setVariant (GraphDataVariant& data, size_t kmerSize, size_t integerP
 
 /********************************************************************************/
 
-/** This visitor is used to configure a GraphDataVariant object (ie configure its attributes).
+/* This visitor is used to configure a GraphDataVariant object (ie configure its attributes).
  * The information source used to configure the variant is a kmer size and a storage.
  *
  * If the storage is null, only the kmer model is set.
@@ -266,7 +266,7 @@ struct configure_visitor : public boost::static_visitor<>    {
 
 /********************************************************************************/
 
-/** This visitor is used to build a graph. In particular, the data variant of the graph will
+/* This visitor is used to build a graph. In particular, the data variant of the graph will
  * be configured through this boost visitor.
  *
  * The skeleton of the graph building is the following:
@@ -1315,6 +1315,21 @@ struct buildNode_visitor : public boost::static_visitor<Node>    {
 Node Graph::buildNode (const tools::misc::Data& data, size_t offset)  const
 {
     return boost::apply_visitor (buildNode_visitor(data,offset),  *(GraphDataVariant*)_variant);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+Node Graph::buildNode (const char* sequence)  const
+{
+    Data data ((char*)sequence);
+
+    return boost::apply_visitor (buildNode_visitor(data,0),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************

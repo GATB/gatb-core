@@ -45,30 +45,57 @@ struct TraversalStats
     long couldnt_find_extension;
 };
 
-
 /********************************************************************************/
-// semi-abstract class. implements traverse but not avance
+
+/** \brief Class that traverse nodes of a Graph
+ *
+ * The Traversal class looks for path in a graph according to several criteria. This
+ * is done through the 'traverse' method. As a result, one gets a Path object that
+ * holds the traversed path information.
+ *
+ * There are two kinds of traversal:
+ *  - \ref tools::misc::TRAVERSAL_UNITIG : one gets only simple path in the graph
+ *  - \ref tools::misc::TRAVERSAL_CONTIG : one gets more complex path
+ *
+ * A factory method \ref create is available and should be used by end users to instantiate
+ * this class.
+ *
+ * This class is abstract since it doesn't implement avance. It is subclassed according
+ * to the wanted kind of traversal.
+ *
+ * Example of use : we create a fake bank, build its graph and traverse the graph:
+ * \snippet traversal2.cpp  snippet1_traversal
+ *
+ */
 class Traversal : public system::SmartPointer
 {
 public:
 
-    enum Kind { NONE=0, UNITIG=1, CONTIG=2 };
-    static const char* getName (Kind kind)
-    {
-        switch (kind)  { case NONE: return "none"; case UNITIG: return "unitig";  case CONTIG: return "contig"; default: return "???"; }
-    }
-
-    /** */
+    /** Factory method that creates an instance of Traversal
+     * \param[in] type : kind of traversal
+     * \param[in] graph : graph object to be traversed
+     * \param[in] terminator : object used to tag traversed nodes
+     * \param[in] max_len : maximum length of the traversal
+     * \param[in] max_depth : maximum depth of the traversal
+     * \param[in] max_breadth : maximum depth of the traversal
+     */
     static Traversal* create (
-        Kind&               type,
-        const Graph&        graph,
-        Terminator&         terminator,
-        int                 max_len     = Traversal::defaultMaxLen,
-        int                 max_depth   = Traversal::defaultMaxDepth,
-        int                 max_breadth = Traversal::defaultMaxBreadth
+        tools::misc::TraversalKind  type,
+        const Graph&                graph,
+        Terminator&                 terminator,
+        int                         max_len     = Traversal::defaultMaxLen,
+        int                         max_depth   = Traversal::defaultMaxDepth,
+        int                         max_breadth = Traversal::defaultMaxBreadth
     );
 
-    /** */
+    /** Factory method that creates an instance of Traversal
+     * \param[in] type : type of traversal
+     * \param[in] graph : graph object to be traversed
+     * \param[in] terminator : object used to tag traversed nodes
+     * \param[in] max_len : maximum length of the traversal
+     * \param[in] max_depth : maximum depth of the traversal
+     * \param[in] max_breadth : maximum depth of the traversal
+     */
     static Traversal* create (
         const std::string&  type,
         const Graph&        graph,
@@ -78,25 +105,36 @@ public:
         int                 max_breadth = Traversal::defaultMaxBreadth
     );
 
-    /** */
+    /** Get the name of the traversal.
+     * \return traversal name.  */
     virtual std::string getName() const = 0;
 
-    /** */
+    /** Traverse the graph starting from one node for a given direction. As a result,
+     * one gets a Path object
+     * \param[in] node : starting node of the traversal.
+     * \param[in] dir :  direction of the traversal
+     * \param[out] resulting_sequence : path of the traversal */
     int traverse (const Node& node, Direction dir, Path& resulting_sequence)
     {
         Node endingNode;  return traverse (node, endingNode, dir, resulting_sequence);
     }
 
-    /** */
+    /** Traverse the graph starting from one node for a given direction. As a result,
+     * one gets a Path object. We get also the last traversed node.
+     * \param[in] startingNode : starting node of the traversal.
+     * \param[out] endingNode : starting node of the traversal.
+     * \param[in] dir :  direction of the traversal
+     * \param[out] resulting_sequence : path of the traversal */
     int traverse (const Node& startingNode, Node& endingNode, Direction dir, Path& resulting_sequence);
 
-    /** */
+    /** Get the maximum allowed depth
+     * \return maximum depth */
     int getMaxDepth() const  { return max_depth; };
 
-    /** */
+    /** Get the maximum allowed breadth
+     * \return maximum breadth */
     int getMaxBreadth () const  { return max_breadth; };
 
-    /** */
     static const int defaultMaxLen     = 10*1000*1000;
     static const int defaultMaxDepth   = 500;
     static const int defaultMaxBreadth = 20;
@@ -105,10 +143,14 @@ public:
     void commit_stats() { final_stats = stats; }; // save current stats into final stats
     void revert_stats() { stats = final_stats; }; // discard changes in stats (because contig was discarded)
 
-    /** */
+    /** Compute a global alignment between two path. NOTE: could be moved to Path class.
+     * \param[in] a : first path
+     * \param[in] b : second path. */
     static float needleman_wunch (const Path& a, const Path& b);
 
-    /** */
+    /** Get the bubbles found during traversal. One bubble is defined by the [begin,end] positions in the
+     * path.
+     * \return vector of positions ranges. */
     const std::vector <std::pair<int, int> >& getBubbles()  const { return bubbles_positions; }
 
 protected:
@@ -139,10 +181,21 @@ protected:
 
 /********************************************************************************/
 
+/** \brief Null implementation of Traversal.
+ *
+ * This class returns empty Path as a result of traverse.
+ */
 class NullTraversal: public Traversal
 {
 public:
-    /** */
+
+    /** Factory method that creates an instance of NullTraversal
+     * \param[in] graph : graph object to be traversed
+     * \param[in] terminator : object used to tag traversed nodes
+     * \param[in] maxlen : maximum length of the traversal
+     * \param[in] max_depth : maximum depth of the traversal
+     * \param[in] max_breadth : maximum depth of the traversal
+     */
     NullTraversal (
         const Graph& graph,
         Terminator& terminator,
@@ -151,6 +204,8 @@ public:
         int max_breadth = Traversal::defaultMaxBreadth
     ) : Traversal (graph, terminator, maxlen, max_depth, max_breadth) {}
 
+    /** Get the name of the traversal
+     * \return the name */
     std::string getName() const  { return std::string ("null"); }
 
 private:
@@ -160,10 +215,19 @@ private:
 
 /********************************************************************************/
 
+/** \brief Implementation of Traversal that produces unitigs.
+ */
 class SimplePathsTraversal: public Traversal
 {
 public:
-    /** */
+
+    /** Factory method that creates an instance of SimplePathsTraversal
+     * \param[in] graph : graph object to be traversed
+     * \param[in] terminator : object used to tag traversed nodes
+     * \param[in] maxlen : maximum length of the traversal
+     * \param[in] max_depth : maximum depth of the traversal
+     * \param[in] max_breadth : maximum depth of the traversal
+     */
     SimplePathsTraversal (
         const Graph& graph,
         Terminator& terminator,
@@ -172,19 +236,31 @@ public:
         int max_breadth = Traversal::defaultMaxBreadth
     );
 
+    /** Get the name of the traversal
+     * \return the name */
     std::string getName() const  { return std::string ("unitig"); }
 
 private:
 
+    /* Implementation of the virtual method. */
     char avance (const Node& node, Direction dir, bool first_extension, Path& path, const Node& previousNode);
 };
 
 /********************************************************************************/
 
+/** \brief Implementation of Traversal that produces contigs.
+ */
 class MonumentTraversal: public Traversal
 {
 public:
-    /** */
+
+    /** Factory method that creates an instance of MonumentTraversal
+     * \param[in] graph : graph object to be traversed
+     * \param[in] terminator : object used to tag traversed nodes
+     * \param[in] maxlen : maximum length of the traversal
+     * \param[in] max_depth : maximum depth of the traversal
+     * \param[in] max_breadth : maximum depth of the traversal
+     */
     MonumentTraversal (
         const Graph& graph,
         Terminator& terminator,
@@ -193,6 +269,8 @@ public:
         int max_breadth = Traversal::defaultMaxBreadth
     );
 
+    /** Get the name of the traversal
+     * \return the name */
     std::string getName() const  { return std::string ("monument"); }
 
     bool explore_branching (
@@ -205,6 +283,7 @@ public:
 
 private:
 
+    /* Implementation of the virtual method. */
     char avance (const Node& node, Direction dir, bool first_extension, Path& path, const Node& previousNode);
 
     bool explore_branching (

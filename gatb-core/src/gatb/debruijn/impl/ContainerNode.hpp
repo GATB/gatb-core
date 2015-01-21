@@ -38,19 +38,22 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief ContainerNode (or sometimes just named 'container')
+/** \brief IContainerNode implementation with a Bloom filter and a cFP set
  *
  *  In the GATB terminology, this object contains the information relative to the nodes of the dBG.
  *  It is not a set of nodes, as we don't store nodes explicitly. 
  *  Only one operation is supported:
  *     contains()
  *
- *  In the current implement this object is actually just the Bloom filter + the set of False positives.
+ *  In the ContainerNode implementation, this object is actually just the Bloom filter + the set of False positives.
  */
 template <typename Item> class ContainerNode : public IContainerNode<Item>, public system::SmartPointer
 {
 public:
 
+    /** Constructor
+     * \param[in] bloom : the Bloom filter.
+     * \param[in] falsePositives : the cFP container. */
     ContainerNode (
         tools::collections::Container<Item>* bloom,
         tools::collections::Container<Item>* falsePositives
@@ -60,14 +63,14 @@ public:
 		setFalsePositives(falsePositives);
     }
 
-	/** */
+	/** Destructor. */
 	~ContainerNode ()
 	{
 		setBloom(0);
 		setFalsePositives(0);
 	}
 
-    /** */
+    /** \copydoc IContainerNode::contains */
     bool contains (const Item& item)  {  return (_bloom->contains(item) && !_falsePositives->contains(item));  }
 
 protected:
@@ -81,25 +84,39 @@ protected:
 
 /********************************************************************************/
 
-/** \brief Bloom filter implementation
+/** \brief IContainerNode implementation with a Bloom filter
+ *
+ * This implementation has no critical False Positive set, so it implies that
+ * Graph instances using it will have false positive nodes (old 'Titus' mode).
  */
 template <typename Item> class ContainerNodeNoCFP : public ContainerNode<Item>
 {
 public:
 
+    /** Constructor
+     * \param[in] bloom : the Bloom filter. */
     ContainerNodeNoCFP (tools::collections::Container<Item>* bloom) : ContainerNode<Item>(bloom, NULL) {}
 
-    /** */
+    /** \copydoc IContainerNode::contains */
     bool contains (const Item& item)  {  return (this->_bloom)->contains(item);  }
 };
 
 /********************************************************************************/
-/** \brief Bloom filter implementation
+/** \brief IContainerNode implementation with cascading Bloom filters
+ *
+ * This implementation uses cascading Bloom filters for coding the cFP set.
  */
 template <typename Item> class ContainerNodeCascading : public IContainerNode<Item>, public system::SmartPointer
 {
 public:
 
+    /** Constructor.
+     * \param[in] bloom : the Bloom filter.
+     * \param[in] bloom2 : first Bloom filter of the cascading Bloom filters
+     * \param[in] bloom3 : second Bloom filter of the cascading Bloom filters
+     * \param[in] bloom4 : third Bloom filter of the cascading Bloom filters
+     * \param[in] falsePositives : false positives container
+     */
     ContainerNodeCascading (
         tools::collections::Container<Item>* bloom,
         tools::collections::Container<Item>* bloom2,
@@ -120,7 +137,7 @@ public:
         _cfpArray[3] = falsePositives;
     }
 
-	/** */
+	/** Destructor */
 	~ContainerNodeCascading ()
 	{
         setBloom          (0);
@@ -130,7 +147,7 @@ public:
 		setFalsePositives (0);
 	}
 
-    /** */
+    /** \copydoc IContainerNode::contains */
     bool contains (const Item& item)  {  return (_bloom->contains(item) && ! containsCFP(item));  }
 
 private:

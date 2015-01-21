@@ -39,6 +39,17 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Computation of the branching nodes of a Graph
+ *
+ * This class implements an algorithm that looks for branching nodes in the provided graph.
+ *
+ * A node N is branching <=> successors(N).size()!=1 || predecessors(N).size()!=1
+ *
+ * All found branching nodes are put into a storage object.
+ *
+ * Actually, this class is mainly used in the debruijn::impl::Graph class as a fourth step for
+ * the de Bruijn graph creation.
+ */
 template <size_t span=KMER_DEFAULT_SPAN>
 class BranchingAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
@@ -49,7 +60,13 @@ public:
     typedef typename kmer::impl::Kmer<span>::Type           Type;
     typedef typename kmer::impl::Kmer<span>::Count          Count;
 
-    /** Constructor. */
+    /** Constructor.
+     * \param[in] graph : graph from which we look for branching nodes
+     * \param[in] storage : storage where the found branching nodes will be put
+     * \param[in] kind : kind of branching algorithm
+     * \param[in] nb_cores : number of cores to be used; 0 means all available cores
+     * \param[in] options : extra options
+     */
     BranchingAlgorithm (
         const Graph& graph,
         tools::storage::impl::Storage& storage,
@@ -58,21 +75,25 @@ public:
         tools::misc::IProperties*   options  = 0
     );
 
-    /** Constructor. */
+    /** Constructor.
+     * \param[in] storage : retrieve the branching nodes from this storage.
+     */
     BranchingAlgorithm (tools::storage::impl::Storage& storage);
 
     /** Destructor. */
     ~BranchingAlgorithm ();
 
     /** Get an option parser for branching parameters. Dynamic allocation, so must be released when no more used.
-     * \param[in] mandatory : tells whether an argument has to be mandatory
-     * \return an instance of IOptionsParser. */
+     * \return an instance of IOptionsParser.
+     */
     static tools::misc::IOptionsParser* getOptionsParser ();
 
-    /** */
+    /** \copydoc tools::misc::impl::Algorithm::execute */
     void execute ();
 
-    /** */
+    /** Get the branching nodes as a collection of Count objects, ie couples of [kmer,abundance]
+     * \return the collection of Count object.
+     */
     tools::collections::Collection<Count>* getBranchingCollection() { return _branchingCollection; }
 
 private:

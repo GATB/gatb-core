@@ -61,7 +61,7 @@ public:
     IterativeExtensions (
         const Graph&                  graph,
         Terminator&                   terminator,
-        Traversal::Kind               traversalKind,
+        tools::misc::TraversalKind    traversalKind,
         tools::misc::ExtendStopMode_e whenToStop,
         tools::misc::SearchMode_e     searchMode,
         bool                          dontOutputFirstNucl,
@@ -101,7 +101,7 @@ private:
 
     const Graph&                    graph;
     Terminator&                     terminator;
-    Traversal::Kind                 traversalKind;
+    tools::misc::TraversalKind      traversalKind;
     tools::misc::ExtendStopMode_e   when_to_stop_extending;
     tools::misc::SearchMode_e       searchMode;
     bool                            dont_output_first_nucleotide;

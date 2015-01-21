@@ -41,7 +41,9 @@ namespace debruijn  {
 
 /** \brief Container interface
  *
- * The Container interface provides an operation that ask for a given item
+ * The Container interface provides an operation that ask for a given item.
+ *
+ * This interface is mainly used by the impl::Graph class
  */
 template <class Item> class IContainerNode : public tools::collections::Container<Item>
 {
@@ -50,7 +52,7 @@ public:
     /** Destructor. */
     virtual ~IContainerNode() {}
 
-    /** Tells whether an item exists or not
+    /** Tells whether an item exists or not in the container
      * \return true if the item exists, false otherwise */
     virtual bool contains (const Item& item) = 0;
 };

@@ -287,6 +287,44 @@ static std::string toString (KmerSolidityKind kind)
 
 /********************************************************************************/
 
+/** Enumeration of different kinds of graph traversal. */
+enum TraversalKind
+{
+    /** Undefined */
+    TRAVERSAL_NONE=0,
+    /** Path are unitigs */
+    TRAVERSAL_UNITIG=1,
+    /** Path are contigs */
+    TRAVERSAL_CONTIG=2
+};
+
+/** Get the enum from a string.
+ * \param[in] s : string to be parsed
+ * \param[out] kind : enum to be set from the string parsing. */
+static void parse (const std::string& s, TraversalKind& kind)
+{
+         if (s == "none")      { kind = TRAVERSAL_NONE;  }
+    else if (s == "unitig")    { kind = TRAVERSAL_UNITIG;  }
+    else if (s == "contig")    { kind = TRAVERSAL_CONTIG;  }
+    else   { throw system::Exception ("bad traversal kind '%s'", s.c_str()); }
+}
+
+/** Get the string associated to an enum
+ * \param[in] kind : the enum value
+ * \return the associated string */
+static std::string toString (TraversalKind kind)
+{
+    switch (kind)
+    {
+        case TRAVERSAL_NONE:    return "none";
+        case TRAVERSAL_UNITIG:  return "unitig";
+        case TRAVERSAL_CONTIG:  return "contig";
+        default:    throw system::Exception ("bad traversal kind %d", kind);
+    }
+}
+
+/********************************************************************************/
+
 /** Provide different modes for graph traversal stop criteria. */
 enum ExtendStopMode_e
 {
