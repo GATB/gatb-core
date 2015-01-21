@@ -59,7 +59,7 @@ namespace impl      {
  *
  *  In case of FASTQ files, the iterated Sequence objects will provide quality information.
  *
- * Sample of use:
+ * Sample of use (note however that it is better to use Bank::open for opening a bank):
  * \snippet bank1.cpp  snippet1_bank
  */
 class BankFasta : public AbstractBank
@@ -227,7 +227,7 @@ protected:
 
 /********************************************************************************/
 
-/** \brief Factory for the BankFasta class. */
+/* \brief Factory for the BankFasta class. */
 class BankFastaFactory : public IBankFactory
 {
 public:

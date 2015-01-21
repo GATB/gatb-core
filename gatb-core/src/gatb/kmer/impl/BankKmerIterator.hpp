@@ -40,7 +40,7 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Kmer iterator on data sequences from some bank.
+/* \brief Kmer iterator on data sequences from some bank.
  */
 class BankKmerIterator :
     public tools::dp::Iterator<kmer_type>,
@@ -165,7 +165,7 @@ private:
 
 /********************************************************************************/
 
-/** \brief Kmer iterator on data sequences from some bank.
+/* \brief Kmer iterator on data sequences from some bank.
  */
 template <typename kmer_type> class BankVectorKmerIterator :
         public tools::dp::Iterator<std::vector<kmer_type> >,

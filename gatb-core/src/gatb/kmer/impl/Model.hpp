@@ -119,7 +119,16 @@ struct Kmer
      * some data source (a sequence data for instance).
      */
 
-    /** Kmer type for the ModelDirect class. */
+    /** \brief Kmer type for the ModelDirect class.
+     *
+     * This class represent direct kmers, ie. a mere Type value.
+     *
+     *  NOTE: this class is not intended to be used directly by end users. Instead, the typedef definition
+     *  \ref ModelDirect::Kmer should be preferred.
+     *
+     * Example of use:
+     * \snippet kmer2.cpp  snippet1_direct
+     */
     class KmerDirect
     {
     public:
@@ -155,7 +164,27 @@ struct Kmer
         KmerDirect extractShift (const Type& mask, size_t size, Type * mmer_lut)  {  KmerDirect output = extract(mask,size,mmer_lut);  _value = _value >> 2;  return output;  }
     };
 
-    /** Kmer type for the ModelCanonical class. */
+    /** \brief Kmer type for the ModelCanonical class.
+     *
+     * This class represent canonical kmers, ie. a value that is the minimal value of the forward kmer
+     * and its reverse complement.
+     *
+     * The implementation maintains a table of two Type objects, the first one for the forward kmer and
+     * the second one for the reverse complement.
+     *
+     * We can know which object is the canonical one (ie. the minimum) by using the
+     *  method \ref value.*  One can also retrieve the strand used for the canonical form with the method
+     *  \ref strand.
+     *
+     * It is still possible to get the forward kmer with \ref forward and the reverse complement with \ref
+     *  revcomp.
+     *
+     *  NOTE: this class is not intended to be used directly by end users. Instead, the typedef definition
+     *  \ref ModelCanonical::Kmer should be preferred.
+     *
+     * Example of use:
+     * \snippet kmer2.cpp  snippet1_canonical
+     */
     class KmerCanonical
     {
     public:
@@ -169,23 +198,24 @@ struct Kmer
          * \return true if the values are the same, false otherwise. */
         bool operator< (const KmerDirect& t) const  { return this->value() < t.value(); };
 
-        /** Set the value of the kmer
-         * \param[in] val : value to be set. */
-
+        /** Set the value of the kmer. IMPORTANT: Not really a forward/revcomp couple,
+         * but may be useful for the minimizer default value.
+         * \param[in] val : value to be set (set to both forward and reverse complement). */
         void set (const Type& val)
         {
-            /** Not really a forward/revcomp couple, but may be useful for the minimizer default value. */
             set (val,val);
         }
 
-        /** Set the forward/revcomp attributes. */
+        /** Set the forward/revcomp attributes. The canonical form is computed here.
+         * \param[in] forward : forward value
+         * \param[in] revcomp : reverse complement value.
+         */
         void set (const Type& forward, const Type& revcomp)
         {
             table[0]=forward;
             table[1]=revcomp;
             updateChoice ();
         }
-
 		
         /** Tells whether the kmer is valid or not. It may be invalid if some unwanted
          * nucleotides characters (like N) have been used to build it.
@@ -242,7 +272,21 @@ struct Kmer
         }
     };
 
-    /** Kmer type for the ModelMinimizer class. */
+    /** \brief Kmer type for the ModelMinimizer class.
+     *
+     * This class associates a kmer and its minimizer. It inherits from the Model::Kmer type
+     * and adds methods specific to minimizers, such as \ref minimizer itself
+     * (ie the Model::Kmer object holding the minimizer),
+     * \ref position giving the position of the minimizer whithin the kmer and
+     * \ref hasChanged telling whether a minimizer has changed during iteration of kmers from
+     * some data source (a sequence data for instance).
+     *
+     * NOTE: this class is not intended to be used directly by end users. Instead, the typedef definition
+     * \ref ModelMinimizer::Kmer should be preferred.
+     *
+     * Example of use:
+     * \snippet kmer2.cpp  snippet1_minimizer
+     */
     template<class Model, class Comparator>
     class KmerMinimizer : public Model::Kmer
     {
@@ -292,7 +336,11 @@ struct Kmer
     {
     public:
 
-        /** Type of kmers provided by the class. */
+        /** Type of kmers provided by the class. It can be KmerDirect, KmerCanonical or KmerMinimizer.
+         *
+         * The simple way to get the value of the kmer is done with the 'value' method.
+         *
+         * Note that, according to the true type of T, this Kmer typedef may have more or less methods. */
         typedef T Kmer;
 
         /** (default) Constructor. The provided (runtime) kmer size must be coherent with the span (static) value.
@@ -357,7 +405,11 @@ struct Kmer
         }
 
         /** Iteration of the kmers from a data object through a functor (so lambda expressions can be used).
-         * \param[in] data : the sequence of nucleotides.
+         * Note that the functor takes the currently iterated Kmer object and its index during the iteration.
+         *
+         *  Example of use:
+         * \snippet kmer8.cpp  snippet1_iterate
+         * \param[in] data : the sequence of nucleotides as a Data object.
          * \param[in] fct  : functor that handles one kmer */
         template<typename Callback>
         bool iterate (tools::misc::Data& data, Callback callback) const
@@ -471,7 +523,7 @@ struct Kmer
         }
 
         /************************************************************/
-        /** \brief Iterator on successive kmers
+        /* \brief Iterator on successive kmers
          *
          * This class will iterate successive kmers extracted from a Data object.
          * It is similar to the Model::build, except that here we don't have a container
@@ -508,22 +560,22 @@ struct Kmer
 
     protected:
 
-        /** Shortcuts. */
+        /* Shortcuts. */
         typedef tools::misc::Data::ConvertChar      ConvertChar;
         typedef tools::misc::Data::ConvertASCII     ConvertASCII;
         typedef tools::misc::Data::ConvertInteger   ConvertInteger;
         typedef tools::misc::Data::ConvertBinary    ConvertBinary;
 
-        /** Size of a kmer for this model. */
+        /* Size of a kmer for this model. */
         size_t  _kmerSize;
 
-        /** Mask for the kmer. Used for computing recursively kmers. */
+        /* Mask for the kmer. Used for computing recursively kmers. */
         Type  _kmerMask;
 
-        /** Shortcut for easing/speeding up the recursive revcomp computation. */
+        /* Shortcut for easing/speeding up the recursive revcomp computation. */
         Type _revcompTable[4];
 
-        /** \return -1 if valid, otherwise index of the last found bad character. */
+        /* \return -1 if valid, otherwise index of the last found bad character. */
         template<class Convert>
         int polynom (const char* seq, Type& kmer, size_t startIndex)  const
         {
@@ -547,7 +599,7 @@ struct Kmer
             return badIndex;
         }
 
-        /** Generic function that switches to the correct implementation according to the encoding scheme
+        /* Generic function that switches to the correct implementation according to the encoding scheme
          * of the provided Data parameter; the provided functor class is specialized with the correct data conversion type
          * and the called.
          */
@@ -563,7 +615,7 @@ struct Kmer
             }
         }
 
-        /** Adaptor between the 'execute' method and the 'codeSeed' method. */
+        /* Adaptor between the 'execute' method and the 'codeSeed' method. */
         struct Functor_codeSeed
         {
             typedef typename ModelImpl::Kmer Result;
@@ -578,7 +630,7 @@ struct Kmer
             }
         };
 
-        /** Adaptor between the 'execute' method and the 'codeSeedRight' method. */
+        /* Adaptor between the 'execute' method and the 'codeSeedRight' method. */
         struct Functor_codeSeedRight
         {
             typedef typename ModelImpl::Kmer Result;
@@ -593,7 +645,7 @@ struct Kmer
             }
         };
 
-        /** Adaptor between the 'execute' method and the 'iterate' method. */
+        /* Adaptor between the 'execute' method and the 'iterate' method. */
         template<class Callback>
         struct Functor_iterate
         {
@@ -606,8 +658,12 @@ struct Kmer
             }
         };
 
-        /** Template method that iterates the kmer of a given Data instance.
+        /** Template method that iterates the kmer of a given sequence (provided as a buffer and its length).
          *  Note : we use static polymorphism here (http://en.wikipedia.org/wiki/Template_metaprogramming)
+         *  \param[in] seq : the sequence to be iterated
+         *  \param[in] length : length of the sequence
+         *  \param[in] callback : functor called on each found kmer in the sequence
+         *  \return true if kmers have been found, false otherwise.
          */
         template<typename Callback, typename Convert>
         bool iterate (const char* seq, size_t length, Callback callback) const
@@ -671,12 +727,15 @@ struct Kmer
      * The associated value of such a kmer is computed as a polynom P(X) with X=4
      * and where the coefficients are in [0..3].
      * By convention, we use A=0, C=1, T=2 and G=3
+     *
+     * Example of use:
+     * \snippet kmer2.cpp  snippet1_direct
      */
     class ModelDirect :  public ModelAbstract<ModelDirect, Kmer<span>::KmerDirect>
     {
     public:
 
-        /** Type holding all the information of a kmer.  */
+        /** Kmer type for this kind of model.  */
         typedef Kmer<span>::KmerDirect Kmer;
 
         /** Constructor.
@@ -687,6 +746,7 @@ struct Kmer
          * The way to interpret the buffer is done through the provided Convert template class.
          * \param[in] buffer : holds the nucleotides sequence from which the kmer has to be computed
          * \param[out] value : kmer as a result
+         * \param[in] startIndex : index of the first nucleotide of the kmer to retrieve in the buffer
          */
         template <class Convert>
         int first (const char* buffer, Kmer& value, size_t startIndex)   const
@@ -700,9 +760,9 @@ struct Kmer
          * nucleotide. The next nucleotide is computed from a buffer and the
          * index of the nucleotide within the buffer.
          * The way to interpret the buffer is done through the provided Convert template class.
-         * \param[in] buffer : holds the nucleotides sequence from which the kmer has to be computed
-         * \param[in] idx : index of the nucleotide within the buffer
-         * \param[out] value kmer as a result
+         * \param[in] c : next nucleotide
+         * \param[out] value : kmer to be updated with the provided next nucleotide
+         * \param[in] isValid : tells whether the updated kmer is valid or not
          */
         template <class Convert>
         void  next (char c, Kmer& value, bool isValid)   const
@@ -716,12 +776,15 @@ struct Kmer
 
     /** \brief Model that handles "canonical" kmers, ie the minimum value of the
      * direct kmer and its reverse complement.
+     *
+     * Example of use:
+     * \snippet kmer2.cpp  snippet1_canonical
      */
     class ModelCanonical :  public ModelAbstract<ModelCanonical, Kmer<span>::KmerCanonical>
     {
     public:
 
-        /** Type holding all the information of a kmer.  */
+        /** Kmer type for this kind of model.  */
         typedef Kmer<span>::KmerCanonical Kmer;
 
         /** Constructor.
@@ -732,6 +795,7 @@ struct Kmer
          * The way to interpret the buffer is done through the provided Convert template class.
          * \param[in] buffer : holds the nucleotides sequence from which the kmer has to be computed
          * \param[out] value : kmer as a result
+         * \param[in] startIndex : index of the first nucleotide of the kmer to retrieve in the buffer
          */
         template <class Convert>
         int first (const char* seq, Kmer& value, size_t startIndex)   const
@@ -748,9 +812,9 @@ struct Kmer
          * nucleotide. The next nucleotide is computed from a buffer and the
          * index of the nucleotide within the buffer.
          * The way to interpret the buffer is done through the provided Convert template class.
-         * \param[in] buffer : holds the nucleotides sequence from which the kmer has to be computed
-         * \param[in] idx : index of the nucleotide within the buffer
-         * \param[out] value kmer as a result
+         * \param[in] c : next nucleotide
+         * \param[out] value : kmer to be updated with the provided next nucleotide
+         * \param[in] isValid : tells whether the updated kmer is valid or not
          */
         template <class Convert>
         void  next (char c, Kmer& value, bool isValid)   const
@@ -815,6 +879,9 @@ struct Kmer
      *
      * This model supports the concept of minimizer. It acts as a Model instance (given as a
      * template class) and add minimizer information to the Kmer type.
+     *
+     * Example of use:
+     * \snippet kmer2.cpp  snippet1_minimizer
      */
     template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizerFrequency> // TODO: decide whether we keep that as default or not
     class ModelMinimizer :  public ModelAbstract <ModelMinimizer<ModelType,Comparator>, KmerMinimizer<ModelType,Comparator> >
@@ -824,15 +891,19 @@ struct Kmer
         /** Type of the model for kmer and mmers.  */
         typedef ModelType Model;
 
-        /** Type holding all the information of a kmer.  */
+        /** Kmer type for this kind of model.  */
         typedef KmerMinimizer<ModelType,Comparator> Kmer;
 
-        /** Return a reference on the model used for managing mmers. */
+        /** Return a reference on the model used for managing mmers.
+         * \return the minimizer model. */
         const ModelType& getMmersModel() const { return _miniModel; }
 
         /** Constructor.
          * \param[in] kmerSize      : size of the kmers handled by the model.
-         * \param[in] minimizerSize : size of the mmers handled by the model. */
+         * \param[in] minimizerSize : size of the mmers handled by the model.
+         * \param[in] cmp : functor that compares two minizers
+         * \param[in] freq_order : tbd
+         */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator(), uint32_t *freq_order=NULL)
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
               _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp), _freq_order(freq_order)
@@ -876,14 +947,19 @@ struct Kmer
                 setMinimizersFrequency(freq_order);
         }
 
-        /** */
+        /** Destructor */
         ~ModelMinimizer ()
         {
             if (_mmer_lut != 0)  { FREE (_mmer_lut); }
         }
 
+        /** Computes a kmer from a buffer holding nucleotides encoded in some format.
+         * The way to interpret the buffer is done through the provided Convert template class.
+         * \param[in] buffer : holds the nucleotides sequence from which the kmer has to be computed
+         * \param[out] value : kmer as a result
+         * \param[in] startIndex : index of the first nucleotide of the kmer to retrieve in the buffer
+         */
         template <class Convert>
-
         int first (const char* seq, Kmer& kmer, size_t startIndex)   const
         {
             /** We compute the first kmer. */
@@ -895,6 +971,14 @@ struct Kmer
             return result;
         }
 
+        /** Computes a kmer in a recursive way, ie. from a kmer and the next
+         * nucleotide. The next nucleotide is computed from a buffer and the
+         * index of the nucleotide within the buffer.
+         * The way to interpret the buffer is done through the provided Convert template class.
+         * \param[in] c : next nucleotide
+         * \param[out] value : kmer to be updated with the provided next nucleotide
+         * \param[in] isValid : tells whether the updated kmer is valid or not
+         */
         template <class Convert>
         void  next (char c, Kmer& kmer, bool isValid)   const
         {
@@ -930,14 +1014,16 @@ struct Kmer
             }
         }
 
-        /** */
+        /** Get the minimizer value of the provided kmer. Note that minimizers are supposed to be
+         * of small sizes, so their values can fit a u_int64_t type.
+         * \return the miminizer value as an integer. */
         u_int64_t getMinimizerValue (const Type& k) const
         {
             Kmer km; km.set(k);  this->computeNewMinimizer (km);
             return km.minimizer().value().getVal();
         }
 
-        void setMinimizersFrequency(uint32_t *freq_order)
+        void setMinimizersFrequency (uint32_t *freq_order)
         {
             _cmp.include_frequency(freq_order);
         }

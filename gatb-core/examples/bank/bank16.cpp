@@ -23,9 +23,11 @@ int main (int argc, char* argv[])
         /** We parse the user options. */
         IProperties* options = parser.parse (argc, argv);
 
+        std::string filename = options->getStr(STR_URI_INPUT);
+
         //! [snippet16_bank]
         // We get an instance of IBank from the URI.
-        IBank* bank = Bank::open (options->getStr(STR_URI_INPUT));
+        IBank* bank = Bank::open (filename);
 
         //! [snippet16_seq]
         // We create an iterator on the bank

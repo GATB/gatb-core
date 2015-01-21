@@ -40,7 +40,7 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Class providing factories for opening IBank objects.
+/** \brief Front end for managing IBank objects.
  *
  * The Bank class can be used as a front end for banks management in GATB.
  *
@@ -66,7 +66,7 @@ namespace impl      {
  *
  * NOTE : In case of a brand new bank creation, there is no corresponding method to 'open'
  * because one has to know exactly the format of the bank (it is not possible in general
- * to deduce the format only by analyzing the URI string).
+ * to deduce the format only by analyzing the URI string and not the content).
  *
  * This class is a Singleton (private constructor) and its static public members are
  * accessed to this singleton.

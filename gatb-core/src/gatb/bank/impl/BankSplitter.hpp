@@ -50,7 +50,9 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Interface for reading genomic databases.
+/** \brief Split a given bank in pieces.
+ *
+ * This class allows to iterate the sequences of a given bank by splitting them.
  */
 class BankSplitter : public AbstractBank
 {

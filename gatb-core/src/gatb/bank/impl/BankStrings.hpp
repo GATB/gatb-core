@@ -42,7 +42,13 @@ namespace bank      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Interface for reading genomic databases.
+/** \brief IBank defined by constant strings.
+ *
+ * This class allows to define banks with some nucleotides strings.
+ *
+ * Instances of this class are located in memory only.
+ *
+ * This class is mainly used for tests.
  */
 class BankStrings : public AbstractBank
 {

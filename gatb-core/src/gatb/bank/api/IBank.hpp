@@ -73,6 +73,7 @@ namespace bank      {
  *
  * \see Sequence
  * \see IBankFactory
+ * \see impl::Bank
  */
 class IBank : public tools::collections::Iterable<Sequence>, public tools::collections::Bag<Sequence>
 {
@@ -85,7 +86,7 @@ public:
     /** \copydoc tools::collections::Iterable::iterator */
     virtual tools::dp::Iterator<Sequence>* iterator () = 0;
 
-    /** \copydoc tools::collections::Bag */
+    /** \copydoc tools::collections::Bag::insert */
     virtual void insert (const Sequence& item) = 0;
 
     /** Return the size of the bank (comments + data)
@@ -94,14 +95,14 @@ public:
      * a zipped bank, an implementation may be not able to give accurate answer to the
      * size of the original file.
      *
-     * \return the bank size.*/
+     * \return the bank size in bytes.*/
     virtual u_int64_t getSize () = 0;
 
-    /** Give an estimation of sequences information in the bank:
-     *      - sequences number
-     *      - sequences size (in bytes)
-     *      - max size size (in bytes)
-     * \return the sequences number estimation. */
+    /** Give an estimation of sequences information in the bank.
+     * \param[out] number : sequences number
+     * \param[out] totalSize : sequences size (in bytes)
+     * \param[out] maxSize : max size size (in bytes)
+     */
     virtual void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize) = 0;
 
     /** Shortcut to 'estimate' method.
@@ -119,7 +120,8 @@ public:
      * \param[in] nbSeq : the number of sequences to be read.*/
     virtual void setEstimateThreshold (u_int64_t nbSeq) = 0;
 
-    /** Remove physically the bank. */
+    /** Remove physically the bank. This method will have non-empty implementation for banks using
+     * file system for instance. */
     virtual void remove () = 0;
 };
 

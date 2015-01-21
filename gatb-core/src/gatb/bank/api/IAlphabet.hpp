@@ -37,7 +37,7 @@ namespace core      {
 namespace bank      {
 /********************************************************************************/
 
-/** Define the kind of the underlying alphabet. For instance, it could be the kind of sequences
+/* Define the kind of the underlying alphabet. For instance, it could be the kind of sequences
  * (protein, ADN...) read from a FASTA file.
  */
 class IAlphabet

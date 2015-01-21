@@ -155,7 +155,7 @@ private:
 
 /********************************************************************************/
 
-/** \brief Bank factory associated to the BankFiltered class
+/* \brief Bank factory associated to the BankFiltered class
  */
 template<typename Filter> class BankFilteredFactory : public IBankFactory
 {

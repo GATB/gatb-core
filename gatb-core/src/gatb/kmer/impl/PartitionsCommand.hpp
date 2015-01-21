@@ -48,7 +48,17 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-/** Idea : make this class template with specialization in case there is only one bank. */
+/** \brief Class that counts the number of occurrences of a kmer in several banks.
+ *
+ * This class manages a vector of occurrences for a kmer, each index of the vector
+ * holding the occurrences number for a bank.
+ *
+ * It is used during the process of kmers counting and eases the work for counting
+ * kmers per bank.
+ *
+ * Note that it also implements the method \ref isSolid that tells whether the currently
+ * counted kmer is solid or not, according to the solidity kind.
+ */
 class SolidityCounter
 {
 public:
@@ -59,6 +69,11 @@ public:
     /** We also define the maximum value for this integer type. */
     static Int MAX() { return std::numeric_limits<Int>::max(); }
 
+    /** Constructor.
+     * \param[in] solidityKind : tells how a kmer is considered as solid.
+     * \param[in] threshold : range [min,max] for abundances
+     * \param[in] nbBanks : number of banks parsed during kmer counting.
+     */
     SolidityCounter (tools::misc::KmerSolidityKind solidityKind, const std::pair<Int,Int>& threshold, size_t nbBanks=1)
         : _solidityKind(solidityKind), _threshold(threshold), _abundancePerBank(nbBanks)
     {
@@ -66,18 +81,31 @@ public:
         if (_threshold.second < _threshold.first)  {  _threshold.second = MAX(); }
     }
 
+    /** Get the number of banks.
+     * \return the number of banks. */
     size_t size() const  { return _abundancePerBank.size(); }
 
+    /** Initialization of the counting for the current kmer. This method should be called
+     * when a kmer is seen for the first time.
+     * \param[in] idxBank : bank index where the new current kmer has been found. */
     void init (size_t idxBank=0)
     {
         for (size_t k=0; k<_abundancePerBank.size(); k++)  { _abundancePerBank[k]=0; }
         _abundancePerBank [idxBank]= 1;
     }
 
+    /** Increase the abundance of the current kmer for the provided bank index.
+     * \param[in] idxBank : index of the bank */
     void increase (size_t idxBank=0)  {  _abundancePerBank [idxBank] ++;  }
 
+    /** Get the abundance of the current kmer for the provided bank index.
+     * \param[in] idxBank : index of the bank
+     * \return the abundance of the current kmer for the given bank. */
     Int operator[] (size_t idxBank) const  { return _abundancePerBank[idxBank]; }
 
+    /** Tells whether the current kmer is solid or not. The computation is done
+     * according to the solidity kind provided at constructor.
+     * \return true if the current kmer is solid, false otherwise. */
     bool isSolid () const
     {
         /** Optimization. */
@@ -108,6 +136,8 @@ public:
         return (m >= _threshold.first) && (m <= _threshold.second);
     }
 
+    /** Compute the sum of abundances of the current kmer for all the banks.
+     * \return the sum of abundances. */
     Int computeSum () const
     {
         /** Optimization. */

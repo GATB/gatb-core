@@ -71,6 +71,7 @@ int main (int argc, char* argv[])
             // Shortcut
             Sequence& seq = iter.item();
 
+//! [snippet1_iterate]
             // We iterate the kmers (and minimizers) of the current sequence.
             model.iterate (seq.getData(), [&] (const Model::Kmer& kmer, size_t idx)
             {
@@ -79,6 +80,7 @@ int main (int argc, char* argv[])
                 if (kmer.isValid()    == false)  { nbInvalid++;  }
                 checksum += kmer.minimizer().value();
             });
+//! [snippet1_iterate]
         }
 
         cout << "nbKmers   : " << nbKmers   << endl;

@@ -52,7 +52,6 @@ namespace impl      {
 /********************************************************************************/
 
 /** \brief Class performing the kmer counting (also known as 'DSK')
-	
  *
  * This class does the real job of counting the kmers from a reads database.
  *
@@ -63,6 +62,9 @@ namespace impl      {
  * does the real job of kmers counting. By defining several instantiations, we allow
  * to choose dynamically the correct class according to the user choice for kmer size
  * (remember that initial Minia version had to be re-compiled for different kmer size).
+ *
+ * Actually, this class is mainly used in the debruijn::impl::Graph class as a first step for
+ * the de Bruijn graph creation.
  */
 template<size_t span=KMER_DEFAULT_SPAN>
 class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
@@ -124,21 +126,33 @@ private:
 	};
 	
 public:
-    /** Shortcuts. */
-		
+
+	/* Shortcuts. */
 	typedef typename Kmer<span>::ModelCanonical  ModelCanonical;
 	typedef typename Kmer<span>::ModelDirect     ModelDirect;
-	//,CustomMinimizer
-	typedef typename gatb::core::kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical> 	Model; // ,CustomMinimizer
-	//typedef typename Kmer<span>::ModelCanonical  Model;
-
+	typedef typename kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical> 	Model;
     typedef typename kmer::impl::Kmer<span>::Type  Type;
     typedef typename kmer::impl::Kmer<span>::Count Count;
 
-    /** Constructor.*/
+    /** Constructor (default). */
     SortingCountAlgorithm ();
 
-    /** Constructor.*/
+    /** Constructor.
+     * \param[in] storage : storage where the solid kmers are saved
+     * \param[in] bank : input bank from which solid kmers are counted
+     * \param[in] kmerSize : size of kmers
+     * \param[in] abundance : range [min,max] of abundances for the solidity criteria
+     * \param[in] max_memory : max memory to be used (in MBytes)
+     * \param[in] max_disk : max disk to be used (in MBytes)
+     * \param[in] nbCores : number of cores to be used; 0 means all available cores
+     * \param[in] solidityKind : criteria for solidity computation
+     * \param[in] histogramMax : max number of values for the kmers histogram
+     * \param[in] partitionType : kind of temporary partitions
+     * \param[in] minimizerType : kind of minimizer (kmc2 or other)
+     * \param[in] minimizerSize : size of minimizers
+     * \param[in] prefix : prefix used for output names
+     * \param[in] options : extra options if any as a IProperties instance
+     */
     SortingCountAlgorithm (
         tools::storage::impl::Storage* storage,
         gatb::core::bank::IBank* bank,
@@ -162,7 +176,8 @@ public:
     /** Destructor */
     virtual ~SortingCountAlgorithm ();
 
-    /** operator=.*/
+    /** operator=
+     * \param[in] s : object to be copied. */
     SortingCountAlgorithm& operator= (const SortingCountAlgorithm& s);
 
     /** Get an option parser for kmers counting parameters. Dynamic allocation, so must be released when no more used.

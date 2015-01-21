@@ -64,6 +64,14 @@ namespace impl      {
  * BankAlbum is a composite bank so iterating the sequences of a BankAlbum instance consists in
  * iterating the sequences of each referred bank (in the order of the album file).
  *
+ * The BankAlbum follows the Composite design pattern, so it is possible to have album of albums
+ * for instance; it is also possible to mix composite and leaf banks like this:
+ * \code
+ * someAlbum.txt
+ * somefile1.fasta
+ * somefile2.fasta
+ * \endcode
+ *
  * Example of use:
  * \snippet bank17.cpp  snippet17_album
  *
@@ -114,7 +122,7 @@ private:
 
 /********************************************************************************/
 
-/** \brief Factory for the BankAlbum class. */
+/* \brief Factory for the BankAlbum class. */
 class BankAlbumFactory : public IBankFactory
 {
 public:

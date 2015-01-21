@@ -46,38 +46,33 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-    /** \brief 
-     *
-     * This class is a linear counter
-     */
-    template<size_t span=KMER_DEFAULT_SPAN> class LinearCounter 
-    {
-        public:
+/*
+ * This class is a linear counter
+ */
+template<size_t span=KMER_DEFAULT_SPAN> class LinearCounter
+{
+public:
 
-            /** Shortcuts. */
-            typedef typename Kmer<span>::Type  Type;
-            typedef typename Kmer<span>::Count Count;
-            typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
+    /** Shortcuts. */
+    typedef typename Kmer<span>::Type  Type;
+    typedef typename Kmer<span>::Count Count;
+    typedef typename Kmer<span>::ModelCanonical::Kmer  Kmer;
 
-            /** */
-            LinearCounter (
-                    u_int64_t   bloom_size
-                    );
+    /** */
+    LinearCounter (u_int64_t   bloom_size);
 
-            void add(const Type& kmer);
-            long count();
-            bool is_accurate();
+    void add (const Type& kmer);
+    long count();
+    bool is_accurate();
 
-            ~LinearCounter();
+    ~LinearCounter();
 
+private:
 
-        private:
+    gatb::core::tools::collections::impl::IBloom<Type>* bloom;
 
-            gatb::core::tools::collections::impl::IBloom<Type>* bloom;
-
-            u_int64_t _bloomSize;
-
-    };
+    u_int64_t _bloomSize;
+};
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -52,12 +52,15 @@ namespace bank      {
  *      - a FASTA bank will provide Sequence instances whose data is in ASCII
  *      - a BINARY bank will provide Sequence instances whose data is in BINARY
  *
- *  The buffer holding the nucleotides is located in the Data attribute, so have a look
+ *  The buffer holding the nucleotides is located in the tools::misc::Data attribute, so have a look
  *  there to have further details on where the buffer can be allocated. Note just here
  *  that the buffer could be stored in the Data object itself, or may be a reference to a
  *  buffer allocated in another place.
  *
  *  The class Sequence is closely related to the IBank interface.
+ *
+ *  Note that this class should not be instantiated directly by end users; it is more likely that end users will
+ *  receive such objects through an iteration from a bank.
  *
  * Example of use:
  * \snippet bank16.cpp  snippet16_seq

@@ -40,25 +40,27 @@ namespace impl      {
 /********************************************************************************/
 
 /** \brief Bank whose sequences are all the possible kmers of a kmer model.
+ *
+ * For instance, for a kmer size of 3, the bank will iterate the 3^4 possible kmers.
  */
 class BankKmers : public bank::impl::AbstractBank
 {
 public:
 
-    /** */
+    /** Constructor.
+     * \param[in] kmerSize : size of the kmers to be iterated. */
     BankKmers (size_t kmerSize) : _model(kmerSize)
     {
         _totalNumber = ((u_int64_t)1) << (2*_model.getKmerSize());
     }
 
-    /** Get an unique identifier for the bank (could be an URI for instance).
-     * \return the identifier */
+    /** \copydoc IBank::getId */
     std::string getId ()  {  std::stringstream ss; ss << "Kmers" << _model.getKmerSize();  return ss.str();  }
 
-    /** */
+    /** \copydoc IBank::getNbItems */
     int64_t getNbItems () { return _totalNumber; }
 
-    /** */
+    /** \copydoc IBank::estimate */
     void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
     {
         number    = _totalNumber;
@@ -66,16 +68,16 @@ public:
         maxSize   = _model.getKmerSize();
     }
 
-    /** \copydoc tools::collections::Bag */
+    /** \copydoc tools::collections::Bag::insert */
     void insert (const bank::Sequence& item)  { throw system::Exception ("Can't insert sequence to BankKmers"); }
 
-    /** \copydoc tools::collections::Bag */
+    /** \copydoc tools::collections::Bag::flush */
     void flush ()  { throw system::Exception ("Can't flush BankKmers"); }
 
-    /** */
+    /** \copydoc IBank::getSize */
     u_int64_t getSize () { return _totalNumber * _model.getKmerSize(); }
 
-    /** */
+    /* */
     class Iterator : public tools::dp::Iterator<bank::Sequence>
     {
     public:
@@ -154,13 +156,20 @@ private:
 
 /********************************************************************************/
 
-/** Statistics about the bank. */
+/** \brief Statistics about banks.
+ *
+ * This structure allows to gather information about sequences while iterating banks.
+ * An BankStats object can be updated through the update method during such an iteration.
+ */
 struct BankStats
 {
+    /** Constructor. */
     BankStats ()
     : sequencesNb(0), sequencesMinLength(~0), sequencesMaxLength(0), sequencesTotalLength(0), sequencesTotalLengthSquare(0),
       kmersNbValid(0), kmersNbInvalid(0) {}
 
+    /** Update the statistics with the information of the provided sequence
+     * \param[in] sequence : sequence used to update the statistics. */
     void update (bank::Sequence& sequence)
     {
         sequencesNb++;
@@ -170,6 +179,8 @@ struct BankStats
         if (sequencesMaxLength < sequence.getDataSize())  {  sequencesMaxLength = sequence.getDataSize(); }
     }
 
+    /** Concatenation of the current BankStats object with another one.
+     * \param[in] other : the instance used to update the current instance. */
     BankStats& operator+= (const BankStats& other)
     {
         sequencesNb                += other.sequencesNb;
@@ -182,10 +193,12 @@ struct BankStats
         return *this;
     }
 
-    /** */
+    /** Get the mean size of sequences.
+     * \return the mean size. */
     double getSeqMean ()  {  return (sequencesNb > 0 ?  (double)sequencesTotalLength / (double)sequencesNb : 0.0);  }
 
-    /** */
+    /** Get the deviation size of sequences.
+     * \return the deviation size. */
     double getSeqDeviation ()
     {
         double result = 0.0;

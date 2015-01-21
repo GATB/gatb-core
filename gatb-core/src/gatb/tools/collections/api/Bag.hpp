@@ -42,9 +42,11 @@ namespace collections   {
 
 /** \brief Bag interface
  *
- * The Iterable interface provides an operation that creates an iterator.
+ * A bag is something we can put items into. Such items are typed and the type is
+ * provided as a template.
  *
- * Note that one Iterable instance can create several iterators.
+ * Several ways for inserting items exist. There is also a flush method that makes
+ * sure that all the inserted items are actually in the bag.
  */
 template <class Item> class Bag : public virtual  system::ISmartPointer
 {
@@ -53,7 +55,6 @@ public:
     /** Insert an item into the bag.
      * \param[in] item : the item to be inserted. */
     virtual void insert (const Item& item) = 0;
-
 
     /** Insert items into the bag.
      * \param[in] items : items to be inserted.

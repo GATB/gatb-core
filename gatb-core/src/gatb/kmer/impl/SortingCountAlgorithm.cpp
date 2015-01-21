@@ -711,7 +711,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
 /********************************************************************************/
 
-/** This functor class takes a Sequence as input and split it into super kmers.
+/* This functor class takes a Sequence as input and split it into super kmers.
  * Each time a new superkmer is found, the 'processSuperkmer' method is called.
  *
  * NOTE : 'processSuperkmer' is pure virtual and so Sequence2SuperKmer class has to be
@@ -829,7 +829,7 @@ protected:
 };
 
 /********************************************************************************/
-/** This functor class takes a Sequence as input, splits it into super kmers and
+/* This functor class takes a Sequence as input, splits it into super kmers and
  * get information about the distribution of minimizers.
  */
 template<size_t span>
@@ -975,7 +975,7 @@ protected:
 
 
 /********************************************************************************/
-/** This functor class takes a Sequence as input, splits it into super kmers and
+/* This functor class takes a Sequence as input, splits it into super kmers and
  * serialize them into partitions.
  *
  * A superkmer is dumped into a partition 'p' chosen by some hash code of the minimizer

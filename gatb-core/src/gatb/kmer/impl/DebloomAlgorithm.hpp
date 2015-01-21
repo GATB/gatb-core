@@ -55,6 +55,19 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Construction of the set of critical false positives nodes.
+ *
+ * GATB uses Bloom filters for encoding de Bruijn graphs. Since Bloom filters are
+ * probalistic data structure having false positives, we need extra information
+ * for disambiguate the graph, otherwise we would have false positive nodes in
+ * our de Bruijn graphs.
+ *
+ * It is possible to build this extra information as a set of critical false positives nodes
+ * and the DebloomAlgorithm class provides a way to build such cFP set.
+ *
+ * Actually, this class is mainly used in the debruijn::impl::Graph class as a third step for
+ * the de Bruijn graph creation.
+ */
 template<size_t span=KMER_DEFAULT_SPAN>
 class DebloomAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
@@ -65,7 +78,18 @@ public:
     typedef typename kmer::impl::Kmer<span>::Type           Type;
     typedef typename kmer::impl::Kmer<span>::Count          Count;
 
-    /** */
+    /** Constructor
+     * \param[in] storage : storage object where the cFP will be stored.
+     * \param[in] storageSolids : obsolete (should be removed)
+     * \param[in] solidIterable : partition holding the solid kmers
+     * \param[in] kmerSize : size of the kmers
+     * \param[in] max_memory : max memory (in MBytes) to be used
+     * \param[in] nb_cores : number of cores to be used; 0 means all available cores
+     * \param[in] bloomKind : kind of Bloom filter implementation to be used
+     * \param[in] debloomKind : kind of algorithm to be used for storing the cFP
+     * \param[in] debloomUri : prefix name for temporary files
+     * \param[in] options : extra options
+     */
     DebloomAlgorithm (
         tools::storage::impl::Storage&   storage,
         tools::storage::impl::Storage&   storageSolids,
@@ -74,15 +98,17 @@ public:
         size_t                      max_memory = 0,
         size_t                      nb_cores   = 0,
         tools::misc::BloomKind      bloomKind     = tools::misc::BLOOM_DEFAULT,
-        tools::misc::DebloomKind    cascadingKind = tools::misc::DEBLOOM_DEFAULT,
+        tools::misc::DebloomKind    debloomKind = tools::misc::DEBLOOM_DEFAULT,
         const std::string&          debloomUri = "debloom",
         tools::misc::IProperties*   options    = 0
     );
 
-    /** */
+    /** Constructor
+     * \param[in] storage : storage object from which the cFP can be loaded.
+     */
     DebloomAlgorithm (tools::storage::impl::Storage& storage);
 
-    /** */
+    /** Destructor */
     virtual ~DebloomAlgorithm ();
 
     /** Get an option parser for bloom/debloom parameters. Dynamic allocation, so must be released when no more used.
@@ -90,7 +116,7 @@ public:
      * \return an instance of IOptionsParser. */
     static tools::misc::IOptionsParser* getOptionsParser ();
 
-    /** */
+    /** Execute the debloom algorithm. */
     void execute ();
 
     /** Get the collection for the computed critical FP kmers.
@@ -107,10 +133,14 @@ public:
      * \return the container. */
     debruijn::IContainerNode<Type>* getContainerNode ()  { return _container; }
 
-    /** */
+    /** Get the number of bits per kmer
+     * \param[in] kmerSize : kmer size
+     * \param[in] debloomKind : kind of debloom
+     * \return number of bits per kmer. */
     static float getNbBitsPerKmer (size_t kmerSize, tools::misc::DebloomKind debloomKind);
 
-    /** */
+    /** Get the class name (for statistics output).
+     * \return the class name. */
     virtual const char* getClassName() const { return "DebloomAlgorithm"; }
 
 protected:

@@ -43,13 +43,15 @@ namespace impl      {
 
 /** \brief Implementation of IBank for compressed format
  *
- * - a binary file is a list of blocks
- *    - a block is:
- *       - one block size (on 4 bytes)
- *       - a list of sequences
- *          - a sequence is:
- *             - a sequence length (on 4 bytes)
- *             - the nucleotides of the sequences (4 nucleotides encoded in 1 byte)
+ * - a binary file is made of:
+ *    - a magic number
+ *    - a list of blocks
+ *        - a block is:
+ *              - one block size (on 4 bytes)
+ *              - a list of sequences
+ *                  - a sequence is:
+ *                      - a sequence length (on 4 bytes)
+ *                      - the nucleotides of the sequences (4 nucleotides encoded in 1 byte)
  * - number of sequences (on 4 bytes)
  *
  * Historically, BinaryBank has been used in the first step of the DSK tool to convert
@@ -57,7 +59,7 @@ namespace impl      {
  * so having a binary (and so compressed) format had the nice effect to have less I/O
  * operations and therefore less execution time.
  *
- * Example of use:
+ * In the following example, we can see how to convert any kind of bank into a binary bank:
  * \snippet bank8.cpp  snippet8_binary
  *
  */
@@ -187,7 +189,7 @@ protected:
 
 /********************************************************************************/
 
-/** \brief Factory for the BankBinary class. */
+/* \brief Factory for the BankBinary class. */
 class BankBinaryFactory : public IBankFactory
 {
 public:
