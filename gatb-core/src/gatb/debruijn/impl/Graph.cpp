@@ -528,7 +528,7 @@ struct build_visitor : public boost::static_visitor<>    {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IOptionsParser* Graph::getOptionsParser (bool includeMandatory)
+IOptionsParser* Graph::getOptionsParser (bool includeMandatory, bool enableMphf)
 {
 
     /** We build the root options parser. */
@@ -543,7 +543,7 @@ IOptionsParser* Graph::getOptionsParser (bool includeMandatory)
     if (MPHF<char>::enabled)
     {
         IOptionsParser* parserEmphf  = new OptionsParser ("emphf");
-        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf')", false, "none"));
+        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf')", false,  enableMphf ? "emphf":"none"));
         parser->push_back  (parserEmphf);
     }
 

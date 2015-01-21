@@ -454,7 +454,7 @@ public:
     /** Get a parser object that knows the user options for building a graph.
      * \return the options parser object.
      */
-    static tools::misc::IOptionsParser* getOptionsParser (bool includeMandatory=true);
+    static tools::misc::IOptionsParser* getOptionsParser (bool includeMandatory=true, bool enablemphf=false );
 
     /********************************************************************************/
     template<typename Item, int NB=8>
