@@ -97,10 +97,6 @@ public:
     /** \copydoc IBank::estimate */
     void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
 
-    /** \return maximum number of files. */
-    static const size_t getMaxNbFiles ()  { return 30; }
-
-    /** */
     static void setDataLineSize (size_t len) { _dataLineSize = len; }
     static size_t getDataLineSize ()  { return _dataLineSize; }
 
@@ -203,6 +199,9 @@ public:
     };
 
 protected:
+
+    /** \return maximum number of files. */
+    static const size_t getMaxNbFiles ()  { return 1; }
 
     friend class Iterator;
 
