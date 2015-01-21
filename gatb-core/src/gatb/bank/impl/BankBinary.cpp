@@ -499,23 +499,25 @@ void  BankBinary::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u
     maxSize   = 0;
 
     /** We open the binary file at first call. */
-    IFile* file = System::file().newFile (_ref._filename, "rb");
+    FILE* file = fopen (_ref._filename.c_str(), "rb");
     if (file != 0)
     {
+        if (checkMagic(file)==false)  {  throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, _ref._filename.c_str());  }
+
         vector<char> buffer;
 
-        while (file->isEOF() == false)
+        while (feof (file) == false)
         {
             unsigned int block_size = 0;
 
             // we read the block header
-            if (! file->fread (&block_size,sizeof(unsigned int), 1))  { break; }
+            if (! fread (&block_size,sizeof(unsigned int), 1, file))  { break; }
 
             // we resize the buffer
             buffer.resize (block_size);
 
             // read a block of reads into the buffer
-            if (! file->fread (buffer.data(), sizeof(char), block_size))  { break; }
+            if (! fread (buffer.data(), sizeof(char), block_size, file))  { break; }
 
             // we loop the sequences
             char* loop = buffer.data();
@@ -536,16 +538,16 @@ void  BankBinary::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u
         }
 
         // we extrapolate the result according to the current location in the file
-        if (file->isEOF() == false)
+        if (feof (file) == false)
         {
             // we keep the current location in the file
-            u_int64_t current = file->tell ();
+            u_int64_t current = ftell (file);
 
             // we go to the end of the file
-            file->seeko (0, SEEK_END);
+            fseeko (file, 0, SEEK_END);
 
             // we keep the current location in the file
-            u_int64_t end = file->tell ();
+            u_int64_t end = ftell (file);
 
             // we extrapolate the result
             number    = (number    * end) / current;
@@ -554,8 +556,9 @@ void  BankBinary::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u
         }
 
         // we clean up resources
-        delete file;
-    }
+        fclose (file);
+
+    }  /* end of if (file != 0) */
 }
 
 /********************************************************************************/

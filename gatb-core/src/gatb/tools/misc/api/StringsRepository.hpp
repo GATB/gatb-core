@@ -80,6 +80,7 @@ public:
 
     const char* db             ()  { return "-db";             }
     const char* file           ()  { return "-file";           }
+    const char* graph          ()  { return "-graph";          }
     const char* kmer_size      ()  { return "-kmer-size";      }
     const char* minimizer_size ()  { return "-minimizer-size"; }
     const char* kmer_abundance ()  { return "-abundance"; }
@@ -126,6 +127,7 @@ public:
 /** Shortcuts. */
 #define STR_URI_DB              gatb::core::tools::misc::StringRepository::singleton().db ()
 #define STR_URI_FILE            gatb::core::tools::misc::StringRepository::singleton().file ()
+#define STR_URI_GRAPH           gatb::core::tools::misc::StringRepository::singleton().graph ()
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
 #define STR_MINIMIZER_SIZE      gatb::core::tools::misc::StringRepository::singleton().minimizer_size ()
 #define STR_INTEGER_PRECISION   gatb::core::tools::misc::StringRepository::singleton().integer_precision ()
