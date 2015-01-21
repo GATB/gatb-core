@@ -67,7 +67,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_checkComments);
         CPPUNIT_TEST_GATB (bank_checkBadUri);
         CPPUNIT_TEST_GATB (bank_checkSize);
-        CPPUNIT_TEST_GATB (bank_checkNbFiles);
+        CPPUNIT_TEST_GATB (bank_checkMultipleFiles);
         CPPUNIT_TEST_GATB (bank_checkEstimateNbSequences);
         CPPUNIT_TEST_GATB (bank_checkProgress);
         CPPUNIT_TEST_GATB (bank_checkConvertBinary);
@@ -257,30 +257,42 @@ public:
         BankFasta b1 (filename);
 
         /** We iterate without comments. */
-        for (BankFasta::Iterator it (b1, BankFasta::Iterator::NONE); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment().empty());
+            BankFasta::Iterator it (b1, BankFasta::Iterator::NONE);
+            for (it.first(); !it.isDone(); it.next())
+            {
+                CPPUNIT_ASSERT (it->getComment().empty());
+            }
         }
 
         /** We iterate with only id comments. */
-        for (BankFasta::Iterator it (b1, BankFasta::Iterator::IDONLY); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment().empty() == false);
-            CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") == 0);
+            BankFasta::Iterator it (b1, BankFasta::Iterator::IDONLY);
+            for (it.first(); !it.isDone(); it.next())
+            {
+                CPPUNIT_ASSERT (it->getComment().empty() == false);
+                CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") == 0);
+            }
         }
 
         /** We iterate with only full comments. */
-        for (BankFasta::Iterator it (b1, BankFasta::Iterator::FULL); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment().empty() == false);
-            CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
+            BankFasta::Iterator it (b1, BankFasta::Iterator::FULL);
+            for (it.first(); !it.isDone(); it.next())
+            {
+                CPPUNIT_ASSERT (it->getComment().empty() == false);
+                CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
+            }
         }
 
         /** We iterate with default value (should be FULL). */
-        for (BankFasta::Iterator it (b1); !it.isDone(); it.next())
         {
-            CPPUNIT_ASSERT (it->getComment().empty()==false);
-            CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
+            BankFasta::Iterator it (b1);
+            for (it.first(); !it.isDone(); it.next())
+            {
+                CPPUNIT_ASSERT (it->getComment().empty()==false);
+                CPPUNIT_ASSERT (strstr (it->getComment().c_str(), " ") != 0);
+            }
         }
     }
 
@@ -347,34 +359,6 @@ public:
     }
 
     /********************************************************************************/
-    /** \brief Check the number of file names for creating a bank
-     *
-     * We check that we can't create a Bank object with 0 or too many filenames.
-     * We check also that everything is ok between these two limits.
-     *
-     * Test of \ref gatb::core::bank::impl::Bank                    \n
-     * Test of \ref gatb::core::bank::impl::Bank::getMaxNbFiles()   \n
-     */
-    void bank_checkNbFiles ()
-    {
-        vector<string> filenames;
-
-        /** We check that we can't use a Bank without at least one filename. */
-        CPPUNIT_ASSERT_THROW (BankFasta b (filenames), gatb::core::system::Exception);
-
-        while (filenames.size() < BankFasta::getMaxNbFiles())
-        {
-            filenames.push_back(DBPATH("sample1.fa"));
-
-            CPPUNIT_ASSERT_NO_THROW (BankFasta b (filenames));
-        }
-
-        /** We check that we can't use a Bank with with too many filenames. */
-        filenames.push_back(DBPATH("sample1.fa"));
-        CPPUNIT_ASSERT_THROW (BankFasta b (filenames), gatb::core::system::Exception);
-    }
-
-    /********************************************************************************/
     /** \brief Check that we can estimate the number of sequences in a bank
      *
      * Since we know the number of sequences in one sample bank, we can correctly
@@ -384,27 +368,38 @@ public:
      *
      * Test of \ref gatb::core::bank::impl::Bank                        \n
      * Test of \ref gatb::core::bank::impl::Bank::estimateNbSequences() \n
-     * Test of \ref gatb::core::bank::impl::Bank::getMaxNbFiles()       \n
      */
     void bank_checkEstimateNbSequences ()
     {
+        string filename = DBPATH("sample1.fa");
+
         /** We declare a Bank instance. */
-        BankFasta b1 (DBPATH("sample1.fa"));
+        BankFasta b1 (filename);
 
         /** We check the estimation of sequences number. */
         u_int64_t estim1 = b1.estimateNbItems();
         CPPUNIT_ASSERT (estim1 == 20);
 
+        string albumName = "album.txt";
+        if (System::file().doesExist (albumName) == true)  { System::file().remove (albumName); }
+
+        /** We create the album bank. */
+        BankAlbum album (albumName);
+
+        size_t nbMaxFiles = 30;
+
         /** We build another bank holding several time the same bank. */
-        for (size_t i=1; i<=BankFasta::getMaxNbFiles(); i++)
+        for (size_t i=1; i<=nbMaxFiles; i++)
         {
-            vector<string> filenames;
-            for (size_t j=1; j<=i; j++)  { filenames.push_back(DBPATH("sample1.fa")); }
+            /** Add a bank to the album. */
+            album.addBank (filename);
 
-            BankFasta b2 (filenames);
-
-            CPPUNIT_ASSERT (b2.estimateNbItems() == i * estim1);
+            CPPUNIT_ASSERT (album.estimateNbItems() == i * estim1);
         }
+
+        CPPUNIT_ASSERT (album.getNbBanks() == nbMaxFiles);
+
+        CPPUNIT_ASSERT (System::file().remove (albumName) == 0);
     }
 
     /********************************************************************************/
@@ -421,7 +416,7 @@ public:
     };
 
     /** */
-    void bank_checkProgress_aux (BankFasta& b, size_t modulo)
+    void bank_checkProgress_aux (IBank& b, size_t modulo)
     {
         /** We create an iterator for tha provided bank. */
         Iterator<Sequence>* itSeq = b.iterator();
@@ -487,30 +482,32 @@ public:
 
         /** We build a bank holding x1 the same bank.*/
         while (filenames.size() < 1)   {  filenames.push_back (filename);  }
-        BankFasta b1 (filenames);
+        BankFasta b1 (filename);
         for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b1, tableMod[i]);  }
 
+        /** We create the album bank. */
+        string albumName = "album.txt";
+        if (System::file().doesExist (albumName) == true)  { System::file().remove (albumName); }
+        BankAlbum album (albumName);
+
         /** We build a bank holding x2 the same bank.*/
-        while (filenames.size() < 2)   {  filenames.push_back (filename);  }
-        BankFasta b2 (filenames);
-        for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b2, tableMod[i]);  }
+        while (album.getNbBanks() < 2)   {  album.addBank (filename);  }
+        for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (album, tableMod[i]);  }
 
         /** We build a bank holding x10 the same bank.*/
-        while (filenames.size() < 10)   {  filenames.push_back (filename);  }
-        BankFasta b10 (filenames);
-        for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b10, tableMod[i]);  }
+        while (album.getNbBanks() < 10)   {  album.addBank (filename);  }
+        for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (album, tableMod[i]);  }
 
         /** We build a bank holding x20 the same bank.*/
-        while (filenames.size() < 20)   {  filenames.push_back (filename);  }
-        BankFasta b20 (filenames);
-        for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (b20, tableMod[i]);  }
+        while (album.getNbBanks() < 20)   {  album.addBank (filename);  }
+        for (size_t i=0; i<sizeof(tableMod)/sizeof(tableMod[0]); i++)  {  bank_checkProgress_aux (album, tableMod[i]);  }
+
+        System::file().remove (albumName);
     }
 
     /********************************************************************************/
     void bank_checkMultipleFiles_aux (const string& filename)
     {
-        vector<string> filenames;
-
         /** A utility structure for this test. */
         struct Info  {  u_int32_t nbseq;  u_int64_t datasize;    Info() : nbseq(0), datasize(0) {}  };
 
@@ -522,23 +519,31 @@ public:
 
         /** We gather some information about this (single) bank. */
         Info i1;
-        for (BankFasta::Iterator it (b1); !it.isDone(); it.next())   {  i1.nbseq++;   i1.datasize += it->getDataSize(); }
+        BankFasta::Iterator it (b1);
+        for (it.first(); !it.isDone(); it.next())   {  i1.nbseq++;   i1.datasize += it->getDataSize(); }
+
+        /** We create the album bank. */
+        string albumName = "album.txt";
+        if (System::file().doesExist (albumName) == true)  { System::file().remove (albumName); }
+        BankAlbum album (albumName);
 
         /** We build a bank holding x2 the same bank.*/
-        while (filenames.size() < 2)   {  filenames.push_back (filename);  }
-        BankFasta b2 (filenames);
+        while (album.getNbBanks() < 2)   {  album.addBank (filename);  }
+        CPPUNIT_ASSERT (album.getNbBanks() == 2);
 
         /** We gather some information about this x2 bank. */
         Info i2;
-        for (BankFasta::Iterator it (b2); !it.isDone(); it.next())   {  i2.nbseq++;   i2.datasize += it->getDataSize(); }
+        Iterator<Sequence>* it2 = album.iterator();  LOCAL (it2);
+        for (it2->first(); !it2->isDone(); it2->next())   {  i2.nbseq++;   i2.datasize += (*it2)->getDataSize(); }
 
         /** We build a bank holding x4 the same bank.*/
-        while (filenames.size() < 4)   {  filenames.push_back (filename);  }
-        BankFasta b4 (filenames);
+        while (album.getNbBanks() < 4)   {  album.addBank (filename);  }
+        CPPUNIT_ASSERT (album.getNbBanks() == 4);
 
         /** We gather some information about this x4 bank. */
         Info i4;
-        for (BankFasta::Iterator it (b4); !it.isDone(); it.next())   {  i4.nbseq++;   i4.datasize += it->getDataSize(); }
+        Iterator<Sequence>* it4 = album.iterator();  LOCAL (it4);
+        for (it4->first(); !it4->isDone(); it4->next())   {  i4.nbseq++;   i4.datasize += (*it4)->getDataSize(); }
 
         CPPUNIT_ASSERT (i1.nbseq   * 2 == i2.nbseq);
         CPPUNIT_ASSERT (i1.datasize* 2 == i2.datasize);
@@ -548,6 +553,8 @@ public:
 
         CPPUNIT_ASSERT (i2.nbseq   * 2 == i4.nbseq);
         CPPUNIT_ASSERT (i2.datasize* 2 == i4.datasize);
+
+        System::file().remove (albumName);
     }
 
     /********************************************************************************/
