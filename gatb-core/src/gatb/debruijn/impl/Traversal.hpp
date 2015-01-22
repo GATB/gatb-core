@@ -21,6 +21,7 @@
 #define _GATB_TOOLS_TRAVERSAL_HPP_
 
 #include <gatb/debruijn/impl/Terminator.hpp>
+#include <gatb/tools/misc/api/Enums.hpp>
 #include <set>
 
 /********************************************************************************/
@@ -206,7 +207,7 @@ public:
 
     /** Get the name of the traversal
      * \return the name */
-    std::string getName() const  { return std::string ("null"); }
+    std::string getName() const  { return tools::misc::toString(tools::misc::TRAVERSAL_NONE); }
 
 private:
 
@@ -238,7 +239,7 @@ public:
 
     /** Get the name of the traversal
      * \return the name */
-    std::string getName() const  { return std::string ("unitig"); }
+    std::string getName() const  { return tools::misc::toString(tools::misc::TRAVERSAL_UNITIG); }
 
 private:
 
@@ -271,7 +272,7 @@ public:
 
     /** Get the name of the traversal
      * \return the name */
-    std::string getName() const  { return std::string ("monument"); }
+    std::string getName() const  { return tools::misc::toString(tools::misc::TRAVERSAL_CONTIG); }
 
     bool explore_branching (
         const Node& node,
