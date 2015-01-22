@@ -259,6 +259,8 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",  false,  "4294967295"));
     parser->push_back (new OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",  false, "10000"));
     parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min or max)",  false, "sum"));
+    parser->push_back (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                   false, "2000"));
+    parser->push_back (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                   false, "0"));
     parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",              false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                              false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
