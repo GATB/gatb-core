@@ -100,6 +100,26 @@ BankAlbum::BankAlbum (const std::string& name, bool deleteIfExists) : _name(name
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+BankAlbum::BankAlbum (const std::vector<std::string>& filenames)
+{
+    for (vector<string>::const_iterator it = filenames.begin(); it != filenames.end(); ++it)
+    {
+        /** We add a new bank. */
+        BankComposite::addBank (Bank::open(*it));
+
+        /** We memorize the uri of this bank. */
+        _banksUri.push_back (*it);
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 bool BankAlbum::isAlbumValid (const std::string& uri)
 {
     bool result = true;

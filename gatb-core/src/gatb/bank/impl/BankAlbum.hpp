@@ -94,6 +94,10 @@ public:
     BankAlbum (const std::string& name, const std::vector<IBank*>& banks)
         : BankComposite (banks), _name(name) {}
 
+    /** Constructor.
+     * \param[in] filenames: uri of the files to be used. */
+    BankAlbum (const std::vector<std::string>& filenames);
+
     /** \copydoc IBank::getId. */
     std::string getId ()  { return _name; }
 
