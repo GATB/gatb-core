@@ -100,10 +100,10 @@ struct PostParserVisitor : public HierarchyParserVisitor
  *********************************************************************/
 struct ParserVisitor : public IOptionsParserVisitor
 {
-    int argc; char** argv;
+    int argc; char** argv;  int idx;
     IOptionsParser::Result result;
 
-    ParserVisitor (int argc, char** argv) : argc(argc), argv(argv) {}
+    ParserVisitor (int argc, char** argv) : argc(argc), argv(argv), idx(0)  {}
 
     IOptionsParser::Result& getResult () { return result; }
 
@@ -112,9 +112,9 @@ struct ParserVisitor : public IOptionsParserVisitor
         set<string> foundParsers;
 
         /** We loop the arguments. */
-        for (argc--,argv++; argc>0; argc--, argv++)
+        for ( ; idx<argc; )
         {
-            char* txt = argv[0];
+            char* txt = argv[idx];
 
             IOptionsParser* match = object.getParser (txt);
 
@@ -129,6 +129,9 @@ struct ParserVisitor : public IOptionsParserVisitor
             else
             {
                 result.errors.push_back (Stringify::format("Unknown '%s'", txt));
+
+                /** We had no match, so we skip the current argument and go the next one. */
+                idx++;
             }
         }
 
@@ -138,31 +141,28 @@ struct ParserVisitor : public IOptionsParserVisitor
 
     void visitOption (Option& object, size_t depth)
     {
-        /** We go to the first argument of the current option. */
-        argc--; argv++;
+        DEBUG (("ParserVisitor::visitOption  '%s' nbArgs=%ld  idx=%ld  \n",
+            object.getName().c_str(), object.getNbArgs(), idx
+        ));
 
-        /** We retrieve the arguments of the option. */
-        std::list<std::string> optionArgs;
-        for (int i=0; argc>0; argc--, argv++)
-        {
-            optionArgs.push_back (argv[0]);
+        /** We go to the first argument of the current Option. */
+        idx ++;
 
-            if (++i>=object.getNbArgs())  { break; }
-        }
-
-        if (optionArgs.size() == object.getNbArgs())
-        {
-            object.proceed (optionArgs, result.properties);
-        }
-        else
+        /** We check that we have enough arguments for the current option. */
+        if (idx + object.getNbArgs() >  argc)
         {
             char buffer [128];
             snprintf (buffer, sizeof(buffer), "Too few arguments for the %s option...", object.getName().c_str());
             result.errors.push_back (buffer);
         }
+        else
+        {
+            list<string> optionArgs;
+            for (size_t i=0; i < object.getNbArgs(); i++, idx++)   {  optionArgs.push_back (argv[idx+i]);  }
+            object.proceed (optionArgs, result.properties);
+        }
     }
 };
-
 
 /*********************************************************************
  ** METHOD  :
@@ -206,8 +206,9 @@ OptionsParser::~OptionsParser ()
  *********************************************************************/
 misc::IProperties* OptionsParser::parse (int argc, char** argv)
 {
-    /** We parse the arguments through a visitor. */
-    ParserVisitor visitor (argc, argv);
+    /** We parse the arguments through a visitor. Note that we skip the first
+     * item which should be the binary name. */
+    ParserVisitor visitor (argc-1, argv+1);
     this->accept (visitor);
 
     /** We launch an exception in case we got errors during the parsing. */

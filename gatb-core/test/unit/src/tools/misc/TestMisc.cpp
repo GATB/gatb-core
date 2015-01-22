@@ -61,6 +61,7 @@ class TestMisc : public Test
         CPPUNIT_TEST_GATB (vector_check2);
         CPPUNIT_TEST_GATB (vector_check3);
         CPPUNIT_TEST_GATB (parser_check1);
+        CPPUNIT_TEST_GATB (parser_check2);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -291,6 +292,105 @@ public:
         parser_check1_aux (composite, "-a 5 -b 6 -c 7", true,  3, "<-a>5</-a><-b>6</-b><-c>7</-c>");
         parser_check1_aux (composite, "-a 8 -b 9",      true,  2, "<-a>8</-a><-b>9</-b>");
         parser_check1_aux (composite, "-a 10 -c 11",    false, 0, "");
+    }
+
+    /********************************************************************************/
+    void parser_check2 ()
+    {
+        {
+            OptionsParser parser ("test1");
+            parser.push_back (new OptionNoParam ("-a",  "option a", false));
+            parser.push_back (new OptionNoParam ("-b",  "option b", false));
+            try  {
+                parser.parseString ("-a -b");
+                CPPUNIT_ASSERT(parser.saw("-a"));
+                CPPUNIT_ASSERT(parser.saw("-b"));
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(false);  }
+        }
+        {
+            OptionsParser parser ("test2");
+            parser.push_back (new OptionNoParam  ("-a",  "option a", false));
+            parser.push_back (new OptionOneParam ("-b",  "option b", false));
+            try  {
+                parser.parseString ("-a -b foo");
+                CPPUNIT_ASSERT(parser.saw("-a"));
+                CPPUNIT_ASSERT(parser.saw("-b"));
+                CPPUNIT_ASSERT(parser.getProperties()->getStr("-b") == "foo");
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(false);  }
+        }
+        {
+            OptionsParser parser ("test3");
+            parser.push_back (new OptionOneParam ("-a",  "option a", false));
+            parser.push_back (new OptionNoParam  ("-b",  "option b", false));
+            try  {
+                parser.parseString ("-a foo -b");
+                CPPUNIT_ASSERT(parser.saw("-a"));
+                CPPUNIT_ASSERT(parser.saw("-b"));
+                CPPUNIT_ASSERT(parser.getProperties()->getStr("-a") == "foo");
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(false);  }
+        }
+        {
+            OptionsParser parser ("test4");
+            parser.push_back (new OptionNoParam  ("-a",  "option a", false));
+            parser.push_back (new OptionOneParam ("-b",  "option b", false));
+            parser.push_back (new OptionNoParam  ("-c",  "option c", false));
+            try  {
+                parser.parseString ("-a -b foo -c");
+                CPPUNIT_ASSERT(parser.saw("-a"));
+                CPPUNIT_ASSERT(parser.saw("-b"));
+                CPPUNIT_ASSERT(parser.getProperties()->getStr("-b") == "foo");
+                CPPUNIT_ASSERT(parser.saw("-c"));
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(false);  }
+        }
+        {
+            OptionsParser parser ("test5");
+            parser.push_back (new OptionOneParam ("-b",  "option b", false));
+            try  {
+                parser.parseString ("-b");
+                CPPUNIT_ASSERT(false);
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(true);  }
+        }
+        {
+            OptionsParser parser ("test6");
+            parser.push_back (new OptionNoParam ("-b",  "option b", false));
+            try  {
+                parser.parseString ("");
+                CPPUNIT_ASSERT(true);
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(false);  }
+        }
+        {
+            OptionsParser parser ("test7");
+            try  {
+                parser.parseString ("");
+                CPPUNIT_ASSERT(true);
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(false);  }
+        }
+        {
+            OptionsParser parser ("test7");
+            parser.push_back (new OptionNoParam ("-b",  "option b", true));
+            try  {
+                parser.parseString ("");
+                CPPUNIT_ASSERT(false);
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(true);  }
+        }
+        {
+            OptionsParser parser ("test8");
+            parser.push_back (new OptionNoParam  ("-a",  "option a", false));
+            parser.push_back (new OptionOneParam ("-b",  "option b", true));
+            try  {
+                parser.parseString ("-a");
+                CPPUNIT_ASSERT(false);
+            }
+            catch (OptionFailure& e)    {  CPPUNIT_ASSERT(true);  }
+        }
     }
 };
 
