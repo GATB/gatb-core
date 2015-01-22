@@ -240,12 +240,23 @@ public:
 
     ~ProgressSynchro ()  { setSynchro (0); }
 
-    void inc (u_int64_t ntasks_done)
-    {
-        _synchro->lock ();
-        ProgressProxy::inc (ntasks_done);
-        _synchro->unlock ();
-    }
+    /** \copydoc dp::IteratorListener::init */
+    void init ()  { system::LocalSynchronizer l(_synchro); ProgressProxy::init(); }
+
+    /** \copydoc dp::IteratorListener::finish */
+    void finish () { system::LocalSynchronizer l(_synchro); ProgressProxy::finish ();  }
+
+    /** \copydoc dp::IteratorListener::inc*/
+    void inc (u_int64_t ntasks_done)  { system::LocalSynchronizer l(_synchro);  ProgressProxy::inc (ntasks_done); }
+
+    /** \copydoc dp::IteratorListener::set*/
+    void set (u_int64_t ntasks_done)  { system::LocalSynchronizer l(_synchro);  ProgressProxy::set (ntasks_done); }
+
+    /** */
+    void reset (u_int64_t ntasks) { system::LocalSynchronizer l(_synchro);  ProgressProxy::reset(ntasks); }
+
+    /** \copydoc dp::IteratorListener::setMessage*/
+    void setMessage (const char* format, ...)  { system::LocalSynchronizer l(_synchro);  ProgressProxy::setMessage (format); }
 
 private:
 
