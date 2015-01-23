@@ -44,25 +44,6 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-struct HierarchyParserVisitor : public IOptionsParserVisitor
-{
-    void visitOptionsParser (impl::OptionsParser& object, size_t depth)
-    {
-        for (std::list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
-        {
-            (*it)->accept (*this, depth+1);
-        }
-    }
-};
-
-/*********************************************************************
- ** METHOD  :
- ** PURPOSE :
- ** INPUT   :
- ** OUTPUT  :
- ** RETURN  :
- ** REMARKS :
- *********************************************************************/
 struct PostParserVisitor : public HierarchyParserVisitor
 {
     PostParserVisitor (const set<string>& foundParsers, IOptionsParser::Result& result)
@@ -172,8 +153,8 @@ struct ParserVisitor : public IOptionsParserVisitor
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-OptionsParser::OptionsParser (const std::string& name)
-    : _name(name), _visible(true), _properties(0)
+OptionsParser::OptionsParser (const std::string& name, const std::string& help)
+    : _name(name), _visible(true), _help(help), _properties(0)
 {
     setProperties (new Properties());
 }
@@ -292,9 +273,10 @@ struct PushParserVisitor : public HierarchyParserVisitor
     bool   front;
     size_t expandDepth;
     std::list<IOptionsParser*>& parsers;
+    bool visibility;
 
-    PushParserVisitor (bool front, size_t depth, std::list<IOptionsParser*>& parsers)
-        : front(front), expandDepth(depth), parsers(parsers) {}
+    PushParserVisitor (bool front, size_t depth, std::list<IOptionsParser*>& parsers, bool visibility)
+        : front(front), expandDepth(depth), parsers(parsers), visibility(visibility) {}
 
     void visitOptionsParser (impl::OptionsParser& object, size_t depth)
     {
@@ -308,6 +290,8 @@ struct PushParserVisitor : public HierarchyParserVisitor
     {
         if (front)  {  object.use();  parsers.push_front (&object); }
         else        {  object.use();  parsers.push_back  (&object); }
+
+        object.setVisible(visibility);
     }
 };
 
@@ -319,10 +303,10 @@ struct PushParserVisitor : public HierarchyParserVisitor
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::push_back (IOptionsParser* parser, size_t expandDepth)
+void OptionsParser::push_back (IOptionsParser* parser, size_t expandDepth, bool visibility)
 {
     LOCAL (parser);
-    PushParserVisitor visitor (false, expandDepth, _parsers);
+    PushParserVisitor visitor (false, expandDepth, _parsers, visibility);
     parser->accept (visitor);
 }
 
@@ -334,10 +318,10 @@ void OptionsParser::push_back (IOptionsParser* parser, size_t expandDepth)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-void OptionsParser::push_front (IOptionsParser* parser, size_t expandDepth)
+void OptionsParser::push_front (IOptionsParser* parser, size_t expandDepth, bool visibility)
 {
     LOCAL (parser);
-    PushParserVisitor visitor (true, expandDepth, _parsers);
+    PushParserVisitor visitor (true, expandDepth, _parsers, visibility);
     parser->accept (visitor);
 }
 
@@ -374,71 +358,148 @@ IOptionsParser* OptionsParser::getParser (const std::string& name)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-class OptionsHelpVisitor : public HierarchyParserVisitor
+void HierarchyParserVisitor::visitOptionsParser (OptionsParser& object, size_t depth)
 {
-public:
-
-    OptionsHelpVisitor (std::ostream& os) : os(os),nameMaxLen(0) {}
-
-    void visitOptionsParser (OptionsParser& object, size_t depth)
+    for (std::list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
     {
-        if (object.isVisible() == true)
+        (*it)->accept (*this, depth+1);
+    }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsHelpVisitor::visitOptionsParser (OptionsParser& object, size_t depth)
+{
+    if (object.isVisible() == true)
+    {
+        /** We first look for the longest option name. */
+        nameMaxLen=0;
+        for (list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
         {
-            /** We first look for the longest option name. */
-            nameMaxLen=0;
-            for (list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
-            {
-                if (!(*it)->getName().empty())  {  nameMaxLen = std::max (nameMaxLen, (*it)->getName().size());  }
-            }
+            if (!(*it)->getName().empty())  {  nameMaxLen = std::max (nameMaxLen, (*it)->getName().size());  }
+        }
+
+        os << endl;
+        indent(os,depth) <<  "[" << object.getName() << " options]" << endl;
+
+        /** We loop over each known parser. */
+        for (list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
+        {
+            if ((*it)->isVisible())  {  (*it)->accept (*this, depth+1); }
+        }
+    }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void OptionsHelpVisitor::visitOption (Option& object, size_t depth)
+{
+    if (!object.getName().empty() && object.isVisible())
+    {
+        if (object.getNbArgs() > 0)
+        {
+            indent(os,depth) << Stringify::format ("    %-*s (%d arg) :    %s",
+                (int)nameMaxLen,
+                object.getName().c_str(),
+                (int)object.getNbArgs(),
+                object.getHelp().c_str(),
+                object.getDefaultValue().c_str()
+            );
+
+            if (object.isMandatory()==false)  {  os << Stringify::format ("  [default '%s']", object.getDefaultValue().c_str());  }
 
             os << endl;
-            indent(os,depth) <<  "[" << object.getName() << " options]" << endl;
-
-            /** We loop over each known parser. */
-            for (list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
-            {
-                if ((*it)->isVisible())  {  (*it)->accept (*this, depth+1); }
-            }
         }
-    }
-
-    void visitOption (Option& object, size_t depth)
-    {
-        if (!object.getName().empty() && object.isVisible())
+        else
         {
-            if (object.getNbArgs() > 0)
-            {
-                indent(os,depth) << Stringify::format ("    %-*s (%d arg) :    %s",
-                    (int)nameMaxLen,
-                    object.getName().c_str(),
-                    (int)object.getNbArgs(),
-                    object.getHelp().c_str(),
-                    object.getDefaultValue().c_str()
-                );
-
-                if (object.isMandatory()==false)  {  os << Stringify::format ("  [default '%s']", object.getDefaultValue().c_str());  }
-
-                os << endl;
-            }
-            else
-            {
-                indent(os,depth) << Stringify::format ("    %-*s (%d arg) :    %s\n",
-                    (int)nameMaxLen,
-                    object.getName().c_str(),
-                    (int)object.getNbArgs(),
-                    object.getHelp().c_str()
-                );
-            }
+            indent(os,depth) << Stringify::format ("    %-*s (%d arg) :    %s\n",
+                (int)nameMaxLen,
+                object.getName().c_str(),
+                (int)object.getNbArgs(),
+                object.getHelp().c_str()
+            );
         }
     }
+}
 
-private:
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+std::ostream& OptionsHelpVisitor::indent (std::ostream& os, size_t level)  const
+{
+    for (size_t i=0; i<level; i++)  { os << "   "; }
+    return os;
+}
 
-    std::ostream& os;
-    size_t        nameMaxLen;
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+VisibilityOptionsVisitor::VisibilityOptionsVisitor (bool visibility, ...)
+    : _visibility(visibility)
+{
+    /** We build the list of names from the ellipsis. */
+    va_list ap;
 
-    std::ostream& indent (std::ostream& os, size_t level)  const { for (size_t i=0; i<level; i++)  { os << "   "; }  return os; }
-};
+    va_start(ap, visibility);
+    for (const char* s = va_arg(ap,const char*); s != 0; s = va_arg(ap,const char*))
+    {
+        _names.insert (s);
+    }
+    va_end(ap);
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void VisibilityOptionsVisitor::visitOptionsParser (OptionsParser& object, size_t depth)
+{
+    if (_names.find(object.getName()) != _names.end())  { object.setVisible(_visibility); }
+
+    for (std::list<IOptionsParser*>::const_iterator it = object.getParsers().begin(); it != object.getParsers().end(); ++it)
+    {
+        (*it)->accept (*this, depth+1);
+    }
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+void VisibilityOptionsVisitor::visitOption (Option& object, size_t depth)
+{
+    if (_names.find(object.getName()) != _names.end())  { object.setVisible(_visibility); }
+}
 
 /*********************************************************************
  ** METHOD  :

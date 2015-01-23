@@ -90,6 +90,13 @@ public:
     /** Get visibility status. */
     virtual bool isVisible() const = 0;
 
+    /** Get help. */
+    virtual const std::string& getHelp () const = 0;
+
+    /** Set help
+     * \param[in] help : the help string */
+    virtual void setHelp (const std::string& help) = 0;
+
     /*************************************************************/
     /*******************    Parsing  methods   *******************/
     /*************************************************************/
@@ -122,13 +129,17 @@ public:
 
     /** Add a parser child at the back of known parsers.
      * \param[in] parser : the child parser
-     * \param[in] expandDepth : while depth is less than expandDepth, put all the children and not the 'parser' itself. */
-    virtual void push_back (IOptionsParser* parser, size_t expandDepth=0) = 0;
+     * \param[in] expandDepth : while depth is less than expandDepth, put all the children and not the 'parser' itself.
+     * \param[in] visibility : visibility status.
+     */
+    virtual void push_back (IOptionsParser* parser, size_t expandDepth=0, bool visibility=true) = 0;
 
     /** Add a parser child at the front of known parsers.
      * \param[in] parser : the child parser
-     * \param[in] expandDepth : while depth is less than expandDepth, put all the children and not the 'parser' itself. */
-    virtual void push_front (IOptionsParser* parser, size_t expandDepth=0) = 0;
+     * \param[in] expandDepth : while depth is less than expandDepth, put all the children and not the 'parser' itself.
+     * \param[in] visibility : visibility status.
+     */
+    virtual void push_front (IOptionsParser* parser, size_t expandDepth=0, bool visibility=true) = 0;
 
     /** Get a parser given its name.
      * \param[in] name : name of the parser to be retrieved

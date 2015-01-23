@@ -30,6 +30,7 @@
 
 #include <gatb/tools/misc/api/IOptionsParser.hpp>
 #include <list>
+#include <set>
 #include <string>
 
 /********************************************************************************/
@@ -49,7 +50,7 @@ class OptionsParser : public IOptionsParser
 public:
 
     /** Constructor. */
-    OptionsParser (const std::string& name="");
+    OptionsParser (const std::string& name="", const std::string& help="");
 
     /** Destructor. */
     virtual ~OptionsParser ();
@@ -69,6 +70,12 @@ public:
 
     /** \copydoc IOptionsParser::isVisible */
     bool isVisible() const  { return _visible; }
+
+    /** \copydoc IOptionsParser::getHelp */
+    const std::string& getHelp () const  { return _help; }
+
+    /** \copydoc IOptionsParser::setHelp */
+    void setHelp (const std::string& help)  { _help = help; }
 
     /*************************************************************/
     /*******************    Parsing  methods   *******************/
@@ -91,10 +98,10 @@ public:
     /*************************************************************/
 
     /** \copydoc IOptionsParser::push_back */
-    void push_back (IOptionsParser* parser, size_t expandDepth=0);
+    void push_back (IOptionsParser* parser, size_t expandDepth=0, bool visibility=true);
 
     /** \copydoc IOptionsParser::push_front */
-    void push_front (IOptionsParser* parser, size_t expandDepth=0);
+    void push_front (IOptionsParser* parser, size_t expandDepth=0, bool visibility=true);
 
     /** \copydoc IOptionsParser::getParser */
     IOptionsParser* getParser (const std::string& name);
@@ -113,6 +120,7 @@ protected:
 
     std::string _name;
     bool        _visible;
+    std::string _help;
 
     std::list<IOptionsParser*> _parsers;
 
@@ -148,7 +156,7 @@ public:
         bool                visible,
         const std::string&  help
     )
-        : OptionsParser(name), _nbArgs(nbArgs), _mandatory(mandatory), _help(help), _defaultParam(defaultValue)
+        : OptionsParser(name, help), _nbArgs(nbArgs), _mandatory(mandatory), _defaultParam(defaultValue)
     {
         setVisible(visible);
     }
@@ -178,11 +186,6 @@ protected:
      */
     size_t getNbArgs () const   { return _nbArgs; }
 
-    /** Help text about this option.
-     * \return help string
-     */
-    const std::string& getHelp () const { return _help; }
-
     /** When an option is recognized in the arguments list, we look the number of waited args and put
      * them in a list of string objects. This is this list that is given as argument of the proceed() method
      * that mainly will affect the given args to the variable given to the instantiation of the
@@ -192,7 +195,6 @@ protected:
 
     size_t          _nbArgs;
     bool            _mandatory;
-    std::string     _help;
     std::string     _defaultParam;
 
     friend class ParserVisitor;
@@ -266,6 +268,57 @@ public:
     {
         props.add (0, getName(), args.front());
     }
+};
+
+/********************************************************************************/
+/**************************           VISITORS         **************************/
+/********************************************************************************/
+
+/** \brief Visitor that iterates children of an OptionsParser instance. */
+struct HierarchyParserVisitor : public IOptionsParserVisitor
+{
+    /** \copydoc IOptionsParserVisitor::visitOptionsParser */
+    void visitOptionsParser (OptionsParser& object, size_t depth);
+};
+
+/** \brief Visitor that display help. */
+class OptionsHelpVisitor : public IOptionsParserVisitor
+{
+public:
+
+    /** Constructor.
+     * \param[out] os : output stream where the output must be put. */
+    OptionsHelpVisitor (std::ostream& os) : os(os),nameMaxLen(0) {}
+
+    /** \copydoc IOptionsParserVisitor::visitOptionsParser */
+    void visitOptionsParser (OptionsParser& object, size_t depth);
+
+    /** \copydoc IOptionsParserVisitor::visitOption */
+    void visitOption (Option& object, size_t depth);
+
+private:
+
+    std::ostream& os;
+    size_t        nameMaxLen;
+    std::ostream& indent (std::ostream& os, size_t level) const;
+};
+
+/** \brief Visitor that sets the visibility for a list of options. */
+struct VisibilityOptionsVisitor : public IOptionsParserVisitor
+{
+    /** Constructor.
+     * \param[in] visibility : status to be set.
+     * \param[in] ... : list of labels of options to be modified; MUST BE terminated by a 0. */
+    VisibilityOptionsVisitor (bool visibility, ...);
+
+    /** \copydoc IOptionsParserVisitor::visitOptionsParser */
+    void visitOptionsParser (OptionsParser& object, size_t depth);
+
+    /** \copydoc IOptionsParserVisitor::visitOption */
+    void visitOption (Option& object, size_t depth);
+
+    bool                  _visibility;
+    std::set<std::string> _names;
 };
 
 /********************************************************************************/
