@@ -91,7 +91,7 @@ void Bank::_registerFactory_ (const std::string& name, IBankFactory* instance, b
     }
     else
     {
-        throw string("Bank factory ") + name + string (" already registered");
+        throw system::Exception ("Bank factory '%s already registered", name.c_str());
     }
 }
 
@@ -148,7 +148,7 @@ IBank* Bank::_open_ (const std::string& uri)
         DEBUG (("   factory '%s' => result=%p \n", it->name.c_str(), result ));
     }
 
-    if (result == 0) { throw string("Bad bank creation from bank registery"); }
+    if (result == 0) { throw system::Exception ("Unable to open bank '%s'", uri.c_str()); }
 
     return result;
 }
@@ -183,3 +183,4 @@ std::string Bank::_getType_ (const std::string& uri)
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
+
