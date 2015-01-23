@@ -164,12 +164,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
 {
     Group& group = (*_storage)(this->getName());
 
-    /** We retrieve the number of partitions. */
-    string nbPartStr = group.getProperty ("nb_partitions");
-    _nb_partitions = atoi (nbPartStr.c_str());
-
     /** We create the collection corresponding to the solid kmers output. */
-    setSolidCounts (& group.getPartition<Count> ("solid", _nb_partitions));
+    setSolidCounts (& group.getPartition<Count> ("solid"));
 
     string xmlString = group.getProperty ("xml");
     stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
