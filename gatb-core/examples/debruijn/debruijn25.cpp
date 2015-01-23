@@ -38,12 +38,8 @@ int main (int argc, char* argv[])
         Storage* storage = StorageFactory(STORAGE_HDF5).load ("toto.h5");   LOCAL (storage);
         Group& dskGroup = storage->getGroup("dsk");
 
-        /** We get the number of partitions. */
-        string nbPartitionsStrg = dskGroup.getProperty ("nb_partitions");
-        size_t nbPartitions = atol (nbPartitionsStrg.c_str());
-
         /** We get the solid kmers partition. */
-        Partition<Count>& partition = dskGroup.getPartition<Count> ("solid", nbPartitions);
+        Partition<Count>& partition = dskGroup.getPartition<Count> ("solid");
 
         /** We create two kmers models. */
         Model  model   (kmerSize,   mmerSize);

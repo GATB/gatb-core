@@ -36,11 +36,8 @@ int main (int argc, char* argv[])
         // We get the group for dsk
         Group& dskGroup = storage->getGroup("dsk");
 
-        // We get the number of partitions of solid kmers.
-        size_t nbPartitions = atol (dskGroup.getProperty("nb_partitions").c_str());
-
         // We get the solid kmers collection 1) from the 'dsk' group  2) from the 'solid' collection
-        Partition<Kmer<>::Count>& solidKmers = dskGroup.getPartition<Kmer<>::Count> ("solid", nbPartitions);
+        Partition<Kmer<>::Count>& solidKmers = dskGroup.getPartition<Kmer<>::Count> ("solid");
 
         // We can retrieve information (as an XML string) about the construction of the solid kmers
         cout << dskGroup.getProperty("xml") << endl;
