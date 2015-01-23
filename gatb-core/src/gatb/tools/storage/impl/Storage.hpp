@@ -157,7 +157,7 @@ public:
     Group& getGroup (const std::string& name);
 
     /** */
-    template <class Type>  Partition<Type>& getPartition (const std::string& name, size_t nb);
+    template <class Type>  Partition<Type>& getPartition (const std::string& name, size_t nb=0);
 
     /** */
     template <class Type>  CollectionNode<Type>& getCollection (const std::string& name);

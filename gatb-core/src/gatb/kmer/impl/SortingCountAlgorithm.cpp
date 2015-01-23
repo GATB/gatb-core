@@ -678,10 +678,6 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     /** Now, we can define the output solid partition. */
     setSolidCounts (& (*_storage)("dsk").getPartition<Count> ("solid", _nb_partitions));
 
-    /** We save the number of partitions. */
-    stringstream ss; ss << _nb_partitions;
-    (*_storage)("dsk").addProperty ("nb_partitions", ss.str());
-
     /** We gather some statistics. */
     getInfo()->add (1, "config");
     getInfo()->add (2, "kmer_size",         "%ld", _kmerSize);

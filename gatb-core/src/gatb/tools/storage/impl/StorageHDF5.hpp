@@ -34,7 +34,7 @@
 #include <gatb/tools/storage/impl/CollectionHDF5Patch.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <hdf5/hdf5.h>
-#include <typeinfo>
+#include <sstream>
 
 /********************************************************************************/
 namespace gatb      {
@@ -89,12 +89,20 @@ public:
 
         std::string actualName = parent->getFullId('/') + "/" + name;
 
-        /** We create the HDF5 group if needed. */
-        htri_t doesExist = H5Lexists (storage->getId(), actualName.c_str(), H5P_DEFAULT);
-        if (doesExist <= 0)
+        /** We create the HDF5 group if needed. This will just create the entry if not already existing. */
+        GroupHDF5 group (storage, parent, name);
+
+        /** If the nb of partitions is null, we try to get it from a property. */
+        if (nb==0)
         {
-            hid_t group = H5Gcreate (storage->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-            H5Gclose (group);
+            std::string nbPartStr = group.getProperty ("nb_partitions");
+            if (nbPartStr.empty()==false)  { nb = atoi (nbPartStr.c_str()); }
+            else                           { throw system::Exception ("Partition '%s' has 0 items", name.c_str()); }
+        }
+        else
+        {
+            std::stringstream ss; ss << nb;
+            group.addProperty ("nb_partitions", ss.str());
         }
 
         return new Partition<Type> (storage->getFactory(), parent, name, nb);
