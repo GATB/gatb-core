@@ -194,9 +194,11 @@ public:
 
     ProgressProxy ()  : _ref(0) {}
 
-    ProgressProxy (dp::IteratorListener* ref)  : _ref(ref) {}
+    ProgressProxy (dp::IteratorListener* ref)  : _ref(0) { setRef(ref); }
 
-    ProgressProxy (const ProgressProxy& p) : _ref(p._ref) {}
+    ProgressProxy (const ProgressProxy& p) : _ref(0) { setRef(p._ref); }
+
+    ~ProgressProxy ()  { setRef(0); }
 
     /** Initialization of the object. */
     void init ()  { _ref->init(); }
@@ -222,6 +224,7 @@ public:
 
 private:
     dp::IteratorListener* _ref;
+    void setRef (dp::IteratorListener* ref)  { SP_SETATTR(ref); }
 };
 
 /********************************************************************************/
