@@ -290,8 +290,12 @@ void SortingCountAlgorithm<span>::execute ()
     Iterator<Sequence>* itSeq = _bank->iterator();
     LOCAL (itSeq);
 
-    /** We configure the progress bar. */
-    setProgress ( createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"));
+    /** We configure the progress bar. Note that we create a ProgressSynchro since this progress bar
+     * may me modified by several threads at the same time. */
+    setProgress (new ProgressSynchro (
+        createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"),
+        System::thread().newSynchronizer())
+    );
     _progress->init ();
 
     /** We create the PartiInfo instance. */
@@ -779,7 +783,7 @@ public:
         //output last superK
         processSuperkmer (superKmer);
 
-        if (_nbWrittenKmers > 500000)   {  _progress.inc (_nbWrittenKmers);  _nbWrittenKmers = 0;  }
+        if (_nbWrittenKmers > 500000)   {  _progress->inc (_nbWrittenKmers);  _nbWrittenKmers = 0;  }
     }
 
     /** Constructor. */
@@ -792,7 +796,7 @@ public:
         BankStats&        bankStats
     )
     : _model(model), _nbPass(nbPasses), _pass(currentPass), _nbPartitions(nbPartitions),
-      _nbWrittenKmers(0), _progress (progress,System::thread().newSynchronizer()), _nbSuperKmers(0),
+      _nbWrittenKmers(0), _progress (progress), _nbSuperKmers(0),
       _bankStatsGlobal(bankStats)
     {
         /** Shortcuts. */
@@ -812,7 +816,7 @@ protected:
     vector<KmerType> _kmers;
     size_t           _kmersize;
     size_t           _miniSize;
-    ProgressSynchro  _progress;
+    IteratorListener* _progress;
     size_t           _nbWrittenKmers;
     size_t           _nbSuperKmers;
     BankStats&       _bankStatsGlobal;
@@ -1138,7 +1142,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     setPartitions        ( & (*_partitionsStorage)().getPartition<Type> ("parts", _nb_partitions));
 
     /** We update the message of the progress bar. */
-    _progress->setMessage (progressFormat1, _current_pass+1, _nb_passes);
+    _progress->setMessage (Stringify::format(progressFormat1, _current_pass+1, _nb_passes));
 
     u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
 
@@ -1329,7 +1333,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
     DEBUG (("SortingCountAlgorithm<span>::fillSolidKmers\n"));
 
     /** We update the message of the progress bar. */
-    _progress->setMessage (progressFormat2, _current_pass+1, _nb_passes);
+    _progress->setMessage (Stringify::format (progressFormat2, _current_pass+1, _nb_passes));
 
     /** We retrieve the list of cores number for dispatching N partitions in N threads.
      *  We need to know these numbers for allocating the N maps according to the maximum allowed memory.
