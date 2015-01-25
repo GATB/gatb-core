@@ -102,7 +102,7 @@ public:
     void reset (u_int64_t ntasks);
 
     /** \copydoc dp::IteratorListener::setMessage*/
-    void setMessage (const char* format, ...);
+    void setMessage (const std::string& msg);
 
 protected:
 
@@ -216,7 +216,7 @@ public:
     void reset (u_int64_t ntasks) { _ref->reset(ntasks); }
 
     /** \copydoc dp::IteratorListener::setMessage*/
-    void setMessage (const char* format, ...)  { _ref->setMessage (format); }
+    void setMessage (const std::string& msg)  { _ref->setMessage (msg); }
 
     dp::IteratorListener* getRef() const  { return _ref; }
 
@@ -256,7 +256,7 @@ public:
     void reset (u_int64_t ntasks) { system::LocalSynchronizer l(_synchro);  ProgressProxy::reset(ntasks); }
 
     /** \copydoc dp::IteratorListener::setMessage*/
-    void setMessage (const char* format, ...)  { system::LocalSynchronizer l(_synchro);  ProgressProxy::setMessage (format); }
+    void setMessage (const std::string& msg)  { system::LocalSynchronizer l(_synchro);  ProgressProxy::setMessage (msg); }
 
 private:
 

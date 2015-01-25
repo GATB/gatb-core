@@ -241,8 +241,8 @@ public:
     virtual void inc (u_int64_t ntasks_done) {}
 
     /** Associate a message to the listener.
-     * \param[in] format : printf-like argument for building the message */
-    virtual void setMessage (const char* format, ...)  {}
+     * \param[in] msg : message to be set. */
+    virtual void setMessage (const std::string& msg)  {}
 
     /** Set the current number of tasks done.
      * \param[in] ntasks_done :  sets the current number of job done. */
