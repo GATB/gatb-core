@@ -72,7 +72,7 @@ PartitionsCommand<span>:: PartitionsCommand (
       _solidKmers(solidKmers, cacheSize, synchro),
       _partition(partition),
       _histogram(histogram),
-      _progress(progress, synchro),
+      _progress(progress),
       _globalTimeInfo(timeInfo),
       _totalKmerNb(0),
       _totalKmerNbRef(totalKmerNbRef),
@@ -269,7 +269,7 @@ void PartitionsByHashCommand<span>:: execute ()
 	   this->insert ((Count&) itKmerAbundance->item());
 	}
 	
-	this->_progress.inc (this->_pInfo.getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
+	this->_progress->inc (this->_pInfo.getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
 };
 
 /*********************************************************************
@@ -510,7 +510,7 @@ void PartitionsByVectorCommand<span>::execute ()
     if (_bankIdMatrix)  { FREE (_bankIdMatrix); }
 
     /** We update the progress bar. */
-    this->_progress.inc (this->_pInfo.getNbKmer(this->_parti_num) );
+    this->_progress->inc (this->_pInfo.getNbKmer(this->_parti_num) );
 };
 
 /*********************************************************************

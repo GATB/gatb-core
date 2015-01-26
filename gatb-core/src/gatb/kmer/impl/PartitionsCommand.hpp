@@ -188,7 +188,7 @@ protected:
     gatb::core::tools::collections::impl::BagCache<Count>   _solidKmers;
     gatb::core::tools::collections::Iterable<Type>&         _partition;
     gatb::core::tools::misc::impl::HistogramCache           _histogram;
-    gatb::core::tools::misc::impl::ProgressSynchro          _progress;
+    gatb::core::tools::dp::IteratorListener*                _progress;
     u_int64_t                                               _totalKmerNb;
     u_int64_t&                                              _totalKmerNbRef;
 	PartiInfo<5>&                                           _pInfo;
