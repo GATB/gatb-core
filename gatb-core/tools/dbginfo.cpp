@@ -44,6 +44,11 @@ int main (int argc, char* argv[])
     {
         return e.displayErrors (std::cout);
     }
+    catch (Exception& e)
+    {
+        cerr << "ERROR : " << e.getMessage() << endl;
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
