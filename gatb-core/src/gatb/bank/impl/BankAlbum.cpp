@@ -19,6 +19,7 @@
 
 #include <gatb/bank/impl/BankAlbum.hpp>
 #include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/BankFasta.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/misc/impl/Tokenizer.hpp>
 
@@ -234,8 +235,8 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
         /** We write the uri in the file. */
         file->print ("%s\n", bankName.c_str());
 
-        /** We add a new bank. */
-        result = Bank::open(bankUri);
+        /** We create a new FASTA bank. */
+        result = new BankFasta (bankUri);
 
         /** We put it into the album. */
         BankComposite::addBank (result);
