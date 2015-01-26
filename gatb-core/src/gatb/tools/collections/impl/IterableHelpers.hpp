@@ -40,7 +40,7 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
-template<class Type, class Listener=tools::misc::impl::ProgressTimer>
+template<class Type, class Listener=tools::misc::impl::ProgressDefault>
 class ProgressIterator : public tools::dp::impl::SubjectIterator<Type>
 {
 public:
