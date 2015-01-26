@@ -26,6 +26,8 @@
  *
  *  It can be seen as software components providing services for assembling and analyzing genomes of various kinds.
  *
+ * The current documentation is for release 1.0.6
+ *
  ****************************************************************************************************
  ****************************************************************************************************
  * \section purpose Purpose of the GATB core library
