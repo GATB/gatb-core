@@ -186,10 +186,13 @@ public:
      * \param[in] it1 : first iterator.
      * \param[in] it2 : second iterator.
      */
-    PairedIterator (Iterator<T1>* it1, Iterator<T2>* it2)  : _it1(it1), _it2(it2), _isDone(true) { }
+    PairedIterator (Iterator<T1>* it1, Iterator<T2>* it2)  : _it1(0), _it2(0), _isDone(true)
+    {
+        setIt1 (it1);   setIt2 (it2);
+    }
 
     /** Destructor. */
-    virtual ~PairedIterator ()  {}
+    virtual ~PairedIterator ()  {  setIt1 (0);   setIt2 (0);  }
 
     /** \copydoc Iterator::first */
     void first()
@@ -229,9 +232,11 @@ private:
 
     /** First iterator. */
     Iterator<T1>* _it1;
+    void setIt1 (Iterator<T1>* it1)  { SP_SETATTR(it1); }
 
     /** Second iterator. */
     Iterator<T2>* _it2;
+    void setIt2 (Iterator<T2>* it2)  { SP_SETATTR(it2); }
 
     /** Finish status. */
     bool _isDone;
