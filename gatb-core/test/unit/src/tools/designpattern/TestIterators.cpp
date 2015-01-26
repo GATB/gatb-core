@@ -255,12 +255,8 @@ public:
         float values2[] = {0.5, 3.1415, 2.71, 5.87451};
         list<float> l2 (values2, values2 + sizeof(values2)/sizeof(values2[0]) );
 
-        /** We declare two iterators on the two lists. */
-        ListIterator<int>   it1 (l1);
-        ListIterator<float> it2 (l2);
-
         /** We declare a paired iterator on the two iterators. */
-        PairedIterator<int,float> it (&it1, &it2);
+        PairedIterator<int,float> it (new ListIterator<int> (l1), new ListIterator<float> (l2));
         for (it.first(); !it.isDone(); it.next(), i++)
         {
             CPPUNIT_ASSERT (it->first  == values1[i]);

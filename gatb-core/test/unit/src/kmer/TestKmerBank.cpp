@@ -73,7 +73,8 @@ public:
     void kmerbank_checkKmersFromBankAndBankBinary_aux (const char* filepath, size_t span)
     {
         /** Shortcuts. */
-        typedef typename ModelType::Kmer             Kmer;
+        typedef typename ModelType::Kmer     Kmer;
+        typedef typename ModelType::Iterator ModelIterator;
 
         string filename    = DBPATH (filepath);
         string filenameBin = filepath + string(".bin");
@@ -91,25 +92,25 @@ public:
         BankBinary bank2 (filenameBin, false);
 
         /** We convert the fasta bank in binary format. */
-        BankFasta::Iterator itSeq1 (bank1);
-        for (itSeq1.first(); !itSeq1.isDone(); itSeq1.next())   {  bank2.insert (*itSeq1);  }   bank2.flush ();
+        Iterator<Sequence>* itSeq1 = bank1.iterator();
+        for (itSeq1->first(); !itSeq1->isDone(); itSeq1->next())   {  bank2.insert (itSeq1->item());  }   bank2.flush ();
 
         /** We declare two kmer iterators for the two banks and a paired one that links them. */
-        typename ModelType::Iterator itKmer1 (model);
-        typename ModelType::Iterator itKmer2 (model);
+        ModelIterator* itKmer1 = new ModelIterator (model);   LOCAL (itKmer1);
+        ModelIterator* itKmer2 = new ModelIterator (model);   LOCAL (itKmer2);
 
-        PairedIterator<Kmer, Kmer> itKmer (&itKmer1, &itKmer2);
+        PairedIterator<Kmer, Kmer> itKmer (itKmer1, itKmer2);
 
         /** We loop the two banks with a paired iterator. */
-        BankBinary::Iterator itSeq2 (bank2);
-        PairedIterator<Sequence,Sequence> itSeq (&itSeq1, &itSeq2);
+        Iterator<Sequence>* itSeq2 = bank2.iterator();
+        PairedIterator<Sequence,Sequence> itSeq (itSeq1, itSeq2);
 
         /** We loop the sequences of the two banks. */
         for (itSeq.first(); !itSeq.isDone();  itSeq.next())
         {
             /** We set the data from which we want to extract kmers. */
-            itKmer1.setData (itSeq1->getData());
-            itKmer2.setData (itSeq2->getData());
+            itKmer1->setData ((*itSeq1)->getData());
+            itKmer2->setData ((*itSeq2)->getData());
 
             /** We loop the kmers for the two datas. */
             for (itKmer.first(); !itKmer.isDone();  itKmer.next())
