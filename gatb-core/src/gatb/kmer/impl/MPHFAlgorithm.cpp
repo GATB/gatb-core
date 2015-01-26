@@ -309,8 +309,10 @@ MPHFAlgorithm<span,Abundance_t>::ProgressCustom::ProgressCustom (tools::dp::Iter
 template<size_t span,typename Abundance_t>
 void MPHFAlgorithm<span,Abundance_t>::ProgressCustom::reset (u_int64_t ntasks)
 {
+    const char* label = nbReset < sizeof(messages)/sizeof(messages[0]) ? messages[nbReset++] : "other";
+
     getRef()->reset(ntasks);
-    getRef()->setMessage (messages[nbReset++]);
+    getRef()->setMessage (label);
     getRef()->init();
 }
 
