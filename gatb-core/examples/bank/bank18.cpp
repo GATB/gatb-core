@@ -31,12 +31,9 @@ int main (int argc, char* argv[])
         IBank* bank1 = Bank::open (options->getStr(STR_BANK1));  LOCAL (bank1);
         IBank* bank2 = Bank::open (options->getStr(STR_BANK2));  LOCAL (bank2);
 
-        // We get one iterator for each bank
-        Iterator<Sequence>* it1 = bank1->iterator();  LOCAL (it1);
-        Iterator<Sequence>* it2 = bank2->iterator();  LOCAL (it2);
+        // We iterate the two banks. Note how we provide two iterators from the two banks.
+        PairedIterator<Sequence> itPair (bank1->iterator(), bank2->iterator());
 
-        // We iterate the two banks
-        PairedIterator<Sequence> itPair (it1, it2);
         for (itPair.first(); !itPair.isDone(); itPair.next())
         {
             Sequence& s1 = itPair.item().first;

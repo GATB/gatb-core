@@ -18,10 +18,56 @@ using namespace std;
 /** Kmer span definition. */
 const size_t span = KSIZE_1;
 
+/** Implementation of a functor that defines what is a minimizer according to
+ *  the list of mmers within a kmer. We mimic here the default behavior
+ *  (ie. minimum of the mmers within a kmer) but we could do anything we want to
+ *  and we can more generally talk about 'optimizer' rather than 'minimizer'.
+ *
+ *  The purpose of such a functor is to select a mmer between M mmers in a
+ *  specific kmer :
+ *
+ *      1) the 'init' method is called to initialize the default 'optimum' before looping
+ *         over the mmers
+ *
+ *      2) the operator() method is called for each mmer with the current optimum
+ *         value; we can choose here what kind of optimum we want (minimum for instance)
+ *         by updating the 'optimum' value
+ */
+struct CustomMinimizer
+{
+    template<class Model>  void init (const Model& model, Kmer<span>::Type& optimum) const
+    {
+        optimum = model.getKmerMax();
+    }
+
+    bool operator() (const Kmer<span>::Type& current, const Kmer<span>::Type& optimum) const
+    {
+        return current < optimum;
+    }
+
+    void include_frequency (uint32_t* freq_order) {}
+};
+
+/** We define here a 'maximizer' in the mmers of a specific kmer. */
+struct CustomMaximizer
+{
+    template<class Model>  void init (const Model& model, Kmer<span>::Type& optimum) const
+    {
+        optimum = Kmer<span>::Type(0);
+    }
+
+    bool operator() (const Kmer<span>::Type& current, const Kmer<span>::Type& optimum) const
+    {
+        return !(current < optimum);
+    }
+
+    void include_frequency (uint32_t* freq_order) {}
+};
+
 /** Some shortcuts. */
-typedef Kmer<span>::ModelDirect                     ModelDirect;
-typedef Kmer<span>::ModelCanonical                  ModelCanonical;
-typedef Kmer<span>::ModelMinimizer<ModelCanonical>  ModelMinimizer;
+typedef Kmer<span>::ModelDirect    ModelDirect;
+typedef Kmer<span>::ModelMinimizer<ModelDirect,CustomMinimizer> ModelMinimizer;
+typedef Kmer<span>::ModelMinimizer<ModelDirect,CustomMaximizer> ModelMaximizer;
 
 typedef ModelMinimizer  Model;
 

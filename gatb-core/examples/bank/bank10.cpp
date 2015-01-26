@@ -25,7 +25,6 @@ int main (int argc, char* argv[])
     OptionsParser parser ("BankSplitter");
     parser.push_back (new OptionOneParam (STR_URI_INPUT,      "bank reference",            true));
     parser.push_back (new OptionOneParam (STR_MAX_INPUT_SIZE, "average db size per split", true));
-    parser.push_back (new OptionOneParam (STR_BANKS_NB,       "number max of sub banks",   false, "0"));
     parser.push_back (new OptionOneParam (STR_URI_OUTPUT_DIR, "output directory",          false, "."));
 
     // We define a try/catch block in case some method fails (bad filename for instance)
@@ -44,10 +43,8 @@ int main (int argc, char* argv[])
         // We get the basename of the input bank.
         string inputBasename = System::file().getBaseName (options->getStr(STR_URI_INPUT));
 
-        int nbBanks = options->getInt (STR_BANKS_NB);
-
         /** We set the name of the output directory. */
-        stringstream ss;  ss << inputBasename << "_S" << maxDbSize << "_N" << nbBanks;
+        stringstream ss;  ss << inputBasename << "_S" << maxDbSize;
         string outputDirName = ss.str();
 
         /** We create the output directory. */
@@ -61,7 +58,7 @@ int main (int argc, char* argv[])
         u_int64_t number, totalSize, maxSize;
         inputBank->estimate (number, totalSize, maxSize);
 
-        u_int64_t estimationNbSeqToIterate = nbBanks <= 0 ? number  : (number*maxDbSize*nbBanks) / totalSize;
+        u_int64_t estimationNbSeqToIterate = number;
 
         // We create an iterator over the input bank
         ProgressIterator<Sequence> itSeq (*inputBank, "split");
@@ -80,7 +77,6 @@ int main (int argc, char* argv[])
                 if (currentBank != 0)  { currentBank->flush(); }
 
                 nbBanksOutput ++;
-                if (nbBanks > 0 && nbBanksOutput >= nbBanks)  { break; }
 
                 /** We build the uri of the current bank. */
                 stringstream ss;  ss << inputBasename << "_" << nbBanksOutput;

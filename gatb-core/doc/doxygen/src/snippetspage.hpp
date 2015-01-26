@@ -66,6 +66,14 @@
  *
  * Note that one may set the environment variable CPPUNIT_VERBOSE to 1 to known which tests pass.
  *
+ * By default, gatb::core supports kmer sizes up to 128. In fact, it has 4 different implementations
+ * of kmers, one for KSIZE_1=32, KSIZE_2=64, KSIZE_3=96 and KSIZE_4=128. If you need bigger kmers
+ * sizes, you can compile this way:
+ * \code
+ * cmake -Dk1=32 -Dk2=64 -Dk3=96 -Dk4=256 ..
+ * \endcode
+ *
+ *
  ************************************************************************************
  * \section compilation_snippets Compiling the snippets
  *
@@ -125,6 +133,7 @@
  ************************************************************************************
  * \page snippets_iterators Iterators snippets
  ************************************************************************************
+  * \tableofcontents
  *************************************************************************************
  *
  * \section snippets_iterators_snippet1 Iterate a list
@@ -146,6 +155,16 @@
  * values with methods 'first' and 'second'.
  *
  *\snippet iterators2.cpp  snippet1
+ *
+ ************************************************************************************
+ * \section snippets_iterators_snippet7 Iterate two lists by pairs
+ *
+ * This snippet shows how to iterate two iterators at the same time, providing pairs
+ * of items at each iteration.
+ *
+ * A usage of such an iterator is to iterate two paired ends banks.
+ *
+ *\snippet iterators7.cpp  snippet1
  *
  ************************************************************************************
  * \section snippets_iterators_snippet3 Truncating an iteration
@@ -173,12 +192,28 @@
  *\snippet iterators4.cpp  snippet1
  *
  ************************************************************************************
- * \section snippets_iterators_snippet5 Iterate a list and filter out some items
+ * \section snippets_iterators_snippet5 Iterate a list with progress feedback (simple)
+ *
+ * This snippet is the same as before but here we use a default console progress bar.
+ * In most case, it allows to avoid an explicit listener configuration.
+ *
+ *\snippet iterators5.cpp  snippet1
+ *
+ ************************************************************************************
+ * \section snippets_iterators_snippet6 Iterate a list and filter out some items
  *
  * This snippet shows how to iterate a STL list while filtering out some items that
  * don't check some condition.
  *
- *\snippet iterators5.cpp  snippet1
+ *\snippet iterators6.cpp  snippet1
+ *
+ ************************************************************************************
+ * \section snippets_iterators_snippet8 Mixing iterators
+ *
+ * This snippet shows how mix several iterators. Note again that the iteration loop
+ * is still the same.
+ *
+ *\snippet iterators8.cpp  snippet1
  *
  *
  ************************************************************************************
@@ -291,10 +326,12 @@
  *\snippet bank1.cpp  snippet1
  *
  ************************************************************************************
- * \section snippets_bank_snippet2 Parsing several FASTA banks
+ * \section snippets_bank_snippet2 Parsing several banks
  *
- * This snippet shows how to read one ore more FASTA banks in a simple way.
- * A check is done about the correctness of the FASTA bank file path.
+ * This snippet shows how to read one ore more banks in a simple way. The idea is to use
+ * the Bank::open method that analyzes the provided uri and get the correct IBank handle for
+ * one or more banks. For instance, one can run this snippet with:
+ *    - bank2  reads1.fa,reads2.fa,reads3.fa
  *
  * Some information of each iterated sequence are diplayed as output.
  *
@@ -331,9 +368,11 @@
  * This snippet shows how to read one or more FASTA banks and get a percentage progress
  * information during the iteration.
  *
- * In order to get a percentage, we need to know the number of sequences in the bank to be
- * parsed. We get an estimation of this number with the estimateNbSequences() method
- * and configure our progression functor accordingly.
+ * We use there a ProgressIterator on Sequence. By default, we got progress information with
+ * remaining time estimation and resources usage (cpu and memory).
+ * Note that the ProgressIterator class has a second template parameter that can provide other
+ * progress information, try for instance:
+ *      - ProgressIterator<Sequence,ProgressTimer>
  *
  *\snippet bank5.cpp  snippet1
  *
@@ -366,6 +405,95 @@
  *
  * \n
  *
+ **************************************************************************************
+ * \section snippets_bank_snippet9 Conversion of a bank with some filtering
+ *
+ * This snippet shows how to parse a bank, check whether the sequences match a criteria
+ * and dump the matching sequences into an output FASTA bank.s
+ *
+ *\snippet bank9.cpp  snippet1
+ *
+ * \n
+ *
+ **************************************************************************************
+ * \section snippets_bank_snippet10 Split a bank
+ *
+ * This snippet shows how to split an input bank into parts. It creates an output album
+ * bank by using the BankAlbum class. Example of use:
+ * \code
+ * bank10 -in reads.fa -max-size 10000000
+ * \endcode
+ * This example will create a directory 'reads_S1000000' where we can find:
+ *      - album.txt   =>  album file containing all reads_X split parts
+ *      - reads_0
+ *      - reads_1
+ *      - ...
+ *      - reads_N
+ *
+ * All the 'reads_X' files are about 1000000 bytes. Now, the generated album.txt file
+ * can be used as a bank and could be the input bank of the snippet bank14 for instance
+ * (and we should get the same results as using directly the 'reads.fa' bank)
+ *
+ *\snippet bank10.cpp  snippet1
+ *
+ * \n
+ *
+ **************************************************************************************
+ * \section snippets_bank_snippet11 Iterating a bank whose sequences are kmers
+ *
+ * This snippet shows how to iterate a BankKmers. Such a bank iterates all possible
+ * kmers for a given kmers size.
+ *
+ * Each sequence is saved into an output FASTA file.
+ *
+ *\snippet bank11.cpp  snippet1
+ *
+ * \n
+ *
+ **************************************************************************************
+ * \section snippets_bank_snippet12 Extracting sequences with specific ids with FilterIterator
+ *
+ * This snippet shows how to extract sequences from a bank. A sequence is kept if its
+ * index in its bank belongs to a set (provided as an input file holding one index per line)
+ *
+ * It uses the FilterIterator feature.
+ *
+ *\snippet bank12.cpp  snippet1
+ *
+ * \n
+ *
+ **************************************************************************************
+ * \section snippets_bank_snippet13 Extracting sequences with too many N characters
+ *
+ * This snippet shows how to extract sequences that don't have too many N.
+ *
+ * It uses the FilterIterator feature.
+ *
+ *\snippet bank13.cpp  snippet1
+ *
+ * \n
+ *
+ **************************************************************************************
+ * \section snippets_bank_snippet14  Computing statistics on a bank
+ *
+ * This snippet shows how to read a bank and get statistics on it.
+ *
+ *\snippet bank14.cpp  snippet1
+ *
+ * \n
+ *
+ **************************************************************************************
+ * \section snippets_bank_snippet18  Iterating paired end banks
+ *
+ * This snippet shows how to read two banks in the same time, and each item is a pair
+ * of items of bank1 and bank2.
+ *
+ * This is good example how to reads paired end banks.
+ *
+ *\snippet bank18.cpp  snippet1
+ *
+ * \n
+ *
  ************************************************************************************
  ************************************************************************************
  * \page snippets_kmer Kmer snippets
@@ -379,17 +507,19 @@
  *
  * This snippet shows how to create kmer models.
  *
- * We use different integer types for holding kmer values. For instance, we can use:
- *  - native integers (like u_int64_t)
- *  - integers supporting huge values (ttmath::Uint for instance)
- *
  *\snippet kmer1.cpp  snippet1
  * \n
  *
  ************************************************************************************
  * \section snippets_kmer_snippet2 Computing kmers with a model
  *
- * This snippet shows how to get kmers from a model.
+ * This snippet shows how to get kmers from a model. Here, we can see that we can
+ * use 3 different kinds of models, giving different kinds of kmers:
+ *  - ModelDirect : direct kmers
+ *  - ModelCanonical : minimum value of the direct kmer and its reverse complement
+ *  - ModelMinimizer : provides also a minimizer for the kmer
+ *
+ * The snippet shows different methods usable for each kind of model.
  *
  *\snippet kmer2.cpp  snippet1
  * \n
@@ -414,12 +544,59 @@
  * \n
  *
  ************************************************************************************
- * \section snippets_kmer_snippet6 Comparing kmers from a FASTA bank and a binary bank
+ * \section snippets_kmer_snippet5 Computing statistics about minimizers
  *
- * This snippet shows that kmers from a FASTA bank or a binary bank are the same.
+ * This snippet shows iterate the kmers of an input bank and computes some statistics
+ * about the iterated minimizers.
+ *
+ * It also computes the following distribution : number of times a read has X different
+ * minimizers (in other words, the number of super kmers).
+ *
+ *\snippet kmer5.cpp  snippet1
+ * \n
+ *
+ ************************************************************************************
+ * \section snippets_kmer_snippet6 Checking span of kmers model
+ *
+ * This snippet shows what is legal in terms of kmers size.
+ *
+ * Actually, a kmers model has a type with a 'span' template. This span represents the
+ * maximum kmer size reachable for this type. For instance, a span of 32 allows up to
+ * kmer size of 31, a span of 64 up to 63, etc...
+ *
+ * The 'span' value must be one of the project defined constants: KSIZE_1, KSIZE_2, KSIZE_3
+ * and KSIZE_4. By default, we have KSIZE_n = 32*n. Note that it is possible to compile
+ * GATB-CORE with a bigger value of KSIZE_4=128. See \ref compilation.
+ *
+ * It is important to understand that each one of the four span values defines a specific
+ * kmers model with a specific integer type that represents the kmers values. For instance:
+ *  - KSIZE_1=32 implies that we need 64 bits integers (2 bits per nucleotide), which is available
+ *  as a native type on 64 bits architecture
+ *  - KSIZE_2=64 implies that we need 128 bits integers which may (or not) be available as native
+ *  integer type
+ *  - for KSIZE_3 and KSIZE_4, we need to switch to specific large integer representations that
+ *  are no more native on the system, which implies bigger computation times.
  *
  *\snippet kmer6.cpp  snippet1
  * \n
+ *
+ ************************************************************************************
+ * \section snippets_kmer_snippet7 Other kind of statistics about minimizers
+ *
+ * This snippet shows how to iterate the kmers of an input bank and computes some statistics
+ * about the iterated minimizers.
+ *
+ *\snippet kmer7.cpp  snippet1
+ * \n
+ *
+ ************************************************************************************
+ * \section snippets_kmer_snippet8  Setting custom minimizers definition
+ *
+ * This snippet shows how to configure custom minimizer definition through a functor.
+ *
+ *\snippet kmer8.cpp  snippet1
+ * \n
+ *
  *
  ************************************************************************************
  *************************************************************************************
@@ -661,7 +838,7 @@
  * \n
  *
  * ************************************************************************************
- * \section snippets_dbg_5  Simple path
+ * \section snippets_dbg_14  Simple path
  ************************************************************************************
  *
  * \subsection snippets_kmer_dbg_14  Iterating simple path from a node
@@ -761,6 +938,28 @@
  * \snippet debruijn19.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  *
+ *************************************************************************************
+ *
+ * \subsection snippets_kmer_dbg_24  Generate dot file from a graph
+ *
+ * This snippet generates a dot file from a de Bruijn graph. It is then possible to
+ * generate a pdf output of the graph (dot -Tpdf graph.dot -o graph.pdf)
+ *
+ * \snippet debruijn24.cpp  snippet1
+ * [go back to \ref snippets_graph "top"]
+ *
+ *************************************************************************************
+ *
+ * \subsection snippets_kmer_dbg_26  Retrieve extra information from a node
+ *
+ * This snippet shows how to use the 'queryAbundance' method that returns the occurrences
+ * number of the node in the initial set of reads.
+ *
+ * This feature uses the EMPHF feature, and the graph must therefore build with the
+ * "-mphf emphf" option (otherwise the 'queryAbundance' method won't work).
+ *
+ * \snippet debruijn26.cpp  snippet1
+ * [go back to \ref snippets_graph "top"]
  *
  * ************************************************************************************
  ************************************************************************************
@@ -804,20 +1003,7 @@
  *\snippet storage4.cpp  snippet1
  *
  *************************************************************************************
- * \section snippets_storage_snippet5 Iterate solid kmers from a HDF5 file
- *
- * This snippet shows how to use a HDF5 Storage object holding solid kmers and iterate
- * the kmers.
- *
- * The input file is likely to have been generated by dbgh5 for instance, or by dsk.
- *
- * If you want to know the structure of the HDF5 file, you can use the h5dump utility,
- * for instance:  h5dump -H file.h5
- *
- *\snippet storage5.cpp  snippet1
- *
- *************************************************************************************
- * \section snippets_storage_snippet6 Iterate solid kmers from a HDF5 file (enhanced)
+ * \section snippets_storage_snippet6 Iterate solid kmers from a HDF5 file
  *
  * This snippet shows how to use a HDF5 Storage object holding solid kmers and iterate
  * the kmers.
@@ -841,6 +1027,16 @@
  *      h5dump -a myIntegers/myData foo.h5
  *
  *\snippet storage7.cpp  snippet1
+ *
+ *************************************************************************************
+ * \section snippets_storage_snippet8 Using C++ like streams with HDF5
+ *
+ * This snippet shows how to use binary input/output streams with HDF5. There are two
+ * types:
+ *  - Storage::ostream : used for saving binary data into a HDF5 collection
+ *  - Storage::istream : used for retrieving binary data from a HDF5 collection
+ *
+ *\snippet storage8.cpp  snippet1
  *
  ************************************************************************************
  * \page snippets_tools  Tools snippets

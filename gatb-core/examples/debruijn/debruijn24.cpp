@@ -1,3 +1,4 @@
+//! [snippet1]
 // We include what we need for the test
 #include <gatb/gatb_core.hpp>
 
@@ -57,7 +58,6 @@ public:
             for (size_t i=0; i<neighbors.size(); i++)
             {
                 output << mapping[current.kmer] << " -> " <<  mapping[neighbors[i].kmer] << " ;\n";
-                //output << current.kmer << " -> " <<  neighbors[i].kmer << " ;\n";
             }
         }
 
@@ -105,4 +105,4 @@ int main (int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
-
+//! [snippet1]

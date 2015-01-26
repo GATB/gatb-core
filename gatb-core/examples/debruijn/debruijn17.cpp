@@ -31,7 +31,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
 
         // We get the first node (should be AGGCGCT); this is a branching node.
-        Node node = graph.buildNode ((char*)sequences[0]);
+        Node node = graph.buildNode (sequences[0]);
 
         // We retrieve the branching neighbors for the node.
         Graph::Vector<BranchingEdge> branchingNeighbors = graph.successors<BranchingEdge> (node);

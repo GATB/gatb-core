@@ -12,6 +12,12 @@ using namespace std;
 /*                                                                              */
 /*  This snippet shows how to use binary input/output streams with HDF5.        */
 /*                                                                              */
+/*  You can use 'h5dump foo.h5' to have a look to the generated binary stream   */
+/*  inside the HDF5 dataset.                                                    */
+/*                                                                              */
+/* Here, we save 3 float objects, which needs 12 bytes, so we can see the       */
+/* binary representation of theses 3 floats.                                    */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
