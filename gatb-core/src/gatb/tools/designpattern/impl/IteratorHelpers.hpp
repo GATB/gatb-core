@@ -290,7 +290,7 @@ public:
     }
 
     /** Set a message to the observers. */
-    void setMessage (const char* message)
+    void setMessage (const std::string& message)
     {
         /** We remove all observers. */
         for (std::set<IteratorListener*>::iterator it = _listeners.begin(); it != _listeners.end(); it++)

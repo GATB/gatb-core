@@ -151,16 +151,9 @@ void Progress::set (u_int64_t ntasks_done)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Progress::setMessage (const char* format, ...)
+void Progress::setMessage (const std::string& msg)
 {
-    char buffer[256];
-
-    va_list args;
-    va_start(args, format);
-    vsprintf (buffer, format, args);
-    va_end(args);
-
-    message.assign (buffer);
+    message = msg;
 
     update (false);
 }

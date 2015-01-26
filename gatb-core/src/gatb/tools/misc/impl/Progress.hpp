@@ -102,7 +102,7 @@ public:
     void reset (u_int64_t ntasks);
 
     /** \copydoc dp::IteratorListener::setMessage*/
-    void setMessage (const char* format, ...);
+    void setMessage (const std::string& msg);
 
 protected:
 
@@ -194,9 +194,11 @@ public:
 
     ProgressProxy ()  : _ref(0) {}
 
-    ProgressProxy (dp::IteratorListener* ref)  : _ref(ref) {}
+    ProgressProxy (dp::IteratorListener* ref)  : _ref(0) { setRef(ref); }
 
-    ProgressProxy (const ProgressProxy& p) : _ref(p._ref) {}
+    ProgressProxy (const ProgressProxy& p) : _ref(0) { setRef(p._ref); }
+
+    ~ProgressProxy ()  { setRef(0); }
 
     /** Initialization of the object. */
     void init ()  { _ref->init(); }
@@ -216,12 +218,13 @@ public:
     void reset (u_int64_t ntasks) { _ref->reset(ntasks); }
 
     /** \copydoc dp::IteratorListener::setMessage*/
-    void setMessage (const char* format, ...)  { _ref->setMessage (format); }
+    void setMessage (const std::string& msg)  { _ref->setMessage (msg); }
 
     dp::IteratorListener* getRef() const  { return _ref; }
 
 private:
     dp::IteratorListener* _ref;
+    void setRef (dp::IteratorListener* ref)  { SP_SETATTR(ref); }
 };
 
 /********************************************************************************/
@@ -256,7 +259,7 @@ public:
     void reset (u_int64_t ntasks) { system::LocalSynchronizer l(_synchro);  ProgressProxy::reset(ntasks); }
 
     /** \copydoc dp::IteratorListener::setMessage*/
-    void setMessage (const char* format, ...)  { system::LocalSynchronizer l(_synchro);  ProgressProxy::setMessage (format); }
+    void setMessage (const std::string& msg)  { system::LocalSynchronizer l(_synchro);  ProgressProxy::setMessage (msg); }
 
 private:
 
