@@ -33,6 +33,7 @@
 #include <gatb/debruijn/impl/Graph.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
+#include <gatb/kmer/impl/BloomAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 
 #include <gatb/bank/impl/BankStrings.hpp>
@@ -84,15 +85,10 @@ class TestDebruijn : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestDebruijn);
 
-//        CPPUNIT_TEST_GATB (debruijn_test1);
-//        CPPUNIT_TEST_GATB (debruijn_test2);
-
-#ifdef WITH_MPHF
-        CPPUNIT_TEST_GATB (debruijn_mphf);
-#endif
+        CPPUNIT_TEST_GATB (debruijn_test2);
         CPPUNIT_TEST_GATB (debruijn_test3);
         CPPUNIT_TEST_GATB (debruijn_test4);
-        //CPPUNIT_TEST_GATB (debruijn_test5); // FIXME: this one crashes so I disabled it.. I know.. that's stupid to disable a crashing test lol.
+        CPPUNIT_TEST_GATB (debruijn_test5);
         CPPUNIT_TEST_GATB (debruijn_test6);
         CPPUNIT_TEST_GATB (debruijn_test7);
         CPPUNIT_TEST_GATB (debruijn_test8);
@@ -105,6 +101,9 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_build);
         CPPUNIT_TEST_GATB (debruijn_checksum);
         CPPUNIT_TEST_GATB (debruijn_checkbranching);
+#ifdef WITH_MPHF
+        CPPUNIT_TEST_GATB (debruijn_mphf);
+#endif
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -113,6 +112,9 @@ public:
     /********************************************************************************/
     void setUp    ()  {}
     void tearDown ()  {}
+
+    // SMALL VALUE NEEDED because continuous integration servers are not very powerful...
+    static const u_int64_t MAX_MEMORY = 1000;
 
     /********************************************************************************/
     struct Info
@@ -134,36 +136,6 @@ public:
             return ss.str();
         }
     };
-
-    /********************************************************************************/
-    void debruijn_test1_aux (Graph& graph)
-    {
-        /** We get an iterator over all the nodes of the graph. */
-        Graph::Iterator<Node> itNodes = graph.iterator<Node>();
-
-        Graph::Vector<Node> successors;
-        Info    info;
-
-        TimeInfo ti;
-        {
-            TIME_INFO (ti, "loop");
-
-            /** We iterate all the nodes of the graph. */
-            for (itNodes.first(); !itNodes.isDone(); itNodes.next())
-            {
-                info.incNodes();
-
-                /** We retrieve the successors. */
-                successors = graph.successors<Node> (itNodes.item());
-
-                /** We iterate all the successors. */
-                for (size_t i=0; i<successors.size(); i++)   {  info.inc (successors[i].kmer);  }
-            }
-        }
-
-        cout << info.toString() <<  "  time=" << ti.getEntryByKey("loop") << endl;
-    }
-
 
     /********************************************************************************/
     void debruijn_test2_aux (Graph& graph)
@@ -191,45 +163,7 @@ public:
             }
         }
 
-        cout << info.toString() <<  "  time=" << ti.getEntryByKey("loop") << endl;
-    }
-
-
-    /********************************************************************************/
-    void debruijn_test3_aux (const Graph& graph)
-    {
-        /** We get an iterator over all the nodes of the graph. */
-        Graph::Iterator<Node> itNodes = graph.iterator<Node> ();
-
-        /** We retrieve the first node. */
-        itNodes.first();  //for (size_t i=1; i<=5; i++)  { itNodes.next(); }
-        Node node =  itNodes.item();
-
-        cout << "------- NODE " << graph.toString(node) << endl;
-
-        Strand strandInit = node.strand;
-
-        size_t i=0;
-        for (Graph::Vector<Edge> successors; (successors = graph.successors<Edge>(node)).size() > 0; i++, node = successors[0].to)
-        {
-        }
-        cout << "nb found " << i << endl;
-    }
-
-    /********************************************************************************/
-    void debruijn_test1 ()
-    {
-#if 0
-        Graph<LocalInteger> graph = GraphFactory::createGraph <LocalInteger> (
-            new Property (STR_KMER_SOLID,  "/local/users/edrezen/projects/GATB/gforge/gatb-tools/gatb-tools/tools/debloom/build/tmp.solid"),
-            new Property (STR_KMER_CFP,    "/local/users/edrezen/projects/GATB/gforge/gatb-tools/gatb-tools/tools/debloom/build/tmp.debloom"),
-            new Property (STR_KMER_SIZE,   "27"),
-            PROP_END
-        );
-        //debruijn_test1_aux<LocalInteger> (graph);
-        //debruijn_test2_aux<LocalInteger> (graph);
-        debruijn_test3_aux<LocalInteger> (graph);
-#endif
+        //cout << info.toString() <<  "  time=" << ti.getEntryByKey("loop") << endl;
     }
 
     /********************************************************************************/
@@ -284,7 +218,7 @@ public:
         IBank* bank = new BankStrings (seq, 0);
 
         /** We create a storage instance. */
-        Storage* storage  = StorageFactory(mode).create ("test", true, true);
+        Storage* storage  = StorageFactory(mode).create ("foo", true, true);
         LOCAL (storage);
 
         /** We create a DSK instance. */
@@ -296,16 +230,16 @@ public:
         /** We check that the sequence has no duplicate kmers. */
         CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidCounts()->getNbItems());
 
+        /** We create a bloom instance. */
+        float nbitsPerKmer = DebloomAlgorithm<>::getNbBitsPerKmer (kmerSize, DEBLOOM_ORIGINAL);
+        BloomAlgorithm<> bloom (*storage, sortingCount.getSolidCounts(), kmerSize, nbitsPerKmer, 0, BLOOM_BASIC);
+        bloom.execute ();
+
         /** We create a debloom instance. */
         DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize);
 
         /** We launch the debloom. */
         debloom.execute();
-
-        /** We create the graph. */
-//        Graph graph = GraphFactory::createGraph (sortingCount.getSolidCounts(), debloom.getCriticalKmers(), kmerSize);
-//
-//        debruijn_check_sequence (graph, kmerSize, seq);
     }
 
     /********************************************************************************/
@@ -318,7 +252,7 @@ public:
             "CGCTATTCATCATTGTTTATCAATGAGCTAAAAGGAAACTATAAATAACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAG"
         };
 
-        size_t kmerSizes[] = { 13, 15, 17, 19, 21, 23, 25, 27, 29, 31};
+        size_t kmerSizes[] = { 15, 23, 31};
         size_t nks=1;
 
         for (size_t i=0; i<ARRAY_SIZE(sequences); i++)
@@ -349,7 +283,7 @@ public:
                 /** We create the graph. */
                 Graph graph = Graph::create (
                     new BankStrings (sequences[i], 0),
-                    "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSizes[j]
+                    "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", kmerSizes[j], MAX_MEMORY
                 );
 
                 debruijn_check_sequence (graph, kmerSizes[j], sequences[i]);
@@ -367,7 +301,7 @@ public:
         char* rev = (char*) "AGGTACCTACTTATAATTATACATGGT";
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0");
+        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         Graph::Iterator<Node> it = graph.iterator<Node>();  it.first();
 
@@ -425,7 +359,7 @@ public:
         char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0");
+        Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_test6_fct fct(graph);
         graph.iterator<Node>().iterate (fct);
@@ -491,7 +425,7 @@ public:
     void debruijn_test7 ()
     {
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings ("AGGCGC", 0),  "-kmer-size 5  -abundance-min 1  -verbose 0");
+        Graph graph = Graph::create (new BankStrings ("AGGCGC", 0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         /** We should get two kmers:
          *      - AGGCG / CGCCT
@@ -513,7 +447,7 @@ public:
     void debruijn_test8_aux (char* seq, size_t kmerSize)
     {
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", kmerSize, MAX_MEMORY);
 
         // We get the first node.
         Node node = graph.buildNode (seq);
@@ -553,7 +487,7 @@ public:
         //  difference here                ^
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d ", kmerSize, MAX_MEMORY);
 
         /** We get the first node. */
         Node node = graph.buildNode (seq1);
@@ -581,7 +515,7 @@ public:
         //  difference here              ^
 
         /** We create the graph. */
-        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (seq1, seq2, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", kmerSize, MAX_MEMORY);
 
         /** We get the first node. */
         Node node = graph.buildNode (seq1);
@@ -619,7 +553,7 @@ public:
         };
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", kmerSize, MAX_MEMORY);
 
         // We get the first node (should be AGGCGCT); this is a branching node.
         Node node = graph.buildNode ((char*)sequences[0]);
@@ -657,7 +591,7 @@ public:
         };
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, ARRAY_SIZE(sequences)),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", kmerSize, MAX_MEMORY);
 
         // We get the first node (should be AGGCGCT); this is a branching node.
         Node node = graph.buildNode ((char*)sequences[0]);
@@ -722,7 +656,7 @@ public:
         IBank* bank = new BankSplitter (new BankStrings (seq, NULL), readSize, kmerSize-1, coverage);
 
         // We create the graph.
-        Graph graph = Graph::create (bank,  "-kmer-size %d  -abundance-min %d  -verbose 0", kmerSize, nks);
+        Graph graph = Graph::create (bank,  "-kmer-size %d  -abundance-min %d  -verbose 0  -max-memory %d", kmerSize, nks, MAX_MEMORY);
 
         // We check we got the correct number of solid kmers.
         CPPUNIT_ASSERT (graph.getInfo().getInt ("kmers_nb_solid") == strlen(seq) - kmerSize + 1);
@@ -737,7 +671,7 @@ public:
         size_t kmerSize = strlen (sequences[0]);
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", kmerSize, MAX_MEMORY);
 
         // We get the first node (should be AGGCGCT); this is a branching node.
         Node node = graph.buildNode ((char*)sequences[0]);
@@ -789,7 +723,7 @@ public:
         size_t kmerSize = strlen (sequences[0]);
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0 -mphf emphf", kmerSize);
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0 -mphf emphf  -max-memory %d", kmerSize, MAX_MEMORY);
 
         Graph::Iterator<Node> it = graph.iterator<Node> ();
 
@@ -873,9 +807,9 @@ public:
         IBank* inputBank = new BankStrings (sequences, nbSequences);
         LOCAL (inputBank);
 
-        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0",                        "g1");
-        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0 -branching-nodes none",  "g2");
-        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0 -solid-kmers-out none",  "g3");
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0  -max-memory %d",                        "g1", MAX_MEMORY);
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0 -branching-nodes none  -max-memory %d",  "g2", MAX_MEMORY);
+        Graph::create (inputBank,  "-kmer-size 31 -out %s -abundance-min 1  -verbose 0 -solid-kmers-out none  -max-memory %d",  "g3", MAX_MEMORY);
 
         debruijn_build_entry r1 = debruijn_build_aux_aux ("g1", true,  true);
         debruijn_build_entry r2 = debruijn_build_aux_aux ("g2", true,  true);
@@ -934,7 +868,7 @@ public:
         const string& debloomImpl
     )
     {
-        size_t maxMem[]  = { 500, 4000 };
+        size_t maxMem[]  = { 500, MAX_MEMORY };
         size_t nbCores[] = { 1, 4 };
 
         for (size_t i=0; i<ARRAY_SIZE(maxMem); i++)
@@ -946,7 +880,7 @@ public:
                 //);
 
                 Graph graph = Graph::create (
-                    "-verbose 0 -in %s -kmer-size %d -integer-precision %d  -bloom %s  -debloom %s  -debloom-impl %s  -max-memory %d  -nb-cores %d",
+                    "-verbose 0 -in %s -kmer-size %d -integer-precision %d  -bloom %s  -debloom %s  -debloom-impl %s  -max-memory %d  -nb-cores %d  -max-memory %d",
                     readfile.c_str(),
                     kmerSize,
                     integerPrecision,
@@ -954,7 +888,8 @@ public:
                     debloom.c_str(),
                     debloomImpl.c_str(),
                     maxMem[i],
-                    nbCores[j]
+                    nbCores[j],
+                    MAX_MEMORY
                 );
                 CPPUNIT_ASSERT (graph.getInfo().getStr ("checksum_branching") == checksum);
                 CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching")       == nbBranching);
@@ -1040,7 +975,7 @@ public:
         string filepath = DBPATH("reads3.fa.gz");
 
         /** We create a graph. */
-        Graph graph = Graph::create ("-verbose 0 -in %s ", filepath.c_str());
+        Graph graph = Graph::create ("-verbose 0 -in %s -max-memory %d", filepath.c_str(), MAX_MEMORY);
 
         Node::Value previous = 0;
         size_t i=0;
