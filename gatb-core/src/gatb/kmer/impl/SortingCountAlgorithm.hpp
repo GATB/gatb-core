@@ -170,6 +170,8 @@ public:
         gatb::core::tools::misc::IProperties* options = 0
     );
 
+
+
     /** Constructor.*/
     SortingCountAlgorithm (tools::storage::impl::Storage& storage);
 

@@ -1317,6 +1317,9 @@ std::vector<size_t> SortingCountAlgorithm<span>::getNbCoresList (PartiInfo<5>& p
     return result;
 }
 
+	
+//FILE * SortingCountAlgorithm<>::outfile = NULL;
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -1329,6 +1332,12 @@ template<size_t span>
 void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
+
+	
+	pthread_mutex_t writer_mutex;
+	
+	FILE * outfile =  fopen ("resu", "w");
+	pthread_mutex_init(&writer_mutex, NULL);
 
     DEBUG (("SortingCountAlgorithm<span>::fillSolidKmers\n"));
 
@@ -1397,7 +1406,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
                 // also allow to use mem pool for oahash ? ou pas la peine
                 cmd = new PartitionsByHashCommand<span>   (
                     solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
-                    pInfo,p,_nbCores_per_partition, _kmerSize,pool, cacheSize, mem
+                    pInfo,p,_nbCores_per_partition, _kmerSize,pool, cacheSize, mem,&writer_mutex,outfile
                 );
 
                 _partCmdTypes.first ++;
@@ -1450,7 +1459,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
 
                 cmd = new PartitionsByVectorCommand<span> (
                     solidKmers, (*_partitions)[p], _histogram, synchro, _totalKmerNb, _abundance, _progress, _fillTimeInfo,
-                    pInfo,p,_nbCores_per_partition, _kmerSize, pool, cacheSize, _solidityKind, nbItemsPerBankPerPart
+                    pInfo,p,_nbCores_per_partition, _kmerSize, pool, cacheSize, _solidityKind, nbItemsPerBankPerPart,&writer_mutex,outfile
                 );
 
                 _partCmdTypes.second ++;
@@ -1468,6 +1477,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
         // free internal memory of pool here
         pool.free_all();
     }
+	
+fclose (outfile);
+
 }
 
 /********************************************************************************/

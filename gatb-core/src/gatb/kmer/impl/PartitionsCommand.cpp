@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <gatb/kmer/impl/PartitionsCommand.hpp>
+#include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 
 using namespace std;
 
@@ -66,7 +67,9 @@ PartitionsCommand<span>:: PartitionsCommand (
     size_t              nbCores,
     size_t              kmerSize,
     MemAllocator&       pool,
-    size_t              cacheSize
+    size_t              cacheSize,
+											 pthread_mutex_t * mutex_write,
+											 FILE * outfile
 )
     : _abundance(abundance),
       _solidKmers(solidKmers, cacheSize, synchro),
@@ -80,7 +83,9 @@ PartitionsCommand<span>:: PartitionsCommand (
       _parti_num(parti),
       _nbCores(nbCores),
       _kmerSize(kmerSize),
-      _pool(pool)
+      _pool(pool),
+	  _mutex_write(mutex_write),
+ 	  _outfile(outfile)
 {
 }
 
@@ -135,12 +140,45 @@ void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& c
 
     /** Shortcut. */
     u_int16_t actualCount = counter.computeSum();
-
+	
+	
     /** We should update the abundance histogram*/
     _histogram.inc (actualCount);
 
     /** We check that the current abundance is in the correct range. */
-    if (counter.isSolid () == true)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
+   // if (counter.isSolid () == true)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
+	
+	
+	bool isSolid = false;
+	for(int ii= 0; ii< counter.size(); ii++ )
+	{
+		unsigned int  abundance = counter[ii];
+		if(abundance == 0) continue;
+		
+		if(abundance >= _abundance.first)
+		{
+			isSolid= true;
+			break;
+		}
+		
+	}
+
+	
+
+	if(isSolid)
+	{
+		pthread_mutex_lock(_mutex_write);
+
+		fprintf(_outfile,"%s ",kmer.toString(_kmerSize).c_str());
+		
+		for(int ii= 0; ii< counter.size(); ii++ )
+		{
+			fprintf(_outfile,"\t%u",counter[ii]);
+		}
+		fprintf(_outfile,"\n");
+		pthread_mutex_lock(_mutex_write);
+
+	}
 
     //if (actualCount >= this->_abundance && actualCount <= max_couv)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
 }
@@ -180,10 +218,14 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
     size_t                  kmerSize,
     MemAllocator&           pool,
     size_t                  cacheSize,
-    u_int64_t               hashMemory
+    u_int64_t               hashMemory,
+														 pthread_mutex_t * mutex_write,
+														 FILE * outfile
 )
     : PartitionsCommand<span> (
-        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
+        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize
+							   ,mutex_write,
+							   outfile),
         _hashMemory(hashMemory)
 {
 }
@@ -452,10 +494,14 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
     MemAllocator&       pool,
     size_t              cacheSize,
     KmerSolidityKind    solidityKind,
-    vector<size_t>&     offsets
+    vector<size_t>&     offsets,
+															 pthread_mutex_t * mutex_write,
+															 FILE * outfile
 )
     : PartitionsCommand<span> (
-        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
+        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize
+							   ,mutex_write,
+							   outfile),
         _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0), _solidityKind(solidityKind), _nbItemsPerBankPerPart(offsets)
 {
     _dispatcher = new Dispatcher (this->_nbCores);

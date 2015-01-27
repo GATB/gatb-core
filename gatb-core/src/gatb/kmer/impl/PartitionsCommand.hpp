@@ -177,7 +177,9 @@ public:
 		size_t                                              nbCores,
 		size_t                                              kmerSize,
 		gatb::core::tools::misc::impl::MemAllocator&        pool,
-	    size_t                                              cacheSize
+	    size_t                                              cacheSize,
+					   pthread_mutex_t * mutex_write,
+					   FILE * outfile
     );
 
     /** Destructor. */
@@ -201,6 +203,9 @@ protected:
 
     void insert (const Type& kmer, const SolidityCounter& count);
 
+	pthread_mutex_t * _mutex_write;
+	FILE * _outfile;
+	
     tools::misc::impl::TimeInfo& _globalTimeInfo;
     tools::misc::impl::TimeInfo  _timeInfo;
 };
@@ -232,7 +237,9 @@ public:
         size_t                                              kmerSize,
         gatb::core::tools::misc::impl::MemAllocator&        pool,
         size_t                                              cacheSize,
-        u_int64_t                                           hashMemory
+        u_int64_t                                           hashMemory,
+							 pthread_mutex_t * mutex_write,
+					   FILE * outfile
     );
 
     void execute ();
@@ -277,7 +284,9 @@ public:
             gatb::core::tools::misc::impl::MemAllocator&        pool,
             size_t                                              cacheSize,
             tools::misc::KmerSolidityKind                       solidityKind,
-            std::vector<size_t>&                                offsets
+            std::vector<size_t>&                                offsets,
+							   pthread_mutex_t * mutex_write,
+							   FILE * outfile
     );
 
     /** Destructor. */
