@@ -176,7 +176,7 @@ void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& c
 			fprintf(_outfile,"\t%u",counter[ii]);
 		}
 		fprintf(_outfile,"\n");
-		pthread_mutex_lock(_mutex_write);
+		pthread_mutex_unlock(_mutex_write);
 
 	}
 
