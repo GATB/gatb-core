@@ -42,10 +42,25 @@ namespace misc      {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief String helper for using printf-like formats
+ *
+ * The Stringify class provides the \ref format method. Its prototype is the same
+ * as the printf function. As a result, it gives a string object holding the same
+ * text that the printf function would have produced.
+ *
+ * \code
+ *  cout << Stringify::format ("we got %d items which represents %f percent", 123, 57.3) << endl;
+ * \endcode
+ */
 class Stringify
 {
 public:
 
+    /** Generates a string object with a printf-like prototype.
+     * \param[in] fmt : the format of the string
+     * \param[in] ... : variable number of arguments
+     * \return the string
+     */
     static std::string format (const char* fmt, ...)
     {
         char* buffer = 0;

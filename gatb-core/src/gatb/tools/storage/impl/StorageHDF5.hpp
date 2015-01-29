@@ -44,17 +44,27 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Factory used for storage of kind STORAGE_HDF5
+ */
 class StorageHDF5Factory
 {
 public:
 
-    /** */
+    /** Create a Storage instance.
+     * \param[in] name : name of the instance to be created
+     * \param[in] deleteIfExist : if the storage exits in file system, delete it if true.
+     * \param[in] autoRemove : auto delete the storage from file system during Storage destructor.
+     * \return the created Storage instance
+     */
     static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
     {
         return new StorageHDF5 (STORAGE_HDF5, name, deleteIfExist, autoRemove);
     }
 
-    /** */
+    /** Tells whether or not a Storage exists in file system given a name
+     * \param[in] name : name of the storage to be checked
+     * \return true if the storage exists in file system, false otherwise.
+     */
     static bool exists (const std::string& name)
     {
         H5Eset_auto (0, NULL, NULL);
@@ -71,7 +81,11 @@ public:
         return result;
     }
 
-    /** */
+    /** Create a Group instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the group to be created
+     * \param[in] name : name of the group to be created
+     * \return the created Group instance.
+     */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
         StorageHDF5* storage = dynamic_cast<StorageHDF5*> (ICell::getRoot (parent));
@@ -80,7 +94,12 @@ public:
         return new GroupHDF5 (storage, parent, name);
     }
 
-    /** */
+    /** Create a Partition instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the partition to be created
+     * \param[in] name : name of the partition to be created
+     * \param[in] nb : number of collections of the partition
+     * \return the created Partition instance.
+     */
     template<typename Type>
     static Partition<Type>* createPartition (ICell* parent, const std::string& name, size_t nb)
     {
@@ -112,7 +131,12 @@ public:
         return new Partition<Type> (storage->getFactory(), parent, name, nb);
     }
 
-    /** */
+    /** Create a Collection instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the collection to be created
+     * \param[in] name : name of the collection to be created
+     * \param[in] synchro : synchronizer instance if needed
+     * \return the created Collection instance.
+     */
     template<typename Type>
     static CollectionNode<Type>* createCollection (ICell* parent, const std::string& name, system::ISynchronizer* synchro)
     {

@@ -20,7 +20,7 @@
 /** \file Hash16.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Container implementation
+ *  \brief Hash function
  */
 
 #ifndef _GATB_CORE_TOOLS_COLLECTIONS_IMPL_HASH16_HPP_
@@ -45,6 +45,8 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
+/** \brief Class providing hash table service with a given memory max usage.
+ */
 template <typename Item, typename value_type=int> class Hash16
 {
 protected:
@@ -67,7 +69,9 @@ protected:
 
 public:
 
-    /** */
+    /** Constructor.
+     * \param[in] sizeMB : max memory to be used by the hash table
+     */
     Hash16 (size_t sizeMB) : datah(0), mask(0), tai(0), nb_elem(0), max_nb_elem(0), _memory(system::impl::System::memory())
     {
         int tai_Hash16 = std::max (
@@ -91,8 +95,10 @@ public:
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
 
-	
-	//other creator with directly number of entries wished, return really created in nb_created
+	/** Constructor with directly number of entries wished, return really created in nb_created
+	 * \param[in] nb_entries : number of entries.
+     * \param[in] nb_created : number of created items.
+	 */
 	Hash16 (u_int64_t nb_entries, u_int64_t * nb_created) : datah(0), mask(0), tai(0), nb_elem(0), max_nb_elem(0), _memory(system::impl::System::memory())
     {
         int tai_Hash16 = std::max (
@@ -116,14 +122,13 @@ public:
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
 	
-	
-    /** */
+    /** Destructor */
     ~Hash16()
     {
         _memory.free(datah);
     }
 
-    /** */
+    /** Clear the content of the hash table. */
     void clear ()
     {
         storage.clear ();
@@ -131,7 +136,10 @@ public:
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
 
-    /** */
+    /** Insert an item into the hash table
+     * \param[in] graine : key
+     * \param[in] value : value
+     */
     void insert (Item graine, value_type value)
     {
         unsigned int clef ;
@@ -164,7 +172,9 @@ public:
         }
     }
 
-    /** */
+    /** Insert an item into the hash table
+     * \param[in] graine : key
+     */
     void insert (Item graine)
     {
         unsigned int clef ;
@@ -199,8 +209,12 @@ public:
         }
     }
 
-    /** */
-    int get( Item graine, value_type * val)
+    /** Get the value for a given key
+     * \param[in] graine : key
+     * \param[out] val : value to be retrieved
+     * \return 1 if the key exists, 0 otherwise.
+     */
+    int get (Item graine, value_type * val)
     {
         unsigned int clef ;
         cell* cell_ptr;
@@ -224,13 +238,20 @@ public:
         }
     }
 
-    /** */
+    /** Tells whether or not the given key exists in the hash table.
+     * \param[in] graine : key
+     * \return true if the key exists, 0 otherwise.
+     */
     bool contains (Item graine)
     {
         return get (graine,NULL);
     }
 
-    /** */
+    /** Remove a key from the hash table.
+     * \param[in] graine : key to be removed from the hash table
+     * \param[out] val : value of the key
+     * \return true if the key was found, 0 otherwise
+     */
     int remove (Item graine, value_type * val)
     {
         unsigned int clef ;
@@ -264,10 +285,12 @@ public:
         }
     }
 
-    /** */
+    /** Get the number of items in the hash table
+     * \return the number of items. */
     u_int64_t size ()  { return nb_elem; }
 
-    /** */
+    /** Get the max number of items allowed by the hash table
+     * \return the max number of items. */
     u_int64_t getMaxNbItems ()  { return max_nb_elem; }
 };
 

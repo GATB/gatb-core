@@ -44,6 +44,9 @@ namespace impl      {
 /** \brief Implementation of the IOptionsParser interface.
  *
  * This implementation represents the 'composite' part of the Composite design pattern.
+ *
+ * Example:
+ * \snippet optionsparser1.cpp  snippet1
  */
 class OptionsParser : public IOptionsParser
 {

@@ -43,20 +43,27 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
+/** \brief Hash table implementation
+ */
 template <typename Item> class OAHash
 {
     typedef misc::Abundance<Item> element_pair;
 
 public:
 
-    /** */
+    /** Get the size (in byte) of an item.
+     * \return the item size.
+     */
     static int size_entry ()  {  return sizeof(element_pair); }
 
-    /** */
+    /** Get the max number of items for the hash table
+     * \return the max items number.
+     */
     int getMaxNbItems ()  { return hash_size; }
 
     /** Constructor.
-     * \param[in] max_memory : max memory for the hash table.*/
+     * \param[in] max_memory : max memory for the hash table.
+     */
     OAHash (u_int64_t max_memory)
     {
         hash_size = max_memory / sizeof(element_pair);
@@ -67,7 +74,10 @@ public:
     /** Destructor. */
     ~OAHash()  {  FREE (data);  }
 
-    /** */
+    /** Insert an item with its value into the hash table.
+     * \param[in] graine : key
+     * \param[in] value : value
+     */
     void insert (const Item& graine, int value)
     {
         element_pair *element = find_slot(graine);
@@ -76,7 +86,9 @@ public:
         element->abundance = value;
     }
 
-    /** */
+    /** Increment the value for a given key.
+     * \param[in] graine : key
+     */
     void increment (const Item& graine)
     {
         element_pair *element = find_slot(graine);
@@ -86,7 +98,11 @@ public:
         element->abundance = element->abundance + 1;
     }
 
-    /** */
+    /** Get the value for a given key
+     * \param[in] graine : key
+     * \param[out] val : value to be retrieved
+     * \return true if the key is found, false otherwise.
+     */
     bool get (const Item& graine, int * val=0)
     {
         element_pair *element = find_slot(graine, false);
@@ -100,13 +116,20 @@ public:
         return true;
     }
 
-    /** */
+    /** Tells whether or not the given key is in the table
+     * \param[in] graine : key to be checked
+     * \return true if present, false otherwise.
+     */
     bool has_key (const Item& graine)  {     return get(graine,NULL) == 1;  }
 
-    /** */
+    /** Get the memory usage of the hash table
+     * \return the memory usage (in bits).
+     */
     u_int64_t memory_usage() {     return hash_size* sizeof(element_pair); /* in bits */ }
 
-    /** */
+    /** Get the load factor of the hash table
+     * \return the load factor.
+     */
     float load_factor()
     {
         u_int64_t ptr = 0;
@@ -125,7 +148,10 @@ public:
         return (float)nbKeys/(float)hash_size;
     }
 
-    /** */
+    /** Get an iterator for the hash table.
+     * \param[in] sorted : if true, items are iterated in a sorted way
+     * \return an iterator over the items of the hash table.
+     */
     dp::Iterator <misc::Abundance<Item> >* iterator (bool sorted=false)
     {  if (sorted==false) { return new Iterator(*this); } else { return new IteratorSorted (*this);  } }
 

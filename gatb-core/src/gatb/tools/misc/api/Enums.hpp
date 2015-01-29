@@ -33,8 +33,12 @@ namespace tools     {
 namespace misc      {
 /********************************************************************************/
 
+/** Enumeration for the different kinds of bank conversions supported in GATB. */
 enum BankConvertKind  {  BANK_CONVERT_NONE, BANK_CONVERT_TMP, BANK_CONVERT_KEEP };
 
+/** Get the enum from a string.
+ * \param[in] s : string to be parsed
+ * \param[out] kind : enum to be set from the string parsing. */
 static void parse (const std::string& s, BankConvertKind& kind)
 {
          if (s == "none")   { kind = BANK_CONVERT_NONE;  }
@@ -43,6 +47,9 @@ static void parse (const std::string& s, BankConvertKind& kind)
     else   { throw system::Exception ("bad bank convert kind '%s'", s.c_str()); }
 }
 
+/** Get the string associated to an enum
+ * \param[in] kind : the enum value
+ * \return the associated string */
 static const char* toString (BankConvertKind kind)
 {
     switch (kind)

@@ -115,13 +115,22 @@ public:
     /** \copydoc IProperties::get */
     IProperty* get (const std::string& key);
 
-    /** */
+    /** \copydoc IProperties::getStr */
     std::string getStr    (const std::string& key);
+
+    /** \copydoc IProperties::getInt */
     int64_t     getInt    (const std::string& key);
+
+    /** \copydoc IProperties::getDouble */
     double      getDouble (const std::string& key);
-    /** */
+
+    /** \copydoc IProperties::setStr */
     void setStr    (const std::string& key, const std::string& value);
+
+    /** \copydoc IProperties::setInt */
     void setInt    (const std::string& key, const int64_t& value);
+
+    /** \copydoc IProperties::setDouble */
     void setDouble (const std::string& key, const double& value);
 
     /** \copydoc IProperties::clone  */
@@ -144,11 +153,11 @@ public:
      * \param[in] xmlString: the XML string to be read (file, string...) */
     void readXML (const std::string& xmlString)  {  std::stringstream ss;  ss << xmlString; readXML (ss);  }
 
-    /** */
-    void dump (std::ostream& s);
-
-    /** */
+    /** \copydoc IProperties::getXML  */
     std::string getXML ();
+
+    /* */
+    void dump (std::ostream& s);
 
 private:
 
@@ -166,16 +175,13 @@ inline std::ostream& operator<< (std::ostream& os, Properties& props)  { props.d
 
 /********************************************************************************/
 
+/* Factorization of common stuf for IPropertiesVisitor implementations. */
 class AbstractOutputPropertiesVisitor : public IPropertiesVisitor
 {
 public:
-    /** */
-    AbstractOutputPropertiesVisitor (std::ostream& aStream);
 
-    /** */
-    AbstractOutputPropertiesVisitor (const std::string& filename);
-
-    /** */
+     AbstractOutputPropertiesVisitor (std::ostream& aStream);
+     AbstractOutputPropertiesVisitor (const std::string& filename);
     ~AbstractOutputPropertiesVisitor ();
 
 protected:
@@ -255,7 +261,7 @@ private:
  * (separated by a space character). Note that the depth information is lost.
  *
  * This kind of output is perfect for keeping properties in a configuration file for instance.
- * This is used by PLAST for its configuration file '.plastrc'
+ * This is used by a tool for its configuration file '.toolrc'
  */
 class RawDumpPropertiesVisitor : public IPropertiesVisitor
 {
@@ -280,7 +286,6 @@ public:
 private:
     std::ostream& _os;
 };
-
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */

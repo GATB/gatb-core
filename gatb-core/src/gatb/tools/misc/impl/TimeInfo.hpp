@@ -124,13 +124,41 @@ private:
 
 /********************************************************************************/
 
-/** */
+/** \brief Helper for time info statistics.
+ *
+ * This class allows to get the execution time within an instruction block.
+ *
+ * See also the TIME_INFO macro that eases its usage.
+ *
+ * Example:
+ * \code
+ void foo ()
+ {
+     TimeInfo t;
+
+     {
+         LocalTimeInfo local (t, "part1");
+
+         // do something here
+     }
+
+     // now, we dump the exec time of the instruction block enclosing the LocalTimeInfo instance
+     cout << "part1: " << t.getEntryByKey("part1") << "  " endl;
+ }
+ * \endcode
+ *
+ * */
 class LocalTimeInfo
 {
 public:
 
+    /** Constuctor
+     * \param[in] ti : time info object to be used
+     * \param[in] txt : key of the exec time to be got
+     */
     LocalTimeInfo (TimeInfo& ti, const std::string& txt) : _ti(ti), _txt(txt)  {  _ti.start (_txt.c_str());  }
 
+    /** Destructor. */
     ~LocalTimeInfo ()   {  _ti.stop (_txt.c_str());   }
 
 private:

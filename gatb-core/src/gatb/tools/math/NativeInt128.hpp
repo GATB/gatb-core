@@ -50,8 +50,6 @@ namespace tools {
 namespace math  {
 /********************************************************************************/
 
-/** \brief Large integer class
- */
 class NativeInt128 : private misc::ArrayData<__uint128_t, 1>
 {
 public:
@@ -122,7 +120,7 @@ public:
     }
 
     /********************************************************************************/
-    
+
     /** Print corresponding kmer in ASCII
      * \param[sizeKmer] in : kmer size (def=64).
      */
@@ -130,21 +128,21 @@ public:
     {
         int i;
         u_int64_t temp = value[0];
-        
-        
+
+
         char seq[65];
         char bin2NT[4] = {'A','C','T','G'};
-        
+
         for (i=sizeKmer-1; i>=0; i--)
         {
             seq[i] = bin2NT[ temp&3 ];
             temp = temp>>2;
         }
         seq[sizeKmer]='\0';
-        
+
         std::cout << seq << std::endl;
     }
-    
+
     /********************************************************************************/
     inline static hid_t hdf5 (bool& isCompound)
     {
@@ -152,7 +150,7 @@ public:
         H5Tset_precision (result, 128);
         return result;
     }
-    
+
 private:
     friend NativeInt128 revcomp (const NativeInt128& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const NativeInt128& key, u_int64_t  seed);
@@ -206,7 +204,7 @@ inline u_int64_t oahash (const NativeInt128& item)
     return NativeInt64::oahash64 ((u_int64_t)(elem>>64)) ^
            NativeInt64::oahash64 ((u_int64_t)(elem&((((__uint128_t)1)<<64)-1)));
 }
-	
+
 /********************************************************************************/
 inline u_int64_t simplehash16 (const NativeInt128& key, int  shift)
 {

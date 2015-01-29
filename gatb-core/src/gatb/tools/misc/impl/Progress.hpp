@@ -187,7 +187,7 @@ protected:
 
 /********************************************************************************/
 
-/** \brief Proxy for Progress class  */
+/* \brief Proxy for Progress class  */
 class ProgressProxy : public dp::IteratorListener
 {
 public:
@@ -229,7 +229,7 @@ private:
 
 /********************************************************************************/
 
-/** \brief Synchro for Progress class  */
+/* \brief Synchro for Progress class  */
 class ProgressSynchro : public ProgressProxy
 {
 public:

@@ -44,7 +44,8 @@ namespace collections   {
 
 /** \brief Iterable interface
  *
- * The Iterable interface provides an operation that creates an iterator.
+ * The Iterable interface provides an operation that creates an iterator. It also
+ * provides other methods that give the exact number (or an estimation) of items.
  *
  * Note that one Iterable instance can create several iterators.
  */

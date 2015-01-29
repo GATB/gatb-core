@@ -39,7 +39,7 @@ namespace misc      {
 namespace impl      {
 /********************************************************************************/
 
-/** Root class for all XML events. Inherits from dp::EventInfo.
+/* Root class for all XML events. Inherits from dp::EventInfo.
  */
 class XmlEvent : public dp::EventInfo
 {
@@ -48,7 +48,7 @@ public:
     XmlEvent () : dp::EventInfo(0) {}
 };
 
-/** XML event corresponding to a tag opening.
+/* XML event corresponding to a tag opening.
  */
 class XmlTagOpenEvent : public XmlEvent
 {
@@ -61,7 +61,7 @@ public:
     std::string _name;
 };
 
-/** XML event corresponding to a tag closing.
+/* XML event corresponding to a tag closing.
  */
 class XmlTagCloseEvent : public XmlEvent
 {
@@ -74,7 +74,7 @@ public:
     std::string _name;
 };
 
-/** XML event corresponding to a text
+/* XML event corresponding to a text
  */
 class XmlTagTextEvent : public XmlEvent
 {
@@ -87,7 +87,7 @@ public:
     std::string _txt;
 };
 
-/** XML event corresponding to an attribute
+/* XML event corresponding to an attribute
  */
 class XmlTagAttributeEvent : public XmlEvent
 {

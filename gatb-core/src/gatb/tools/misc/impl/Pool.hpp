@@ -38,11 +38,8 @@ namespace misc      {
 namespace impl      {
 /********************************************************************************/
 
-/**
- * \class Pool,
- * \brief Cette class dÈfinit une pool memoire pour allocation rapide de la table de hachage utilisee quand seed >14
- */
-
+/* Cette class dÈfinit une pool memoire pour allocation rapide de la table de hachage
+ * utilisee quand seed >14 */
 template <typename graine_type, typename value_type=int>  class Pool
 {
 public:

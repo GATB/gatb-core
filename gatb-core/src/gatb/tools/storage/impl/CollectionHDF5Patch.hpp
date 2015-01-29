@@ -50,7 +50,7 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
-/** This class holds information to be shared by classes BagHDF5Patch and IterableHDF5Patch.
+/* This class holds information to be shared by classes BagHDF5Patch and IterableHDF5Patch.
  *
  * IMPORTANT: HDF5 may suffer from kind of resources leaks when one uses H5Dread
  * several times; if no H5Dclose is done, some internal memory may be kept, looking
@@ -200,7 +200,6 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
     void clean ()
     {
         if (_datasetId == 0)  { return; }
-//printf ("Clean '%s'  _datasetId=%d \n", _name.c_str(), _datasetId);
         {
             system::LocalSynchronizer localsynchro (_synchro);
             if (_datasetId != 0) {  H5Dclose (_datasetId);   _datasetId=0; }
@@ -388,7 +387,6 @@ private:
 
 /********************************************************************************/
 
-/** */
 template<typename Item>
 class HDF5IteratorPatch : public dp::Iterator<Item>
 {
@@ -511,8 +509,6 @@ private:
 
 /********************************************************************************/
 
-/** \brief Collection interface
- */
 template <class Item> class CollectionHDF5Patch : public collections::impl::CollectionAbstract<Item>, public system::SmartPointer
 {
 public:

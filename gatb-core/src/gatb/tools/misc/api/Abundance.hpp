@@ -40,6 +40,15 @@ namespace tools     {
 namespace misc      {
 /********************************************************************************/
 
+/** \brief Define a specific kind of array.
+ *
+ * This structure provides an array definition as an array attribute 'value' of type 'Type',
+ * holding 'precision' items.
+ *
+ * This structure is used as a basis for the LargeInt implementation.
+ *
+ * \see math::LargeInt
+ */
 template<typename Type, int precision>
 struct ArrayData
 {
@@ -48,20 +57,46 @@ struct ArrayData
 
 /********************************************************************************/
 
-/** Define an abundance. */
+/** \brief Define a type that associates a value and an abundance.
+ *
+ * We have often to count kmers, so we define a specific structure for this.
+ *
+ * The structure has two templates types:
+ *  - Type : the type of items (likely kmer type)
+ *  - Number : abundance associated to the item
+ */
 template<typename Type, typename Number=u_int16_t> struct Abundance
 {
+    /** Constructor.
+     * \param[in] val : value of the item
+     * \param[in] abund : abundance of the item.
+     */
     Abundance (const Type& val=0, const Number& abund=0) : value(val), abundance(abund) {}
 
+    /** Affectation operator.
+     * \param[in] a : object to be copied.
+     * \return the copied instance.
+     */
     Abundance& operator=(const Abundance& a)
     {
         if (&a != this)  {  value = a.value;  abundance=a.abundance;  }
         return *this;
     }
 
+    /** Get the abundance of the object
+     * \return the abundance.
+     */
     const Number& getAbundance() const { return abundance; }
+
+    /** Get the value of the item
+     * \return the value.
+     */
     const Type&   getValue()     const { return value;     }
 
+    /** Equality operator. alues and abundances must be equals
+     * \param[in] other : object to be compared to
+     * \return true if values and abundances are the same
+     */
     bool operator== (const Abundance& other) const  {  return value == other.value && abundance == other.abundance;  }
 
     /** Creates a HDF5 type identifier for the [kmer,abundance] structure. This type will be used

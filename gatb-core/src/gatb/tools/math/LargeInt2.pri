@@ -27,8 +27,6 @@
 #if  INT128_FOUND == 1
 /********************************************************************************/
 
-/** \brief Large integer class
- */
 template<>  class LargeInt<2> :  private misc::ArrayData<__uint128_t, 1>
 {
 public:

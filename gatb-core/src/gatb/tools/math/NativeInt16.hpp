@@ -41,8 +41,6 @@ namespace tools {
 namespace math  {
 /********************************************************************************/
 
-/** \brief Large integer class
- */
 class NativeInt16 : private misc::ArrayData<u_int16_t, 1>
 {
 public:

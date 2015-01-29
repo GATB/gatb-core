@@ -47,6 +47,8 @@ namespace impl      {
 /********************************************************************************/
 
 /** \brief Framework class for implementing algorithm
+ *
+ * \see Tool
  */
 class Algorithm : public system::SmartPointer
 {
@@ -71,15 +73,44 @@ public:
     /** Execution of the algorithm. Abstract method, must be refined in subclasses. */
     virtual void execute () = 0;
 
-    /** */
+    /** Get the parsed options as a properties instance
+     * \return the parsed options.
+     */
     virtual IProperties*            getInput      ()  { return _input;      }
+
+    /** Get output results as a properties instance
+     * \return the output results
+     */
     virtual IProperties*            getOutput     ()  { return _output;     }
+
+    /** Get statistics information about the execution of the tool
+     * \return the statistics
+     */
     virtual IProperties*            getInfo       ()  { return _info;       }
-    virtual IProperties*            getSystemInfo ()  { return _systemInfo; }
+
+    /** Get an option parser configured with recognized options for the tool
+     * \return the options parser instance
+     */
     virtual dp::IDispatcher*        getDispatcher ()  { return _dispatcher; }
+
+    /** Get a TimeInfo instance for the tool. This object can be used for gathering
+     * execution times of some parts of the \ref execute method.
+     * \return the time info instance.
+     */
     virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
 
-    /** */
+    /** Get information about operating system resources used during the execution.
+     * \return operating system information.
+     */
+    virtual IProperties*            getSystemInfo ()  { return _systemInfo; }
+
+    /** Create an iterator for the given iterator. If the verbosity is enough, progress bar information
+     * can be displayed.
+     * \param[in] iter : object to be encapsulated by a potential progress information
+     * \param[in] nbIterations : number of iterations to be done.
+     * \param[in] message : message used if progress information has to be displayed
+     * \return the created iterator.
+     */
     template<typename Item> dp::Iterator<Item>* createIterator (dp::Iterator<Item>* iter, size_t nbIterations=0, const char* message=0)
     {
         if (nbIterations > 0 && message != 0)
@@ -96,7 +127,11 @@ public:
         return iter;
     }
 
-    /** */
+    /** Creates an iterator listener according to the verbosity level.
+     * \param[in] nbIterations : number of iterations to be done
+     * \param[in] message : progression message
+     * \return an iterator listener.
+     */
     virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
 
 protected:
