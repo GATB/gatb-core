@@ -26,13 +26,13 @@
  *
  *  It can be seen as software components providing services for assembling and analyzing genomes of various kinds.
  *
- * The current documentation is for release 1.0.6
+ * The current documentation is for release 1.0.6. You can download it <a href="http://gatb.inria.fr/binaries-url">here</a>.
  *
  ****************************************************************************************************
  ****************************************************************************************************
  * \section purpose Purpose of the GATB core library
  *
- * First, GATB core holds a C++ library that provides an easy way to handle a central structure in the
+ * First, gatb::core holds a C++ library that provides an easy way to handle a central structure in the
  * GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>.
  * This kind of data structure is today widely used in
  * <a href="http://en.wikibooks.org/wiki/Next_Generation_Sequencing_(NGS)">NGS</a>
