@@ -32,6 +32,19 @@
  ****************************************************************************************************
  * \section purpose Purpose of the GATB core library
  *
+ *
+ * First, gatb::core holds a C++ library that provides an easy way to create bioinformatics programs.
+ *
+ * It supports the following operations natively:
+ *  - FASTA/FASTQ parsing
+ *  - K-mer counting
+ *  - Minimizer computation of k-mers, partitioning of datasets by minimizers
+ *  - de Bruijn graph construction
+ *  - de Bruijn graph traversal operations (contigs, unitigs)
+ *
+ *  One structure is central to the GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>.
+ *  This sort of data structure is today widely used in NGS software (like assembly software).
+ *
  * First, gatb::core holds a C++ library that provides an easy way to handle a central structure in the
  * GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>.
  * This kind of data structure is today widely used in
