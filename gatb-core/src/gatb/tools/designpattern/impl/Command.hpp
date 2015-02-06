@@ -20,7 +20,7 @@
 /** \file Command.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Implementation of ICommand and ICommandDispatcher
+ *  \brief Implementation of ICommand and IDispatcher
  */
 
 #ifndef _GATB_CORE_DP_ITERATOR_IMPL_COMMAND_HPP_
@@ -77,20 +77,19 @@ private:
 
 /** \brief Launches commands in different threads
  *
- *  This implementation launches commands through different ICommandInvoker => parallelization.
- *  A provided ICommandInvokerFactory is used for creating ICommandInvoker instances.
+ *  This implementation launches commands through different threads => parallelization.
  *
- *  This implementation of ICommandDispatcher is central in the PLAST design because it allows
+ *  This implementation of IDispatcher is central in a tool design because it allows
  *  to uses all available cores. If one knows the number N of available cores on the computer,
  *  one has just to split some job by creating N ICommand instances and then just dispatch these
- *  commands through a ParallelCommandDispatcher: each command will be launched in a separated
+ *  commands through a Dispatcher: each command will be launched in a separated
  *  thread, and, thanks to the operating system architecture, each thread should be processed
  *  on an available core.
  *
  *  Note: it wouldn't be reasonable to use more ICommand instances than available cores.
  *  By default, if the number of dispatching units is not provided in the constructor of
- *  ParallelCommandDispatcher, it retrieves the number of available cores through the
- *  DefaultFactory::thread().getNbCores() method, and uses it as default value. This means
+ *  Dispatcher, it retrieves the number of available cores through the
+ *  a call to system functions, and uses it as default value. This means
  *  that default constructor will use by default the whole CPU multicore power.
  */
 class Dispatcher : public IDispatcher

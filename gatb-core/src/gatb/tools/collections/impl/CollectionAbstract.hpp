@@ -44,14 +44,20 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
+/** \brief Abstract implementation of the Collection interface.
+ *
+ * This class implements the Collection interface by delegating the job to an instance
+ * of Bag and an instance of Iterable.
+ *
+ * All the methods are delegated to one of these two instances.
+ */
 template <class Item>
 class CollectionAbstract : public Collection<Item>
 {
 public:
 
     /** Constructor.
-     * \param id : identifier of the node
-     * \param bag : reference on the bag delegate.
+     * \param bag      : reference on the bag delegate.
      * \param iterable : reference on the iterable delegate
      */
     CollectionAbstract (Bag<Item>* bag, Iterable<Item>* iterable)
@@ -86,38 +92,38 @@ public:
     /** \copydoc Iterable::getItems */
     Item* getItems (Item*& buffer)  { return _iterable->getItems(buffer); }
 
-    /** \copydoc Iterable::getItems */
+    /** \copydoc Iterable::getItems(Item*& buffer, size_t start, size_t nb) */
     size_t getItems (Item*& buffer, size_t start, size_t nb)  { return _iterable->getItems (buffer, start, nb); }
 
     /** \copydoc Bag::insert */
     void insert (const Item& item)  { _bag->insert (item); }
 
-    /** \copydoc Bag::insert */
+    /** \copydoc Bag::insert(const std::vector<Item>& items, size_t length) */
     void insert (const std::vector<Item>& items, size_t length)  { _bag->insert (items, length); }
 
-    /** \copydoc Bag::insert */
+    /** \copydoc Bag::insert(const Item* items, size_t length) */
     void insert (const Item* items, size_t length)  { _bag->insert (items, length); }
 
     /** \copydoc Bag::flush */
     void flush ()  { _bag->flush(); }
 
-    /** */
-    void addProperty (const std::string& key, const std::string value) {}
+    /** \copydoc Collection::addProperty */
+    void addProperty (const std::string& key, const std::string value)  {}
 
-    /** */
-    void addProperty (const std::string& key, const char* fmt ...)
+    /** \copydoc Collection::addProperty */
+    void addProperty (const std::string& key, const char* format ...)
     {
         std::string value;
         char* buffer = 0;
         va_list args;
-        va_start (args, fmt);
-        int res = vasprintf (&buffer, fmt, args);
+        va_start (args, format);
+        int res = vasprintf (&buffer, format, args);
         va_end (args);
         if (buffer != NULL)  {  value = buffer;  FREE (buffer);  }
         this->addProperty (key, value);
     }
 
-    /** */
+    /** \copydoc Collection::getProperty */
     std::string getProperty (const std::string& key)  {  return std::string("");  }
 
 protected:

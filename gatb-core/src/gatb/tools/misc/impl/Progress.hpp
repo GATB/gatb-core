@@ -187,7 +187,7 @@ protected:
 
 /********************************************************************************/
 
-/** \brief Proxy for Progress class  */
+/* \brief Proxy for Progress class  */
 class ProgressProxy : public dp::IteratorListener
 {
 public:
@@ -229,7 +229,7 @@ private:
 
 /********************************************************************************/
 
-/** \brief Synchro for Progress class  */
+/* \brief Synchro for Progress class  */
 class ProgressSynchro : public ProgressProxy
 {
 public:
@@ -266,6 +266,11 @@ private:
     system::ISynchronizer* _synchro;
     void setSynchro (system::ISynchronizer* synchro)  { SP_SETATTR(synchro); }
 };
+
+/********************************************************************************/
+
+/** We define a default class for progress information. */
+typedef ProgressTimerAndSystem  ProgressDefault;
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */

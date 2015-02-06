@@ -52,6 +52,9 @@ namespace misc      {
  *
  * It is implemented as a subclass of the Vector class, which allows to define Data
  * as a sub part of a referred Data instance.
+ *
+ * For instance, Data is used for storing nucleotides sequences inside the Sequence
+ * structure.
  */
 class Data : public Vector<char>
 {
@@ -77,7 +80,10 @@ public:
     /** Constructor. */
     Data (size_t len, Encoding_e encode = BINARY)  : Vector<char>(len), encoding(encode)  {}
 
-    /** */
+    /** Affectation operator.
+     * \param[in] d : object to be copied.
+     * \return the instance
+     */
     Data& operator= (const Data& d)
     {
         if (this != &d)
@@ -98,7 +104,11 @@ public:
         return *this;
     }
 
-    /** Set the content of this data as a referenced of another Data object. */
+    /** Set the content of this data as a referenced of another Data object.
+     * \param[in] ref : referred data
+     * \param[in] offset : position to be used in the referred data
+     * \param[in] length : length of the data
+     */
     void setRef (Data* ref, size_t offset, size_t length)
     {
         /** We call the parent method. */
@@ -115,9 +125,13 @@ public:
         Vector<char>::setRef (buffer, length);
     }
 
-    /** \return format of the data. */
+    /** Get the encoding scheme of the data.
+     * \return format of the data. */
     Encoding_e getEncoding ()  const  { return encoding; }
 
+    /** Set the encoding scheme of the data.
+     * \param[in] encoding : encoding scheme to be used.
+     */
     void setEncoding (Encoding_e encoding)  { this->encoding = encoding; }
 
     /** Conversion from one encoding scheme to another.

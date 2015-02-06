@@ -42,9 +42,15 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
-/** \brief Collection interface
+/** \brief Cache implementation of the Collection interface
  *
- * The Collection interface is the union of a Bag and an Iterable interfaces
+ * This implementations allows to add items into the collection through a cache. It
+ * means that a memory block for inserting the items and when the memory is full,
+ * all its items are flushed into the delegate Collection (provided at construction).
+ *
+ * A synchronizer can be provided to be sure that the delegate can't suffer concurrent
+ * accesses by several threads. This allows to encapsulate a single Collection into several
+ * CollectionCache instances, each one used in a thread.
  */
 template <class Item> class CollectionCache : public CollectionAbstract<Item>, public system::SmartPointer
 {
@@ -60,20 +66,26 @@ public:
     /** Destructor. */
     virtual ~CollectionCache() {}
 
-    /** */
+    /** \copydoc Collection::remove */
     void remove ()  { _ref.remove(); }
 
-    /** */
+    /** Accessor to the delegate Collection.
+     * \return the delegate Collection instance. */
     Collection<Item>& getRef ()  { return _ref; }
 
 private:
     Collection<Item>& _ref;
 };
 
+/********************************************************************************/
     
-/** \brief Collection interface
+/** \brief Cache implementation of the Collection interface
  *
- * The Collection interface is the union of a Bag and an Iterable interfaces
+ * This implementations is like CollectionCache. The difference is that
+ * the items are first sorted before inserting them into the delegate
+ * Collection instance.
+ *
+ * Remark : maybe could be inherited from CollectionCache ?
  */
 template <class Item> class CollectionCacheSorted : public CollectionAbstract<Item>, public system::SmartPointer
 {
@@ -82,23 +94,31 @@ public:
     /** Constructor. */
     CollectionCacheSorted (Collection<Item>& ref,  size_t cacheSize, size_t sharedCacheSize,  system::ISynchronizer* synchro, system::ISynchronizer* outsynchro, Item* sharedBuffer, size_t * idxShared) //
     : CollectionAbstract<Item> (
-                                new BagCacheSortedBuffered<Item> (ref.bag(), cacheSize,sharedBuffer,sharedCacheSize,idxShared, outsynchro,synchro),
-                                ref.iterable()
-                                ), _ref(ref)  {}
+            new BagCacheSortedBuffered<Item> (
+                ref.bag(),
+                cacheSize,
+                sharedBuffer,
+                sharedCacheSize,
+                idxShared,
+                outsynchro,synchro
+            ),
+            ref.iterable()
+        ),
+        _ref(ref)  {}
     
     /** Destructor. */
     virtual ~CollectionCacheSorted() {}
     
-    /** */
+    /** \copydoc Collection::remove */
     void remove ()  { _ref.remove(); }
     
-    /** */
+    /** Accessor to the delegate Collection.
+     * \return the delegate Collection instance. */
     Collection<Item>& getRef ()  { return _ref; }
     
 private:
     Collection<Item>& _ref;
 };
-
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */

@@ -62,8 +62,18 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
-/** */
-enum StorageMode_e { STORAGE_FILE, STORAGE_HDF5, STORAGE_GZFILE, STORAGE_COMPRESSED_FILE };
+/** Enumeration of the supported storage mechanisms.*/
+enum StorageMode_e
+{
+    /** Simple file. */
+    STORAGE_FILE,
+    /** HDF5 file. */
+    STORAGE_HDF5,
+    /** Experimental. */
+    STORAGE_GZFILE,
+    /** Experimental. */
+    STORAGE_COMPRESSED_FILE
+};
 
 /********************************************************************************/
 
@@ -115,13 +125,15 @@ public:
     /** \copydoc tools::storage::ICell::remove */
     void remove ();
 
-    /** */
+    /** \copydoc collections::impl::CollectionAbstract::addProperty */
     void addProperty (const std::string& key, const std::string value);
 
-    /** */
+    /** \copydoc collections::impl::CollectionAbstract::getProperty */
     std::string getProperty (const std::string& key);
 
-    /**  */
+    /** Get a pointer to the delegate Collection instance
+     * \return the delegate instance.
+     */
     collections::Collection<Item>* getRef ();
 
 private:
@@ -142,7 +154,15 @@ private:
              #####   #     #  #######   #####   #
 **********************************************************************/
 
-/** */
+/** \brief Group concept.
+ *
+ * This class define a container concept for other items that can be stored
+ * in a storage (like groups, partitions, collections).
+ *
+ * In a regular implementation, a Group could be a directory.
+ *
+ * In a HDF5 implementation, a group could be a HDF5 group.
+ */
 class Group : public Cell
 {
 public:
@@ -153,22 +173,40 @@ public:
     /** Destructor. */
     ~Group();
 
-    /** */
+    /** Get a child group from its name. Created if not already exists.
+     * \param[in] name : name of the child group to be retrieved.
+     * \return the child group.
+     */
     Group& getGroup (const std::string& name);
 
-    /** */
+    /** Get a child partition from its name. Created if not already exists.
+     * \param[in] name : name of the child partition to be retrieved.
+     * \param[in] nb : in case of creation, tells how many collection belong to the partition.
+     * \return the child partition.
+     */
     template <class Type>  Partition<Type>& getPartition (const std::string& name, size_t nb=0);
 
-    /** */
+    /** Get a child collection from its name. Created if not already exists.
+     * \param[in] name : name of the child collection to be retrieved.
+     * \return the child collection .
+     */
     template <class Type>  CollectionNode<Type>& getCollection (const std::string& name);
 
-    /** */
+    /** \copydoc Cell::remove */
     void remove ();
 
-    /** */
+    /** Associate a [key,value] to the group. Note: according to the kind of storage,
+     * this feature may be not supported.
+     * \param[in] key : key
+     * \param[in] value : value
+     */
     virtual void addProperty (const std::string& key, const std::string value) { /*throw system::ExceptionNotImplemented ();*/ }
 
-    /** */
+    /** Get a [key,value] from the group. Note: according to the kind of storage,
+     * this feature may be not supported.
+     * \param[in] key : key
+     * \return the value associated to the string.
+     */
     virtual std::string getProperty (const std::string& key)  { return "?"; /*throw system::ExceptionNotImplemented ();*/  }
 
 protected:
@@ -444,30 +482,70 @@ protected:
                 #        #     #   #####      #     #######  #     #     #
 ********************************************************************************/
 
+/** \brief Factory that creates instances related to the storage feature.
+ *
+ * This class provides some createXXX methods for instantiations.
+ *
+ * It also provides a few general methods like exists and load, so the name 'factory'
+ * may be not well choosen...
+ *
+ * Example 1:
+ * \snippet storage1.cpp  snippet1_storage
+ *
+ * Example 2:
+ * \snippet storage3.cpp  snippet1_storage
+ */
 class StorageFactory : public system::SmartPointer
 {
 public:
 
-    /** Constructor */
+    /** Constructor
+     * \param[in] mode : kind of storage to be used (HDF5 for instance)
+     */
     StorageFactory (StorageMode_e mode) : _mode(mode)  {}
 
-    /** */
+    /** Create a Storage instance.
+     * \param[in] name : name of the instance to be created
+     * \param[in] deleteIfExist : if the storage exits in file system, delete it if true.
+     * \param[in] autoRemove : auto delete the storage from file system during Storage destructor.
+     * \return the created Storage instance
+     */
     Storage* create (const std::string& name, bool deleteIfExist, bool autoRemove);
 
-    /** */
+    /** Tells whether or not a Storage exists in file system given a name
+     * \param[in] name : name of the storage to be checked
+     * \return true if the storage exists in file system, false otherwise.
+     */
     bool exists (const std::string& name);
 
-    /** */
+    /** Create a Storage instance from an existing storage in file system.
+     * \param[in] name : name of the file in file system
+     * \return the created Storage instance
+     */
     Storage* load (const std::string& name) { return create (name, false, false); }
 
-    /** */
+    /** Create a Group instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the group to be created
+     * \param[in] name : name of the group to be created
+     * \return the created Group instance.
+     */
     Group* createGroup (ICell* parent, const std::string& name);
 
-    /** */
+    /** Create a Partition instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the partition to be created
+     * \param[in] name : name of the partition to be created
+     * \param[in] nb : number of collections of the partition
+     * \return the created Partition instance.
+     */
     template<typename Type>
     Partition<Type>* createPartition (ICell* parent, const std::string& name, size_t nb);
 
-    /** */
+    /** Create a Collection instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the collection to be created
+     * \param[in] name : name of the collection to be created
+     * \param[in] synchro : synchronizer instance if needed
+     * \return the created Collection instance.
+     */
     template<typename Type>
     CollectionNode<Type>* createCollection (ICell* parent, const std::string& name, system::ISynchronizer* synchro);
 

@@ -41,7 +41,18 @@ namespace collections {
 namespace impl        {
 /********************************************************************************/
 
-/** */
+/** \brief hash table implementation
+ *
+ * This hash table implementation uses a minimal perfect hash function (MPHF) for
+ * identifying the keys with a unique number in [0..N-1] where N is the number of items.
+ *
+ * If the EMPHF library is used, the memory usage is about 2.61 bits per key.
+ *
+ * The values can be stored in a simple vector. The keys are not stored in memory, only
+ * the mphf is needed.
+ *
+ * Note that such an implementation can't afford to add items into the map.
+ */
 template <class Key, class Value, class Adaptator=AdaptatorDefault<Key> >
 class MapMPHF : public system::SmartPointer
 {
@@ -53,12 +64,13 @@ public:
     /** Constant telling whether the feature is enabled or not. */
     static const bool enabled = Hash::enabled;
 
-    /** */
+    /** Default constructor. */
     MapMPHF ()  {}
 
     /** Build the hash function from a set of items.
-     * \param[in] iterator : keys iterator
-     * \param[in] nbItems : number of keys (if known) */
+     * \param[in] keys : iterable over the keys of the hash table
+     * \param[in] progress : listener called during the building of the MPHF
+     */
     void build (tools::collections::Iterable<Key>& keys, tools::dp::IteratorListener* progress=0)
     {
         /** We build the hash function. */
@@ -68,11 +80,17 @@ public:
         data.resize (keys.getNbItems());
     }
 
-    /** Save hash function to a collection
-     * \return the number of bytes of the saved data. */
+    /** Save the hash function into a Group object.
+     * \param[out] group : group where to save the MPHF
+     * \param[in] name : name of the saved MPHF
+     * \return the number of bytes of the saved data.
+     */
     size_t save (tools::storage::impl::Group& group, const std::string& name)  {  return hash.save (group, name);  }
 
-    /** Load hash function from a collection*/
+    /** Load hash function from a Group
+     * \param[in] group : group where to load the MPHF from
+     * \param[in] name : name of the MPHF
+     */
     void load (tools::storage::impl::Group& group, const std::string& name)
     {
         /** We load the hash function. */
@@ -88,8 +106,8 @@ public:
     Value& operator[] (const Key& key)  { return data[hash(key)]; }
 
     /** Get the value for a given index
-     * \param[in] index : the index
-     * \return the value associated to the index. */
+     * \param[in] code : the key
+     * \return the value associated to the key. */
     Value& at (typename Hash::Code code)  { return data[code]; }
 
     /** Get the hash code of the given key. */

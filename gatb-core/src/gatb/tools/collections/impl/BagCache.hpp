@@ -43,6 +43,11 @@ namespace impl          {
 /********************************************************************************/
 
 /** \brief Bag implementation as a cache to a referred Bag instance
+ *
+ * This implementation is a proxy to a Bag instance. One can insert items into such
+ * a bag, it will just put them into a cache. When the cache is full, all the cached
+ * items are inserted into the delegate; this operation may be protected by a
+ * synchronizer in case several threads use different BagCache on the same delegate.
  */
 template <typename Item> class BagCache : public Bag<Item>, public system::SmartPointer
 {

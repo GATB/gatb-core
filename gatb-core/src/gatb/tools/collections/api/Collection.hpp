@@ -43,6 +43,8 @@ namespace collections   {
 /** \brief Collection interface
  *
  * The Collection interface is the union of a Bag and an Iterable interfaces
+ *
+ * It is also to get/set properties (as [key,value]) to collections.
  */
 template <class Item> class Collection : public Bag<Item>, public Iterable<Item>
 {

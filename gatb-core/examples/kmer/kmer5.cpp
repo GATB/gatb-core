@@ -18,66 +18,21 @@ using namespace std;
 /** Kmer span definition. */
 const size_t span = KSIZE_1;
 
-/** Implementation of a functor that defines what is a minimizer according to
- *  the list of mmers within a kmer. We mimic here the default behavior
- *  (ie. minimum of the mmers within a kmer) but we could do anything we want to
- *  and we can more generally talk about 'optimizer' rather than 'minimizer'.
- *
- *  The purpose of such a functor is to select a mmer between M mmers in a
- *  specific kmer :
- *
- *      1) the 'init' method is called to initialize the default 'optimum' before looping
- *         over the mmers
- *
- *      2) the operator() method is called for each mmer with the current optimum
- *         value; we can choose here what kind of optimum we want (minimum for instance)
- *         by updating the 'optimum' value
- */
-struct CustomMinimizer
-{
-    template<class Model>  void init (const Model& model, Kmer<span>::Type& optimum) const
-    {
-        optimum = model.getKmerMax();
-    }
-
-    bool operator() (const Kmer<span>::Type& current, const Kmer<span>::Type& optimum) const
-    {
-        return current < optimum;
-    }
-
-    void include_frequency (uint32_t* freq_order) {}
-};
-
-/** We define here a 'maximizer' in the mmers of a specific kmer. */
-struct CustomMaximizer
-{
-    template<class Model>  void init (const Model& model, Kmer<span>::Type& optimum) const
-    {
-        optimum = Kmer<span>::Type(0);
-    }
-
-    bool operator() (const Kmer<span>::Type& current, const Kmer<span>::Type& optimum) const
-    {
-        return !(current < optimum);
-    }
-
-    void include_frequency (uint32_t* freq_order) {}
-};
-
 /** Some shortcuts. */
 typedef Kmer<span>::ModelDirect    ModelDirect;
-typedef Kmer<span>::ModelMinimizer<ModelDirect,CustomMinimizer> ModelMinimizer;
-typedef Kmer<span>::ModelMinimizer<ModelDirect,CustomMaximizer> ModelMaximizer;
-
+typedef Kmer<span>::ModelMinimizer<ModelDirect> ModelMinimizer;
 
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
+    static const char* STR_URI_DISTRIB = "-distrib";
+
     /** We create a command line parser. */
     OptionsParser parser ("KmerTest");
     parser.push_back (new OptionOneParam (STR_URI_INPUT,      "bank input",     true));
     parser.push_back (new OptionOneParam (STR_KMER_SIZE,      "kmer size",      true));
     parser.push_back (new OptionOneParam (STR_MINIMIZER_SIZE, "minimizer size", true));
+    parser.push_back (new OptionNoParam  (STR_URI_DISTRIB,    "compute distribution: number of times a read has X superkmers",  false));
     parser.push_back (new OptionNoParam  (STR_VERBOSE,        "display kmers",  false));
 
     try
@@ -107,6 +62,9 @@ int main (int argc, char* argv[])
         // We get a reference on the minimizer model, which will be useful for dumping
         const ModelDirect& modelMinimizer = model.getMmersModel();
 
+        // We compute a distribution : number of times a reads has X superkmers
+        map<size_t,size_t> distribSuperKmers;
+
         // We create an iterator over this bank.
         ProgressIterator<Sequence> itSeq (*bank);
 
@@ -134,6 +92,8 @@ int main (int argc, char* argv[])
                 nbKmers ++;
             });
 
+            distribSuperKmers [nbMinimizersPerRead]++;
+
             // We update global statistics
             nbSequences   ++;
             nbMinimizers  += nbMinimizersPerRead;
@@ -156,6 +116,23 @@ int main (int argc, char* argv[])
         info.add (1, "mean",          "%.2f", mean);
         info.add (1, "deviation",     "%.2f", devia);
         cout << info << endl;
+
+        // We dump the superkmers distribution if any
+        if (options->get(STR_URI_DISTRIB))
+        {
+            string outputFilename = System::file().getBaseName(bankFilename) + string (".distrib");
+
+            FILE* output = fopen (outputFilename.c_str(), "w");
+            if (output)
+            {
+                for (map<size_t,size_t>::iterator it = distribSuperKmers.begin(); it != distribSuperKmers.end(); ++it)
+                {
+                    fprintf (output, "%ld %ld\n", it->first, it->second);
+                }
+
+                fclose (output);
+            }
+        }
     }
     catch (OptionFailure& e)
     {

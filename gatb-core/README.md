@@ -97,13 +97,22 @@ Such a project can be a start for building applications based on GATB-CORE.
 
 To compile in debug mode, type.
 
- mkdir build ; cd build && cmake -Ddebug=1 .. && make -j
+    mkdir build ; cd build && cmake -Ddebug=1 .. && make -j
 
 
-To run unit tests, compile using the command above (-Ddebug=1 isn't necessary) and type:
+To run unit tests:
 
-    bin/gatb-core-cppunit
+    compile using the command above (-Ddebug=1 isn't necessary) and type:
 
-One may set the environment variable CPPUNIT_VERBOSE to 1 to known which tests pass.
-The gatb-core-cppunit command may also take as argument the categories of tests that
-show up in the verbose output, e.g. 'bin/gatb-core-cppunit TestBank'.
+        bin/gatb-core-cppunit
+
+
+    One may set the environment variable CPPUNIT_VERBOSE to 1 to known which tests pass.
+    The gatb-core-cppunit command may also take as argument the categories of tests that
+    show up in the verbose output, e.g. 'bin/gatb-core-cppunit TestBank'.
+
+
+To upload the documentation to the http://gatb-core.gforge.inria.fr/ website, type:
+
+    mkdir build && cd build && cmake .. && make doc
+    scp doc/html/index.html edrezen@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/

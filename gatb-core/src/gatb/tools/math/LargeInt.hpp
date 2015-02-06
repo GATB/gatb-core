@@ -67,11 +67,37 @@ namespace math  {
 /********************************************************************************/
 
 /** \brief Large integer class
+ *
+ * The LargeInt class provides methods for integer calculus. It has a template parameter
+ * 'precision' giving the number of bits used the integer representation. For instance:
+ *  - LargeInt<1>  : representation of integers up to 2^64
+ *  - LargeInt<2>  : representation of integers up to 2^128
+ *  - etc
+ *
+ *  This template class has a specialization for precision=1. In this case, native 64 bits
+ *  integers are used.
+ *
+ *  This template class may have a specialization for precision=2. If the used operating
+ *  system allows it, native 128 bits integers are used.
+ *
+ *  In the other cases, the LargeInt provides a generic integer calculus class. Note that
+ *  such an implementation could be optimized in several ways, including direct assembly
+ *  code for maximum speed.
+ *
+ *  The LargeInt class is hugely used throughout the GATB project since it encodes kmers values.
+ *
+ *  The LargeInt class is mainly used with the IntegerTemplate class, where 4 specializations
+ *  of LargeInt are used as template types of IntegerTemplate.
+ *
+ *  \see IntegerTemplate
  */
 template<int precision>  class LargeInt : public misc::ArrayData<u_int64_t, precision>
 {
 public:
 
+    /** Get the name of the class used by the variant (ie. one of the Ti template class parameters)
+     * \return the class name.
+     */
     static const char* getName ()
     {
         static char buffer[256];
@@ -80,7 +106,14 @@ public:
         return buffer;
     }
 
-     u_int64_t getVal() const  { return this->value[0]; }
+    /** Get the 64 less significant bits of the LargeInt object as a native integer type.
+     * \return (part of) the LargeInt object as a native integer type.
+     */
+    u_int64_t getVal() const  { return this->value[0]; }
+
+    /** Get the size of an instance of the class
+     * \return the size of an object (in bits).
+     */
     static const size_t getSize ()  { return 8*sizeof(u_int64_t)*precision; }
 
     /********************************************************************************/
@@ -96,6 +129,10 @@ public:
     u_int64_t toInt () const  {  throw system::Exception ("LargeInt<%d> no support of toInt", precision);  }
 
     /********************************************************************************/
+    /** Operator +
+     * \param[in] other : operand
+     * \return sum of object and the operand.
+     */
     LargeInt operator+ (const LargeInt& other) const
     {
         LargeInt result;
@@ -112,6 +149,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator -
+     * \param[in] other : operand
+     * \return subtraction of object and the operand.
+     */
     LargeInt operator- (const LargeInt& other) const
     {
         LargeInt result;
@@ -127,9 +168,11 @@ public:
         return result;
     }
 
-    
-    
     /********************************************************************************/
+    /** Operator *
+     * \param[in] coeff : operand
+     * \return multiplication of the object by the coeff.
+     */
     LargeInt operator*(const int& coeff) const
     {
         LargeInt result (*this);
@@ -158,6 +201,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator /
+     * \param[in] divisor : operand
+     * \return division of the object by the divisor.
+     */
     LargeInt operator/(const uint32_t& divisor) const
     {
         LargeInt result;
@@ -182,6 +229,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator %
+     * \param[in] divisor: operand
+     * \return modulo of the object by the operand.
+     */
     uint32_t operator%(const uint32_t& divisor) const
     {
         u_int64_t r = 0;
@@ -201,6 +252,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator ^
+     * \param[in] other : operand
+     * \return operator^ of the object by the operand.
+     */
     LargeInt operator^(const LargeInt& other) const
     {
         LargeInt result;
@@ -213,6 +268,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator |
+     * \param[in] other : operand
+     * \return operator| of the object by the operand.
+     */
     LargeInt operator|(const LargeInt& other) const
     {
         LargeInt result;
@@ -225,6 +284,10 @@ public:
     }
     
     /********************************************************************************/
+    /** Operator &
+     * \param[in] other : operand
+     * \return operator& of the object by the operand.
+     */
     LargeInt operator&(const LargeInt& other) const
     {
         LargeInt result;
@@ -237,6 +300,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator &
+     * \param[in] other : operand
+     * \return operator& of the object by the operand.
+     */
     LargeInt operator&(const char& other) const
     {
         LargeInt result;
@@ -245,8 +312,11 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator ~
+     * \return negation of the object
+     */
     LargeInt operator~() const
-                    {
+    {
         LargeInt result;
         for (int i=0 ; i < precision ; i++)
             result.value[i] = ~this->value[i];
@@ -254,9 +324,14 @@ public:
         assert(precision != 1 || (result == ~this->value[0]));
         assert128(result.toInt128() == ~toInt128());
         return result;
-                    }
+    }
 
     /********************************************************************************/
+    /** Operator <<. Note: this method is likely to be hugely used when we want to get
+     * neighbors of a given kmer encoded as a LargeInt object.
+     * \param[in] coeff : operand
+     * \return left shift of the object
+     */
     LargeInt operator<<(const int& coeff) const
     {
         LargeInt result (0);
@@ -286,6 +361,11 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator >>. Note: this method is likely to be hugely used when we want to get
+     * neighbors of a given kmer encoded as a LargeInt object.
+     * \param[in] coeff : operand
+     * \return right shift of the object
+     */
     LargeInt operator>>(const int& coeff) const
     {
         LargeInt result (0);
@@ -314,6 +394,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator !=
+     * \param[in] c: operand
+     * \return inequality
+     */
     bool operator!=(const LargeInt& c) const
     {
         for (int i = 0 ; i < precision ; i++)
@@ -323,6 +407,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator ==
+     * \param[in] c: operand
+     * \return equality
+     */
     bool operator==(const LargeInt& c) const
     {
         for (int i = 0 ; i < precision ; i++)
@@ -332,6 +420,9 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator <
+     * \param[in] c: operand
+     */
     bool operator<(const LargeInt& c) const
     {
         for (int i = precision-1 ; i>=0 ; --i)
@@ -342,12 +433,19 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator <=
+     * \param[in] c: operand
+     */
     bool operator<=(const LargeInt& c) const
     {
         return operator==(c) || operator<(c);
     }
 
     /********************************************************************************/
+    /** Operator +=
+     * \param[in] other : operand
+     * \return addition and affectation
+     */
     LargeInt& operator+=  (const LargeInt& other)
     {
         // NOT so easy to optimize because of the carry
@@ -356,6 +454,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator ^=
+     * \param[in] other : operand
+     * \return xor and affectation
+     */
     LargeInt& operator^=  (const LargeInt& other)
     {
         for (int i=0 ; i < precision ; i++)  {  this->value[i] ^= other.value[i];  }
@@ -363,6 +465,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator &=
+     * \param[in] other : operand
+     * \return and and affectation
+     */
     LargeInt& operator&=  (const LargeInt& other)
     {
         for (int i=0 ; i < precision ; i++)  {  this->value[i] &= other.value[i];  }
@@ -370,6 +476,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator |=
+     * \param[in] other : operand
+     * \return or and affectation
+     */
     LargeInt& operator|=  (const LargeInt& other)
     {
         for (int i=0 ; i < precision ; i++)  {  this->value[i] |= other.value[i];  }
@@ -377,18 +487,29 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator <<=
+     * \param[in] coeff : operand
+     * \return left shift and affectation
+     */
     LargeInt& operator<<=  (const int& coeff)
     {
         *(this) = (*this) << coeff;  return *this;
     }
 
     /********************************************************************************/
+    /** Operator >>=
+     * \param[in] coeff : operand
+     * \return right shift and affectation
+     */
     LargeInt& operator>>=  (const int& coeff)
     {
         *(this) = (*this) >> coeff;  return *this;
     }
 
     /********************************************************************************/
+    /** Synchronized atomic operation
+     * \param[in] other : operand
+     */
     LargeInt& sync_fetch_and_or (const LargeInt& other)
     {
         for (int i=0 ; i < precision ; i++)  {  __sync_fetch_and_or (this->value + i, other.value[i]); }
@@ -396,6 +517,9 @@ public:
     }
 
     /********************************************************************************/
+    /** Synchronized atomic operation
+     * \param[in] other : operand
+     */
     LargeInt& sync_fetch_and_and (const LargeInt& other)
     {
         for (int i=0 ; i < precision ; i++)  {  __sync_fetch_and_and (this->value + i, other.value[i]); }
@@ -403,6 +527,11 @@ public:
     }
 
     /********************************************************************************/
+    /** Output stream operator for the IntegerTemplate class
+     * \param[in] s : the output stream to be used.
+     * \param[in] l : the object to output
+     * \return the modified output stream.
+     */
     friend std::ostream & operator<<(std::ostream & s, const LargeInt<precision> & l)
     {
         int i=0;
@@ -424,6 +553,10 @@ public:
     }
 
     /********************************************************************************/
+    /** Get the HDF5 type for the the class used by the variant  (ie. one of the Ti template class parameters)
+     * \param[in] isCompound : tells whether the type is composed or not
+     * \return a HDF5 identifier for the type.
+     */
     inline static hid_t hdf5 (bool& isCompound)
     {
         hid_t result = H5Tcopy (H5T_NATIVE_INT);
@@ -432,6 +565,12 @@ public:
     }
 
     /********************************************************************************/
+    /** Computes a kmer value as polynom. We may have conversion from the data buffer to
+     * a nucleotide code. This is done through the provided functor.
+     * \param[in] data : kmer given as a buffer of nucleotides
+     * \param[in] size : size of the kmer
+     * \param[in] fct : convert the ith entry in the buffer into a nucleotide code  (A=0, C=1, T=2 and G=3)
+     */
     template<typename Map>
     static LargeInt polynom (const char* data, size_t size, Map fct)
     {
@@ -443,6 +582,7 @@ public:
     /********************************************************************************/
     /** Print corresponding kmer in ASCII
      * \param[in] sizeKmer : kmer size (def=32).
+     * \return the ASCII string
      */
     std::string toString (size_t sizeKmer) const
     {
@@ -455,10 +595,14 @@ public:
     }
 
     /********************************************************************************/
+    /** Operator[] access the ith nucleotide in the given integer. For instance a[4] get the 5th nucleotide of
+     * a kmer encoded as an Integer object.
+     * \param[in] idx : index of the nucleotide to be retrieved
+     * \return the nucleotide value as follow: A=0, C=1, T=2 and G=3
+     */
     u_int8_t  operator[]  (size_t idx) const    {  return (this->value[idx/32] >> (2*idx)) & 3; }
 
 private:
-//    u_int64_t value[precision];
 
     template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
     template<int T>  friend u_int64_t   hash1    (const LargeInt<T>& key, u_int64_t  seed);

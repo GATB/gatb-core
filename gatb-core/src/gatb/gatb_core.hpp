@@ -30,6 +30,7 @@
 
 #include <gatb/system/impl/System.hpp>
 
+#include <gatb/tools/designpattern/impl/Observer.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
@@ -37,6 +38,7 @@
 #include <gatb/tools/collections/impl/BagFile.hpp>
 #include <gatb/tools/collections/impl/BagPartition.hpp>
 #include <gatb/tools/collections/impl/Bloom.hpp>
+#include <gatb/tools/collections/impl/BloomGroup.hpp>
 #include <gatb/tools/collections/impl/ContainerSet.hpp>
 #include <gatb/tools/collections/impl/Hash16.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>

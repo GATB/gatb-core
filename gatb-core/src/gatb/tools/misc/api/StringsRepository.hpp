@@ -35,7 +35,7 @@ namespace tools     {
 namespace misc      {
 /********************************************************************************/
 
-/** \brief Pool of strings
+/* \brief Pool of strings
  *
  * This class provides constant strings used throughout the code. It may be interesting
  * in order to have a central point for constant strings management:
@@ -71,7 +71,7 @@ public:
 
 /********************************************************************************/
 
-/** \brief Pool of strings
+/* \brief Pool of strings
  */
 class StringRepository
 {

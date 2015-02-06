@@ -26,7 +26,7 @@ int main (int argc, char* argv[])
     Graph graph = Graph::create (bank, "-kmer-size %d  -abundance-min 1  -mphf emphf  -verbose 0", kmerSize);
 
     // We build a fake node (we are sure that it will be in the graph).
-    Node node = graph.buildNode ((char*)seq, 0);
+    Node node = graph.buildNode (seq);
 
     // We query its abundance.
     cout << "abundance=" << graph.queryAbundance(node) << endl;

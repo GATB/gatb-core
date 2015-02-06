@@ -47,14 +47,22 @@ namespace impl      {
     class Option;
 }
 
-/** \brief Visitor design pattern for IOptionsParser. */
+/** Visitor design pattern for IOptionsParser. */
 class IOptionsParserVisitor
 {
 public:
+    /** Destructor. */
     virtual ~IOptionsParserVisitor() {}
 
+    /** Visit a instance of OptionsParser
+     * \param[in] object : the object to be visited
+     * \param[in] depth : level of the visit */
     virtual void visitOptionsParser (impl::OptionsParser& object, size_t depth) = 0;
-    virtual void visitOption        (impl::Option&        object, size_t depth) = 0;
+
+    /** Visit a instance of Option
+     * \param[in] object : the object to be visited
+     * \param[in] depth : level of the visit */
+    virtual void visitOption (impl::Option& object, size_t depth) = 0;
 };
 
 /********************************************************************************/

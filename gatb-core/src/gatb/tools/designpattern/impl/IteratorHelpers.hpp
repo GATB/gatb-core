@@ -75,22 +75,8 @@ public:
  *  may still be more efficient to have two loops. The CartesianIterator is just here
  *  for easing the product iteration on small sets.
  *
- *  \code
- *  // We declare a Bank instance.
- *  Bank b (filename);
- *
- *  // We declare two iterators on the bank
- *  Bank::Iterator it1 (b);
- *  Bank::Iterator it2 (b);
- *
- *  // We build a product iterator from the two iterators
- *  ProductIterator<Sequence,Sequence> prodIt (it1, it2);
- *
- *  for (prodIt.first(); !prodIt.isDone(); prodIt.next())
- *  {
- *      printf ("'%s'\n'%s'\n\n", prodIt->first.getData(), prodIt->second.getData());
- *  }
- *  \endcode
+ * Example:
+ * \snippet iterators2.cpp  snippet1
  */
 template <class T1, class T2> class ProductIterator : public Iterator < std::pair<T1,T2> >
 {
@@ -176,6 +162,10 @@ private:
  *
  * We define a an iterator for two iterators, by iterating each of the two iterators
  * and providing a pair of the two currently iterated items.
+ *
+ *  Example:
+ * \snippet iterators7.cpp  snippet1
+ *
  */
 template <class T1, class T2=T1>
 class PairedIterator : public Iterator < std::pair<T1,T2> >
@@ -186,10 +176,13 @@ public:
      * \param[in] it1 : first iterator.
      * \param[in] it2 : second iterator.
      */
-    PairedIterator (Iterator<T1>* it1, Iterator<T2>* it2)  : _it1(it1), _it2(it2), _isDone(true) { }
+    PairedIterator (Iterator<T1>* it1, Iterator<T2>* it2)  : _it1(0), _it2(0), _isDone(true)
+    {
+        setIt1 (it1);   setIt2 (it2);
+    }
 
     /** Destructor. */
-    virtual ~PairedIterator ()  {}
+    virtual ~PairedIterator ()  {  setIt1 (0);   setIt2 (0);  }
 
     /** \copydoc Iterator::first */
     void first()
@@ -229,9 +222,11 @@ private:
 
     /** First iterator. */
     Iterator<T1>* _it1;
+    void setIt1 (Iterator<T1>* it1)  { SP_SETATTR(it1); }
 
     /** Second iterator. */
     Iterator<T2>* _it2;
+    void setIt2 (Iterator<T2>* it2)  { SP_SETATTR(it2); }
 
     /** Finish status. */
     bool _isDone;
@@ -391,7 +386,7 @@ public:
         setRef (0);
     }
 
-    /** \copydoc Iterator::first */
+    /* \copydoc Iterator::first */
     void first ()
     {
         notifyInit ();
@@ -399,13 +394,13 @@ public:
         _ref->first ();
     }
 
-    /** \copydoc Iterator::isDone */
+    /* \copydoc Iterator::isDone */
     bool isDone ()
     {
         bool res = _ref->isDone();  if (res)  { notifyFinish(); }  return res;
     }
 
-    /** \copydoc Iterator::next */
+    /* \copydoc Iterator::next */
     void next ()
     {
         _ref->next ();
@@ -413,13 +408,13 @@ public:
         _current++;
     }
 
-    /** \copydoc Iterator::item */
+    /* \copydoc Iterator::item */
     Item& item ()  { return _ref->item(); }
 
-    /** */
+    /* */
     void setItem (Item& current)  { _ref->setItem(current); }
 
-    /** */
+    /* */
     void reset ()  { _ref->reset(); }
 
 private:
@@ -490,6 +485,9 @@ private:
  * This iterator iterates a referred iterator and will finish:
  *      - when the referred iterator is over
  *   or - when a limit number of iterations is reached.
+ *
+ *  Example:
+ * \snippet iterators3.cpp  snippet1
  */
 template <class Item> class TruncateIterator : public Iterator<Item>
 {
@@ -555,6 +553,9 @@ private:
  *
  * This iterator iterates a referred iterator and will filter out some items according
  * to a functor provided at construction.
+ *
+ * Example:
+ * \snippet iterators6.cpp  snippet1
  */
 template <class Item, typename Filter> class FilterIterator : public ISmartIterator<Item>
 {
@@ -801,6 +802,12 @@ public:
 /********************************************************************************/
 
 /** \brief Composite iterator
+ *
+ * This iterator takes a list of iterators as input and iterates each one of these
+ * iterators.
+ *
+ *  Example:
+ * \snippet iterators9.cpp  snippet1
  */
 template <class Item>
 class CompositeIterator : public Iterator <Item>

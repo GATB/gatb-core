@@ -72,7 +72,7 @@ namespace dp    {
  * };
  * \endcode
  *
- * \see ICommandDispatcher
+ * \see IDispatcher
  */
 class ICommand : virtual public system::ISmartPointer
 {
@@ -96,13 +96,13 @@ public:
  *  Note that this interface could also be implemented for dispatching commands over a network in order
  *  to use a grid of computers. We could imagine that the commands dispatching consists in
  *  launching some RCP calls, or creating some web services calls. The important point is that, from the
- *  client point of view, her/his code should not change, except the actual kind of ICommandDispatcher instance
+ *  client point of view, her/his code should not change, except the actual kind of IDispatcher instance
  *  provided to the algorithm.
  *
  *  Sample of use:
  *  \code
  *  // We define a command class
- *  class MyCommand : public ICommand
+ *  class MyCommand : public ICommand, public SmartPointer
  *  {
  *  public:
  *      MyCommand (int i) : _i(i) {}
@@ -114,13 +114,13 @@ public:
  *  int main (int argc, char* argv[])
  *  {
  *      // We create a list of commands
- *      std::list<ICommand*> commands;
+ *      std::vector<ICommand*> commands;
  *      commands.push_back (new MyCommand(2));
  *      commands.push_back (new MyCommand(5));
  *      commands.push_back (new MyCommand(3));
  *
  *      // We create a commands dispatcher that parallelizes the execution of the commands.
- *      ICommandDispatcher* dispatcher = new ParallelCommandDispatcher ();
+ *      IDispatcher* dispatcher = new Dispatcher ();
  *
  *      // We launch the 3 commands.
  *      dispatcher->dispatchCommands (commands, 0);
@@ -204,7 +204,20 @@ public:
         return status;
     }
 
-    /** */
+    /** Iterate a provided instance. The provided functor is cloned N times, where N is the number of threads to
+     * be created; each thread will use its own instance of functor.
+     *
+     * One has to be aware that the copy constructor of the Functor type has to be well defined. For instance, if
+     * one wants to share a resource hold by the 'functor' argument, the copied Functor object may have a direct
+     * access to the shared resource, which potential issues with concurrent accesses on it. A way to avoid this
+     * kind of issue is to define a copy constructor that will create an instance of Functor with specific
+     * synchronization process (see ISynchronizer for that).
+     *
+     * \param[in] iterator : the iterator to be iterated
+     * \param[in] functor : functor object to be cloned N times, one per thread
+     * \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
+     * \param[in] localIterator : true if the provided iterator must be used locally like a smart pointer
+     */
     template <typename Item, typename Functor>
     Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000, bool localIterator=true)
     {
@@ -220,7 +233,7 @@ public:
         status = iterate (iterator, functors, groupSize);
 
         /** We get rid of the functors. */
-     //   for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
+        // for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
 
         if (localIterator) { iterator->forget(); }
 
@@ -228,7 +241,19 @@ public:
         return status;
     }
 
-    /** Another way: use iterator object instead of pointer. */
+    /** Iterate a provided instance. The provided functor is cloned N times, where N is the number of threads to
+     * be created; each thread will use its own instance of functor.
+     *
+     * One has to be aware that the copy constructor of the Functor type has to be well defined. For instance, if
+     * one wants to share a resource hold by the 'functor' argument, the copied Functor object may have a direct
+     * access to the shared resource, which potential issues with concurrent accesses on it. A way to avoid this
+     * kind of issue is to define a copy constructor that will create an instance of Functor with specific
+     * synchronization process (see ISynchronizer for that).
+     *
+     * \param[in] iterator : the iterator to be iterated
+     * \param[in] functor : functor object to be cloned N times, one per thread
+     * \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
+     */
     template <typename Item, typename Functor>
     Status iterate (const Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
     {
@@ -249,7 +274,7 @@ protected:
      * \return the created synchronizer. */
     virtual system::ISynchronizer* newSynchro () = 0;
 
-    /** We need some inner class for iterate some iterator in one thread. */
+    /* We need some inner class for iterate some iterator in one thread. */
     template <typename Item, typename Functor> class IteratorCommand : public ICommand, public system::SmartPointer
     {
     public:

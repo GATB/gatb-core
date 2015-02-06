@@ -38,7 +38,10 @@ namespace tools     {
 namespace storage   {
 /********************************************************************************/
 
-/** \brief Interface for a cell
+/** \brief Interface to be used for storage feature.
+ *
+ * This interface defines a few methods for hierarchical management of entities
+ * that can be stored (likely in file system).
  */
 class ICell : public virtual system::ISmartPointer
 {
@@ -56,6 +59,7 @@ public:
     virtual const std::string& getId () const = 0;
 
     /** Return the full identifier (like a path "x.y.z")
+     * \param[in] sep : separator character for the path string
      * \return the full identifier. */
     virtual std::string getFullId (char sep='.') const = 0;
 

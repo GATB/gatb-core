@@ -66,11 +66,7 @@ public:
 private:
 
     ICell* _parent;
-    void setParent (ICell* parent)
-    {
-        _parent = parent;
-        //SP_SETATTR(parent);
-    }
+    void setParent (ICell* parent)  {  _parent = parent;  }
 
     std::string _id;
 };

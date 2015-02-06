@@ -46,7 +46,9 @@ class LibraryInfo
 {
 public:
 
-    /** */
+    /** Get information about the GATB-CORE library
+     * \return information as a IProperties instance
+     */
     static IProperties& getInfo()
     {
         static system::SmartObject singleton;
@@ -69,7 +71,9 @@ public:
         return * (dynamic_cast<IProperties*>(singleton.getRef()));
     }
 
-    /** */
+    /** Display information about the GATB-CORE library
+     * \param[in] os : output stream used for dumping library information
+     */
     static void displayVersion (std::ostream& os)
     {
         os << Stringify::format ("* version %s (%s)\n* built on %s with compiler '%s'\n* supported kmer sizes %d %d %d %d",

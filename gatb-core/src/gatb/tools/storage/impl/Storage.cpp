@@ -117,14 +117,14 @@ void Storage::setFactory (StorageFactory* factory)
              #####      #     #     #  #######  #     #  #     #
 ********************************************************************************/
 
-/** WRAPPERS BETWEEN STORAGE AND C++ STREAMS
+/* WRAPPERS BETWEEN STORAGE AND C++ STREAMS
  *
  * Got inspiration from :
  *      http://savingyoutime.wordpress.com/2009/04/21/using-c-stl-streambufostream-to-create-time-stamped-logging-class/
  *      http://www.mr-edd.co.uk/blog/beginners_guide_streambuf
  */
 
-/** Output stream buffer implementation. */
+/* Output stream buffer implementation. */
 class Storage_ostreambuf : public std::streambuf
 {
 protected:
@@ -184,7 +184,7 @@ protected:
 /*********************************************************************
 *********************************************************************/
 
-/** Output stream buffer implementation. */
+/* Output stream buffer implementation. */
 class Storage_istreambuf : public std::streambuf
 {
     public:

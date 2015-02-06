@@ -15,7 +15,9 @@ int main (int argc, char* argv[])
 {
     // We load a Storage product "foo" in HDF5 format
     // It must have been created with the storage1 snippet
+//! [snippet1_storage]
     Storage* storage = StorageFactory(STORAGE_HDF5).load ("foo");
+//! [snippet1_storage]
     LOCAL (storage);
 
     // Shortcut: we get the root of this Storage object

@@ -14,7 +14,7 @@ int main (int argc, char* argv[])
     try
     {
         // We create the graph with a bank holding one sequence, and use a specific kmer size and solid kmer abundance to 1
-        Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance 1  -verbose 0");
+        Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance-min 1  -verbose 0");
 
         // We get an iterator for all nodes of the graph.
         Graph::Iterator<Node> it = graph.iterator<Node> ();

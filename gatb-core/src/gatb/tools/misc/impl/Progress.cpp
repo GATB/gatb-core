@@ -262,7 +262,7 @@ void ProgressTimer::update (bool force)
     double elapsed = (heure_actuelle - heure_debut) / 1000.0;
 
     /** A little check. */
-    if (force || (elapsed > 0  &&  done > 0))
+    if (force || (done > 0))
     {
         fillBuffer (elapsed);
 
