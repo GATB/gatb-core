@@ -572,6 +572,16 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
     if (_max_memory == 0)  {  _max_memory = 1000; }
+   
+    /* make sure to not use more mem than system, when max_memory has default value (useful for docker images) */
+    if (_max_memory == 2000)  {  
+        unsigned long system_mem = System::info().getMemoryPhysicalTotal() / MBYTE;
+        if (_max_memory > (system_mem * 2) / 3)
+        {
+            _max_memory = (system_mem * 2) / 3;
+            cout << "Warning: default memory usage (2000 MB) is close or above system max, setting memory to: " << _max_memory << " MB" << endl;
+        }
+    }
 
     assert (_max_disk_space > 0);
     
