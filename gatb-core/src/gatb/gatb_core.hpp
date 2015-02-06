@@ -79,6 +79,10 @@
 #include <gatb/debruijn/impl/IterativeExtensions.hpp>
 #include <gatb/debruijn/impl/BranchingAlgorithm.hpp>
 
+
+#include <gatb/tools/compression/CompressionUtils.hpp>
+#include <gatb/tools/compression/RangeCoder.hpp>
+
 using namespace gatb::core::system;
 using namespace gatb::core::system::impl;
 
