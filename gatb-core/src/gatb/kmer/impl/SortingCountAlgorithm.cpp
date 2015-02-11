@@ -739,7 +739,7 @@ public:
         /** We first check whether we got kmers from the sequence or not. */
         if (_model.build (sequence.getData(), _kmers) == false)  { return; }
 
-        int maxs = (Type::getSize() - _miniSize )/2 ; //and 100 max
+        int maxs = (Type::getSize() - 8 )/2 ;  // 8 is because  8 bit used for size of superkmers, not mini size
 
         /** We create a superkmer object. */
         SuperKmer superKmer (_kmersize, _miniSize, _kmers);
