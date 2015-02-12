@@ -183,6 +183,11 @@ public:
      */
     virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
 
+    /** Displays information about the GATB library
+     * \param[in] os : output stream used for dumping library information
+     */
+    virtual void displayVersion(std::ostream& os);
+
 protected:
 
     /** */
