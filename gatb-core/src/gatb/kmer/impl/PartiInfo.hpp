@@ -33,6 +33,9 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+	typedef u_int16_t nbv_t;
+
+	
 /** class containing info of each parti : exact number of kmers per parti
  *
  * will be computed by fillparti, then used by fillsolids
@@ -42,6 +45,7 @@ namespace impl      {
 template <size_t xmer>
 class PartiInfo
 {
+	
 public:
 
     inline void incKmer (int numpart, u_int64_t val=1)
@@ -101,6 +105,12 @@ public:
             __sync_fetch_and_add (_kmer_per_mmer_bin   + ii, other.getNbKmer_per_minim      (ii));
             __sync_fetch_and_add (_kxmer_per_mmer_bin  + ii, other.getNbKxmer_per_minim     (ii));
         }
+		
+		if(_minim_matrix_neighbor!=NULL)
+		for (int ii=0; ii< ( _num_mm_bins * _num_mm_bins ); ii++)
+		{
+			__sync_fetch_and_add ( _minim_matrix_neighbor + ii , other.getMinimMatrix (ii));
+		}
 
         return *this;
     }
@@ -141,6 +151,178 @@ public:
         return _kxmer_per_mmer_bin[numbin];
     }
 
+	//matrix [i][j] = nb times minim j follows minim i in a read
+	inline  nbv_t getMinimMatrix(int m1,int m2) const
+	{
+		if(_minim_matrix_neighbor==NULL) return 0;
+		
+		return _minim_matrix_neighbor[ m1 + (m2*_num_mm_bins )   ];
+
+	}
+	
+	void computeSums()
+	{
+		if(_minim_matrix_neighbor==NULL) return ;
+		
+		double sum = 0;
+		for (int ii=0; ii<_num_mm_bins; ii++) {
+			sum = 0;
+			for (int jj=0; jj<_num_mm_bins; jj++) {
+
+				sum+= getMinimMatrix(ii,jj);
+			}
+			_minim_matrix_neighbor_sum[ii]= sum;
+
+		}
+
+		
+	}
+	
+	inline  double getRelMinimMatrix(int m1,int m2) const
+	{
+		if(_minim_matrix_neighbor==NULL) return 0;
+
+		return  _minim_matrix_neighbor[ m1 + (m2*_num_mm_bins )   ]  /  (double) _minim_matrix_neighbor_sum[m1];
+
+		
+	}
+	
+
+	inline  nbv_t getMinimMatrix(int ii) const
+	{
+		if(_minim_matrix_neighbor==NULL) return 0;
+		
+		return _minim_matrix_neighbor[ ii];
+	}
+	
+	
+nbv_t *  getMinimMatrix_p() const
+	{
+		
+		return _minim_matrix_neighbor ;
+	}
+	
+	inline  void incMinimMatrix(int m1,int m2)
+	{
+		if(_minim_matrix_neighbor==NULL) return;
+
+		//printf("inc minim matrix %i %i \n",m1,m2);
+		if(_minim_matrix_neighbor[ m1 + (m2*_num_mm_bins )] < 65535)
+			 _minim_matrix_neighbor[ m1 + (m2*_num_mm_bins )] ++;
+	}
+	
+	
+	inline  void addsuperkk(int size,int parti)
+	{
+		_super_kmer_info[parti] += size;
+		_super_kmer_nb[parti]   += 1 ;
+
+	}
+	
+	inline  void addmegak(int size,int parti)
+	{
+		_mega_kmer_info[parti] += size;
+		_mega_kmer_nb[parti]   += 1 ;
+		
+	}
+	
+	
+	
+	void incmegak(int size , int p1 , int p2 )
+	{
+		if(p1==p2) // superk are in same parti, can extend them into a megakmer
+		{
+			current_megaksize+= size;
+		}
+		else
+		{
+			//output current megak
+			current_megaksize+= size;
+			this->addmegak(current_megaksize, p1);
+			current_megaksize=0;
+		}
+	}
+
+	void endcurrentmegak(int size, int p1 )
+	{
+		current_megaksize+= size;
+
+		this->addmegak(current_megaksize, p1);
+	}
+		
+		
+	
+	void printsuperkinfo()
+	{
+		double meansuperk =0;
+		double meanmegak =0;
+		
+		double cpt = 0;
+		double cpt2 = 0;
+		
+		printf("Superk sizes \n");
+		for (int ii=0; ii<1024; ii++) {
+			if(_super_kmer_nb[ii] >0)
+			{
+				_super_kmer_info[ii] = _super_kmer_info[ii] / _super_kmer_nb[ii] ;
+				printf("Mean superksize parti[%i] = %f\n",ii,_super_kmer_info[ii]);
+				meansuperk+= _super_kmer_info[ii];
+				cpt++;
+			}
+		}
+		
+		
+		printf("Megak sizes \n");
+		for (int ii=0; ii<1024; ii++) {
+			if(_mega_kmer_nb[ii] >0)
+			{
+				_mega_kmer_info[ii] = _mega_kmer_info[ii] / _mega_kmer_nb[ii] ;
+				printf("Mean megaksize parti[%i] = %f\n",ii,_mega_kmer_info[ii]);
+				meanmegak+= _mega_kmer_info[ii];
+				cpt2++;
+			}
+		}
+		
+		
+		printf("--- Mean superk size %f   megaksize %f  \n",meansuperk/ cpt, meanmegak/ cpt2  );
+
+	}
+	
+	
+	void printMinimMatrix()
+	{
+		
+		//printf("-------Minim neighbor matrix -----\n");
+
+		FILE * ff= fopen("mmatrix","w");
+		std::string temp;
+		char buff[1000];
+		for (int ii=0; ii<_num_mm_bins; ii++) {
+			
+			for (int jj=0; jj<_num_mm_bins; jj++) {
+				if(getMinimMatrix(ii,jj)!=0)
+				{
+					sprintf(buff,"%i:%i ",jj,getMinimMatrix(ii,jj));
+//					sprintf(buff,"%i ",getMinimMatrix(ii,jj));
+
+					temp+= buff;
+				}
+				
+
+			}
+			if(temp.size()>0)
+			{
+				fprintf(ff,"%i --> %s\n",ii,temp.c_str());
+			}
+			temp.clear();
+			
+		}
+		//printf("----------------------------------\n");
+		//printf("----------------------------------\n");
+
+		fclose(ff);
+	}
+	
     /** */
     void clear()
     {
@@ -149,7 +331,14 @@ public:
         memset (_superk_per_mmer_bin, 0, _num_mm_bins * sizeof(u_int64_t));
         memset (_kmer_per_mmer_bin,   0, _num_mm_bins * sizeof(u_int64_t));
         memset (_kxmer_per_mmer_bin,  0, _num_mm_bins * sizeof(u_int64_t));
+		if(_minim_matrix_neighbor!=NULL)
+		memset (_minim_matrix_neighbor,  0,_num_mm_bins*_num_mm_bins* sizeof(nbv_t));
 
+		memset (_mega_kmer_info,  0,1024* sizeof(double));
+		memset (_mega_kmer_nb,  0,1024* sizeof(u_int64_t));
+		memset (_super_kmer_info,  0,1024* sizeof(double));
+		memset (_super_kmer_nb,  0,1024* sizeof(u_int64_t));
+		
         for (int xx=0; xx<xmer; xx++)
         {
             for(int ii=0; ii<256; ii++)
@@ -208,7 +397,7 @@ public:
     }
 
     /** Constructor. */
-    PartiInfo(int nbpart, int minimsize) : _nbpart(nbpart), _mm(minimsize)
+    PartiInfo(int nbpart, int minimsize, bool withminimtable = false) : _nbpart(nbpart), _mm(minimsize)
     {
         _nb_kmers_per_parti  = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
         _nb_kxmers_per_parti = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
@@ -217,7 +406,22 @@ public:
         _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
         _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
         _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
+		if(withminimtable)
+		{
+		_minim_matrix_neighbor =  (nbv_t*) CALLOC (_num_mm_bins*_num_mm_bins, sizeof(nbv_t));
+		printf("Main construct partiInfo alloc a  _minim_matrix_neighbor table %llu MB \n",_num_mm_bins*_num_mm_bins* sizeof(nbv_t)/1024LL/1024LL);
+		}
+		else
+			_minim_matrix_neighbor= NULL;
+		
+		_minim_matrix_neighbor_sum = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
 
+		_mega_kmer_info =  (double*) CALLOC (1024, sizeof(double));
+		_mega_kmer_nb =  (u_int64_t*) CALLOC (1024, sizeof(u_int64_t));
+		_super_kmer_info =  (double*) CALLOC (1024, sizeof(double));
+		_super_kmer_nb =  (u_int64_t*) CALLOC (1024, sizeof(u_int64_t));
+		current_megaksize =0;
+		
         for(int xx=0; xx<xmer; xx++)
         {
             for(int ii=0; ii<256; ii++)
@@ -240,6 +444,12 @@ public:
         _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
         _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
         _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
+		
+		_minim_matrix_neighbor= NULL;
+
+		//_minim_matrix_neighbor =  (nbv_t*) CALLOC (_num_mm_bins*_num_mm_bins, sizeof(nbv_t));
+		
+		printf("Copy construct partiInfo alloc\n");
 
         for(int xx=0; xx<xmer; xx++)
         {
@@ -261,6 +471,15 @@ public:
         FREE (_superk_per_mmer_bin);
         FREE (_kmer_per_mmer_bin);
         FREE (_kxmer_per_mmer_bin);
+		if(_minim_matrix_neighbor!= NULL)
+		FREE(_minim_matrix_neighbor);
+
+		FREE(_mega_kmer_info);
+		FREE(_mega_kmer_nb);
+		FREE(_minim_matrix_neighbor_sum);
+
+		FREE(_super_kmer_info);
+		FREE(_super_kmer_nb);
 
         for(int xx=0; xx<xmer; xx++)  {  for(int ii=0; ii<256; ii++)  {  FREE(_nbk_per_radix_per_part[xx][ii]);  }  }
 
@@ -274,10 +493,17 @@ private:
     u_int64_t* _superk_per_mmer_bin;
     u_int64_t* _kmer_per_mmer_bin;
     u_int64_t* _kxmer_per_mmer_bin;
-
+	u_int64_t* _minim_matrix_neighbor_sum;
+	//per parti
+	double* _mega_kmer_info;
+	u_int64_t* _mega_kmer_nb;
+	double* _super_kmer_info;
+	u_int64_t* _super_kmer_nb;
+	
+	nbv_t * _minim_matrix_neighbor;
     u_int64_t* _nbk_per_radix_per_part[xmer][256];//number of kxmer per parti per rad
     u_int64_t _num_mm_bins;
-
+	u_int64_t current_megaksize;
     int _nbpart;
     int _mm;
 };
@@ -320,6 +546,7 @@ public:
     void justGroupNaive (const PartiInfo<5>& pInfo,  std::vector <std::pair<int,int> > &counts);
     void justGroup      (const PartiInfo<5>& pInfo,  std::vector <std::pair<int,int> > &counts);
     void justGroupLexi  (const PartiInfo<5>& extern_pInfo);
+	void NaiveMegak (const PartiInfo<5>& pInfo);
 
     /** Returns the hash value for the given minimizer value.
      * \param[in] minimizerValue : minimizer value as an integer.
@@ -352,6 +579,18 @@ private:
             itriple() : first(0), second(0), third(0) {}
     };
 
+	
+	class itriple_float
+	{
+	public:
+		u_int64_t first;
+		double second;
+		u_int64_t third;
+		
+		itriple_float( u_int64_t first,  double second,  u_int64_t third) : first(first), second(second), third(third) {}
+		itriple_float() : first(0), second(0), third(0) {}
+	};
+	
     struct compBin {
         bool operator() (ipair l,ipair r) { return l.first > r.first; }
     } comp_bins;
@@ -364,6 +603,14 @@ private:
         bool operator() (itriple l, itriple r) { return l.second > r.second; } // same as compSpace
     } ;
 
+	struct compLink {
+		bool operator() (itriple l, itriple r) { return l.second < r.second; } 
+	} ;
+	
+	struct compLinkfloat {
+		bool operator() (itriple_float l, itriple_float r) { return l.second < r.second; }
+	} ;
+	
     typedef std::vector<Value> Table;
 
     /** Get the repartition table. It is built at first call. */

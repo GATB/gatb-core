@@ -130,6 +130,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _flagEstimateNbDistinctKmers(false),  _estimatedDistinctKmerNb(0),
     _solidityKind(solidityKind)
 {
+	//_minimizerType = 1; // force freq order
     setBank (bank);
 
     /** We create the collection corresponding to the solid kmers output. */
@@ -311,8 +312,11 @@ void SortingCountAlgorithm<span>::execute ()
 
         pInfo.clear();
 
+		printf("---fill part ---\n");
+
         /** 1) We fill the partition files. */
         fillPartitions (_current_pass, itSeq, pInfo);
+		printf("---fill solid ---\n");
 
         /** 2) We fill the kmers solid file from the partition files. */
         fillSolidKmers (pInfo);
@@ -542,7 +546,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     /** By default, we want to have mmers of size 8. However (for unit tests for instance),
      * we may need to have kmer sizes less than 8; in such a case, we set by convention m=k-1. */
     if (_minim_size == 0)
-        _minim_size = 8;
+        _minim_size = 8; //choix minim
 
     _minim_size = std::min ((int)_kmerSize-1, (int)_minim_size);
 
@@ -666,7 +670,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     } while (1);
 
     if (_nb_partitions < 50 &&  (max_open_files - _nb_partitions  > 30) ) _nb_partitions += 30; //some more does not hurt
-    
+	
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _nb_partitions_in_parallel - _nb_partitions % _nb_partitions_in_parallel;
     incpart = incpart % _nb_partitions_in_parallel;
@@ -760,7 +764,7 @@ public:
             if (_kmers[i].isValid() == false)
             {
                 // on invalid kmer : output previous superk utput prev
-                processSuperkmer (superKmer);
+                processSuperkmer (superKmer,0,0); // no neighbor info in that case
 
                 superKmer.minimizer = DEFAULT_MINIMIZER;  //marking will have to restart 'from new'
                 superKmer.range     = make_pair(i+1,i+1);
@@ -781,7 +785,8 @@ public:
             /** If the current super kmer is finished (or max size reached), we dump it. */
             if (h != superKmer.minimizer || superKmer.size() >= maxs)
             {
-                processSuperkmer (superKmer);
+				//ici info de voisinage de minimizer est disponible
+                processSuperkmer (superKmer,superKmer.minimizer, h); // h is the new one
                 superKmer.range = make_pair(i,i);
             }
 
@@ -791,7 +796,7 @@ public:
         }
 
         //output last superK
-        processSuperkmer (superKmer);
+		processSuperkmer (superKmer,0,0); //last one, no neighbor info
 
         if (_nbWrittenKmers > 500000)   {  _progress->inc (_nbWrittenKmers);  _nbWrittenKmers = 0;  }
     }
@@ -833,7 +838,7 @@ protected:
     BankStats        _bankStatsLocal;
 
     /** Primitive of the template method operator() */
-    virtual void processSuperkmer (SuperKmer& superKmer) { _nbSuperKmers++; }
+    virtual void processSuperkmer (SuperKmer& superKmer, u_int64_t minim1, u_int64_t minim2 ) { _nbSuperKmers++; }
 };
 
 /********************************************************************************/
@@ -854,8 +859,13 @@ public:
     typedef typename Kmer<span>::SuperKmer                 SuperKmer;
 
     /** */
-    void processSuperkmer (SuperKmer& superKmer)
+    void processSuperkmer (SuperKmer& superKmer, u_int64_t minim1, u_int64_t minim2 )
     {
+		
+		if(minim1!= 0 || minim2 != 0)
+		{
+			_local_pInfo.incMinimMatrix(minim1,minim2);
+		}
         DEBUG (("SampleRepart: should count superk %i \n", superKmer.size()));
 
         if ((superKmer.minimizer % this->_nbPass) == this->_pass && superKmer.isValid() ) //check if falls into pass
@@ -905,7 +915,7 @@ public:
         PartiInfo<5>&     pInfo
     )
     :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
-        _kx(4), _extern_pInfo(pInfo), _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize())
+        _kx(4), _local_pInfo(pInfo) // , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize())
     {
     }
 
@@ -913,13 +923,16 @@ public:
     ~SampleRepart ()
     {
         //add to global parti_info
-        _extern_pInfo += _local_pInfo;
+       // _extern_pInfo += _local_pInfo;
     }
 
 private:
     size_t        _kx;
-    PartiInfo<5>& _extern_pInfo;
-    PartiInfo<5>  _local_pInfo;
+	 PartiInfo<5>& _local_pInfo;
+
+	//do not realloc a parti info here (big for minim stats)
+   // PartiInfo<5>& _extern_pInfo;
+   // PartiInfo<5>  _local_pInfo;
 };
 
 
@@ -1003,15 +1016,32 @@ public:
     typedef typename Kmer<span>::SuperKmer                SuperKmer;
 
     /** */
-    void processSuperkmer (SuperKmer& superKmer)
+	// minim1 est le minim de superKmer, minim m2 celui du suivant (si le suivant est ds meme parti : faire inc megakmer)
+    void processSuperkmer (SuperKmer& superKmer, u_int64_t minim1, u_int64_t minim2 )
     {
+		// regarder si minim1 et minim2 dans meme parti si oui : inc taille courante megak
+		//qd diff: output
+		
         if ((superKmer.minimizer % this->_nbPass) == this->_pass && superKmer.isValid()) //check if falls into pass
         {
             /** We get the hash code for the current miminizer.
              * => this will give us the partition where to dump the superkmer. */
             size_t p = this->_repartition (superKmer.minimizer);
 
+			//ou alors : dans pinfo : faire ici  incspecial  minim1, minim1
             /** We save the superkmer into the right partition. */
+			
+			this->_local_pInfo.addsuperkk(superKmer.size(),p); // to get raw superkmer sizes
+
+			if(minim1 != 0 || minim2 != 0 )
+			{
+				this->_local_pInfo.incmegak(superKmer.size(),p, this->_repartition (minim2));
+			}
+			else{
+				this->_local_pInfo.endcurrentmegak(superKmer.size(),p);
+			}
+
+			
             superKmer.save (this->_partition[p]);
 
             /*********************************************/
@@ -1086,7 +1116,7 @@ public:
     )
     :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
         _kx(4),
-        _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
+        _local_pInfo(pInfo) , //, _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize())
         _repartition (repartition), _partition (*partition,1<<12,0)
     {
         _mask_radix = (int64_t) 255 ;
@@ -1097,14 +1127,14 @@ public:
     ~FillPartitions ()
     {
         //add to global parti_info
-        _extern_pInfo += _local_pInfo;
+       // _extern_pInfo += _local_pInfo;
     }
 
 private:
 
     size_t        _kx;
-    PartiInfo<5>& _extern_pInfo;
-    PartiInfo<5>  _local_pInfo;
+    PartiInfo<5>& _local_pInfo; //use the extern one (mono thread only)
+ //   PartiInfo<5>  _local_pInfo;
     Type          _mask_radix;
     Repartitor&   _repartition;
 
@@ -1225,7 +1255,9 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     int mmsize = model.getMmersModel().getKmerSize();
 
-    PartiInfo<5> sample_info (_nb_partitions,mmsize);
+	printf("second here    :\n");
+
+    PartiInfo<5> sample_info (_nb_partitions,mmsize,true);
 
     /** We create an iterator over a truncated part of the input bank. */
     Iterator<Sequence>* it_sample = createIterator (
@@ -1237,20 +1269,35 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     BankStats bstatsDummy;
 
+	
+	tools::dp::IDispatcher* sd = new SerialDispatcher();
+	
+	printf("sample repart  :\n");
+
     /** We compute a distribution of Superkmers from a part of the bank. */
-    getDispatcher()->iterate (it_sample,  SampleRepart<span> (
+   // getDispatcher()
+	sd->iterate (it_sample,  SampleRepart<span> (
         model, _nb_passes, pass, _nb_partitions, _progress, bstatsDummy, sample_info)
     );
+	
+	sample_info.computeSums();
 
+	sample_info.printMinimMatrix();
+	
     /** We compute the distribution of the minimizers. As a result, we will have a hash function
      * that gives a hash code for a minimizer value. */
+	
+	printf("Compute repart\n");
+
     Repartitor repartitor (_partitions->size(), mmsize);
     if (_minimizerType == 1)
         repartitor.justGroup (sample_info, counts);
+	  //repartitor.NaiveMegak (sample_info);
     else
     {
+		//repartitor.NaiveMegak (sample_info);
         repartitor.computeDistrib (sample_info);
-        repartitor.justGroupLexi (sample_info); // FIXME; actually i need the minimizers to remain in order in Bcalm, so using this suboptimal but okay repartition
+       // repartitor.justGroupLexi (sample_info); // FIXME; actually i need the minimizers to remain in order in Bcalm, so using this suboptimal but okay repartition
     }
 
     /** We save the distribution (may be useful for debloom for instance). */
@@ -1278,11 +1325,16 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We launch the iteration of the sequences iterator with the created functors. */
     for (size_t i=0; i<itBanks.size(); i++)
     {
+		printf("launch fillpart \n");
+
         /** We fill the partitions. */
         getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
             model, _nb_passes, pass, _nb_partitions, _progress, _bankStats, _partitions, repartitor, pInfo
         ));
 
+		
+		pInfo.printsuperkinfo();
+		
         /** We flush the partitions in order to be sure to have the exact number of items per partition. */
         _partitions->flush();
 
