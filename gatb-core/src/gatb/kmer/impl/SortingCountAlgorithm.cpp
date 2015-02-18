@@ -1261,10 +1261,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
         if (_repartitionType == 1)
         {
             repartitor.justGroupLexi (sample_info); // For bcalm, i need the minimizers to remain in order. so using this suboptimal but okay repartition
-            cout << "justgruoplexi!!!!" << endl;
         }
-        else
-            cout << "computedistrib!!!!" << endl;
         
     }
 
