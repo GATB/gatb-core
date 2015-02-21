@@ -122,14 +122,21 @@ IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
     /** We release the duplicated path. */
     free (reads_path);
 
-    /** We look for the beginnin of the suffix. */
-    int lastindex = reads_name.find_last_of (".");
+	//string prefix = System::file().getBaseName(_inputFilename);;
+	while(reads_name.find('.') != string::npos){
 
-    /** We build the result. */
-    Path result = reads_name.substr(0, lastindex);
+	    /** We look for the beginnin of the suffix. */
+		int lastindex = reads_name.find_last_of(".");
+
+	    /** We build the result. */
+		reads_name = reads_name.substr(0, lastindex);
+	}
+
+    //int lastindex = reads_name.find_last_of (".");
+    //Path result = reads_name.substr(0, lastindex);
 
     /** We return the base name, without suffix. */
-    return result;
+    return reads_name;
 }
 
 /*********************************************************************
