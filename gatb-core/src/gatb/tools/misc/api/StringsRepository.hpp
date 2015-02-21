@@ -35,7 +35,7 @@ namespace tools     {
 namespace misc      {
 /********************************************************************************/
 
-/** \brief Pool of strings
+/* \brief Pool of strings
  *
  * This class provides constant strings used throughout the code. It may be interesting
  * in order to have a central point for constant strings management:
@@ -71,7 +71,7 @@ public:
 
 /********************************************************************************/
 
-/** \brief Pool of strings
+/* \brief Pool of strings
  */
 class StringRepository
 {
@@ -114,6 +114,7 @@ public:
     const char* integer_precision ()  { return "-integer-precision";}
     const char* solidity_kind  ()  { return "-solidity-kind"; }
     const char* minimizer_type ()  { return "-minimizer-type"; }
+    const char* repartition_type() { return "-repartition-type"; }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -161,6 +162,7 @@ public:
 #define STR_BANK_CONVERT_TYPE   gatb::core::tools::misc::StringRepository::singleton().bank_convert_type()
 #define STR_SOLIDITY_KIND       gatb::core::tools::misc::StringRepository::singleton().solidity_kind()
 #define STR_MINIMIZER_TYPE      gatb::core::tools::misc::StringRepository::singleton().minimizer_type()
+#define STR_REPARTITION_TYPE    gatb::core::tools::misc::StringRepository::singleton().repartition_type()
 
 /********************************************************************************/
 

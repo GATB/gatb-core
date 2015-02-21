@@ -67,19 +67,21 @@ public:
         if (_file)  { delete _file; }
     }
 
-    /** */
+    /** Get the name of the file.
+     * \return the file name.  */
     const std::string& getName () const { return _filename; }
 
     /**  \copydoc Bag::insert */
     void insert (const Item& item)  {  _file->fwrite (&item, sizeof(Item), 1);  }
 
+    /**  \copydoc Bag::insert(const std::vector<Item>& items, size_t length) */
     void insert (const std::vector<Item>& items, size_t length)
     {
         if (length == 0)  { length = items.size(); }
         _file->fwrite (items.data(), sizeof(Item), length);
     }
 
-    /** */
+    /**  \copydoc Bag::insert(const Item* items, size_t length) */
     void insert (const Item* items, size_t length)
     {
         _file->fwrite (items, sizeof(Item), length);
@@ -95,7 +97,7 @@ private:
 
     
 
-/** \brief Bag implementation for file
+/* \brief Bag implementation for file
  */
 template <typename Item> class BagGzFile : public Bag<Item>, public system::SmartPointer
 {

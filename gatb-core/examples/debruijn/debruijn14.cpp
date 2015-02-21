@@ -11,7 +11,7 @@ int main (int argc, char* argv[])
     try
     {
         size_t kmerSize = 11;
-        char* seq = (char*) "AGGCGCTAGGGTAGAGGATGATGA";
+        const char* seq = "AGGCGCTAGGGTAGAGGATGATGA";
 
         std::cout << "The initial sequence is '" << seq << "', kmer size is " << kmerSize << std::endl;
 

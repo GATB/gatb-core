@@ -60,7 +60,7 @@ namespace dp    {
  *  methods and so can't be faster that the 'classic' way. But specific implementations of Iterator may implement 'iterate'
  *  directly by using inner state of the class, and so without call to  first/isDone/next/currentItem methods.
  *
- *  Note that for optimization point of view, PLAST algorithm prefers to use the 'iterate' way with optimized implementations.
+ *  Note that for optimization point of view, an algorithm prefers to use the 'iterate' way with optimized implementations.
  *
  *  Sample of use:
  *  \code
@@ -68,7 +68,7 @@ namespace dp    {
  *   for (it->first(); ! it->isDone(); it->next() )
  *   {
  *      // retrieve the current item of some type
- *      MyType* item = it->currentItem ();
+ *      MyType* item = it->item ();
  *   }
  *  \endcode
  *

@@ -22,8 +22,6 @@
  *  \brief Integer class relying on native u_int64_t type
  */
 
-/** \brief Large integer class
- */
 template<>  class LargeInt<1> :  private misc::ArrayData<u_int64_t, 1>
 {
 public:

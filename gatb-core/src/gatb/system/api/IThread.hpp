@@ -157,7 +157,7 @@ public:
  *  Thread creation needs merely the main loop function that will be called.
  *
  *  Note the method that can return the number of cores in case a multi-cores
- *  architecture is used. This is useful for automatically configure PLAST for
+ *  architecture is used. This is useful for automatically configure tools for
  *  using the maximum number of available cores for speeding up the algorithm.
  */
 class IThreadFactory

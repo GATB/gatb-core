@@ -43,12 +43,18 @@ namespace tools         {
 namespace collections   {
 namespace impl          {
 /********************************************************************************/
-/** \brief Bloom filter implementation
+/** \brief Implementation of the Container interface
+ *
+ * This implementation uses a sorted vector for the 'contains' method. It implies
+ * a binary_search (log(N) complexity)
  */
 template <typename Item> class ContainerSet : public Container<Item>, public system::SmartPointer
 {
 public:
     
+    /** Constructor.
+     * \param[in] it : iterator over the items of the container. They are all inserted in the vector
+     * and the vector is then sorted. */
     ContainerSet (dp::Iterator<Item>* it)
     {
         LOCAL (it);
@@ -57,7 +63,7 @@ public:
         std::sort (_items.begin(), _items.end());
     }
     
-    /** */
+    /** \copydoc Container::contains */
     bool contains (const Item& item)
     {
         return std::binary_search (_items.begin(), _items.end(), item);

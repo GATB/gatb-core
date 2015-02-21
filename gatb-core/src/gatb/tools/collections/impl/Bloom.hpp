@@ -47,24 +47,36 @@ namespace impl          {
 extern u_int8_t bit_mask [];
 
 /********************************************************************************/
-/**
+/** \brief Define a set of hash functions
+ *
+ * This class defines a set of hash functions for a given (template) type.
+ *
+ * One can get a hash code for a given [function,item] through the operator()
+ *
+ * Note: this class is mainly used by Bloom filters implementations. It is not
+ * primarly targeted for end users but they could nevertheless use it.
  */
 template <typename Item> class HashFunctors
 {
 public:
 
-    /** */
+    /** Constructor.
+     * \param[in] nbFct : number of hash functions to be used
+     * \param[in] seed : some initialization code for defining the hash functions. */
     HashFunctors (size_t nbFct, u_int64_t seed=0) : _nbFct(nbFct), user_seed(seed)
     {
         generate_hash_seed ();
     }
 
-    /** */
+    /** Get a hash code for a hash function and a given item.
+     * \param[in] key : item for which we want a hash code
+     * \param[in] idx : index of the hash function to be used
+     * \return the hash code for the item. */
     u_int64_t operator ()  (const Item& key, size_t idx)  {  return hash1 (key, seed_tab[idx]);  }
 
 private:
 
-    /** */
+    /* */
     void generate_hash_seed ()
     {
         static const u_int64_t rbase[NSEEDSBLOOM] =
@@ -92,29 +104,69 @@ private:
  * We define a Bloom filter has a container (something that tells whether an item is here or not) and
  * a bag (something we can put items into).
  *
- * As expected, there is no Iterable interface here.
+ * This interface has a template argument corresponding to the type of items to be inserted in the filter.
+ * Note that implementations should provide hash functions supporting the template type.
+ *
+ * As expected, there is no Iterable interface here because it is not possible to enumerate the items
+ * inserted in a Bloom filter only with the Bloom filter information.
  */
 template <typename Item> class IBloom : public Container<Item>, public Bag<Item>, public system::SmartPointer
 {
 public:
+
+    /** Destructor. */
     virtual ~IBloom() {}
 
+    /** Get the raw bit set of the Bloom filter.
+     * \return Bloom filter's bit set. */
     virtual u_int8_t*& getArray    () = 0;
+
+    /** Get the size of the Bloom filter (in bytes).
+     * \return the size of the bit set of the Bloom filter */
     virtual u_int64_t  getSize     () = 0;
+
+    /** Get the size of the Bloom filter (in bits).
+     * \return the size of the bit set of the Bloom filter */
     virtual u_int64_t  getBitSize  () = 0;
+
+    /** Get the number of hash functions used for the Bloom filter.
+     * \return the number of hash functions. */
     virtual size_t     getNbHash   () const = 0;
 
+    /** Tells whether the 4 neighbors of the given item are in the Bloom filter.
+     * The 4 neighbors are computed from the given item by adding successively
+     * nucleotides 'A', 'C', 'T' and 'G'
+     * Note: some implementation may not provide this service.
+     * \param[in] item : starting item from which neighbors are computed.
+     * \param[in] right : if true, successors are computed, otherwise predecessors are computed.
+     * \return a bitset with a boolean for the 'contains' status of each neighbor
+     */
 	virtual std::bitset<4> contains4 (const Item& item, bool right) = 0;
 
+    /** Tells whether the 8 neighbors of the given item are in the Bloom filter.
+     * A default implementation may be two calls to contains4 with right==true and
+     * right==left and by concatenating the two bitsets.
+     * Note: some implementation may not provide this service.
+     * \param[in] item : starting item from which neighbors are computed.
+     * \return a bitset with a boolean for the 'contains' status of each neighbor
+     */
     virtual std::bitset<8> contains8 (const Item& item) = 0;
 
+    /** Get the name of the implementation class.
+     * \return the class name. */
     virtual std::string  getName   () const  = 0;
+
+    /** Return the number of 1's in the Bloom (nibble by nibble)
+     * \return the weight of the Bloom filter */
     virtual unsigned long  weight () = 0;
 };
 
 /********************************************************************************/
 
 /** \brief Bloom filter implementation
+ *
+ * This implementation is an abstract factorization for subclasses. It factorizes
+ * a few methods and attributes.
  */
 template <typename Item> class BloomContainer : public IBloom<Item>
 {
@@ -146,7 +198,7 @@ public:
         system::impl::System::memory().free (blooma);
     }
 
-    /** */
+    /** \copydoc IBloom::getNbHash */
     size_t getNbHash () const { return n_hash_func; }
 
     /** \copydoc Container::contains. */
@@ -175,15 +227,24 @@ public:
         return true;
     }
 
-	virtual std::bitset<4> contains4 (const Item& item, bool right)  { return std::bitset<4>();} //not implem by default
+    /** \copydoc IBloom::contains4. */
+	virtual std::bitset<4> contains4 (const Item& item, bool right)
+    {   throw system::ExceptionNotImplemented ();  }
 
-    virtual std::bitset<8> contains8 (const Item& item)  { return std::bitset<8>(); }
+    /** \copydoc IBloom::contains8. */
+    virtual std::bitset<8> contains8 (const Item& item)
+    {   throw system::ExceptionNotImplemented ();  }
 
-    /** */
+    /** \copydoc IBloom::getArray. */
     virtual u_int8_t*& getArray     ()  { return blooma; }
+
+    /** \copydoc IBloom::getSize. */
     virtual u_int64_t  getSize      ()  { return nchar;  }
+
+    /** \copydoc IBloom::getBitSize. */
     virtual u_int64_t  getBitSize   ()  { return tai;    }
 
+    /** \copydoc IBloom::getName. */
     virtual std::string  getName    () const  = 0;
 
 protected:
@@ -231,10 +292,12 @@ public:
     /** \copydoc Bag::flush */
     void flush ()  {}
 
-    /** */
+    /** \copydoc IBloom::getName */
     std::string  getName () const { return "Bloom"; }
 
-    /** */
+    /** Dump the Bloom filter bitset into a file.
+     * OBSOLETE
+     * \param[in] filename : file where to dump the bitset. */
     void dump (const char* filename)
     {
         FILE* file = fopen(filename,"wb");
@@ -242,7 +305,7 @@ public:
         fclose (file);
     }
 
-    // return the number of 1's in the Bloom, nibble by nibble
+    /** \copydoc IBloom::weight */
     unsigned long weight()
     {
         const unsigned char oneBits[] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
@@ -255,48 +318,70 @@ public:
         }
         return weight;
     }
-
-
-
 };
 
 /********************************************************************************/
-/** \brief Bloom filter implementation
+/** \brief Bloom filter null implementation
+ *
+ * This is a "null" implementation of the IBloom interface. It means that all
+ * the contains-like requests will return false.
  */
 template <typename Item> class BloomNull : public IBloom<Item>
 {
 public:
 
+    /** Destructor. */
     virtual ~BloomNull() {}
 
+    /** \copydoc IBloom::getArray */
     u_int8_t*& getArray    () { return a; }
+
+    /** \copydoc IBloom::getSize */
     u_int64_t  getSize     () { return 0; }
+
+    /** \copydoc IBloom::getBitSize */
     u_int64_t  getBitSize  () { return 0; }
+
+    /** \copydoc IBloom::getNbHash */
     size_t     getNbHash   () const { return 0; }
 
+    /** \copydoc IBloom::getName */
     virtual std::string  getName   () const  { return "BloomNull"; }
 
+    /** \copydoc IBloom::contains4 */
     std::bitset<4> contains4 (const Item& item, bool right)  {return std::bitset<4>();}
 
+    /** \copydoc IBloom::contains8 */
 	std::bitset<8> contains8 (const Item& item)  { return std::bitset<8>(); }
 
-	
+    /** \copydoc IBloom::contains */
     bool contains (const Item& item) { return false; }
+
+    /** \copydoc IBloom::insert */
     void insert (const Item& item) {}
+
+    /** \copydoc IBloom::flush  */
     void flush ()  {}
+
+    /** \copydoc IBloom::weight*/
     unsigned long weight ()  { return 0;}
+
 private:
     u_int8_t* a;
 };
 
 /********************************************************************************/
-/** \brief Bloom filter implementation
+/** \brief Bloom filter implementation with synchronization
+ *
+ * This implementation allows to insert items in the same Bloom filter by
+ * different threads at the same time. It uses low level synchronization
+ * mechanism like __sync_fetch_and_or
  */
 template <typename Item> class BloomSynchronized : public Bloom<Item>
 {
 public:
 
-    /** \copydoc BloomContainer::BloomContainer */
+    /** \copydoc Bloom::Bloom */
     BloomSynchronized (u_int64_t tai_bloom, size_t nbHash = 4)  : Bloom<Item> (tai_bloom, nbHash)  {}
 
     /** \copydoc Bag::insert. */
@@ -320,13 +405,20 @@ public:
         }
     }
 
-    /** */
+    /** \copydoc IBloom::getName*/
     std::string  getName () const { return "basic"; }
 };
-    
 
 /********************************************************************************/
-/** \brief Bloom filter implementation
+/** \brief Bloom filter implementation with CPU cache consideration
+ *
+ * This implementation tries to avoid CPU cache misses by improving memory locality.
+ *
+ * The idea is to compute the first hash function as usual. Then the other hash
+ * functions are computed in order to return values near to the first value.
+ *
+ * The proximity is defined by a block size. Note that a too small block will
+ * produce more false positive than usual.
  */
 template <typename Item> class BloomCacheCoherent : public Bloom<Item>
 {
@@ -336,44 +428,39 @@ public:
      * \param[in] tai_bloom : size (in bits) of the bloom filter.
      * \param[in] nbHash : number of hash functions to use
      * \param[in] block_nbits : size of the block (actual 2^nbits) */
-    BloomCacheCoherent (u_int64_t tai_bloom, size_t nbHash = 4,size_t block_nbits = 12)  : Bloom<Item> (tai_bloom + 2*(1<<block_nbits), nbHash),_nbits_BlockSize(block_nbits)
+    BloomCacheCoherent (u_int64_t tai_bloom, size_t nbHash = 4,size_t block_nbits = 12)
+        : Bloom<Item> (tai_bloom + 2*(1<<block_nbits), nbHash),_nbits_BlockSize(block_nbits)
     {
         _mask_block = (1<<_nbits_BlockSize) - 1;
         _reduced_tai = this->tai -  2*(1<<_nbits_BlockSize) ;//2* for neighbor coherent
     }
     
-    
-    //for insert, no prefetch, perf is not important
      /** \copydoc Bag::insert. */
     void insert (const Item& item)
     {
-
+        //for insert, no prefetch, perf is not important
         u_int64_t h0;
 
         h0 = this->_hash (item,0) % _reduced_tai;
-        
+
         __sync_fetch_and_or (this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
 
-            for (size_t i=1; i<this->n_hash_func; i++)
-            {
-                u_int64_t h1 = h0  + (simplehash16( item, i) & _mask_block )   ;
-			//	u_int64_t h1 = h0  +  (this->_hash (item,i)  & _mask_block );
-
-                __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
-            }
-        
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+            u_int64_t h1 = h0  + (simplehash16( item, i) & _mask_block )   ;
+            __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+        }
     }
     
-    /** */
+    /** \copydoc IBloom::getName*/
     std::string  getName () const { return "cache"; }
 
-    /** */
+    /** \copydoc IBloom::getBitSize*/
     u_int64_t  getBitSize   ()  { return _reduced_tai;    }
         
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
-
         u_int64_t tab_keys [20];
         u_int64_t h0;
 
@@ -384,46 +471,47 @@ public:
         for (size_t i=1; i<this->n_hash_func; i++)
         {
            tab_keys[i] =  h0  + (simplehash16( item, i) & _mask_block );// with simplest hash
-		//	tab_keys[i] =  h0  + (this->_hash (item,i) & _mask_block );// with simplest hash
-
         }
-        
-        
-//        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) != bit_mask[h0 & 7])  {  return false;  }
+
         if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) ==0 )  {  return false;  }
         
         for (size_t i=1; i<this->n_hash_func; i++)
         {
             u_int64_t h1 = tab_keys[i];
-           // if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7])  {  return false;  }
 			if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0)  {  return false;  }
-
         }
         return true;
-        
     }
     
+    /** \copydoc IBloom::weight*/
     unsigned long weight()
     {
-        std::cout << "GATB Warning, called unimpplemented BloomCacheCoherent::weight()\n";
-        return 0; // not implemented
+        throw system::ExceptionNotImplemented();
     }
     
 protected:
     u_int64_t _mask_block;
-    size_t _nbits_BlockSize;
+    size_t    _nbits_BlockSize;
     u_int64_t _reduced_tai;
 };
-
 	
 /********************************************************************************/
-	
+
+/** \brief Bloom filter implementation with cache consideration
+ *
+ * This implementation improve memory locality in the Bloom filter between a kmer
+ * and its neighbors. This means that this implementation should be used only
+ * with Item being a kmer.
+ *
+ * In particular, it implements contains4 and contains8 in a clever way.
+ */
 template <typename Item> class BloomNeighborCoherent : public BloomCacheCoherent<Item>
 {
 public:
 
     /** Constructor.
      * \param[in] tai_bloom : size (in bits) of the bloom filter.
+     * \param[in] kmersize : kmer size
      * \param[in] nbHash : number of hash functions to use
      * \param[in] block_nbits : size of the block (actual 2^nbits) */
     BloomNeighborCoherent (u_int64_t tai_bloom, size_t kmersize , size_t nbHash = 4,size_t block_nbits = 12 )  :
@@ -447,8 +535,8 @@ public:
         cano2[15] = 5;
 
         Item un = 1;
-        _maskkm2 = (un << ((_kmerSize-2)*2)) - un;
-        _kmerMask = (un << (_kmerSize*2)) - un;
+        _maskkm2  = (un << ((_kmerSize-2)*2)) - un;
+        _kmerMask = (un << (_kmerSize*2))     - un;
 
         Item trois = 3;
 
@@ -472,9 +560,9 @@ public:
         Item rev =  revcomp(hashpart,_kmerSize-2);
         if(rev<hashpart) hashpart = rev; //transform to canonical
 
-//			Item km = item;
-//			rev =  revcomp(km,_kmerSize);
-//			if(rev < km) km = rev; //transform to canonical
+        // Item km = item;
+        // rev =  revcomp(km,_kmerSize);
+        // if(rev < km) km = rev; //transform to canonical
         
         racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
         //h0 = ((this->_hash (item >> 2,0) ) % this->_reduced_tai)  + (suffix_val & this->_mask_block);
@@ -491,10 +579,10 @@ public:
         }
     }
 
-    /** */
+    /** \copydoc IBloom::getName*/
     std::string  getName () const { return "neighbor"; }
 
-    /** */
+    /** \copydoc IBloom::getBitSize*/
     u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
 
     /** \copydoc Container::contains. */
@@ -545,13 +633,14 @@ public:
         return true;
     }
 
-    //ask for all 4 neighbors of item in one call
-    // give it CAAA
-    // if right == true  it wil test the 4 neighbors AAAA, AAAC, AAAT, AAAG
-    // if right == false : left extension   ACAA, CCAA , TCAA  , GCAA
-
+    /** \copydoc IBloom::contains4*/
     std::bitset<4> contains4 (const Item& item, bool right)
     {
+        //ask for all 4 neighbors of item in one call
+        // give it CAAA
+        // if right == true  it wil test the 4 neighbors AAAA, AAAC, AAAT, AAAG
+        // if right == false : left extension   ACAA, CCAA , TCAA  , GCAA
+
         u_int64_t h0, i0, j0, k0;
         Item elem,hashpart,rev ;
         Item un = 1;
@@ -700,7 +789,7 @@ public:
         return resu;
     }
 
-    /** */
+    /** \copydoc IBloom::contains8*/
     std::bitset<8> contains8 (const Item& item)
     {
         std::bitset<4> resultRight = this->contains4 (item, true);
@@ -720,472 +809,25 @@ private:
     size_t _kmerSize;
 };
 	
-	
 /********************************************************************************/
 
-template <typename Item, size_t prec=1> class BloomGroupOld : public system::SmartPointer
-{
-public:
-
-    typedef tools::math::LargeInt<prec> Result;
-
-    /** */
-    BloomGroupOld (u_int64_t size, size_t nbHash=4)
-        : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
-    {
-        _blooma = (Result*) MALLOC (_size*sizeof(Result));
-        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
-    }
-
-    /** */
-    BloomGroupOld (const std::string& uri)
-        : _hash(0), _nbHash(0), _size(0), _blooma(0)
-    {
-        load (uri);
-    }
-
-    /** */
-    ~BloomGroupOld ()  {  FREE (_blooma); }
-
-    /** */
-    std::string getName () const { return "BloomGroupOld"; }
-
-    /** */
-    void insert (const Item& item, size_t idx)
-    {
-        static const Result ONE (1);
-
-        for (size_t i=0; i<this->_nbHash; i++)
-        {
-            u_int64_t h1 = this->_hash (item, i) % this->_size;
-#if 1
-            this->_blooma[h1] |= (ONE << idx);
-#else
-            this->_blooma[h1].sync_fetch_and_or (ONE << idx);
-#endif
-        }
-    }
-
-    /** Return the size (in bytes). */
-    u_int64_t getMemSize () const { return _size*sizeof(Result); }
-
-    /** */
-    void save (const std::string& uri)
-    {
-        system::IFile* file = system::impl::System::file().newFile (uri, "wb+");
-        if (file != 0)
-        {
-            /** We write the nb of hash functions. */
-            file->fwrite (&_nbHash, sizeof(_nbHash), 1);
-
-            /** We write the size of the blooms. */
-            file->fwrite (&_size, sizeof(_size), 1);
-
-            /** We write the blooms info. */
-            file->fwrite (_blooma, _size*sizeof(Result), 1);
-
-#if 1
-for (size_t i=0; i<10; i++)
-{
-    for (size_t j=0; j<prec; j++)
-    {
-        printf ("%8x ", _blooma[i].value[j]);
-    }
-    printf ("\n");
-}
-#endif
-
-            delete file;
-        }
-    }
-
-    /** */
-    void load (const std::string& uri)
-    {
-        system::IFile* file = system::impl::System::file().newFile (uri, "rb+");
-        if (file != 0)
-        {
-            /** We read the nb of hash functions. */
-            file->fread (&_nbHash, sizeof(_nbHash), 1);
-
-            /** We read the size of the blooms. */
-            file->fread (&_size, sizeof(_size), 1);
-
-            /** We allocate the array. */
-            _blooma = (Result*) MALLOC (_size*sizeof(Result));
-            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
-
-            /** We read the blooms info. */
-            file->fread (_blooma, _size*sizeof(Result), 1);
-
-            delete file;
-        }
-    }
-
-    /** */
-    bool contains (const Item& item, size_t idx)
-    {
-        static const Result ONE (1);
-        for (size_t i=0; i<this->_nbHash; i++)
-        {
-            u_int64_t h1 = this->_hash (item, i) % this->_size;
-            if ( (_blooma[h1] & (ONE << idx)) != (ONE << idx) )  {  return false;  }
-        }
-        return true;
-    }
-
-    /** */
-    Result contains (const Item& item)
-    {
-        static const Result ZERO (0);
-        Result res = ~ZERO;
-
-        for (size_t i=0; i<this->_nbHash; i++)
-        {
-            u_int64_t h1 = this->_hash (item, i) % this->_size;
-            res &= _blooma [h1];
-        }
-        return res;
-    }
-
-private:
-
-    HashFunctors<Item> _hash;
-    size_t             _nbHash;
-    u_int64_t          _size;
-    Result*            _blooma;
-};
-
-/********************************************************************************/
-
-template <typename Item, size_t prec=1> class BloomGroup : public system::SmartPointer
-{
-public:
-
-    class Result
-    {
-    public:
-        Result (u_int64_t v=0)  { memset (v); }
-
-              u_int64_t& operator[] (size_t idx)       { return value[idx]; }
-        const u_int64_t& operator[] (size_t idx) const { return value[idx]; }
-
-        const u_int64_t* array () const { return value; }
-
-        Result& operator&= (const Result& r)
-        {
-            for (size_t j=0; j<prec; j++)  { (*this)[j] &=  r[j]; }
-            return *this;
-        }
-
-    private:
-        u_int64_t value[prec];
-        void memset (u_int64_t v)  {  system::impl::System::memory().memset (value, v, prec*sizeof(u_int64_t));  }
-
-        friend class BloomGroup<Item,prec>;
-    };
-
-    /** */
-    BloomGroup (u_int64_t size, u_int64_t maxMemory, size_t nbHash=4)
-        : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0)
-    {
-        printf ("BloomGroup:  size=%ld   sizeof(Result)=%d  maxMemory=%ld\n", size, sizeof(Result), maxMemory);
-        if (_size*sizeof(Result) > maxMemory)
-        {
-            _size = maxMemory /sizeof (Result);
-        }
-        else
-        {
-            maxMemory = _size*sizeof(Result);
-        }
-        printf ("===> size=%ld   allocMemory=%ld\n", _size, sizeof(Result)*_size);
-
-        _blooma = (Result*) MALLOC (_size*sizeof(Result));
-        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
-    }
-
-    /** */
-    BloomGroup (const std::string& uri)
-        : _hash(0), _nbHash(0), _size(0), _blooma(0)
-    {
-        load (uri);
-    }
-
-    /** */
-    ~BloomGroup ()  {  FREE (_blooma); }
-
-    /** */
-    std::string getName () const { return "BloomGroup"; }
-
-    /** Return the size (in bytes). */
-    u_int64_t getMemSize () const { return _size*sizeof(Result); }
-
-    /** */
-    void save (const std::string& uri)
-    {
-        system::IFile* file = system::impl::System::file().newFile (uri, "wb+");
-        if (file != 0)
-        {
-            /** We write the nb of hash functions. */
-            file->fwrite (&_nbHash, sizeof(_nbHash), 1);
-
-            /** We write the size of the blooms. */
-            file->fwrite (&_size, sizeof(_size), 1);
-
-            /** We write the blooms info. */
-            file->fwrite (_blooma, _size*sizeof(Result), 1);
-
-            delete file;
-        }
-    }
-
-    /** */
-    void load (const std::string& uri)
-    {
-        system::IFile* file = system::impl::System::file().newFile (uri, "rb+");
-        if (file != 0)
-        {
-            /** We read the nb of hash functions. */
-            file->fread (&_nbHash, sizeof(_nbHash), 1);
-
-            /** We read the size of the blooms. */
-            file->fread (&_size, sizeof(_size), 1);
-
-            /** We allocate the array. */
-            _blooma = (Result*) MALLOC (_size*sizeof(Result));
-            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
-
-            /** We read the blooms info. */
-            file->fread (_blooma, _size*sizeof(Result), 1);
-
-            delete file;
-        }
-    }
-
-    /** Insert an item in the 'idx'th Bloom filter
-     * \param[in] item : item to be inserted into the filter
-     * \param[in] idx : index of the filter */
-    void insert (const Item& item, size_t idx)
-    {
-        u_int64_t q,mask;  euclidian(idx,q,mask);
-
-        for (size_t i=0; i<this->_nbHash; i++)
-        {
-            u_int64_t h1 = this->_hash (item, i) % this->_size;
-
-#if 1
-            this->_blooma[h1][q] |= mask;
-#else
-            __sync_fetch_and_or (this->_blooma[h1].value + q, mask);
-#endif
-        }
-    }
-
-    /** */
-    bool contains (const Item& item, size_t idx)
-    {
-        u_int64_t q,mask;  euclidian(idx,q,mask);
-
-        for (size_t i=0; i<this->_nbHash; i++)
-        {
-            u_int64_t h1 = this->_hash (item, i) % this->_size;
-            if ( (_blooma[h1][q] & mask) != mask )  {  return false;  }
-        }
-        return true;
-    }
-
-    /** */
-    Result contains (const Item& item)
-    {
-        Result res (~0);
-
-        for (size_t i=0; i<this->_nbHash; i++)
-        {
-            u_int64_t h1 = this->_hash (item, i) % this->_size;
-            res &=  _blooma [h1];
-        }
-        return res;
-    }
-
-private:
-
-    HashFunctors<Item> _hash;
-    size_t             _nbHash;
-    u_int64_t          _size;
-    Result*            _blooma;
-
-    void euclidian (size_t idx, u_int64_t& dividend, u_int64_t& mask) const
-    {
-        dividend = idx / (8*sizeof(u_int64_t));
-        mask     = ((u_int64_t) 1) << (idx % (8*sizeof(u_int64_t)));
-    }
-};
-
-
-/********************************************************************************/
-
-template <typename Item, size_t prec=1> class BloomGroupCacheCoherent : public system::SmartPointer
-{
-public:
-
-    typedef tools::math::LargeInt<prec> Result;
-
-    /** */
-    BloomGroupCacheCoherent (u_int64_t size, size_t nbHash=4, size_t block_nbits=12)
-        : _hash(nbHash), _nbHash(nbHash), _size(size), _blooma(0), _nbits_BlockSize(block_nbits)
-    {
-        _size += (1<<_nbits_BlockSize);
-
-        _blooma = (Result*) MALLOC (_size*sizeof(Result));
-        system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
-
-        _mask_block   = (1<<_nbits_BlockSize) - 1;
-        _reduced_size = this->_size -  (1<<_nbits_BlockSize) ;
-    }
-
-    /** */
-    BloomGroupCacheCoherent (const std::string& uri)
-        : _hash(0), _nbHash(0), _size(0), _blooma(0)
-    {
-        load (uri);
-
-        _mask_block   = (1<<_nbits_BlockSize) - 1;
-        _reduced_size = this->_size -  (1<<_nbits_BlockSize) ;
-    }
-
-    /** */
-    ~BloomGroupCacheCoherent ()  {  system::impl::System::memory().free (_blooma); }
-
-    /** */
-    std::string getName () const { return "BloomGroupCacheCoherent"; }
-
-    /** Return the size (in bytes). */
-    u_int64_t getMemSize () const { return _size*sizeof(Result); }
-
-    /** */
-    void save (const std::string& uri)
-    {
-        system::IFile* file = system::impl::System::file().newFile (uri, "wb+");
-        if (file != 0)
-        {
-            /** We write the nb of hash functions. */
-            file->fwrite (&_nbHash, sizeof(_nbHash), 1);
-
-            /** We write the size of the blooms. */
-            file->fwrite (&_size, sizeof(_size), 1);
-
-            /** We write block size information. */
-            file->fwrite (&_nbits_BlockSize, sizeof(_nbits_BlockSize), 1);
-
-            /** We write the blooms info. */
-            file->fwrite (_blooma, _size*sizeof(Result), 1);
-
-            delete file;
-        }
-    }
-
-    /** */
-    void load (const std::string& uri)
-    {
-        system::IFile* file = system::impl::System::file().newFile (uri, "rb+");
-        if (file != 0)
-        {
-            /** We read the nb of hash functions. */
-            file->fread (&_nbHash, sizeof(_nbHash), 1);
-
-            /** We read the size of the blooms. */
-            file->fread (&_size, sizeof(_size), 1);
-
-            /** We read block size information. */
-            file->fread (&_nbits_BlockSize, sizeof(_nbits_BlockSize), 1);
-
-            /** We allocate the array. */
-            _blooma = (Result*) MALLOC (_size*sizeof(Result));
-            system::impl::System::memory().memset (_blooma, 0, _size*sizeof(Result));
-
-            /** We read the blooms info. */
-            file->fread (_blooma, _size*sizeof(Result), 1);
-
-            delete file;
-        }
-    }
-
-    /** */
-    void insert (const Item& item, size_t idx)
-    {
-        static const Result ONE (1);
-
-        /** First hash. */
-        u_int64_t h0 = this->_hash (item,0) % _reduced_size;
-        this->_blooma[h0] |= (ONE << idx);
-
-        for (size_t i=1; i<this->_nbHash; i++)
-        {
-            /** Other hash. */
-            u_int64_t h1 = h0  + (simplehash16 (item,i) & _mask_block);
-            this->_blooma[h1] |= (ONE << idx);
-        }
-    }
-
-    /** */
-    bool contains (const Item& item, size_t idx)
-    {
-        static const Result ONE  (1);
-
-        /** First hash. */
-        u_int64_t h0 = this->_hash (item,0) % _reduced_size;
-        if ((this->_blooma[h0] & (ONE << idx)) != (ONE << idx))  {  return false;  }
-
-        for (size_t i=1; i<this->_nbHash; i++)
-        {
-            /** Other hash. */
-            u_int64_t h1 = h0  + (simplehash16 (item,i) & _mask_block);
-            if ((this->_blooma[h1] & (ONE << idx)) != (ONE << idx))  {  return false;  }
-        }
-        return true;
-    }
-
-    /** */
-    Result contains (const Item& item)
-    {
-        static const Result ZERO (0);
-        Result res = ~ZERO;
-
-        u_int64_t h0 = this->_hash (item,0) % _reduced_size;
-        res &= _blooma [h0];
-
-        for (size_t i=1; i<this->_nbHash; i++)
-        {
-            u_int64_t h1 = h0 + (simplehash16(item,i) & _mask_block);
-            res &= _blooma [h1];
-        }
-        return res;
-    }
-
-private:
-
-    HashFunctors<Item> _hash;
-    size_t             _nbHash;
-    u_int64_t          _size;
-    Result*            _blooma;
-
-    u_int64_t  _mask_block;
-    size_t     _nbits_BlockSize;
-    u_int64_t  _reduced_size;
-
-};
-
-/********************************************************************************/
-
-/** */
+/** \brief Factory that creates IBloom instances
+ *
+ */
 class BloomFactory
 {
 public:
 
-    /** */
+    /** Singleton method
+     * \return the singleton. */
     static BloomFactory& singleton()  { static BloomFactory instance; return instance; }
 
-    /** */
+    /** Create a IBloom instance
+     * \param[in] kind : kind of the IBloom instance to be created
+     * \param[in] tai_bloom : size of the Bloom filter (in bits)
+     * \param[in] nbHash : number of hash functions for the Bloom filter
+     * \param[in] kmersize : kmer size (used only for some implementations).
+     */
     template<typename T> IBloom<T>* createBloom (tools::misc::BloomKind kind, u_int64_t tai_bloom, size_t nbHash, size_t kmersize)
     {
         switch (kind)
@@ -1199,7 +841,12 @@ public:
         }
     }
 
-    /** */
+    /** Create a IBloom instance
+     * \param[in] name : kind name of the IBloom instance to be created
+     * \param[in] sizeStr : size of the Bloom filter (in bits) as a string
+     * \param[in] nbHashStr : number of hash functions for the Bloom filter as a string
+     * \param[in] kmerSizeStr : kmer size (used only for some implementations) as a string.
+     */
     template<typename T> IBloom<T>* createBloom (
         const std::string& name,
         const std::string& sizeStr,

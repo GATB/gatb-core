@@ -47,7 +47,34 @@ namespace misc      {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Framework class for implementing tools (ie. binary tools).
+/** \brief Framework abstract class for implementing tools (ie. binary tools).
+ *
+ * This class provides facilities for:
+ *  - parsing command line
+ *  - dispatching work on several threads
+ *  - getting execution times
+ *  - gathering statistics information
+ *
+ * The Tool sub classes must implement the execute method; this is the place where
+ * the actual job of the tool has to be done.
+ *
+ * If the tool is launch with the run method and the famous [argc,argv] couple,
+ * the command line [argc,argv] is parsed through an options parser and the recognized
+ * options are available through the getInput method.
+ *
+ * The option parser should be configured (ie. adding specific options) during the constructor
+ * of the Tool sub class. By default, some default options are attached to the Tool options
+ * parser; for instance :
+ *      - "-nb-cores" is available and enables to set the number of cores that can be used by the tool.
+ *      - "-verbose" is available and can be used for having progress bar while iterating iterators.
+ *
+ * A dispatcher is available with the getDispatcher method. This dispatcher may have been
+ * configured (ie. set the number of available cores) during the constructor.
+ *
+ * Example:
+ * \snippet ToyTool.cpp  snippet1
+ *
+ * \see Algorithm
  */
 class Tool : public system::SmartPointer
 {
@@ -66,32 +93,73 @@ public:
 
     /** Run the tool with input parameters provided as a IProperties instance
      * \param[in] input : input parameters
-     * \return
+     * \return the parsed options as a IProperties instance
      */
     virtual IProperties* run (IProperties* input);
 
-    /** */
+    /** Run the tool with input parameters provided as a couple [argc,argv]
+     * \param[in] argc : number of arguments
+     * \param[in] argv : array of arguments
+     * \return the parsed options as a IProperties instance
+     */
     virtual IProperties* run (int argc, char* argv[]);
 
-    /** */
+    /** Subclasses must implement this method; this is where the actual job of
+     * the tool has to be done.
+     */
     virtual void execute () = 0;
 
-    /** */
+    /** Get the parsed options as a properties instance
+     * \return the parsed options.
+     */
     virtual IProperties*            getInput      ()  { return _input;      }
+
+    /** Get output results as a properties instance
+     * \return the output results
+     */
     virtual IProperties*            getOutput     ()  { return _output;     }
+
+    /** Get statistics information about the execution of the tool
+     * \return the statistics
+     */
     virtual IProperties*            getInfo       ()  { return _info;       }
+
+    /** Get an option parser configured with recognized options for the tool
+     * \return the options parser instance
+     */
     virtual IOptionsParser*         getParser     ()  { return _parser;     }
+
+    /** Get a dispatched that can be used for parallelization. The option "-nb-cores" can
+     * be used, and thus the provided number is used for configuring the dispatcher.
+     * \return the dispatcher for the tool
+     */
     virtual dp::IDispatcher*        getDispatcher ()  { return _dispatcher; }
+
+    /** Get a TimeInfo instance for the tool. This object can be used for gathering
+     * execution times of some parts of the \ref execute method.
+     * \return the time info instance.
+     */
     virtual TimeInfo&               getTimeInfo   ()  { return _timeInfo;   }
 
-    /** */
+    /** Create an iterator for the given iterable. If the verbosity is enough, progress bar information
+     * can be displayed.
+     * \param[in] iterable : object that creates the iterator.
+     * \param[in] message : message used if progress information has to be displayed
+     * \return the created iterator.
+     */
     template<typename Item> dp::Iterator<Item>* createIterator (collections::Iterable<Item>& iterable, const char* message=0)
     {
         int64_t nbItems = (iterable.getNbItems() >= 0 ? iterable.getNbItems() : iterable.estimateNbItems());
         return createIterator (iterable.iterator(), nbItems, message);
     }
 
-    /** */
+    /** Create an iterator for the given iterator. If the verbosity is enough, progress bar information
+     * can be displayed.
+     * \param[in] iter : object to be encapsulated by a potential progress information
+     * \param[in] nbIterations : number of iterations to be done.
+     * \param[in] message : message used if progress information has to be displayed
+     * \return the created iterator.
+     */
     template<typename Item> dp::Iterator<Item>* createIterator (dp::Iterator<Item>* iter, size_t nbIterations=0, const char* message=0)
     {
         if (nbIterations > 0 && message != 0)
@@ -108,8 +176,17 @@ public:
         return iter;
     }
 
-    /** */
+    /** Creates an iterator listener according to the verbosity level.
+     * \param[in] nbIterations : number of iterations to be done
+     * \param[in] message : progression message
+     * \return an iterator listener.
+     */
     virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
+
+    /** Displays information about the GATB library
+     * \param[in] os : output stream used for dumping library information
+     */
+    virtual void displayVersion(std::ostream& os);
 
 protected:
 
@@ -153,6 +230,7 @@ protected:
 
 /********************************************************************************/
 
+/* DEPRECATED. */
 class ToolComposite : public Tool
 {
 public:
@@ -182,7 +260,7 @@ private:
 
 /********************************************************************************/
 
-/** */
+/* DEPRECATED. */
 class ToolProxy : public Tool
 {
 public:

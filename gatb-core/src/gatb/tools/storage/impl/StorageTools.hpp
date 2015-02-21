@@ -22,7 +22,7 @@
  *  \author edrezen
  *  \brief Collection interface
  *
- *  This file holds interfaces related to the Collection interface
+ *  This file holds tools about the storage feature
  */
 
 #ifndef _GATB_CORE_TOOLS_STORAGE_IMPL_STORAGE_TOOLS_HPP_
@@ -46,17 +46,24 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief  Helper class for the storage feature.
+ */
 class StorageTools
 {
 public:
 
-    /** why is there code in headers? because else we'd have to instantiate the template, see http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor */
+    /* why is there code in headers? because else we'd have to instantiate the template, see http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor */
 
-    /** */
+    /** Singleton method.
+     * \return the singleton.
+     */
     static StorageTools& singleton() { static StorageTools instance; return instance; }
 
-
-    /** */
+    /** Save a Collection instance into a group
+     * \param[in] group : group where the collection has to be saved
+     * \param[in] name : name of the collection saved in the group
+     * \param[in] collection : Collection instance to be saved.
+     */
     template<typename T>  void saveContainer (Group& group, const std::string& name, collections::Collection<T>* collection)
     {
         collections::Collection<T>* storageCollection = & group.getCollection<T> (name);
@@ -66,14 +73,23 @@ public:
         storageCollection->flush ();
     }
 
-    /** */
+    /** Load a Collection instance from a group
+     * \param[in] group : group where the collection has to be load
+     * \param[in] name : name of the collection the group
+     * \return a Collection instance, loaded from the group
+     */
     template<typename T>  collections::Container<T>*  loadContainer (Group& group, const std::string& name)
     {
         collections::Collection<T>*  storageCollection = & group.getCollection<T> (name);
         return new collections::impl::ContainerSet<T> (storageCollection->iterator());
     }
 
-    /** */
+    /** Save a Bloom filter into a group
+     * \param[in] group : group where the IBloom instance has to be saved
+     * \param[in] name : name of the Bloom filter in the group
+     * \param[in] bloom : Bloom filter to be saved
+     * \param[in] kmerSize : kmer size (uggly but needed...)
+     */
     template<typename T>  void saveBloom (Group& group, const std::string& name, collections::impl::IBloom<T>* bloom, size_t kmerSize)
     {
         collections::Collection<math::NativeInt8>* bloomCollection = & group.getCollection<math::NativeInt8> (name);
@@ -104,7 +120,11 @@ public:
         bloomCollection->addProperty ("kmer_size", ss3.str());
     }
 
-    /** */
+    /** Load a Bloom filter from a group
+     * \param[in] group : group where the Bloom filter is
+     * \param[in] name : name of the Bloom filter in the group
+     * \return the Bloom filter as an instance of IBloom
+     */
     template<typename T>  collections::impl::IBloom<T>*  loadBloom (Group& group, const std::string& name)
     {
         /** We retrieve the raw data buffer for the Bloom filter. */

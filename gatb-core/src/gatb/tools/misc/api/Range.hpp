@@ -40,7 +40,7 @@ namespace tools     {
 namespace misc      {
 /********************************************************************************/
 
-/** \brief Definition of an interval (inspired by std::pair). It is possible to define
+/* \brief Definition of an interval (inspired by std::pair). It is possible to define
  * 'reversed' range, ie. with a beginning greater than the end.
  */
 template <class T> class Range : public collections::Iterable<T>, public system::SmartPointer

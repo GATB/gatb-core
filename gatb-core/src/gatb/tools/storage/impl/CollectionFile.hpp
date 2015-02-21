@@ -47,7 +47,9 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Collection interface
+/** \brief Implementation of the Collection interface with a file.
+ *
+ * This implementation reads/writes Item objects in a file.
  */
 template <class Item> class CollectionFile : public collections::impl::CollectionAbstract<Item>, public system::SmartPointer
 {
@@ -72,8 +74,8 @@ private:
     std::string _name;
 };
 
-/** \brief Collection interface
- */
+/********************************************************************************/
+/* Experimental (not documented). */
 template <class Item> class CollectionGzFile : public collections::impl::CollectionAbstract<Item>, public system::SmartPointer
 {
 public:
@@ -97,8 +99,8 @@ private:
     std::string _name;
 };
   
-/** \brief Collection interface
- */
+/********************************************************************************/
+/* Experimental (not documented). */
 template <class Item> class CollectionCountFile : public collections::impl::CollectionAbstract<Item>, public system::SmartPointer
 {
 public:

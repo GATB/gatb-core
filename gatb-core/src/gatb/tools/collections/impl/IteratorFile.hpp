@@ -147,11 +147,44 @@ private:
     bool            _isDone;
 };
 
-    
-    
-    
-/** \brief Iterator implementation for file
+/********************************************************************************/
+
+/** \brief Implementation of the Iterable interface as a file
+ *
+ * This implementation uses a file as the source of the items that can be iterated.
+ *
+ * A cache system is implemented in order to speed up I/O.
  */
+template <class Item> class IterableFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
+{
+public:
+
+    /** Constructor
+     * \param[in] filename : name of the file to be iterated.
+     * \param[in] cacheItemsNb : number of items in the cache memory
+     */
+    IterableFile (const std::string& filename, size_t cacheItemsNb=10000)
+        :   _filename(filename), _cacheItemsNb (cacheItemsNb)  {}
+
+    /** Destructor. */
+    ~IterableFile () {}
+
+    /** \copydoc Iterable::iterator */
+    dp::Iterator<Item>* iterator ()  { return new IteratorFile<Item> (_filename, _cacheItemsNb); }
+
+    /** \copydoc Iterable::getNbItems */
+    int64_t getNbItems ()   {  return system::impl::System::file().getSize(_filename) / sizeof(Item); }
+
+    /** \copydoc Iterable::estimateNbItems */
+    int64_t estimateNbItems ()   {  return getNbItems(); }
+
+private:
+    std::string     _filename;
+    size_t          _cacheItemsNb;
+};
+    
+/********************************************************************************/
+/* EXPERIMENTAL (not documented). */
 template <class Item> class IteratorGzFile : public dp::Iterator<Item>
 {
 public:
@@ -258,10 +291,10 @@ private:
     bool            _isDone;
 };
 
-
-/** \brief Iterator implementation for file
+/********************************************************************************/
+/* EXPERIMENTAL (not documented).
+ * reading from a  sorted compressed file, read is buffered
  */
-    //reading from a  sorted compressed file, read is buffered
 template <class Item> class IteratorCountCompressedFile : public dp::Iterator<Item>
 {
 public:
@@ -326,26 +359,18 @@ public:
     /** \copydoc dp::Iterator::next */
     void next()
     {
-
-        
         if(_abundance)
         {
-           // printf("rem abond %i \n",_abundance);
-
             *(this->_item) =  _previous;
             _abundance--;
         }
         else
-        
         {
-
-            
             if (!readChunkIfNeeded (1)) return;
 
             //read a couple (byte, Item)
             _abundance =  _buffer[_idx];
             _cpt_buffer --;  _idx ++;
-          //  printf(" read new couple  %i  \n",_abundance);
 
             if (!readChunkIfNeeded (sizeof(Item))) return; // this one should succeed (ie, in the file always a couple  (byte, elem))
             _previous =  *((Item *) (_buffer + _idx ));
@@ -354,10 +379,7 @@ public:
 
             *(this->_item) =  _previous;
             _abundance--;
-            
-
         }
-        
     }
     
     /** \copydoc dp::Iterator::isDone */
@@ -370,82 +392,47 @@ public:
     size_t fill (std::vector<Item>& vec, size_t len=0)
     {
         printf("Not yet implemented \n");
-//        if (len==0)  { len = vec.size(); }
-//        return _file->fread (vec.data(), sizeof(Item), len);
+        // if (len==0)  { len = vec.size(); }
+        // return _file->fread (vec.data(), sizeof(Item), len);
     }
     
 private:
     std::string     _filename;
     system::IFile*  _file;
-    u_int8_t*           _buffer;
+    u_int8_t*       _buffer;
     int             _cpt_buffer; // how many unread bytes are remaining in the buffer
     int             _idx; // where we should read the next elem in the buffer
     size_t          _cacheItemsNb; //in bytes for this  compressed type file
     bool            _isDone;
-    u_int8_t  _abundance ;
-    Item          _previous;
+    u_int8_t        _abundance ;
+    Item            _previous;
 
     bool readChunkIfNeeded (size_t needNBytes)
     {
-
-
         if (_cpt_buffer < needNBytes)
         {
-         //   printf("Read new chunk  _cacheItemsNb %zu B nedd %zu have %i  \n",_cacheItemsNb,needNBytes,_cpt_buffer);
-
-        //_idx = 0;
-         //   printf(" A new pos in file %p  %llu  \n",_file, _file->tell());
+            // printf("Read new chunk  _cacheItemsNb %zu B nedd %zu have %i  \n",_cacheItemsNb,needNBytes,_cpt_buffer);
+            // _idx = 0;
+            // printf(" A new pos in file %p  %llu  \n",_file, _file->tell());
 
             //deplacer ce quil reste au debut avant
             memcpy (_buffer,_buffer + _idx,_cpt_buffer ); _idx = 0;
             int remaining = _cpt_buffer;
             _cpt_buffer += _file->fread (_buffer+ remaining , sizeof(u_int8_t), _cacheItemsNb - remaining  );
-          //  printf(" B new pos in file %p  %llu  \n",_file, _file->tell());
+            // printf(" B new pos in file %p  %llu  \n",_file, _file->tell());
 
             if (_cpt_buffer==0)  {
                 _isDone = true;
                 //printf("should end iterating file \n");
             }
-         //   printf("end read have %i \n",_cpt_buffer);
-
+            // printf("end read have %i \n",_cpt_buffer);
         }
-
         return !_isDone;
     }
-
 };
 
-
-
-    
 /********************************************************************************/
-
-template <class Item> class IterableFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
-{
-public:
-
-    /** */
-    IterableFile (const std::string& filename, size_t cacheItemsNb=10000)
-        :   _filename(filename), _cacheItemsNb (cacheItemsNb)  {}
-
-    /** */
-    ~IterableFile () {}
-
-    /** */
-    dp::Iterator<Item>* iterator ()  { return new IteratorFile<Item> (_filename, _cacheItemsNb); }
-
-    /** */
-    int64_t getNbItems ()   {  return system::impl::System::file().getSize(_filename) / sizeof(Item); }
-
-    /** */
-    int64_t estimateNbItems ()   {  return getNbItems(); }
-
-private:
-    std::string     _filename;
-    size_t          _cacheItemsNb;
-};
-    
-    
+/* EXPERIMENTAL (not documented). */
 template <class Item> class IterableGzFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
 {
 public:
@@ -470,6 +457,8 @@ private:
     size_t          _cacheItemsNb;
 };
 
+/********************************************************************************/
+/* EXPERIMENTAL (not documented). */
 template <class Item> class IterableCountCompressedFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
 {
 public:

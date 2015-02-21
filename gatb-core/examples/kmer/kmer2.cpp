@@ -11,6 +11,10 @@
 
 int main (int argc, char* argv[])
 {
+    // We set the maximal span of the kmers. We use here a constant of gatb-core
+    // that gives a default span for kmers up to KSIZE_2 (likely 64)
+    const size_t span = KSIZE_2;
+
     // We define some nucleotides sequence.
     const char* seq = argc<2 ? "CTACGAATT" : argv[1];
 
@@ -19,9 +23,11 @@ int main (int argc, char* argv[])
     // We set the kmer size as the length of our sequence.
     size_t kmerSize = strlen(seq);
 
-    // We set the maximal span of the kmers. We use here a constant of gatb-core
-    // that gives a default span for kmers up to KSIZE_2 (likely 128)
-    const size_t span = KSIZE_4;
+    if (kmerSize >= span)
+    {
+        std::cerr << "STRING TOO BIG (" << kmerSize << "),  must be less than " << span << std::endl;
+        return EXIT_FAILURE;
+    }
 
     // Once we have defined our span, we define some typedefs
     // Note : such definitions are not mandatory but provides better code readability
@@ -68,6 +74,9 @@ int main (int argc, char* argv[])
         std::cout << "forward string is: " << model.toString(kmer.forward())    << std::endl;
         std::cout << "revcomp value  is: " << kmer.revcomp()                    << std::endl;
         std::cout << "revcomp string is: " << model.toString(kmer.revcomp())    << std::endl;
+        std::cout << "used strand is   : " << toString(kmer.strand())           << std::endl;
+
+
 //! [snippet1_canonical]
     }
 
@@ -78,7 +87,7 @@ int main (int argc, char* argv[])
 //! [snippet1_minimizer]
         // We declare a kmer model with kmer size big enough to represent our sequence.
         // Note that we give a second size, which is the size of the minimizers
-        ModelMinimizer model (kmerSize, kmerSize/2);
+        ModelMinimizer model (kmerSize, 8);
 
         // We get a reference on the minimizer model, which will be useful for dumping
         // string value of a minimizer. Recall that 'model' is a model configured with
@@ -99,6 +108,7 @@ int main (int argc, char* argv[])
         std::cout << "forward string is: " << model.toString(kmer.forward())    << std::endl;
         std::cout << "revcomp value  is: " << kmer.revcomp()                    << std::endl;
         std::cout << "revcomp string is: " << model.toString(kmer.revcomp())    << std::endl;
+        std::cout << "used strand is   : " << toString(kmer.strand())           << std::endl;
 
         // We can also have information about minimizers.
         // Note :  kmer.minimizer() is of type ModelCanonical, ie the type provided as

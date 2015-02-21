@@ -82,7 +82,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _storage(0),
       _bank(0),
       _kmerSize(0), _abundance(make_pair(0,~0)),
-      _partitionType(0), _minimizerType(0), _nbCores(0), _prefix(""),
+      _partitionType(0), _minimizerType(0), _repartitionType(0), _nbCores(0), _prefix(""),
       _progress (0),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -113,6 +113,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     size_t      histogramMax,
     size_t      partitionType,
     size_t      minimizerType,
+    size_t      repartitionType,
     size_t      minimizerSize,
     const std::string& prefix,
     gatb::core::tools::misc::IProperties* options
@@ -121,7 +122,9 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _storage(storage),
     _bank(0),
     _kmerSize(kmerSize), _minim_size(minimizerSize), _abundance(abundance),
-    _partitionType(partitionType), _minimizerType(minimizerType), _nbCores(nbCores), _prefix(prefix),
+    _partitionType(partitionType), _minimizerType(minimizerType), 
+    _repartitionType(repartitionType),
+    _nbCores(nbCores), _prefix(prefix),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -153,7 +156,9 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _storage(&storage),
     _bank(0),
     _kmerSize(0), _minim_size(0), _abundance(make_pair(0,~0)),
-    _partitionType(0), _minimizerType(0), _nbCores(0), _prefix(""),
+    _partitionType(0), _minimizerType(0), 
+    _repartitionType(0),
+    _nbCores(0), _prefix(""),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
@@ -208,6 +213,7 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         _abundance              = s._abundance;
         _partitionType          = s._partitionType;
         _minimizerType          = s._minimizerType;
+        _repartitionType        = s._repartitionType;
         _nbCores                = s._nbCores;
         _nbCores_per_partition  = s._nbCores_per_partition;
         _nb_partitions_in_parallel = s._nb_partitions_in_parallel;
@@ -262,6 +268,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                         false,  "."));
     parser->push_back (new OptionOneParam (STR_MINIMIZER_TYPE,    "minimizer type (0=lexi, 1=freq)",          false,  "0"));
     parser->push_back (new OptionOneParam (STR_MINIMIZER_SIZE,    "size of a minimizer",                      false,  "8"));
+    parser->push_back (new OptionOneParam (STR_REPARTITION_TYPE,  "minimizer repartition (0=unordered, 1=ordered)",false,  "0"));
 
     return parser;
 }
@@ -572,6 +579,16 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
     if (_max_memory == 0)  {  _max_memory = 1000; }
+   
+    /* make sure to not use more mem than system, when max_memory has default value (useful for docker images) */
+    if (_max_memory == 2000)  {  
+        unsigned long system_mem = System::info().getMemoryPhysicalTotal() / MBYTE;
+        if (_max_memory > (system_mem * 2) / 3)
+        {
+            _max_memory = (system_mem * 2) / 3;
+            cout << "Warning: default memory usage (2000 MB) is close or above system max, setting memory to: " << _max_memory << " MB" << endl;
+        }
+    }
 
     assert (_max_disk_space > 0);
     
@@ -698,6 +715,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     getInfo()->add (2, "nb_cores",          "%d",  getDispatcher()->getExecutionUnitsNumber());
     getInfo()->add (2, "partition_type",    "%d",  _partitionType);
     getInfo()->add (2, "minimizer_type",    "%s",  (_minimizerType == 0) ? "lexicographic (kmc2 heuristic)" : "frequency");
+    getInfo()->add (2, "repartition_type",    "%s",  (_repartitionType == 0) ? "unordered" : "ordered");
     if  (_flagEstimateNbDistinctKmers)
     {
         getInfo()->add (2, "estimated_nb_distinct_kmers",     "%ld", _estimatedDistinctKmerNb);
@@ -739,7 +757,7 @@ public:
         /** We first check whether we got kmers from the sequence or not. */
         if (_model.build (sequence.getData(), _kmers) == false)  { return; }
 
-        int maxs = (Type::getSize() - _miniSize )/2 ; //and 100 max
+        int maxs = (Type::getSize() - 8 )/2 ;  // 8 is because  8 bit used for size of superkmers, not mini size
 
         /** We create a superkmer object. */
         SuperKmer superKmer (_kmersize, _miniSize, _kmers);
@@ -1240,7 +1258,11 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     else
     {
         repartitor.computeDistrib (sample_info);
-        repartitor.justGroupLexi (sample_info); // FIXME; actually i need the minimizers to remain in order in Bcalm, so using this suboptimal but okay repartition
+        if (_repartitionType == 1)
+        {
+            repartitor.justGroupLexi (sample_info); // For bcalm, i need the minimizers to remain in order. so using this suboptimal but okay repartition
+        }
+        
     }
 
     /** We save the distribution (may be useful for debloom for instance). */

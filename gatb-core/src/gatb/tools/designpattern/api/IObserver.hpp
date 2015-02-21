@@ -92,9 +92,9 @@ protected:
  *  the communication between software components without having strong dependencies
  *  between them.
  *
- *  For instance, PLAST sends notifications about its progression. This is useful for
+ *  For instance, a tool sends notifications about its progression. This is useful for
  *  potential clients that want to know whether they have to wait a long time before
- *  the algorithm finishes. The important point is that PLAST is not polluted by clients
+ *  the algorithm finishes. The important point is that a tool is not polluted by clients
  *  concerns, it just notifies some information, without even know who in particular will
  *  receive the information.
  *
@@ -132,50 +132,8 @@ public:
  *
  *   There is also a 'notify' method that should be called when a notification has to be sent.
  *
- * Sample:
- * \code
- * // We define some notification information class.
- * class MyEventInfo : public EventInfo
- * {
- * public:
- *      MyEventInfo (const std::string& message) : EventInfo(0), _message(message) {}
- *      const std::string& getMessage ()  { return _message; }
- * private:
- *      std::string _message;
- * };
- *
- * // We define some Observer class.
- * class MyObserver : public IObserver
- * {
- * public:
-        void update (EventInfo* evt, ISubject* subject)
-        {
-            MyEventInfo* info = dynamic_cast<MyEventInfo*> (evt);
-            if (info != 0)  {  cout << "Receiving: " << info->getMessage() << end;  }
-        }
- * };
- *
- * int main (int argc, char* argv[])
- * {
- *      // we define a subject instance
- *      ISubject* subject = new Subject ();
- *
- *      // we create a specific observer
- *      IObserver* observer = new MyObserver ();
- *
- *      // we attach the observer to the subject
- *      subject->addObserver (observer);
- *
- *      // the subject sends some notification => should be received by our observer
- *      subject->notify (new MyEventInfo ("Message that should be received"));
- *
- *      // we detach the observer from the subject
- *      subject->removeObserver (observer);
- *
- *      // the subject sends some notification => should not be received by our observer
- *      subject->notify (new MyEventInfo ("Message that should NOT be received"));
- * }
- * \endcode
+ * Example:
+ * \snippet observer1.cpp  snippet1
  *
  *  \see IObserver
  */

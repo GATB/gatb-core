@@ -70,7 +70,7 @@ public:
 
     /** \copydoc ISystemInfo::getHomeDirectory */
     std::string getHomeDirectory ()  const {  return getenv("HOME") ? getenv("HOME") : ".";  }
-
+    
     /** \copydoc ISystemInfo::getMemoryPhysicalFree */
     u_int64_t getMemoryPhysicalFree () const  { return getMemoryPhysicalTotal()-getMemoryPhysicalUsed(); }
 

@@ -20,7 +20,7 @@
 /** \file IterableHelpers.hpp
  *  \date 01/03/2013
  *  \author edrezen
- *  \brief Iterator implementation for file
+ *  \brief Helpers class for iterable concept
  */
 
 #ifndef _GATB_CORE_TOOLS_COLLECTIONS_IMPL_ITERABLE_HELPERS_HPP_
@@ -40,10 +40,29 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
-template<class Type, class Listener=tools::misc::impl::ProgressTimer>
+/** \brief Iterator with progress information.
+ *
+ * This Iterator implementation encapsulates a given iterator and shows progress
+ * information to end users.
+ *
+ * The way the progress information is displayed is set through the second template
+ * argument of the class which is some IteratorListener implementation class. There
+ * is a default argument for this template, so one has often have only to give the
+ * first template type (ie the kind of items to be iterated).
+ *
+ * This is an example of the Decorator design pattern.
+ */
+template<class Type, class Listener=tools::misc::impl::ProgressDefault>
 class ProgressIterator : public tools::dp::impl::SubjectIterator<Type>
 {
 public:
+
+    /** Constructor. It uses the provided Iterable object to build the delegate Iterator
+     * instance.
+     * \param[in] iterable : used to create the delegate iterator
+     * \param[in] msg : message displayed at each progression notification
+     * \param[in] divide : number of notifications to be send
+     */
     ProgressIterator (Iterable<Type>& iterable, const char* msg = "progress", size_t divide=100)
         : tools::dp::impl::SubjectIterator<Type> (
             iterable.iterator(),
@@ -51,6 +70,11 @@ public:
             new Listener ((iterable.getNbItems() >= 0 ? iterable.getNbItems() : iterable.estimateNbItems()), msg)
     ) {}
 
+    /** Constructor. It uses the provided Iterator object as the delegate iterator
+     * \param[in] iterator : delegate iterator
+     * \param[in] msg : message displayed at each progression notification
+     * \param[in] nbItems : number of items to be iterated
+     */
     ProgressIterator (tools::dp::Iterator<Type>* iterator, const char* msg, size_t nbItems)
         : tools::dp::impl::SubjectIterator<Type> (
             iterator,
@@ -62,6 +86,10 @@ public:
 /********************************************************************************/
 
 /** \brief Adaptor of an Iterable<T1> into an Iterable<T2>
+ *
+ * This class converts the type T1 of an iterable into another iterable of type T2.
+ *
+ * A functor must be provided in order to convert one item of T1 into T2.
  */
 template <class T1, class T2, class Adaptor>
 class IterableAdaptor : public Iterable<T2>, public system::SmartPointer
@@ -87,10 +115,10 @@ public:
     /** Return a buffer of items.
      * \param[out] buffer : the buffer
      * \return the buffer */
-    T2* getItems (T2*& buffer) { return 0; } //_ref.getItems (buffer); }
+    T2* getItems (T2*& buffer) { return 0; }
 
     /** */
-    size_t getItems (T2*& buffer, size_t start, size_t nb) { return 0; }//_ref.getItems (buffer, start, nb); }
+    size_t getItems (T2*& buffer, size_t start, size_t nb) { return 0; }
 
 private:
     Iterable<T1>& _ref;
@@ -103,6 +131,10 @@ class IterableHelpers
 {
 public:
 
+    /** Retrieve in a vector items from an Iterable instance.
+     * \param[in] iterable : the instance we want to get items from
+     * \param[out] items : vector of items to be retrieved. This vector must be sized to
+     * the number of items that one wants to retrieve. */
     template<typename T>
     static bool getItems (Iterable<T>& iterable, std::vector<T>& items)
     {

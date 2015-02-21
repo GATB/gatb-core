@@ -50,24 +50,32 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Implementation of the Bag interface with a HDF5 file.
+ *
+ * This implementation writes Item objects in a HDF5 file.
+ */
 template <class Item> class BagHDF5 : public collections::Bag<Item>, public system::SmartPointer
 {
 public:
 
-    /** */
+    /** Constructor.
+     * \param[in] datasetId : HDF5 identifier of the dataset acting as a Bag.
+     * \param[in] typeId : HDF5 type identifier for the Item type
+     * \param[in] nbItems : number of items
+     * \param[in] synchro : used to serialize concurrent read/write HDF5 operations.
+     */
     BagHDF5 (hid_t datasetId, hid_t typeId, u_int64_t& nbItems, system::ISynchronizer* synchro)
         : _datasetId(datasetId), _typeId(typeId), _nbInserted(0), _nbItems(nbItems), _synchro(synchro)
     {
     }
 
-    /** Insert an item into the bag.
-     * \param[in] item : the item to be inserted. */
+    /** \copydoc collections::Bag::insert */
     void insert (const Item& item) {  insert (&item, 1);  }
 
+    /** \copydoc collections::Bag::insert(const std::vector<Item>& items, size_t length) */
     void insert (const std::vector<Item>& items, size_t length=0)  {  insert (items.data(), length==0 ? items.size() : length); }
 
-    /** Insert items into the bag.
-     * \param[in] items : items to be inserted. */
+    /** \copydoc collections::Bag::insert(const Item* items, size_t length) */
     void insert (const Item* items, size_t length)
     {
         if (items==0 || length==0)  { return; }
@@ -108,7 +116,7 @@ public:
 
     }
 
-    /** */
+    /** \copydoc collections::Bag::flush */
     void flush ()  {}
 
 private:

@@ -1,34 +1,33 @@
 //! [snippet1]
-
 // We include what we need for the test
 #include <gatb/gatb_core.hpp>
 #include <list>
 #include <iostream>
 
-/********************************************************************************/
-// We a define a functor that will be called during iteration for filtering odd items.
-struct FilterFunctor  {  bool operator ()  (int& val)   {  return val%2 == 0; } };
+//! [snippet1_SubjectIterator]
 
 /********************************************************************************/
-/*                           Iteration with filtering                           */
+/*                     Iteration with progress information                      */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
     // We declare a STL list with some values.
     int values[] = {1,2,3,5,8,13,21,34};
-    std::list<int> l (values, values + sizeof(values)/sizeof(values[0]));
+    int valuesLen = sizeof(values)/sizeof(values[0]);
+    std::list<int> l (values, values + valuesLen);
 
-    // We declare a functor for filtering items.
-    FilterFunctor filter;
+    // We declare an iterator that will send default progress status.
+    // Note that we define the 'actual' iterator on the fly as first parameter of ProgressIterator
+    ProgressIterator<int> it (new ListIterator<int> (l), "Iteration running", valuesLen);
 
-    // We declare an iterator over list entries with filtering out odd values.
-    FilterIterator<int,FilterFunctor> it (new ListIterator<int> (l), filter);
-
-    // We iterate the truncated list
+    // We iterate the list
     for (it.first(); !it.isDone(); it.next())
     {
-        // We should have only even values here.
-        std::cout << *it << std::endl;
+        // We force a small wait
+        sleep (1);
     }
 }
+
+//! [snippet1_SubjectIterator]
+
 //! [snippet1]

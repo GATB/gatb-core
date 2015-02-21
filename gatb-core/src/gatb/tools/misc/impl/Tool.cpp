@@ -84,6 +84,18 @@ Tool::~Tool ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+void Tool::displayVersion(std::ostream& os){
+	LibraryInfo::displayVersion (os);
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 IProperties* Tool::run (int argc, char* argv[])
 {
     DEBUG (("Tool::run(argc,argv) => tool='%s'  \n", getName().c_str() ));
@@ -118,7 +130,7 @@ IProperties* Tool::run (IProperties* input)
 
     if (getInput()->get(STR_VERSION) != 0)
     {
-        LibraryInfo::displayVersion (cout);
+    	displayVersion(cout);
         return _output;
     }
 

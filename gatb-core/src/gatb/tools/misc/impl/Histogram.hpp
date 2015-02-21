@@ -47,7 +47,6 @@ namespace impl      {
 /** \brief Basic implementation of the IHistogram interface.
  *
  * This implementation is the one actually used by SortingCountAlgorithm.
- *
  */
 class Histogram : public IHistogram, public system::SmartPointer
 {

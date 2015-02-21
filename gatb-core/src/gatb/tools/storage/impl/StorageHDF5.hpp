@@ -44,17 +44,27 @@ namespace storage   {
 namespace impl      {
 /********************************************************************************/
 
+/** \brief Factory used for storage of kind STORAGE_HDF5
+ */
 class StorageHDF5Factory
 {
 public:
 
-    /** */
+    /** Create a Storage instance.
+     * \param[in] name : name of the instance to be created
+     * \param[in] deleteIfExist : if the storage exits in file system, delete it if true.
+     * \param[in] autoRemove : auto delete the storage from file system during Storage destructor.
+     * \return the created Storage instance
+     */
     static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
     {
         return new StorageHDF5 (STORAGE_HDF5, name, deleteIfExist, autoRemove);
     }
 
-    /** */
+    /** Tells whether or not a Storage exists in file system given a name
+     * \param[in] name : name of the storage to be checked
+     * \return true if the storage exists in file system, false otherwise.
+     */
     static bool exists (const std::string& name)
     {
         H5Eset_auto (0, NULL, NULL);
@@ -71,7 +81,11 @@ public:
         return result;
     }
 
-    /** */
+    /** Create a Group instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the group to be created
+     * \param[in] name : name of the group to be created
+     * \return the created Group instance.
+     */
     static Group* createGroup (ICell* parent, const std::string& name)
     {
         StorageHDF5* storage = dynamic_cast<StorageHDF5*> (ICell::getRoot (parent));
@@ -80,7 +94,12 @@ public:
         return new GroupHDF5 (storage, parent, name);
     }
 
-    /** */
+    /** Create a Partition instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the partition to be created
+     * \param[in] name : name of the partition to be created
+     * \param[in] nb : number of collections of the partition
+     * \return the created Partition instance.
+     */
     template<typename Type>
     static Partition<Type>* createPartition (ICell* parent, const std::string& name, size_t nb)
     {
@@ -95,20 +114,29 @@ public:
         /** If the nb of partitions is null, we try to get it from a property. */
         if (nb==0)
         {
-            std::string nbPartStr = group.getProperty ("nb_partitions");
-            if (nbPartStr.empty()==false)  { nb = atoi (nbPartStr.c_str()); }
-            else                           { throw system::Exception ("Partition '%s' has 0 items", name.c_str()); }
+            nb = StorageHDF5Factory::getPartitionsNb (&group);
+
+            /** For backward compatibility only (ugly) : we look for the attribute in the parent object. */
+            if (nb==0)  {  nb = StorageHDF5Factory::getPartitionsNb (dynamic_cast<Group*> (parent));  }
+
+            /** Ok, we can't find any value. */
+            if (nb==0)  {  throw system::Exception ("Partition '%s' has 0 items", name.c_str());      }
         }
         else
         {
             std::stringstream ss; ss << nb;
-            group.addProperty ("nb_partitions", ss.str());
+            group.addProperty (StorageHDF5Factory::getNbPartitionsName(), ss.str());
         }
 
         return new Partition<Type> (storage->getFactory(), parent, name, nb);
     }
 
-    /** */
+    /** Create a Collection instance and attach it to a cell in a storage.
+     * \param[in] parent : parent of the collection to be created
+     * \param[in] name : name of the collection to be created
+     * \param[in] synchro : synchronizer instance if needed
+     * \return the created Collection instance.
+     */
     template<typename Type>
     static CollectionNode<Type>* createCollection (ICell* parent, const std::string& name, system::ISynchronizer* synchro)
     {
@@ -142,6 +170,23 @@ private:
         ~GlobalSynchro () { if (synchro)  { delete synchro; } }
         system::ISynchronizer* synchro;
     };
+
+    /* */
+    static const char* getNbPartitionsName()  { return "nb_partitions"; }
+
+    /** Get the number of partitions (if any).
+     * \param[in] group : check the attribute in this group
+     * \return 0 if no attribute, otherwise the number of partitions */
+    static size_t getPartitionsNb (Group* group)
+    {
+        size_t result = 0;
+        if (group != 0)
+        {
+            std::string nbPartStr = group->getProperty (getNbPartitionsName());
+            if (nbPartStr.empty()==false)  { result = atoi (nbPartStr.c_str()); }
+        }
+        return result;
+    }
 
     /************************************************************/
     class StorageHDF5 : public Storage
@@ -271,30 +316,34 @@ private:
             std::string result;
             herr_t status;
 
-            hid_t datatype = H5Tcopy (H5T_C_S1);  H5Tset_size (datatype, H5T_VARIABLE);
-
-            hid_t attrId = H5Aopen (_groupId, key.c_str(), H5P_DEFAULT);
-            if (attrId >= 0)
+            /** We first check that the attribute exitst. */
+            if ( H5Aexists(_groupId, key.c_str()) > 0)
             {
-                hid_t space_id = H5Aget_space (attrId);
+                hid_t datatype = H5Tcopy (H5T_C_S1);  H5Tset_size (datatype, H5T_VARIABLE);
 
-                hsize_t dims = 1;
-                H5Sget_simple_extent_dims (space_id, &dims, NULL);
-                char** rdata = (char **) MALLOC (dims * sizeof (char *));
+                hid_t attrId = H5Aopen (_groupId, key.c_str(), H5P_DEFAULT);
+                if (attrId >= 0)
+                {
+                    hid_t space_id = H5Aget_space (attrId);
 
-                status = H5Aread (attrId, datatype, rdata);
+                    hsize_t dims = 1;
+                    H5Sget_simple_extent_dims (space_id, &dims, NULL);
+                    char** rdata = (char **) MALLOC (dims * sizeof (char *));
 
-                /** We set the result. */
-                result.assign (rdata[0]);
+                    status = H5Aread (attrId, datatype, rdata);
 
-                /** We release buffers. */
-                status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
-                FREE (rdata);
+                    /** We set the result. */
+                    result.assign (rdata[0]);
 
-                /** We close resources. */
-                H5Aclose (attrId);
-                H5Tclose (datatype);
-                H5Sclose (space_id);
+                    /** We release buffers. */
+                    status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
+                    FREE (rdata);
+
+                    /** We close resources. */
+                    H5Aclose (attrId);
+                    H5Tclose (datatype);
+                    H5Sclose (space_id);
+                }
             }
 
             return result;
