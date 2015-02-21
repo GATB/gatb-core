@@ -127,7 +127,9 @@ void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::
 
     for (int ii=0; ii< _nb_minims; ii++)
     {
-        _repart_table[ii] = 0; // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+        _repart_table[ii] = _nbpart - 1; 
+        // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+        // and since any minimizer is potentially unseen, for bcalm, we have to put them into the last partition
     }
 
     //sum total count size
@@ -165,7 +167,9 @@ void Repartitor::justGroupLexi (const PartiInfo<5>& extern_pInfo)
 
     for (int ii=0; ii< _nb_minims; ii++)
     {
-        _repart_table[ii] = 0; // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+        _repart_table[ii] = _nbpart-1; 
+        // important to have a consistent repartition for unseen (in the sample approximation) minimizers
+        // and since any minimizer is potentially unseen, for bcalm, we have to put them into the last partition
     }
 
     u_int64_t sumsizes =0;
