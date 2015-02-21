@@ -149,6 +149,7 @@ public:
      * \param[in] histogramMax : max number of values for the kmers histogram
      * \param[in] partitionType : kind of temporary partitions
      * \param[in] minimizerType : kind of minimizer (kmc2 or other)
+     * \param[in] repartitionType : kind of repartition of minimizers into partitions
      * \param[in] minimizerSize : size of minimizers
      * \param[in] prefix : prefix used for output names
      * \param[in] options : extra options if any as a IProperties instance
@@ -165,6 +166,7 @@ public:
         size_t              histogramMax   = 10000,
         size_t              partitionType  = 0,
         size_t              minimizerType  = 0,
+        size_t              repartitionType= 0,
         size_t              minimizerSize  = 0,
         const std::string&  prefix         = "tmp.",
         gatb::core::tools::misc::IProperties* options = 0
@@ -244,6 +246,7 @@ private:
     std::pair<size_t,size_t> _abundance;
     size_t      _partitionType;
     size_t      _minimizerType;
+    size_t      _repartitionType;
     size_t      _minimizerSize;
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
