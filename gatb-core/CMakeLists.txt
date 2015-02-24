@@ -61,6 +61,14 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message ("-------------------------------------------------------------------------------------")
     endif()
 
+
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.5) 
+        set (compile_static 0)
+    else()
+        set (compile_static 1)
+    endif()
+
+
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.7) 
         set (use_mphf 0)
     else()
