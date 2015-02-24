@@ -19,7 +19,7 @@ TARGET_LINK_LIBRARIES (h5dump  ${HDF5_TOOLS_LIB_TARGET} ${HDF5_LIB_TARGET})
 SET_TARGET_PROPERTIES (h5dump PROPERTIES FOLDER tools)
 
 # (rayan) attempt at static linking, not sure if it works properly
-if (compile_static)
+if (static)
     set_target_properties(h5dump PROPERTIES LINK_SEARCH_START_STATIC 1)
     set_target_properties(h5dump PROPERTIES LINK_SEARCH_END_STATIC 1)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")

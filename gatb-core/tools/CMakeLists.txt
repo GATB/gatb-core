@@ -24,7 +24,7 @@ FOREACH (program ${PROGRAMS})
   # but we need this to distribute binaries that are compatible on old system 
   # (see lh3's post on Biostar during the 2.0.1 dsk/minia release, he could not
   # run dsk even though i compiled it on gcc 4.4.7 on genocluster2)
-  if (compile_static)
+  if (static)
      set_target_properties(${program} PROPERTIES LINK_SEARCH_START_STATIC w1)
       set_target_properties(${program} PROPERTIES LINK_SEARCH_END_STATIC 1)
       set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
