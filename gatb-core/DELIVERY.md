@@ -8,7 +8,12 @@ A delivery is made of two files:
 It is possible to use CMake for building such a delivery. When you invoke 'cmake', 
 you have to specify the version number like this:
     
-    cmake -DMAJOR=3 -DMINOR=4 -DPATCH=11 ..
+    cmake -DMAJOR=1 -DMINOR=2 -DPATCH=11 ..
+
+For better compatibility, you might want to create a static binary, by replacing 
+the above command line with:
+    
+    cmake -Dstatic=1 -DMAJOR=1 -DMINOR=2 -DPATCH=11 ..
 
 Then, you can use a 'delivery' target with:
 
