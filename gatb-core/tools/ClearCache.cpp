@@ -46,7 +46,7 @@ void clear (u_int64_t toErase)
 
     SubjectIterator<u_int32_t> it (new Range<u_int32_t>::Iterator (1, nbIter), nbIter/100);
 
-    it.addObserver (new Progress (nbIter, "Allocating blocks"));
+    it.addObserver (new ProgressTimer (nbIter, "clear cache"));
 
     size_t i=0;
     for (it.first(); !it.isDone(); it.next())
@@ -69,9 +69,9 @@ void clear (u_int64_t toErase)
 
 int main (int argc, char* argv[])
 {
-    cout << "totalPhysMem = " << System::info().getMemoryPhysicalTotal() << endl;
-    cout << "physMemUsed  = " << System::info().getMemoryPhysicalUsed()  << endl;
-    cout << "buffersMem   = " << System::info().getMemoryBuffers()       << endl;
+    //cout << "totalPhysMem = " << System::info().getMemoryPhysicalTotal() << endl;
+    //cout << "physMemUsed  = " << System::info().getMemoryPhysicalUsed()  << endl;
+    //cout << "buffersMem   = " << System::info().getMemoryBuffers()       << endl;
 
     /** Provided in MBytes */
     u_int64_t toErase = 1024 * 1024 * (argc >= 2 ? atol (argv[1]) : 0);
