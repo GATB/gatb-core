@@ -113,16 +113,16 @@ public:
     IProperty* operator[] (const std::string& key);
 
     /** \copydoc IProperties::get */
-    IProperty* get (const std::string& key);
+    IProperty* get (const std::string& key) const ;
 
     /** \copydoc IProperties::getStr */
-    std::string getStr    (const std::string& key);
+    std::string getStr    (const std::string& key) const ;
 
     /** \copydoc IProperties::getInt */
-    int64_t     getInt    (const std::string& key);
+    int64_t     getInt    (const std::string& key) const ;
 
     /** \copydoc IProperties::getDouble */
-    double      getDouble (const std::string& key);
+    double      getDouble (const std::string& key) const ;
 
     /** \copydoc IProperties::setStr */
     void setStr    (const std::string& key, const std::string& value);
@@ -159,15 +159,18 @@ public:
     /* */
     void dump (std::ostream& s);
 
+    /** Read a file holding [key,value] entries and add them through 'add' method.
+     * \param[in] file : the file to be read
+     */
+    void readFile (const std::string& file);
+
 private:
 
     /** List of IProperty instances. */
     std::list<IProperty*> _properties;
 
-    /** Read a file holding [key,value] entries and add them through 'add' method.
-     * \param[in] file : the file to be read
-     */
-    void readFile (const std::string& file);
+    /* */
+    IProperty* getRecursive (const std::string& key, std::list<IProperty*>::const_iterator& it) const ;
 };
 
 /** Overload output stream operator. */
