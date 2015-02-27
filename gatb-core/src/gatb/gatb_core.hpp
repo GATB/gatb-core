@@ -46,6 +46,7 @@
 #include <gatb/tools/collections/impl/IterableHelpers.hpp>
 
 #include <gatb/tools/storage/impl/Storage.hpp>
+#include <gatb/tools/storage/impl/StorageTools.hpp>
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Histogram.hpp>
