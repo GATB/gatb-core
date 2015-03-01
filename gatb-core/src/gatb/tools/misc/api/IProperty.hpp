@@ -209,25 +209,25 @@ public:
      * \param[in] key : the key
      * \return the IProperty instance if found, 0 otherwise.
      */
-    virtual IProperty* get (const std::string& key) = 0;
+    virtual IProperty* get (const std::string& key) const = 0;
 
     /** Get the value of a property given its key.
      * \param[in] key : the key of the property
      * \return the value of the key as a string.
      */
-    virtual std::string getStr    (const std::string& key) = 0;
+    virtual std::string getStr    (const std::string& key) const  = 0;
 
     /** Get the value of a property given its key.
      * \param[in] key : the key of the property
      * \return the value of the key as an integer
      */
-    virtual int64_t     getInt    (const std::string& key) = 0;
+    virtual int64_t     getInt    (const std::string& key) const = 0;
 
     /** Get the value of a property given its key.
      * \param[in] key : the key of the property
      * \return the value of the key as a double.
      */
-    virtual double      getDouble (const std::string& key) = 0;
+    virtual double      getDouble (const std::string& key) const = 0;
 
     /** Set the value of a property given its key.
      * \param[in] key : the key of the property

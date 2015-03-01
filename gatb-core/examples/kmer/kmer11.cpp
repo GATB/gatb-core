@@ -62,6 +62,17 @@ int main (int argc, char* argv[])
 
         Range<size_t> range(0, solidKmers.size()-1);
 
+        typedef vector<int> Distrib;
+
+        struct Data
+        {
+            size_t nbIn;
+            size_t nbOut;
+            Distrib distrib;
+            Distrib neigbhorParts;
+            Data (size_t nbSolids) : nbIn(0), nbOut(0), distrib(9), neigbhorParts(nbSolids) {}
+        };
+
         // we read the couples [kmer,abundance] with an iterator over each collection of the partition
         ProgressIterator<size_t> itPart (range);
         for (itPart.first(); !itPart.isDone(); itPart.next())
@@ -69,30 +80,50 @@ int main (int argc, char* argv[])
             // Shortcut
             size_t currentPart = itPart.item();
 
-            ThreadObject<size_t> nbIn  = 0;
-            ThreadObject<size_t> nbOut = 0;
+            ThreadObject<Data>  data (solidKmers.size());
 
             // We iterate the current collection inside the partition
             dispatcher.iterate (solidKmers[currentPart].iterator(),  [&]  (const Count& count)
             {
-                size_t& localIn  = nbIn();
-                size_t& localOut = nbOut();
+                Data& d = data();
+
+                set<int> match;
 
                 // We iterate the neighbors of the current kmer
                 model.iterateNeighbors (count.value, [&] (const Type& neighbor)
                 {
-                    // We look whether the neighbor is in the same partition as the current one
-                    if ( repart(model.getMinimizerValue(neighbor)) == currentPart ) {  localIn++;   }
-                    else                                                            {  localOut++;  }
+                    size_t neighborPart = repart(model.getMinimizerValue(neighbor));
+
+                    // We look whether or not the neighbor is in the same partition as the current one
+                    if (neighborPart != currentPart)  {  match.insert (neighborPart);   d.neigbhorParts[neighborPart]++;  }
                 });
+
+                d.distrib [match.size()] ++;
+
+                if (match.size()==0)    { d.nbIn  ++; }
+                else                    { d.nbOut ++; }
             });
 
-            nbIn. foreach ([&] (int localSum)  {  *nbIn  += localSum;  });
-            nbOut.foreach ([&] (int localSum)  {  *nbOut += localSum;  });
+            for (size_t i=0; i<data->distrib.size();       i++)  { (data->distrib)[i]       = 0; }
+            for (size_t i=0; i<data->neigbhorParts.size(); i++)  { (data->neigbhorParts)[i] = 0; }
 
-            fprintf (outputFile, "%ld  %ld  %ld  %ld  %.3f\n",
-                currentPart , *nbIn, *nbOut, (*nbIn+*nbOut), 100.0 * (double)*nbIn / (double)(*nbIn+*nbOut)
+            data.foreach ([&] (Data& local)
+            {
+                data->nbIn   += local.nbIn;
+                data->nbOut  += local.nbOut;
+
+                for (size_t i=0; i<data->distrib.size();       i++)  { (data->distrib)[i]       += local.distrib[i];        }
+                for (size_t i=0; i<data->neigbhorParts.size(); i++)  { (data->neigbhorParts)[i] += local.neigbhorParts[i];  }
+            });
+
+            printf ("\n\n"); for (size_t i=0; i<data->neigbhorParts.size(); i++) { printf ("%5d ", (data->neigbhorParts)[i]);  }  printf ("\n");
+
+            fprintf (outputFile, "%ld  %ld  %ld  %ld  %.3f  %ld ",
+                currentPart , data->nbIn, data->nbOut, (data->nbIn+data->nbOut),
+                100.0 * (double)data->nbIn / (double)(data->nbIn+data->nbOut), data->neigbhorParts.size()
             );
+
+            for (size_t i=0; i<9; i++)  { fprintf(outputFile, "%2d ", (data->distrib)[i]);  }   fprintf (outputFile, "\n");
         }
 
         fclose (outputFile);
@@ -109,3 +140,5 @@ int main (int argc, char* argv[])
     return EXIT_SUCCESS;
 }
 //! [snippet1]
+
+

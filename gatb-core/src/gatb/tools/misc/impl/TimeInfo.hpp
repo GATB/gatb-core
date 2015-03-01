@@ -109,6 +109,12 @@ public:
      */
     u_int32_t getEntryByKey (const std::string& key);
 
+    /** Retrieve the duration for a given label in seconds
+     * \param[in] key : the label we want the duration for.
+     * \return the duration.
+     */
+    double get (const std::string& key) { return (double)getEntryByKey(key) / 1000.0; }
+
     /** Creates and return as a IProperties instance the whole timing information.
      * \param[in] root : root name of the properties to be returned.
      * \return the created IProperties instance.
