@@ -972,8 +972,8 @@ void XmlDumpPropertiesVisitor::safeprintf (const char* format, ...)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-RawDumpPropertiesVisitor::RawDumpPropertiesVisitor (std::ostream& os)
-    : _os(os)
+RawDumpPropertiesVisitor::RawDumpPropertiesVisitor (std::ostream& os, int width)
+    : _os(os), _width(width)
 {
 }
 
@@ -1000,7 +1000,7 @@ RawDumpPropertiesVisitor::~RawDumpPropertiesVisitor ()
 *********************************************************************/
 void RawDumpPropertiesVisitor::visitProperty (IProperty* prop)
 {
-    int width = 40;
+    int width = _width;
 
     char buffer[1024];
 
