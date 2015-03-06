@@ -133,7 +133,7 @@ void Histogram::compute_threshold ()
 
 		DEBUG (("thre %i : %lli elim / %lli   : ratio %f \n",i,sum_elim,sum_allk,ratio ));
 
-		if(ratio >= 0.4)
+		if(ratio >= 0.25)
 		{
 			max_cutoff = i+1;
 			break;
