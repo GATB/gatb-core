@@ -134,7 +134,7 @@ void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& c
     _totalKmerNb++;
 
     /** Shortcut. */
-    u_int16_t actualCount = counter.computeSum();
+    SolidityCounter::Int actualCount = counter.computeSum();
 
     /** We should update the abundance histogram*/
     _histogram.inc (actualCount);
