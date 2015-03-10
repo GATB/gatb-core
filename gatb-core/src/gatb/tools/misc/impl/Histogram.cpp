@@ -143,6 +143,9 @@ void Histogram::compute_threshold ()
 	if (_cutoff > max_cutoff)
 		_cutoff = max_cutoff;
 	
+	if (_cutoff< 3)
+		_cutoff = 3;
+
 	DEBUG (("cutoff  %i  maxcutoff %i \n",index_minval,max_cutoff));
 
 	/*
