@@ -377,7 +377,8 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We configure the variant. */
         data.setSolid (sortingCount.getSolidCounts());
 
-        DEBUG ((cout << "builGraph SortingCount found " << sortingCount.getSolidCounts()->getNbItems() << " solid kmers\n"));
+        /* always print number of solid kmers: this is important information in case a use reports that Graph construction failed/took too long */
+        cout << "Found " << sortingCount.getSolidCounts()->getNbItems() << " solid kmers." << endl;
 
         /** We check that we got solid kmers. */
         if (sortingCount.getSolidCounts()->getNbItems() == 0)  {  return;  /*throw "NO SOLID KMERS FOUND...";*/  }
