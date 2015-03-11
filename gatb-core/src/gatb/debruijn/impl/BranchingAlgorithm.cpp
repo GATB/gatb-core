@@ -263,6 +263,9 @@ void BranchingAlgorithm<span>::execute ()
     /** We save the kind in the storage. */
     _storage(getName()).addProperty ("kind", toString(_kind));
 
+    /* print the number of branching nodes (could be important for debugging, if a user experiences a crash and copypastes stdout) */
+    cout << "Graph has " << _branchingCollection->getNbItems() << " branching nodes." << endl;
+
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
     getInfo()->add (2, "nb_branching", "%ld", _branchingCollection->getNbItems());
