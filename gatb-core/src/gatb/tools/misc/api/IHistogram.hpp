@@ -101,7 +101,7 @@ public:
     virtual void save () = 0;
 
 	/** Compute first minimum at x0 and firt maximum at x1 (x1>x0). */
-    virtual void compute_threshold () = 0;
+    virtual void compute_threshold (int min_auto_threshold) = 0;  //min_auto_threshold = prevents the auto_cutoff from being below this value. Default =3)
 	
     /** Get the solid cutoff, ie the x0 at first minimum.
      * \return x0 */

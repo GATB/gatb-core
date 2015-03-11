@@ -204,6 +204,8 @@ public:
      * \return the Group instance.  */
     tools::storage::impl::Group& getStorageGroup() { return  (*_storage)("dsk"); }
 
+    void setMinAutoThreshold(int value) { _min_auto_threshold = value; }
+
 private:
 
     /** Compute several values, in particular the number of passes and partitions. */
@@ -307,6 +309,8 @@ private:
     std::vector <std::vector<size_t> > _nbKmersPerPartitionPerBank;
 
     tools::misc::KmerSolidityKind _solidityKind;
+
+    int _min_auto_threshold; // used for histogram.compute_threshold() : prevents the auto_cutoff from being below this value. Default =3
 };
 	
 /********************************************************************************/

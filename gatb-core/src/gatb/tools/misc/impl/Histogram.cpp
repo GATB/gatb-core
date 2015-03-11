@@ -56,7 +56,7 @@ void Histogram::save ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Histogram::compute_threshold ()
+void Histogram::compute_threshold (int min_auto_threshold)
 {
 	//printf("compute threshold \n");
 	u_int64_t sum_allk = 0 ;
@@ -99,7 +99,7 @@ void Histogram::compute_threshold ()
 
 	if(index_first_increase ==-1 )
 	{
-		_cutoff = 3; //def val
+		_cutoff = min_auto_threshold; //def val
 		return;
 	}
 	
@@ -143,8 +143,8 @@ void Histogram::compute_threshold ()
 	if (_cutoff > max_cutoff)
 		_cutoff = max_cutoff;
 	
-	if (_cutoff< 3)
-		_cutoff = 3;
+	if (_cutoff< min_auto_threshold)
+		_cutoff = min_auto_threshold;
 
 	DEBUG (("cutoff  %i  maxcutoff %i \n",index_minval,max_cutoff));
 

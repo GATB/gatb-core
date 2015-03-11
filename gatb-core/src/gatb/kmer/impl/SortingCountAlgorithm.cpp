@@ -88,7 +88,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0),
       _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1) ,_nb_partitions_in_parallel(0),
-      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0), _solidityKind(KMER_SOLIDITY_DEFAULT)
+      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0), _solidityKind(KMER_SOLIDITY_DEFAULT),
+      _min_auto_threshold(3)
 {
 }
 
@@ -131,7 +132,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _histogram (0),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition (1) ,_nb_partitions_in_parallel (nbCores),
     _flagEstimateNbDistinctKmers(false),  _estimatedDistinctKmerNb(0),
-    _solidityKind(solidityKind)
+    _solidityKind(solidityKind),
+    _min_auto_threshold(3)
 {
     setBank (bank);
 
@@ -165,7 +167,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _histogram (0),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1),_nb_partitions_in_parallel(0),
     _flagEstimateNbDistinctKmers(false),_estimatedDistinctKmerNb(0),
-    _solidityKind(KMER_SOLIDITY_DEFAULT)
+    _solidityKind(KMER_SOLIDITY_DEFAULT),
+    _min_auto_threshold(3)
 {
     Group& group = (*_storage)(this->getName());
 
@@ -334,7 +337,7 @@ void SortingCountAlgorithm<span>::execute ()
     _histogram->save ();
 
     /** compute auto cutoff **/
-    _histogram->compute_threshold ();
+    _histogram->compute_threshold (_min_auto_threshold);
 
     /** store auto cutoff and corresponding number of solid kmers **/
     Collection<NativeInt64>& storecutoff =   (*_storage)("dsk").getCollection<NativeInt64>("cutoff") ;
