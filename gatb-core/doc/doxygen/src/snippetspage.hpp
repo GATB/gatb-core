@@ -112,10 +112,14 @@
  * Note that you can keep only one tool, for instance MyProject_1 and rename it as you
  * want. You can also add as many tools as you want in the 'tools' directory.
  *
+ * You can set a version number to your project by editing the CMakeLists.txt file located
+ * in the archive main directory. This is done by changing the default "1.0.0" value of
+ * the CPACK_PACKAGE_VERSION variable.
+ *
  * For compiling the project, you have to follow the same process than compiling the
- * distribution:
+ * distribution (note that you can set a version number with the variable CPACK_PACKAGE_VERSION):
  * \code
- * cd /tmp/MyProject; mkdir build ; cd build ; cmake .. ; make
+ * cd /tmp/MyProject; mkdir build ; cd build ; cmake -DCPACK_PACKAGE_VERSION="3.14.92" .. ; make
  * \endcode
  *
  * Note that all the needed material is included in the generated project (in particular
@@ -128,6 +132,12 @@
  *      - make package_source => package of the sources
  *
  * The source archive holds all the material needed for compilation.
+ *
+ * Note that the version number (set with CPACK_PACKAGE_VERSION) will be used for naming the archive files.
+ *
+ * If you finally want to put the archive files on the GATB server, you can use "make delivery". Note
+ * that it is possible only if you have a GForge INRIA account and have been defined as a
+ * GATB contributor.
  *
  ************************************************************************************
  ************************************************************************************

@@ -39,7 +39,7 @@ ADD_SUBDIRECTORY(tools)
 #SET (CPACK_USER_NAME                    "your_gforge_login")
 
 # We set the version number
-SET (CPACK_PACKAGE_VERSION              "1.0.0")  
+#SET (CPACK_PACKAGE_VERSION              "1.0.0")  
 
 # We have to tell what is the server name
 SET (CPACK_GFORGE_PROJECT_NAME          "gatb-tools")
