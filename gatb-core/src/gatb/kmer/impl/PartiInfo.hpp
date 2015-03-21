@@ -155,8 +155,8 @@ public:
 	inline  nbv_t getMinimMatrix(int m1,int m2) const
 	{
 		if(_minim_matrix_neighbor==NULL) return 0;
-		
-		return _minim_matrix_neighbor[ m1 + (m2*_num_mm_bins )   ];
+
+        return _minim_matrix_neighbor[ m1 + (m2*_num_mm_bins )   ];
 
 	}
 	
@@ -291,8 +291,15 @@ nbv_t *  getMinimMatrix_p() const
 	
 	void printMinimMatrix()
 	{
+
 		
-		//printf("-------Minim neighbor matrix -----\n");
+		printf("-------Minim neighbor matrix to file -----\n");
+
+        if(_minim_matrix_neighbor==NULL)
+	    {	
+    		printf("Error: printing an uninitialized matrix\n");
+            return;
+        }
 
 		FILE * ff= fopen("mmatrix","w");
 		std::string temp;
@@ -408,8 +415,13 @@ nbv_t *  getMinimMatrix_p() const
         _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
 		if(withminimtable)
 		{
-		_minim_matrix_neighbor =  (nbv_t*) CALLOC (_num_mm_bins*_num_mm_bins, sizeof(nbv_t));
-		printf("Main construct partiInfo alloc a  _minim_matrix_neighbor table %llu MB \n",_num_mm_bins*_num_mm_bins* sizeof(nbv_t)/1024LL/1024LL);
+            _minim_matrix_neighbor =  (nbv_t*) CALLOC (_num_mm_bins*_num_mm_bins, sizeof(nbv_t));
+            printf("Main construct partiInfo alloc a  _minim_matrix_neighbor table %llu MB \n",_num_mm_bins*_num_mm_bins* sizeof(nbv_t)/1024LL/1024LL);
+            if (_minim_matrix_neighbor == NULL)
+            {
+                printf("Error: matrix calloc failed\n");
+                exit(1);
+            }
 		}
 		else
 			_minim_matrix_neighbor= NULL;

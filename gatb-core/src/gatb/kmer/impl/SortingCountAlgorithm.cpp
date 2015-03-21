@@ -300,7 +300,7 @@ void SortingCountAlgorithm<span>::execute ()
     _progress->init ();
 
     /** We create the PartiInfo instance. */
-    PartiInfo<5> pInfo (_nb_partitions, _minim_size);
+    PartiInfo<5> pInfo (_nb_partitions, _minim_size, true);
 
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -542,6 +542,8 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     float load_factor = 0.7;
 
    /** We get some information about the bank. */
+    
+    printf("minimizer size: %d\n", _minim_size); // debug for megakmers
 
     /** By default, we want to have mmers of size 8. However (for unit tests for instance),
      * we may need to have kmer sizes less than 8; in such a case, we set by convention m=k-1. */
@@ -549,6 +551,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
         _minim_size = 8; //choix minim
 
     _minim_size = std::min ((int)_kmerSize-1, (int)_minim_size);
+
 
     // optimism == 0 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, any distinct k-mer will be seen 'optimism+1' times
@@ -1334,6 +1337,8 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
 		
 		pInfo.printsuperkinfo();
+	    pInfo.computeSums();
+	    pInfo.printMinimMatrix();
 		
         /** We flush the partitions in order to be sure to have the exact number of items per partition. */
         _partitions->flush();
