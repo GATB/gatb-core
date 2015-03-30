@@ -284,7 +284,7 @@ void SortingCountAlgorithm<span>::execute ()
     assert (_nbCores > 0);
 
     if (_kmerSize < 4) {  
-        throw Exception("GATB's k-mer counter only supports k > 4. For k <= 4, the code for a simple 1-pass in-memory counter, using e.g. a hash table, is left as an exercise for the coder.\n"); return; 
+        throw Exception("GATB's k-mer counter only supports k > 4.\n"); return; //  For k <= 4, the code for a simple 1-pass in-memory counter, using e.g. a hash table, is left as an exercise for the coder.
     }
 
 
