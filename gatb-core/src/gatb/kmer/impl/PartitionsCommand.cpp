@@ -82,6 +82,10 @@ PartitionsCommand<span>:: PartitionsCommand (
       _kmerSize(kmerSize),
       _pool(pool)
 {
+	
+	Type un = 1;
+	_kmerFinMask =  (un << ( this->_kmerSize-1)) - un; //shift of (k-1)/2*2
+	_kmerDebutMask =  _kmerFinMask <<   (((this->_kmerSize -1)/2 +1) *2 )  ;
 }
 
 /*********************************************************************
@@ -139,8 +143,23 @@ void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& c
     /** We should update the abundance histogram*/
     _histogram.inc (actualCount);
 
+	
+	////here transfo the kmer
+	
+	
+	//recup nt du milieu
+	Type nt_milieu =  (kmer   >> (this->_kmerSize-1) ) & 3; // shift de (k-1)/2 *2
+	
+	//recup la fin
+	Type fin = (kmer  & _kmerFinMask);
+	
+	Type permu = kmer & _kmerDebutMask;
+	permu = permu | nt_milieu;
+	permu = permu | (fin << 2);
+
+	
     /** We check that the current abundance is in the correct range. */
-    if (counter.isSolid () == true)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
+    if (counter.isSolid () == true)  {  this->_solidKmers.insert (Count(permu,actualCount));  } //kmer
 
     //if (actualCount >= this->_abundance && actualCount <= max_couv)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
 }

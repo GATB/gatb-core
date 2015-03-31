@@ -197,6 +197,10 @@ protected:
 	size_t                                                  _kmerSize;
 	gatb::core::tools::misc::impl::MemAllocator&            _pool;
 	
+	Type  _kmerFinMask;
+	Type  _kmerDebutMask;
+	
+	
     void insert (const Count& kmer);
 
     void insert (const Type& kmer, const SolidityCounter& count);
