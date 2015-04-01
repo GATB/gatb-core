@@ -292,6 +292,11 @@ void SortingCountAlgorithm<span>::execute ()
     _nb_partitions_in_parallel = _nbCores;
     assert (_nbCores > 0);
 
+    if (_kmerSize < 4) {
+        throw Exception("GATB's k-mer counter only supports k > 4.\n"); return; //  For k <= 4, the code for a simple 1-pass in-memory counter, using e.g. a hash table, is left as an exercise for the coder.
+    }
+
+
     /** We configure dsk by computing the number of passes and partitions we will have
      * according to the allowed disk and memory space. */
     configure (_bank);
@@ -453,7 +458,7 @@ public:
     void operator() (Sequence& sequence)
     {
         /** We build the kmers from the current sequence. */
-        if (model.build (sequence.getData(), kmers) == false)  {  throw "reached EOF"; return; }
+        if (model.build (sequence.getData(), kmers) == false)  {  throw system::Exception("reached EOF"); return; }
 
         /** We loop over the kmers. */
         for (size_t i=0; i<kmers.size(); i++)
@@ -476,7 +481,7 @@ public:
                        printf("linear estimator at %ld kmers, number of distinct kmers estimated now: %ld, abs error: %ld\n",nbProcessedKmers, nb_distinct_kmers, abs_error);
                    if (abs_error < previous_nb_distinct_kmers/20) // 5% error
                    {
-                       throw "LinearCounter converged"; // well, "converged" is a big word
+                       // "LinearCounter converged"; // well, "converged" is a big word
                        return;
                    }
                    if (!linearCounter->is_accurate())

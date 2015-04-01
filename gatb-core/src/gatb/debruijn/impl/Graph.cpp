@@ -1755,7 +1755,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
             }
             else
             {
-                throw "Iteration impossible (no solid nodes available)";
+                throw system::Exception("Iteration impossible (no solid nodes available)");
             }
         }
         else if (typeid(NodeType) == typeid(BranchingNode))
@@ -1776,10 +1776,10 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
             }
             else
             {
-                throw "Iteration impossible (no solid nor branching nodes available)";
+                throw system::Exception("Iteration impossible (no solid nor branching nodes available)");
             }
         }
-        else {  throw "Invalid type";  }
+        else {  throw system::Exception("Invalid type");  }
     }
 };
 
