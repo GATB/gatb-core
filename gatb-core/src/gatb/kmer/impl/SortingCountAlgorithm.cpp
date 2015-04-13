@@ -1449,10 +1449,29 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
                     }
                     else
                     {
-                        /** We launch an exception. */
-                        throw Exception ("memory issue: %lld required and %lld available",
-                            pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize
-                        );
+                        bool strict = false;
+
+                        if (strict)
+                        {
+                            /** We launch an exception. */
+                            throw Exception ("memory issue: %lld required and %lld available",
+                                pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize
+                            );
+                        }
+                        else
+                        {
+                            unsigned long system_mem = System::info().getMemoryPhysicalTotal();
+                            memoryPoolSize = pInfo.getNbSuperKmer(p)*getSizeofPerItem(); 
+
+                            if (memoryPoolSize > system_mem*0.95)
+                            {
+                                throw Exception ("memory issue: %lld required, %lld command-line limit, %lld system limit",
+                                    pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize, system_mem
+                                );
+                            }
+                            else
+                                cout << "Warning: forced to allocate extra memory: " << memoryPoolSize / MBYTE << " MB" << endl;
+                        }
                     }
                 }
 
