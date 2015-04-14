@@ -106,6 +106,8 @@ struct FunctorKmersExtension
         vector<Type>&        _solids;
         PartitionCache<Type> _partition;
         Repartitor&          _repart;
+        size_t               _nbPass;
+        size_t               _nbPartsPerPass;
 
         FunctorNeighbors (
             IBloom<Type>*       bloom,
@@ -114,18 +116,33 @@ struct FunctorKmersExtension
             Partition<Type>*    extentParts,
             Repartitor&         repart
         )
-            : bloom(bloom), _modelMini(modelMini), _solids(solids), _partition(*extentParts,1<<12), _repart(repart)  {}
+            : bloom(bloom), _modelMini(modelMini), _solids(solids), _partition(*extentParts,1<<12), _repart(repart)
+        {
+            _nbPass = _repart.getNbPasses();
+
+            if (_nbPass==0)  { throw Exception("0 parts in debloom"); }
+            _nbPartsPerPass = extentParts->size() / _nbPass;
+        }
 
         void operator() (const Type& neighbor)//  const
         {
             /** We can already get rid of neighbors that are in the current solid kmers partition. */
             if (std::binary_search (_solids.begin(), _solids.end(), neighbor)==false)
             {
-                /** We get the partition index of the neighbor from its minimizer value and the
-                 * minimizer repartition table.
+                /** We get the minimizer value of the current kmer.
                  * Note : we have here to compute minimizers from scratch, which may be time expensive;
                  * maybe a better way could be found. */
-                u_int64_t mm = _repart (_modelMini.getMinimizerValue(neighbor));
+                u_int64_t mini = _modelMini.getMinimizerValue(neighbor);
+
+                /** We get the partition index of the neighbor from its minimizer value and the
+                 * minimizer repartition table. */
+                u_int64_t mm = _repart (mini);
+
+                /** We need to shift this index according to the way the input bank has been cut into
+                 * several passes (see FillPartitions in SortingCountAlgorithm). */
+                mm += (mini % _nbPass) * _nbPartsPerPass;
+
+                /** We add the neighbor to the correct debloom partition. */
                 _partition[mm].insert (neighbor);
             }
         }
@@ -141,8 +158,7 @@ struct FunctorKmersExtension
         IBloom<Type>*       bloom,
         Partition<Type>*    extentParts,
         vector<Type>&       solids,
-        Repartitor&         repart,
-        size_t              currentPart
+        Repartitor&         repart
     )
         : model(model),  bloom(bloom),  functorNeighbors(bloom,modelMini, solids, extentParts, repart) {}
 
@@ -306,7 +322,7 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
             size_t k=0;  for (itKmers->first(); !itKmers->isDone(); itKmers->next()) { solids[k++] = itKmers->item().value; }
 
             /** We create functor that computes the neighbors extension of the solid kmers. */
-            FunctorKmersExtension<Model,ModelMini,Count,Type> functorKmers (model, modelMini, bloom, debloomParts, solids, repart, p);
+            FunctorKmersExtension<Model,ModelMini,Count,Type> functorKmers (model, modelMini, bloom, debloomParts, solids, repart);
 
             /** We iterate the solid kmers. */
             this->getDispatcher()->iterate (itKmers, functorKmers);
