@@ -109,15 +109,23 @@ public:
      * \param[in] iter : object to be encapsulated by a potential progress information
      * \param[in] nbIterations : number of iterations to be done.
      * \param[in] message : message used if progress information has to be displayed
+     * \param[in] listener : listener to be used; if null, a new one is created
      * \return the created iterator.
      */
-    template<typename Item> dp::Iterator<Item>* createIterator (dp::Iterator<Item>* iter, size_t nbIterations=0, const char* message=0)
+    template<typename Item> dp::Iterator<Item>* createIterator (
+        dp::Iterator<Item>* iter,
+        size_t nbIterations=0,
+        const char* message=0,
+        dp::IteratorListener* listener = 0
+    )
     {
         if (nbIterations > 0 && message != 0)
         {
             //  We create some listener to be notified every 1000 iterations and attach it to the iterator.
+            if (listener == 0)  { listener = createIteratorListener (nbIterations, message); }
+
             dp::impl::SubjectIterator<Item>* iterSubject = new dp::impl::SubjectIterator<Item> (iter, nbIterations/100);
-            iterSubject->addObserver (createIteratorListener (nbIterations, message));
+            iterSubject->addObserver (listener);
 
             /** We assign the used iterator to be the subject iterator. */
             iter = iterSubject;
