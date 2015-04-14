@@ -898,6 +898,9 @@ private:
             _isDone = _currentIt->isDone();
 
             if (_isDone==true) { _currentIdx++; }
+
+            /** We can finish the previous item. */
+            previous->finalize();
         }
     }
 };

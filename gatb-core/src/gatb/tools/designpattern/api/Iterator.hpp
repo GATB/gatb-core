@@ -180,6 +180,9 @@ public:
         _item      = &_default;
     }
 
+    /** Method that may be called when an iteration is done. Does nothing by default. */
+    virtual void finalize () {}
+
     /** Get a vector holding the composite structure of the iterator. */
     virtual std::vector<Iterator<Item>*> getComposition()   {   std::vector<Iterator<Item>*> res;  res.push_back (this);  return res;    }
 
