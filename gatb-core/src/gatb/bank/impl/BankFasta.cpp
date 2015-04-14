@@ -282,15 +282,13 @@ void BankFasta::insert (const Sequence& item)
 ** REMARKS :
 *********************************************************************/
 BankFasta::Iterator::Iterator (BankFasta& ref, CommentMode_e commentMode)
-    : _ref(ref), _commentsMode(commentMode), _isDone(true), index_file(0), buffered_file(0), buffered_strings(0), _index(0)
+    : _ref(ref), _commentsMode(commentMode), _isDone(true), index_file(0), buffered_file(0), buffered_strings(0), _index(0), _isInitialized(false), _nIters(0)
 {
     DEBUG (("Bank::Iterator::Iterator\n"));
 
-    /** We initialize the iterator. */
-    init  ();
-
-    /** We go to the first item (if any). */
-	// first ();
+    /** We check that the file can be opened. */
+    if (gzFile stream = gzopen (_ref._filenames[0].c_str(), "r"))  {  gzclose (stream);  }
+    else  {  throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, _ref._filenames[0].c_str());  }
 }
 
 /*********************************************************************
@@ -304,7 +302,7 @@ BankFasta::Iterator::Iterator (BankFasta& ref, CommentMode_e commentMode)
 BankFasta::Iterator::~Iterator ()
 {
     DEBUG (("Bank::Iterator::~Iterator\n"));
-    finalize ();
+    terminate ();
 }
 
 /*********************************************************************
@@ -317,6 +315,9 @@ BankFasta::Iterator::~Iterator ()
 *********************************************************************/
 void BankFasta::Iterator::first()
 {
+    /** We may have to initialize the instance. */
+    init  ();
+
     for (int i = 0; i < _ref.nb_files; i++)
     {
         buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
@@ -607,6 +608,8 @@ bool BankFasta::Iterator::get_next_seq (Vector<char>& data)
 *********************************************************************/
 void BankFasta::Iterator::init ()
 {
+    if (_isInitialized == true)  { return ;}
+
     /** We initialize the array of files. */
     buffered_file = (void**) CALLOC (getMaxNbFiles(), sizeof(void*));
 
@@ -628,7 +631,7 @@ void BankFasta::Iterator::init ()
         if ((*bf)->stream == NULL)
         {
             /** We first try do do some cleanup. */
-            finalize ();
+            terminate ();
 
             /** We launch an exception. */
             throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, fname);
@@ -640,6 +643,8 @@ void BankFasta::Iterator::init ()
     // init read and dummy (for readname and quality)
     buffered_strings_t* bs = new buffered_strings_t;
     buffered_strings = bs;
+
+    _isInitialized = true;
 }
 
 /*********************************************************************
@@ -652,9 +657,34 @@ void BankFasta::Iterator::init ()
 *********************************************************************/
 void BankFasta::Iterator::finalize ()
 {
+    for (int i = 0; i < _ref.nb_files; i++)
+    {
+        buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
+        if (bf != 0)
+        {
+            /** We close the handle of the file. */
+            if (bf->stream != NULL)  {  gzclose (bf->stream);  bf->stream = 0; }
+        }
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void BankFasta::Iterator::terminate ()
+{
+    if (_isInitialized == false)  { return; }
+
     buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
 
     if (bs != 0)  { delete bs; }
+
+    finalize();
 
     for (int i = 0; i < _ref.nb_files; i++)
     {
@@ -663,7 +693,7 @@ void BankFasta::Iterator::finalize ()
         if (bf != 0)
         {
             /** We close the handle of the file. */
-            if (bf->stream != NULL)  {  gzclose (bf->stream);  }
+            if (bf->stream != NULL)  {  gzclose (bf->stream);  bf->stream = 0; }
 
             /** We delete the buffer. */
             FREE (bf->buffer);
@@ -675,6 +705,7 @@ void BankFasta::Iterator::finalize ()
 
     /** We release the array of files. */
     FREE (buffered_file);
+
 }
 
 /*********************************************************************
@@ -687,6 +718,9 @@ void BankFasta::Iterator::finalize ()
 *********************************************************************/
 void BankFasta::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
+    /** We may have to initialize the instance. */
+    init  ();
+
     Vector<char> data;
 
     /** We rewind the files. */

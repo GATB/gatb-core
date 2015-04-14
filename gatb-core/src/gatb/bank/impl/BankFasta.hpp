@@ -177,8 +177,10 @@ public:
         /** Tells whether the iteration is finished or not. */
         bool _isDone;
 
+        /** Tells whether the instance is initialized. */
+        bool _isInitialized;
+
         /* Number of time next has been called   */
-        
         u_int64_t   _nIters;
         
         /** Initialization method. */
@@ -186,6 +188,9 @@ public:
 
         /** Finish method. */
         void finalize ();
+
+        /** Finish method. */
+        void terminate ();
 
         int   index_file; // index of current file
 
