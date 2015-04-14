@@ -251,6 +251,15 @@ inline int64_t Partition<Type>::getNbItems ()
 /*********************************************************************
 *********************************************************************/
 template<typename Type>
+inline u_int64_t Partition<Type>::getSizeItems ()
+{
+    u_int64_t result = 0;   for (size_t i=0; i<this->size(); i++) { result += (*this)[i].getNbItems() * sizeof(Type); }
+    return result;
+}
+
+/*********************************************************************
+*********************************************************************/
+template<typename Type>
 inline int64_t Partition<Type>::estimateNbItems ()
 {
     int64_t result = 0;   for (size_t i=0; i<this->size(); i++) { result += (*this)[i].estimateNbItems(); }
