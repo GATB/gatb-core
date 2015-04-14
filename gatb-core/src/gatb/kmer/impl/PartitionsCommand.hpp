@@ -287,10 +287,10 @@ public:
 
 private:
 
-    Type**     _radix_kmers;
-    u_int8_t** _bankIdMatrix;
-	uint64_t*  _radix_sizes;
-	uint64_t*  _r_idx;
+    Type**              _radix_kmers;
+    bank::BankIdType**  _bankIdMatrix;
+	uint64_t*           _radix_sizes;
+	uint64_t*           _r_idx;
 
     tools::dp::IDispatcher* _dispatcher;
 
