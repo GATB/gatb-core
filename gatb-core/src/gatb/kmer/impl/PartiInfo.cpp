@@ -29,6 +29,8 @@ using namespace std;
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
+static const u_int32_t MAGIC_NUMBER = 0x12345678;
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -211,11 +213,16 @@ void Repartitor::load (tools::storage::impl::Group& group)
     is.read ((char*)&_nbpart,     sizeof(_nbpart));
     is.read ((char*)&_mm,         sizeof(_mm));
     is.read ((char*)&_nb_minims,  sizeof(_nb_minims));
+    is.read ((char*)&_nbPass,     sizeof(_nbPass));
 
     /** We allocate a table whose size is the number of possible minimizers. */
     _repart_table.resize (_nb_minims);
 
     is.read ((char*)_repart_table.data(), sizeof(Value) * _nb_minims);
+
+    u_int32_t magic = 0;
+    is.read ((char*)&magic,  sizeof(magic));
+    if (magic != MAGIC_NUMBER)  { throw system::Exception("Unable to load Repartitor, possibly due to old format."); }
 }
 
 /*********************************************************************
@@ -232,7 +239,9 @@ void Repartitor::save (tools::storage::impl::Group& group)
     os.write ((const char*)&_nbpart,                sizeof(_nbpart));
     os.write ((const char*)&_mm,                    sizeof(_mm));
     os.write ((const char*)&_nb_minims,             sizeof(_nb_minims));
+    os.write ((const char*)&_nbPass,                sizeof(_nbPass));
     os.write ((const char*)_repart_table.data(),    sizeof(Value) * _nb_minims);
+    os.write ((const char*)&MAGIC_NUMBER,           sizeof(MAGIC_NUMBER));
     os.flush();
 }
 
