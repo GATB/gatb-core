@@ -21,6 +21,7 @@
 #include <gatb/system/impl/System.hpp>
 
 #include <gatb/bank/impl/Banks.hpp>
+#include <gatb/bank/impl/Bank.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/Model.hpp>
@@ -63,6 +64,8 @@ using namespace gatb::core::tools::math;
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 
+extern std::string DBPATH (const string& a);
+
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
@@ -92,6 +95,8 @@ class TestDSK : public Test
         CPPUNIT_TEST_GATB (DSK_perBank2);
 
         CPPUNIT_TEST_GATB (DSK_perBankKmer);
+
+        CPPUNIT_TEST_GATB (DSK_multibank);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -607,6 +612,34 @@ public:
         /** We can't use even kmer sizes because of palindroms (could have some kmers with coverage 1 instead of 2). */
         DSK_perBankKmer_aux ( 9, 4);
         DSK_perBankKmer_aux (11, 3);
+    }
+
+    /********************************************************************************/
+    template<size_t span>
+    void DSK_multibank_aux (size_t kmerSize)
+    {
+    	size_t nks      = 2;
+    	string filepath = DBPATH("album.txt");
+
+        /** We create a storage instance. */
+        Storage* storage = StorageFactory(STORAGE_HDF5).create("foo", true, true);   LOCAL (storage);
+
+        IBank* bank = Bank::open(filepath);
+
+        /** We create a DSK instance. */
+        SortingCountAlgorithm<span> dsk (storage, bank, kmerSize, make_pair(nks,0));
+
+        /** We launch DSK. */
+        dsk.execute();
+    }
+
+    /********************************************************************************/
+    void DSK_multibank ()
+    {
+    	DSK_multibank_aux<KSIZE_1> (KSIZE_1-1);
+    	DSK_multibank_aux<KSIZE_2> (KSIZE_2-1);  // used to crash on macos because non aligned uint128 in dsk 2nd part
+    	DSK_multibank_aux<KSIZE_3> (KSIZE_3-1);
+    	DSK_multibank_aux<KSIZE_4> (KSIZE_4-1);
     }
 };
 
