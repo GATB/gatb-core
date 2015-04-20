@@ -193,6 +193,15 @@ struct BankStats
         return *this;
     }
 
+    /** Concatenation of the current BankStats object with another one. ONLY FOR KMERS STATS.
+     * \param[in] other : the instance used to update the current instance. */
+    BankStats& concat (const BankStats& other)
+    {
+        kmersNbValid   += other.kmersNbValid;
+        kmersNbInvalid += other.kmersNbInvalid;
+        return *this;
+    }
+
     /** Get the mean size of sequences.
      * \return the mean size. */
     double getSeqMean ()  {  return (sequencesNb > 0 ?  (double)sequencesTotalLength / (double)sequencesNb : 0.0);  }
