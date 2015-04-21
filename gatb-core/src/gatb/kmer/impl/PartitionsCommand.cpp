@@ -538,23 +538,44 @@ void PartitionsByVectorCommand<span>::executeRead ()
     for (size_t j=0; j<_nbItemsPerBankPerPart.size(); j++)  {  DEBUG (("%6d ", _nbItemsPerBankPerPart[j]));  }  DEBUG (("\n"));
 
     uint64_t sum_nbxmer =0;
-    for (int xx=0; xx< (KX+1); xx++)
+
+    /** We synchronize this statements block because of threads concurrent access. */
     {
-        for (int ii=0; ii< 256; ii++)
+        LocalSynchronizer synchro (this->_pool.getSynchro());
+
+        /** We align the pool with a big alignment constraint (see below macos issue with uint128) */
+        this->_pool.align (16);
+
+        /** FIRST: allocation for the kmers. */
+        for (int xx=0; xx< (KX+1); xx++)
         {
-            /** Shortcut. */
-            size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
-
-            //use memory pool here to avoid memory fragmentation
-            _radix_kmers  [IX(xx,ii)] = (Type*)     this->_pool.pool_malloc (nbKmers * sizeof(Type),     "kmers alloc");
-            _radix_sizes  [IX(xx,ii)] = nbKmers;
-
-            if (_bankIdMatrix)
+            for (int ii=0; ii< 256; ii++)
             {
-                _bankIdMatrix [IX(xx,ii)] = (bank::BankIdType*) this->_pool.pool_malloc (nbKmers * sizeof(bank::BankIdType), "bank ids alloc");
-            }
+                /** Shortcut. */
+                size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
 
-            sum_nbxmer +=  nbKmers;
+                //use memory pool here to avoid memory fragmentation
+                _radix_kmers  [IX(xx,ii)] = (Type*)     this->_pool.pool_malloc (nbKmers * sizeof(Type),     "kmers alloc");
+                _radix_sizes  [IX(xx,ii)] = nbKmers;
+
+                sum_nbxmer +=  nbKmers;
+            }
+        }
+
+        /** SECOND: allocation for the bank ids if needed.
+         * => NEED TO BE DONE AFTER THE KMERS BECAUSE OF MEMORY ALIGNMENT CONCERNS.
+         * On MacOs, we got some crashes with uint128 that were not aligned on 16 bytes
+         */
+        if (_bankIdMatrix)
+        {
+            for (int xx=0; xx< (KX+1); xx++)
+            {
+                for (int ii=0; ii< 256; ii++)
+                {
+                    size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
+                    _bankIdMatrix [IX(xx,ii)] = (bank::BankIdType*) this->_pool.pool_malloc (nbKmers * sizeof(bank::BankIdType), "bank ids alloc");
+                }
+            }
         }
     }
 
