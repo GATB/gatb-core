@@ -170,7 +170,10 @@ public:
             mainbuffer = NULL ;
         }
 
-        mainbuffer = (char*) MALLOC(size);
+        /** We add a little bit of memory in case "align" method is called often. */
+        size_t extraMem = 1024;
+
+        mainbuffer = (char*) MALLOC(size+extraMem);
         capacity   = size;
         used_space = 0;
     }
@@ -194,6 +197,17 @@ public:
         return mainbuffer + synced_used_space;
     }
 
+    /** Force alignment. */
+    void align (u_int8_t alignBytes)
+    {
+        size_t offset = alignBytes-1 + sizeof(char*);
+        char* current = mainbuffer + used_space;
+        char* buffer  =  (char*)(((size_t)(current)+offset)&~(alignBytes-1));
+
+        /** We update the used space. */
+        used_space = (u_int64_t)(buffer-mainbuffer);
+    }
+
     u_int64_t getCapacity ()  {  return capacity;   }
 
     u_int64_t getUsedSpace()  {  return used_space; }
@@ -204,18 +218,26 @@ public:
         used_space = 0;
     }
 
-    MemAllocator() : capacity(0),used_space(0),mainbuffer(NULL)  {}
-
+    MemAllocator() : capacity(0),used_space(0),mainbuffer(NULL),_synchro(0)
+    {
+        setSynchro (system::impl::System::thread().newSynchronizer());
+    }
 
     ~MemAllocator()
     {
         if (mainbuffer != NULL)  {  FREE (mainbuffer);  }
+        setSynchro (0);
     }
+
+    system::ISynchronizer* getSynchro()  { return _synchro; }
 
 private :
     char*     mainbuffer;
     u_int64_t capacity; //in bytes
     u_int64_t used_space;
+
+    system::ISynchronizer* _synchro;
+    void setSynchro (system::ISynchronizer* synchro) { SP_SETATTR(synchro); }
 };
 
 /********************************************************************************/
