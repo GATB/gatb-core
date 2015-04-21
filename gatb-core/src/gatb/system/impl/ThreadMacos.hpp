@@ -50,6 +50,9 @@ public:
 
     /** \copydoc IThreadFactory::getThreadSelf */
     IThread::Id getThreadSelf();
+
+    /** \copydoc IThreadFactory::getProcess */
+    u_int64_t getProcess ();
 };
 
 /********************************************************************************/

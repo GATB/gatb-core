@@ -180,6 +180,12 @@ public:
       * \return the real path. */
      virtual Path getRealPath (const Path& file) = 0;
 
+     /** Get a temporary file name. One may provide an argument; in such a case some prefix/suffix will
+      * be appended to this name in order to make it unique.
+      * \param[in] filename : file name (may be empty)
+      * \return a unique file name. */
+     virtual std::string getTemporaryFilename (const std::string& filename="") = 0;
+
      /** Tells whether a path exists or not.
       * \return true if path exists, false otherwise
       */

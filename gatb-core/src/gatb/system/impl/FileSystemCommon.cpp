@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <gatb/system/impl/FileSystemCommon.hpp>
+#include <gatb/system/impl/System.hpp>
 
 #include <sys/resource.h>
 #include <sys/statvfs.h>
@@ -158,6 +159,22 @@ IFileSystem::Path FileSystemCommon::getRealPath (const Path& file)
         return buf;
     }
     throw Exception ("Unable to get the real path for '%s'", file.c_str());
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+string FileSystemCommon::getTemporaryFilename (const std::string& filename)
+{
+    stringstream ss;
+    ss << tmp_prefix() << "_" << System::thread().getProcess();
+    if (filename.empty()==false)  { ss << "_" << filename; }
+    return ss.str();
 }
 
 /*********************************************************************

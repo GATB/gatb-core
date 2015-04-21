@@ -179,6 +179,9 @@ public:
     /** Return the id of the calling thread. */
     virtual IThread::Id getThreadSelf() = 0;
 
+    /** Return the id of the current process. */
+    virtual u_int64_t getProcess () = 0;
+
     /** Destructor. */
     virtual ~IThreadFactory ()  {}
 };
