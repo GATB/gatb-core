@@ -271,7 +271,8 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     repart.load (this->_storageSolids().getGroup("dsk"));
 
     /** We create the collection that will hold the critical false positive kmers. */
-    Collection<Type>* criticalCollection = new CollectionFile<Type> ("cfp");
+    string cfpFilename = System::file().getTemporaryFilename("cfp");
+    Collection<Type>* criticalCollection = new CollectionFile <Type> (cfpFilename);
     LOCAL (criticalCollection);
 
     /***************************************************/
@@ -287,7 +288,8 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     size_t nbPartitions = this->_solidIterable->size();
 
     /** We use a temporary partition that will hold the neighbors extension of the solid kmers. */
-    Storage* cfpPartitions = StorageFactory(STORAGE_HDF5).create ("debloom_partitions", true, false);
+    string partitionsFilename = System::file().getTemporaryFilename("debloom_partitions");
+    Storage* cfpPartitions = StorageFactory(STORAGE_HDF5).create (partitionsFilename, true, false);
     LOCAL (cfpPartitions);
     Partition<Type>* debloomParts = & (*cfpPartitions)().getPartition<Type> ("parts", nbPartitions);
 

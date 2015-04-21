@@ -109,7 +109,6 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
        _groupDebloom(storage().getGroup ("debloom")),
        _kmerSize(kmerSize),
        _bloomKind(bloomKind), _debloomKind(cascadingKind),
-       _debloomUri("debloom"),
        _max_memory(max_memory),
        _solidIterable(0),  _container(0), _criticalNb(0)
 {
@@ -123,6 +122,9 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
 
     /** We set the minimizer size. */
     _miniSize = std::min (_kmerSize-1, (size_t)8);
+
+    /** We set the debloom uri (tmp file). */
+    _debloomUri  = System::file().getTemporaryFilename (debloomUri);
 }
 
 /*********************************************************************
@@ -278,7 +280,8 @@ void DebloomAlgorithm<span>::execute_aux (
 {
     Model model (_kmerSize);
 
-    Collection<Type>* criticalCollection = new CollectionFile<Type> ("cfp");
+    string cfpFilename = System::file().getTemporaryFilename("cfp");
+    Collection<Type>* criticalCollection = new CollectionFile<Type> (cfpFilename);
     LOCAL (criticalCollection);
 
     /***************************************************/
@@ -640,7 +643,7 @@ void DebloomAlgorithm<span>::createCFP (
             itTask->next();
 
             //  **** Insert false positives in B3 and write T2
-            const char* T2name = "t2_kmers";
+            string T2name = System::file().getTemporaryFilename("t2_kmers");
             Collection<Type>* T2File = new CollectionFile<Type> (T2name);  LOCAL (T2File);
 
             /** We need to protect the T2File against concurrent accesses, we use a ThreadObject for this. */
