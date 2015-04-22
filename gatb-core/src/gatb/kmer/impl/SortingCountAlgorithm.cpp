@@ -863,11 +863,8 @@ public:
     /** Destructor (virtual). */
     virtual ~Sequence2SuperKmer ()
     {
-        /** In case we have several passes, we must update sequence information only for first pass.
-         * The other passes concern only kmers statistics.
-         */
-        if (_pass==0)  { _bankStatsGlobal += _bankStatsLocal;        }
-        else           { _bankStatsGlobal.concat (_bankStatsLocal);  }
+        /** In case we have several passes, we must update sequence information only for first pass. */
+        if (_pass==0)  { _bankStatsGlobal += _bankStatsLocal;  }
     }
 
 protected:
