@@ -715,10 +715,15 @@ void DebloomAlgorithm<span>::createCFP (
         case DEBLOOM_DEFAULT:
         default:
         {
-            /** We save the final cFP container into the storage. */
-            ProgressIterator<Type> it (*criticalCollection, progressFormat5());
+            Iterator<Type>* it = createIterator<Type> (
+                criticalCollection->iterator(),
+                criticalCollection->getNbItems(),
+                progressFormat5()
+            );
+            LOCAL (it);
 
-            for (it.first(); !it.isDone(); it.next())  {  finalCriticalCollection->insert (it.item());  }
+            /** We save the final cFP container into the storage. */
+            for (it->first(); !it->isDone(); it->next())  {  finalCriticalCollection->insert (it->item());  }
             finalCriticalCollection->flush ();
 
             totalSize_bits = 8*criticalCollection->getNbItems()*sizeof(Type);
