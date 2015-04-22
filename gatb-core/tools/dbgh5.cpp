@@ -23,13 +23,17 @@
 /********************************************************************************/
 static const char* STR_EMAIL        = "-email";
 static const char* STR_EMAIL_FORMAT = "-email-fmt";
+static const char* STR_CHECK        = "-check";
 
-int  manageException (IProperties* options, const std::string& message);
-void sendEmail       (IProperties* options, IProperties* graphInfo);
+int    manageException (IProperties* options, const std::string& message);
+void   sendEmail       (IProperties* options, IProperties* graphInfo);
+size_t checkResult     (const Graph& graph, const string& filecheck, IProperties& props);
 
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
+    size_t nbErrors = 0;
+
     /** We create a command line parser. */
     IOptionsParser* parser = Graph::getOptionsParser();  LOCAL (parser);
 
@@ -39,6 +43,7 @@ int main (int argc, char* argv[])
         /** We add an option to send the statistics by email. */
         parserGeneral->push_back (new OptionOneParam (STR_EMAIL,        "send statistics to the given email address", false));
         parserGeneral->push_back (new OptionOneParam (STR_EMAIL_FORMAT, "'raw' or 'xml'",                             false, "raw"));
+        parserGeneral->push_back (new OptionOneParam (STR_CHECK,        "check result with previous result",          false));
     }
 
     try
@@ -48,6 +53,9 @@ int main (int argc, char* argv[])
 
         /** We create the graph with the provided options. */
         Graph graph = Graph::create (props);
+
+        /** We may have to check the result. */
+        if (props->get (STR_CHECK) > 0)  {  nbErrors = checkResult (graph, props->getStr(STR_CHECK), graph.getInfo());  }
 
         /** We dump some information about the graph. */
         if (props->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
@@ -72,7 +80,7 @@ int main (int argc, char* argv[])
         return manageException (parser->getProperties(), msg);
     }
 
-    return EXIT_SUCCESS;
+    return nbErrors == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 /********************************************************************************/
@@ -122,3 +130,37 @@ int manageException (IProperties* options, const std::string& message)
     return EXIT_FAILURE;
 }
 
+/********************************************************************************/
+size_t checkResult (const Graph& graph, const string& filecheck, IProperties& props)
+{
+    size_t nbErrors = 0;
+
+    /** We read the check file. */
+    Properties check;  check.readFile (filecheck);
+
+    props.add (1, "check");
+
+    /** We get the keys to be checked. */
+    set<string> keys = check.getKeys();
+    for (set<string>::iterator it = keys.begin(); it != keys.end(); ++it)
+    {
+        if (props.get(*it)==0)
+        {
+            props.add (2, "unknown", "%s", (*it).c_str());
+            continue;
+        }
+
+        string v1 = check.getStr(*it);
+        string v2 = props.getStr(*it);
+
+        if (v1 != v2)
+        {
+            props.add (2, "diff", "%s", (*it).c_str());
+            props.add (3, "val",  "%s", v1.c_str());
+            props.add (3, "val",  "%s", v2.c_str());
+            nbErrors++;
+        }
+    }
+
+    return nbErrors;
+}
