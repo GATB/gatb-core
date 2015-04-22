@@ -272,7 +272,7 @@ public:
 
     /** Constructor.
      * \param os : output stream where the visitor can dump information. */
-    RawDumpPropertiesVisitor (std::ostream& os = std::cout, int width=40);
+    RawDumpPropertiesVisitor (std::ostream& os = std::cout, int width=40, char sep=':');
 
     /** Desctructor. */
     virtual ~RawDumpPropertiesVisitor ();
@@ -289,6 +289,7 @@ public:
 private:
     std::ostream& _os;
     int _width;
+    char _sep;
 };
 
 /********************************************************************************/
