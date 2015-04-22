@@ -586,11 +586,11 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     if (_estimateSeqNb==0)  { throw Exception ("Empty bank"); }
 
     // We get the available space (in MBytes) of the current directory.
-    u_int64_t available_space_min = 3000;
+    u_int64_t available_space_min = 2000;
     u_int64_t available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
 
     /** We check that we have a minimum available disk space.*/
-    if (available_space < available_space_min)  {  throw Exception ("only %ld MB available disk space, won't be enough");  }
+    if (available_space < available_space_min)  {  throw Exception ("only %ld MB available disk space, won't be enough", available_space);  }
 
     size_t meanSeqLen = (size_t) ( (double) _estimateSeqTotalSize / (double) _estimateSeqNb);
     size_t usedSeqLen = meanSeqLen > _kmerSize ? meanSeqLen : _estimateSeqMaxSize;
