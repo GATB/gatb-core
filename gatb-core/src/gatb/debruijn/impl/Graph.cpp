@@ -27,6 +27,7 @@
 
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/LibraryInfo.hpp>
+#include <gatb/tools/misc/impl/HostInfo.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/tools/misc/impl/Tool.hpp>
 
@@ -323,8 +324,9 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We create the kmer model. */
         data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
-        /** We add library information. */
+        /** We add library and host information. */
         graph.getInfo().add (1, & LibraryInfo::getInfo());
+        graph.getInfo().add (1, & HostInfo::getInfo());
 
         /************************************************************/
         /*                       Storage creation                   */
