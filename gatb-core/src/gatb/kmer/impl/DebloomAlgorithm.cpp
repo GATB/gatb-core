@@ -34,6 +34,7 @@
 #include <gatb/tools/collections/impl/BagFile.hpp>
 #include <gatb/tools/collections/impl/BagCache.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
+#include <gatb/tools/collections/impl/IterableHelpers.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -589,12 +590,6 @@ void DebloomAlgorithm<span>::createCFP (
     for (ii->first(); !ii->isDone(); ii->next())  { _criticalChecksum += ii->item(); }
 #endif
 
-    /** We define an iterator for 4 tasks. */
-    size_t nbTasks = 4;
-    Iterator<int>* itTask = createIterator<int> (new Range<int>::Iterator (1,nbTasks), nbTasks, progressFormat4());
-    LOCAL (itTask);
-    itTask->first ();
-
     /** We may have to change the cascading kind if we have no false positives. */
     _criticalNb = criticalCollection->getNbItems();
     if (_criticalNb == 0)  {  _debloomKind = DEBLOOM_ORIGINAL; }
@@ -609,6 +604,12 @@ void DebloomAlgorithm<span>::createCFP (
     {
         case DEBLOOM_CASCADING:
         {
+            /** We define an iterator for 4 tasks. */
+            size_t nbTasks = 4;
+            Iterator<int>* itTask = createIterator<int> (new Range<int>::Iterator (1,nbTasks), nbTasks, progressFormat4());
+            LOCAL (itTask);
+            itTask->first ();
+
             /** We force a specific bloom here for having not too much false positives. */
             tools::misc::BloomKind  bloomKind = BLOOM_CACHE;
 
@@ -715,8 +716,9 @@ void DebloomAlgorithm<span>::createCFP (
         default:
         {
             /** We save the final cFP container into the storage. */
-            tools::dp::Iterator<Type>* it = criticalCollection->iterator();  LOCAL (it);
-            for (it->first(); !it->isDone(); it->next())  {  finalCriticalCollection->insert (it->item());  }
+            ProgressIterator<Type> it (*criticalCollection, progressFormat5());
+
+            for (it.first(); !it.isDone(); it.next())  {  finalCriticalCollection->insert (it.item());  }
             finalCriticalCollection->flush ();
 
             totalSize_bits = 8*criticalCollection->getNbItems()*sizeof(Type);
