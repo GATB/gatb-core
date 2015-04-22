@@ -177,7 +177,7 @@ size_t checkResult (const Graph& graph, IProperties* inputProps)
 
     if (inputProps->get(STR_CHECK_DUMP))
     {
-        ofstream outputFile (inputProps->getStr(STR_CHECK_DUMP));
+        ofstream outputFile (inputProps->getStr(STR_CHECK_DUMP), std::ofstream::out);
         if (outputFile.is_open())
         {
             RawDumpPropertiesVisitor visitor (outputFile, 40, ' ');
