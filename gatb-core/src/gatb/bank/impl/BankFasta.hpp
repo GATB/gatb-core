@@ -103,6 +103,9 @@ public:
     static void setDataLineSize (size_t len) { _dataLineSize = len; }
     static size_t getDataLineSize ()  { return _dataLineSize; }
 
+    /** \copydoc IBank::finalize */
+    void finalize ();
+
     /************************************************************/
 
     /** \brief Specific Iterator impl for Bank class

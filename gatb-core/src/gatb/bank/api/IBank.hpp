@@ -123,6 +123,9 @@ public:
     /** Remove physically the bank. This method will have non-empty implementation for banks using
      * file system for instance. */
     virtual void remove () = 0;
+
+    /** Method that may be called when the bank is done. */
+    virtual void finalize () = 0;
 };
 
 /********************************************************************************/

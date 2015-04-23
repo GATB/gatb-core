@@ -131,6 +131,20 @@ BankFasta::~BankFasta ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+void BankFasta::finalize ()
+{
+    if (_insertHandle    != 0)  { fclose  (_insertHandle);    _insertHandle    = 0; }
+    if (_gz_insertHandle != 0)  { gzclose (_gz_insertHandle); _gz_insertHandle = 0; }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 void BankFasta::init ()
 {
     /** We check that we don't exceed the number of allowed files. */

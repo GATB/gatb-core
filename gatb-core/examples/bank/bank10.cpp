@@ -81,7 +81,7 @@ int main (int argc, char* argv[])
         {
             if (dbSize > maxDbSize)
             {
-                if (currentBank != 0)  { currentBank->flush(); }
+                if (currentBank != 0)  { currentBank->flush();  currentBank->finalize(); }
 
                 nbBanksOutput ++;
 
