@@ -105,7 +105,7 @@ public:
     IBank* addBank (const std::string& bankUri);
 
     /** Add a bank to the album. */
-    IBank* addBank (const std::string& directory, const std::string& bankName);
+    IBank* addBank (const std::string& directory, const std::string& bankName, bool output_fastq=false, bool output_gz=false);
 
     /** \copydoc IBank::remove. */
     void remove ();
