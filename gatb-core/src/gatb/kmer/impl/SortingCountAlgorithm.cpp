@@ -59,7 +59,7 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
 /********************************************************************************/
-static const char* progressFormat0 = "DSK: estimating nb distinct kmers        ";
+static const char* progressFormat0 = "DSK: counting kmers                      ";
 static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
 static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
 static const char* progressFormat3 = "DSK: Collecting stats on %s ";
@@ -309,7 +309,7 @@ void SortingCountAlgorithm<span>::execute ()
     /** We configure the progress bar. Note that we create a ProgressSynchro since this progress bar
      * may me modified by several threads at the same time. */
     setProgress (new ProgressSynchro (
-        createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"),
+        createIteratorListener (2 * _volume * MBYTE / sizeof(Type), progressFormat0),
         System::thread().newSynchronizer())
     );
     _progress->init ();
