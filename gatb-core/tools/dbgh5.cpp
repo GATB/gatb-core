@@ -147,8 +147,7 @@ size_t checkResult (const Graph& graph, IProperties* inputProps)
 
     /** We need properties for output file if needed. */
     Properties outputProps;
-
-    graphProps.add (1, "check");
+    Properties tmpProps;
 
     /** We get the keys to be checked. */
     set<string> keys = checkProps.getKeys();
@@ -156,7 +155,7 @@ size_t checkResult (const Graph& graph, IProperties* inputProps)
     {
         if (graphProps.get(*it)==0)
         {
-            graphProps.add (2, "unknown", "%s", (*it).c_str());
+            tmpProps.add (0, "unknown", "%s", (*it).c_str());
             continue;
         }
 
@@ -165,15 +164,18 @@ size_t checkResult (const Graph& graph, IProperties* inputProps)
 
         if (v1 != v2)
         {
-            graphProps.add (2, "diff", "%s", (*it).c_str());
-            graphProps.add (3, "val",  "%s", v1.c_str());
-            graphProps.add (3, "val",  "%s", v2.c_str());
+            tmpProps.add (0, "diff", "%s", (*it).c_str());
+            tmpProps.add (1, "val",  "%s", v1.c_str());
+            tmpProps.add (1, "val",  "%s", v2.c_str());
             nbErrors++;
         }
 
         /** We put the graph property into the output props. */
         outputProps.add (0, *it, v2);
     }
+
+    graphProps.add (1, "check", "%d/%d", keys.size()-nbErrors, keys.size());
+    graphProps.add (2, tmpProps);
 
     if (inputProps->get(STR_CHECK_DUMP))
     {
