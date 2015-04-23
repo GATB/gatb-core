@@ -59,7 +59,7 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
 /********************************************************************************/
-static const char* progressFormat0 = "DSK: counting kmers                      ";
+static const char* progressFormat0 = "DSK: counting kmers                    ";
 static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
 static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
 static const char* progressFormat3 = "DSK: Collecting stats on %s ";
@@ -1335,6 +1335,8 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We may have several input banks instead of a single one. */
     std::vector<Iterator<Sequence>*> itBanks =  itSeq->getComposition();
 
+    DEBUG (("SortingCountAlgorithm<span>::fillPartitions  nbBanks=%ld\n", itBanks.size() ));
+
     /** We first reset the vector holding the kmers number for each partition and for each bank.
      * It can be seen as the following matrix:
      *
@@ -1368,6 +1370,11 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
         /** We add the current number of kmers in each partition for the reached ith bank. */
         _nbKmersPerPartitionPerBank.push_back (nbItems);
+
+        /** IMPORTANT ! We need to 'finalize' the iterator; in case of BankFasta iterator, it will
+         * close the file handle, so we will avoid to have no more file handles available in case
+         * we have a lot of input banks. */
+        itBanks[i]->finalize();
     }
 
     /** We get information about temporary files. */
