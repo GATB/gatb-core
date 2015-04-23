@@ -62,7 +62,7 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 static const char* progressFormat0 = "DSK: estimating nb distinct kmers        ";
 static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
 static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
-static const char* progressFormat3 = "DSK: Collecting stats on read sample   ";
+static const char* progressFormat3 = "DSK: Collecting stats on %s ";
 static const char* progressFormat4 = "DSK: nb solid kmers found : %-9ld  ";
 
 static u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
@@ -1117,11 +1117,16 @@ typename SortingCountAlgorithm<span>::Model* SortingCountAlgorithm<span>::comput
 
     PartiInfo<5> sample_info (_nb_partitions,mmsize);
 
+    string spaces = "             ";
+    string bankShortName = System::file().getBaseName(_bank->getId());
+    if (bankShortName.size() > spaces.size())  { bankShortName = bankShortName.substr (0,spaces.size()-3) + string("..."); }
+    bankShortName = (bankShortName + spaces).substr (0,spaces.size());
+
     /** We create an iterator over a truncated part of the input bank. */
     Iterator<Sequence>* it_sample = createIterator (
         new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
         nbseq_sample,
-        progressFormat3
+        Stringify::format (progressFormat3, bankShortName.c_str()).c_str()
     );
     LOCAL (it_sample);
 
