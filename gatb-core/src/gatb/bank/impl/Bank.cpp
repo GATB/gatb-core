@@ -107,7 +107,7 @@ bool Bank::_unregisterFactory_ (const std::string& name)
 {
     for (list<Entry>::iterator it = _factories.begin(); it != _factories.end(); it++)
     {
-        if (it->name == name)  { _factories.erase(it);  return true; }
+        if (it->name == name)  { if (it->factory)  { it->factory->forget(); }  _factories.erase(it);  return true; }
     }
     return false;
 }

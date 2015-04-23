@@ -209,39 +209,53 @@ misc::IProperties* OptionsParser::parse (int argc, char** argv)
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
+
+/** We need a structure that manages heap alloc/dealloc through a local object (on stack).
+ * => sure to deallocate all the stuff even if an exception is thrown. */
+struct ArgData
+{
+    int    argc;
+    char** argv;
+
+     ArgData() : argc(0), argv(0) { }
+
+     ~ArgData()
+     {
+         for (int i=0; i<argc; i++)  {  if (argv[i])  free (argv[i]);  }
+         if (argv)  { free (argv); }
+     }
+};
+
 misc::IProperties* OptionsParser::parseString (const std::string& s)
 {
-    int    argc   = 0;
+    ArgData args;
+
     size_t idx    = 0;
 
     /** We tokenize the string and count the number of tokens. */
     TokenizerIterator it1 (s.c_str(), " ");
-    for (it1.first(); !it1.isDone(); it1.next())  { argc++; }
+    for (it1.first(); !it1.isDone(); it1.next())  { args.argc++; }
 
-    argc++;
+    args.argc++;
 
     /** We allocate a table of char* */
-    char** argv = (char**) calloc (argc, sizeof(char*));
+    args.argv = (char**) calloc (args.argc, sizeof(char*));
 
-    argv[idx++] = strdup (getName().c_str());
+    args.argv[idx++] = strdup (getName().c_str());
 
     /** We fill the table with the tokens. */
     TokenizerIterator it2 (s.c_str(), " ");
     for (it2.first(); !it2.isDone(); it2.next())
     {
-        argv[idx++] = strdup (it2.item());
+        args.argv[idx++] = strdup (it2.item());
     }
 
-    for (int i=0; i<argc; i++)  {  DEBUG (("   item='%s' \n", argv[i]));  }
+    for (int i=0; i<args.argc; i++)  {  DEBUG (("   item='%s' \n", argv[i]));  }
 
     /** We parse the arguments. */
-    misc::IProperties* result = this->parse (argc, argv);
+    misc::IProperties* result = this->parse (args.argc, args.argv);
 
     DEBUG (("OptionsParser::parseString  argc=%d => idx=%ld\n", argc, idx));
-
-    /** Some clean up. */
-    for (int i=0; i<argc; i++)  {  free (argv[i]);  }
-    free (argv);
 
     /** We return the result. */
     return result;
