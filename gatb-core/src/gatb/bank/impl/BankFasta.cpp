@@ -43,6 +43,9 @@ using namespace gatb::core::tools::misc;
 
 #define nearest_power_of_2(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
 
+/** https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2 */
+#define is_power_of_2(v)  (((v) & ((v) - 1)) == 0)
+
 /********************************************************************************/
 namespace gatb {  namespace core {  namespace bank {  namespace impl {
 /********************************************************************************/
@@ -441,6 +444,7 @@ inline signed int buffered_gets (
         if (s->max - s->length < (i - bf->buffer_start + 1))
         {
             s->max = s->length + (i - bf->buffer_start + 1);
+            if (is_power_of_2(s->max))  { s->max ++; }
             nearest_power_of_2(s->max);
             s->string = (char*)  REALLOC (s->string, s->max);
         }
