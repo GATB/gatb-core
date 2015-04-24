@@ -943,7 +943,7 @@ public:
     {
         string albumFilename = "test.album";
 
-        ofstream albumFile (albumFilename);
+        ofstream albumFile (albumFilename.c_str());
         CPPUNIT_ASSERT (albumFile.is_open());
 
         for (size_t i=0; i<nbBanks; i++)  {  albumFile << filename << endl; }
@@ -1075,7 +1075,7 @@ public:
 
         /** We create a file with a specific content (ie a space at idx being a power of 2, which used make
          * and invalid write detected by valgrind). */
-        ofstream file (filename);
+        ofstream file (filename.c_str());
         CPPUNIT_ASSERT (file.is_open());
 
         file << ">123456789012345 789012345678901" << endl;
