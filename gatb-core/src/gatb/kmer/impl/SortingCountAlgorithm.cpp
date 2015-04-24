@@ -1353,10 +1353,14 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We launch the iteration of the sequences iterator with the created functors. */
     for (size_t i=0; i<itBanks.size(); i++)
     {
-        /** We fill the partitions. */
+        size_t groupSize   = 1000;
+        bool deleteSynchro = true;
+
+        /** We fill the partitions. Each thread will read synchronously and will call FillPartitions
+         * in a synchronous way (in order to have global BanksStats correctly computed). */
         getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
             model, _nb_passes, pass, _nb_partitions, _progress, _bankStats, _partitions, repartitor, pInfo
-        ));
+        ), groupSize, deleteSynchro);
 
         /** We flush the partitions in order to be sure to have the exact number of items per partition. */
         _partitions->flush();
