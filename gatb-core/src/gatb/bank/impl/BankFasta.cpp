@@ -776,7 +776,6 @@ void BankFasta::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_i
     {
         // linear extrapolation
         number    = (number    * _ref.getSize()) / actualPosition;
-        maxSize   = (maxSize   * _ref.getSize()) / actualPosition;
         totalSize = (totalSize * _ref.getSize()) / actualPosition;
     }
 }
