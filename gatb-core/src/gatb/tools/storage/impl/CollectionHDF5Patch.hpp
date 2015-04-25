@@ -264,18 +264,18 @@ public:
             /** Extend dataset. */
             hsize_t newDim = _nbInserted + length;
             status = H5Dset_extent (datasetId, &newDim);
-            if (status != 0)  { std::cout << "err H5Dset_extent" << std::endl; }
+            if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Dset_extent), status %d", status);  }
 
             /** Select hyperslab on file dataset. */
             hid_t filespaceId = H5Dget_space(datasetId);
             hsize_t start = _nbInserted;
             hsize_t count = length;
             status = H5Sselect_hyperslab (filespaceId, H5S_SELECT_SET, &start, NULL, &count, NULL);
-            if (status != 0)  { std::cout << "err H5Sselect_hyperslab" << std::endl; }
+            if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Sselect_hyperslab), status %d", status);  }
 
             /** Append buffer to dataset */
             status = H5Dwrite (datasetId, _common->_typeId, memspaceId, filespaceId, H5P_DEFAULT, items);
-            if (status != 0)  { std::cout << "err H5Dwrite" << std::endl; }
+            if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Dwrite), status %d", status);  }
 
             /** We increase the number of inserted items. */
             _nbInserted += length;
@@ -363,16 +363,16 @@ private:
             /** Select hyperslab on file dataset. */
             hid_t filespaceId = H5Dget_space(_common->getDatasetId());
             status = H5Sselect_hyperslab (filespaceId, H5S_SELECT_SET, &start, NULL, &count, NULL);
-            if (status != 0)  { std::cout << "err H5Sselect_hyperslab" << std::endl; }
+            if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Sselect_hyperslab), status %d", status);  }
 
             /** Read buffer from dataset */
             status = H5Dread (_common->getDatasetId(), _common->_typeId, memspaceId, filespaceId, H5P_DEFAULT, data);
-            if (status != 0)  { std::cout << "err H5Dread" << std::endl; }
+            if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Dread), status %d", status);  }
 
             /** Close resources. */
             status = H5Sclose (filespaceId);
             status = H5Sclose (memspaceId);
-            if (status != 0)  { std::cout << "err H5Sclose" << std::endl; }
+            if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Sclose), status %d", status);  }
         }
 
         /** We periodically clean up some HDF5 resources. */

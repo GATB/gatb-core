@@ -293,7 +293,7 @@ void ProgressTimer::fillBuffer (double elapsed)
     rem -= min_r*60;
 
     /** We format the string to be displayed. */
-    snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g  %%     elapsed: %6i min %-4.0f  sec    estimated remaining: %6i min %-4.0f  sec",
+    snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g%%   elapsed: %3i min %-2.0f sec    estimated remaining: %3i min %-2.0f sec",
         13,
         message.c_str(),
         100*(double)done/todo,
@@ -346,7 +346,7 @@ void ProgressTimerAndSystem::fillBuffer (double elapsed)
 
     /** We format the string to be displayed. */
     char tmp[128];
-    snprintf (tmp, sizeof(tmp), "  cpu: %6.1f %%   mem: [%5lld,%5lld,%5lld] MB ",
+    snprintf (tmp, sizeof(tmp), "   cpu: %6.1f %%   mem: [%4lld, %4lld, %4lld] MB ",
         _cpuinfo->getUsage(),
         mem, _memMax, memMaxProcess
     );

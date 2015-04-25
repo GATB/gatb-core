@@ -269,6 +269,10 @@ public:
     /** \copydoc tools::collections::Iterable::estimateNbItems */
     int64_t estimateNbItems ();
 
+    /** Return the sum of the items size.
+     * \return the total size. */
+    u_int64_t getSizeItems ();
+
     /** Flush the whole partition (ie flush each collection). */
     void flush ();
 

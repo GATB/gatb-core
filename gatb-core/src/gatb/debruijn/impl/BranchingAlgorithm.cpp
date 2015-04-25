@@ -20,6 +20,8 @@
 #include <gatb/debruijn/impl/BranchingAlgorithm.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
+#include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 
 #include <queue>
 
@@ -44,6 +46,7 @@ namespace gatb  {  namespace core  {   namespace debruijn  {   namespace impl {
 /********************************************************************************/
 
 static const char* progressFormat1 = "Graph: build branching nodes           ";
+static const char* progressFormat2 = "Graph: nb branching found : %-9d  ";
 
 /*********************************************************************
 ** METHOD  :
@@ -182,6 +185,27 @@ struct Compare
     bool operator() (const T& a, const T& b)  {  return ! (*(a.first) < *(b.first));  }
 };
 
+/*********************************************************************/
+
+template<typename Count>
+class CustomListener : public ProgressProxy
+{
+    Collection<Count>* _branchingCollection;
+
+public:
+    CustomListener (IteratorListener* ref, Collection<Count>* branchingCollection)
+        : ProgressProxy(ref), _branchingCollection(branchingCollection) {}
+
+    void finish ()  {}
+
+    void finishPostponed ()
+    {
+        this->setMessage (Stringify::format(progressFormat2, _branchingCollection->getNbItems()));
+        getRef()->finish();
+    }
+};
+
+/*********************************************************************/
 
 template<size_t span>
 void BranchingAlgorithm<span>::execute ()
@@ -189,11 +213,19 @@ void BranchingAlgorithm<span>::execute ()
     /** We get an iterator over all graph nodes. */
     Graph::Iterator<Node> itNodes = _graph->iterator<Node>();
 
+    /** We create a custom listener that refines the finish method in order it does nothing...
+     * => we define our own 'finishPostponed' method that is called when all the information is ok. */
+    CustomListener<Count>* listener = new CustomListener<Count> (
+        createIteratorListener (itNodes.size(), progressFormat1),
+        _branchingCollection
+    );
+
     /** We encapsulate this iterator with a potentially decorated iterated (for progress information). */
     tools::dp::Iterator<Node>* iter = createIterator<Node> (
         itNodes.get(),
         itNodes.size(),
-        progressFormat1
+        progressFormat1,
+        listener
     );
     LOCAL (iter);
 
@@ -260,8 +292,14 @@ void BranchingAlgorithm<span>::execute ()
     /** We have to flush the cache to be sure every items is put into the cached collection. */
     branchingCache.flush ();
 
+    /** We call our 'custom' finish method. */
+    listener->finishPostponed();
+
     /** We save the kind in the storage. */
     _storage(getName()).addProperty ("kind", toString(_kind));
+
+    /* print the number of branching nodes (could be important for debugging, if a user experiences a crash and copypastes stdout) */
+    //cout << "Graph has " << _branchingCollection->getNbItems() << " branching nodes." << endl;
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");

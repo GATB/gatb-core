@@ -91,7 +91,7 @@ public:
     void save ();
 
     /** \copydoc IHistogram::compute_threshold */
-	void compute_threshold () ;
+	void compute_threshold (int min_auto_threshold) ;  //min_auto_threshold = prevents the auto_cutoff from being below this value. Default =3
 	
     /** \copydoc IHistogram::get_solid_cutoff */
 	u_int16_t get_solid_cutoff ()  { return _cutoff; }
@@ -146,7 +146,7 @@ public:
 	u_int16_t get_first_peak    () { return 0; }
 
     /** \copydoc IHistogram::compute_threshold */
-	void compute_threshold () { }
+	void compute_threshold (int min_auto_threshold) { }
 
     /** \copydoc IHistogram::getLength */
     size_t getLength() { return 0; }
@@ -188,7 +188,7 @@ public:
     void save ()  { return _ref->save(); }
 
     /** \copydoc IHistogram::compute_threshold */
-	void compute_threshold () { return _ref->compute_threshold(); }
+	void compute_threshold (int min_auto_threshold) { return _ref->compute_threshold(min_auto_threshold); }
 
     /** \copydoc IHistogram::get_solid_cutoff */
 	u_int16_t get_solid_cutoff () {return _ref->get_solid_cutoff();}

@@ -125,7 +125,7 @@ public:
         for (size_t i=0; i<_banks.size(); i++)
         {
             _banks[i]->estimate (numberIth, totalSizeIth, maxSizeIth);
-            number += numberIth;  totalSize += totalSizeIth;  maxSize += maxSizeIth;
+            number += numberIth;  totalSize += totalSizeIth;  maxSize = std::max (maxSize, maxSizeIth);
         }
     }
 

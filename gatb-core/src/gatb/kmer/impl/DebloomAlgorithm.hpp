@@ -205,6 +205,7 @@ protected:
     static const char* progressFormat2() { return "Debloom: build extension               "; }
     static const char* progressFormat3() { return "Debloom: finalization                  "; }
     static const char* progressFormat4() { return "Debloom: cascading                     "; }
+    static const char* progressFormat5() { return "Debloom: save                          "; }
 };
 
 /********************************************************************************/

@@ -78,9 +78,21 @@ BankSplitter::~BankSplitter ()
 *********************************************************************/
 void BankSplitter::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {
-    number    = 0;
-    totalSize = 0;
-    maxSize   = 0;
+    gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq = _reference->iterator();
+    LOCAL (itSeq);
+
+    itSeq->first();
+    assert (itSeq->isDone() == false);
+
+    Data& data = itSeq->item().getData();
+
+    size_t offsetMax = data.size() - _readMeanSize;
+    size_t delta     = _readMeanSize -_overlap;
+    size_t nb        = 1 + offsetMax / delta;
+
+    number    = nb * _coverage;
+    totalSize = number * _readMeanSize;
+    maxSize   = _readMeanSize;
 }
 
 /*********************************************************************

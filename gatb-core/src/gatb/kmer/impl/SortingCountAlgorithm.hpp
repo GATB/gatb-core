@@ -204,16 +204,21 @@ public:
      * \return the Group instance.  */
     tools::storage::impl::Group& getStorageGroup() { return  (*_storage)("dsk"); }
 
+    void setMinAutoThreshold(int value) { _min_auto_threshold = value; }
+
 private:
 
     /** Compute several values, in particular the number of passes and partitions. */
     void configure (gatb::core::bank::IBank* bank);
 
+    /** */
+    Model* computeRepartition (Repartitor& repartitor);
+
     /** Fill partition files (for a given pass) from a sequence iterator.
      * \param[in] pass  : current pass whose value is used for choosing the partition file
      * \param[in] itSeq : sequences iterator whose sequence are cut into kmers to be split.
      */
-    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq, PartiInfo<5>& pInfo);
+    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq, PartiInfo<5>& pInfo, Model& model, Repartitor& repartitor);
 
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
@@ -287,9 +292,11 @@ private:
     tools::storage::impl::Partition<Type>* _partitions;
     void setPartitions (tools::storage::impl::Partition<Type>* partitions)  {  SP_SETATTR(partitions);  }
 
+    u_int64_t _tmpPartitionsMaxSize;
+
     /** Get the memory size (in bytes) to be used by each item.
      * IMPORTANT : we may have to count both the size of Type and the size for the bank id. */
-    int getSizeofPerItem () const { return Type::getSize()/8 + (_nbKmersPerPartitionPerBank.size()>1 ? sizeof(u_int8_t) : 0); }
+    int getSizeofPerItem () const { return Type::getSize()/8 + (_nbKmersPerPartitionPerBank.size()>1 ? sizeof(bank::BankIdType) : 0); }
 
     u_int64_t _totalKmerNb;
 
@@ -307,6 +314,8 @@ private:
     std::vector <std::vector<size_t> > _nbKmersPerPartitionPerBank;
 
     tools::misc::KmerSolidityKind _solidityKind;
+
+    int _min_auto_threshold; // used for histogram.compute_threshold() : prevents the auto_cutoff from being below this value. Default =3
 };
 	
 /********************************************************************************/

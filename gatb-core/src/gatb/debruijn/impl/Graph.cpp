@@ -27,6 +27,7 @@
 
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/LibraryInfo.hpp>
+#include <gatb/tools/misc/impl/HostInfo.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/tools/misc/impl/Tool.hpp>
 
@@ -323,8 +324,9 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We create the kmer model. */
         data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
-        /** We add library information. */
+        /** We add library and host information. */
         graph.getInfo().add (1, & LibraryInfo::getInfo());
+        graph.getInfo().add (1, & HostInfo::getInfo());
 
         /************************************************************/
         /*                       Storage creation                   */
@@ -377,7 +379,8 @@ struct build_visitor : public boost::static_visitor<>    {
         /** We configure the variant. */
         data.setSolid (sortingCount.getSolidCounts());
 
-        DEBUG ((cout << "builGraph SortingCount found " << sortingCount.getSolidCounts()->getNbItems() << " solid kmers\n"));
+        /* always print number of solid kmers: this is important information in case a use reports that Graph construction failed/took too long */
+        //cout << "Found " << sortingCount.getSolidCounts()->getNbItems() << " solid kmers." << endl;
 
         /** We check that we got solid kmers. */
         if (sortingCount.getSolidCounts()->getNbItems() == 0)  {  return;  /*throw "NO SOLID KMERS FOUND...";*/  }
@@ -1754,7 +1757,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
             }
             else
             {
-                throw "Iteration impossible (no solid nodes available)";
+                throw system::Exception("Iteration impossible (no solid nodes available)");
             }
         }
         else if (typeid(NodeType) == typeid(BranchingNode))
@@ -1775,10 +1778,10 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
             }
             else
             {
-                throw "Iteration impossible (no solid nor branching nodes available)";
+                throw system::Exception("Iteration impossible (no solid nor branching nodes available)");
             }
         }
-        else {  throw "Invalid type";  }
+        else {  throw system::Exception("Invalid type");  }
     }
 };
 

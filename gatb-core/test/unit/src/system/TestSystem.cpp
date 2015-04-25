@@ -745,7 +745,6 @@ public:
     {
         /** We create a thread group. */
         IThreadGroup* threadGroup = ThreadGroup::create ();
-        LOCAL (threadGroup);
 
         /** We retrieve the number of cores. */
         size_t nbCores = System::info().getNbCores();
@@ -769,6 +768,9 @@ public:
         {
             CPPUNIT_ASSERT (true);
         }
+
+        /** We have to destroy the thread group this way. */
+        ThreadGroup::destroy(threadGroup);
     }
 
     /********************************************************************************/

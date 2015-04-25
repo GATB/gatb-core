@@ -218,7 +218,7 @@ IBank* BankAlbum::addBank (const std::string& bankUri)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IBank* BankAlbum::addBank (const std::string& directory, const std::string& bankName)
+IBank* BankAlbum::addBank (const std::string& directory, const std::string& bankName, bool output_fastq, bool output_gz)
 {
     IBank* result = 0;
 
@@ -236,7 +236,7 @@ IBank* BankAlbum::addBank (const std::string& directory, const std::string& bank
         file->print ("%s\n", bankName.c_str());
 
         /** We create a new FASTA bank. */
-        result = new BankFasta (bankUri);
+        result = new BankFasta (bankUri, output_fastq, output_gz);
 
         /** We put it into the album. */
         BankComposite::addBank (result);

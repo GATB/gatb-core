@@ -59,10 +59,11 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
 /********************************************************************************/
-static const char* progressFormat0 = "DSK: estimating nb distinct kmers        ";
+static const char* progressFormat0 = "DSK: counting kmers                    ";
 static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
 static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
-static const char* progressFormat3 = "DSK: Collecting stats on read sample   ";
+static const char* progressFormat3 = "DSK: Collecting stats on %s ";
+static const char* progressFormat4 = "DSK: nb solid kmers found : %-9ld  ";
 
 static u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
 
@@ -88,7 +89,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0),
       _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1) ,_nb_partitions_in_parallel(0),
-      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0), _solidityKind(KMER_SOLIDITY_DEFAULT)
+      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0), _solidityKind(KMER_SOLIDITY_DEFAULT),
+      _min_auto_threshold(3), _tmpPartitionsMaxSize(0)
 {
 }
 
@@ -131,7 +133,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     _histogram (0),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition (1) ,_nb_partitions_in_parallel (nbCores),
     _flagEstimateNbDistinctKmers(false),  _estimatedDistinctKmerNb(0),
-    _solidityKind(solidityKind)
+    _solidityKind(solidityKind),
+    _min_auto_threshold(3), _tmpPartitionsMaxSize(0)
 {
     setBank (bank);
 
@@ -165,7 +168,8 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
     _histogram (0),
     _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1),_nb_partitions_in_parallel(0),
     _flagEstimateNbDistinctKmers(false),_estimatedDistinctKmerNb(0),
-    _solidityKind(KMER_SOLIDITY_DEFAULT)
+    _solidityKind(KMER_SOLIDITY_DEFAULT),
+    _min_auto_threshold(3), _tmpPartitionsMaxSize(0)
 {
     Group& group = (*_storage)(this->getName());
 
@@ -289,6 +293,11 @@ void SortingCountAlgorithm<span>::execute ()
     _nb_partitions_in_parallel = _nbCores;
     assert (_nbCores > 0);
 
+    if (_kmerSize < 4) {
+        throw Exception("GATB's k-mer counter only supports k > 4.\n"); return; //  For k <= 4, the code for a simple 1-pass in-memory counter, using e.g. a hash table, is left as an exercise for the coder.
+    }
+
+
     /** We configure dsk by computing the number of passes and partitions we will have
      * according to the allowed disk and memory space. */
     configure (_bank);
@@ -300,13 +309,24 @@ void SortingCountAlgorithm<span>::execute ()
     /** We configure the progress bar. Note that we create a ProgressSynchro since this progress bar
      * may me modified by several threads at the same time. */
     setProgress (new ProgressSynchro (
-        createIteratorListener (2 * _volume * MBYTE / sizeof(Type), "counting kmers"),
+        createIteratorListener (2 * _volume * MBYTE / sizeof(Type), progressFormat0),
         System::thread().newSynchronizer())
     );
     _progress->init ();
 
+    /*************************************************************/
+    /*                  REPARTITION COMPUTING                    */
+    /*************************************************************/
+
     /** We create the PartiInfo instance. */
-    PartiInfo<5> pInfo (_nb_partitions, _minim_size);
+    PartiInfo<5> pInfo      (_nb_partitions, _minim_size);
+    Repartitor   repartitor (_nb_partitions, _minim_size, _nb_passes);
+
+    Model* model = computeRepartition (repartitor);
+    LOCAL (model);
+
+    /** We have to reinit the progress instance since it may have been used by SampleRepart before. */
+    _progress->init();
 
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -319,22 +339,23 @@ void SortingCountAlgorithm<span>::execute ()
         pInfo.clear();
 
         /** 1) We fill the partition files. */
-        fillPartitions (_current_pass, itSeq, pInfo);
+        fillPartitions (_current_pass, itSeq, pInfo, *model, repartitor);
 
         /** 2) We fill the kmers solid file from the partition files. */
         fillSolidKmers (pInfo);
     }
 
-    _progress->finish ();
-
     /** We flush the solid kmers file. */
     _solidCounts->flush();
+
+    _progress->setMessage (Stringify::format(progressFormat4, _solidCounts->getNbItems() ));
+    _progress->finish ();
 
     /** We save the histogram if any. */
     _histogram->save ();
 
     /** compute auto cutoff **/
-    _histogram->compute_threshold ();
+    _histogram->compute_threshold (_min_auto_threshold);
 
     /** store auto cutoff and corresponding number of solid kmers **/
     Collection<NativeInt64>& storecutoff =   (*_storage)("dsk").getCollection<NativeInt64>("cutoff") ;
@@ -402,7 +423,8 @@ void SortingCountAlgorithm<span>::execute ()
     {
         getInfo()->add (3, "part_mean",     "%.1f", (double)nbSolids / (double)_solidCounts->size());
     }
-    getInfo()->add (3, "cmd",           "hash:%d vector:%d", _partCmdTypes.first, _partCmdTypes.second);
+    getInfo()->add (3, "cmd",          "hash:%d vector:%d", _partCmdTypes.first, _partCmdTypes.second);
+    getInfo()->add (3, "tmp_part_biggest",  "%ld", _tmpPartitionsMaxSize/MBYTE);
 
     _fillTimeInfo /= getDispatcher()->getExecutionUnitsNumber();
     getInfo()->add (2, _fillTimeInfo.getProperties("fillsolid_time"));
@@ -450,7 +472,7 @@ public:
     void operator() (Sequence& sequence)
     {
         /** We build the kmers from the current sequence. */
-        if (model.build (sequence.getData(), kmers) == false)  {  throw "reached EOF"; return; }
+        if (model.build (sequence.getData(), kmers) == false)  {  throw system::Exception("reached EOF"); return; }
 
         /** We loop over the kmers. */
         for (size_t i=0; i<kmers.size(); i++)
@@ -473,7 +495,7 @@ public:
                        printf("linear estimator at %ld kmers, number of distinct kmers estimated now: %ld, abs error: %ld\n",nbProcessedKmers, nb_distinct_kmers, abs_error);
                    if (abs_error < previous_nb_distinct_kmers/20) // 5% error
                    {
-                       throw "LinearCounter converged"; // well, "converged" is a big word
+                       // "LinearCounter converged"; // well, "converged" is a big word
                        return;
                    }
                    if (!linearCounter->is_accurate())
@@ -556,14 +578,29 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     // optimism == 0 mean that we guarantee worst case the memory usage,
     // any value above assumes that, on average, any distinct k-mer will be seen 'optimism+1' times
     int optimism = 0; // 0: guarantees to always work; above 0: risky
- 
+
     /** We get some information about the bank. */
     bank->estimate (_estimateSeqNb, _estimateSeqTotalSize, _estimateSeqMaxSize);
 
+    /** Some checks. */
+    if (_estimateSeqNb==0)  { throw Exception ("Empty bank"); }
+
     // We get the available space (in MBytes) of the current directory.
+    u_int64_t available_space_min = 2000;
     u_int64_t available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
 
-    u_int64_t kmersNb  = (_estimateSeqTotalSize - _estimateSeqNb * (_kmerSize-1));
+    /** We check that we have a minimum available disk space.*/
+    // DOES NOT WORK WELL ON SOME SYSTEMS...
+    // if (available_space < available_space_min)  {  throw Exception ("only %ld MB available disk space, won't be enough", available_space);  }
+
+    size_t meanSeqLen = (size_t) ( (double) _estimateSeqTotalSize / (double) _estimateSeqNb);
+    size_t usedSeqLen = meanSeqLen > _kmerSize ? meanSeqLen : _estimateSeqMaxSize;
+
+    int64_t kmersNb  = (usedSeqLen - _kmerSize + 1) * _estimateSeqNb;
+
+    /** We have to be sure that the kmers number is ok. */
+    if (kmersNb <= 0)  {  throw Exception ("Configuration failed : biggest sequence is %ld long but kmer size is %ld", _estimateSeqMaxSize, _kmerSize);     }
+
     u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
 
     _volume =  kmersNb * sizeof(Type) / MBYTE;  // in MBytes
@@ -574,7 +611,8 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     if (volume_minim == 0)   { volume_minim = 1; }    // tiny files fix
 
-    if (_max_disk_space == 0)  { _max_disk_space = std::min (available_space/2, 3*bankSize);  }  // used to be just bankSize until Oct 2014, changed that to 3x
+    /** We get max(75%, 100% - X GB) */
+    if (_max_disk_space == 0)  { _max_disk_space = std::max ((75*available_space)/100, available_space-available_space_min);  }
     if (_max_disk_space == 0)  { _max_disk_space = 10000; }
 
     if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
@@ -592,8 +630,8 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
 
     assert (_max_disk_space > 0);
     
-    //_nb_passes = ( (_volume/3) / _max_disk_space ) + 1; //minim, approx volume /3
-    _nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
+    _nb_passes = ( (_volume/3) / _max_disk_space ) + 1; //minim, approx volume /3
+    //_nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
     //increase it only if ram issue
 
     //printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
@@ -693,7 +731,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     assert(_nbCores_per_partition > 0);
 
     /** Now, we can define the output solid partition. */
-    setSolidCounts (& (*_storage)("dsk").getPartition<Count> ("solid", _nb_partitions));
+    setSolidCounts (& (*_storage)("dsk").getPartition<Count> ("solid", _nb_partitions*_nb_passes));
 
     /** We gather some statistics. */
     getInfo()->add (1, "config");
@@ -823,7 +861,11 @@ public:
     }
 
     /** Destructor (virtual). */
-    virtual ~Sequence2SuperKmer ()  {  _bankStatsGlobal += _bankStatsLocal;  }
+    virtual ~Sequence2SuperKmer ()
+    {
+        /** In case we have several passes, we must update sequence information only for first pass. */
+        if (_pass==0)  { _bankStatsGlobal += _bankStatsLocal;  }
+    }
 
 protected:
 
@@ -990,6 +1032,132 @@ protected:
 };
 
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+typename SortingCountAlgorithm<span>::Model* SortingCountAlgorithm<span>::computeRepartition (Repartitor& repartitor)
+{
+    Iterator<Sequence>* itSeq = _bank->iterator();
+    LOCAL (itSeq);
+
+    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
+
+    /* now is a good time to switch to frequency-based minimizers if required:
+      because right after we'll start using minimizers to compute the distribution
+      of superkmers in bins */
+    uint32_t *freq_order = NULL;
+    std::vector<std::pair<int, int> > counts;
+    if (_minimizerType == 1)
+    {
+        u_int64_t rg = ((u_int64_t)1 << (2*_minim_size));
+        //cout << "\nAllocating " << ((rg*sizeof(uint32_t))/1024) << " KB for " << _minim_size <<"-mers frequency counting (" << rg << " elements total)" << endl;
+        uint32_t *m_mer_counts = new uint32_t[rg];
+        Model model2 ( _kmerSize,_minim_size);
+
+        // can we reuse the it_sample variable above?
+        Iterator<Sequence>* it_sample = createIterator (
+                new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
+                nbseq_sample,
+                "Approximating frequencies of minimizers"
+                );
+        LOCAL (it_sample);
+
+        /** We compute an estimation of minimizers frequencies from a part of the bank. */
+        // actually.. let's try with the whole thing (itSeq instead of it_sample)
+        getDispatcher()->iterate (it_sample,  MmersFrequency<span> (
+            _minim_size, _progress, m_mer_counts)
+        );
+
+        // single threaded, for debugging
+        /*MmersFrequency<span> mmersfrequency(model, _progress, bstatsDummy, m_mer_counts);
+        it_sample->iterate(mmersfrequency);*/
+
+        /* sort frequencies */
+        for (int i(0); i < rg; i++)
+        {
+            if (m_mer_counts[i] > 0)
+                counts.push_back(make_pair(m_mer_counts[i],i));
+        }
+        delete[] m_mer_counts;
+
+        sort(counts.begin(),counts.end());
+
+        /* assign frequency to minimizers */
+        freq_order = new uint32_t[rg];
+
+        for (int i = 0; i < rg ; i++)
+            freq_order[i] = rg; // set everything not seen to highest value (not a minimizer)
+
+        for (unsigned int i = 0; i < counts.size(); i++)
+        {
+            freq_order[counts[i].second] = i;
+        }
+
+        // small but necessary trick: the largest minimizer has to have largest rank, as it's used as the default "largest" value
+        freq_order[rg-1] = rg-1;
+
+        model2.setMinimizersFrequency(freq_order);
+
+        // save this function
+        tools::storage::impl::Storage::ostream os (getStorageGroup(), "minimFrequency");
+        os.write ((const char*)freq_order,    sizeof(uint32_t) * rg);
+        os.flush();
+    }
+
+    /** We create a kmer model; using the frequency order if we're in that mode */
+    Model* model = new Model ( _kmerSize,_minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequency(), freq_order);
+
+    int mmsize = model->getMmersModel().getKmerSize();
+
+    PartiInfo<5> sample_info (_nb_partitions,mmsize);
+
+    string spaces = "             ";
+    string bankShortName = System::file().getBaseName(_bank->getId());
+    if (bankShortName.size() > spaces.size())  { bankShortName = bankShortName.substr (0,spaces.size()-3) + string("..."); }
+    bankShortName = (bankShortName + spaces).substr (0,spaces.size());
+
+    /** We create an iterator over a truncated part of the input bank. */
+    Iterator<Sequence>* it_sample = createIterator (
+        new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
+        nbseq_sample,
+        Stringify::format (progressFormat3, bankShortName.c_str()).c_str()
+    );
+    LOCAL (it_sample);
+
+    BankStats bstatsDummy;
+
+    /** We compute a distribution of Superkmers from a part of the bank. */
+    getDispatcher()->iterate (it_sample,  SampleRepart<span> (
+        *model, 1, 0, _nb_partitions, _progress, bstatsDummy, sample_info)
+    );
+
+    /** We compute the distribution of the minimizers. As a result, we will have a hash function
+     * that gives a hash code for a minimizer value. */
+
+    if (_minimizerType == 1)
+        repartitor.justGroup (sample_info, counts);
+    else
+    {
+        repartitor.computeDistrib (sample_info);
+        if (_repartitionType == 1)
+        {
+            repartitor.justGroupLexi (sample_info); // For bcalm, i need the minimizers to remain in order. so using this suboptimal but okay repartition
+        }
+
+    }
+
+    /** We save the distribution (may be useful for debloom for instance). */
+    repartitor.save (getStorageGroup());
+
+    return model;
+}
+
 /********************************************************************************/
 /* This functor class takes a Sequence as input, splits it into super kmers and
  * serialize them into partitions.
@@ -1013,7 +1181,9 @@ public:
     /** */
     void processSuperkmer (SuperKmer& superKmer)
     {
-        if ((superKmer.minimizer % this->_nbPass) == this->_pass && superKmer.isValid()) //check if falls into pass
+        int mod = superKmer.minimizer % this->_nbPass;
+
+        if ( (mod == this->_pass) && superKmer.isValid()) //check if falls into pass
         {
             /** We get the hash code for the current miminizer.
              * => this will give us the partition where to dump the superkmer. */
@@ -1135,7 +1305,7 @@ private:
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo<5>& pInfo)
+void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo<5>& pInfo, Model& model, Repartitor& repartitor)
 {
     TIME_INFO (getTimeInfo(), "fill_partitions");
 
@@ -1145,7 +1315,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     if (_partitionsStorage)  { _partitionsStorage->remove (); }
 
     /** We build the temporary storage name from the output storage name. */
-    string tmpStorageName = _storage->getName() + string("_partitions");
+    string tmpStorageName = System::file().getTemporaryFilename("dsk_partitions");
 
     /** We create the partition files for the current pass. */
 #ifdef PROTO_COMP
@@ -1162,117 +1332,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We update the message of the progress bar. */
     _progress->setMessage (Stringify::format(progressFormat1, _current_pass+1, _nb_passes));
 
-    u_int64_t nbseq_sample = std::max ( u_int64_t (_estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
-
-    DEBUG (("SortingCountAlgorithm<span>::fillPartitions : nb seq for sample :  %llu \n ",nbseq_sample));
-
-    /* now is a good time to switch to frequency-based minimizers if required:
-      because right after we'll start using minimizers to compute the distribution 
-      of superkmers in bins */
-    uint32_t *freq_order = NULL;
-    std::vector<std::pair<int, int> > counts;
-    if (_minimizerType == 1)
-    {
-        u_int64_t rg = ((u_int64_t)1 << (2*_minim_size));
-        //cout << "\nAllocating " << ((rg*sizeof(uint32_t))/1024) << " KB for " << _minim_size <<"-mers frequency counting (" << rg << " elements total)" << endl;
-        uint32_t *m_mer_counts = new uint32_t[rg];
-        Model model( _kmerSize,_minim_size);
-
-        // can we reuse the it_sample variable above?
-        Iterator<Sequence>* it_sample = createIterator (
-                new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
-                nbseq_sample,
-                "Approximating frequencies of minimizers" 
-                );
-        LOCAL (it_sample);
-
-        /** We compute an estimation of minimizers frequencies from a part of the bank. */
-        // actually.. let's try with the whole thing (itSeq instead of it_sample)
-        getDispatcher()->iterate (it_sample,  MmersFrequency<span> (
-            _minim_size, _progress, m_mer_counts)
-        );
-       
-        // single threaded, for debugging
-        /*MmersFrequency<span> mmersfrequency(model, _progress, bstatsDummy, m_mer_counts);
-        it_sample->iterate(mmersfrequency);*/
-
-        /* sort frequencies */
-        for (int i(0); i < rg; i++)
-        {
-            if (m_mer_counts[i] > 0)
-                counts.push_back(make_pair(m_mer_counts[i],i));
-        }
-        delete[] m_mer_counts;
-
-        sort(counts.begin(),counts.end());
-
-        /* assign frequency to minimizers */
-        freq_order = new uint32_t[rg];
-
-        for (int i = 0; i < rg ; i++)
-            freq_order[i] = rg; // set everything not seen to highest value (not a minimizer)
-
-        for (unsigned int i = 0; i < counts.size(); i++)
-        {
-            freq_order[counts[i].second] = i;
-        }
-
-        // small but necessary trick: the largest minimizer has to have largest rank, as it's used as the default "largest" value 
-        freq_order[rg-1] = rg-1;
-
-        model.setMinimizersFrequency(freq_order);
-   
-        // save this function 
-        tools::storage::impl::Storage::ostream os (getStorageGroup(), "minimFrequency");
-        os.write ((const char*)freq_order,    sizeof(uint32_t) * rg);
-        os.flush();
-    }
-
-    /** We create a kmer model; using the frequency order if we're in that mode */
-    Model model( _kmerSize,_minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequency(), freq_order);
-
-    int mmsize = model.getMmersModel().getKmerSize();
-
-    PartiInfo<5> sample_info (_nb_partitions,mmsize);
-
-    /** We create an iterator over a truncated part of the input bank. */
-    Iterator<Sequence>* it_sample = createIterator (
-        new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
-        nbseq_sample,
-        progressFormat3
-    );
-    LOCAL (it_sample);
-
-    BankStats bstatsDummy;
-
-    /** We compute a distribution of Superkmers from a part of the bank. */
-    getDispatcher()->iterate (it_sample,  SampleRepart<span> (
-        model, _nb_passes, pass, _nb_partitions, _progress, bstatsDummy, sample_info)
-    );
-
-    /** We compute the distribution of the minimizers. As a result, we will have a hash function
-     * that gives a hash code for a minimizer value. */
-    Repartitor repartitor (_partitions->size(), mmsize);
-    if (_minimizerType == 1)
-        repartitor.justGroup (sample_info, counts);
-    else
-    {
-        repartitor.computeDistrib (sample_info);
-        if (_repartitionType == 1)
-        {
-            repartitor.justGroupLexi (sample_info); // For bcalm, i need the minimizers to remain in order. so using this suboptimal but okay repartition
-        }
-        
-    }
-
-    /** We save the distribution (may be useful for debloom for instance). */
-    repartitor.save (getStorageGroup());
-
-	/** We have to reinit the progress instance since it may have been used by SampleRepart before. */
-    _progress->init();
-
     /** We may have several input banks instead of a single one. */
     std::vector<Iterator<Sequence>*> itBanks =  itSeq->getComposition();
+
+    DEBUG (("SortingCountAlgorithm<span>::fillPartitions  nbBanks=%ld\n", itBanks.size() ));
 
     /** We first reset the vector holding the kmers number for each partition and for each bank.
      * It can be seen as the following matrix:
@@ -1290,10 +1353,14 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We launch the iteration of the sequences iterator with the created functors. */
     for (size_t i=0; i<itBanks.size(); i++)
     {
-        /** We fill the partitions. */
+        size_t groupSize   = 1000;
+        bool deleteSynchro = true;
+
+        /** We fill the partitions. Each thread will read synchronously and will call FillPartitions
+         * in a synchronous way (in order to have global BanksStats correctly computed). */
         getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
             model, _nb_passes, pass, _nb_partitions, _progress, _bankStats, _partitions, repartitor, pInfo
-        ));
+        ), groupSize, deleteSynchro);
 
         /** We flush the partitions in order to be sure to have the exact number of items per partition. */
         _partitions->flush();
@@ -1307,7 +1374,16 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
         /** We add the current number of kmers in each partition for the reached ith bank. */
         _nbKmersPerPartitionPerBank.push_back (nbItems);
+
+        /** IMPORTANT ! We need to 'finalize' the iterator; in case of BankFasta iterator, it will
+         * close the file handle, so we will avoid to have no more file handles available in case
+         * we have a lot of input banks. */
+        itBanks[i]->finalize();
     }
+
+    /** We get information about temporary files. */
+    u_int64_t tmpPartsSize = _partitions->getSizeItems();
+    if (_tmpPartitionsMaxSize < tmpPartsSize)  { _tmpPartitionsMaxSize = tmpPartsSize; }
 }
 
 /*********************************************************************
@@ -1394,8 +1470,10 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
             ISynchronizer* synchro = System::thread().newSynchronizer();
             LOCAL (synchro);
 
+            size_t idxPart = p + this->_current_pass*this->_nb_partitions;
+
             /** We get the pth collection for storing solid kmers for the current partition. */
-            Bag<Count>* solidKmers = & (*_solidCounts)[p];
+            Bag<Count>* solidKmers = & (*_solidCounts)[idxPart];
 
             DEBUG ((" %zu ", p));
 
@@ -1441,10 +1519,29 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
                     }
                     else
                     {
-                        /** We launch an exception. */
-                        throw Exception ("memory issue: %lld required and %lld available",
-                            pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize
-                        );
+                        bool strict = false;
+
+                        if (strict)
+                        {
+                            /** We launch an exception. */
+                            throw Exception ("memory issue: %lld required and %lld available",
+                                pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize
+                            );
+                        }
+                        else
+                        {
+                            unsigned long system_mem = System::info().getMemoryPhysicalTotal();
+                            memoryPoolSize = pInfo.getNbSuperKmer(p)*getSizeofPerItem(); 
+
+                            if (memoryPoolSize > system_mem*0.95)
+                            {
+                                throw Exception ("memory issue: %lld required, %lld command-line limit, %lld system limit",
+                                    pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize, system_mem
+                                );
+                            }
+                            else
+                                cout << "Warning: forced to allocate extra memory: " << memoryPoolSize / MBYTE << " MB" << endl;
+                        }
                     }
                 }
 

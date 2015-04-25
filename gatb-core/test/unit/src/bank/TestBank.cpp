@@ -80,9 +80,11 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_composite);
         CPPUNIT_TEST_GATB (bank_album1);
         CPPUNIT_TEST_GATB (bank_album2);
+        CPPUNIT_TEST_GATB (bank_album3);
         CPPUNIT_TEST_GATB (bank_iteration);
         CPPUNIT_TEST_GATB (bank_datalinesize);
         CPPUNIT_TEST_GATB (bank_registery_types);
+        CPPUNIT_TEST_GATB (bank_checkPower2);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -936,6 +938,41 @@ public:
         CPPUNIT_ASSERT (nbSeq == (100 + 1000) );  // reads1.fa has 100 seq, reads2.fa has 1000 seq
     }
 
+    /********************************************************************************/
+    void bank_album3_aux (const string& filename, size_t nbBanks, size_t nbSeqCheck)
+    {
+        string albumFilename = "test.album";
+
+        ofstream albumFile (albumFilename.c_str());
+        CPPUNIT_ASSERT (albumFile.is_open());
+
+        for (size_t i=0; i<nbBanks; i++)  {  albumFile << filename << endl; }
+
+        IBank* bank = Bank::open (albumFilename);
+        LOCAL (bank);
+
+        /** We iterate the sequences. */
+        Iterator<Sequence>* itSeq = bank->iterator();
+        LOCAL (itSeq);
+
+        size_t nbSeq = 0;
+        for (itSeq->first(); !itSeq->isDone(); itSeq->next())  { nbSeq++; }
+
+        CPPUNIT_ASSERT (nbSeq == nbSeqCheck*nbBanks);
+
+        /** Cleanup. */
+        System::file().remove(albumFilename);
+    }
+
+    void bank_album3 ()
+    {
+        bank_album3_aux (DBPATH("reads1.fa"),       2000, 100);
+        bank_album3_aux (DBPATH("sample.fastq.gz"), 2000, 7);
+        bank_album3_aux (DBPATH("sample.fastq"),    2000, 7);
+    }
+
+    /********************************************************************************/
+
     struct Fct { void operator() (Sequence& s) { cout << s.getComment() << endl;} };
 
     /********************************************************************************/
@@ -1031,6 +1068,30 @@ public:
         CPPUNIT_ASSERT (Bank::getType(DBPATH("sample.fastq")) == "fasta");
     }
 
+    /********************************************************************************/
+    void bank_checkPower2 ()
+    {
+        string filename = "test.fa";
+
+        /** We create a file with a specific content (ie a space at idx being a power of 2, which used make
+         * and invalid write detected by valgrind). */
+        ofstream file (filename.c_str());
+        CPPUNIT_ASSERT (file.is_open());
+
+        file << ">123456789012345 789012345678901" << endl;
+        file << "CTTGTAATAACATGCACAAATACAATGCCATTCAATTTGA";
+        file.flush ();
+
+        /** We open it as a fasta bank. */
+        BankFasta b (filename);
+
+        BankFasta::Iterator it (b);
+        for (it.first(); !it.isDone(); it.next())  {  CPPUNIT_ASSERT (it->getDataSize() == 40);  }
+
+        /** Some cleanup. */
+        System::file().remove(filename);
+        CPPUNIT_ASSERT (System::file().doesExist(filename) == false);
+    }
 };
 
 /********************************************************************************/

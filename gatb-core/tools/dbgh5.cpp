@@ -23,13 +23,18 @@
 /********************************************************************************/
 static const char* STR_EMAIL        = "-email";
 static const char* STR_EMAIL_FORMAT = "-email-fmt";
+static const char* STR_CHECK        = "-check";
+static const char* STR_CHECK_DUMP   = "-check-dump";
 
-int  manageException (IProperties* options, const std::string& message);
-void sendEmail       (IProperties* options, IProperties* graphInfo);
+int    manageException (IProperties* options, const std::string& message);
+void   sendEmail       (IProperties* options, IProperties* graphInfo);
+size_t checkResult     (const Graph& graph, IProperties* inputProps);
 
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
+    size_t nbErrors = 0;
+
     /** We create a command line parser. */
     IOptionsParser* parser = Graph::getOptionsParser();  LOCAL (parser);
 
@@ -39,6 +44,8 @@ int main (int argc, char* argv[])
         /** We add an option to send the statistics by email. */
         parserGeneral->push_back (new OptionOneParam (STR_EMAIL,        "send statistics to the given email address", false));
         parserGeneral->push_back (new OptionOneParam (STR_EMAIL_FORMAT, "'raw' or 'xml'",                             false, "raw"));
+        parserGeneral->push_back (new OptionOneParam (STR_CHECK,        "check result with previous result",          false));
+        parserGeneral->push_back (new OptionOneParam (STR_CHECK_DUMP,   "dump some properties of the created graph into a file", false));
     }
 
     try
@@ -48,6 +55,9 @@ int main (int argc, char* argv[])
 
         /** We create the graph with the provided options. */
         Graph graph = Graph::create (props);
+
+        /** We may have to check the result. */
+        if (props->get (STR_CHECK) > 0)  {  nbErrors = checkResult (graph, props);  }
 
         /** We dump some information about the graph. */
         if (props->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
@@ -72,7 +82,7 @@ int main (int argc, char* argv[])
         return manageException (parser->getProperties(), msg);
     }
 
-    return EXIT_SUCCESS;
+    return nbErrors == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 /********************************************************************************/
@@ -122,3 +132,60 @@ int manageException (IProperties* options, const std::string& message)
     return EXIT_FAILURE;
 }
 
+/********************************************************************************/
+size_t checkResult (const Graph& graph, IProperties* inputProps)
+{
+    size_t nbErrors = 0;
+
+    string filecheck = inputProps->getStr(STR_CHECK);
+
+    /** We get the graph properties. */
+    IProperties& graphProps = graph.getInfo();
+
+    /** We read the check file. */
+    Properties checkProps;  checkProps.readFile (filecheck);
+
+    /** We need properties for output file if needed. */
+    Properties outputProps;
+    Properties tmpProps;
+
+    /** We get the keys to be checked. */
+    set<string> keys = checkProps.getKeys();
+    for (set<string>::iterator it = keys.begin(); it != keys.end(); ++it)
+    {
+        if (graphProps.get(*it)==0)
+        {
+            tmpProps.add (0, "unknown", "%s", (*it).c_str());
+            continue;
+        }
+
+        string v1 = checkProps.getStr(*it);
+        string v2 = graphProps.getStr(*it);
+
+        if (v1 != v2)
+        {
+            tmpProps.add (0, "diff", "%s", (*it).c_str());
+            tmpProps.add (1, "val",  "%s", v1.c_str());
+            tmpProps.add (1, "val",  "%s", v2.c_str());
+            nbErrors++;
+        }
+
+        /** We put the graph property into the output props. */
+        outputProps.add (0, *it, v2);
+    }
+
+    graphProps.add (1, "check", "%d/%d", keys.size()-nbErrors, keys.size());
+    graphProps.add (2, tmpProps);
+
+    if (inputProps->get(STR_CHECK_DUMP))
+    {
+        ofstream outputFile (inputProps->getStr(STR_CHECK_DUMP).c_str());
+        if (outputFile.is_open())
+        {
+            RawDumpPropertiesVisitor visitor (outputFile, 40, ' ');
+            outputProps.accept (&visitor);
+        }
+    }
+
+    return nbErrors;
+}

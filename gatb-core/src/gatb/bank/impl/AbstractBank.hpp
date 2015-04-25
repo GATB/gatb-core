@@ -73,6 +73,9 @@ public:
     /** \copydoc IBank::remove */
     void remove () {}
 
+    /** \copydoc IBank::finalize */
+    void finalize ()  {}
+
 private:
 
     u_int64_t _estimateThreshold;

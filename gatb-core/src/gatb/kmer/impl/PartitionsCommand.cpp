@@ -134,7 +134,7 @@ void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& c
     _totalKmerNb++;
 
     /** Shortcut. */
-    u_int16_t actualCount = counter.computeSum();
+    SolidityCounter::Int actualCount = counter.computeSum();
 
     /** We should update the abundance histogram*/
     _histogram.inc (actualCount);
@@ -397,7 +397,7 @@ public:
 		}
 	}
 	
-	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type** radix_kmers, u_int8_t** bankIdMatrix, size_t bankId=0)
+	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type** radix_kmers, bank::BankIdType** bankIdMatrix, size_t bankId=0)
 	: _first(true) ,_kmerSize (kmerSize), _r_idx (r_idx), _radix_kmers(radix_kmers), _bankIdMatrix(bankIdMatrix), _kx(4), _bankId(bankId)
 	 {
 		 Type un = 1;
@@ -417,7 +417,7 @@ private :
 	size_t _shift_radix ;
 	int    _kx;
 	Type** _radix_kmers;
-	u_int8_t** _bankIdMatrix;
+	bank::BankIdType** _bankIdMatrix;
 	uint64_t* _r_idx ;
 	bool _first;
 	Type _superk, _seedk;
@@ -495,7 +495,7 @@ void PartitionsByVectorCommand<span>::execute ()
     _r_idx        = (uint64_t*)  CALLOC (256*(KX+1),sizeof(uint64_t));
 
     /** We need extra information for kmers counting in case of several input banks. */
-    if (_nbItemsPerBankPerPart.size() > 1) { _bankIdMatrix = (u_int8_t**) MALLOC (256*(KX+1)*sizeof(u_int8_t*)); }
+    if (_nbItemsPerBankPerPart.size() > 1) { _bankIdMatrix = (bank::BankIdType**) MALLOC (256*(KX+1)*sizeof(bank::BankIdType*)); }
     else                                   { _bankIdMatrix = 0; }
 
     /** We have 3 phases here: read, sort and dump. */
@@ -538,23 +538,44 @@ void PartitionsByVectorCommand<span>::executeRead ()
     for (size_t j=0; j<_nbItemsPerBankPerPart.size(); j++)  {  DEBUG (("%6d ", _nbItemsPerBankPerPart[j]));  }  DEBUG (("\n"));
 
     uint64_t sum_nbxmer =0;
-    for (int xx=0; xx< (KX+1); xx++)
+
+    /** We synchronize this statements block because of threads concurrent access. */
     {
-        for (int ii=0; ii< 256; ii++)
+        LocalSynchronizer synchro (this->_pool.getSynchro());
+
+        /** We align the pool with a big alignment constraint (see below macos issue with uint128) */
+        this->_pool.align (16);
+
+        /** FIRST: allocation for the kmers. */
+        for (int xx=0; xx< (KX+1); xx++)
         {
-            /** Shortcut. */
-            size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
-
-            //use memory pool here to avoid memory fragmentation
-            _radix_kmers  [IX(xx,ii)] = (Type*)     this->_pool.pool_malloc (nbKmers * sizeof(Type),     "kmers alloc");
-            _radix_sizes  [IX(xx,ii)] = nbKmers;
-
-            if (_bankIdMatrix)
+            for (int ii=0; ii< 256; ii++)
             {
-                _bankIdMatrix [IX(xx,ii)] = (u_int8_t*) this->_pool.pool_malloc (nbKmers * sizeof(u_int8_t), "bank ids alloc");
-            }
+                /** Shortcut. */
+                size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
 
-            sum_nbxmer +=  nbKmers;
+                //use memory pool here to avoid memory fragmentation
+                _radix_kmers  [IX(xx,ii)] = (Type*)     this->_pool.pool_malloc (nbKmers * sizeof(Type),     "kmers alloc");
+                _radix_sizes  [IX(xx,ii)] = nbKmers;
+
+                sum_nbxmer +=  nbKmers;
+            }
+        }
+
+        /** SECOND: allocation for the bank ids if needed.
+         * => NEED TO BE DONE AFTER THE KMERS BECAUSE OF MEMORY ALIGNMENT CONCERNS.
+         * On MacOs, we got some crashes with uint128 that were not aligned on 16 bytes
+         */
+        if (_bankIdMatrix)
+        {
+            for (int xx=0; xx< (KX+1); xx++)
+            {
+                for (int ii=0; ii< 256; ii++)
+                {
+                    size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
+                    _bankIdMatrix [IX(xx,ii)] = (bank::BankIdType*) this->_pool.pool_malloc (nbKmers * sizeof(bank::BankIdType), "bank ids alloc");
+                }
+            }
         }
     }
 
@@ -612,7 +633,7 @@ public:
     typedef typename Kmer<span>::Type  Type;
 
     /** Constructor. */
-    SortCommand (Type** kmervec, u_int8_t** bankIdMatrix, int begin, int end, uint64_t* radix_sizes)
+    SortCommand (Type** kmervec, bank::BankIdType** bankIdMatrix, int begin, int end, uint64_t* radix_sizes)
         : _radix_kmers(kmervec), _bankIdMatrix(bankIdMatrix), _deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
 
     /** */
@@ -634,7 +655,7 @@ public:
                      * which may use (a lot of ?) memory. */
 
                     /** Shortcut. */
-                    u_int8_t* banksId = _bankIdMatrix [ii];
+                    bank::BankIdType* banksId = _bankIdMatrix [ii];
 
                     /** NOTE: we sort the indexes, not the items. */
                     idx.resize (_radix_sizes[ii]);
@@ -665,7 +686,7 @@ public:
 
 private :
 
-    struct Tmp { Type kmer;  u_int8_t id;};
+    struct Tmp { Type kmer;  bank::BankIdType id;};
 
     struct Cmp
     {
@@ -677,7 +698,7 @@ private :
     int        _deb;
     int        _fin;
     Type**     _radix_kmers;
-    u_int8_t** _bankIdMatrix;
+    bank::BankIdType** _bankIdMatrix;
     uint64_t*  _radix_sizes;
 };
 
@@ -745,7 +766,7 @@ public:
         int         max_radix,
         int         kmerSize,
         uint64_t*   radix_sizes,
-        u_int8_t**  bankIdMatrix
+        bank::BankIdType**  bankIdMatrix
     )
         : _kxmers(kmervec), _prefix_size(prefix_size), _x_size(x_size),
         _cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix), _radix_sizes(radix_sizes), _bankIdMatrix(0)
@@ -785,12 +806,12 @@ public:
     inline Type    value   () const  {  return ( ((_kxmers[_idx_radix][_cur_idx]) >> _shift_size)  |  _radixMask  ) & _kmerMask ;  }
 
     /** */
-    inline u_int8_t getBankId () const  {  return _bankIdMatrix ? _bankIdMatrix [_idx_radix][_cur_idx] : 0;  }
+    inline bank::BankIdType getBankId () const  {  return _bankIdMatrix ? _bankIdMatrix [_idx_radix][_cur_idx] : 0;  }
 
 private :
 
     Type**      _kxmers;
-    u_int8_t**  _bankIdMatrix;
+    bank::BankIdType**  _bankIdMatrix;
     uint64_t*   _radix_sizes;
     int64_t     _cur_idx;
     Type        _cur_radix;

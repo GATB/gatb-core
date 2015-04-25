@@ -309,7 +309,7 @@ public:
     /** Constructor
      * \param[in] nbpart : hash value will be in range [0..nbpart-1]
      * \param[in] minimsize : size of the minimizers. */
-    Repartitor (int nbpart=0, int minimsize=0)  : _nbpart(nbpart), _mm(minimsize), _nb_minims(1 << (_mm*2))
+    Repartitor (int nbpart=0, int minimsize=0, int nbPass=1)  : _nbpart(nbpart), _mm(minimsize), _nb_minims(1 << (_mm*2)), _nbPass(nbPass)
     {
         if (nbpart <= 0)  { system::Exception("Repartitor: nbpart (%d) should be > 0", nbpart); }
     }
@@ -336,6 +336,9 @@ public:
 
     /** For debug purpose. */
     void printInfo ();
+
+    /** Get the number of passes used to split the input bank. */
+    size_t getNbPasses() const { return _nbPass; }
 
 private:
 
@@ -376,6 +379,7 @@ private:
     u_int16_t          _nbpart;
     u_int16_t          _mm;
     u_int64_t          _nb_minims;
+    u_int16_t          _nbPass;
     std::vector<Value> _repart_table ;
 };
 

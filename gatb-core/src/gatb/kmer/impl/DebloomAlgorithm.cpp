@@ -34,6 +34,7 @@
 #include <gatb/tools/collections/impl/BagFile.hpp>
 #include <gatb/tools/collections/impl/BagCache.hpp>
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
+#include <gatb/tools/collections/impl/IterableHelpers.hpp>
 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
@@ -109,7 +110,6 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
        _groupDebloom(storage().getGroup ("debloom")),
        _kmerSize(kmerSize),
        _bloomKind(bloomKind), _debloomKind(cascadingKind),
-       _debloomUri("debloom"),
        _max_memory(max_memory),
        _solidIterable(0),  _container(0), _criticalNb(0)
 {
@@ -123,6 +123,9 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
 
     /** We set the minimizer size. */
     _miniSize = std::min (_kmerSize-1, (size_t)8);
+
+    /** We set the debloom uri (tmp file). */
+    _debloomUri  = System::file().getTemporaryFilename (debloomUri);
 }
 
 /*********************************************************************
@@ -278,7 +281,8 @@ void DebloomAlgorithm<span>::execute_aux (
 {
     Model model (_kmerSize);
 
-    Collection<Type>* criticalCollection = new CollectionFile<Type> ("cfp");
+    string cfpFilename = System::file().getTemporaryFilename("cfp");
+    Collection<Type>* criticalCollection = new CollectionFile<Type> (cfpFilename);
     LOCAL (criticalCollection);
 
     /***************************************************/
@@ -586,12 +590,6 @@ void DebloomAlgorithm<span>::createCFP (
     for (ii->first(); !ii->isDone(); ii->next())  { _criticalChecksum += ii->item(); }
 #endif
 
-    /** We define an iterator for 4 tasks. */
-    size_t nbTasks = 4;
-    Iterator<int>* itTask = createIterator<int> (new Range<int>::Iterator (1,nbTasks), nbTasks, progressFormat4());
-    LOCAL (itTask);
-    itTask->first ();
-
     /** We may have to change the cascading kind if we have no false positives. */
     _criticalNb = criticalCollection->getNbItems();
     if (_criticalNb == 0)  {  _debloomKind = DEBLOOM_ORIGINAL; }
@@ -606,6 +604,12 @@ void DebloomAlgorithm<span>::createCFP (
     {
         case DEBLOOM_CASCADING:
         {
+            /** We define an iterator for 4 tasks. */
+            size_t nbTasks = 4;
+            Iterator<int>* itTask = createIterator<int> (new Range<int>::Iterator (1,nbTasks), nbTasks, progressFormat4());
+            LOCAL (itTask);
+            itTask->first ();
+
             /** We force a specific bloom here for having not too much false positives. */
             tools::misc::BloomKind  bloomKind = BLOOM_CACHE;
 
@@ -640,7 +644,7 @@ void DebloomAlgorithm<span>::createCFP (
             itTask->next();
 
             //  **** Insert false positives in B3 and write T2
-            const char* T2name = "t2_kmers";
+            string T2name = System::file().getTemporaryFilename("t2_kmers");
             Collection<Type>* T2File = new CollectionFile<Type> (T2name);  LOCAL (T2File);
 
             /** We need to protect the T2File against concurrent accesses, we use a ThreadObject for this. */
@@ -711,8 +715,14 @@ void DebloomAlgorithm<span>::createCFP (
         case DEBLOOM_DEFAULT:
         default:
         {
+            Iterator<Type>* it = createIterator<Type> (
+                criticalCollection->iterator(),
+                criticalCollection->getNbItems(),
+                progressFormat5()
+            );
+            LOCAL (it);
+
             /** We save the final cFP container into the storage. */
-            tools::dp::Iterator<Type>* it = criticalCollection->iterator();  LOCAL (it);
             for (it->first(); !it->isDone(); it->next())  {  finalCriticalCollection->insert (it->item());  }
             finalCriticalCollection->flush ();
 

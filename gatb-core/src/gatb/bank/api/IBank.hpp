@@ -123,6 +123,9 @@ public:
     /** Remove physically the bank. This method will have non-empty implementation for banks using
      * file system for instance. */
     virtual void remove () = 0;
+
+    /** Method that may be called when the bank is done. */
+    virtual void finalize () = 0;
 };
 
 /********************************************************************************/
@@ -147,6 +150,11 @@ public:
      * \return the IBank instance. */
     virtual IBank* createBank (const std::string& uri) = 0;
 };
+
+/********************************************************************************/
+
+/** We define a type for bank identifiers (as integers) when dealing with several banks.*/
+typedef u_int16_t BankIdType;
 
 /********************************************************************************/
 } } } /* end of namespaces. */

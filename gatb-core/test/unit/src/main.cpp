@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 
 using namespace std;
 
@@ -43,7 +44,7 @@ std::string DBPATH (const string& a)
 int main (int argc, char **argv)
 {
     /** We may launch only one test. */
-    string testname = (argc >=2 ? argv[1] : "All Tests");
+    char* testname = strdup (argc >=2 ? argv[1] : "All Tests");
 
     /** We set the directory where the db are. */
     dbprefix = (argc >=3 ? argv[2] : "../test/db");
@@ -64,7 +65,12 @@ int main (int argc, char **argv)
 #endif
 
     TextTestRunner runner;
-    runner.addTest ( TestFactoryRegistry::getRegistry(testname).makeTest ());
+
+    for (char* loop = strtok (testname,","); loop != 0;  loop = strtok (NULL, ","))
+    {
+        runner.addTest ( TestFactoryRegistry::getRegistry(loop).makeTest ());
+    }
+
     runner.run (testresult);
 
     // output results in compiler-format
@@ -78,6 +84,8 @@ int main (int argc, char **argv)
         XmlOutputter xmlOut (&collectedresults, xmlFileOut);
         xmlOut.write();
     }
+
+    free (testname);
 
     // return 0 if tests were successful
     return collectedresults.wasSuccessful() ? 0 : 1;

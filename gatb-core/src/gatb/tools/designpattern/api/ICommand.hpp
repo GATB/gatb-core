@@ -31,6 +31,7 @@
 #include <gatb/system/api/types.hpp>
 #include <gatb/system/api/ISmartPointer.hpp>
 #include <gatb/system/api/IThread.hpp>
+#include <gatb/system/impl/System.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 
 #include <vector>
@@ -167,8 +168,14 @@ public:
      *  \param[in] iterator : the iterator to be iterated
      *  \param[in] functors : vector of functors that are fed with iterated items
      *  \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
+     *  \param[in] deleteSynchro : if false, destructor of functors are called in each thread; if true, destructor of functors are called synchronously
      */
-    template <typename Item, typename Functor> Status iterate (Iterator<Item>* iterator, std::vector<Functor*>& functors, size_t groupSize = 1000)
+    template <typename Item, typename Functor> Status iterate (
+        Iterator<Item>*         iterator,
+        std::vector<Functor*>&  functors,
+        size_t                  groupSize = 1000,
+        bool                    deleteSynchro = false
+    )
     {
         /** If the dispatcher has a defined group size, we overwrite the one provided by the caller. */
         if (getGroupSize() > 0)  { groupSize = getGroupSize(); }
@@ -182,7 +189,7 @@ public:
         std::vector<ICommand*> commands;
         for (typename std::vector<Functor*>::iterator it = functors.begin(); it != functors.end(); it++)
         {
-            commands.push_back (new IteratorCommand<Item,Functor> (iterator, *it, *synchro, groupSize));
+            commands.push_back (new IteratorCommand<Item,Functor> (iterator, *it, *synchro, groupSize, deleteSynchro));
         }
 
         /** We dispatch the commands. */
@@ -216,11 +223,13 @@ public:
      * \param[in] iterator : the iterator to be iterated
      * \param[in] functor : functor object to be cloned N times, one per thread
      * \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
-     * \param[in] localIterator : true if the provided iterator must be used locally like a smart pointer
+     *  \param[in] deleteSynchro : if false, destructor of functors are called in each thread; if true, destructor of functors are called synchronously
      */
     template <typename Item, typename Functor>
-    Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000, bool localIterator=true)
+    Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000, bool deleteSynchro = false)
     {
+        bool localIterator=true;
+
         Status status;
 
         if (localIterator) { iterator->use(); }
@@ -230,7 +239,7 @@ public:
         for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
 
         /** We iterate the iterator. */
-        status = iterate (iterator, functors, groupSize);
+        status = iterate (iterator, functors, groupSize, deleteSynchro);
 
         /** We get rid of the functors. */
         // for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
@@ -239,25 +248,6 @@ public:
 
         /** We return the status. */
         return status;
-    }
-
-    /** Iterate a provided instance. The provided functor is cloned N times, where N is the number of threads to
-     * be created; each thread will use its own instance of functor.
-     *
-     * One has to be aware that the copy constructor of the Functor type has to be well defined. For instance, if
-     * one wants to share a resource hold by the 'functor' argument, the copied Functor object may have a direct
-     * access to the shared resource, which potential issues with concurrent accesses on it. A way to avoid this
-     * kind of issue is to define a copy constructor that will create an instance of Functor with specific
-     * synchronization process (see ISynchronizer for that).
-     *
-     * \param[in] iterator : the iterator to be iterated
-     * \param[in] functor : functor object to be cloned N times, one per thread
-     * \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
-     */
-    template <typename Item, typename Functor>
-    Status iterate (const Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000)
-    {
-        return iterate ((Iterator<Item>*)&iterator, functor, groupSize, false);
     }
 
     /** Set the number of items to be retrieved from the iterator by one thread in a synchronized way.
@@ -284,8 +274,8 @@ protected:
          * \param[in] synchro : shared synchronizer for accessing several items
          * \param[in] groupSize : number of items got from the iterator in one synchronized block.
          */
-        IteratorCommand (Iterator<Item>* it, Functor*& fct, system::ISynchronizer& synchro, size_t groupSize)
-            : _it(it), _fct(fct), _synchro(synchro), _groupSize(groupSize)  {}
+        IteratorCommand (Iterator<Item>* it, Functor*& fct, system::ISynchronizer& synchro, size_t groupSize, bool deleteSynchro)
+            : _it(it), _fct(fct), _synchro(synchro), _groupSize(groupSize), _deleteSynchro(deleteSynchro)  {}
 
         /** Implementation of the ICommand interface.*/
         void execute ()
@@ -310,9 +300,11 @@ protected:
                   * with the retrieved items. */
                  for (size_t i=0; i<items.size(); i++)  {   (*_fct) (items[i]); }
             }
-            
+
             /** We do not need the functor after that, delete it here to have parallel delete */
+            if (_deleteSynchro)  { _synchro.lock (); }
             delete _fct;
+            if (_deleteSynchro)  { _synchro.unlock (); }
         }
 
     private:
@@ -320,6 +312,7 @@ protected:
         Functor*&              _fct;
         system::ISynchronizer& _synchro;
         size_t                 _groupSize;
+        bool                   _deleteSynchro;
     };
 };
 

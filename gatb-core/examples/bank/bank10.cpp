@@ -9,6 +9,8 @@ using namespace std;
 
 static const char* STR_BANKS_NB       = "-split";
 static const char* STR_MAX_INPUT_SIZE = "-max-size";
+static const char* STR_OUTPUT_FASTQ   = "-fastq";
+static const char* STR_OUTPUT_GZ      = "-gz";
 
 /********************************************************************************/
 /*                         Bank split                                           */
@@ -26,6 +28,8 @@ int main (int argc, char* argv[])
     parser.push_back (new OptionOneParam (STR_URI_INPUT,      "bank reference",            true));
     parser.push_back (new OptionOneParam (STR_MAX_INPUT_SIZE, "average db size per split", true));
     parser.push_back (new OptionOneParam (STR_URI_OUTPUT_DIR, "output directory",          false, "."));
+    parser.push_back (new OptionNoParam  (STR_OUTPUT_FASTQ,   "fastq output",              false));
+    parser.push_back (new OptionNoParam  (STR_OUTPUT_GZ,      "gzip output",               false));
 
     // We define a try/catch block in case some method fails (bad filename for instance)
     try
@@ -68,21 +72,25 @@ int main (int argc, char* argv[])
         u_int64_t nbSequences   =  0;
         u_int64_t dbSize        = ~0;
 
+        bool isFastq   = options->get(STR_OUTPUT_FASTQ) != 0;
+        bool isGzipped = options->get(STR_OUTPUT_GZ)    != 0;
+
         IBank* currentBank = 0;
 
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
             if (dbSize > maxDbSize)
             {
-                if (currentBank != 0)  { currentBank->flush(); }
+                if (currentBank != 0)  { currentBank->flush();  currentBank->finalize(); }
 
                 nbBanksOutput ++;
 
                 /** We build the uri of the current bank. */
-                stringstream ss;  ss << inputBasename << "_" << nbBanksOutput;
+                stringstream ss;  ss << inputBasename << "_" << nbBanksOutput << (isFastq ? ".fastq" : ".fasta");
+                if (isGzipped) { ss << ".gz"; }
 
                 /** We create a new bank and put it in the album. */
-                currentBank = album.addBank (outputDir, ss.str());
+                currentBank = album.addBank (outputDir, ss.str(), isFastq, isGzipped);
 
                 /** We reinit the db size counter. */
                 dbSize = 0;

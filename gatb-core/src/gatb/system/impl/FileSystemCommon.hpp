@@ -181,6 +181,9 @@ public:
     /** \copydoc IFileSystem::getRealPath */
     Path getRealPath (const Path& file);
 
+    /** \copydoc IFileSystem::getTemporaryFilename */
+    std::string getTemporaryFilename (const std::string& filename="");
+
     /** \copydoc IFileSystem::doesExist */
     bool doesExist (const Path& path);
 
@@ -207,6 +210,10 @@ public:
 
     /** \copydoc IFileSystem::setAttribute */
     ssize_t setAttribute (const Path& filename, const char* key, const char* fmt, ...)   { return -1; }
+
+private:
+
+    static const char* tmp_prefix()  { return "trashme"; }
 };
 
 /********************************************************************************/
