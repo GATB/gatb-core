@@ -615,7 +615,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     int64_t kmersNb  = (usedSeqLen - _kmerSize + 1) * _estimateSeqNb;
 
     /** We have to be sure that the kmers number is ok. */
-    if (kmersNb <= 0)  {  throw Exception ("Configuration failed : biggest sequence is %ld long but kmer size is %ld", _estimateSeqMaxSize, _kmerSize);     }
+    if (kmersNb <= 0)  {  throw Exception ("Configuration failed : estimated that longest sequence is %ld nt but kmer size is %ld", _estimateSeqMaxSize, _kmerSize);     }
 
     //u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
 
