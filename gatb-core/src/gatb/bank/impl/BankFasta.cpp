@@ -687,16 +687,6 @@ void BankFasta::Iterator::finalize ()
     for (u_int64_t i = 0; i < _ref.nb_files; i++)
     {
         buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
-        if (bf != 0)
-        {
-            /** We close the handle of the file. */
-            if (bf->stream != NULL)  {  gzclose (bf->stream);  bf->stream = 0; }
-        }
-    }
-
-    for (u_int64_t i = 0; i < _ref.nb_files; i++)
-    {
-        buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
 
         if (bf != 0)
         {

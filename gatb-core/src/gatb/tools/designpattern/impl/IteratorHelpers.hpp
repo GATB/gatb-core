@@ -899,8 +899,8 @@ private:
 
             if (_isDone==true) { _currentIdx++; }
 
-            /** We can finish the previous item. */
-            previous->finalize();
+            /** We can finish the previous item (only if not first call). */
+            if (!isFirst) { previous->finalize(); }
         }
     }
 };
