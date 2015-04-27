@@ -59,6 +59,7 @@ public:
 
             props->add (0, "gatb-core-library", "");
             props->add (1, "version",        "%s", system::impl::System::info().getVersion().c_str());
+            props->add (1, "git_sha1",       "%s", STR_GIT_SHA1);
             props->add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
             props->add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
             props->add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());

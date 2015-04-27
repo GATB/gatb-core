@@ -23,6 +23,9 @@ ENDIF()
 set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${gatb-core_VERSION_PATCH})
 set (gatb-core-date "xxxx-xx-xx")
 
+# We get the sha1 of the HEAD
+exec_program ("git" ${CMAKE_CURRENT_SOURCE_DIR} ARGS "rev-parse HEAD" OUTPUT_VARIABLE gatb-core-sha1)
+
 ################################################################################
 # Define cmake modules directory
 ################################################################################

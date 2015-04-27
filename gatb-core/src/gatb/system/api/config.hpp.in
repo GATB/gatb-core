@@ -24,7 +24,10 @@
 #define STR_COMPILATION_FLAGS   "${gatb-core-flags}"
 #define STR_COMPILER            "${CMAKE_C_COMPILER}  (${CMAKE_CXX_COMPILER_VERSION})"
 
+#define STR_GIT_SHA1            "${gatb-core-sha1}"
+
 #define STR_OPERATING_SYSTEM    "${CMAKE_SYSTEM}"
+
 
 #define KSIZE_1  ${KSIZE_1}
 #define KSIZE_2  ${KSIZE_2}
