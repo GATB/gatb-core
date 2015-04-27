@@ -108,7 +108,7 @@ endif()
 # GENERAL DEFINITIONS
 ################################################################################
 
-set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-unused-variable -Wno-parentheses -Wno-format -Wno-strict-aliasing")
+set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-unused-variable  -Wno-unused-result -Wno-parentheses -Wno-format -Wno-strict-aliasing -Wno-array-bounds")
 
 if (debug)
     #set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p -pg")
