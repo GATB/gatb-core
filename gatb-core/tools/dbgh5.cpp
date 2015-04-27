@@ -50,6 +50,15 @@ int main (int argc, char* argv[])
 
     try
     {
+        /** We first check that we have at least one argument. Otherwise, we print some information and leave. */
+        if (argc == 1)
+        {
+            std::cerr << LibraryInfo::getInfo();
+            OptionsHelpVisitor visitor (std::cerr);
+            parser->accept (visitor, 0);
+            return EXIT_SUCCESS;
+        }
+
         /** We parse the user options. */
         IProperties* props = parser->parse (argc, argv);
 
