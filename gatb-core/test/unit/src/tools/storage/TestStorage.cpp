@@ -227,7 +227,7 @@ public:
         Partition<NativeInt64>& partition = storage().getPartition<NativeInt64> ("parts", nbParts);
 
         /** We build a Range. */
-        Range<size_t>::Iterator* it = new Range<size_t>::Iterator (0, nbItems-1);
+        Range<size_t>::Iterator it (0, nbItems-1);
 
         /** We dispatch the range iteration. */
         Dispatcher().iterate (it, MyFunctor(partition,nbRepeat));
