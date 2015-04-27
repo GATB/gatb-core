@@ -111,10 +111,10 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
        _kmerSize(kmerSize),
        _bloomKind(bloomKind), _debloomKind(cascadingKind),
        _max_memory(max_memory),
-       _solidIterable(0),  _container(0), _criticalNb(0)
+       _criticalNb(0), _solidIterable(0),  _container(0)
 {
     /** We get a group for deblooming. */
-    Group& group = _storage().getGroup ("debloom");
+    _storage().getGroup ("debloom");
 
     setSolidIterable    (solidIterable);
 
@@ -144,7 +144,7 @@ DebloomAlgorithm<span>::DebloomAlgorithm (tools::storage::impl::Storage& storage
    _kmerSize(0),
    _debloomUri("debloom"),
    _max_memory(0),
-   _solidIterable(0), _container(0), _criticalNb(0)
+   _criticalNb(0), _solidIterable(0), _container(0)
 {
     /** We retrieve the cascading kind from the storage. */
     parse (_groupDebloom.getProperty("kind"), _debloomKind);
@@ -192,7 +192,7 @@ struct FunctorKmersExtension
 
     Model& model;
     FunctorKmersExtension (Model& model, IBloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
-        : model(model), functorNeighbors(bloom,extendBag) {}
+        : functorNeighbors(bloom,extendBag), model(model) {}
     void operator() (const Count& kmer) const
     {
         /** We iterate the neighbors of the current solid kmer. */

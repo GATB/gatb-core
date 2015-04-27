@@ -49,7 +49,7 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
 
     //sum total bins size
     u_int64_t sumsizes =0;
-    for (int ii=0; ii< _nb_minims; ii++)
+    for (u_int64_t ii=0; ii< _nb_minims; ii++)
     {
         // sumsizes +=   extern_pInfo.getNbSuperKmer_per_minim(ii); // _binsize[ii];
         // bin_size_vec.push_back(ipair( extern_pInfo.getNbSuperKmer_per_minim(ii) ,ii));
@@ -76,7 +76,7 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
 
     itriple smallest_parti;
 
-    int cur_minim = 0;
+    u_int64_t cur_minim = 0;
     while (cur_minim < _nb_minims)
     {
         //get emptiest parti
@@ -106,7 +106,7 @@ void Repartitor::justGroupNaive (const PartiInfo<5>& extern_pInfo, std::vector <
     /** We allocate a table whose size is the number of possible minimizers. */
     _repart_table.resize (_nb_minims);
 
-    for (int ii=0; ii< _nb_minims; ii++)
+    for (u_int64_t ii=0; ii< _nb_minims; ii++)
     {
         _repart_table[ii] = 0; // important to have a consistent repartition for unseen (in the sample approximation) minimizers
     }
@@ -127,7 +127,7 @@ void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::
     /** We allocate a table whose size is the number of possible minimizers. */
     _repart_table.resize (_nb_minims);
 
-    for (int ii=0; ii< _nb_minims; ii++)
+    for (u_int64_t ii=0; ii< _nb_minims; ii++)
     {
         _repart_table[ii] = _nbpart - 1; 
         // important to have a consistent repartition for unseen (in the sample approximation) minimizers
@@ -140,7 +140,7 @@ void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::
         total_counts += counts[i].first;
 
     u_int64_t sumsizes =0;
-    for (int ii=0; ii< _nb_minims; ii++)
+    for (u_int64_t ii=0; ii< _nb_minims; ii++)
         sumsizes += extern_pInfo.getNbKmer_per_minim(ii);
  
     u_int64_t mean_size = sumsizes / _nbpart;
@@ -167,7 +167,7 @@ void Repartitor::justGroupLexi (const PartiInfo<5>& extern_pInfo)
     /** We allocate a table whose size is the number of possible minimizers. */
     _repart_table.resize (_nb_minims);
 
-    for (int ii=0; ii< _nb_minims; ii++)
+    for (u_int64_t ii=0; ii< _nb_minims; ii++)
     {
         _repart_table[ii] = _nbpart-1; 
         // important to have a consistent repartition for unseen (in the sample approximation) minimizers
@@ -175,7 +175,7 @@ void Repartitor::justGroupLexi (const PartiInfo<5>& extern_pInfo)
     }
 
     u_int64_t sumsizes =0;
-    for (int ii=0; ii< _nb_minims; ii++)
+    for (u_int64_t ii=0; ii< _nb_minims; ii++)
         sumsizes += extern_pInfo.getNbKmer_per_minim(ii);
  
     u_int64_t mean_size = sumsizes / _nbpart;
@@ -257,7 +257,7 @@ void Repartitor::printInfo ()
 {
     size_t nbMinimizers = 1 << (_mm*2);
     printf("Repartitor : nbMinimizers=%ld\n", nbMinimizers);
-    for(int ii=0; ii<nbMinimizers; ii++ )  {  printf("   table[%i] = %i \n",ii,_repart_table[ii]); }
+    for (u_int64_t ii=0; ii<nbMinimizers; ii++ )  {  printf("   table[%ld] = %d \n",ii,_repart_table[ii]); }
 }
 
 /********************************************************************************/

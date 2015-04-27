@@ -83,7 +83,7 @@ public:
 
         for (int np=0; np<_nbpart; np++)
         {
-            for (int xx=0; xx<xmer; xx++)
+            for (size_t xx=0; xx<xmer; xx++)
             {
                 for (int rad=0; rad<256; rad++)
                 {
@@ -95,7 +95,7 @@ public:
             __sync_fetch_and_add (_nb_kxmers_per_parti + np, other.getNbSuperKmer (np));
         }
 
-        for (int ii=0; ii< _num_mm_bins; ii++)
+        for (u_int64_t ii=0; ii< _num_mm_bins; ii++)
         {
             __sync_fetch_and_add (_superk_per_mmer_bin + ii, other.getNbSuperKmer_per_minim (ii));
             __sync_fetch_and_add (_kmer_per_mmer_bin   + ii, other.getNbKmer_per_minim      (ii));
@@ -150,7 +150,7 @@ public:
         memset (_kmer_per_mmer_bin,   0, _num_mm_bins * sizeof(u_int64_t));
         memset (_kxmer_per_mmer_bin,  0, _num_mm_bins * sizeof(u_int64_t));
 
-        for (int xx=0; xx<xmer; xx++)
+        for (size_t xx=0; xx<xmer; xx++)
         {
             for(int ii=0; ii<256; ii++)
             {
@@ -218,7 +218,7 @@ public:
         _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
         _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
 
-        for(int xx=0; xx<xmer; xx++)
+        for(size_t xx=0; xx<xmer; xx++)
         {
             for(int ii=0; ii<256; ii++)
             {
@@ -241,7 +241,7 @@ public:
         _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
         _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
 
-        for(int xx=0; xx<xmer; xx++)
+        for(size_t xx=0; xx<xmer; xx++)
         {
             for(int ii=0; ii<256; ii++)
             {
@@ -262,7 +262,7 @@ public:
         FREE (_kmer_per_mmer_bin);
         FREE (_kxmer_per_mmer_bin);
 
-        for(int xx=0; xx<xmer; xx++)  {  for(int ii=0; ii<256; ii++)  {  FREE(_nbk_per_radix_per_part[xx][ii]);  }  }
+        for(size_t xx=0; xx<xmer; xx++)  {  for(int ii=0; ii<256; ii++)  {  FREE(_nbk_per_radix_per_part[xx][ii]);  }  }
 
         //	printf("print info destroyed %p  _nb_kmers_per_parti %p \n",this,_nb_kmers_per_parti);
     }

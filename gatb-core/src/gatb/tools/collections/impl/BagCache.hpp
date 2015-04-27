@@ -54,11 +54,11 @@ template <typename Item> class BagCache : public Bag<Item>, public system::Smart
 public:
 
     /** Constructor */
-    BagCache () : _ref(0), _nbMax(0), _synchro(0), _items(0), _idx(0)  {}
+    BagCache () : _ref(0), _synchro(0), _items(0), _nbMax(0), _idx(0)  {}
 
     /** Constructor. Cache size is in terms of number of items (I think) */
     BagCache (Bag<Item>* ref, size_t cacheSize, system::ISynchronizer* synchro=0)
-        : _ref(0), _nbMax(cacheSize), _synchro(0), _items(0), _idx(0)
+        : _ref(0), _synchro(0), _items(0), _nbMax(cacheSize), _idx(0)
     {
         setRef     (ref);
         setSynchro (synchro);
@@ -67,7 +67,7 @@ public:
     }
 
     BagCache (const BagCache<Item>& b)
-        : _ref(0), _nbMax(b._nbMax), _synchro(0), _items (0), _idx(0)
+        : _ref(0), _synchro(0), _items (0), _nbMax(b._nbMax), _idx(0)
     {
         setRef     (b._ref);
         setSynchro (b._synchro);

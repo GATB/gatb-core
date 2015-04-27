@@ -117,7 +117,7 @@ public:
         char* buffer = 0;
         va_list args;
         va_start (args, format);
-        int res = vasprintf (&buffer, format, args);
+        vasprintf (&buffer, format, args);
         va_end (args);
         if (buffer != NULL)  {  value = buffer;  FREE (buffer);  }
         this->addProperty (key, value);

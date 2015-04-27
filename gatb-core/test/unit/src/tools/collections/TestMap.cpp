@@ -79,13 +79,13 @@ public:
         size_t badKey = hash.getMaxNbItems() + 100;
 
         /** We insert the maximum number of items. */
-        for (size_t i=1; i<=hash.getMaxNbItems(); i++)  {  CPPUNIT_ASSERT_NO_THROW (hash.increment (i));  }
+        for (int i=1; i<=hash.getMaxNbItems(); i++)  {  CPPUNIT_ASSERT_NO_THROW (hash.increment (i));  }
 
         /** We add a new key => we should get an exception. */
         CPPUNIT_ASSERT_THROW (hash.increment (badKey), core::system::Exception);
 
         /** We check that we have all the required keys. */
-        for (size_t i=1; i<=hash.getMaxNbItems(); i++)  {  CPPUNIT_ASSERT (hash.get (i) == true);  }
+        for (int i=1; i<=hash.getMaxNbItems(); i++)  {  CPPUNIT_ASSERT (hash.get (i) == true);  }
 
         /** We check that we don't have an non registered key. */
         CPPUNIT_ASSERT (hash.get (badKey) == false);
@@ -101,7 +101,7 @@ public:
             CPPUNIT_ASSERT (it->item().abundance == 1);
         }
 
-        CPPUNIT_ASSERT (nbItems == hash.getMaxNbItems());
+        CPPUNIT_ASSERT ((int)nbItems == hash.getMaxNbItems());
     }
 
     /********************************************************************************/
@@ -152,7 +152,7 @@ public:
         /** We build the hash function for the given keys. */
         map1.build (keys);
 
-        CPPUNIT_ASSERT (map1.size() == keys.getNbItems());
+        CPPUNIT_ASSERT (map1.size() == (size_t)keys.getNbItems());
 
         /** We populate the values. */
         Iterator<NativeInt8>* itKeys = keys.iterator();   LOCAL (itKeys);
@@ -183,7 +183,7 @@ public:
         /** We load the hash function. */
         map2.load (storage->root(), "mphf");
 
-        CPPUNIT_ASSERT (map2.size() == keys.getNbItems());
+        CPPUNIT_ASSERT (map2.size() == (size_t)keys.getNbItems());
 
         /** We populate the values. */
         val = 0;

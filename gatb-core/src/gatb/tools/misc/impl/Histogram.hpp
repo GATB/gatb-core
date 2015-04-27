@@ -56,8 +56,8 @@ public:
      * \param[in] length : maximum value for the X axis
      * \param[in] bag : bag where the values can be saved. */
     Histogram (size_t length, tools::collections::Bag<Entry>* bag)
-        : _length(length), _cutoff(0), _nbsolids(0),
-          _histogram(0), _histogram_smoothed(0), _bag(0), _firstPeak(0)
+        : _length(length), _cutoff(0), _nbsolids(0), _firstPeak(0),
+          _histogram(0), _histogram_smoothed(0), _bag(0)
     {
         setBag (bag);
 

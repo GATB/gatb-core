@@ -40,7 +40,7 @@ inline CollectionNode<Item>::CollectionNode (
     const std::string& id, 
     collections::Collection<Item>* ref
 )
-    : _factory(factory), Cell(parent,id), collections::impl::CollectionAbstract<Item> (ref->bag(), ref->iterable()), _ref(0)
+    : Cell(parent,id), collections::impl::CollectionAbstract<Item> (ref->bag(), ref->iterable()), _factory(factory), _ref(0)
 {
     /** We get a token on the referred Collection instance. */
     setRef(ref);
@@ -101,7 +101,7 @@ inline collections::Collection<Item>* CollectionNode<Item>::getRef ()
 /*********************************************************************
 *********************************************************************/
 inline Group::Group (StorageFactory* factory, ICell* parent, const std::string& name) 
-    : _factory(factory), Cell(parent, name) 
+    : Cell(parent, name), _factory(factory) 
 {
 }
 
@@ -290,7 +290,7 @@ inline void Partition<Type>::remove ()
 *********************************************************************/
 template<typename Type>
 inline PartitionCache<Type>::PartitionCache (Partition<Type>& ref, size_t nbItemsCache, system::ISynchronizer* synchro)
-    :  _ref(ref), _nbItemsCache(nbItemsCache), _synchro(synchro), _cachedCollections(ref.size()) , _synchros(ref.size())
+    :  _ref(ref), _nbItemsCache(nbItemsCache), _synchro(synchro), _synchros(ref.size()), _cachedCollections(ref.size())
 {
     /** We create the partition files. */
     for (size_t i=0; i<_cachedCollections.size(); i++)
@@ -314,7 +314,7 @@ inline PartitionCache<Type>::PartitionCache (Partition<Type>& ref, size_t nbItem
 *********************************************************************/
 template<typename Type>
 inline PartitionCache<Type>::PartitionCache (const PartitionCache<Type>& p)
-    : _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro), _cachedCollections(p.size()) , _synchros(p._synchros)
+    : _ref(p._ref), _nbItemsCache(p._nbItemsCache), _synchro(p._synchro) , _synchros(p._synchros), _cachedCollections(p.size())
 {
     /** We create the partition files. */
     for (size_t i=0; i<_cachedCollections.size(); i++)

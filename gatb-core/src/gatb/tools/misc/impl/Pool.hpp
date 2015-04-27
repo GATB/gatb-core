@@ -218,7 +218,7 @@ public:
         used_space = 0;
     }
 
-    MemAllocator() : capacity(0),used_space(0),mainbuffer(NULL),_synchro(0)
+    MemAllocator() : mainbuffer(NULL),capacity(0),used_space(0),_synchro(0)
     {
         setSynchro (system::impl::System::thread().newSynchronizer());
     }

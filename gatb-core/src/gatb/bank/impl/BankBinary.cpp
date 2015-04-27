@@ -143,14 +143,14 @@ void BankBinary::insert (const Sequence& seq)
     char* pt_start      = seq.getDataBuffer();
     char* pt_end        = pt_start + whole_readlen;
     
-    int readlen;
+    int readlen = 0;
     int tai = readlen;
     unsigned char rbin;
     unsigned int block_size = 0;
     char *pt;
     
     char * pt_begin = pt_start;
-    int idx =0 ;
+    size_t idx =0 ;
 
     for ( ; pt_begin < pt_end; pt_begin += idx)
     {
@@ -364,9 +364,9 @@ bool BankBinary::check (const std::string& uri)
 ** REMARKS :
 *********************************************************************/
 BankBinary::Iterator::Iterator (BankBinary& ref)
-    : _ref(ref), _isDone(true), cpt_buffer(0), blocksize_toread(0), nseq_lues(0),
-      read_write_buffer_size(BINREADS_BUFFER), binary_read_file(0),
-      _bufferData (0), _index(0)
+    : _ref(ref), _isDone(true), _bufferData (0), cpt_buffer(0), blocksize_toread(0), nseq_lues(0),
+      binary_read_file(0),
+      _index(0)
 {
 }
 
@@ -450,7 +450,7 @@ void BankBinary::Iterator::next ()
         /** We are about to read another chunk of data from the disk. We need */
         setBufferData (new Data (block_size));
 
-        size_t nbRead = fread (_bufferData->getBuffer(), sizeof( char),block_size, binary_read_file); // read a block of reads into the buffer
+        fread (_bufferData->getBuffer(), sizeof( char),block_size, binary_read_file); // read a block of reads into the buffer
 
         cpt_buffer       = 0;
         blocksize_toread = block_size;
@@ -529,7 +529,7 @@ void  BankBinary::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u
                 loop += sizeof(int) + (readlen+3)/4;
 
                 number ++;
-                if (readlen > maxSize)  { maxSize = readlen; }
+                if (readlen > (int)maxSize)  { maxSize = readlen; }
                 totalSize += readlen;
             }
 
@@ -551,7 +551,6 @@ void  BankBinary::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u
 
             // we extrapolate the result
             number    = (number    * end) / current;
-            maxSize   = (maxSize   * end) / current;
             totalSize = (totalSize * end) / current;
         }
 

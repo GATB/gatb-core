@@ -176,7 +176,7 @@ public:
     /** Destructor. */
     ~BagCountCompressedFile ()
     {
-        printf("In %llu B  (%llu MB ) Out %llu  B  (%llu MB ) ratio  %f \n",_sizeInput,_sizeInput/(1024LL*1024LL), _sizeOutput,_sizeOutput/(1024LL*1024LL), _sizeInput / (float) _sizeOutput);
+        //printf("In %llu B  (%llu MB ) Out %llu  B  (%llu MB ) ratio  %f \n",_sizeInput,_sizeInput/(1024LL*1024LL), _sizeOutput,_sizeOutput/(1024LL*1024LL), _sizeInput / (float) _sizeOutput);
 
         if (_file)  { delete _file; }
         free( _bufferOut );
@@ -210,7 +210,7 @@ public:
         _previous = items[0];
         u_int8_t abundance = 0;
 
-        for (int ii=0; ii< length; ii++) {
+        for (size_t ii=0; ii< length; ii++) {
             //diff_to_prev =  items[i] - _previous;
             if (items[ii] == _previous)  {
                 

@@ -29,7 +29,7 @@
 Order0Model::Order0Model(int charCount){
 	_charCount = charCount+1;
 	
-	for(u_int64_t i=0; i<_charCount; i++){
+	for(int i=0; i<_charCount; i++){
 		_charRanges.push_back(i);
 	}
 }
@@ -38,7 +38,7 @@ Order0Model::~Order0Model(){
 }
 
 void Order0Model::clear(){
-	for(u_int64_t i=0; i<_charCount; i++){
+	for(int i=0; i<_charCount; i++){
 		_charRanges[i] = i;
 	}
 	
@@ -46,7 +46,7 @@ void Order0Model::clear(){
 
 void Order0Model::update(uint8_t c){
 	//cout << rangeLow(c) <<  " " << rangeHigh(c) << " " << totalRange()<< endl;
-	for(unsigned int i=c+1; i<_charCount; i++){
+	for(int i=c+1; i<_charCount; i++){
 		_charRanges[i] += 1;
 	}
 	if(_charRanges[_charCount-1] >= MAX_RANGE){
@@ -55,7 +55,7 @@ void Order0Model::update(uint8_t c){
 }
 
 void Order0Model::rescale(){
-	for(unsigned int i=1; i<_charCount; i++) {
+	for(int i=1; i<_charCount; i++) {
 		_charRanges[i] /= 2;
 		if(_charRanges[i] <= _charRanges[i-1]){
 			_charRanges[i] = _charRanges[i-1] + 1;

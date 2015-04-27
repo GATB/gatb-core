@@ -107,12 +107,15 @@ endif()
 ################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
+
+set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-unused-variable -Wno-parentheses -Wno-format -Wno-strict-aliasing")
+
 if (debug)
     #set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p -pg")
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p ${LIB_COMPILE_WARNINGS}")
     message("-- COMPILATION IN DEBUG MODE")
 else()
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -O3")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -O3 ${LIB_COMPILE_WARNINGS}")
 endif()
 
 if (INT128_FOUND)

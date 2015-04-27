@@ -73,14 +73,14 @@ PartitionsCommand<span>:: PartitionsCommand (
       _partition(partition),
       _histogram(histogram),
       _progress(progress),
-      _globalTimeInfo(timeInfo),
       _totalKmerNb(0),
       _totalKmerNbRef(totalKmerNbRef),
       _pInfo(pInfo),
       _parti_num(parti),
       _nbCores(nbCores),
       _kmerSize(kmerSize),
-      _pool(pool)
+      _pool(pool),
+      _globalTimeInfo(timeInfo)
 {
 }
 
@@ -199,8 +199,6 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
 template<size_t span>
 void PartitionsByHashCommand<span>:: execute ()
 {
-	size_t count=0;
-
 	/** We need a map for storing part of solid kmers. */
 	OAHash<Type> hash (_hashMemory); //or use hash16 to ensure always finishes ?
 
@@ -398,7 +396,7 @@ public:
 	}
 	
 	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type** radix_kmers, bank::BankIdType** bankIdMatrix, size_t bankId=0)
-	: _first(true) ,_kmerSize (kmerSize), _r_idx (r_idx), _radix_kmers(radix_kmers), _bankIdMatrix(bankIdMatrix), _kx(4), _bankId(bankId)
+	: _kmerSize (kmerSize), _kx(4), _radix_kmers(radix_kmers), _bankIdMatrix(bankIdMatrix), _r_idx (r_idx), _first(true), _bankId(bankId)
 	 {
 		 Type un = 1;
 		 _kmerMask    = (un << (kmerSize*2)) - un;
@@ -456,7 +454,7 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
 )
     : PartitionsCommand<span> (
         solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
-        _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0), _solidityKind(solidityKind), _nbItemsPerBankPerPart(offsets)
+        _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0),  _nbItemsPerBankPerPart(offsets), _solidityKind(solidityKind)
 {
     _dispatcher = new Dispatcher (this->_nbCores);
 }
@@ -547,7 +545,7 @@ void PartitionsByVectorCommand<span>::executeRead ()
         this->_pool.align (16);
 
         /** FIRST: allocation for the kmers. */
-        for (int xx=0; xx< (KX+1); xx++)
+        for (size_t xx=0; xx< (KX+1); xx++)
         {
             for (int ii=0; ii< 256; ii++)
             {
@@ -568,7 +566,7 @@ void PartitionsByVectorCommand<span>::executeRead ()
          */
         if (_bankIdMatrix)
         {
-            for (int xx=0; xx< (KX+1); xx++)
+            for (size_t xx=0; xx< (KX+1); xx++)
             {
                 for (int ii=0; ii< 256; ii++)
                 {
@@ -634,7 +632,7 @@ public:
 
     /** Constructor. */
     SortCommand (Type** kmervec, bank::BankIdType** bankIdMatrix, int begin, int end, uint64_t* radix_sizes)
-        : _radix_kmers(kmervec), _bankIdMatrix(bankIdMatrix), _deb(begin), _fin(end), _radix_sizes(radix_sizes) {}
+        : _deb(begin), _fin(end), _radix_kmers(kmervec), _bankIdMatrix(bankIdMatrix), _radix_sizes(radix_sizes) {}
 
     /** */
     void execute ()
@@ -659,18 +657,18 @@ public:
 
                     /** NOTE: we sort the indexes, not the items. */
                     idx.resize (_radix_sizes[ii]);
-                    for (int i=0; i<idx.size(); i++)  { idx[i]=i; }
+                    for (size_t i=0; i<idx.size(); i++)  { idx[i]=i; }
 
                     std::sort (idx.begin(), idx.end(), Cmp(kmers));
 
                     /** Now, we have to reorder the two provided vectors with the same order. */
                     tmp.resize (idx.size());
-                    for (int i=0; i<idx.size(); i++)
+                    for (size_t i=0; i<idx.size(); i++)
                     {
                         tmp[i].kmer = kmers  [idx[i]];
                         tmp[i].id   = banksId[idx[i]];
                     }
-                    for (int i=0; i<idx.size(); i++)
+                    for (size_t i=0; i<idx.size(); i++)
                     {
                         kmers  [i] = tmp[i].kmer;
                         banksId[i] = tmp[i].id;
@@ -719,12 +717,12 @@ void PartitionsByVectorCommand<span>::executeSort ()
 
     int nwork = 256 / this->_nbCores;
 
-    for (int xx=0; xx < (KX+1); xx++)
+    for (size_t xx=0; xx < (KX+1); xx++)
     {
         cmds.clear();
 
         //fill cmd work vector
-        for (int tid=0; tid < this->_nbCores; tid++)
+        for (size_t tid=0; tid < this->_nbCores; tid++)
         {
             int deb = 0 + tid * nwork;
             int fin = (tid+1) * nwork -1; // thread will do inclusive range [begin -- end ]
@@ -768,8 +766,9 @@ public:
         uint64_t*   radix_sizes,
         bank::BankIdType**  bankIdMatrix
     )
-        : _kxmers(kmervec), _prefix_size(prefix_size), _x_size(x_size),
-        _cur_idx(-1) ,_kmerSize(kmerSize),_low_radix(min_radix),_high_radix(max_radix), _radix_sizes(radix_sizes), _bankIdMatrix(0)
+        : _kxmers(kmervec), _bankIdMatrix(0), _radix_sizes(radix_sizes), _cur_idx(-1),
+          _low_radix(min_radix),_high_radix(max_radix),
+          _prefix_size(prefix_size), _kmerSize(kmerSize),  _x_size(x_size)
     {
         _idx_radix = min_radix;
         Type un = 1;
@@ -789,7 +788,7 @@ public:
         _cur_idx++;
 
         // go to next non empty radix
-        while(_idx_radix<= _high_radix &&_cur_idx >=   _radix_sizes[_idx_radix])
+        while(_idx_radix<= _high_radix && (uint64_t)_cur_idx >=   _radix_sizes[_idx_radix])
         {
             _idx_radix++;
             _cur_idx = 0;
@@ -1037,7 +1036,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
     }
 
     /** Cleanup. */
-    for (size_t ii=0; ii<nbkxpointers; ii++)  {  delete vec_pointer[ii];  }
+    for (int ii=0; ii<nbkxpointers; ii++)  {  delete vec_pointer[ii];  }
 }
 
 /********************************************************************************/

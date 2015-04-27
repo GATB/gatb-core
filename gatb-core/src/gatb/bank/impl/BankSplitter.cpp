@@ -104,8 +104,8 @@ void BankSplitter::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t&
 ** REMARKS :
 *********************************************************************/
 BankSplitter::Iterator::Iterator(const BankSplitter& bank)
-    : _dataRef (0), _rank(0), _nbMax(0), _isDone(true), _itRef(0),
-      _readMeanSize (bank._readMeanSize), _overlap(bank._overlap)
+    : _dataRef (0), _itRef(0), _readMeanSize (bank._readMeanSize),
+      _rank(0), _nbMax(0), _overlap(bank._overlap), _isDone(true)
 {
     assert (bank._readMeanSize > 0);
     assert (bank._readMeanSize > bank._overlap);

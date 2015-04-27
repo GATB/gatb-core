@@ -348,7 +348,7 @@ public:
     {
         const char* kmer;
         const char* minimizer;
-        size_t      position;
+        int         position;
         bool        changed;
     };
 

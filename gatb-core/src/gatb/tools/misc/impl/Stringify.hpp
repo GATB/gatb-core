@@ -67,7 +67,7 @@ public:
 
         va_list args;
         va_start (args, fmt);
-        int res = vasprintf (&buffer, fmt, args);
+        vasprintf (&buffer, fmt, args);
         va_end (args);
 
         if (buffer != NULL)

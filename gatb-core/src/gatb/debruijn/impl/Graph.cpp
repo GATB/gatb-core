@@ -292,9 +292,6 @@ struct build_visitor : public boost::static_visitor<>    {
     template<size_t span>  void operator() (GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::Type  Type;
-        typedef typename Kmer<span>::Count Count;
-
         LOCAL (bank);
 
         size_t kmerSize      = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
@@ -581,7 +578,7 @@ Graph  Graph::create (bank::IBank* bank, const char* fmt, ...)
     char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    int res = vasprintf (&buffer, fmt, args);
+    vasprintf (&buffer, fmt, args);
     va_end (args);
     if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
@@ -614,7 +611,7 @@ Graph  Graph::create (const char* fmt, ...)
     char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    int res = vasprintf (&buffer, fmt, args);
+    vasprintf (&buffer, fmt, args);
     va_end (args);
     if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
@@ -663,8 +660,6 @@ Graph::Graph (const std::string& uri)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
 {
-    size_t precision = 0;
-
     /** We create a storage instance. */
     setStorage (StorageFactory(_storageMode).create (uri, false, false));
 
@@ -694,8 +689,8 @@ Graph::Graph (const std::string& uri)
 *********************************************************************/
 Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
-      _state(Graph::STATE_INIT_DONE),
-      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
+      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
+      _state(Graph::STATE_INIT_DONE)
 {
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
@@ -729,8 +724,8 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
 *********************************************************************/
 Graph::Graph (tools::misc::IProperties* params)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
-      _state(Graph::STATE_INIT_DONE),
-      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph")
+      _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
+      _state(Graph::STATE_INIT_DONE)
 {
     /** We get the kmer size from the user parameters. */
     _kmerSize = params->getInt (STR_KMER_SIZE);
@@ -1678,9 +1673,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
     template<size_t span>  tools::dp::ISmartIterator<NodeType>* operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::ModelCanonical Model;
-        typedef typename Kmer<span>::Type           Type;
-        typedef typename Kmer<span>::Count          Count;
+        typedef typename Kmer<span>::Count Count;
 
         class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
@@ -2414,7 +2407,6 @@ struct getNT_visitor : public boost::static_visitor<Nucleotide>    {
     template<size_t span>  Nucleotide operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
-        typedef typename Kmer<span>::ModelCanonical Model;
         size_t kmerSize = data._model->getKmerSize();
 
         if (node.strand == STRAND_FORWARD)  { return (Nucleotide) (node.kmer[kmerSize-1-idx]); }

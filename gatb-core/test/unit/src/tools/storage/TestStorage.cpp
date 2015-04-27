@@ -269,7 +269,7 @@ public:
         /** We insert the values into the bag. */
         collection.insert (values, len);
 
-        CPPUNIT_ASSERT (collection.getNbItems() == len);
+        CPPUNIT_ASSERT (collection.getNbItems() == (int)len);
 
         /** We get an iterator on the collection. */
         size_t idx=0;

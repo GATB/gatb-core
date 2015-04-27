@@ -65,7 +65,10 @@ typedef struct
     void rewind ()
     {
         gzrewind (stream);
-        last_char = eof = buffer_start = buffer_end = 0;
+        last_char    = 0;
+        eof          = 0;
+        buffer_start = 0;
+        buffer_end   = 0;
     }
 
 } buffered_file_t;
@@ -269,8 +272,7 @@ void BankFasta::insert (const Sequence& item)
         char* loop = line;
         size_t actualDataLineSize = _dataLineSize > 0 ? _dataLineSize : (size_t)(~0);
 
-        size_t      len    = item.getDataSize();
-        const char* buffer = item.getDataBuffer();
+        size_t len = item.getDataSize();
 
         for (size_t i=0; i<len; )
         {
@@ -299,7 +301,8 @@ void BankFasta::insert (const Sequence& item)
 ** REMARKS :
 *********************************************************************/
 BankFasta::Iterator::Iterator (BankFasta& ref, CommentMode_e commentMode)
-    : _ref(ref), _commentsMode(commentMode), _isDone(true), index_file(0), buffered_file(0), buffered_strings(0), _index(0), _isInitialized(false), _nIters(0)
+    : _ref(ref), _commentsMode(commentMode), _isDone(true), _isInitialized(false), _nIters(0),
+      index_file(0), buffered_file(0), buffered_strings(0), _index(0)
 {
     DEBUG (("Bank::Iterator::Iterator\n"));
 
@@ -319,7 +322,7 @@ BankFasta::Iterator::Iterator (BankFasta& ref, CommentMode_e commentMode)
 BankFasta::Iterator::~Iterator ()
 {
     DEBUG (("Bank::Iterator::~Iterator\n"));
-    terminate ();
+    finalize ();
 }
 
 /*********************************************************************
@@ -335,7 +338,7 @@ void BankFasta::Iterator::first()
     /** We may have to initialize the instance. */
     init  ();
 
-    for (int i = 0; i < _ref.nb_files; i++)
+    for (u_int64_t i = 0; i < _ref.nb_files; i++)
     {
         buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
         if (bf != 0)  { bf->rewind(); }
@@ -594,7 +597,7 @@ bool BankFasta::Iterator::get_next_seq (Vector<char>& data, string& comment,stri
     if (success) return true;
 
     // cycle to next file if possible
-    if (index_file < _ref.nb_files - 1)
+    if ((u_int64_t)index_file < _ref.nb_files - 1)
     {
         index_file++;
         return get_next_seq (data, comment,quality, mode);
@@ -649,7 +652,7 @@ void BankFasta::Iterator::init ()
         if ((*bf)->stream == NULL)
         {
             /** We first try do do some cleanup. */
-            terminate ();
+            finalize ();
 
             /** We launch an exception. */
             throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, fname);
@@ -675,7 +678,13 @@ void BankFasta::Iterator::init ()
 *********************************************************************/
 void BankFasta::Iterator::finalize ()
 {
-    for (int i = 0; i < _ref.nb_files; i++)
+    if (_isInitialized == false)  { return; }
+
+    buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
+
+    if (bs != 0)  { delete bs; }
+
+    for (u_int64_t i = 0; i < _ref.nb_files; i++)
     {
         buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
         if (bf != 0)
@@ -684,27 +693,8 @@ void BankFasta::Iterator::finalize ()
             if (bf->stream != NULL)  {  gzclose (bf->stream);  bf->stream = 0; }
         }
     }
-}
 
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-void BankFasta::Iterator::terminate ()
-{
-    if (_isInitialized == false)  { return; }
-
-    buffered_strings_t* bs = (buffered_strings_t*) buffered_strings;
-
-    if (bs != 0)  { delete bs; }
-
-    finalize();
-
-    for (int i = 0; i < _ref.nb_files; i++)
+    for (u_int64_t i = 0; i < _ref.nb_files; i++)
     {
         buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
 
@@ -724,6 +714,8 @@ void BankFasta::Iterator::terminate ()
     /** We release the array of files. */
     FREE (buffered_file);
 
+    /** We reset the initialization flag. */
+    _isInitialized = false;
 }
 
 /*********************************************************************
@@ -742,7 +734,7 @@ void BankFasta::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_i
     Vector<char> data;
 
     /** We rewind the files. */
-    for (int i = 0; i < _ref.nb_files; i++)
+    for (u_int64_t i = 0; i < _ref.nb_files; i++)
     {
         buffered_file_t* bf = (buffered_file_t *) buffered_file[i];
         if (bf != 0)  { bf->rewind(); }
@@ -765,7 +757,7 @@ void BankFasta::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u_i
 
     /** We compute the aggregated size from the files having been read until we
      * reached our limit number of sequences. */
-    for (size_t i=0; i<=index_file; i++)
+    for (int i=0; i<=index_file; i++)
     {
         buffered_file_t* current = (buffered_file_t *) buffered_file[i];
 

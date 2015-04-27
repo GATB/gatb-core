@@ -151,7 +151,7 @@ public:
 
         /** NOTE: we use here CollectionHDF5Patch and not CollectionHDF5 in order to reduce resources leaks due to HDF5.
          * (see also comments in CollectionHDF5Patch). */
-        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionHDF5Patch<Type>(storage->getId(), actualName, synchro));
+        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionHDF5Patch<Type>(storage->getFileId(), actualName, synchro));
     }
 
 private:
@@ -218,7 +218,7 @@ private:
             H5Fclose(_fileId);
         }
 
-        hid_t getId ()  { return _fileId; }
+        hid_t getFileId ()  { return _fileId; }
 
         void remove ()
         {
@@ -263,20 +263,20 @@ private:
                 std::string actualName = this->getFullId('/');
 
                 /** We create the HDF5 group if needed. */
-                htri_t doesExist = H5Lexists (storage->getId(), actualName.c_str(), H5P_DEFAULT);
+                htri_t doesExist = H5Lexists (storage->getFileId(), actualName.c_str(), H5P_DEFAULT);
 
                 if (doesExist <= 0)
                 {
-                    _groupId = H5Gcreate (storage->getId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                    _groupId = H5Gcreate (storage->getFileId(), actualName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                 }
                 else
                 {
-                    _groupId = H5Gopen2 (storage->getId(), actualName.c_str(), H5P_DEFAULT);
+                    _groupId = H5Gopen2 (storage->getFileId(), actualName.c_str(), H5P_DEFAULT);
                 }
             }
             else
             {
-                _groupId = H5Gopen2 (storage->getId(), "/", H5P_DEFAULT);
+                _groupId = H5Gopen2 (storage->getFileId(), "/", H5P_DEFAULT);
             }
         }
 
@@ -314,7 +314,6 @@ private:
         std::string getProperty (const std::string& key)
         {
             std::string result;
-            herr_t status;
 
             /** We first check that the attribute exitst. */
             if ( H5Aexists(_groupId, key.c_str()) > 0)
@@ -324,6 +323,7 @@ private:
                 hid_t attrId = H5Aopen (_groupId, key.c_str(), H5P_DEFAULT);
                 if (attrId >= 0)
                 {
+                    herr_t status;
                     hid_t space_id = H5Aget_space (attrId);
 
                     hsize_t dims = 1;
@@ -331,12 +331,14 @@ private:
                     char** rdata = (char **) MALLOC (dims * sizeof (char *));
 
                     status = H5Aread (attrId, datatype, rdata);
+                    if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Aread), status %d key", status); }
 
                     /** We set the result. */
                     result.assign (rdata[0]);
 
                     /** We release buffers. */
                     status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
+                    if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Dvlen_reclaim), status %d", status); }
                     FREE (rdata);
 
                     /** We close resources. */

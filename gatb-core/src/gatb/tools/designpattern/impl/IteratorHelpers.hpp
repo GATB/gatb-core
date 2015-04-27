@@ -370,7 +370,7 @@ public:
      * \param[in] listener : default listener attached to this subject (default value is 0)
      */
     SubjectIterator (Iterator<Item>* ref, u_int32_t modulo, IteratorListener* listener=0)
-        : _ref(0), _modulo(modulo==0 ? 1 : modulo), _current(0)
+        : _ref(0), _current(0), _modulo(modulo==0 ? 1 : modulo)
     {
         /** We set the reference. */
         setRef (ref);
@@ -602,7 +602,7 @@ template <class Item> class VectorIterator : public Iterator<Item>
 {
 public:
     /** */
-    VectorIterator (const std::vector<Item>& items) : _idx(0), _nb (items.size()), _items(items)  {}
+    VectorIterator (const std::vector<Item>& items) : _items(items), _idx(0), _nb (items.size())   {}
 
     /** */
     VectorIterator () : _idx(0), _nb (0)  {}
@@ -880,7 +880,7 @@ private:
 
         if (!isFirst)  { _currentIdx++; }
 
-        while (_currentIdx<(int)_iterators.size() && _isDone == true)
+        while ((int)_currentIdx<(int)_iterators.size() && _isDone == true)
         {
             Iterator<Item>* previous = _currentIt;
 

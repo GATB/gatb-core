@@ -82,15 +82,21 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm ()
     : Algorithm("dsk", 0, 0),
       _storage(0),
       _bank(0),
-      _kmerSize(0), _abundance(make_pair(0,~0)),
-      _partitionType(0), _minimizerType(0), _repartitionType(0), _nbCores(0), _prefix(""),
+      _solidKmers(0), _solidCounts(0),
+      _kmerSize(0),
+      _abundance(make_pair(0,~0)),
+      _partitionType(0), _minimizerType(0), _repartitionType(0),
+      _nbCores(0), _nbCores_per_partition(1) ,_nb_partitions_in_parallel(0),
+      _prefix(""),
       _progress (0),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
       _histogram (0),
-      _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1) ,_nb_partitions_in_parallel(0),
-      _flagEstimateNbDistinctKmers(false), _estimatedDistinctKmerNb(0), _solidityKind(KMER_SOLIDITY_DEFAULT),
-      _min_auto_threshold(3), _tmpPartitionsMaxSize(0)
+      _partitionsStorage(0), _partitions(0), _tmpPartitionsMaxSize(0),
+      _totalKmerNb(0),
+      _estimatedDistinctKmerNb(0), _flagEstimateNbDistinctKmers(false),
+      _solidityKind(KMER_SOLIDITY_DEFAULT),
+      _min_auto_threshold(3)
 {
 }
 
@@ -123,18 +129,22 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
   : Algorithm("dsk", nbCores, options),
     _storage(storage),
     _bank(0),
-    _kmerSize(kmerSize), _minim_size(minimizerSize), _abundance(abundance),
-    _partitionType(partitionType), _minimizerType(minimizerType), 
-    _repartitionType(repartitionType),
-    _nbCores(nbCores), _prefix(prefix),
+    _solidKmers(0), _solidCounts(0),
+    _kmerSize(kmerSize),
+    _abundance(abundance),
+    _partitionType(partitionType), _minimizerType(minimizerType),    _repartitionType(repartitionType),
+    _nbCores(nbCores), _nbCores_per_partition (1), _nb_partitions_in_parallel (nbCores),
+    _minim_size(minimizerSize),
+    _prefix(prefix),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(max_disk_space), _max_memory(max_memory), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition (1) ,_nb_partitions_in_parallel (nbCores),
-    _flagEstimateNbDistinctKmers(false),  _estimatedDistinctKmerNb(0),
+    _partitionsStorage(0), _partitions(0), _tmpPartitionsMaxSize(0),
+    _totalKmerNb(0),
+    _estimatedDistinctKmerNb(0), _flagEstimateNbDistinctKmers(false),
     _solidityKind(solidityKind),
-    _min_auto_threshold(3), _tmpPartitionsMaxSize(0)
+    _min_auto_threshold(3)
 {
     setBank (bank);
 
@@ -158,18 +168,22 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (tools::storage::impl::Storag
   : Algorithm("dsk", 0, 0),
     _storage(&storage),
     _bank(0),
-    _kmerSize(0), _minim_size(0), _abundance(make_pair(0,~0)),
-    _partitionType(0), _minimizerType(0), 
-    _repartitionType(0),
-    _nbCores(0), _prefix(""),
+    _solidKmers(0), _solidCounts(0),
+    _kmerSize(0),
+    _abundance(make_pair(0,~0)),
+    _partitionType(0), _minimizerType(0), _repartitionType(0),
+    _nbCores(0), _nbCores_per_partition(1),_nb_partitions_in_parallel(0),
+    _minim_size(0),
+    _prefix(""),
     _progress (0),
     _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
     _max_disk_space(0), _max_memory(0), _volume(0), _nb_passes(0), _nb_partitions(0), _current_pass(0),
     _histogram (0),
-    _partitionsStorage(0), _partitions(0), _totalKmerNb(0), _solidCounts(0), _solidKmers(0) ,_nbCores_per_partition(1),_nb_partitions_in_parallel(0),
-    _flagEstimateNbDistinctKmers(false),_estimatedDistinctKmerNb(0),
+    _partitionsStorage(0), _partitions(0), _tmpPartitionsMaxSize(0),
+    _totalKmerNb(0),
+    _estimatedDistinctKmerNb(0), _flagEstimateNbDistinctKmers(false),
     _solidityKind(KMER_SOLIDITY_DEFAULT),
-    _min_auto_threshold(3), _tmpPartitionsMaxSize(0)
+    _min_auto_threshold(3)
 {
     Group& group = (*_storage)(this->getName());
 
@@ -516,8 +530,10 @@ public:
     }
 
     EstimateNbDistinctKmers (Model& model, u_int32_t max_memory, unsigned long nb_kmers_total, IteratorListener* progress)
-        : model(model),  eval_every_N_reads(10000000),   nbKmersTotal(nb_kmers_total), 
-        nbProcessedKmers(0), nbCurProgressKmers(0), previous_nb_distinct_kmers(0), nbProcessedReads(0), abs_error(0)
+        : model(model),
+          nbProcessedReads(0), nbProcessedKmers(0), nbCurProgressKmers(0), nbKmersTotal(nb_kmers_total), abs_error(0),
+          eval_every_N_reads(10000000),
+          previous_nb_distinct_kmers(0)
         //, _progress  (progress,System::thread().newSynchronizer())  
     {
         unsigned long size_linearCounter; // (in bits)
@@ -601,7 +617,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     /** We have to be sure that the kmers number is ok. */
     if (kmersNb <= 0)  {  throw Exception ("Configuration failed : biggest sequence is %ld long but kmer size is %ld", _estimateSeqMaxSize, _kmerSize);     }
 
-    u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
+    //u_int64_t bankSize = _estimateSeqTotalSize / MBYTE;
 
     _volume =  kmersNb * sizeof(Type) / MBYTE;  // in MBytes
 
@@ -637,7 +653,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     //printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
     u_int64_t volume_per_pass;
-    float est_volume_distinct_ratio; 
+    float est_volume_distinct_ratio=0;
 
     /* disabled by default; this was an experiment */
     if (_flagEstimateNbDistinctKmers)
@@ -715,7 +731,7 @@ void SortingCountAlgorithm<span>::configure (IBank* bank)
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _nb_partitions_in_parallel - _nb_partitions % _nb_partitions_in_parallel;
     incpart = incpart % _nb_partitions_in_parallel;
-    if((max_open_files - _nb_partitions  > incpart)) _nb_partitions+= incpart ;
+    if(((int)max_open_files - (int)_nb_partitions  > incpart)) _nb_partitions+= incpart ;
 
     //_nb_partitions_in_parallel = 1 ;
 
@@ -825,7 +841,7 @@ public:
             if (superKmer.isValid() == false)  {  superKmer.minimizer = h;  }
 
             /** If the current super kmer is finished (or max size reached), we dump it. */
-            if (h != superKmer.minimizer || superKmer.size() >= maxs)
+            if (h != superKmer.minimizer || (int)superKmer.size() >= maxs)
             {
                 processSuperkmer (superKmer);
                 superKmer.range = make_pair(i,i);
@@ -851,8 +867,8 @@ public:
         IteratorListener* progress,
         BankStats&        bankStats
     )
-    : _model(model), _nbPass(nbPasses), _pass(currentPass), _nbPartitions(nbPartitions),
-      _nbWrittenKmers(0), _progress (progress), _nbSuperKmers(0),
+    : _model(model), _pass(currentPass), _nbPass(nbPasses),_nbPartitions(nbPartitions),
+      _progress (progress), _nbWrittenKmers(0), _nbSuperKmers(0),
       _bankStatsGlobal(bankStats)
     {
         /** Shortcuts. */
@@ -1011,13 +1027,13 @@ public:
         uint32_t*         m_mer_counts
     )
     : 
-      _nbProcessedMmers(0), _progress (progress,System::thread().newSynchronizer()),
-      _m_mer_counts(m_mer_counts)
+      _progress (progress,System::thread().newSynchronizer()),
+      _m_mer_counts(m_mer_counts), _nbProcessedMmers(0)
     {
         _minimodel = new ModelDirect(mmerSize); // FIXME: should it be ModelCanonical??
         u_int64_t nbminim = (uint64_t)pow(4.0,mmerSize);
 
-        for (int i = 0; i < nbminim; i++)
+        for (u_int64_t i = 0; i < nbminim; i++)
             _m_mer_counts[i] = 0;
     }
 
@@ -1079,7 +1095,7 @@ typename SortingCountAlgorithm<span>::Model* SortingCountAlgorithm<span>::comput
         it_sample->iterate(mmersfrequency);*/
 
         /* sort frequencies */
-        for (int i(0); i < rg; i++)
+        for (u_int64_t i(0); i < rg; i++)
         {
             if (m_mer_counts[i] > 0)
                 counts.push_back(make_pair(m_mer_counts[i],i));
@@ -1091,7 +1107,7 @@ typename SortingCountAlgorithm<span>::Model* SortingCountAlgorithm<span>::comput
         /* assign frequency to minimizers */
         freq_order = new uint32_t[rg];
 
-        for (int i = 0; i < rg ; i++)
+        for (u_int64_t i = 0; i < rg ; i++)
             freq_order[i] = rg; // set everything not seen to highest value (not a minimizer)
 
         for (unsigned int i = 0; i < counts.size(); i++)
@@ -1183,7 +1199,7 @@ public:
     {
         int mod = superKmer.minimizer % this->_nbPass;
 
-        if ( (mod == this->_pass) && superKmer.isValid()) //check if falls into pass
+        if ( (mod == (int)this->_pass) && superKmer.isValid()) //check if falls into pass
         {
             /** We get the hash code for the current miminizer.
              * => this will give us the partition where to dump the superkmer. */

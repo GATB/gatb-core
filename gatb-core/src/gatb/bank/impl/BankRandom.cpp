@@ -128,7 +128,7 @@ void BankRandom::Iterator::first()
 *********************************************************************/
 void BankRandom::Iterator::next()
 {
-    _isDone = (++_rank >= _bank._nbSequences);
+    _isDone = (++_rank >= (int64_t)_bank._nbSequences);
     if (!_isDone)
     {
         static char table[] = {'A', 'C', 'T', 'G' };

@@ -141,7 +141,7 @@ bool BranchingTerminator::is_marked (const Edge& edge)  const
 
     if (!is_present)  {   return false;  }
 
-    int extension_nucleotide_marked;
+    int extension_nucleotide_marked = 0;
 
     int delta = getDelta (edge);
     if (delta >= 0)
@@ -168,7 +168,7 @@ void BranchingTerminator::mark (const Node& node)
     // if it is a branching kmer, mark it directly (it may have no branching neighbor)
     if (is_indexed(node))
     {
-        Value val;
+        Value val = 0;
         branching_kmers.get (node.kmer, val);
         branching_kmers.set (node.kmer, val|(1<<8));
         could_mark = true;
@@ -233,7 +233,7 @@ bool BranchingTerminator::is_marked (const Node& node) const
 *********************************************************************/
 bool BranchingTerminator::is_marked_branching (const Node& node) const
 {
-    Value val;
+    Value val = 0;
     branching_kmers.get (node.kmer, val);
     return (val&(1<<8)) != 0;
 }

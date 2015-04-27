@@ -99,7 +99,7 @@ public:
         /** We launch DSK. */
         sortingCount.execute();
 
-        CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
+        CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (int64_t)(strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a bloom instance. */
         float nbitsPerKmer = DebloomAlgorithm<>::getNbBitsPerKmer (kmerSize, DEBLOOM_ORIGINAL);

@@ -86,7 +86,7 @@ public:
         c->flush();
 
         /** We check we have the correct number of items. */
-        CPPUNIT_ASSERT (c->getNbItems() == nb);
+        CPPUNIT_ASSERT (c->getNbItems() == (int)nb);
 
         /** We iterate the collection. */
         Iterator<T>* it = c->iterator();

@@ -224,7 +224,7 @@ void IterativeExtensions<span>::construct_linear_seqs (
         if (swf)
         {
             char* found = strstr (seq.getDataBuffer(), R.c_str());
-            if (found != NULL  &&  ksd.depth > sizeKmer)
+            if (found != NULL  &&  ksd.depth > (int)sizeKmer)
             {
                 INFO (("swf STOP \n"));
                 break;

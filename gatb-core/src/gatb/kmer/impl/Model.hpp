@@ -192,7 +192,7 @@ struct Kmer
 
         /** Returns the value of the kmer.
          * \return the kmer value as a Type object. */
-        const Type& value  () const { return table[choice];   }
+        const Type& value  () const { return table[(int)choice];   }
 
         /** Comparison operator between two instances.
          * \param[in] t : object to be compared to
@@ -591,7 +591,7 @@ struct Kmer
 
             /** We iterate 'kmersize" nucleotide to build the first kmer as a polynomial evaluation. */
             kmer = 0;
-            for (int i=0; i<_kmerSize; ++i)
+            for (size_t i=0; i<_kmerSize; ++i)
             {
                 /** We get the current nucleotide (and its invalid status). */
                 c = Convert::get(seq,i+startIndex);
@@ -826,8 +826,8 @@ struct Kmer
         template <class Convert>
         void  next (char c, Kmer& value, bool isValid)   const
         {
-            value.table[0] = ( (value.table[0] << 2) +  c                     ) & this->_kmerMask;
-            value.table[1] = ( (value.table[1] >> 2) +  this->_revcompTable[c]) & this->_kmerMask;
+            value.table[0] = ( (value.table[0] << 2) +  c                          ) & this->_kmerMask;
+            value.table[1] = ( (value.table[1] >> 2) +  this->_revcompTable[(int)c]) & this->_kmerMask;
             value._isValid = isValid;
 
             value.updateChoice();
@@ -934,7 +934,7 @@ struct Kmer
 			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_miniModel.getKmerSize()));
 			_mmer_lut = (Type *) MALLOC(sizeof(Type) * nbminims_total ); //free that in destructor
 
-			for(int ii=0; ii< nbminims_total; ii++)
+			for(u_int64_t ii=0; ii< nbminims_total; ii++)
 			{
 				Type mmer = ii;
 				Type rev_mmer = revcomp(mmer, minimizerSize);
@@ -1133,7 +1133,7 @@ struct Kmer
         static const u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
 
         SuperKmer (size_t kmerSize, size_t miniSize, std::vector<Kmer>&  kmers)
-            : kmerSize(kmerSize), miniSize(miniSize), minimizer(DEFAULT_MINIMIZER), kmers(kmers), range(0,0)
+            : minimizer(DEFAULT_MINIMIZER), range(0,0), kmerSize(kmerSize), miniSize(miniSize), kmers(kmers)
         {
             if (kmers.empty())  { kmers.resize(kmerSize); range.second = kmers.size()-1; }
         }

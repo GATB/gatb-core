@@ -111,7 +111,7 @@ void Histogram::compute_threshold (int min_auto_threshold)
 	
 	int index_minval = -1;
 	
-	for (size_t i=index_first_increase; i<= index_maxval_after_first_increase   ; i++)
+	for (int i=index_first_increase; i<= index_maxval_after_first_increase   ; i++)
 	{
 		if(_histogram_smoothed[i].abundance < min_val)
 		{
@@ -125,7 +125,7 @@ void Histogram::compute_threshold (int min_auto_threshold)
 
 	u_int64_t sum_elim = 0 ;
 	double ratio = 0.0;
-	int max_cutoff;
+	int max_cutoff=0;
 	for (size_t i=0; i<_length+1; i++)
 	{
 		sum_elim +=  _histogram[i].abundance * i ;

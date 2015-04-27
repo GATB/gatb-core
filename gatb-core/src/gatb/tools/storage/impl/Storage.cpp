@@ -249,7 +249,7 @@ class Storage_istreambuf : public std::streambuf
 ** REMARKS :
 *********************************************************************/
 Storage::ostream::ostream (Group& group, const std::string& name)
-    : std::ostream(new Storage_ostreambuf(group,name)), std::ios(0)
+    : std::ios(0), std::ostream(new Storage_ostreambuf(group,name))
 {
 }
 
@@ -275,7 +275,7 @@ Storage::ostream::~ostream()
 ** REMARKS :
 *********************************************************************/
 Storage::istream::istream (Group& group, const std::string& name)
-    : std::istream(new Storage_istreambuf(group,name)), std::ios(0)
+    : std::ios(0), std::istream(new Storage_istreambuf(group,name))
 {
 }
 

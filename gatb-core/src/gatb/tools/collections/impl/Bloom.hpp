@@ -250,7 +250,7 @@ public:
 protected:
 
     HashFunctors<Item> _hash;
-    int n_hash_func;
+    size_t n_hash_func;
 
     u_int8_t* blooma;
     u_int64_t tai;

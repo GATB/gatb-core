@@ -91,7 +91,7 @@ public:
         size_t      nbCores = 0,
 		int		    min_abundance =0
     )
-        : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _bloomKind(bloomKind), _min_abundance(min_abundance), _ksize(ksize)
+        : _bloomSize (bloomSize), _nbHash (nbHash), _nbCores(nbCores), _ksize(ksize), _min_abundance(min_abundance), _bloomKind(bloomKind)
     {
     }
 
@@ -174,7 +174,7 @@ private:
     class BuildKmerBloom
     {
     public:
-        void operator() (const Count& kmer)  { if(kmer.abundance >= _min_abundance)  _bloom.insert(kmer.value); }
+        void operator() (const Count& kmer)  { if ((int)kmer.abundance >= _min_abundance)  _bloom.insert(kmer.value); }
         BuildKmerBloom (tools::collections::impl::IBloom<Type>& bloom, int min_abundance=0)  : _bloom(bloom),_min_abundance(min_abundance)  {}
         tools::collections::impl::IBloom<Type>& _bloom;
 		int _min_abundance;

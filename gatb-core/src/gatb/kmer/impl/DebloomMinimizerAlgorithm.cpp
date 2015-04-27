@@ -160,7 +160,7 @@ struct FunctorKmersExtension
         vector<Type>&       solids,
         Repartitor&         repart
     )
-        : model(model),  bloom(bloom),  functorNeighbors(bloom,modelMini, solids, extentParts, repart) {}
+        : functorNeighbors(bloom,modelMini, solids, extentParts, repart),  model(model),  bloom(bloom)  {}
 
     void operator() (const Count& kmer) const
     {
