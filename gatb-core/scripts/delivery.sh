@@ -20,18 +20,20 @@ scp -q $4 $5
 # We check that the delivery doesn't already exist.
 if grep -q "$6" $5 ; then echo"" ; echo '===> THIS VERSION ALREADY EXISTS' ; echo"" ; exit 0 ; fi
 
+# SHA 1 MANAGEMENT
 export set GIT_SHA1=`git rev-parse HEAD`
-echo "GIT SHA1 : " $GIT_SHA1
-
-echo ""                    >> ./include/gatb/system/api/config.hpp
-echo "#undef STR_GIT_SHA1"                 >> ./include/gatb/system/api/config.hpp
-echo "#define STR_GIT_SHA1 " \"$GIT_SHA1\" >> ./include/gatb/system/api/config.hpp
+export set CONFIG_FILE_IN="../src/gatb/system/api/config.hpp.in"
+echo ""                    >> $CONFIG_FILE_IN
+echo "#undef STR_GIT_SHA1"                 >> $CONFIG_FILE_IN
+echo "#define STR_GIT_SHA1 " \"$GIT_SHA1\" >> $CONFIG_FILE_IN
 
 # We build the package
 if [[ "$1" = "SRC" ]]
     then make -j8 package_source 
     else make -j8 package  
 fi
+
+git checkout $CONFIG_FILE_IN
 
 # We set the file rights
 chmod a+r $7
