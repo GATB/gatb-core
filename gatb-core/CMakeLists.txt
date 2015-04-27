@@ -10,10 +10,6 @@ SET (gatb-core_VERSION_MAJOR 1)
 SET (gatb-core_VERSION_MINOR 0)
 SET (gatb-core_VERSION_PATCH 8)
 
-# We get the sha1 of the HEAD
-# exec_program ("git" ${CMAKE_CURRENT_SOURCE_DIR} ARGS "rev-parse HEAD" OUTPUT_VARIABLE gatb-core-sha1)
-SET (gatb-core-sha1 "???")
-
 IF (DEFINED MAJOR)
     SET (gatb-core_VERSION_MAJOR ${MAJOR})
 ENDIF()

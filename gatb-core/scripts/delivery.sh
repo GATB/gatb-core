@@ -22,10 +22,15 @@ if grep -q "$6" $5 ; then echo"" ; echo '===> THIS VERSION ALREADY EXISTS' ; ech
 
 # SHA 1 MANAGEMENT
 export set GIT_SHA1=`git rev-parse HEAD`
-export set CONFIG_FILE_IN="../src/gatb/system/api/config.hpp.in"
-echo ""                    >> $CONFIG_FILE_IN
-echo "#undef STR_GIT_SHA1"                 >> $CONFIG_FILE_IN
-echo "#define STR_GIT_SHA1 " \"$GIT_SHA1\" >> $CONFIG_FILE_IN
+
+# We temporarely change the config_sha1.hpp file
+export set CONFIG_FILE_IN="../src/gatb/system/api/config_sha1.hpp"
+echo "#define STR_GIT_SHA1 " \"$GIT_SHA1\" > sha1.tmp
+\mv sha1.tmp $CONFIG_FILE_IN
+cat $CONFIG_FILE_IN
+
+# A clean won't hurt
+make clean
 
 # We build the package
 if [[ "$1" = "SRC" ]]
@@ -33,6 +38,7 @@ if [[ "$1" = "SRC" ]]
     else make -j8 package  
 fi
 
+# We get back the official config_sha1.hpp
 git checkout $CONFIG_FILE_IN
 
 # We set the file rights

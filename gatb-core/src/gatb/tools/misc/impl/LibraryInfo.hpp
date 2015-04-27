@@ -29,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/system/impl/System.hpp>
+#include <gatb/system/api/config_sha1.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 
