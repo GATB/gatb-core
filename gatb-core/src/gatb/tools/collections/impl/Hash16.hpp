@@ -209,6 +209,83 @@ public:
         }
     }
 
+	
+	/** Get an iterator for the hash table.
+	 * \param[in] sorted : if true, items are iterated in a sorted way
+	 * \return an iterator over the items of the hash table.
+	 */
+	dp::Iterator < std::pair<Item,value_type> >* iterator ()
+	{
+		 return new Iterator(*this);
+	 }
+
+	/************************************************************/
+	//avec std::pair ? pour avoir Item, value_type
+	class Iterator : public tools::dp::Iterator <  std::pair<Item,value_type>  >
+	{
+	public:
+		
+		Iterator (Hash16<Item,value_type>& aRef) : ref(aRef), iterator(0), iteratorMax(0), done(true)  {}
+		
+		/** \copydoc tools::dp::Iterator::first */
+		void first()
+		{
+			iterator    = ref.datah - 1;
+			iteratorMax = ref.datah + ref.tai;
+			cell_ptr    = NULL;
+			done        = false;
+			
+			next ();
+		}
+		
+		/** \copydoc tools::dp::Iterator::next */
+		void next()
+		{
+			if(cell_ptr == NULL  || ref.storage.internal_ptr_to_cell_pointer(cell_ptr->suiv)==NULL ) // au bout de liste
+			{
+				
+				//go to next non null entry
+				while (!done)
+				{
+					iterator++;
+					done = (iterator >= iteratorMax);
+					cell_ptr = ref.storage.internal_ptr_to_cell_pointer(*iterator);
+					
+					if(!done && cell_ptr!= NULL)
+					{
+						*this->_item = std::pair<Item,value_type> (cell_ptr->graine,cell_ptr->val);
+						break;
+					}
+				}
+			
+			}
+			else // we are not at end of list, so only advance within  list
+			{
+				cell_ptr = ref.storage.internal_ptr_to_cell_pointer(cell_ptr->suiv);
+				*this->_item = std::pair<Item,value_type> (cell_ptr->graine,cell_ptr->val);
+				done = false;
+			}
+			//should be ok
+		}
+		
+		/** \copydoc tools::dp::Iterator::isDone */
+		bool isDone ()   {  return done; }
+		
+		/** \copydoc tools::dp::Iterator::item */
+		std::pair<Item,value_type>& item ()     { return *this->_item; }
+		
+	private:
+		Hash16<Item,value_type>&  ref;
+		
+		cell_ptr_t *  iterator;
+		cell_ptr_t *  iteratorMax;
+		cell* cell_ptr;
+		bool           done;
+	};
+	
+	
+	
+	
     /** Get the value for a given key
      * \param[in] graine : key
      * \param[out] val : value to be retrieved
