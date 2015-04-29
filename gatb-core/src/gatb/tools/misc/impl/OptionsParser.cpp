@@ -110,7 +110,7 @@ public:
             }
             else
             {
-                result.errors.push_back (Stringify::format("Unknown '%s'", txt));
+                result.errors.push_back (Stringify::format("Unknown parameter '%s'", txt));
 
                 /** We had no match, so we skip the current argument and go the next one. */
                 idx++;
