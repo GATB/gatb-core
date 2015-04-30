@@ -122,6 +122,9 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
     /** We set the max memory to a default project value if not set. */
     if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
 
+    /** We may have to adgjust the minimizer size. */
+    if (_kmerSize <= _miniSize)  { _miniSize = std::max (_kmerSize-1, (size_t)1); }
+
     /** We set the debloom uri (tmp file). */
     _debloomUri  = System::file().getTemporaryFilename (debloomUri);
 }
