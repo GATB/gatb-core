@@ -45,35 +45,35 @@ export set TEST_CHECK="../test/functional/test1/check"
 # we run the tests
 ################################################################################
 
-launch ./ERR039477.fastq.gz $TEST_CHECK/check/k31/ERR039477.props  31
+launch ./ERR039477.fastq.gz $TEST_CHECK/k31/ERR039477.props  31
 
-launch ./ERR039477.fastq.gz $TEST_CHECK/check/k63/ERR039477.props  63
-launch ./ERR039477.fastq.gz $TEST_CHECK/check/k95/ERR039477.props  95
+launch ./ERR039477.fastq.gz $TEST_CHECK/k63/ERR039477.props  63
+launch ./ERR039477.fastq.gz $TEST_CHECK/k95/ERR039477.props  95
 
-launch ./SRR387476.fastq.gz $TEST_CHECK/check/k31/SRR387476.props  31
-launch ./SRR387476.fastq.gz $TEST_CHECK/check/k63/SRR387476.props  63
-launch ./SRR387476.fastq.gz $TEST_CHECK/check/k95/SRR387476.props  95
+launch ./SRR387476.fastq.gz $TEST_CHECK/k31/SRR387476.props  31
+launch ./SRR387476.fastq.gz $TEST_CHECK/k63/SRR387476.props  63
+launch ./SRR387476.fastq.gz $TEST_CHECK/k95/SRR387476.props  95
 
-launch ./SRR387476.album5/album.txt  $TEST_CHECK/check/k31/SRR387476.props  31
-launch ./SRR387476.album5/album.txt  $TEST_CHECK/check/k63/SRR387476.props  63
-launch ./SRR387476.album5/album.txt  $TEST_CHECK/check/k95/SRR387476.props  95
+launch ./SRR387476.album5/album.txt  $TEST_CHECK/k31/SRR387476.props  31
+launch ./SRR387476.album5/album.txt  $TEST_CHECK/k63/SRR387476.props  63
+launch ./SRR387476.album5/album.txt  $TEST_CHECK/k95/SRR387476.props  95
 
-launch ./SRR387476.album246/album.txt  $TEST_CHECK/check/k31/SRR387476.props  31
-launch ./SRR387476.album246/album.txt  $TEST_CHECK/check/k63/SRR387476.props  63
-launch ./SRR387476.album246/album.txt  $TEST_CHECK/check/k95/SRR387476.props  95
-launch ./SRR387476.album491/album.txt  $TEST_CHECK/check/k31/SRR387476.props  31
-launch ./SRR387476.album491/album.txt  $TEST_CHECK/check/k63/SRR387476.props  63
-launch ./SRR387476.album491/album.txt  $TEST_CHECK/check/k95/SRR387476.props  95
+launch ./SRR387476.album246/album.txt  $TEST_CHECK/k31/SRR387476.props  31
+launch ./SRR387476.album246/album.txt  $TEST_CHECK/k63/SRR387476.props  63
+launch ./SRR387476.album246/album.txt  $TEST_CHECK/k95/SRR387476.props  95
+launch ./SRR387476.album491/album.txt  $TEST_CHECK/k31/SRR387476.props  31
+launch ./SRR387476.album491/album.txt  $TEST_CHECK/k63/SRR387476.props  63
+launch ./SRR387476.album491/album.txt  $TEST_CHECK/k95/SRR387476.props  95
 
-launch ./SRR387476.album1227/album.txt  $TEST_CHECK/check/k31/SRR387476.props  31
-launch ./SRR387476.album1227/album.txt  $TEST_CHECK/check/k63/SRR387476.props  63
-launch ./SRR387476.album1227/album.txt  $TEST_CHECK/check/k95/SRR387476.props  95
+launch ./SRR387476.album1227/album.txt  $TEST_CHECK/k31/SRR387476.props  31
+launch ./SRR387476.album1227/album.txt  $TEST_CHECK/k63/SRR387476.props  63
+launch ./SRR387476.album1227/album.txt  $TEST_CHECK/k95/SRR387476.props  95
 
-launch ./SRR387476.album4904/album.txt  $TEST_CHECK/check/k31/SRR387476.props  31
-launch ./SRR387476.album4904/album.txt  $TEST_CHECK/check/k63/SRR387476.props  63
-launch ./SRR387476.album4904/album.txt  $TEST_CHECK/check/k95/SRR387476.props  95
+launch ./SRR387476.album4904/album.txt  $TEST_CHECK/k31/SRR387476.props  31
+launch ./SRR387476.album4904/album.txt  $TEST_CHECK/k63/SRR387476.props  63
+launch ./SRR387476.album4904/album.txt  $TEST_CHECK/k95/SRR387476.props  95
 
-launch ./SRR1785130.fastq.gz  $TEST_CHECK/check/k31/SRR1785130.props   31
-launch ./SRR1785130.fastq.gz  $TEST_CHECK/check/k63/SRR1785130.props   63
-launch ./SRR1785130.fastq.gz  $TEST_CHECK/check/k95/SRR1785130.props   95
-launch ./SRR1785130.fastq.gz  $TEST_CHECK/check/k127/SRR1785130.props  127
+launch ./SRR1785130.fastq.gz  $TEST_CHECK/k31/SRR1785130.props   31
+launch ./SRR1785130.fastq.gz  $TEST_CHECK/k63/SRR1785130.props   63
+launch ./SRR1785130.fastq.gz  $TEST_CHECK/k95/SRR1785130.props   95
+launch ./SRR1785130.fastq.gz  $TEST_CHECK/k127/SRR1785130.props  127
