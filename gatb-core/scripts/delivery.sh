@@ -13,6 +13,21 @@
 echo "-----------------------------------------------------------"
 echo "DELIVERY $1 FOR $2, VERSION $3"
 echo "-----------------------------------------------------------"
+
+echo ""
+echo ""
+echo ""
+echo ""
+echo "WARNING ! WARNING ! WARNING ! WARNING ! "
+echo ""
+echo "DID YOU CHECK THAT YOUR SOURCE IS COMPATIBLE WITH OLD VERSIONS OF GCC ?"
+echo ""
+echo "REMBEMBER THAT A LOT OF SERVERS STILL USE OLD LINUX DISTRIBUTIONS..."
+echo ""
+echo ""
+echo ""
+echo "press enter to continue..."
+read 
     
 # We get the versions.txt file from the server
 scp -q $4 $5
