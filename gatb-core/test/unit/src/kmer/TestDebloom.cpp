@@ -82,6 +82,7 @@ public:
     void Debloom_check1 ()
     {
         size_t kmerSize = 11;
+        size_t miniSize = 8;
         size_t nks      = 1;
 
         const char* seqs[] = {
@@ -107,7 +108,7 @@ public:
         bloom.execute ();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize, 1000, 0, BLOOM_BASIC, DEBLOOM_ORIGINAL);
+        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize, miniSize, 1000, 0, BLOOM_BASIC, DEBLOOM_ORIGINAL);
 
         /** We launch the debloom. */
         debloom.execute();

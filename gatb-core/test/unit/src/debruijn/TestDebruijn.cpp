@@ -236,7 +236,7 @@ public:
         bloom.execute ();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize);
+        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize, 8);
 
         /** We launch the debloom. */
         debloom.execute();

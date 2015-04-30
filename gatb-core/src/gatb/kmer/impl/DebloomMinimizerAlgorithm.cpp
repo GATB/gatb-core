@@ -63,6 +63,7 @@ DebloomMinimizerAlgorithm<span>::DebloomMinimizerAlgorithm (
     Storage& storageSolids,
     Partition<Count>*    solidIterable,
     size_t              kmerSize,
+    size_t              miniSize,
     size_t              max_memory,
     size_t              nb_cores,
     BloomKind           bloomKind,
@@ -70,7 +71,7 @@ DebloomMinimizerAlgorithm<span>::DebloomMinimizerAlgorithm (
     const std::string&  debloomUri,
     IProperties*        options
 )
-    :  DebloomAlgorithm<span>(storage, storageSolids, solidIterable, kmerSize, max_memory, nb_cores, bloomKind, cascadingKind, debloomUri, options)
+    :  DebloomAlgorithm<span>(storage, storageSolids, solidIterable, kmerSize, miniSize, max_memory, nb_cores, bloomKind, cascadingKind, debloomUri, options)
 {
 }
 

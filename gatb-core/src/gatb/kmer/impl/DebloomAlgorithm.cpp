@@ -98,6 +98,7 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
     Storage& storageSolids,
     Partition<Count>*   solidIterable,
     size_t              kmerSize,
+    size_t              miniSize,
     size_t              max_memory,
     size_t              nb_cores,
     BloomKind           bloomKind,
@@ -108,7 +109,7 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
     :  Algorithm("debloom", nb_cores, options), _storage(storage), _storageSolids(storageSolids),
        _groupBloom  (storage().getGroup ("bloom")),
        _groupDebloom(storage().getGroup ("debloom")),
-       _kmerSize(kmerSize),
+       _kmerSize(kmerSize), _miniSize(miniSize),
        _bloomKind(bloomKind), _debloomKind(cascadingKind),
        _max_memory(max_memory),
        _criticalNb(0), _solidIterable(0),  _container(0)
@@ -120,9 +121,6 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
 
     /** We set the max memory to a default project value if not set. */
     if (_max_memory == 0)  {  _max_memory = System::info().getMemoryProject(); }
-
-    /** We set the minimizer size. */
-    _miniSize = std::min (_kmerSize-1, (size_t)8);
 
     /** We set the debloom uri (tmp file). */
     _debloomUri  = System::file().getTemporaryFilename (debloomUri);

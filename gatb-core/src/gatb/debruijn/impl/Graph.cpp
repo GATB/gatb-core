@@ -433,7 +433,7 @@ struct build_visitor : public boost::static_visitor<>    {
                 graph.getStorage(),
                 *solidStorage,
                 data._solid,
-                kmerSize,
+                kmerSize, minimizerSize,
                 props->get(STR_MAX_MEMORY) ? props->getInt(STR_MAX_MEMORY) : 0,
                 props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
                 graph._bloomKind,
