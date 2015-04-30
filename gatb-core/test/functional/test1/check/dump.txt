@@ -1,0 +1,2 @@
+bin/dbgh5 -in $1 |  | grep -E "kmer_size|solidity_kind|abundance_min|abundance_max|bank_total_nt|seq_number|seq_size_min|seq_size_max|seq_size_mean|seq_size_deviation|kmers_nb_valid|kmers_nb_invalid|kmers_nb_distinct|kmers_nb_solid|kmers_nb_weak|nb_branching|checksum_branching" | grep -v build_kmer_size | gawk '{ print $1, $3}'
+
