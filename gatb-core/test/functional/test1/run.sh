@@ -1,5 +1,10 @@
 #! /bin/bash
 
+################################################################################
+# ARG 1 : login on gforge INRIA
+# ARG 2 : email address to send a report 
+################################################################################
+
 set -e
 
 if [ -z "$1" ]; 
@@ -8,6 +13,14 @@ then
 else
     export set TEST_USER=$1
 fi  
+
+if [ -z "$2" ]; 
+then
+    export set TEST_MAIL=$TEST_USER@irisa.fr
+else
+    export set TEST_MAIL=$2
+fi  
+
 
 ################################################################################
 # we clone the git repository
@@ -104,3 +117,13 @@ launch ./SRR1785130.fastq.gz  $TEST_CHECK/k127/SRR1785130.props  127
 cd ../../..
 \rm -rf gatb-core
 
+if [ $? -eq 0 ]; then
+
+   echo "TEST OK"
+
+   echo $0 | mail -s "[gatb] TEST OK" $TEST_MAIL
+
+else
+   echo "TEST KO"
+   echo $0 | mail -s "[gatb] TEST KO" $TEST_MAIL
+fi
