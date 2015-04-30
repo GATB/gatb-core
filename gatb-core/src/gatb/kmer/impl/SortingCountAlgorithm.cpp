@@ -1540,7 +1540,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
                         if (strict)
                         {
                             /** We launch an exception. */
-                            throw Exception ("memory issue: %lld required and %lld available",
+                            throw Exception ("memory issue: %lld bytes required and %lld bytes available",
                                 pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize
                             );
                         }
@@ -1551,7 +1551,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (PartiInfo<5>& pInfo)
 
                             if (memoryPoolSize > system_mem*0.95)
                             {
-                                throw Exception ("memory issue: %lld required, %lld command-line limit, %lld system limit",
+                                throw Exception ("memory issue: %lld bytes required, %lld bytes set by command-line limit, %lld bytes in system memory",
                                     pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize, system_mem
                                 );
                             }
