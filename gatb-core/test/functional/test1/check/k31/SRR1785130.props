@@ -1,0 +1,17 @@
+kmer_size 31
+solidity_kind sum
+abundance_min 3
+abundance_max 4294967295
+bank_total_nt 667407846
+seq_number 1121459
+seq_size_min 40
+seq_size_max 1539
+seq_size_mean 595.1
+seq_size_deviation 187.4
+kmers_nb_valid 632766011
+kmers_nb_invalid 998065
+kmers_nb_distinct 44310396
+kmers_nb_solid 9771769
+kmers_nb_weak 34538627
+nb_branching 347180
+checksum_branching 3c1ecb473f053b94

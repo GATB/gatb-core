@@ -156,10 +156,10 @@ class SystemInfoWindows : public SystemInfoCommon
 public:
 
     /** \copydoc ISystemInfo::getNbCores */
-    size_t getNbCores ();
+    size_t getNbCores () const;
 
     /** \copydoc ISystemInfo::getHostName */
-    std::string getHostName ();
+    std::string getHostName () const;
 
     /** \copydoc ISystemInfo::getMemoryPhysicalTotal */
     u_int64_t getMemoryPhysicalTotal () const  { throw ExceptionNotImplemented(); }

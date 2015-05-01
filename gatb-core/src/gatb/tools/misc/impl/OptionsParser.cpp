@@ -79,8 +79,9 @@ struct PostParserVisitor : public HierarchyParserVisitor
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-struct ParserVisitor : public IOptionsParserVisitor
+class ParserVisitor : public IOptionsParserVisitor
 {
+public:
     int argc; char** argv;  int idx;
     IOptionsParser::Result result;
 
@@ -109,7 +110,7 @@ struct ParserVisitor : public IOptionsParserVisitor
             }
             else
             {
-                result.errors.push_back (Stringify::format("Unknown '%s'", txt));
+                result.errors.push_back (Stringify::format("Unknown parameter '%s'", txt));
 
                 /** We had no match, so we skip the current argument and go the next one. */
                 idx++;
@@ -130,7 +131,7 @@ struct ParserVisitor : public IOptionsParserVisitor
         idx ++;
 
         /** We check that we have enough arguments for the current option. */
-        if (idx + object.getNbArgs() >  argc)
+        if (idx + (int)object.getNbArgs() >  argc)
         {
             char buffer [128];
             snprintf (buffer, sizeof(buffer), "Too few arguments for the %s option...", object.getName().c_str());

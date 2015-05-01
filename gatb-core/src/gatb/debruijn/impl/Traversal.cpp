@@ -98,7 +98,8 @@ Traversal::Traversal (
     int max_depth,
     int max_breadth
 )
-    : graph(graph), terminator(terminator), stats(TraversalStats()), final_stats(TraversalStats()),
+    : final_stats(TraversalStats()), stats(TraversalStats()),
+      graph(graph), terminator(terminator),
       maxlen      (max_len     == 0 ? Traversal::defaultMaxLen     : max_len),
       max_depth   (max_depth   == 0 ? Traversal::defaultMaxDepth   : max_depth),
       max_breadth (max_breadth == 0 ? Traversal::defaultMaxBreadth : max_breadth)
@@ -124,7 +125,7 @@ int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction 
 
     Path path;  path.resize (max_depth+1);
 
-    int bubble_start, bubble_end;
+    int bubble_start=0, bubble_end=0;
     bubbles_positions.clear();
 
     /** We reset the consensus to be filled. */
@@ -167,7 +168,7 @@ int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction 
 
         if (looping)  {  break;  }
 
-        if (consensus.size() > maxlen)  {  break;  }
+        if ((int)consensus.size() > maxlen)  {  break;  }
 
     }  /* end of while( (nnt = avance ... */
 
@@ -468,14 +469,14 @@ int MonumentTraversal::find_end_of_branching (
         }
 
         // don't allow a depth too large
-        if (frontline.depth() > max_depth)  
+        if ((int)frontline.depth() > max_depth)
         {  
             stats.couldnt_traverse_bubble_depth++;
             return 0;  
         }
 
         // don't allow a breadth too large
-        if (frontline.size()> max_breadth)  
+        if ((int)frontline.size()> max_breadth)
         {  
             stats.couldnt_traverse_bubble_breadth++;
             return 0;
@@ -666,7 +667,7 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
         return false;
 
     // don't traverse large deadends (here, having one consensus means the other paths were large deadends)
-    if (consensuses.size() == 1 && mean > graph.getKmerSize()+1) // deadend length should be < k+1 (most have length 1, but have seen up to 10 in ecoli)
+    if (consensuses.size() == 1 && mean > (int)graph.getKmerSize()+1) // deadend length should be < k+1 (most have length 1, but have seen up to 10 in ecoli)
         return false;
 
     if (debug) printf("%lu-bubble mean %d, stdev %.1f\n",consensuses.size(),mean,stdev);
@@ -731,7 +732,6 @@ bool MonumentTraversal::all_consensuses_almost_identical (set<Path>& consensuses
 *********************************************************************/
 Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
 {
-    int k = graph.getKmerSize();
     Path res;
     bool debug = false;
 
@@ -744,7 +744,7 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
 
         // naive conversion from path to string
         string p_str = graph.toString(p.start);
-        for (int i = 0; i < p.size(); i++)
+        for (size_t i = 0; i < p.size(); i++)
             p_str.push_back(p.ascii(i));
 
         long mean_abundance = 0;

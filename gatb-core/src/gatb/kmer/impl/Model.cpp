@@ -27,10 +27,10 @@ namespace gatb  {  namespace core  {  namespace kmer  {  namespace impl  {
 // since we didn't define the functions in a .h file, that trick removes linker errors,
 // see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
 
-template class Kmer <KSIZE_1>;
-template class Kmer <KSIZE_2>;
-template class Kmer <KSIZE_3>;
-template class Kmer <KSIZE_4>;
+template struct Kmer <KSIZE_1>;
+template struct Kmer <KSIZE_2>;
+template struct Kmer <KSIZE_3>;
+template struct Kmer <KSIZE_4>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

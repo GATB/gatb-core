@@ -228,7 +228,7 @@ public:
         sortingCount.execute();
 
         /** We check that the sequence has no duplicate kmers. */
-        CPPUNIT_ASSERT ( (seqLen - kmerSize + 1) == sortingCount.getSolidCounts()->getNbItems());
+        CPPUNIT_ASSERT ( (int64_t) (seqLen - kmerSize + 1) == sortingCount.getSolidCounts()->getNbItems());
 
         /** We create a bloom instance. */
         float nbitsPerKmer = DebloomAlgorithm<>::getNbBitsPerKmer (kmerSize, DEBLOOM_ORIGINAL);
@@ -236,7 +236,7 @@ public:
         bloom.execute ();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize);
+        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize, 8);
 
         /** We launch the debloom. */
         debloom.execute();
@@ -659,7 +659,7 @@ public:
         Graph graph = Graph::create (bank,  "-kmer-size %d  -abundance-min %d  -verbose 0  -max-memory %d", kmerSize, nks, MAX_MEMORY);
 
         // We check we got the correct number of solid kmers.
-        CPPUNIT_ASSERT (graph.getInfo().getInt ("kmers_nb_solid") == strlen(seq) - kmerSize + 1);
+        CPPUNIT_ASSERT (graph.getInfo().getInt ("kmers_nb_solid") == (int) (strlen(seq) - kmerSize + 1));
 
         // We check that we have only two branching nodes.
         CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching") == 2);
@@ -892,7 +892,7 @@ public:
                     MAX_MEMORY
                 );
                 CPPUNIT_ASSERT (graph.getInfo().getStr ("checksum_branching") == checksum);
-                CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching")       == nbBranching);
+                CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching")       == (int)nbBranching);
             }
         }
     }

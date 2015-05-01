@@ -392,8 +392,7 @@ public:
     size_t fill (std::vector<Item>& vec, size_t len=0)
     {
         printf("Not yet implemented \n");
-        // if (len==0)  { len = vec.size(); }
-        // return _file->fread (vec.data(), sizeof(Item), len);
+        return 0;
     }
     
 private:
@@ -409,7 +408,7 @@ private:
 
     bool readChunkIfNeeded (size_t needNBytes)
     {
-        if (_cpt_buffer < needNBytes)
+        if (_cpt_buffer < (int)needNBytes)
         {
             // printf("Read new chunk  _cacheItemsNb %zu B nedd %zu have %i  \n",_cacheItemsNb,needNBytes,_cpt_buffer);
             // _idx = 0;

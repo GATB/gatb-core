@@ -109,7 +109,7 @@ public:
         /** We launch DSK. */
         sortingCount.execute();
 
-        CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (strlen(seqs[0]) - kmerSize + 1) );
+        CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (int)(strlen(seqs[0]) - kmerSize + 1) );
 
         /** We create a mphf instance. */
         MPHFAlgorithm<> mphf (sortingCount.getStorageGroup(), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), true);
@@ -296,7 +296,7 @@ public:
             // We create an iterable from the file
             IterableFile<Key> iterableFile ("./keys");
 
-            CPPUNIT_ASSERT (iterableFile.getNbItems() == l.size());
+            CPPUNIT_ASSERT (iterableFile.getNbItems() == (int)l.size());
 
             // We create our hash function object
             Hash hash;

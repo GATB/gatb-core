@@ -154,7 +154,7 @@ public:
         void update (int modulo)  { _mod = modulo; }
         void first  () { _idx  = _mod; }
         void next   () { _idx += _mod; }
-        bool isDone () { return _idx >= _str.size(); }
+        bool isDone () { return _idx >= (int)_str.size(); }
         char& item  () { return _str[_idx]; }
     private:
         string _str;
@@ -211,7 +211,7 @@ public:
      */
     void iterators_checkTruncateIterator ()
     {
-        size_t nbItems = 0;
+        int nbItems = 0;
 
         /** We declare a STL list with some values. */
         int values[] = {1,2,3,5,8,13,21,34};

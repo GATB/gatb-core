@@ -160,6 +160,81 @@ public:
      */
     virtual size_t getExecutionUnitsNumber () = 0;
 
+    /** Iterate a provided instance. The provided functor is cloned N times, where N is the number of threads to
+     * be created; each thread will use its own instance of functor.
+     *
+     * One has to be aware that the copy constructor of the Functor type has to be well defined. For instance, if
+     * one wants to share a resource hold by the 'functor' argument, the copied Functor object may have a direct
+     * access to the shared resource, which potential issues with concurrent accesses on it. A way to avoid this
+     * kind of issue is to define a copy constructor that will create an instance of Functor with specific
+     * synchronization process (see ISynchronizer for that).
+     *
+     * \param[in] iterator : the iterator to be iterated
+     * \param[in] functor : functor object to be cloned N times, one per thread
+     * \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
+     *  \param[in] deleteSynchro : if false, destructor of functors are called in each thread; if true, destructor of functors are called synchronously
+     */
+    template <typename Item, typename Functor>
+    Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000, bool deleteSynchro = false)
+    {
+        bool localIterator=true;
+
+        Status status;
+
+        if (localIterator) { iterator->use(); }
+
+        /** We create N functors that are copies of the provided one. */
+        std::vector<Functor*> functors (getExecutionUnitsNumber());
+        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
+
+        /** We iterate the iterator. */
+        status = iterate (iterator, functors, groupSize, deleteSynchro);
+
+        if (localIterator) { iterator->forget(); }
+
+        /** We return the status. */
+        return status;
+    }
+
+    /** Iterate a provided instance. The provided functor is cloned N times, where N is the number of threads to
+     * be created; each thread will use its own instance of functor.
+     *
+     * One has to be aware that the copy constructor of the Functor type has to be well defined. For instance, if
+     * one wants to share a resource hold by the 'functor' argument, the copied Functor object may have a direct
+     * access to the shared resource, which potential issues with concurrent accesses on it. A way to avoid this
+     * kind of issue is to define a copy constructor that will create an instance of Functor with specific
+     * synchronization process (see ISynchronizer for that).
+     *
+     * \param[in] iterator : the iterator to be iterated
+     * \param[in] functor : functor object to be cloned N times, one per thread
+     * \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
+     *  \param[in] deleteSynchro : if false, destructor of functors are called in each thread; if true, destructor of functors are called synchronously
+     */
+    template <typename Item, typename Functor>
+    Status iterate (const Iterator<Item>& iterator, const Functor& functor, size_t groupSize = 1000, bool deleteSynchro = false)
+    {
+        /** We create N functors that are copies of the provided one. */
+        std::vector<Functor*> functors (getExecutionUnitsNumber());
+        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
+
+        /** We iterate the iterator. */
+        return iterate ((Iterator<Item>*)&iterator, functors, groupSize, deleteSynchro);
+    }
+
+    /** Set the number of items to be retrieved from the iterator by one thread in a synchronized way.
+     * \param[in] groupSize : number of items to be retrieved. */
+    virtual void   setGroupSize (size_t groupSize) = 0;
+
+    /** Get the number of items to be retrieved from the iterator by one thread in a synchronized way.
+     * \return the number of items. */
+    virtual size_t getGroupSize () const = 0;
+
+protected:
+
+    /** Factory method for synchronizer instantiation.
+     * \return the created synchronizer. */
+    virtual system::ISynchronizer* newSynchro () = 0;
+
     /** Iterate a provided Iterator instance; each iterated items are processed through some functors.
      *  According to the dispatcher implementation, we can hence iterate in a parallel way on several cores.
      *  Since we can have concurrent access, the iteration is protected by a synchronizer. Note that it is possible
@@ -210,59 +285,6 @@ public:
         /** We return the status. */
         return status;
     }
-
-    /** Iterate a provided instance. The provided functor is cloned N times, where N is the number of threads to
-     * be created; each thread will use its own instance of functor.
-     *
-     * One has to be aware that the copy constructor of the Functor type has to be well defined. For instance, if
-     * one wants to share a resource hold by the 'functor' argument, the copied Functor object may have a direct
-     * access to the shared resource, which potential issues with concurrent accesses on it. A way to avoid this
-     * kind of issue is to define a copy constructor that will create an instance of Functor with specific
-     * synchronization process (see ISynchronizer for that).
-     *
-     * \param[in] iterator : the iterator to be iterated
-     * \param[in] functor : functor object to be cloned N times, one per thread
-     * \param[in] groupSize : number of items to be retrieved in a single lock/unlock block
-     *  \param[in] deleteSynchro : if false, destructor of functors are called in each thread; if true, destructor of functors are called synchronously
-     */
-    template <typename Item, typename Functor>
-    Status iterate (Iterator<Item>* iterator, const Functor& functor, size_t groupSize = 1000, bool deleteSynchro = false)
-    {
-        bool localIterator=true;
-
-        Status status;
-
-        if (localIterator) { iterator->use(); }
-
-        /** We create N functors that are copies of the provided one. */
-        std::vector<Functor*> functors (getExecutionUnitsNumber());
-        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
-
-        /** We iterate the iterator. */
-        status = iterate (iterator, functors, groupSize, deleteSynchro);
-
-        /** We get rid of the functors. */
-        // for (size_t i=0; i<functors.size(); i++)  {  delete functors[i];  }
-
-        if (localIterator) { iterator->forget(); }
-
-        /** We return the status. */
-        return status;
-    }
-
-    /** Set the number of items to be retrieved from the iterator by one thread in a synchronized way.
-     * \param[in] groupSize : number of items to be retrieved. */
-    virtual void   setGroupSize (size_t groupSize) = 0;
-
-    /** Get the number of items to be retrieved from the iterator by one thread in a synchronized way.
-     * \return the number of items. */
-    virtual size_t getGroupSize () const = 0;
-
-protected:
-
-    /** Factory method for synchronizer instantiation.
-     * \return the created synchronizer. */
-    virtual system::ISynchronizer* newSynchro () = 0;
 
     /* We need some inner class for iterate some iterator in one thread. */
     template <typename Item, typename Functor> class IteratorCommand : public ICommand, public system::SmartPointer

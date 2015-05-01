@@ -164,8 +164,6 @@ public:
         int   blocksize_toread;
         int   nseq_lues;
 
-        unsigned int  read_write_buffer_size;
-
         FILE* binary_read_file;
 
         size_t _index;
@@ -180,7 +178,7 @@ protected:
 
     unsigned char* buffer;
     int            cpt_buffer;
-    unsigned int   read_write_buffer_size;
+    int            read_write_buffer_size;
     FILE*          binary_read_file;
 
     void open  (bool write);

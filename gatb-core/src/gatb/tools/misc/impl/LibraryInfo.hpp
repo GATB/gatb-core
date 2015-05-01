@@ -29,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/system/impl/System.hpp>
+#include <gatb/system/api/config_sha1.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 
@@ -59,12 +60,13 @@ public:
 
             props->add (0, "gatb-core-library", "");
             props->add (1, "version",        "%s", system::impl::System::info().getVersion().c_str());
+            props->add (1, "git_sha1",       "%s", STR_GIT_SHA1);
             props->add (1, "build_date",     "%s", system::impl::System::info().getBuildDate().c_str());
             props->add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
             props->add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());
             //props->add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
             props->add (1, "build_kmer_size", "%d %d %d %d", KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4);
-            props->add (1, "custom_memalloc", "%d", CUSTOM_MEM_ALLOC);
+            //props->add (1, "custom_memalloc", "%d", CUSTOM_MEM_ALLOC);
 
             singleton.setRef (props);
         }

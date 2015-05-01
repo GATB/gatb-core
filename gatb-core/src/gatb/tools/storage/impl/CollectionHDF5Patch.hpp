@@ -82,8 +82,8 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
     /** Destructor */
     ~CollectionDataHDF5Patch ()
     {
-        herr_t status;
-        status = H5Tclose (_typeId);
+        herr_t status = H5Tclose (_typeId);
+        if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Tclose), status %d", status);  }
 
         if (_datasetId != 0) {  H5Dclose (_datasetId);   _datasetId=0; }
     }
@@ -131,12 +131,14 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
         char** rdata = (char **) MALLOC (dims * sizeof (char *));
 
         status = H5Aread (attrId, datatype, rdata);
+        if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Aread), status %d", status);  }
 
         /** We set the result. */
         result.assign (rdata[0]);
 
         /** We release buffers. */
         status = H5Dvlen_reclaim (datatype, space_id, H5P_DEFAULT, rdata);
+        if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Dvlen_reclaim), status %d", status);  }
         FREE (rdata);
 
         /** We close resources. */
@@ -177,6 +179,7 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
             hid_t propId = H5Pcreate     (H5P_DATASET_CREATE);
             status       = H5Pset_layout (propId, H5D_CHUNKED);
             status       = H5Pset_chunk  (propId, 1, &chunk_dims);
+            if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Pset_chunk), status %d", status);  }
 
             /** We create the dataset. */
             result = H5Dcreate2 (_fileId, _name.c_str(),  actualType, dataspaceId, H5P_DEFAULT, propId, H5P_DEFAULT);
@@ -395,14 +398,14 @@ public:
     /** */
     HDF5IteratorPatch ()  : _ref(0), _blockSize(0),
          _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
-         _nbRead(0), _memspaceId(0), _total(0)
+         _nbRead(0), _total(0), _memspaceId(0)
     {}
 
     /** */
     HDF5IteratorPatch (const HDF5IteratorPatch& it)
     : _ref(it._ref), _blockSize(it._blockSize),
         _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
-        _nbRead(0), _memspaceId(0), _total(0)
+        _nbRead(0), _total(0), _memspaceId(0)
     {
         _data = (Item*) MALLOC (_blockSize*sizeof(Item));
         memset (_data, 0, _blockSize*sizeof(Item));
@@ -413,7 +416,7 @@ public:
     HDF5IteratorPatch (IterableHDF5Patch<Item>* ref, size_t blockSize=GATB_HDF5_NB_ITEMS_PER_BLOCK)
         : _ref(ref), _blockSize(blockSize),
           _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
-          _nbRead(0), _memspaceId(0), _total(0)
+          _nbRead(0), _total(0), _memspaceId(0)
     {
         _data = (Item*) MALLOC (_blockSize*sizeof(Item));
         memset (_data, 0, _blockSize*sizeof(Item));

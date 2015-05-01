@@ -53,12 +53,13 @@ public:
         tools::storage::impl::Storage& storageSolids,
         tools::storage::impl::Partition<Count>* solidIterable,
         size_t                      kmerSize,
-        size_t                      max_memory = 0,
-        size_t                      nb_cores   = 0,
+        size_t                      miniSize,
+        size_t                      max_memory    = 0,
+        size_t                      nb_cores      = 0,
         tools::misc::BloomKind      bloomKind     = tools::misc::BLOOM_DEFAULT,
         tools::misc::DebloomKind    cascadingKind = tools::misc::DEBLOOM_DEFAULT,
-        const std::string&          debloomUri = "debloom",
-        tools::misc::IProperties*   options    = 0
+        const std::string&          debloomUri    = "debloom",
+        tools::misc::IProperties*   options       = 0
     );
 
     /** */

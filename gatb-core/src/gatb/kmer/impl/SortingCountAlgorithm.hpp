@@ -252,7 +252,6 @@ private:
     size_t      _partitionType;
     size_t      _minimizerType;
     size_t      _repartitionType;
-    size_t      _minimizerSize;
     size_t      _nbCores;
     size_t      _nbCores_per_partition;
     size_t      _nb_partitions_in_parallel;

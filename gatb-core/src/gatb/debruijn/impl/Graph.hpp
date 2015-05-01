@@ -117,7 +117,7 @@ struct Node
     typedef tools::math::Integer Value;
 
     /** Default constructor. */
-    Node () : abundance(0), strand(kmer::STRAND_FORWARD) {}
+    Node () : strand(kmer::STRAND_FORWARD), abundance(0) {}
 
     /** Constructor.
      * \param[in] kmer : kmer value. By default, it is the minimum value of the forward and revcomp value.
@@ -853,8 +853,8 @@ private:
     tools::storage::impl::Storage& getStorage()                           { return (*_storage); }
     tools::storage::impl::Group&   getGroup  (const std::string name="")  { return getStorage() (name); }
 
-    /** */
-    std::string _name;
+    /** Defined as a void* for hiding implementation in cpp file. */
+    void* _variant;
 
     /** */
     size_t _kmerSize;
@@ -863,16 +863,16 @@ private:
     tools::misc::impl::Properties _info;
 
     /** */
+    std::string _name;
+
+    State _state;
+
+    /** */
     tools::misc::BloomKind       _bloomKind;
     tools::misc::DebloomKind     _debloomKind;
     tools::misc::DebloomImpl     _debloomImpl;
     tools::misc::BranchingKind   _branchingKind;
     tools::misc::MPHFKind        _mphfKind;
-
-    State _state;
-
-    /** Defined as a void* for hiding implementation in cpp file. */
-    void* _variant;
 
     /** */
     Graph::Iterator<Node> getNodes () const;

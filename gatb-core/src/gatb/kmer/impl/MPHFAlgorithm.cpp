@@ -88,7 +88,7 @@ MPHFAlgorithm<span,Abundance_t>::MPHFAlgorithm (
     IProperties*        options
 )
     :  Algorithm("emphf", 1, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
-       _solidCounts(0), _solidKmers(0), _map(0), _dataSize(0), _nb_abundances_above_precision(0), _progress(0)
+       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _map(0),  _progress(0)
 {
     /** We keep a reference on the solid kmers. */
     setSolidCounts (solidCounts);
@@ -147,8 +147,6 @@ void MPHFAlgorithm<span,Abundance_t>::execute ()
     /** We check whether we can use such a type. */
     if (Map::enabled == true && _buildOrLoad == true)
     {
-        size_t dataSize=0;
-
         /** We need a progress object. */
         tools::dp::IteratorListener* delegate = createIteratorListener(0,"");  LOCAL (delegate);
         setProgress (new ProgressCustom(delegate));

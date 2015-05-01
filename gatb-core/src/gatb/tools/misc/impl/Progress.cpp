@@ -346,7 +346,7 @@ void ProgressTimerAndSystem::fillBuffer (double elapsed)
 
     /** We format the string to be displayed. */
     char tmp[128];
-    snprintf (tmp, sizeof(tmp), "   cpu: %6.1f %%   mem: [%4lld, %4lld, %4lld] MB ",
+    snprintf (tmp, sizeof(tmp), "   cpu: %6.1f %%   mem: [%4lu, %4lu, %4lu] MB ",
         _cpuinfo->getUsage(),
         mem, _memMax, memMaxProcess
     );

@@ -118,7 +118,7 @@ public:
         /** We launch DSK. */
         dsk.execute();
 
-        CPPUNIT_ASSERT (checkNbSolids == dsk.getInfo()->getInt("kmers_nb_solid"));
+        CPPUNIT_ASSERT ((int) checkNbSolids == dsk.getInfo()->getInt("kmers_nb_solid"));
     }
 
     /********************************************************************************/
@@ -435,7 +435,7 @@ public:
         //    nksMin, nksMax, sortingCount.getSolidCounts()->getNbItems(),checkNb
         // );
 
-        CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == checkNb);
+        CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (int)checkNb);
     }
 
     /********************************************************************************/
@@ -584,7 +584,7 @@ public:
             IBank* current = banksComposite[i];
 
             /** We check the number of items. */
-            CPPUNIT_ASSERT (current->getNbItems() == (i+1)*nbKmers);
+            CPPUNIT_ASSERT ((u_int64_t)current->getNbItems() == (i+1)*nbKmers);
 
             for (size_t abundMin=1; abundMin<=nbBanksMax; abundMin++)
             {

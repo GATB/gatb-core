@@ -396,7 +396,7 @@ public:
             /** Add a bank to the album. */
             album.addBank (filename);
 
-            CPPUNIT_ASSERT (album.estimateNbItems() == i * estim1);
+            CPPUNIT_ASSERT ((size_t)album.estimateNbItems() == i * estim1);
         }
 
         CPPUNIT_ASSERT (album.getNbBanks() == nbMaxFiles);
@@ -675,7 +675,7 @@ public:
 
         ITime::Value t1 = System::time().getTimeStamp();
 
-        printf ("size=%lld  time=%lld => rate=%.3f MB/s \n",
+        printf ("size=%ld  time=%ld => rate=%.3f MB/s \n",
             totalSize, t1-t0,
             (double)totalSize / (double) (t1-t0) / 1024 / 1024 * 1000
         );

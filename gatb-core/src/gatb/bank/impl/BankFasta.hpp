@@ -192,9 +192,6 @@ public:
         /** Finish method. */
         void finalize ();
 
-        /** Finish method. */
-        void terminate ();
-
         int   index_file; // index of current file
 
         void** buffered_file;
@@ -223,7 +220,7 @@ protected:
     std::vector<std::string> _filenames;
 
     u_int64_t filesizes;  // estimate of total size for all files
-    int       nb_files;   // total nb of files
+    size_t    nb_files;   // total nb of files
 
     /** File handle for inserting sequences into the bank. */
     FILE* _insertHandle;

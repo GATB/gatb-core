@@ -26,6 +26,7 @@
 
 #define STR_OPERATING_SYSTEM    "${CMAKE_SYSTEM}"
 
+
 #define KSIZE_1  ${KSIZE_1}
 #define KSIZE_2  ${KSIZE_2}
 #define KSIZE_3  ${KSIZE_3}   

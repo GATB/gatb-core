@@ -435,7 +435,7 @@ void Properties::setInt (const std::string& key, const int64_t& value)
     if (prop == 0)  {  throw Exception ("Empty property '%s'", key.c_str());  }
 
     char buffer[64];
-    snprintf (buffer, sizeof(buffer), "%lld", value);
+    snprintf (buffer, sizeof(buffer), "%ld", value);
 
     prop->value = buffer;
 }

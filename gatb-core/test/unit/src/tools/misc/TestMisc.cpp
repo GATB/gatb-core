@@ -233,7 +233,7 @@ public:
     /********************************************************************************/
     void parser_check1_aux (IOptionsParser* parser, const string& str, bool ok, size_t nbProps, const string& check)
     {
-        IProperties* props;
+        IProperties* props = 0;
         try
         {
             props = parser->parseString (str);

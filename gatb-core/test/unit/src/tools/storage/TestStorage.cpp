@@ -227,7 +227,7 @@ public:
         Partition<NativeInt64>& partition = storage().getPartition<NativeInt64> ("parts", nbParts);
 
         /** We build a Range. */
-        Range<size_t>::Iterator* it = new Range<size_t>::Iterator (0, nbItems-1);
+        Range<size_t>::Iterator it (0, nbItems-1);
 
         /** We dispatch the range iteration. */
         Dispatcher().iterate (it, MyFunctor(partition,nbRepeat));
@@ -269,7 +269,7 @@ public:
         /** We insert the values into the bag. */
         collection.insert (values, len);
 
-        CPPUNIT_ASSERT (collection.getNbItems() == len);
+        CPPUNIT_ASSERT (collection.getNbItems() == (int)len);
 
         /** We get an iterator on the collection. */
         size_t idx=0;
