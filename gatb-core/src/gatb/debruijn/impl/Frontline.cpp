@@ -116,7 +116,8 @@ bool Frontline::go_next_depth()
             if (_already_frontlined.find (neighbor.kmer) != _already_frontlined.end())  { continue; }
 
             // if this bubble contains a marked (branching) kmer, stop everyone at once (to avoid redundancy)
-            if (_terminator.isEnabled() && _terminator.is_branching (neighbor) &&  _terminator.is_marked_branching(neighbor))  
+            //if (_terminator.isEnabled() && _terminator.is_branching (neighbor) &&  _terminator.is_marked_branching(neighbor))   // legacy, before MPHFTerminator
+            if (_terminator.isEnabled() && _terminator.is_marked(neighbor))   // to accomodate MPHFTerminator
             {  
                 stopped_reason=Frontline::MARKED;
                 return false;  
@@ -243,6 +244,40 @@ bool FrontlineBranching::check (const Node& node)
     // didn't find any in-branching
     return true;
 }
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+FrontlineNoInBranching::FrontlineNoInBranching (
+    Direction         direction,
+    const Graph&      graph,
+    Terminator&       terminator,
+    const Node&       startingNode,
+    const Node&       previousNode,
+    std::set<Node>*   all_involved_extensions
+)  : Frontline (direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
+{
+}
+
+
+
+bool FrontlineNoInBranching::check (const Node& node)
+{
+	/** We reverse the node for the inbranching path. */
+    Node actual = _graph.reverse(node);
+
+    /** neighbors nodes of the current node. */
+    Graph::Vector<Node> neighbors = _graph.neighbors<Node> (actual, (_direction));
+
+    // allow no in-branching at all
+    return neighbors.size() <= 1;
+}
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

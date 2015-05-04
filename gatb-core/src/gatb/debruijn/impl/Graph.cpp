@@ -90,10 +90,11 @@ struct GraphData
     typedef typename Kmer<span>::ModelCanonical Model;
     typedef typename Kmer<span>::Type           Type;
     typedef typename Kmer<span>::Count          Count;
-    typedef typename MPHFAlgorithm<span>::Map   Map;
+    typedef typename MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
+    typedef typename MPHFAlgorithm<span>::NodeStateMap   NodeStateMap;
 
     /** Constructor. */
-    GraphData () : _model(0), _solid(0), _container(0), _branching(0), _abundance(0) {}
+    GraphData () : _model(0), _solid(0), _container(0), _branching(0), _abundance(0), _nodestate(0) {}
 
     /** Destructor. */
     ~GraphData ()
@@ -102,17 +103,18 @@ struct GraphData
         setSolid     (0);
         setContainer (0);
         setBranching (0);
-        setAbundance (0);
+        setNodeState (0);
     }
 
     /** Constructor (copy). */
-    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0), _abundance(0)
+    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0), _abundance(0), _nodestate(0)
     {
         setModel     (d._model);
         setSolid     (d._solid);
         setContainer (d._container);
         setBranching (d._branching);
         setAbundance (d._abundance);
+        setNodeState (d._nodestate);
     }
 
     /** Assignment operator. */
@@ -125,6 +127,7 @@ struct GraphData
             setContainer (d._container);
             setBranching (d._branching);
             setAbundance (d._abundance);
+            setNodeState (d._nodestate);
         }
         return *this;
     }
@@ -134,17 +137,40 @@ struct GraphData
     Partition<Count>*     _solid;
     IContainerNode<Type>* _container;
     Collection<Count>*    _branching;
-    Map*                  _abundance;
+    AbundanceMap*         _abundance;
+    NodeStateMap*         _nodestate;
 
     /** Setters. */
     void setModel       (Model*                 model)      { SP_SETATTR (model);     }
     void setSolid       (Partition<Count>*      solid)      { SP_SETATTR (solid);     }
     void setContainer   (IContainerNode<Type>*  container)  { SP_SETATTR (container); }
     void setBranching   (Collection<Count>*     branching)  { SP_SETATTR (branching); }
-    void setAbundance   (Map*                   abundance)  { SP_SETATTR (abundance); }
+    void setAbundance   (AbundanceMap*          abundance)  { SP_SETATTR (abundance); }
+    void setNodeState   (NodeStateMap*          nodestate)  { SP_SETATTR (nodestate); }
 
     /** Shortcut. */
-    bool contains (const Type& item)  const  {  return _container->contains (item);  }
+    bool contains (const Type& item)  const  {  
+
+        bool res = _container->contains (item);
+
+        if (!res)
+            return false;
+
+        // check if kmer is deleted
+        // TODO: ugly copypasted code from queryNodeState, please, anyone (me?), factorize!
+        if (_nodestate != NULL)
+        {
+            unsigned long hashIndex = ((_nodestate))->getCode(item);
+            unsigned char value = ((_nodestate))->at(hashIndex / 2);
+            if (hashIndex % 2 == 1)
+                value >>= 4;
+            value &= 0xF;
+            if ((value >> 1) & 1 == 1) 
+                return false;
+        }
+
+        return true;
+    }
 };
 
 /********************************************************************************/
@@ -260,7 +286,9 @@ struct configure_visitor : public boost::static_visitor<>    {
                 false  // build=true, load=false
             );
 
-            data.setAbundance (mphf_algo.getMap());
+            data.setAbundance (mphf_algo.getAbundanceMap());
+
+            data.setNodeState (mphf_algo.getNodeStateMap());
         }
     }
 };
@@ -398,7 +426,8 @@ struct build_visitor : public boost::static_visitor<>    {
                 true  // build=true, load=false
             );
             executeAlgorithm (mphf_algo, graph.getStorage(), props, graph._info);
-            data.setAbundance(mphf_algo.getMap());
+            data.setAbundance(mphf_algo.getAbundanceMap());
+            data.setNodeState(mphf_algo.getNodeStateMap());
             graph.setState(Graph::STATE_MPHF_DONE);
         }
 
@@ -454,6 +483,9 @@ struct build_visitor : public boost::static_visitor<>    {
         /************************************************************/
         if (graph.checkState(Graph::STATE_DEBLOOM_DONE))
         {
+            // so, branching nodes construction code is here, yet, 
+            // nowadays we actually don't need branching nodes if we have a MPHF (will use node state for marking used nodes / getting starting nodes)
+            // see how minia does it
             if (graph._branchingKind != BRANCHING_NONE)
             {
                 BranchingAlgorithm<span> branchingAlgo (
@@ -502,7 +534,7 @@ struct build_visitor : public boost::static_visitor<>    {
         algorithm.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
 
         algorithm.run ();
-
+        
         info.add (1, algorithm.getInfo());
         info.add (1, algorithm.getSystemInfo());
 
@@ -779,7 +811,7 @@ Graph::Graph ()
 *********************************************************************/
 Graph::Graph (const Graph& graph)
     : _storageMode(graph._storageMode), _storage(0),
-      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name)
+      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state)
 {
     setStorage (graph._storage);
 
@@ -1675,6 +1707,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
         /** Shortcuts. */
         typedef typename Kmer<span>::Count Count;
 
+        // TODO document that: soo.. we're defining a class inside a function? -r
         class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
         public:
@@ -1741,6 +1774,8 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
             bool      _isDone;
             u_int64_t _nbItems;
         };
+
+        // now this is the actual code for returning a node iterator, apparently
 
         if (typeid(NodeType) == typeid(Node))
         {
@@ -2430,7 +2465,9 @@ Nucleotide Graph::getNT (const Node& node, size_t idx) const
 ** REMARKS :
 *********************************************************************/
 
-// I don't understand fully this visitor pattern, was it needed for this method? -r
+// TODO doc: I don't understand fully this visitor pattern, was it needed for this method? -r
+// I'd guess that yes, because visitor pattern probably needs to be used to support all graph
+// variants for possible kmer sizes
 struct queryAbundance_visitor : public boost::static_visitor<int>    {
 
     const Node& node;
@@ -2454,6 +2491,120 @@ int Graph::queryAbundance (const Node& node) const
 {
     return boost::apply_visitor (queryAbundance_visitor(node),  *(GraphDataVariant*)_variant);
 }
+
+// I still don't understand fully this visitor pattern, yet here we go again. 
+// a node state, using the MPHF, is either:
+// 0: unmarked (normal state)
+// 1: marked (already in an output unitig/contig)
+// 2: deleted (part of a tip or bubble in minia)
+
+
+struct queryNodeState_visitor : public boost::static_visitor<int>    {
+
+    const Node& node;
+
+    queryNodeState_visitor (const Node& node) : node(node){}
+
+    template<size_t span>  int operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type  Type;
+        unsigned char res = 0;
+
+        /** We get the specific typed value from the generic typed value. */
+        unsigned long hashIndex = (*(data._nodestate)).getCode(node.kmer.get<Type>());
+
+        unsigned char value = (*(data._nodestate)).at(hashIndex / 2);
+
+        if (hashIndex % 2 == 1)
+            value >>= 4;
+
+        value &= 0xF;
+       
+        return value;
+    }
+};
+
+/** */
+int Graph::queryNodeState (const Node& node) const
+{
+    return boost::apply_visitor (queryNodeState_visitor(node),  *(GraphDataVariant*)_variant);
+}
+
+struct setNodeState_visitor : public boost::static_visitor<int>    {
+
+    const Node& node;
+    int state;
+
+    setNodeState_visitor (const Node& node, int state) : node(node), state(state) {}
+
+    template<size_t span> int operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type  Type;
+        unsigned char res = 0;
+
+        /** We get the specific typed value from the generic typed value. */
+        unsigned long hashIndex = (*(data._nodestate)).getCode(node.kmer.get<Type>());
+
+        unsigned char &value = (*(data._nodestate)).at(hashIndex / 2);
+
+        int maskedState = state & 0xF;
+
+        if (hashIndex % 2 == 1)
+        {
+            value &= 0xF;
+            value |= (maskedState << 4);
+        }
+        else
+        {    
+            value &= 0xF0;
+            value |= maskedState;
+        }
+
+        return 0;
+    }
+};
+
+/** */
+void Graph::setNodeState (const Node& node, int state) const
+{
+    boost::apply_visitor (setNodeState_visitor(node, state),  *(GraphDataVariant*)_variant);
+}
+
+
+// another visitor, really? can we do without a visitor pattern on this one?
+//
+struct resetNodeState_visitor : public boost::static_visitor<int>    {
+
+    resetNodeState_visitor () {}
+
+    template<size_t span> int operator() (const GraphData<span>& data) const
+    {
+        (*(data._nodestate)).clearData();
+        return 0;
+    }
+};
+
+void Graph::resetNodeState() const
+{
+    boost::apply_visitor (resetNodeState_visitor(),  *(GraphDataVariant*)_variant);
+}
+
+
+void Graph::deleteNode (const Node& node) const
+{
+    if (checkState(Graph::STATE_MPHF_DONE))
+        setNodeState(node, 2);
+}
+
+bool Graph::isNodeDeleted(const Node& node) const
+{
+    return ((!checkState(Graph::STATE_MPHF_DONE)) || (queryNodeState(node) >> 1) & 1 == 1);
+}
+
+
+
+
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

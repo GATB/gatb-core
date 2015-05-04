@@ -80,6 +80,17 @@ public:
         data.resize (keys.getNbItems());
     }
 
+    /* use the hash from another MapMPHF class. hmm is this smartpointer legit?
+     * also allocate n/x data elements
+     */
+    void useHashFrom (MapMPHF *other, int x = 1)
+    {
+        hash = other->hash;
+        
+        /** We resize the vector of Value objects. */
+        data.resize (hash.size() / x);
+    }
+
     /** Save the hash function into a Group object.
      * \param[out] group : group where to save the MPHF
      * \param[in] name : name of the saved MPHF
@@ -117,10 +128,13 @@ public:
      * \return keys number. */
     size_t size() const { return hash.size(); }
 
+    void clearData() { data.clear(); }
+
 private:
 
     Hash               hash;
     std::vector<Value> data;
+
 };
 
 /********************************************************************************/

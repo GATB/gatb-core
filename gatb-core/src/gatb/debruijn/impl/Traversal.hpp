@@ -282,6 +282,19 @@ public:
         std::set<Node>& all_involved_extensions
     );
 
+
+    // those two used to be private, but I need them in GraphSimplification for now (until explore_branching gets templated or any way we can choose Frontline type)
+    bool validate_consensuses (std::set<Path>& consensuses, Path& consensus);
+
+    std::set<Path> all_consensuses_between (
+        Direction    dir,
+        const Node& startNode,
+        const Node& endNode,
+        int traversal_depth,
+        bool &success
+    );
+
+
 private:
 
     /* Implementation of the virtual method. */
@@ -294,7 +307,6 @@ private:
         const Node& previousNode
     );
 
-
     int find_end_of_branching (
         Direction dir,
         const Node& startingNode,
@@ -302,7 +314,7 @@ private:
         const Node& previousNode,
         std::set<Node>& all_involved_extensions
     );
-
+ 
     std::set<Path> all_consensuses_between (
         Direction    dir,
         const Node& startNode,
@@ -312,17 +324,7 @@ private:
         Path current_consensus,
         bool& success
     );
-
-    std::set<Path> all_consensuses_between (
-        Direction    dir,
-        const Node& startNode,
-        const Node& endNode,
-        int traversal_depth,
-        bool &success
-    );
-
-    bool validate_consensuses (std::set<Path>& consensuses, Path& consensus);
-
+   
     bool all_consensuses_almost_identical (std::set<Path>& consensuses);
 
     void mark_extensions (std::set<Node>& extensions_to_mark);

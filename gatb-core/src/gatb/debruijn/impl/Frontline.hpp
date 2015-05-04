@@ -147,6 +147,27 @@ private:
     bool check (const Node& node);
 };
 
+// auxiliary class that is used by MonumentTraversal and deblooming
+class FrontlineNoInBranching : public Frontline
+{
+public:
+
+    /** Constructor. */
+    FrontlineNoInBranching (
+        Direction         direction,
+        const Graph&      graph,
+        Terminator&       terminator,
+        const Node&       startingNode,
+        const Node&       previousNode,
+        std::set<Node>*   all_involved_extensions
+    );
+
+private:
+
+    bool check (const Node& node);
+};
+
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

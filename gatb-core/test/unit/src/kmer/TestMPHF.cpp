@@ -90,7 +90,7 @@ public:
     /********************************************************************************/
     void MPHF_check1 ()
     {
-        if (MPHFAlgorithm<>::Map::enabled == false)  { return; }
+        if (MPHFAlgorithm<>::AbundanceMap::enabled == false)  { return; }
 
         size_t kmerSize = 11;
         size_t nks      = 1;
@@ -117,9 +117,9 @@ public:
         /** We actually execute the mphf construction. */
         mphf.execute();
 
-        CPPUNIT_ASSERT (mphf.getMap() != 0);
+        CPPUNIT_ASSERT (mphf.getAbundanceMap() != 0);
 
-        MPHFAlgorithm<>::Map& theMap = * mphf.getMap();
+        MPHFAlgorithm<>::AbundanceMap& theMap = * mphf.getAbundanceMap();
 
         // below are quick tests
         

@@ -754,6 +754,17 @@ public:
      * \return the abundance */
     int queryAbundance (const Node& node) const;
 
+    /** Return the state of a node by querying the perfect hash function. A node state is either normal, marked, or deleted.
+     * \param[in] node : the node
+     * \return the abundance */
+    int queryNodeState (const Node& node) const;
+    void setNodeState (const Node& node, int state) const;
+    void resetNodeState () const;
+
+    // deleted nodes, related to NodeState above
+    void deleteNode (const Node& node) const;
+    bool isNodeDeleted(const Node& node) const;
+
 
     /**********************************************************************/
     /*                         EDGE METHODS                               */
@@ -821,7 +832,7 @@ public:
         STATE_BRANCHING_DONE      = (1<<5),
         STATE_MPHF_DONE           = (1<<6)
     };
-    typedef int State;
+    typedef u_int64_t State;
     State getState () const { return _state; }
     bool checkState (StateMask mask) const { return (_state & mask)==mask; }
     State setState   (StateMask mask) { _state |=  mask; return _state; }

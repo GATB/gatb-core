@@ -164,7 +164,7 @@ int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction 
         {
             bubble_end = consensus.size();
             bubbles_positions.push_back(std::make_pair(bubble_start,bubble_end));
-        }
+        }         
 
         if (looping)  {  break;  }
 
@@ -442,6 +442,7 @@ bool MonumentTraversal::explore_branching (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+//template <typename Frontline=FrontlineBranching> // TODO: someday do something along this line to refactor GraphSimplification in minia
 int MonumentTraversal::find_end_of_branching (
     Direction    dir,
     const Node&  startingNode,
@@ -491,8 +492,10 @@ int MonumentTraversal::find_end_of_branching (
             return 0;
         }
 
-        // if (frontline.size() == 1) // longer contigs but for some reason, higher mismatch rate
-        if (frontline.size() == 1 &&   (!terminator.isEnabled() || !terminator.is_branching(frontline.front().node)) )  {   break;  }
+         if (frontline.size() == 1) // longer contigs but for some reason, higher mismatch rate
+             {break;}
+            // TODO: didn't implement is_branching in MPHFTerminator, but the line above used to be commented and the one below enabled. see if it still affects assembly.
+        //if (frontline.size() == 1 &&   (!terminator.isEnabled() || !terminator.is_branching(frontline.front().node)) )  {   break;  }
     }
     while (1);
 
@@ -681,7 +684,8 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
         return false;
 
     // if all good, an arbitrary consensus is chosen (if no MPHF) or the most abundance one is chosen (if MPHF available)
-    bool has_mphf = (graph.getState() & Graph::STATE_MPHF_DONE);
+    bool has_mphf = graph.checkState(Graph::STATE_MPHF_DONE);
+
     Path chosen_consensus = *consensuses.begin();
     if (has_mphf)
         chosen_consensus = most_abundant_consensus(consensuses);
