@@ -34,6 +34,7 @@ namespace impl      {
 // some stats
 struct TraversalStats
 {
+    // MonumentTraversal
     long ended_traversals;
     long couldnt_find_all_consensuses;
     long couldnt_validate_consensuses;
@@ -44,6 +45,11 @@ struct TraversalStats
     long couldnt_inbranching_breadth;
     long couldnt_inbranching_other;
     long couldnt_find_extension;
+
+    //SimplepathTraversal
+    long couldnt_no_extension;
+    long couldnt_inbranching;
+    long couldnt_outbranching;
 };
 
 /********************************************************************************/

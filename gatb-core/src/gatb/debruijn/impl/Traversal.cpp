@@ -294,7 +294,18 @@ char SimplePathsTraversal::avance (
     const Node& previousNode
 )
 {
-    return  max (graph.simplePathAvance (node, dir, path[0]),  0);
+    int res = graph.simplePathAvance (node, dir, path[0]);
+    switch (res)
+    {
+        case -2:
+           stats.couldnt_inbranching++; break;
+        case -1:
+           stats.couldnt_outbranching++; break;
+        case 0:
+           stats.couldnt_no_extension++; break;
+    }
+
+    return  max (res,  0);
 }
 
 /*********************************************************************
