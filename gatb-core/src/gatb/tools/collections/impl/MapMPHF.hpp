@@ -88,7 +88,7 @@ public:
         hash = other->hash;
         
         /** We resize the vector of Value objects. */
-        data.resize (hash.size() / x);
+        data.resize ((hash.size() / x) + 1); // that +1 and not (hash.size+x-1) / x
     }
 
     /** Save the hash function into a Group object.
