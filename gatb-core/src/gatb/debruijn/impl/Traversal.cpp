@@ -295,6 +295,7 @@ char SimplePathsTraversal::avance (
 )
 {
     int res = graph.simplePathAvance (node, dir, path[0]);
+    deadend = false; // whether the traversal ends with no extension or not -- helps filter out isolated contigs in Minia
     switch (res)
     {
         case -2:
@@ -302,7 +303,8 @@ char SimplePathsTraversal::avance (
         case -1:
            stats.couldnt_outbranching++; break;
         case 0:
-           stats.couldnt_no_extension++; break;
+           stats.couldnt_no_extension++; 
+           deadend = true; break;
     }
 
     return  max (res,  0);

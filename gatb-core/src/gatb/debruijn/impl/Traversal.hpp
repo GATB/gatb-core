@@ -160,6 +160,8 @@ public:
      * \return vector of positions ranges. */
     const std::vector <std::pair<int, int> >& getBubbles()  const { return bubbles_positions; }
 
+    bool deadend;
+
 protected:
 
     /** */
