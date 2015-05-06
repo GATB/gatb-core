@@ -746,6 +746,9 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
         // iterate over all kmers in consensus and get mean abundance
         Path p = *it;
 
+        // FIXME: I think that code might be buggy!! (wrong p_str constructed in the bubble.fa example of Minia. see GraphSimplification.cpp for a potential fix)
+        
+        
         // naive conversion from path to string
         string p_str = graph.toString(p.start);
         for (size_t i = 0; i < p.size(); i++)

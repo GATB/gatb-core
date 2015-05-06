@@ -147,13 +147,14 @@ private:
     bool check (const Node& node);
 };
 
-// auxiliary class that is used by MonumentTraversal and deblooming
-class FrontlineNoInBranching : public Frontline
+// a middle ground between Frontline and FrontlineBranching:
+// check whether all nodes inside the frontline must be reachable from startingNode
+class FrontlineReachable : public Frontline
 {
 public:
 
     /** Constructor. */
-    FrontlineNoInBranching (
+    FrontlineReachable(
         Direction         direction,
         const Graph&      graph,
         Terminator&       terminator,

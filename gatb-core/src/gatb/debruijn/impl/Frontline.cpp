@@ -100,8 +100,8 @@ bool Frontline::go_next_depth()
         NodeNt current_node = _frontline.front();
         _frontline.pop();
 
-        /** We check whether we use this node or not. */
-        if (check(current_node.node) == false)  { return false; }
+        /** We check whether we use this node or not. we always use the first node at depth 0 */
+        if (_depth > 0 && check(current_node.node) == false)  { return false; }
 
         /** We loop the neighbors edges of the current node. */
         Graph::Vector<Edge> edges = _graph.neighbors<Edge> (current_node.node, _direction);
@@ -253,7 +253,7 @@ bool FrontlineBranching::check (const Node& node)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-FrontlineNoInBranching::FrontlineNoInBranching (
+FrontlineReachable::FrontlineReachable(
     Direction         direction,
     const Graph&      graph,
     Terminator&       terminator,
@@ -266,7 +266,7 @@ FrontlineNoInBranching::FrontlineNoInBranching (
 
 
 
-bool FrontlineNoInBranching::check (const Node& node)
+bool FrontlineReachable::check (const Node& node)
 {
 	/** We reverse the node for the inbranching path. */
     Node actual = _graph.reverse(node);
@@ -274,8 +274,15 @@ bool FrontlineNoInBranching::check (const Node& node)
     /** neighbors nodes of the current node. */
     Graph::Vector<Node> neighbors = _graph.neighbors<Node> (actual, (_direction));
 
-    // allow no in-branching at all
-    return neighbors.size() <= 1;
+    for (size_t i=0; i<neighbors.size(); i++)
+    {
+        /** Shortcut. */
+        Node& neighbor = neighbors[i];
+        if (_already_frontlined.find (neighbor.kmer) == _already_frontlined.end())  {
+            return false;  
+        }
+    }
+    return true;
 }
 
 
