@@ -755,16 +755,18 @@ public:
     int queryAbundance (const Node& node) const;
 
     /** Return the state of a node by querying the perfect hash function. A node state is either normal, marked, or deleted.
-     * \param[in] node : the node
+     * \param[in] node : the node or a node index (unsigned long) from the MPHF
      * \return the abundance */
     int queryNodeState (const Node& node) const;
-    void setNodeState (const Node& node, int state) const;
-    void resetNodeState () const;
+    template<typename NodeOrNodeIndex> void setNodeState (NodeOrNodeIndex node, int state) const;
+    void resetNodeState () const ;
 
     // deleted nodes, related to NodeState above
-    void deleteNode (const Node& node) const;
+    template<typename NodeOrNodeIndex> void deleteNode (NodeOrNodeIndex node) const;
     bool isNodeDeleted(const Node& node) const;
 
+    // a direct query to the MPHF
+    unsigned long nodeMPHFIndex(const Node& node) const;
 
     /**********************************************************************/
     /*                         EDGE METHODS                               */

@@ -2498,6 +2498,14 @@ int Graph::queryAbundance (const Node& node) const
 // 1: marked (already in an output unitig/contig)
 // 2: deleted (part of a tip or bubble in minia)
 
+template<size_t span> 
+unsigned long getNodeIndex (const GraphData<span>& data, const Node& node)
+{
+    typedef typename Kmer<span>::Type  Type;
+    /** We get the specific typed value from the generic typed value. */
+    unsigned long hashIndex = (*(data._nodestate)).getCode(node.kmer.get<Type>());
+    return hashIndex;
+}
 
 struct queryNodeState_visitor : public boost::static_visitor<int>    {
 
@@ -2507,11 +2515,7 @@ struct queryNodeState_visitor : public boost::static_visitor<int>    {
 
     template<size_t span>  int operator() (const GraphData<span>& data) const
     {
-        typedef typename Kmer<span>::Type  Type;
-        unsigned char res = 0;
-
-        /** We get the specific typed value from the generic typed value. */
-        unsigned long hashIndex = (*(data._nodestate)).getCode(node.kmer.get<Type>());
+        unsigned long hashIndex = getNodeIndex<span>(data, node);
 
         unsigned char value = (*(data._nodestate)).at(hashIndex / 2);
 
@@ -2533,17 +2537,20 @@ int Graph::queryNodeState (const Node& node) const
 struct setNodeState_visitor : public boost::static_visitor<int>    {
 
     const Node& node;
+    unsigned long _hashIndex;
+
     int state;
 
-    setNodeState_visitor (const Node& node, int state) : node(node), state(state) {}
+    setNodeState_visitor (const Node& node, int state) : node(node), _hashIndex(0), state(state) {}
+    setNodeState_visitor (unsigned long hashIndex, int state) : node(Node()), _hashIndex(hashIndex), state(state) {}
 
-    template<size_t span> int operator() (const GraphData<span>& data) const
+    template<size_t span> int operator() (const GraphData<span>& data) const 
     {
-        typedef typename Kmer<span>::Type  Type;
-        unsigned char res = 0;
-
-        /** We get the specific typed value from the generic typed value. */
-        unsigned long hashIndex = (*(data._nodestate)).getCode(node.kmer.get<Type>());
+        unsigned long hashIndex;
+        if (_hashIndex == 0)
+            hashIndex = getNodeIndex<span>(data, node);
+        else
+            hashIndex = _hashIndex;
 
         unsigned char &value = (*(data._nodestate)).at(hashIndex / 2);
 
@@ -2565,10 +2572,16 @@ struct setNodeState_visitor : public boost::static_visitor<int>    {
 };
 
 /** */
-void Graph::setNodeState (const Node& node, int state) const
+template<typename NodeOrNodeIndex>
+void Graph::setNodeState (NodeOrNodeIndex node, int state) const
 {
     boost::apply_visitor (setNodeState_visitor(node, state),  *(GraphDataVariant*)_variant);
 }
+// tell compiler to compile for:
+template void Graph::setNodeState<const Node&>(const Node &, int) const ;
+template void Graph::setNodeState<Node>(Node , int) const ;
+template void Graph::setNodeState<unsigned long>(unsigned long, int) const;
+
 
 
 // another visitor, really? can we do without a visitor pattern on this one?
@@ -2590,15 +2603,48 @@ void Graph::resetNodeState() const
 }
 
 
-void Graph::deleteNode (const Node& node) const
+template<typename NodeOrNodeIndex>
+void Graph::deleteNode (NodeOrNodeIndex node) const 
 {
     if (checkState(Graph::STATE_MPHF_DONE))
         setNodeState(node, 2);
 }
 
+// tell compiler to compile for:
+template void Graph::deleteNode<const Node&>(const Node &node) const;
+template void Graph::deleteNode<Node>(Node node) const;
+template void Graph::deleteNode<unsigned long>(unsigned long) const;
+
 bool Graph::isNodeDeleted(const Node& node) const
 {
     return ((!checkState(Graph::STATE_MPHF_DONE)) || (queryNodeState(node) >> 1) & 1 == 1);
+}
+
+
+
+// direct access to MPHF index
+
+
+struct nodeMPHFIndex_visitor : public boost::static_visitor<int>    {
+
+    const Node& node;
+
+    nodeMPHFIndex_visitor (const Node& node) : node(node) {}
+
+    template<size_t span> unsigned long operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type  Type;
+        /** We get the specific typed value from the generic typed value. */
+        unsigned long hashIndex = (*(data._nodestate)).getCode(node.kmer.get<Type>());
+        return hashIndex;
+    }
+};
+
+unsigned long Graph::nodeMPHFIndex(const Node& node) const
+{
+    if (!checkState(Graph::STATE_MPHF_DONE))
+       return 0;
+    return boost::apply_visitor (nodeMPHFIndex_visitor(node),  *(GraphDataVariant*)_variant);
 }
 
 
