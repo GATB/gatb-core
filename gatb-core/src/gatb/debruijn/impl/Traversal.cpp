@@ -699,7 +699,7 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
     // if all good, an arbitrary consensus is chosen (if no MPHF) or the most abundance one is chosen (if MPHF available)
     bool has_mphf = graph.checkState(Graph::STATE_MPHF_DONE);
 
-    Path chosen_consensus = *consensuses.begin();
+    Path chosen_consensus;
     if (has_mphf)
         chosen_consensus = most_abundant_consensus(consensuses);
     else
@@ -752,7 +752,11 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
     Path res;
     bool debug = false;
 
-    long best_mean_abundance = 0;
+    unsigned long best_mean_abundance = 0;
+    string best_p_str = "";
+
+    if (debug)
+        cout << endl << "starting to decide which consensus to choose" << endl;
 
     for (set<Path>::iterator it = consensuses.begin(); it != consensuses.end(); it++)
     {
@@ -767,7 +771,10 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
         for (size_t i = 0; i < p.size(); i++)
             p_str.push_back(p.ascii(i));
 
-        long mean_abundance = 0;
+        if (debug)
+            cout << endl << "mean cov for path: " << p_str << endl << "abundance: " << endl;
+
+        unsigned long mean_abundance = 0;
         for (size_t i = 0; i < p.size(); i++)
         {            
             Node node = graph.buildNode((char *)(p_str.c_str()), i); 
@@ -776,18 +783,26 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
 
             unsigned char abundance = graph.queryAbundance(node.kmer);
             mean_abundance += abundance;
+        
+            if (debug)
+                cout << (unsigned int)abundance << " ";
         }
         mean_abundance /= p.size();
+        
+        if (debug)
+            cout << "mean: " << mean_abundance << endl;
 
         if (mean_abundance > best_mean_abundance)
         {
             best_mean_abundance = mean_abundance;
             res = p;
+            best_p_str = p_str;
         }
 
-        if (debug && consensuses.size() > 1)
-            printf("path: %s mean abundance: %ld\n",p_str.c_str(),mean_abundance);
     }
+
+    if (debug && consensuses.size() > 1)
+        cout << endl << "chosen path: " << best_p_str << " abundance: " << best_mean_abundance << endl;
 
     return res;
 }
