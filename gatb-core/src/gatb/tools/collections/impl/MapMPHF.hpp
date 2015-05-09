@@ -78,6 +78,7 @@ public:
 
         /** We resize the vector of Value objects. */
         data.resize (keys.getNbItems());
+        clearData();
     }
 
     /* use the hash from another MapMPHF class. hmm is this smartpointer legit?
@@ -111,6 +112,7 @@ public:
 
         /** We resize the vector of Value objects. */
         data.resize (nbKeys);
+        clearData();
     }
 
     /** Get the value for a given key

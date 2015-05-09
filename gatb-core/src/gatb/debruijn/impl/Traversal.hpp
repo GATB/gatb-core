@@ -136,11 +136,11 @@ public:
 
     /** Get the maximum allowed depth
      * \return maximum depth */
-    int getMaxDepth() const  { return max_depth; };
+    unsigned int getMaxDepth() const  { return max_depth; };
 
     /** Get the maximum allowed breadth
      * \return maximum breadth */
-    int getMaxBreadth () const  { return max_breadth; };
+    unsigned int getMaxBreadth () const  { return max_breadth; };
 
     static const int defaultMaxLen     = 10*1000*1000;
     static const int defaultMaxDepth   = 500;

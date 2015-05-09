@@ -2496,7 +2496,8 @@ int Graph::queryAbundance (const Node& node) const
 // a node state, using the MPHF, is either:
 // 0: unmarked (normal state)
 // 1: marked (already in an output unitig/contig)
-// 2: deleted (part of a tip or bubble in minia)
+// 2: deleted (in minia: tips and collapsed bubble paths will be deleted)
+// 3: complex (branching or deadend, unmarked)
 
 template<size_t span> 
 unsigned long getNodeIndex (const GraphData<span>& data, const Node& node)
@@ -2538,16 +2539,17 @@ struct setNodeState_visitor : public boost::static_visitor<int>    {
 
     const Node& node;
     unsigned long _hashIndex;
+    bool _hashIndexSet;
 
     int state;
 
-    setNodeState_visitor (const Node& node, int state) : node(node), _hashIndex(0), state(state) {}
-    setNodeState_visitor (unsigned long hashIndex, int state) : node(Node()), _hashIndex(hashIndex), state(state) {}
+    setNodeState_visitor (const Node& node, int state) : node(node), _hashIndex(0), _hashIndexSet(false), state(state) {}
+    setNodeState_visitor (unsigned long hashIndex, int state) : node(Node()), _hashIndex(hashIndex), _hashIndexSet(true), state(state) {}
 
     template<size_t span> int operator() (const GraphData<span>& data) const 
     {
         unsigned long hashIndex;
-        if (_hashIndex == 0)
+        if (!_hashIndexSet)
             hashIndex = getNodeIndex<span>(data, node);
         else
             hashIndex = _hashIndex;

@@ -297,7 +297,9 @@ bool MPHFTerminator::is_marked (const Node& node) const
 
 void MPHFTerminator::mark (const Node& node) 
 {
-    _graph.setNodeState(node, 1);
+    int state = _graph.queryNodeState(node.kmer);
+    state |= 1;
+    _graph.setNodeState(node, state);
 }
 
 void MPHFTerminator::reset() 
