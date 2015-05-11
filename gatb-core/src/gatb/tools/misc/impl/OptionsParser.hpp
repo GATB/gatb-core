@@ -171,6 +171,10 @@ public:
      * \return the default value (may be empty) */
     std::string getDefaultValue () const { return _defaultParam; }
 
+    /** Set the default value for the option
+     * \param[in] value : the default value (may be empty) */
+    void setDefaultValue (const std::string& value)  { _defaultParam = value; }
+
     /** Tells whether the option is mandatory or not.
      * \return the mandatory status.
      */
