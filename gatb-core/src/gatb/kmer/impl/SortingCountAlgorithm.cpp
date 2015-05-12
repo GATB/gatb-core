@@ -204,6 +204,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                                 false, "31"    ));
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN,"min abundance threshold for solid kmers",        false, "3"     ));
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",        false, "4294967295"));
+    parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN_THRESHOLD,"min abundance automatic threshold",    false, "3"));
     parser->push_back (new OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",        false, "10000"));
     parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min, max, one, all)",false, "sum"));
     parser->push_back (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                         false, "2000"));
@@ -264,7 +265,8 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 
         new CountProcessorHistogram<span> (
             otherStorage->getGroup("histogram"),
-            params->getInt(STR_HISTOGRAM_MAX)
+            params->getInt(STR_HISTOGRAM_MAX),
+            params->getInt(STR_KMER_ABUNDANCE_MIN_THRESHOLD)
         ),
 
         CountProcessorSolidityFactory<span>::create (

@@ -85,6 +85,7 @@ public:
     const char* minimizer_size ()  { return "-minimizer-size"; }
     const char* kmer_abundance ()  { return "-abundance"; }
     const char* kmer_abundance_min ()  { return "-abundance-min"; }
+    const char* kmer_abundance_min_threshold ()  { return "-abundance-min-threshold"; }
     const char* kmer_abundance_max ()  { return "-abundance-max"; }
     const char* max_memory     ()  { return "-max-memory";     }
     const char* max_disk       ()  { return "-max-disk";       }
@@ -134,6 +135,7 @@ public:
 #define STR_INTEGER_PRECISION   gatb::core::tools::misc::StringRepository::singleton().integer_precision ()
 #define STR_KMER_ABUNDANCE      gatb::core::tools::misc::StringRepository::singleton().kmer_abundance ()
 #define STR_KMER_ABUNDANCE_MIN  gatb::core::tools::misc::StringRepository::singleton().kmer_abundance_min ()
+#define STR_KMER_ABUNDANCE_MIN_THRESHOLD  gatb::core::tools::misc::StringRepository::singleton().kmer_abundance_min_threshold ()
 #define STR_KMER_ABUNDANCE_MAX  gatb::core::tools::misc::StringRepository::singleton().kmer_abundance_max ()
 #define STR_MAX_MEMORY          gatb::core::tools::misc::StringRepository::singleton().max_memory ()
 #define STR_MAX_DISK            gatb::core::tools::misc::StringRepository::singleton().max_disk ()
