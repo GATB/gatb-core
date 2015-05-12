@@ -31,6 +31,8 @@ else
     export set TEST_GIT_CLONE=0
 fi  
 
+# we get the check directory  
+export set TEST_CHECK=`dirname $0`/check
 
 ################################################################################
 # we dump the configuration
@@ -44,6 +46,7 @@ echo "TEST_USER      : " $TEST_USER
 echo "TEST_MAIL      : " $TEST_MAIL
 echo "TEST_BINARY    : " $TEST_BINARY
 echo "TEST_GIT_CLONE : " $TEST_GIT_CLONE
+echo "TEST_CHECK     : " $TEST_CHECK
 echo ""
 
 ################################################################################
@@ -118,8 +121,6 @@ launch () {
     $TEST_BINARY  -kmer-size $3  -in $1 -check $2 -minimizer-type 1 
 }
 
-# we get the check directory  
-export set TEST_CHECK="../test/functional/test1/check"
 
 
 ################################################################################
