@@ -27,6 +27,7 @@
 #define _GATB_CORE_TOOLS_MISC_IHISTOGRAM_HPP_
 
 #include <gatb/system/api/ISmartPointer.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 #include <hdf5/hdf5.h>
 
 /********************************************************************************/
@@ -98,7 +99,7 @@ public:
     virtual void inc (u_int16_t index) = 0;
 
     /** Save the distribution. It is saved into the bag provided at construction. */
-    virtual void save () = 0;
+    virtual void save (tools::storage::impl::Group& group) = 0;
 
 	/** Compute first minimum at x0 and firt maximum at x1 (x1>x0). */
     virtual void compute_threshold (int min_auto_threshold) = 0;  //min_auto_threshold = prevents the auto_cutoff from being below this value. Default =3)

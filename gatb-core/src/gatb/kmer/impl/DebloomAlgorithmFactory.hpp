@@ -48,24 +48,25 @@ public:
 
     static DebloomAlgorithm<span>* create (
         tools::misc::DebloomImpl impl,
-        tools::storage::impl::Storage& storage,
-        tools::storage::impl::Storage& storageSolids,
+        tools::storage::impl::Group&    bloomGroup,
+        tools::storage::impl::Group&    debloomGroup,
         tools::storage::impl::Partition<Count>* solidIterable,
         size_t                      kmerSize,
         size_t                      miniSize,
-        size_t                      max_memory    = 0,
-        size_t                      nb_cores      = 0,
+        size_t                      max_memory = 0,
+        size_t                      nb_cores   = 0,
         tools::misc::BloomKind      bloomKind     = tools::misc::BLOOM_DEFAULT,
         tools::misc::DebloomKind    cascadingKind = tools::misc::DEBLOOM_DEFAULT,
-        const std::string&          debloomUri    = "debloom",
-        tools::misc::IProperties*   options       = 0
+        const std::string&          debloomUri = "debloom",
+        tools::misc::IProperties*   options    = 0,
+        tools::storage::impl::Group*    minimizersGroup = 0
     )
     {
         switch (impl)
         {
             case tools::misc::DEBLOOM_IMPL_BASIC:
                 return new DebloomAlgorithm<span> (
-                    storage, storageSolids, solidIterable, kmerSize, miniSize, max_memory, nb_cores,
+                    bloomGroup, debloomGroup, solidIterable, kmerSize, miniSize, max_memory, nb_cores,
                     bloomKind, cascadingKind, debloomUri, options
                 );
 
@@ -73,8 +74,8 @@ public:
             case tools::misc::DEBLOOM_IMPL_DEFAULT:
             default:
                 return new DebloomMinimizerAlgorithm<span> (
-                    storage, storageSolids, solidIterable, kmerSize, miniSize, max_memory, nb_cores,
-                    bloomKind, cascadingKind, debloomUri, options
+                    bloomGroup, debloomGroup, solidIterable, kmerSize, miniSize, max_memory, nb_cores,
+                    bloomKind, cascadingKind, debloomUri, options, minimizersGroup
                 );
         }
     }

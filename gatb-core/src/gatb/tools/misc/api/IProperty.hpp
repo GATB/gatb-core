@@ -189,7 +189,7 @@ public:
      * \param[in] depth : depth to be added to each depth of added instances.
      * \param[in] prop  : instance holding IProperty instances to be added
      */
-    virtual void       add (size_t depth, IProperties& prop) = 0;
+    virtual void       add (size_t depth, const IProperties& prop) = 0;
 
     /** */
     virtual void add (IProperty* prop, va_list args) = 0;
@@ -272,7 +272,7 @@ public:
      * \param[in] p : the properties object to output
      * \return the modified output stream
      */
-    friend std::ostream & operator<<(std::ostream & s, IProperties& p)  {  p.dump(s);  return s;  }
+    friend std::ostream & operator<<(std::ostream & s, const IProperties& p)  {  p.dump(s);  return s;  }
 
     /** Get the properties as an XML string
      * \return the XML string.
@@ -286,7 +286,7 @@ public:
 protected:
 
     /** */
-    virtual void dump (std::ostream& s) = 0;
+    virtual void dump (std::ostream& s) const  = 0;
 };
 
 /********************************************************************************/

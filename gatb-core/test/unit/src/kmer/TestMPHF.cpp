@@ -100,19 +100,25 @@ public:
             "ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAG"
         } ;
 
-        /** We create a storage instance. */
-        Storage storage (STORAGE_FILE, "test");
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (&storage, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<> sortingCount (new BankStrings (seqs, ARRAY_SIZE(seqs)), params);
 
         /** We launch DSK. */
         sortingCount.execute();
 
-        CPPUNIT_ASSERT (sortingCount.getSolidKmers()->getNbItems() == (int)(strlen(seqs[0]) - kmerSize + 1) );
+        CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (int)(strlen(seqs[0]) - kmerSize + 1) );
+
+        /** We get the storage instance. */
+        Storage* storage = sortingCount.getStorage();
 
         /** We create a mphf instance. */
-        MPHFAlgorithm<> mphf (sortingCount.getStorageGroup(), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), true);
+        MPHFAlgorithm<> mphf (storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), true);
 
         /** We actually execute the mphf construction. */
         mphf.execute();
@@ -122,9 +128,9 @@ public:
         MPHFAlgorithm<>::AbundanceMap& theMap = * mphf.getAbundanceMap();
 
         // below are quick tests
-        
+
         CPPUNIT_ASSERT (theMap.size() == 130);
-       
+
         typedef /*typename*/ Kmer<32>::ModelCanonical       Model;
         typedef /*typename*/ Kmer<32>::ModelCanonical::Kmer Kmer;
         Model model (11);
@@ -157,19 +163,17 @@ public:
         // PART 1 : we get solid kmers from SortingCount
         //////////////////////////////////////////////////
 
-        // We create a Storage product "foo" in HDF5 format
-        Storage* storage = StorageFactory(STORAGE_HDF5).create ("foo", true, false);
-        LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
         IBank* bank = new BankStrings (seqs, ARRAY_SIZE(seqs));
-        // IBank* bank = Bank::singleton().createBank ("/local/databases/aphid/aphid_662451seq.fa");
-        // IBank* bank = Bank::singleton().createBank ("/local/databases/aphid/aphid_1000.fa");
-        // IBank* bank = Bank::singleton().createBank ("/local/databases/ref/reads/ERR011139.fasta");
-
         LOCAL (bank);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (storage, bank, kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<> sortingCount (bank, params);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -196,7 +200,7 @@ public:
 
         // We save the hash object in the dedicated storage group.
         ti.start("save");
-        hash1.save (sortingCount.getStorageGroup(), "mphf");
+        hash1.save (sortingCount.getStorage()->getGroup("dsk"), "mphf");
         ti.stop("save");
 
         // We need a vector to check codes existence
@@ -238,7 +242,7 @@ public:
         // PART 3 : we read the hash from a storage
         //////////////////////////////////////////////////
         MPHF hash2;
-        hash2.load (sortingCount.getStorageGroup(), "mphf");
+        hash2.load (sortingCount.getStorage()->getGroup("dsk"), "mphf");
 
         CPPUNIT_ASSERT (hash1.size() == hash2.size());
 

@@ -91,17 +91,17 @@ public:
      * \param[in] options : extra options
      */
     DebloomAlgorithm (
-        tools::storage::impl::Storage&   storage,
-        tools::storage::impl::Storage&   storageSolids,
+        tools::storage::impl::Group&    bloomGroup,
+        tools::storage::impl::Group&    debloomGroup,
         tools::storage::impl::Partition<Count>* solidIterable,
         size_t                      kmerSize,
         size_t                      miniSize,
-        size_t                      max_memory  = 0,
-        size_t                      nb_cores    = 0,
-        tools::misc::BloomKind      bloomKind   = tools::misc::BLOOM_DEFAULT,
+        size_t                      max_memory = 0,
+        size_t                      nb_cores   = 0,
+        tools::misc::BloomKind      bloomKind     = tools::misc::BLOOM_DEFAULT,
         tools::misc::DebloomKind    debloomKind = tools::misc::DEBLOOM_DEFAULT,
-        const std::string&          debloomUri  = "debloom",
-        tools::misc::IProperties*   options     = 0
+        const std::string&          debloomUri = "debloom",
+        tools::misc::IProperties*   options    = 0
     );
 
     /** Constructor
@@ -123,10 +123,7 @@ public:
      * \return the cFP  kmers collection. */
     tools::collections::Collection<Type>* getCriticalKmers ()
     {
-        /** We need a temporary reference to ease the life of the compiler. */
-        tools::storage::impl::Group& group = _storage(this->getName());
-
-        return & group.getCollection <Type> ("cfp");
+        return & _groupDebloom.getCollection <Type> ("cfp");
     }
 
     /** Get the bloom/cFP container.
@@ -167,9 +164,6 @@ protected:
     );
 
     /** */
-    tools::storage::impl::Storage& _storage;
-    tools::storage::impl::Storage& _storageSolids;
-
     tools::storage::impl::Group& _groupBloom;
     tools::storage::impl::Group& _groupDebloom;
 
@@ -200,7 +194,7 @@ protected:
         u_int64_t& totalSize
     );
 
-    void loadDebloomStructures (tools::storage::impl::Storage& storage);
+    void loadDebloomStructures ();
 
     static const char* progressFormat1() { return "Debloom: read solid kmers              "; }
     static const char* progressFormat2() { return "Debloom: build extension               "; }

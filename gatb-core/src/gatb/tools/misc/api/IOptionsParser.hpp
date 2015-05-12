@@ -162,6 +162,10 @@ public:
     /*********************   Miscellaneous   *********************/
     /*************************************************************/
 
+    /** Return the default properties
+     * \return the default properties. */
+    virtual misc::IProperties* getDefaultProperties ()  = 0;
+
     /** Visitor design pattern. */
     virtual void accept (IOptionsParserVisitor& visitor, size_t depth=0) = 0;
 

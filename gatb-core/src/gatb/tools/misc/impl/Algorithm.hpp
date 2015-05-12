@@ -34,6 +34,7 @@
 #include <gatb/tools/misc/api/StringsRepository.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
+#include <gatb/system/api/config.hpp>
 
 #include <string>
 #include <list>
@@ -141,6 +142,37 @@ public:
      * \return an iterator listener.
      */
     virtual dp::IteratorListener* createIteratorListener (size_t nbIterations, const char* message);
+
+
+    /********************************************************************************/
+
+    /** Utility function for easily running a kmers based algorithms.
+     * It ensures that the correct instance of the provided functor is launched,
+     * according to the kmer size (known at runtime). */
+    template <template<size_t> class Functor>
+    static int mainloop (tools::misc::IOptionsParser* parser, int argc, char* argv[])
+    {
+        // We get a handle on the provided parser.
+        LOCAL (parser);
+
+        try {
+            // We parse the user options.
+            tools::misc::IProperties* options = parser->parse (argc, argv);
+
+            size_t kmerSize = options->getInt (STR_KMER_SIZE);
+
+                if (kmerSize < KSIZE_1)  {  Functor <KSIZE_1>() (options); }
+           else if (kmerSize < KSIZE_2)  {  Functor <KSIZE_2>() (options); }
+           else if (kmerSize < KSIZE_3)  {  Functor <KSIZE_3>() (options); }
+           else if (kmerSize < KSIZE_4)  {  Functor <KSIZE_4>() (options); }
+           else { throw system::Exception ("failure because of unhandled kmer size %d", kmerSize); }
+        }
+
+        catch (tools::misc::impl::OptionFailure& e)  {  return e.displayErrors (std::cerr);                         }
+        catch (system::Exception& e)                 {  std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;  }
+
+        return EXIT_SUCCESS;
+    }
 
 protected:
 

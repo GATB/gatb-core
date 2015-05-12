@@ -339,8 +339,7 @@ private:
 
     Path most_abundant_consensus(std::set<Path>& consensuses);
 
-    static const int consensuses_identity = 85; // traversing bubble if paths are all pair-wise identical by 85% 
-    //(used to be > 90% in legacy minia) // by legacy minia i mean minia 1 and minia 2 up to the assembly algo rewrite in may 2015
+    static const int consensuses_identity = 90; // traversing bubble if paths are all pair-wise identical by > 90%
 };
 
 /********************************************************************************/

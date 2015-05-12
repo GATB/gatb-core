@@ -357,6 +357,27 @@ private:
 };
 
 /********************************************************************************/
+
+template<typename T1, typename T2=T1>
+struct HDF5Pair : std::pair<T1,T2>
+{
+    HDF5Pair ()  {}
+
+    HDF5Pair (const T1& a, const T2& b) : std::pair<T1,T2>(a,b) {}
+
+    static hid_t hdf5 (bool& isCompound)
+    {
+        hid_t result = H5Tcreate (H5T_COMPOUND, sizeof(HDF5Pair));
+        H5Tinsert (result, "first",   HOFFSET(HDF5Pair, first),  T1::hdf5(isCompound));
+        H5Tinsert (result, "second",  HOFFSET(HDF5Pair, second), T2::hdf5(isCompound));
+
+        isCompound = true;
+
+        return result;
+    }
+};
+
+/********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 

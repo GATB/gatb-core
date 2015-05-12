@@ -101,7 +101,7 @@ public:
     void add (size_t depth, IProperties* prop);
 
     /** \copydoc IProperties::add(size_t,IProperties*)  */
-    void  add (size_t depth, IProperties& prop);
+    void  add (size_t depth, const IProperties& prop);
 
     /**  */
     void add (IProperty* p, va_list args);
@@ -157,7 +157,7 @@ public:
     std::string getXML ();
 
     /* */
-    void dump (std::ostream& s);
+    void dump (std::ostream& s) const;
 
     /** Read a file holding [key,value] entries and add them through 'add' method.
      * \param[in] file : the file to be read
@@ -174,7 +174,7 @@ private:
 };
 
 /** Overload output stream operator. */
-inline std::ostream& operator<< (std::ostream& os, Properties& props)  { props.dump(os); return os; }
+inline std::ostream& operator<< (std::ostream& os, const Properties& props)  { props.dump(os); return os; }
 
 /********************************************************************************/
 

@@ -90,25 +90,38 @@ public:
             "ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAG"
         } ;
 
-        /** We create a storage instance. */
-        Storage* storage = StorageFactory(STORAGE_HDF5).create("foo", true, true);
-        LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();  LOCAL (params);
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_MINIMIZER_SIZE,     miniSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
-        /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (storage, new BankStrings (seqs, ARRAY_SIZE(seqs)), kmerSize, make_pair(nks,0));
+        /** We create a SortingCountAlgorithm object. */
+        SortingCountAlgorithm<> sortingCount (new BankStrings (seqs, ARRAY_SIZE(seqs)), params);
 
         /** We launch DSK. */
         sortingCount.execute();
 
         CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (int64_t)(strlen(seqs[0]) - kmerSize + 1) );
 
+        /** We get the storage instance. */
+        Storage* storage = sortingCount.getStorage();
+        LOCAL (storage);
+
+        Partition<SortingCountAlgorithm<>::Count>& counts = storage->getGroup("dsk").getPartition<Kmer<>::Count> ("solid");
+
         /** We create a bloom instance. */
         float nbitsPerKmer = DebloomAlgorithm<>::getNbBitsPerKmer (kmerSize, DEBLOOM_ORIGINAL);
-        BloomAlgorithm<> bloom (*storage, sortingCount.getSolidCounts(), kmerSize, nbitsPerKmer, 0, BLOOM_BASIC);
+        BloomAlgorithm<> bloom (*storage, &counts, kmerSize, nbitsPerKmer, 0, BLOOM_BASIC);
         bloom.execute ();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize, miniSize, 1000, 0, BLOOM_BASIC, DEBLOOM_ORIGINAL);
+        DebloomAlgorithm<> debloom (
+            storage->getGroup("bloom"),
+            storage->getGroup("debloom"),
+            &counts, kmerSize, miniSize, 1000, 0, BLOOM_BASIC, DEBLOOM_ORIGINAL
+        );
 
         /** We launch the debloom. */
         debloom.execute();

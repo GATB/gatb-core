@@ -110,6 +110,9 @@ launch ./SRR1785130.fastq.gz  $TEST_CHECK/k63/SRR1785130.props    63
 launch ./SRR1785130.fastq.gz  $TEST_CHECK/k95/SRR1785130.props    95
 launch ./SRR1785130.fastq.gz  $TEST_CHECK/k127/SRR1785130.props  127
 
+launch ./ERR039477.fastq.gz,./SRR387476.fastq.gz   $TEST_CHECK/k31/ERR039477_SRR387476.props     31
+launch ./ERR039477.fastq.gz,./SRR387476.fastq.gz   $TEST_CHECK/k63/ERR039477_SRR387476.props     63
+launch ./ERR039477.fastq.gz,./SRR387476.fastq.gz   $TEST_CHECK/k95/ERR039477_SRR387476.props     95
 
 ################################################################################
 # clean up

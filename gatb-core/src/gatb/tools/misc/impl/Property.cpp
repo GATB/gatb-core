@@ -245,12 +245,12 @@ void Properties::add (size_t depth, IProperties* properties)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Properties::add (size_t depth, IProperties& properties)
+void Properties::add (size_t depth, const IProperties& properties)
 {
     /** We accept a visitor. */
     set<string>  nokeys;
     InsertionVisitor v (depth, this, nokeys);
-    properties.accept (&v);
+    ((IProperties&)properties).accept (&v);
 }
 
 /*********************************************************************
@@ -507,11 +507,11 @@ void Properties::readFile (const string& filename)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Properties::dump (std::ostream& s)
+void Properties::dump (std::ostream& s) const
 {
     /** We dump some execution information. */
     RawDumpPropertiesVisitor visit (s);
-    this->accept (&visit);
+    ((Properties*)this)->accept (&visit);
 }
 
 /*********************************************************************

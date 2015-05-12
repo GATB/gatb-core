@@ -836,7 +836,7 @@ public:
     };
     typedef u_int64_t State;
     State getState () const { return _state; }
-    bool checkState (StateMask mask) const { return (_state & mask)==mask; }
+    bool  checkState (StateMask mask) const { return (_state & (State)mask)==(State)mask; }
     State setState   (StateMask mask) { _state |=  mask; return _state; }
     State unsetState (StateMask mask) { _state &= ~mask; return _state; }
 

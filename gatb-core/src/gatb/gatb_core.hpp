@@ -72,6 +72,7 @@
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
 #include <gatb/kmer/impl/BankKmers.hpp>
+#include <gatb/kmer/impl/CountProcessor.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/Terminator.hpp>

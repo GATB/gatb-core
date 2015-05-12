@@ -7,8 +7,8 @@ cmake_minimum_required (VERSION 2.6)
 # The version number.
 ################################################################################
 SET (gatb-core_VERSION_MAJOR 1)
-SET (gatb-core_VERSION_MINOR 0)
-SET (gatb-core_VERSION_PATCH 8)
+SET (gatb-core_VERSION_MINOR 1)
+SET (gatb-core_VERSION_PATCH 0)
 
 IF (DEFINED MAJOR)
     SET (gatb-core_VERSION_MAJOR ${MAJOR})
@@ -108,7 +108,7 @@ endif()
 # GENERAL DEFINITIONS
 ################################################################################
 
-set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-unused-variable  -Wno-unused-result -Wno-parentheses -Wno-format -Wno-strict-aliasing -Wno-array-bounds")
+set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-unused-variable -Wno-parentheses -Wno-format -Wno-strict-aliasing -Wno-array-bounds")
 
 if (debug)
     #set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p -pg")

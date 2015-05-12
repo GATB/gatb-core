@@ -26,6 +26,9 @@
 #ifndef _GATB_CORE_TOOLS_MISC_ENUMS_HPP_
 #define _GATB_CORE_TOOLS_MISC_ENUMS_HPP_
 
+#include <gatb/system/api/Exception.hpp>
+#include <string>
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -261,6 +264,10 @@ enum KmerSolidityKind
     KMER_SOLIDITY_MIN,
     /** max criteria */
     KMER_SOLIDITY_MAX,
+    /** on criteria */
+    KMER_SOLIDITY_ONE,
+    /** all criteria */
+    KMER_SOLIDITY_ALL,
     /** sum criteria */
     KMER_SOLIDITY_SUM,
     KMER_SOLIDITY_DEFAULT
@@ -273,6 +280,8 @@ static void parse (const std::string& s, KmerSolidityKind& kind)
 {
          if (s == "min")    { kind = KMER_SOLIDITY_MIN;  }
     else if (s == "max")    { kind = KMER_SOLIDITY_MAX;  }
+    else if (s == "one")    { kind = KMER_SOLIDITY_ONE;  }
+    else if (s == "all")    { kind = KMER_SOLIDITY_ALL;  }
     else if (s == "sum")    { kind = KMER_SOLIDITY_SUM;  }
     else   { throw system::Exception ("bad kmer solidity kind '%s'", s.c_str()); }
 }
@@ -286,6 +295,8 @@ static std::string toString (KmerSolidityKind kind)
     {
         case KMER_SOLIDITY_MIN:     return "min";
         case KMER_SOLIDITY_MAX:     return "max";
+        case KMER_SOLIDITY_ONE:     return "one";
+        case KMER_SOLIDITY_ALL:     return "all";
         case KMER_SOLIDITY_SUM:     return "sum";
         case KMER_SOLIDITY_DEFAULT: return "sum";
         default:    throw system::Exception ("bad kmer solidity kind %d", kind);

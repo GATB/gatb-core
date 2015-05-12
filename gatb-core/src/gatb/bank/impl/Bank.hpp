@@ -86,6 +86,10 @@ public:
      * \return the IBank instance. */
     static IBank* open (const std::string& uri)  { return singleton()._open_ (uri); }
 
+    /** In case of a composite bank, return the number of sub banks.
+     * \return number of sub banks. */
+    static size_t getCompositionNb (const std::string& uri)  {  IBank* bank = open (uri);  LOCAL (bank);  return bank->getCompositionNb();  }
+
     /** Get the type of the bank as a string
      * \param[in] uri : uri of the bank.
      * \return the bank type as a string. */

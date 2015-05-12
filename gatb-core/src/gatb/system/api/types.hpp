@@ -41,6 +41,15 @@
 /********************************************************************************/
 
 #include <sys/types.h>
+#include <vector>
+
+/********************************************************************************/
+
+/** We define a type for counting kmer occurrence. */
+typedef u_int32_t CountNumber;
+
+/** We define a type for a vector holding kmer counts. */
+typedef std::vector<CountNumber> CountVector;
 
 /********************************************************************************/
 

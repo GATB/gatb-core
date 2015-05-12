@@ -116,6 +116,9 @@ public:
     /*********************   Miscellaneous   *********************/
     /*************************************************************/
 
+    /** \copydoc IOptionsParser::getDefaultProperties */
+    misc::IProperties* getDefaultProperties ();
+
     /** \copydoc IOptionsParser::accept */
     void accept (IOptionsParserVisitor& visitor, size_t depth=0)  { visitor.visitOptionsParser(*this, depth); }
 
