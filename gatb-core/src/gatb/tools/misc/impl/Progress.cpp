@@ -294,7 +294,7 @@ void ProgressTimer::fillBuffer (double elapsed)
     rem -= min_r*60;
 
     /** We format the string to be displayed. */
-    snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g%%   elapsed: %3i min %-2.0f sec   estimated remaining: %3i min %-2.0f sec",
+    snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g%%   elapsed: %3i min %-2.0f sec   remaining: %3i min %-2.0f sec",
         13,
         message.c_str(),
         100*(double)done/todo,
