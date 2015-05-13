@@ -710,8 +710,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
      */
     vector<size_t> coreList = getNbCoresList(pInfo); //uses _nb_partitions_in_parallel
 
-    /** We need a memory allocator. */
-    MemAllocator pool;
+    /** We need a memory allocator. We give the cores number in order to compute an extra memory
+     * allocation for alignment constraints. */
+    MemAllocator pool (_config._nbCores);
 
     size_t p = 0;
     for (size_t i=0; i<coreList.size(); i++)
@@ -742,6 +743,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
             mem/MBYTE, currentNbCores
         ));
 
+        /** We build a list of 'currentNbCores' commands to be dispatched each one in one thread. */
         for (size_t j=0; j<currentNbCores; j++, p++)
         {
             ISynchronizer* synchro = System::thread().newSynchronizer();
