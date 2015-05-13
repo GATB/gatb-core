@@ -56,14 +56,14 @@ class TestMisc : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestMisc);
 
-//        CPPUNIT_TEST_GATB (range_checkIterator1);
-//        CPPUNIT_TEST_GATB (range_checkIterator2);
-//        //  NEED A GOOD TIMER ACCURACY...  CPPUNIT_TEST_GATB (range_checkPerformance);
-//        // DEACTIVATED BECAUSE OF MACOS (TO BE INVESTIGATED...)  CPPUNIT_TEST_GATB (vector_check1);
-//        CPPUNIT_TEST_GATB (vector_check2);
-//        CPPUNIT_TEST_GATB (vector_check3);
-//        CPPUNIT_TEST_GATB (parser_check1);
-//        CPPUNIT_TEST_GATB (parser_check2);
+        CPPUNIT_TEST_GATB (range_checkIterator1);
+        CPPUNIT_TEST_GATB (range_checkIterator2);
+        //  NEED A GOOD TIMER ACCURACY...  CPPUNIT_TEST_GATB (range_checkPerformance);
+        // DEACTIVATED BECAUSE OF MACOS (TO BE INVESTIGATED...)  CPPUNIT_TEST_GATB (vector_check1);
+        CPPUNIT_TEST_GATB (vector_check2);
+        CPPUNIT_TEST_GATB (vector_check3);
+        CPPUNIT_TEST_GATB (parser_check1);
+        CPPUNIT_TEST_GATB (parser_check2);
 
         CPPUNIT_TEST_GATB (stringline_check1);
 
