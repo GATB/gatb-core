@@ -35,13 +35,21 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+/** The CountProcessorHistogram implementation collects information about the
+ * kmers distribution. It feeds a IHistogram instance during the 'process' method.
+ *
+ * At the end of the algorithm, it provides information such as the best cutoff
+ * (ie a "good" abundance min parameter).
+ */
 template<size_t span=KMER_DEFAULT_SPAN>
 class CountProcessorHistogram : public CountProcessorAbstract<span>
 {
 public:
 
+    /** Shortcuts. */
     typedef typename Kmer<span>::Type Type;
 
+    /** Constructor. */
     CountProcessorHistogram (
         tools::storage::impl::Group& group,
         size_t histoMax           = 10000,
@@ -52,6 +60,7 @@ public:
         setHistogram (new tools::misc::impl::Histogram (histoMax));
     }
 
+    /** Constructor. */
     CountProcessorHistogram (
         tools::storage::impl::Group& group,
         tools::misc::IHistogram* histogram,
@@ -62,18 +71,17 @@ public:
         setHistogram (histogram);
     }
 
+    /** Destructor. */
     virtual ~CountProcessorHistogram ()
     {
         setHistogram(0);
     }
 
-    /** */
-    bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum)
-    {
-        _histogram->inc (sum);
-        return true;
-    }
+    /********************************************************************/
+    /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
+    /********************************************************************/
 
+    /** \copydoc ICountProcessor<span>::end */
     void end ()
     {
         using namespace tools::math;
@@ -94,6 +102,29 @@ public:
         storesolids.flush();
     }
 
+    /** \copydoc ICountProcessor<span>::clone */
+    CountProcessorAbstract<span>* clone ()
+    {
+        /** We encapsulate the histogram with a cache. */
+        return new CountProcessorHistogram (_group, new gatb::core::tools::misc::impl::HistogramCache (_histogram),  _min_auto_threshold);
+    }
+
+    /********************************************************************/
+    /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
+    /********************************************************************/
+
+    /** \copydoc ICountProcessor<span>::process */
+    bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum)
+    {
+        _histogram->inc (sum);
+        return true;
+    }
+
+    /*****************************************************************/
+    /*                          MISCELLANEOUS.                       */
+    /*****************************************************************/
+
+    /** \copydoc ICountProcessor<span>::getProperties */
     tools::misc::impl::Properties getProperties() const
     {
         tools::misc::impl::Properties result;
@@ -110,22 +141,9 @@ public:
         return result;
     }
 
-    /** */
+    /** Get the histogram.
+     * \return the histogram instance. */
     gatb::core::tools::misc::IHistogram* getHistogram() { return _histogram; }
-
-
-protected:
-
-    /** */
-    CountProcessorAbstract<span>* doClone ()
-    {
-        /** We encapsulate the histogram with a cache. */
-        return new CountProcessorHistogram (
-            _group,
-            new gatb::core::tools::misc::impl::HistogramCache (_histogram),
-            _min_auto_threshold
-        );
-    }
 
 private:
 

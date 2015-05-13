@@ -718,6 +718,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
     {
         vector<ICommand*> cmds;
 
+        /** We use a vector to hold all the current CountProcessor clones. */
+        vector<CountProcessor*> clones;
+
         size_t currentNbCores = coreList[i];
         assert (currentNbCores > 0);
 
@@ -746,6 +749,10 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
 
             /** We clone the prototype count processor instance for the current 'p' kmers partition. */
             CountProcessor* processorClone = _processor->clone ();
+
+            /** We use and put the clone into a vector. */
+            processorClone->use();
+            clones.push_back (processorClone);
 
             DEBUG ((" %zu ", p));
 
@@ -851,6 +858,11 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
 
         /** We launch the commands through a dispatcher. */
         getDispatcher()->dispatchCommands (cmds, 0);
+
+        /** The N CountProcessor clones should have done their job during the 'dispatchCommands'
+         * We can send a notification about it and get rid of them. */
+        _processor->finishClones (clones);
+        for (size_t i=0; i<clones.size(); i++)  { clones[i]->forget(); }  clones.clear();
 
         // free internal memory of pool here
         pool.free_all();

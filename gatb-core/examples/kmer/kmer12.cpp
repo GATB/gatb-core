@@ -39,7 +39,7 @@ class CountProcessorCustom : public CountProcessorAbstract<span>
 public:
 
     // Constructor.
-    CountProcessorCustom (size_t nbBanks, const Range<size_t>& range)  : _nbBanks(nbBanks), _range(range)
+    CountProcessorCustom (size_t nbBanks, const CountRange& range)  : _nbBanks(nbBanks), _range(range)
     {
         // We configure the vector for the N.(N+1)/2 possible pairs
         _countTotal.resize (_nbBanks*(_nbBanks+1)/2);
@@ -47,6 +47,31 @@ public:
 
     // Destructor
     virtual ~CountProcessorCustom () {}
+
+    /********************************************************************/
+    /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
+    /********************************************************************/
+
+    // We need to implement the cloning method for our custom count processor
+    CountProcessorAbstract<span>* clone ()  {  return new CountProcessorCustom (_nbBanks, _range);  }
+
+    // When several cloned CountProcessor instances have finished to process their partition,
+    // we need to update the main CountProcessor instance with the collected information from the clones.
+    void finishClones (std::vector<ICountProcessor<span>*>& clones)
+    {
+        for (size_t i=0; i<clones.size(); i++)
+        {
+            /** We have to recover type information. */
+            if (CountProcessorCustom* clone = dynamic_cast<CountProcessorCustom*> (clones[i]))
+            {
+                for (size_t i=0; i<this->_countTotal.size(); i++)  { this->_countTotal[i] += clone->_countTotal[i];  }
+            }
+        }
+    }
+
+    /********************************************************************/
+    /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
+    /********************************************************************/
 
     // We refine the 'process' method
     virtual bool process (size_t partId, const typename Kmer<span>::Type& kmer, const CountVector& count, CountNumber sum)
@@ -71,27 +96,9 @@ public:
         return true;
     }
 
-    // When one cloned CountProcessor instance has finished its job (ie at the end of a kmer partition),
-    // we need to update the main CountProcessor instance with the collected information from the clone.
-    void endPart (size_t passId, size_t partId)
-    {
-        // By convention, a CountProcessor instance having a non null '_prototype' attribute is a cloned
-        // instance (cloned from the instance provided to the SortingCount algorithm).
-
-        // NOTE: the method 'endPart' can be called in different thread contexts; since we want to modify
-        // a global resource (the '_prototype' instance), we have to be careful about synchronously modify
-        // the global resource.
-
-        CountProcessorCustom* prototype = dynamic_cast<CountProcessorCustom*> (this->getPrototype());
-        if (prototype != 0)
-        {
-            for (size_t i=0; i<this->_countTotal.size(); i++)
-            {
-                // Note the synchro here with __sync_fetch_and_add
-                __sync_fetch_and_add (& prototype->_countTotal[i], this->_countTotal[i]);
-            }
-        }
-    }
+    /*****************************************************************/
+    /*                          MISCELLANEOUS.                       */
+    /*****************************************************************/
 
     // We can return the total number of common kmers in each pair of banks
     u_int64_t getNbItems ()  {  return std::accumulate (_countTotal.begin(), _countTotal.end(), 0);  }
@@ -101,9 +108,6 @@ public:
 
 protected:
 
-    // We need to implement the cloning method for our custom count processor
-    CountProcessorAbstract<span>* doClone ()  {  return new CountProcessorCustom (_nbBanks, _range);  }
-
     // Get a unique integer from the pair (i,j)
     size_t offset (size_t i, size_t j) const { return _nbBanks*(j-i) - ((j-i)*((j-i)-1))/2 + i; }
 
@@ -111,7 +115,7 @@ private:
 
     size_t         _nbBanks;
     vector<size_t> _countTotal;
-    Range<size_t>  _range;
+    CountRange     _range;
 };
 
 /********************************************************************************/
@@ -129,7 +133,7 @@ template<size_t span>  struct MainLoop  {  void operator () (IProperties* option
     SortingCountAlgorithm<span> algo (options);
 
     // We create a custom count processor and give it to the sorting count algorithm
-    CountProcessorCustom<span>* processor = new CountProcessorCustom<span> (nbSources, Range<size_t>(nks,~0));
+    CountProcessorCustom<span>* processor = new CountProcessorCustom<span> (nbSources, CountRange(nks,~0));
     algo.setProcessor (processor);
 
     // We launch the algorithm

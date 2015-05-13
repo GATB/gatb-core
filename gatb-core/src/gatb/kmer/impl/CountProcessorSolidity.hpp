@@ -34,16 +34,54 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+/** The CountProcessorSolidityAbstract is an abstract class that factories stuff
+ * for telling whether a kmer is solid or not.
+ *
+ * Inherited classes provides (through the 'check' method) the way the kmer solidity is
+ * computed. There is one subclass per kind of kmer solidity.
+ *
+ * Technically, static polymorphism is used here through the 'check' method.
+ *
+ * Note that there exists a factory class CountProcessorSolidityFactory that manages
+ * the creation of the correct instance according to some user information.
+ */
 template<size_t span, class Derived>
 class CountProcessorSolidityAbstract : public CountProcessorAbstract<span>
 {
 public:
 
+    /** Constructor. */
     CountProcessorSolidityAbstract (const tools::misc::CountRange& threshold) : _threshold(threshold), _total(0), _ok(0)   {}
 
+    /** Destructor. */
     virtual ~CountProcessorSolidityAbstract()  {}
 
-    /** */
+    /********************************************************************/
+    /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
+    /********************************************************************/
+
+    /** \copydoc ICountProcessor<span>::clones */
+    CountProcessorAbstract<span>* clone ()  { return new Derived (_threshold); }
+
+    /** \copydoc ICountProcessor<span>::finishClones */
+    void finishClones (std::vector<ICountProcessor<span>*>& clones)
+    {
+        for (size_t i=0; i<clones.size(); i++)
+        {
+            /** We have to recover type information. */
+            if (CountProcessorSolidityAbstract* clone = dynamic_cast<CountProcessorSolidityAbstract*> (clones[i]))
+            {
+                this->_total += clone->_total;
+                this->_ok    += clone->_ok;
+            }
+        }
+    }
+
+    /********************************************************************/
+    /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
+    /********************************************************************/
+
+    /** \copydoc ICountProcessor<span>::process */
     bool process (size_t partId, const typename Kmer<span>::Type& kmer, const CountVector& count, CountNumber sum)
     {
         /** We use static polymorphism here. */
@@ -54,20 +92,16 @@ public:
         return result;
     }
 
-    void endPart (size_t passId, size_t partId)
-    {
-        CountProcessorSolidityAbstract* proto = dynamic_cast<CountProcessorSolidityAbstract*> (this->getPrototype());
-        if (proto != 0)
-        {
-            __sync_fetch_and_add (&proto->_total, this->_total);
-            __sync_fetch_and_add (&proto->_ok,    this->_ok);
-        }
-    }
+    /*****************************************************************/
+    /*                          MISCELLANEOUS.                       */
+    /*****************************************************************/
 
+    /** \copydoc ICountProcessor<span>::getProperties */
     tools::misc::impl::Properties getProperties() const
     {
         tools::misc::impl::Properties result;
         result.add (0, "kmers");
+        result.add (1, "solidity_kind",      "%s", getName().c_str());
         result.add (1, "kmers_nb_distinct",  "%ld", _total);
         result.add (1, "kmers_nb_solid",     "%ld", _ok);
         result.add (1, "kmers_nb_weak",      "%ld", _total - _ok);
@@ -76,10 +110,11 @@ public:
         return result;
     }
 
-protected:
+    /** Get a short id for the kind of solidity
+     * \return the solidity name. */
+    virtual std::string getName() const = 0;
 
-    /** */
-    CountProcessorAbstract<span>* doClone ()  { return new Derived (_threshold); }
+protected:
 
     tools::misc::CountRange _threshold;
 

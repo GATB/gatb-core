@@ -31,18 +31,29 @@ public:
         for (size_t i=0; i<_histogramProcessors.size(); i++)  {  delete _histogramProcessors[i];  }
     }
 
-    virtual bool process (size_t partId, const typename Kmer<span>::Type& kmer, const CountVector& count, CountNumber sum)
+    /********************************************************************/
+    /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
+    /********************************************************************/
+
+    // End of the algorithm : we 'end' each histogram
+    void end ()   {  for (size_t i=0; i<_histogramProcessors.size(); i++)  {  _histogramProcessors[i]->end();  }  }
+
+    // We need to implement the cloning method for our custom count processor
+    CountProcessorAbstract<span>* clone ()
     {
-        // Note that we provide the 'sum' argument as being the count of the ith bank
-        for (size_t i=0; i<_histogramProcessors.size(); i++)  {  _histogramProcessors[i]->process (partId, kmer, count, count[i]);  }
-        return true;
+        // We clone each CountProcessorHistogram
+        vector <CountProcessorHistogram<span>* > clones;
+        for (size_t i=0; i<_histogramProcessors.size(); i++)  {  clones.push_back ((CountProcessorHistogram<span>*)_histogramProcessors[i]->clone());  }
+
+        // We return an instance of our custom processor with the CountProcessorHistogram clones
+        return new CountProcessorCustom (clones, _values);
     }
 
-    void end ()
-    {
-        for (size_t i=0; i<_histogramProcessors.size(); i++)  {  _histogramProcessors[i]->end();  }
-    }
+    /********************************************************************/
+    /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
+    /********************************************************************/
 
+    // At the end of one partition processing, we get some stats on the N cloned histograms
     void endPart (size_t passId, size_t partId)
     {
         int min_auto_threshold = 3;
@@ -60,22 +71,19 @@ public:
         }
     }
 
+    // We forward the information to each clone histogram
+    virtual bool process (size_t partId, const typename Kmer<span>::Type& kmer, const CountVector& count, CountNumber sum)
+    {
+        // Note that we provide the 'sum' argument as being the count of the ith bank
+        for (size_t i=0; i<_histogramProcessors.size(); i++)  {  _histogramProcessors[i]->process (partId, kmer, count, count[i]);  }
+        return true;
+    }
+
 protected:
 
     vector <CountProcessorHistogram<span>* > _histogramProcessors;
 
     Partition<HDF5Pair<NativeInt64> >& _values;
-
-    // We need to implement the cloning method for our custom count processor
-    CountProcessorAbstract<span>* doClone ()
-    {
-        // We clone each CountProcessorHistogram
-        vector <CountProcessorHistogram<span>* > clones;
-        for (size_t i=0; i<_histogramProcessors.size(); i++)  {  clones.push_back ((CountProcessorHistogram<span>*)_histogramProcessors[i]->clone());  }
-
-        // We return an instance of our custom processor with the CountProcessorHistogram clones
-        return new CountProcessorCustom (clones, _values);
-    }
 };
 
 /********************************************************************************/

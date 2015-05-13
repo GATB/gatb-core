@@ -41,22 +41,12 @@ public:
     /** Shortcuts. */
     typedef typename Kmer<span>::Type Type;
 
-    /** Constructor. */
-    CountProcessorAbstract ()  : _prototype(0) {}
-
     /** Destructor. */
     virtual ~CountProcessorAbstract ()  {}
 
-    /** \copydoc ICountProcessor<span>::clone */
-    ICountProcessor<span>* clone ()
-    {
-        CountProcessorAbstract<span>* result = this->doClone();
-        result->setPrototype (this);
-        return result;
-    }
-
-    /** \copydoc ICountProcessor<span>::process */
-    virtual bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum=0)  {  return true;  }
+    /********************************************************************/
+    /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
+    /********************************************************************/
 
     /** \copydoc ICountProcessor<span>::begin */
     virtual void begin(const Configuration& config) {}
@@ -64,11 +54,25 @@ public:
     /** \copydoc ICountProcessor<span>::end */
     virtual void end  () {}
 
+    /** \copydoc ICountProcessor<span>::finishClones */
+    virtual void finishClones (std::vector<ICountProcessor<span>*>& clones)  {}
+
+    /********************************************************************/
+    /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
+    /********************************************************************/
+
     /** \copydoc ICountProcessor<span>::beginPart */
     virtual void beginPart (size_t passId, size_t partId, size_t cacheSize, const char* name) {}
 
     /** \copydoc ICountProcessor<span>::endPart */
     virtual void endPart   (size_t passId, size_t partId) {}
+
+    /** \copydoc ICountProcessor<span>::process */
+    virtual bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum=0)  {  return true;  }
+
+    /*****************************************************************/
+    /*                          MISCELLANEOUS.                       */
+    /*****************************************************************/
 
     /** \copydoc ICountProcessor<span>::getProperties */
     virtual tools::misc::impl::Properties getProperties() const { return tools::misc::impl::Properties(); }
@@ -80,28 +84,6 @@ public:
         res.push_back((CountProcessorAbstract*)this);
         return res;
     }
-
-protected:
-
-    /** Abstract method to be implemented by children class. */
-    virtual CountProcessorAbstract* doClone () = 0;
-
-    /** \copydoc ICountProcessor<span>::computeSum */
-    CountNumber computeSum (const CountVector& count) const
-    {
-        /** Optimization. */
-        if (count.size()==1)  { return count[0]; }
-        CountNumber sum=0; for (size_t k=0; k<count.size(); k++)  { sum+=count[k]; }  return sum;
-    }
-
-    /** Getter on the prototype (if any)
-     * \return the prototype instance. */
-    ICountProcessor<span>* getPrototype ()  { return _prototype; }
-
-private:
-
-    ICountProcessor<span>* _prototype;
-    void setPrototype (ICountProcessor<span>* proto)  { _prototype = proto; }
 };
 
 /********************************************************************************/

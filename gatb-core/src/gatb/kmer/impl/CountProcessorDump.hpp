@@ -34,15 +34,29 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
+/** The CountProcessorDump implementation dumps kmers on file system through
+ * a Partition object.
+ *
+ * The number of partitions is not known at creation and is received through a
+ * call to the 'begin' method; there, the number of partitions is used to
+ * configure the Partition object.
+ *
+ * A clone instance is dedicated to one partition, which is configured when the
+ * method 'beginPart' is called on a cloned instance.
+ *
+ * The CountProcessorDump implementation is likely to be used in a CountProcessorChain,
+ * like this : solidity -> dump.  It allows to dump on file system only solid kmers.
+ */
 template<size_t span=KMER_DEFAULT_SPAN>
 class CountProcessorDump : public CountProcessorAbstract<span>
 {
 public:
 
+    /** Shortcuts. */
     typedef typename Kmer<span>::Count Count;
     typedef typename Kmer<span>::Type Type;
 
-    /** */
+    /** Constructor */
     CountProcessorDump (
         tools::storage::impl::Group&            group,
         size_t                                  kmerSize,
@@ -56,21 +70,18 @@ public:
         setSynchronizer (synchronizer);
     }
 
-    /** */
+    /** Destructor */
     virtual ~CountProcessorDump ()
     {
         setSolidCounts(0);
         setSolidKmers (0);
     }
 
-    /** */
-    bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum)
-    {
-        this->_solidKmers->insert (Count(kmer,sum));
-        return true;
-    }
+    /********************************************************************/
+    /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
+    /********************************************************************/
 
-    /** */
+    /** \copydoc ICountProcessor<span>::begin */
     void begin (const Configuration& config)
     {
         /** We remember the number of partitions for one pass. */
@@ -86,7 +97,34 @@ public:
         _group.addProperty ("kmer_size", tools::misc::impl::Stringify::format("%d", _kmerSize));
     }
 
-    /** */
+    /** \copydoc ICountProcessor<span>::clones */
+    CountProcessorAbstract<span>* clone ()
+    {
+        /** Note : we share the synchronizer for all the clones. */
+        return new CountProcessorDump (_group, _kmerSize, _synchronizer, _solidCounts, _nbPartsPerPass);
+    }
+
+    /** \copydoc ICountProcessor<span>::finishClones */
+    void finishClones (std::vector<ICountProcessor<span>*>& clones)
+    {
+        for (size_t i=0; i<clones.size(); i++)
+        {
+            /** We have to recover type information. */
+            if (CountProcessorDump* clone = dynamic_cast<CountProcessorDump*> (clones[i]))
+            {
+                for (std::map<std::string,size_t>::iterator it = clone->_namesOccur.begin(); it != clone->_namesOccur.end(); ++it)
+                {
+                    this->_namesOccur[it->first] += it->second;
+                }
+            }
+        }
+    }
+
+    /********************************************************************/
+    /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
+    /********************************************************************/
+
+    /** \copydoc ICountProcessor<span>::beginPart */
     void beginPart (size_t passId, size_t partId, size_t cacheSize, const char* name)
     {
         /** We get the actual partition idx in function of the current partition AND pass identifiers. */
@@ -99,27 +137,25 @@ public:
         _namesOccur[name] ++;
     }
 
-    /** */
+    /** \copydoc ICountProcessor<span>::endPart */
     void endPart (size_t passId, size_t partId)
     {
-        /** We flush the current collection. */
+        /** We flush the current collection for the partition just processed. */
         _solidKmers->flush();
-
-        /** We update the stats map. */
-        CountProcessorDump* proto = dynamic_cast<CountProcessorDump*> (this->getPrototype());
-        if (proto != 0)
-        {
-            /** Note: we need synchronization here (we reuse the one used for the bag cache). */
-            system::LocalSynchronizer ls (_synchronizer);
-
-            for (std::map<std::string,size_t>::iterator it = _namesOccur.begin(); it != _namesOccur.end(); ++it)
-            {
-                proto->_namesOccur[it->first] += it->second;
-            }
-        }
     }
 
-    /** */
+    /** \copydoc ICountProcessor<span>::process */
+    bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum)
+    {
+        this->_solidKmers->insert (Count(kmer,sum));
+        return true;
+    }
+
+    /*****************************************************************/
+    /*                          MISCELLANEOUS.                       */
+    /*****************************************************************/
+
+    /** \copydoc ICountProcessor<span>::getProperties */
     tools::misc::impl::Properties getProperties() const
     {
         tools::misc::impl::Properties result;
@@ -153,20 +189,13 @@ public:
         return result;
     }
 
-    /** */
+    /** Get the partition of counts.
+     * \return the Partition<Count> instance */
     tools::storage::impl::Partition<Count>* getSolidCounts () { return _solidCounts; }
 
-    /** */
+    /** Get the number of items.
+     * \return the total number of items in the partition. */
     u_int64_t getNbItems ()  { return _solidCounts ? _solidCounts->getNbItems() : 0; }
-
-protected:
-
-    /** */
-    CountProcessorAbstract<span>* doClone ()
-    {
-        /** Note : we share the synchronizer for all the clones. */
-        return new CountProcessorDump (_group, _kmerSize, _synchronizer, _solidCounts, _nbPartsPerPass);
-    }
 
 private:
 

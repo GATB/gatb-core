@@ -31,7 +31,56 @@ namespace core      {
 namespace kmer      {
 /********************************************************************************/
 
-/** \brief Interface that manages information sent by SortingCountAlgorithm.
+/** \brief Interface that uses kmer counting information
+ *
+ * This interface is mainly an Observer that listens to data produced by the sorting
+ * count algorithm. Such an information is made of a kmer an the number of occurrences
+ * of this kmers in each bank provided to the algorithm.
+ *
+ * Through this interface, it becomes easy to plug specific listeners that can do
+ * different things on the [kmer,counts] information. There is a default implementation
+ * of the ICountProcessor interface that does the historical job of DSK:
+ *      1) building an histogram
+ *      2) filtering out kmers with too low coverage
+ *      3) saving on disk kmers having big enough coverage
+ *
+ * Such an instance can be associated to the SortingCountAlgorithm instance with the
+ * SortingCountAlgorithm::setProcessor method; this instance will be called 'prototype
+ * instance'.
+ *
+ * From an execution point of view, one instance of ICountProcessor is created (with method
+ * 'clone') for counting the kmers of one specific partition. If N cores are used, it means
+ * that N instances of ICountProcessor will be cloned from the so called 'prototype'
+ * instance (ie. the instance associated to the SortingCountAlgorithm instance). Each
+ * clone processes its partition in one specific thread.
+ *
+ * While processing a partition, a cloned ICountProcessor instance is called
+ * via its 'process' method: this is here that the information [kmer,counts] is
+ * provided to the ICountProcessor clone, and accordingly to the actual implementation
+ * class of the ICountProcessor interface, different processings can be done.
+ *
+ * When all the clones have finished their job (in their own thread), the prototype
+ * instance is called (in the main thread) via the 'finishClones' method, where
+ * the prototype instance has access to the N clones before they are deleted. It allows
+ * for instance to gather in the prototype instance the information collected by the clones
+ * during their processing.
+ *
+ * From a global point of view, the interface is made of three parts :
+ *      1) methods called on the prototype instance in the context of the main thread
+ *      2) methods called on a cloned instance in the context of specific threads
+ *      3) all other methods
+ *
+ * Examples of ICountProcessor implementors :
+ *      1) CountProcessorHistogram   : collect kmers distribution information
+ *      2) CountProcessorSolidity... : check whether a kmer is solid or not
+ *      3) CountProcessorDump        : dump kmer count information in file system
+ *      4) CountProcessorChain       : list of linked ICountProcessor instances
+ *
+ * The CountProcessorChain implementation allows to link several instances of
+ * ICountProcessor. When such an instance is called via 'process', the first item
+ * of the list is called via 'process'; if it returns true, the next item in the list
+ * is called and so on; if it returns false, the chain is stopped. This class is used
+ * for the definition of the "DSK" count processor (histogram -> solidity -> dump)
  */
 template<size_t span>
 class ICountProcessor : public system::SmartPointer
@@ -41,16 +90,8 @@ public:
     /** Shortcuts. */
     typedef typename impl::Kmer<span>::Type Type;
 
-    /** Notification that a [kmer,counts] is available and can be handled by the count processor.
-     * \param[in] partId : index of the current partition
-     * \param[in] kmer : kmer for which we are receiving counts
-     * \param[in] count : vector of counts of the kmer, one count per bank
-     * \param[in] sum : sum of the occurrences for all bank.
-     */
-    virtual bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum=0) = 0;
-
     /********************************************************************/
-    /*   NOTIFS AT BEGIN/END OF THE MAINLOOP OF SortingCountAlgorithm.  */
+    /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
     /********************************************************************/
 
     /** Called just before the mainloop of SortingCountAlgorithm.
@@ -60,14 +101,21 @@ public:
     /** Called just after the mainloop of SortingCountAlgorithm. */
     virtual void end   () = 0;
 
-    /*******************************************************************************/
-    /*   NOTIFS AT BEGIN/END OF ONE KMERS PARTITION DURING SortingCountAlgorithm.  */
-    /*******************************************************************************/
-
     /** Clone the instance.
      * An instance can be cloned N times in order to use the cloned instance in one thread.
      * \return the cloned instance. */
     virtual ICountProcessor* clone () = 0;
+
+    /** Called when N partitions have been processed through N clones. This should be the last
+     * time these clones are available before being deleted. It can be the opportunity to the
+     * prototype instance to gather information from the clones.
+     * \param[in] clones : the N cloned instances
+     */
+    virtual void finishClones (std::vector<ICountProcessor<span>*>& clones) = 0;
+
+    /********************************************************************/
+    /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
+    /********************************************************************/
 
     /** Called at the beginning of a new kmers partition processing.
      * \param[in] passId : index of the current pass in the SortingCountAlgorithm.
@@ -83,8 +131,16 @@ public:
      */
     virtual void endPart   (size_t passId, size_t partId) = 0;
 
+    /** Notification that a [kmer,counts] is available and can be handled by the count processor.
+     * \param[in] partId : index of the current partition
+     * \param[in] kmer : kmer for which we are receiving counts
+     * \param[in] count : vector of counts of the kmer, one count per bank
+     * \param[in] sum : sum of the occurrences for all bank.
+     */
+    virtual bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum=0) = 0;
+
     /*****************************************************************/
-    /*                          MISCELLANOUS.                        */
+    /*                          MISCELLANEOUS.                       */
     /*****************************************************************/
 
     /** Get some properties about the count processor.
@@ -103,14 +159,6 @@ public:
         for (size_t i=0; i<v.size(); i++)  {  if (T* object = dynamic_cast<T*> (v[i]))  { return object; }  }
         return (T*)0;
     }
-
-protected:
-
-    /** Compute the sum of the counts in the provided CountVector. This may be useful to compute
-     * this sum only once and provide it several times.
-     * \return the sum of occurrences
-     */
-    virtual CountNumber computeSum (const CountVector& count) const = 0;
 };
 
 /********************************************************************************/
