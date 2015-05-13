@@ -2,7 +2,7 @@
 # RELEASE 1.1.0
 
 * Re-design of the SortingCountAlgorithm with introduction of interface ICountProcessor
- => it should allows development of new tools based on kmers counting
+ => it should allow development of new tools based on kmers counting
 
 --------------------------------------------------------------------------------
 # RELEASE 1.0.8
