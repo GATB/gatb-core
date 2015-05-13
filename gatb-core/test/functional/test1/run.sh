@@ -31,8 +31,10 @@ else
     export set TEST_GIT_CLONE=0
 fi  
 
-# we get the check directory 
-export set TEST_CHECK=`readlink -f ./check`
+# we get the check directory
+TEST_CHECK_TMP=`readlink -f $0`
+export set TEST_CHECK=`dirname $TEST_CHECK_TMP`/check
+echo $TEST_CHECK
 
 ################################################################################
 # we dump the configuration
