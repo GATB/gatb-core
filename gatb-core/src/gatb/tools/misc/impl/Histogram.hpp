@@ -128,7 +128,7 @@ public:
     void inc (u_int16_t index) {}
 
     /** \copydoc IHistogram::save */
-    void save ()  {}
+    void save (tools::storage::impl::Group& group)  {}
 	
     /** \copydoc IHistogram::get_solid_cutoff */
 	u_int16_t get_solid_cutoff  () { return 0; }

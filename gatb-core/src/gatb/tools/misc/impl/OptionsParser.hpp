@@ -207,7 +207,7 @@ protected:
     bool            _mandatory;
     std::string     _defaultParam;
 
-    friend class ParserVisitor;
+    friend struct ParserVisitor;
     friend class OptionsHelpVisitor;
 };
 
