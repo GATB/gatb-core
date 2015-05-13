@@ -55,6 +55,7 @@
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 #include <gatb/tools/misc/impl/Tool.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
+#include <gatb/tools/misc/impl/StringLine.hpp>
 #include <gatb/tools/misc/impl/LibraryInfo.hpp>
 #include <gatb/tools/misc/impl/Tokenizer.hpp>
 

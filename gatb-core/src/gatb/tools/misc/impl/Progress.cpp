@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/tools/misc/impl/StringLine.hpp>
 #include <gatb/system/impl/System.hpp>
 
 #include <stdarg.h>
@@ -44,7 +45,7 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 Progress::Progress (u_int64_t ntasks, const char * msg, std::ostream& output)
     : os(output)
 {
-    message = (msg != NULL ? msg : "?");
+    message = StringLine::format (msg != NULL ? msg : "?");
     reset (ntasks);
 }
 
@@ -153,7 +154,7 @@ void Progress::set (u_int64_t ntasks_done)
 *********************************************************************/
 void Progress::setMessage (const std::string& msg)
 {
-    message = msg;
+    message = StringLine::format (msg);
 
     update (false);
 }

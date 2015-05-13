@@ -381,10 +381,7 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 
     u_int64_t nbseq_sample = std::max ( u_int64_t (_config._estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
 
-    string spaces = "             ";
     string bankShortName = System::file().getBaseName(_bank->getId());
-    if (bankShortName.size() > spaces.size())  { bankShortName = bankShortName.substr (0,spaces.size()-3) + string("..."); }
-    bankShortName = (bankShortName + spaces).substr (0,spaces.size());
 
     /** We create an iterator over a truncated part of the input bank. */
     Iterator<Sequence>* it_sample = createIterator (
