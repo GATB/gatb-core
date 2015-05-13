@@ -31,8 +31,8 @@ else
     export set TEST_GIT_CLONE=0
 fi  
 
-# we get the check directory  
-export set TEST_CHECK=`dirname $0`/check
+# we get the check directory 
+export set TEST_CHECK=`readlink -f ./check`
 
 ################################################################################
 # we dump the configuration
@@ -48,6 +48,7 @@ echo "TEST_BINARY    : " $TEST_BINARY
 echo "TEST_GIT_CLONE : " $TEST_GIT_CLONE
 echo "TEST_CHECK     : " $TEST_CHECK
 echo ""
+
 
 ################################################################################
 # we may have to clone the git directory if no dbgh5 is provided
