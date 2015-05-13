@@ -70,6 +70,12 @@ namespace kmer      {
  *      2) methods called on a cloned instance in the context of specific threads
  *      3) all other methods
  *
+ * The following figure shows how ICountProcessor interacts with other classes, and in particular
+ * with SortingCountAlgorithm. One can also see the multithreading context, with the main thread
+ * creating clones and with clones processing their job in specific threads.
+ *
+ * \image html ICountProcessor.png "Usage and life cycle of ICountProcessor in the context of SortingCountAlgorithm"
+ *
  * Examples of ICountProcessor implementors :
  *      1) CountProcessorHistogram   : collect kmers distribution information
  *      2) CountProcessorSolidity... : check whether a kmer is solid or not
