@@ -272,6 +272,42 @@ private:
     int getDelta (const Edge& edge) const;
 };
 
+
+/** \brief MPHF implementation of Terminator.
+ *
+ */
+class MPHFTerminator :  public Terminator
+{
+public:
+
+    /** \copydoc Terminator::mark */
+    virtual void mark      (const Edge& edge)  { printf("not expecting a call to MPHFTermiantor.mark(edge)\n"); exit(1); }
+
+    /** \copydoc Terminator::is_marked */
+    virtual bool is_marked (const Edge& edge)  const  { printf("not expecting a call to MPHFTermiantor.is_marked(edge)\n"); exit(1); return false; }
+
+    /** \copydoc Terminator::mark(const gatb::core::debruijn::impl::Node&)  */
+    virtual void mark      (const Node& node);
+
+    /** \copydoc Terminator::is_marked(const gatb::core::debruijn::impl::Node&) const */
+    virtual bool is_marked (const Node& node)  const  ;
+
+    /** \copydoc Terminator::is_marked_branching */
+    virtual bool is_marked_branching (const Node& node) const { printf("not expecting a call to MPHFTermiantor.is_marked_branching\n"); exit(1); return false; }
+
+    /** \copydoc Terminator::is_branching */
+    virtual bool is_branching (const Node& node) const { printf("not expecting a call to MPHFTermiantor.is_branching\n"); exit(1);return false; }
+
+    /** \copydoc Terminator::reset */
+    virtual void reset ();
+
+    /** \copydoc Terminator::dump */
+    virtual void dump () { printf("not expecting a call to MPHFTermiantor.dump\n"); exit(1); };
+
+    MPHFTerminator (const Graph& graph) : Terminator(graph)  {}
+};
+
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

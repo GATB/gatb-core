@@ -40,12 +40,14 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void Histogram::save ()
+void Histogram::save (tools::storage::impl::Group& group)
 {
     DEBUG (("Histogram::save  size=%ld\n", _histogram.size()));
 
+    tools::collections::Collection<Entry>& collection = group.getCollection<Entry> ("histogram");
+
     size_t offset = 1;
-    _bag->insert (_histogram + offset, (_length+1) - offset);
+    collection.insert (_histogram + offset, (_length+1) - offset);
 }
 
 /*********************************************************************

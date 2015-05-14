@@ -100,8 +100,8 @@ bool Frontline::go_next_depth()
         NodeNt current_node = _frontline.front();
         _frontline.pop();
 
-        /** We check whether we use this node or not. */
-        if (check(current_node.node) == false)  { return false; }
+        /** We check whether we use this node or not. we always use the first node at depth 0 */
+        if (_depth > 0 && check(current_node.node) == false)  { return false; }
 
         /** We loop the neighbors edges of the current node. */
         Graph::Vector<Edge> edges = _graph.neighbors<Edge> (current_node.node, _direction);
@@ -116,7 +116,8 @@ bool Frontline::go_next_depth()
             if (_already_frontlined.find (neighbor.kmer) != _already_frontlined.end())  { continue; }
 
             // if this bubble contains a marked (branching) kmer, stop everyone at once (to avoid redundancy)
-            if (_terminator.isEnabled() && _terminator.is_branching (neighbor) &&  _terminator.is_marked_branching(neighbor))  
+            //if (_terminator.isEnabled() && _terminator.is_branching (neighbor) &&  _terminator.is_marked_branching(neighbor))   // legacy, before MPHFTerminator
+            if (_terminator.isEnabled() && _terminator.is_marked(neighbor))   // to accomodate MPHFTerminator
             {  
                 stopped_reason=Frontline::MARKED;
                 return false;  
@@ -243,6 +244,47 @@ bool FrontlineBranching::check (const Node& node)
     // didn't find any in-branching
     return true;
 }
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+FrontlineReachable::FrontlineReachable(
+    Direction         direction,
+    const Graph&      graph,
+    Terminator&       terminator,
+    const Node&       startingNode,
+    const Node&       previousNode,
+    std::set<Node>*   all_involved_extensions
+)  : Frontline (direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
+{
+}
+
+
+
+bool FrontlineReachable::check (const Node& node)
+{
+	/** We reverse the node for the inbranching path. */
+    Node actual = _graph.reverse(node);
+
+    /** neighbors nodes of the current node. */
+    Graph::Vector<Node> neighbors = _graph.neighbors<Node> (actual, (_direction));
+
+    for (size_t i=0; i<neighbors.size(); i++)
+    {
+        /** Shortcut. */
+        Node& neighbor = neighbors[i];
+        if (_already_frontlined.find (neighbor.kmer) == _already_frontlined.end())  {
+            return false;  
+        }
+    }
+    return true;
+}
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

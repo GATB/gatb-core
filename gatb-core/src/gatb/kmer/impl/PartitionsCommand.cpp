@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <gatb/kmer/impl/PartitionsCommand.hpp>
+#include <gatb/tools/collections/impl/OAHash.hpp>
 
 using namespace std;
 
@@ -53,35 +54,32 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 *********************************************************************/
 template<size_t span>
 PartitionsCommand<span>:: PartitionsCommand (
-    Bag<Count>*         solidKmers,
     Iterable<Type>&     partition,
-    IHistogram*         histogram,
-    ISynchronizer*      synchro,
-    u_int64_t&          totalKmerNbRef,
-    std::pair<size_t,size_t> abundance,
+    CountProcessor*     processor,
+    size_t              cacheSize,
     IteratorListener*   progress,
     TimeInfo&           timeInfo,
     PartiInfo<5>&       pInfo,
+    int                 passi,
     int                 parti,
     size_t              nbCores,
     size_t              kmerSize,
-    MemAllocator&       pool,
-    size_t              cacheSize
+    MemAllocator&       pool
 )
-    : _abundance(abundance),
-      _solidKmers(solidKmers, cacheSize, synchro),
+    :
       _partition(partition),
-      _histogram(histogram),
       _progress(progress),
-      _totalKmerNb(0),
-      _totalKmerNbRef(totalKmerNbRef),
       _pInfo(pInfo),
+      _pass_num(passi),
       _parti_num(parti),
       _nbCores(nbCores),
       _kmerSize(kmerSize),
+      _cacheSize(cacheSize),
       _pool(pool),
-      _globalTimeInfo(timeInfo)
+      _globalTimeInfo(timeInfo),
+      _processor(0)
 {
+    setProcessor      (processor);
 }
 
 /*********************************************************************
@@ -95,9 +93,9 @@ PartitionsCommand<span>:: PartitionsCommand (
 template<size_t span>
 PartitionsCommand<span>::~PartitionsCommand()
 {
-    __sync_fetch_and_add (&_totalKmerNbRef, _totalKmerNb);
-
     _globalTimeInfo += _timeInfo;
+
+    setProcessor (0);
 }
 
 /*********************************************************************
@@ -109,40 +107,10 @@ PartitionsCommand<span>::~PartitionsCommand()
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void PartitionsCommand<span>::insert (const Count& kmer)
+void PartitionsCommand<span>::insert (const Type& kmer, const CounterBuilder& counter)
 {
-    _totalKmerNb++;
-
-    /** We should update the abundance histogram*/
-    _histogram.inc (kmer.abundance);
-
-    /** We check that the current abundance is in the correct range. */
-    if (kmer.abundance >= this->_abundance.first && kmer.abundance <= this->_abundance.second)  {  this->_solidKmers.insert (kmer);  }
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<size_t span>
-void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& counter)
-{
-    _totalKmerNb++;
-
-    /** Shortcut. */
-    SolidityCounter::Int actualCount = counter.computeSum();
-
-    /** We should update the abundance histogram*/
-    _histogram.inc (actualCount);
-
-    /** We check that the current abundance is in the correct range. */
-    if (counter.isSolid () == true)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
-
-    //if (actualCount >= this->_abundance && actualCount <= max_couv)  {  this->_solidKmers.insert (Count(kmer,actualCount));  }
+    /** We call the count processor instance with the information collected for the current kmer. */
+    _processor->process (_parti_num, kmer, counter.get());
 }
 
 /*********************************************************************
@@ -166,25 +134,21 @@ void PartitionsCommand<span>::insert (const Type& kmer, const SolidityCounter& c
 /** in this scheme we count k-mers inside a partition by a hash table */
 template<size_t span>
 PartitionsByHashCommand<span>:: PartitionsByHashCommand (
-    Bag<Count>*             solidKmers,
     Iterable<Type>&         partition,
-    IHistogram*             histogram,
-    ISynchronizer*          synchro,
-    u_int64_t&              totalKmerNbRef,
-    std::pair<size_t,size_t> abundance,
+    CountProcessor*         processor,
+    size_t                  cacheSize,
     IteratorListener*       progress,
     TimeInfo&               timeInfo,
     PartiInfo<5>&           pInfo,
+    int                     passi,
     int                     parti,
     size_t                  nbCores,
     size_t                  kmerSize,
     MemAllocator&           pool,
-    size_t                  cacheSize,
     u_int64_t               hashMemory
 )
-    : PartitionsCommand<span> (
-        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
-        _hashMemory(hashMemory)
+    : PartitionsCommand<span> (partition, processor, cacheSize, progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool),
+     _hashMemory(hashMemory)
 {
 }
 
@@ -199,6 +163,12 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
 template<size_t span>
 void PartitionsByHashCommand<span>:: execute ()
 {
+    this->_processor->beginPart (this->_pass_num, this->_parti_num, this->_cacheSize, this->getName());
+
+    CounterBuilder solidCounter;
+
+	size_t count=0;
+
 	/** We need a map for storing part of solid kmers. */
 	OAHash<Type> hash (_hashMemory); //or use hash16 to ensure always finishes ?
 
@@ -263,11 +233,19 @@ void PartitionsByHashCommand<span>:: execute ()
 
 	for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
 	{
+	    /** Shortcut. */
+	    Abundance<Type>& current = itKmerAbundance->item();
+
+	    /** We update the solid counter. */
+	    solidCounter.set (current.getAbundance());
+
 		/** We may add this kmer to the solid kmers bag. */
-	   this->insert ((Count&) itKmerAbundance->item());
+	    this->insert (current.getValue(), solidCounter);
 	}
 	
 	this->_progress->inc (this->_pInfo.getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
+
+    this->_processor->endPart (this->_pass_num, this->_parti_num);
 };
 
 /*********************************************************************
@@ -435,26 +413,21 @@ private :
 /** in this scheme we count k-mers in a partition by sorting a vector*/
 template<size_t span>
 PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
-    Bag<Count>*         solidKmers,
     Iterable<Type>&     partition,
-    IHistogram*         histogram,
-    ISynchronizer*      synchro,
-    u_int64_t&          totalKmerNbRef,
-    pair<size_t,size_t> abundance,
+    CountProcessor*     processor,
+    size_t              cacheSize,
     IteratorListener*   progress,
     TimeInfo&           timeInfo,
     PartiInfo<5>&       pInfo,
+    int                 passi,
     int                 parti,
     size_t              nbCores,
     size_t              kmerSize,
     MemAllocator&       pool,
-    size_t              cacheSize,
-    KmerSolidityKind    solidityKind,
     vector<size_t>&     offsets
 )
-    : PartitionsCommand<span> (
-        solidKmers, partition, histogram, synchro, totalKmerNbRef, abundance, progress, timeInfo, pInfo,parti,nbCores,kmerSize,pool,cacheSize),
-        _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0),  _nbItemsPerBankPerPart(offsets), _solidityKind(solidityKind)
+    : PartitionsCommand<span> (partition, processor, cacheSize,  progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool),
+        _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0), _nbItemsPerBankPerPart(offsets)
 {
     _dispatcher = new Dispatcher (this->_nbCores);
 }
@@ -484,6 +457,8 @@ PartitionsByVectorCommand<span>:: ~PartitionsByVectorCommand ()
 template<size_t span>
 void PartitionsByVectorCommand<span>::execute ()
 {
+    this->_processor->beginPart (this->_pass_num, this->_parti_num, this->_cacheSize, this->getName());
+
     /** We check that we got something. */
     if (this->_partition.getNbItems() == 0)  {  return;  }
 
@@ -509,6 +484,8 @@ void PartitionsByVectorCommand<span>::execute ()
 
     /** We update the progress bar. */
     this->_progress->inc (this->_pInfo.getNbKmer(this->_parti_num) );
+
+    this->_processor->endPart (this->_pass_num, this->_parti_num);
 };
 
 /*********************************************************************
@@ -845,7 +822,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
 
     std::priority_queue< kxp, std::vector<kxp>,kxpcomp > pq;
 
-    SolidityCounter solidCounter (_solidityKind, this->_abundance, _nbItemsPerBankPerPart.size());
+    CounterBuilder solidCounter (_nbItemsPerBankPerPart.size());
 
     Type previous_kmer ;
 

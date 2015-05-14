@@ -217,15 +217,20 @@ public:
         /** We create a bank with one sequence. */
         IBank* bank = new BankStrings (seq, 0);
 
-        /** We create a storage instance. */
-        Storage* storage  = StorageFactory(mode).create ("foo", true, true);
-        LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> sortingCount (storage, bank, kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<> sortingCount (bank, params);
 
         /** We launch DSK. */
         sortingCount.execute();
+
+        /** We get the storage instance. */
+        Storage* storage = sortingCount.getStorage();
 
         /** We check that the sequence has no duplicate kmers. */
         CPPUNIT_ASSERT ( (int64_t) (seqLen - kmerSize + 1) == sortingCount.getSolidCounts()->getNbItems());
@@ -236,7 +241,7 @@ public:
         bloom.execute ();
 
         /** We create a debloom instance. */
-        DebloomAlgorithm<> debloom (*storage, *storage, sortingCount.getSolidCounts(), kmerSize, 8);
+        DebloomAlgorithm<> debloom (storage->getGroup("bloom"), storage->getGroup("debloom"), sortingCount.getSolidCounts(), kmerSize, 8);
 
         /** We launch the debloom. */
         debloom.execute();
@@ -718,7 +723,7 @@ public:
     }
 
     /********************************************************************************/
-    void debruijn_mphf_aux (const char* sequences[], size_t len, const int abundances[])    
+    void debruijn_mphf_aux (const char* sequences[], size_t len, const int abundances[])
     {
         size_t kmerSize = strlen (sequences[0]);
 
@@ -875,10 +880,6 @@ public:
         {
             for (size_t j=0; j<ARRAY_SIZE(nbCores); j++)
             {
-                //printf ("file=%s k=%d  prec=%d  bloom=%s  debloom=%s  debloomImpl=%s  mem=%d  nbCores=%d\n",
-                //    readfile.c_str(), kmerSize, integerPrecision, bloom.c_str(), debloom.c_str(), debloomImpl.c_str(), maxMem[i], nbCores[j]
-                //);
-
                 Graph graph = Graph::create (
                     "-verbose 0 -in %s -kmer-size %d -integer-precision %d  -bloom %s  -debloom %s  -debloom-impl %s  -max-memory %d  -nb-cores %d  -max-memory %d",
                     readfile.c_str(),

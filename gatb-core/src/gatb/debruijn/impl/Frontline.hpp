@@ -147,6 +147,28 @@ private:
     bool check (const Node& node);
 };
 
+// a middle ground between Frontline and FrontlineBranching:
+// check whether all nodes inside the frontline must be reachable from startingNode
+class FrontlineReachable : public Frontline
+{
+public:
+
+    /** Constructor. */
+    FrontlineReachable(
+        Direction         direction,
+        const Graph&      graph,
+        Terminator&       terminator,
+        const Node&       startingNode,
+        const Node&       previousNode,
+        std::set<Node>*   all_involved_extensions
+    );
+
+private:
+
+    bool check (const Node& node);
+};
+
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

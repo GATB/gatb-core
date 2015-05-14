@@ -28,6 +28,8 @@
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 
+#include <gatb/tools/misc/impl/StringLine.hpp>
+
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include <memory>
@@ -62,6 +64,8 @@ class TestMisc : public Test
         CPPUNIT_TEST_GATB (vector_check3);
         CPPUNIT_TEST_GATB (parser_check1);
         CPPUNIT_TEST_GATB (parser_check2);
+
+        CPPUNIT_TEST_GATB (stringline_check1);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -391,6 +395,16 @@ public:
             }
             catch (OptionFailure& e)    {  CPPUNIT_ASSERT(true);  }
         }
+    }
+
+    /********************************************************************************/
+    void stringline_check1 (void)
+    {
+        string s1 = "abcdefghijklmnopqrstuvwxyz";
+        string s2 = s1 + s1;
+
+        CPPUNIT_ASSERT (StringLine::format (s1).size() == StringLine::getDefaultWidth());
+        CPPUNIT_ASSERT (StringLine::format (s2).size() == StringLine::getDefaultWidth());
     }
 };
 

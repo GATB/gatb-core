@@ -285,6 +285,28 @@ void BranchingTerminator::dump ()
     cout << "TERMINATOR:  nb=" << liste.size() << "  checksum=" << checksum << endl;
 }
 
+
+
+/***********************/
+
+bool MPHFTerminator::is_marked (const Node& node) const
+{
+    int status = _graph.queryNodeState(node.kmer);
+    return status & 1 == 1;
+}
+
+void MPHFTerminator::mark (const Node& node) 
+{
+    int state = _graph.queryNodeState(node.kmer);
+    state |= 1;
+    _graph.setNodeState(node, state);
+}
+
+void MPHFTerminator::reset() 
+{
+    _graph.resetNodeState();
+}
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

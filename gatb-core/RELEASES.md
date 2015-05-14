@@ -1,4 +1,10 @@
 --------------------------------------------------------------------------------
+# RELEASE 1.1.0
+
+* Re-design of the SortingCountAlgorithm with introduction of interface ICountProcessor
+ => it should allow development of new tools based on kmers counting
+
+--------------------------------------------------------------------------------
 # RELEASE 1.0.8
 
 * Correction of memory alignment issue on MacOs in some cases

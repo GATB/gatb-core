@@ -170,11 +170,12 @@ public:
             mainbuffer = NULL ;
         }
 
-        /** We add a little bit of memory in case "align" method is called often. */
-        size_t extraMem = 1024;
+        /** We add a little bit of memory in case "align" method is called often.
+         * We allow max alignment of 16 bytes per core, plus some extra memory. */
+        size_t extraMem = 16*_nbCores + 1024;
 
-        mainbuffer = (char*) MALLOC(size+extraMem);
-        capacity   = size;
+        capacity   = size+extraMem;
+        mainbuffer = (char*) MALLOC(capacity);
         used_space = 0;
     }
 
@@ -218,7 +219,7 @@ public:
         used_space = 0;
     }
 
-    MemAllocator() : mainbuffer(NULL),capacity(0),used_space(0),_synchro(0)
+    MemAllocator(size_t nbCores=0) : mainbuffer(NULL),capacity(0),used_space(0), _nbCores(nbCores), _synchro(0)
     {
         setSynchro (system::impl::System::thread().newSynchronizer());
     }
@@ -235,6 +236,8 @@ private :
     char*     mainbuffer;
     u_int64_t capacity; //in bytes
     u_int64_t used_space;
+
+    size_t _nbCores;
 
     system::ISynchronizer* _synchro;
     void setSynchro (system::ISynchronizer* synchro) { SP_SETATTR(synchro); }

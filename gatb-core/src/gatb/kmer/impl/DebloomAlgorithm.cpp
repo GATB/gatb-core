@@ -94,8 +94,8 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 *********************************************************************/
 template<size_t span>
 DebloomAlgorithm<span>::DebloomAlgorithm (
-    Storage& storage,
-    Storage& storageSolids,
+    Group&              bloomGroup,
+    Group&              debloomGroup,
     Partition<Count>*   solidIterable,
     size_t              kmerSize,
     size_t              miniSize,
@@ -106,17 +106,14 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
     const std::string&  debloomUri,
     IProperties*        options
 )
-    :  Algorithm("debloom", nb_cores, options), _storage(storage), _storageSolids(storageSolids),
-       _groupBloom  (storage().getGroup ("bloom")),
-       _groupDebloom(storage().getGroup ("debloom")),
+    :  Algorithm("debloom", nb_cores, options), /*_storage(storage), _storageSolids(storageSolids),*/
+       _groupBloom  (bloomGroup),
+       _groupDebloom(debloomGroup),
        _kmerSize(kmerSize), _miniSize(miniSize),
        _bloomKind(bloomKind), _debloomKind(cascadingKind),
        _max_memory(max_memory),
        _criticalNb(0), _solidIterable(0),  _container(0)
 {
-    /** We get a group for deblooming. */
-    _storage().getGroup ("debloom");
-
     setSolidIterable    (solidIterable);
 
     /** We set the max memory to a default project value if not set. */
@@ -139,7 +136,7 @@ DebloomAlgorithm<span>::DebloomAlgorithm (
 *********************************************************************/
 template<size_t span>
 DebloomAlgorithm<span>::DebloomAlgorithm (tools::storage::impl::Storage& storage)
-:  Algorithm("debloom", 0, 0), _storage(storage), _storageSolids(storage),
+:  Algorithm("debloom", 0, 0),
    _groupBloom(storage().getGroup   ("bloom")),
    _groupDebloom(storage().getGroup ("debloom")),
    _kmerSize(0),
@@ -150,7 +147,7 @@ DebloomAlgorithm<span>::DebloomAlgorithm (tools::storage::impl::Storage& storage
     /** We retrieve the cascading kind from the storage. */
     parse (_groupDebloom.getProperty("kind"), _debloomKind);
 
-    loadDebloomStructures(_storage);
+    loadDebloomStructures();
 
     string xmlString = _groupDebloom.getProperty ("xml");
     stringstream ss; ss << xmlString;   getInfo()->readXML (ss);
@@ -248,7 +245,7 @@ void DebloomAlgorithm<span>::execute ()
     }
 
     /** Now, we configure the IContainerNode instance for public API. */
-    loadDebloomStructures (_storage);
+    loadDebloomStructures ();
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
@@ -693,9 +690,9 @@ void DebloomAlgorithm<span>::createCFP (
             itTask->isDone(); // force to finish progress dump
 
             /** We save the final cFP container into the storage. */
-            StorageTools::singleton().saveBloom<Type>      (_storage().getGroup ("debloom"), "bloom2", bloom2, _kmerSize);
-            StorageTools::singleton().saveBloom<Type>      (_storage().getGroup ("debloom"), "bloom3", bloom3, _kmerSize);
-            StorageTools::singleton().saveBloom<Type>      (_storage().getGroup ("debloom"), "bloom4", bloom4, _kmerSize);
+            StorageTools::singleton().saveBloom<Type>      (_groupDebloom, "bloom2", bloom2, _kmerSize);
+            StorageTools::singleton().saveBloom<Type>      (_groupDebloom, "bloom3", bloom3, _kmerSize);
+            StorageTools::singleton().saveBloom<Type>      (_groupDebloom, "bloom4", bloom4, _kmerSize);
 
             totalSize_bits = bloom2->getBitSize() + bloom3->getBitSize() + bloom4->getBitSize() + 8*cfpItems.size()*sizeof(Type);
 
@@ -783,7 +780,7 @@ float DebloomAlgorithm<span>::getNbBitsPerKmer (size_t kmerSize, DebloomKind deb
 ** REMARKS : used to be named loadContainer but I renamed it for clarity, also conficting name with actual loadContainer for a container
 *********************************************************************/
 template<size_t span>
-void DebloomAlgorithm<span>::loadDebloomStructures (tools::storage::impl::Storage& storage)
+void DebloomAlgorithm<span>::loadDebloomStructures ()
 {
     DEBUG (("DebloomAlgorithm<span>::loadContainer  _debloomKind=%d \n", _debloomKind));
 

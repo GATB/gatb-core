@@ -109,11 +109,14 @@ public:
     /********************************************************************************/
     void DSK_check1_aux (const char* sequences[], size_t nbSequences, size_t kmerSize, size_t nks, size_t checkNbSolids)
     {
-        /** We create a storage instance. */
-        Storage* storage = StorageFactory(STORAGE_HDF5).create("foo", true, true);   LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();  LOCAL (params);
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<> dsk (storage, new BankStrings (sequences, nbSequences), kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<> dsk (new BankStrings (sequences, nbSequences), params);
 
         /** We launch DSK. */
         dsk.execute();
@@ -231,11 +234,14 @@ public:
 
         const char* s1 = "GATCGATTCTTAGCACGTCCCCCCCTACACCCAAT" ;
 
-        /** We create a storage instance. */
-        Storage* storage = StorageFactory(STORAGE_FILE).create("foo", true, true);   LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> sortingCount (storage, new BankStrings (s1, 0), kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<span> sortingCount (new BankStrings (s1, 0), params);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -321,11 +327,14 @@ public:
 
         TimeInfo ti;
 
-        /** We create a storage instance. */
-        Storage* storage = StorageFactory(STORAGE_FILE).create("foo", true, true);   LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();  LOCAL (params);
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> sortingCount (storage, bank, kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<span> sortingCount (bank, params);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -408,20 +417,20 @@ public:
         size_t maxDiskSpace = 0;
         size_t nbCores      = 1;
 
-        /** We create a storage instance. */
-        Storage* storage = StorageFactory(STORAGE_HDF5).create("output", true, true);   LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nksMin);
+        params->setInt (STR_KMER_ABUNDANCE_MAX, nksMax);
+        params->setInt (STR_MAX_MEMORY,         maxMemory);
+        params->setInt (STR_MAX_DISK,           maxDiskSpace);
+        params->setStr (STR_SOLIDITY_KIND,      toString(solidityKind));
+        params->setStr (STR_URI_OUTPUT,         "output");
+
+        params->add (0, STR_NB_CORES,  "%d", nbCores);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> sortingCount (
-            storage,
-            bank,
-            kmerSize,
-            make_pair(nksMin,nksMax),
-            maxMemory,
-            maxDiskSpace,
-            nbCores,
-            solidityKind
-        );
+        SortingCountAlgorithm<span> sortingCount (bank, params);
 
         /** We launch DSK. */
         sortingCount.execute();
@@ -441,7 +450,7 @@ public:
     /********************************************************************************/
     void DSK_perBank1 ()
     {
-        size_t nksMax = 0;
+        size_t nksMax = ~0;  // a big value here
 
         const char* seqs[] = {      //  KMERS ARE...
             "CGCTACAGCAGCTAGTT",    // CGCTACAGCAGCTAG  GCTACAGCAGCTAGT  CTACAGCAGCTAGTT
@@ -498,6 +507,11 @@ public:
         // (CTATA,2)  (ACTAT,1)  (AACTA,1)  (AGTTA,1)
         // (TTAGC,1)  (CTAAC,1)  (CGTTA,1)  (AACGC,1)  (ACGCT,1)
 
+        // OCCURRENCES in each bank
+        // CGCTA(2) ATAGC(1) CTATC(1) CGATA(1) ATCGC(1) AGCGA(1)
+        // CGCTA(1) ATAGC(1)                                     CTATA(2) ACTAT(1) AACTA(1) AGTTA(1)
+        // CGCTA(2)                                                                                  TTAGC(1) CTAAC(1) CGTTA(1) AACGC(1) ACGCT(1)
+
         BankComposite* album = new BankAlbum ("foo", true);  LOCAL (album);
 
         for (size_t i=0; i<ARRAY_SIZE(seqs); i++) {   album->addBank (new BankStrings(seqs[i],NULL)); }
@@ -506,46 +520,64 @@ public:
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_MIN, 1);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_MAX, 15);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_SUM, 15);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_ALL, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, nksMax, KMER_SOLIDITY_ONE, 15);
 
         // Checks for abundance==2
         DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_MIN, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_MAX, 2);
         DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_SUM, 3);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_ALL, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, nksMax, KMER_SOLIDITY_ONE, 2);
 
         // Checks for abundance==3
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_MIN, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_MAX, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_SUM, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_ALL, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, nksMax, KMER_SOLIDITY_ONE, 0);
 
-        // Checks for abundance=[1,1]
+        // Checks for abundance=[1,1]  => NOTE THAT EACH SOLIDITY KIND LEADS TO A DIFFERENT VALUE...
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_MIN, 1);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_MAX, 13);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_SUM, 12);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_ALL, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 1, KMER_SOLIDITY_ONE, 14);
 
         // Checks for abundance=[1,2]
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_MIN, 1);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_MAX, 15);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_SUM, 14);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_ALL, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 2, KMER_SOLIDITY_ONE, 15);
 
         // Checks for abundance=[1,3]
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_MIN, 1);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_MAX, 15);
         DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_SUM, 14);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_ALL, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 1, 3, KMER_SOLIDITY_ONE, 15);
 
         // Checks for abundance=[2,2]
         DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_MIN, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_MAX, 2);
         DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_SUM, 2);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_ALL, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 2, 2, KMER_SOLIDITY_ONE, 2);
 
         // Checks for abundance=[3,3]
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_MIN, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_MAX, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_SUM, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_ALL, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 3, KMER_SOLIDITY_ONE, 0);
 
         // Checks for abundance=[3,5]
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_MIN, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_MAX, 0);
         DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_SUM, 1);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_ALL, 0);
+        DSK_perBank_aux<KSIZE_1> (album, 5, 3, 5, KMER_SOLIDITY_ONE, 0);
     }
 
     /********************************************************************************/
@@ -621,13 +653,16 @@ public:
     	size_t nks      = 2;
     	string filepath = DBPATH("album.txt");
 
-        /** We create a storage instance. */
-        Storage* storage = StorageFactory(STORAGE_HDF5).create("foo", true, true);   LOCAL (storage);
+        /** We configure parameters for a SortingCountAlgorithm object. */
+        IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
+        params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setStr (STR_URI_OUTPUT,         "foo");
 
         IBank* bank = Bank::open(filepath);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> dsk (storage, bank, kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<span> dsk (bank, params);
 
         /** We launch DSK. */
         dsk.execute();

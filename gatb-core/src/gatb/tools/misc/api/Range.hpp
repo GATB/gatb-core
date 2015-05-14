@@ -60,10 +60,10 @@ public:
     template <class U>  Range (const Range<U> &p) : begin(p.begin), end(p.end) { }
 
     /** \return the begin bound of the range. */
-    T getBegin() { return begin; }
+    T getBegin() const { return begin; }
 
     /** \return the end bound of the range. */
-    T getEnd  () { return end; }
+    T getEnd  () const { return end; }
 
     /** Returns the length of the range. */
     T getLength ()  const  { return (end >= begin ? end - begin + 1 : begin - end + 1); }
@@ -146,6 +146,11 @@ private:
     /** End of the range. */
     T end;
 };
+
+/********************************************************************************/
+
+/** We define a type for a range of kmer counts. */
+typedef tools::misc::Range<CountNumber>  CountRange;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

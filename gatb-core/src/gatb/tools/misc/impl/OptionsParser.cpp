@@ -79,9 +79,23 @@ struct PostParserVisitor : public HierarchyParserVisitor
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-class ParserVisitor : public IOptionsParserVisitor
+struct PropertiesParserVisitor : public HierarchyParserVisitor
 {
-public:
+    IProperties* _props;
+    PropertiesParserVisitor (IProperties* props) : _props(props) {}
+    void visitOption (Option& object, size_t depth)  {  _props->add (0, object.getName(), object.getDefaultValue());  }
+};
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+struct ParserVisitor : public IOptionsParserVisitor
+{
     int argc; char** argv;  int idx;
     IOptionsParser::Result result;
 
@@ -362,6 +376,23 @@ IOptionsParser* OptionsParser::getParser (const std::string& name)
         result = (*it)->getParser(name);
     }
 
+    return result;
+}
+
+/*********************************************************************
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
+IProperties* OptionsParser::getDefaultProperties ()
+{
+    IProperties* result = new Properties();
+
+    PropertiesParserVisitor v (result);
+    this->accept (v);
     return result;
 }
 

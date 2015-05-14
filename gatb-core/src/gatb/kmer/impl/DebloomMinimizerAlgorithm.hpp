@@ -49,17 +49,18 @@ public:
 
     /** */
     DebloomMinimizerAlgorithm (
-        tools::storage::impl::Storage& storage,
-        tools::storage::impl::Storage& storageSolids,
+        tools::storage::impl::Group&    bloomGroup,
+        tools::storage::impl::Group&    debloomGroup,
         tools::storage::impl::Partition<Count>* solidIterable,
         size_t                      kmerSize,
         size_t                      miniSize,
-        size_t                      max_memory    = 0,
-        size_t                      nb_cores      = 0,
+        size_t                      max_memory = 0,
+        size_t                      nb_cores   = 0,
         tools::misc::BloomKind      bloomKind     = tools::misc::BLOOM_DEFAULT,
         tools::misc::DebloomKind    cascadingKind = tools::misc::DEBLOOM_DEFAULT,
-        const std::string&          debloomUri    = "debloom",
-        tools::misc::IProperties*   options       = 0
+        const std::string&          debloomUri = "debloom",
+        tools::misc::IProperties*   options    = 0,
+        tools::storage::impl::Group* minimizersGroup = 0
     );
 
     /** */
@@ -77,6 +78,8 @@ private:
         u_int64_t& totalSizeBloom,
         u_int64_t& totalSizeCFP
     );
+
+    tools::storage::impl::Group* _groupMinimizers;
 };
 
 /********************************************************************************/

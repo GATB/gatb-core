@@ -26,7 +26,7 @@
  *
  *  It can be seen as software components providing services for assembling and analyzing genomes of various kinds.
  *
- * The current documentation is for release 1.0.6. You can download it <a href="http://gatb.inria.fr/binaries-url">here</a>.
+ * The current documentation is for release 1.1.0. You can download it <a href="http://gatb.inria.fr/binaries-url">here</a>.
  *
  ****************************************************************************************************
  ****************************************************************************************************

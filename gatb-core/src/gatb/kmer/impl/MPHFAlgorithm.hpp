@@ -47,6 +47,7 @@ namespace impl      {
  *  It uses two template parameters:
  *      1) span : gives the max usable size for kmers
  *      2) Abundance_t : type of the abundance values (on 1 byte by default)
+ *      2) NodeState_t : type of the node states values (on half a byte by default, grouped by two per byte)
  *
  *  Storing the values (ie. the abundances) is done by creating a vector of size N. Asking
  *  the abundance of a kmer consists in:
@@ -63,7 +64,7 @@ namespace impl      {
  * in order not to exceed the Abundance_t type capacity (provided as a template of the
  * MPHFAlgorithm class). The maximum value is computed through the std::numeric_limits traits.
  *
- * Once the map is built and populated, it is available through the 'getMap' method. It may
+ * Once the abundance map is built and populated, it is available through the 'getAbundanceMap' method. It may
  * be used for instance by the Graph class in order to get the abundance of any node (ie. kmer)
  * of the de Bruijn graph.
  *
@@ -73,7 +74,7 @@ namespace impl      {
  *
  * Some statistics about the MPHF building are gathered and put into the Properties 'info'.
  */
-template<size_t span=KMER_DEFAULT_SPAN, typename Abundance_t=u_int8_t>
+template<size_t span=KMER_DEFAULT_SPAN, typename Abundance_t=u_int8_t, typename NodeState_t=u_int8_t>
 class MPHFAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
@@ -86,7 +87,10 @@ public:
     static const Abundance_t MAX_ABUNDANCE;
 
     /** We define the type of the hash table of couples [kmer/abundance]. */
-    typedef tools::collections::impl::MapMPHF<Type,Abundance_t>  Map;
+    typedef tools::collections::impl::MapMPHF<Type,Abundance_t>  AbundanceMap;
+    
+    /** We define the type of the hash table of couples [kmer/node state]. */
+    typedef tools::collections::impl::MapMPHF<Type,NodeState_t>  NodeStateMap;
 
     /** Constructor.
      * \param[in] group : storage group where to save the MPHF once built
@@ -118,7 +122,8 @@ public:
      * the map instance will be still alive (ie. not deleted) even if the MPHFAlgorithm
      * instance that built it is deleted first.
      * \return the map instance. */
-    Map* getMap () const  { return _map; }
+    AbundanceMap* getAbundanceMap () const  { return _abundanceMap; }
+    NodeStateMap* getNodeStateMap () const  { return _nodeStateMap; }
 
 private:
 
@@ -137,11 +142,16 @@ private:
     void setSolidKmers (tools::collections::Iterable<Type>* solidKmers)  {  SP_SETATTR(solidKmers); }
 
     /** Hash table instance. */
-    Map* _map;
-    void setMap (Map* map)  { SP_SETATTR(map); }
+    AbundanceMap* _abundanceMap;
+    NodeStateMap* _nodeStateMap;
+    void setAbundanceMap (AbundanceMap* abundanceMap)  { SP_SETATTR(abundanceMap); }
+    void setNodeStateMap (NodeStateMap* nodeStateMap)  { SP_SETATTR(nodeStateMap); }
 
     /** Set the abundance for each entry in the hash table. */
     void populate ();
+    
+    /** Initialize the node state for each entry in the hash table. */
+    void initNodeStates ();
 
     /** Check the content of the map once built. */
     void check ();

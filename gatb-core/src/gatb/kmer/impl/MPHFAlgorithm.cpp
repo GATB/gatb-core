@@ -67,8 +67,8 @@ static const char* messages[] = {
  *  Solved by putting it in the cpp...
  *      => http://stackoverflow.com/questions/2738435/using-numeric-limitsmax-in-constant-expressions
  */
-template<size_t span, typename Abundance_t>
-const Abundance_t MPHFAlgorithm<span,Abundance_t>::MAX_ABUNDANCE = std::numeric_limits<Abundance_t>::max();
+template<size_t span, typename Abundance_t, typename NodeState_t>
+const Abundance_t MPHFAlgorithm<span,Abundance_t,NodeState_t>::MAX_ABUNDANCE = std::numeric_limits<Abundance_t>::max();
 
 /*********************************************************************
 ** METHOD  :
@@ -78,8 +78,8 @@ const Abundance_t MPHFAlgorithm<span,Abundance_t>::MAX_ABUNDANCE = std::numeric_
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span, typename Abundance_t>
-MPHFAlgorithm<span,Abundance_t>::MPHFAlgorithm (
+template<size_t span, typename Abundance_t, typename NodeState_t>
+MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     Group&              group,
     const std::string&  name,
     Iterable<Count>*    solidCounts,
@@ -88,7 +88,7 @@ MPHFAlgorithm<span,Abundance_t>::MPHFAlgorithm (
     IProperties*        options
 )
     :  Algorithm("emphf", 1, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
-       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _map(0),  _progress(0)
+       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _progress(0)
 {
     /** We keep a reference on the solid kmers. */
     setSolidCounts (solidCounts);
@@ -97,21 +97,25 @@ MPHFAlgorithm<span,Abundance_t>::MPHFAlgorithm (
     setSolidKmers (solidKmers);
 
     /** We build the hash object. */
-    setMap (new Map());
+    setAbundanceMap (new AbundanceMap());
+    setNodeStateMap (new NodeStateMap());
 
     /** We gather some statistics. */
-    getInfo()->add (1, "enabled", "%d", Map::enabled);
+    getInfo()->add (1, "enabled", "%d", AbundanceMap::enabled);
 
     /** In case of load, we load the mphf and populate right now. */
-    if (Map::enabled == true && buildOrLoad == false)
+    if (AbundanceMap::enabled == true && buildOrLoad == false)
     {
         /** We load the hash object from the dedicated storage group. */
         {   TIME_INFO (getTimeInfo(), "load");
-            _map->load (_group, _name);
+            _abundanceMap->load (_group, _name);
         }
 
-        /** We populate the hash table. */
+        /** We populate the abundance hash table. */
         populate ();
+
+        /** init a clean node state map */
+        initNodeStates ();
     }
 }
 
@@ -123,13 +127,14 @@ MPHFAlgorithm<span,Abundance_t>::MPHFAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span,typename Abundance_t>
-MPHFAlgorithm<span,Abundance_t>::~MPHFAlgorithm ()
+template<size_t span,typename Abundance_t,typename NodeState_t>
+MPHFAlgorithm<span,Abundance_t,NodeState_t>::~MPHFAlgorithm ()
 {
     /** Cleanup */
     setSolidCounts (0);
     setSolidKmers  (0);
-    setMap         (0);
+    setAbundanceMap(0);
+    setNodeStateMap(0);
     setProgress    (0);
 }
 
@@ -141,11 +146,11 @@ MPHFAlgorithm<span,Abundance_t>::~MPHFAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span, typename Abundance_t>
-void MPHFAlgorithm<span,Abundance_t>::execute ()
+template<size_t span, typename Abundance_t, typename NodeState_t>
+void MPHFAlgorithm<span,Abundance_t,NodeState_t>::execute ()
 {
     /** We check whether we can use such a type. */
-    if (Map::enabled == true && _buildOrLoad == true)
+    if (AbundanceMap::enabled == true && _buildOrLoad == true)
     {
         /** We need a progress object. */
         tools::dp::IteratorListener* delegate = createIteratorListener(0,"");  LOCAL (delegate);
@@ -153,16 +158,19 @@ void MPHFAlgorithm<span,Abundance_t>::execute ()
 
         /** We build the hash. */
         {   TIME_INFO (getTimeInfo(), "build");
-            _map->build (*_solidKmers, _progress);
+            _abundanceMap->build (*_solidKmers, _progress);
         }
 
         /** We save the hash object in the dedicated storage group. */
         {   TIME_INFO (getTimeInfo(), "save");
-            _dataSize = _map->save (_group, _name);
+            _dataSize = _abundanceMap->save (_group, _name);
         }
 
         /** We populate the hash table. */
         populate ();
+        
+        /** init a clean node state map */
+        initNodeStates ();
     }
 }
 
@@ -174,12 +182,23 @@ void MPHFAlgorithm<span,Abundance_t>::execute ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span,typename Abundance_t>
-float MPHFAlgorithm<span,Abundance_t>::getNbBitsPerKmer () const
+template<size_t span,typename Abundance_t, typename NodeState_t>
+float MPHFAlgorithm<span,Abundance_t,NodeState_t>::getNbBitsPerKmer () const
 {
-    float nbitsPerKmer = sizeof(Abundance_t)*8;
+    float nbitsPerKmer = sizeof(Abundance_t)*8 + sizeof(NodeState_t) * 4;
     return nbitsPerKmer;
 }
+
+/********************************************************************/
+
+template<size_t span,typename Abundance_t,typename NodeState_t>
+void MPHFAlgorithm<span,Abundance_t,NodeState_t>::initNodeStates()
+{
+    size_t n = _abundanceMap->size();
+
+    _nodeStateMap->useHashFrom(_abundanceMap, 2); // use abundancemap's MPHF, and allocate n/2 bytes
+}
+
 
 /*********************************************************************
 ** METHOD  :
@@ -189,11 +208,11 @@ float MPHFAlgorithm<span,Abundance_t>::getNbBitsPerKmer () const
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span,typename Abundance_t>
-void MPHFAlgorithm<span,Abundance_t>::populate ()
+template<size_t span,typename Abundance_t,typename NodeState_t>
+void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
 {
     size_t nb_iterated = 0;
-    size_t n = _map->size();
+    size_t n = _abundanceMap->size();
 
     _nb_abundances_above_precision = 0;
 
@@ -209,7 +228,7 @@ void MPHFAlgorithm<span,Abundance_t>::populate ()
     for (itKmers->first(); !itKmers->isDone(); itKmers->next())
     {
         /** We get the hash code of the current item. */
-        typename Map::Hash::Code h = _map->getCode (itKmers->item().value);
+        typename AbundanceMap::Hash::Code h = _abundanceMap->getCode (itKmers->item().value);
 
         /** Little check. */
         if (h >= n) {  throw Exception ("MPHF check: value out of bounds"); }
@@ -224,7 +243,7 @@ void MPHFAlgorithm<span,Abundance_t>::populate ()
         }
 
         /** We set the abundance of the current kmer. */
-        _map->at (h) = abundance;
+        _abundanceMap->at (h) = abundance;
 
         nb_iterated ++;
     }
@@ -241,9 +260,9 @@ void MPHFAlgorithm<span,Abundance_t>::populate ()
 
     /** We gather some statistics. */
     getInfo()->add (1, "stats");
-    getInfo()->add (2, "nb_keys",               "%ld",  _map->size());
+    getInfo()->add (2, "nb_keys",               "%ld",  _abundanceMap->size());
     getInfo()->add (2, "data_size",             "%ld",  _dataSize);
-    getInfo()->add (2, "bits_per_key",          "%.3f", (float)(_dataSize*8)/(float)_map->size());
+    getInfo()->add (2, "bits_per_key",          "%.3f", (float)(_dataSize*8)/(float)_abundanceMap->size());
     getInfo()->add (2, "prec",                  "%d",   MAX_ABUNDANCE);
     getInfo()->add (2, "nb_abund_above_prec",   "%d",   _nb_abundances_above_precision);
     getInfo()->add (1, getTimeInfo().getProperties("time"));
@@ -257,8 +276,8 @@ void MPHFAlgorithm<span,Abundance_t>::populate ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span,typename Abundance_t>
-void MPHFAlgorithm<span,Abundance_t>::check ()
+template<size_t span,typename Abundance_t, typename NodeState_t>
+void MPHFAlgorithm<span,Abundance_t,NodeState_t>::check ()
 {
     size_t nb_iterated = 0;
 
@@ -269,16 +288,16 @@ void MPHFAlgorithm<span,Abundance_t>::check ()
         Count& count = itKmers->item();
 
         /** We get the current abundance. */
-        Abundance_t abundance = (*_map)[count.value];
+        Abundance_t abundance = (*_abundanceMap)[count.value];
 
         if (abundance!=count.abundance && abundance<MAX_ABUNDANCE)  {  throw Exception ("ERROR: MPHF isn't injective (abundance population failed)");  }
 
         nb_iterated ++;
     }
 
-    if (nb_iterated != _map->size() && _map->size() > 3)
+    if (nb_iterated != _abundanceMap->size() && _abundanceMap->size() > 3)
     {
-        throw Exception ("ERROR during abundance population: itKmers iterated over %d/%d kmers only", nb_iterated, _map->size());
+        throw Exception ("ERROR during abundance population: itKmers iterated over %d/%d kmers only", nb_iterated, _abundanceMap->size());
     }
 }
 
@@ -290,8 +309,8 @@ void MPHFAlgorithm<span,Abundance_t>::check ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span,typename Abundance_t>
-MPHFAlgorithm<span,Abundance_t>::ProgressCustom::ProgressCustom (tools::dp::IteratorListener* ref)
+template<size_t span,typename Abundance_t, typename NodeState_t>
+MPHFAlgorithm<span,Abundance_t,NodeState_t>::ProgressCustom::ProgressCustom (tools::dp::IteratorListener* ref)
   : tools::misc::impl::ProgressProxy (ref), nbReset(0)
 {
 }
@@ -304,8 +323,8 @@ MPHFAlgorithm<span,Abundance_t>::ProgressCustom::ProgressCustom (tools::dp::Iter
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span,typename Abundance_t>
-void MPHFAlgorithm<span,Abundance_t>::ProgressCustom::reset (u_int64_t ntasks)
+template<size_t span,typename Abundance_t, typename NodeState_t>
+void MPHFAlgorithm<span,Abundance_t,NodeState_t>::ProgressCustom::reset (u_int64_t ntasks)
 {
     const char* label = nbReset < sizeof(messages)/sizeof(messages[0]) ? messages[nbReset++] : "other";
 

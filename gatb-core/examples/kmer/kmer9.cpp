@@ -14,29 +14,19 @@ using namespace std;
 int main (int argc, char* argv[])
 {
     // We create a command line parser.
-    OptionsParser parser ("SortingCount");
-    parser.push_back (new OptionOneParam (STR_URI_INPUT,          "bank input",             true));
-    parser.push_back (new OptionOneParam (STR_URI_OUTPUT,         "sorting count output",   true));
-    parser.push_back (new OptionOneParam (STR_KMER_SIZE,          "kmer size",              false, "31"));
-    parser.push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "abundance min",          false, "3"));
+    IOptionsParser* parser = SortingCountAlgorithm<>::getOptionsParser();
+    LOCAL (parser);
 
     try
     {
         // We parse the user options.
-        IProperties* options = parser.parse (argc, argv);
-
-        // We get the options
-        size_t kmerSize = options->getInt(STR_KMER_SIZE);
-        size_t nks      = options->getInt(STR_KMER_ABUNDANCE_MIN);
+        IProperties* options = parser->parse (argc, argv);
 
         // We open the input bank
         IBank* bank = Bank::open (options->getStr(STR_URI_INPUT));
 
-        // We create an object for storing the couples [kmer,abundance]
-        Storage* storage = StorageFactory(STORAGE_HDF5).create(options->getStr(STR_URI_OUTPUT), true, false);   LOCAL (storage);
-
         // We create a SortingCountAlgorithm instance.
-        SortingCountAlgorithm<> algo (storage, bank, kmerSize, make_pair(nks,0));
+        SortingCountAlgorithm<> algo (bank, options);
 
         // We launch the algorithm
         algo.execute();

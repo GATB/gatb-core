@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/tools/misc/impl/StringLine.hpp>
 #include <gatb/system/impl/System.hpp>
 
 #include <stdarg.h>
@@ -44,7 +45,7 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 Progress::Progress (u_int64_t ntasks, const char * msg, std::ostream& output)
     : os(output)
 {
-    message = (msg != NULL ? msg : "?");
+    message = StringLine::format (msg != NULL ? msg : "?");
     reset (ntasks);
 }
 
@@ -153,7 +154,7 @@ void Progress::set (u_int64_t ntasks_done)
 *********************************************************************/
 void Progress::setMessage (const std::string& msg)
 {
-    message = msg;
+    message = StringLine::format (msg);
 
     update (false);
 }
@@ -293,7 +294,7 @@ void ProgressTimer::fillBuffer (double elapsed)
     rem -= min_r*60;
 
     /** We format the string to be displayed. */
-    snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g%%   elapsed: %3i min %-2.0f sec    estimated remaining: %3i min %-2.0f sec",
+    snprintf (buffer, sizeof(buffer), "%c[%s]  %-5.3g%%   elapsed: %3i min %-2.0f sec   remaining: %3i min %-2.0f sec",
         13,
         message.c_str(),
         100*(double)done/todo,
@@ -346,7 +347,7 @@ void ProgressTimerAndSystem::fillBuffer (double elapsed)
 
     /** We format the string to be displayed. */
     char tmp[128];
-    snprintf (tmp, sizeof(tmp), "   cpu: %6.1f %%   mem: [%4lu, %4lu, %4lu] MB ",
+    snprintf (tmp, sizeof(tmp), "   cpu: %5.1f %%   mem: [%4lu, %4lu, %4lu] MB ",
         _cpuinfo->getUsage(),
         mem, _memMax, memMaxProcess
     );

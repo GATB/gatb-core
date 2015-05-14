@@ -30,17 +30,13 @@
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/bank/api/IBank.hpp>
+#include <gatb/kmer/api/ICountProcessor.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/kmer/impl/BankKmers.hpp>
-#include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/tools/misc/impl/Histogram.hpp>
-#include <gatb/tools/collections/api/Iterable.hpp>
-#include <gatb/tools/collections/impl/IterableHelpers.hpp>
+#include <gatb/kmer/impl/Configuration.hpp>
+#include <gatb/kmer/impl/PartiInfo.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <string>
-
-#include <gatb/kmer/impl/PartitionsCommand.hpp>
-#include <gatb/kmer/impl/LinearCounter.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -69,111 +65,41 @@ namespace impl      {
 template<size_t span=KMER_DEFAULT_SPAN>
 class SortingCountAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
-private:
-
-	/** We define here a 'maximizer' in the mmers of a specific kmer. */
-	struct  CustomMinimizer
-	{
-		template<class Model>  void init (const Model& model, typename Kmer<span>::Type& optimum) const
-		{
-			optimum = model.getKmerMax();
-		}
-		
-		bool operator() (const typename Kmer<span>::Type& current, const typename Kmer<span>::Type& optimum) const
-		{
-			u_int64_t a = current.getVal() ;
-			u_int64_t b = optimum.getVal() ;
-
-			// test 3 consecutive identical nt
-			//      u_int64_t a1 = a >>2 ;
-			//      u_int64_t a2 = a >>4 ;
-			//      a1 = (~( a ^ a1)) &  (~ (a ^ a2)) ;
-			//      a1 =  ((a1 >>1) & a1) & _mask_0101 & _mmask_m1 ;
-			//      if(a1 != 0) return false;
-
-			// test 2 consecutive aa anywhere except beginning
-			//      u_int64_t a1 =  ( ~a )  & (  ~a >>2 );
-			
-			// test si AA consecutif sauf au debut
-			u_int64_t a1 =   ~(( a )   | (  a >>2 ));
-			a1 = ((a1 >>1) & a1) & _mask_ma1 ;
-			if (a1 != 0) return false;
-			return (a<b);
-
-			// return (current<optimum);
-		}
-		
-		int        _mm;
-		u_int64_t  _mmask_m1;
-		u_int64_t  _mask_0101;
-		u_int64_t  _mask_ma1;
-		
-		CustomMinimizer(int minim_size)
-		{
-			_mm        = minim_size;
-			_mmask_m1  = (1 << ((_mm-2)*2)) -1 ;
-			_mask_0101 = 0x5555555555555555  ;
-			_mask_ma1  = _mask_0101 & _mmask_m1;
-		}
-		
-		CustomMinimizer(const CustomMinimizer& cm)
-		{
-			_mm        = cm._mm;
-			_mmask_m1  = cm._mmask_m1;
-			_mask_0101 = cm._mask_0101;
-			_mask_ma1  = cm._mask_ma1;
-		}
-	};
-	
 public:
 
 	/* Shortcuts. */
-	typedef typename Kmer<span>::ModelCanonical  ModelCanonical;
-	typedef typename Kmer<span>::ModelDirect     ModelDirect;
-	typedef typename kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical> 	Model;
-    typedef typename kmer::impl::Kmer<span>::Type  Type;
-    typedef typename kmer::impl::Kmer<span>::Count Count;
+    typedef typename Kmer<span>::Type                                       Type;
+    typedef typename Kmer<span>::ModelCanonical                             ModelCanonical;
+    typedef typename Kmer<span>::template ModelMinimizer <ModelCanonical>   Model;
+    typedef typename Kmer<span>::Count                                      Count;
+    typedef ICountProcessor<span> CountProcessor;
 
-    /** Constructor (default). */
-    SortingCountAlgorithm ();
+    /** Constructor. Can be used as default constructor in no parameters are provided
+     * \param[in] params : parameters to be used for configuring the algorithm
+     */
+    SortingCountAlgorithm (tools::misc::IProperties* params = 0);
 
     /** Constructor.
-     * \param[in] storage : storage where the solid kmers are saved
      * \param[in] bank : input bank from which solid kmers are counted
-     * \param[in] kmerSize : size of kmers
-     * \param[in] abundance : range [min,max] of abundances for the solidity criteria
-     * \param[in] max_memory : max memory to be used (in MBytes)
-     * \param[in] max_disk_space : max disk to be used (in MBytes)
-     * \param[in] nbCores : number of cores to be used; 0 means all available cores
-     * \param[in] solidityKind : criteria for solidity computation
-     * \param[in] histogramMax : max number of values for the kmers histogram
-     * \param[in] partitionType : kind of temporary partitions
-     * \param[in] minimizerType : kind of minimizer (kmc2 or other)
-     * \param[in] repartitionType : kind of repartition of minimizers into partitions
-     * \param[in] minimizerSize : size of minimizers
-     * \param[in] prefix : prefix used for output names
-     * \param[in] options : extra options if any as a IProperties instance
+     * \param[in] params : parameters to be used for configuring the algorithm
      */
     SortingCountAlgorithm (
-        tools::storage::impl::Storage* storage,
-        gatb::core::bank::IBank* bank,
-        size_t              kmerSize,
-        std::pair<size_t,size_t> abundance,
-        u_int32_t           max_memory     = 0,
-        u_int64_t           max_disk_space = 0,
-        size_t              nbCores        = 0,
-        tools::misc::KmerSolidityKind solidityKind = tools::misc::KMER_SOLIDITY_DEFAULT,
-        size_t              histogramMax   = 10000,
-        size_t              partitionType  = 0,
-        size_t              minimizerType  = 0,
-        size_t              repartitionType= 0,
-        size_t              minimizerSize  = 0,
-        const std::string&  prefix         = "tmp.",
-        gatb::core::tools::misc::IProperties* options = 0
+        gatb::core::bank::IBank*  bank,
+        tools::misc::IProperties* params
     );
 
-    /** Constructor.*/
-    SortingCountAlgorithm (tools::storage::impl::Storage& storage);
+    /** Constructor.
+     * \param[in] bank : input bank from which solid kmers are counted
+     * \param[in] config : configuration information
+     * \param[in] repartitor : hash function for minimizers
+     * \param[in] processor : object that processes counts
+     */
+    SortingCountAlgorithm (
+        gatb::core::bank::IBank* bank,
+        const Configuration&     config,
+        Repartitor*              repartitor = 0,
+        CountProcessor*          processor  = 0
+    );
 
     /** Destructor */
     virtual ~SortingCountAlgorithm ();
@@ -187,136 +113,113 @@ public:
      * \return an instance of IOptionsParser. */
     static tools::misc::IOptionsParser* getOptionsParser (bool mandatory=true);
 
-    /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass
-     * 1) we build the partition files then 2) we fill the solid kmers file from the partitions.
+    /** Get the default values defined in the default option parser.
+     * \return default properties. */
+    static tools::misc::IProperties* getDefaultProperties ();
+
+    /** Creates a default CountProcessor instance (ie. the default one used by DSK)
+     * \param[in] params : used for configuring the processor
+     * \param[in] dskStorage : storage for dumping [kmer,count] couples
+     * \param[in] otherStorage : used for histogram for instance
+     * \return a CountProcessor instance
+     */
+    static CountProcessor* getDefaultProcessor (
+        tools::misc::IProperties*       params,
+        tools::storage::impl::Storage*  dskStorage,
+        tools::storage::impl::Storage*  otherStorage = 0
+    );
+
+    /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass :
+     *      1) we build the partition files then
+     *      2) we fill the solid kmers file from the partitions.
      */
     void  execute ();
 
-    /** Get the iterable over the computed solid kmers.
-     * \return the solid kmers iterable. */
-    tools::storage::impl::Partition<Count>* getSolidCounts ()  { return _solidCounts; }
+    /** Getter for the CountProcessor to be used by the algorithm.
+     * \return the processor
+     */
+    CountProcessor* getProcessor ()  { return _processor; }
+
+    /** Setter for the CountProcessor to be used by the algorithm.
+     * \param[in] processor : the count processor to be used.
+     */
+    void setProcessor (CountProcessor* processor)  { SP_SETATTR(processor); }
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
-    tools::collections::Iterable<Type>* getSolidKmers   ()  { return _solidKmers;  }
+    tools::storage::impl::Partition<Count>* getSolidCounts ();
 
-    /** Return the storage group where dsk stuf is stored.
-     * \return the Group instance.  */
-    tools::storage::impl::Group& getStorageGroup() { return  (*_storage)("dsk"); }
+    /** Get the iterable over the computed solid kmers.
+     * \return the solid kmers iterable. */
+    tools::collections::Iterable<Type>* getSolidKmers   ();
 
-    void setMinAutoThreshold(int value) { _min_auto_threshold = value; }
+    /** Get the configuration object for the algorithm.
+     * \return the Configuration object. */
+    const kmer::impl::Configuration& getConfig() const { return _config; }
+
+    /* Get the storage instance (if any).
+     * \return the Storage instance. */
+    tools::storage::impl::Storage* getStorage () { return _storage; }
 
 private:
 
-    /** Compute several values, in particular the number of passes and partitions. */
-    void configure (gatb::core::bank::IBank* bank);
-
-    /** */
-    Model* computeRepartition (Repartitor& repartitor);
+    /** Configuration of the objects used by the algorithm. */
+    void configure ();
 
     /** Fill partition files (for a given pass) from a sequence iterator.
      * \param[in] pass  : current pass whose value is used for choosing the partition file
      * \param[in] itSeq : sequences iterator whose sequence are cut into kmers to be split.
      */
-    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq, PartiInfo<5>& pInfo, Model& model, Repartitor& repartitor);
+    void fillPartitions (size_t pass, gatb::core::tools::dp::Iterator<gatb::core::bank::Sequence>* itSeq, PartiInfo<5>& pInfo);
 
     /** Fill the solid kmers bag from the partition files (one partition after another one).
      * \param[in] solidKmers : bag to put the solid kmers into.
      */
-    void fillSolidKmers (PartiInfo<5>& pInfo);
+    void fillSolidKmers (size_t pass, PartiInfo<5>& pInfo);
 
     /** */
     std::vector <size_t> getNbCoresList (PartiInfo<5>& pInfo);
 
-    /** */
-    tools::storage::impl::Storage* _storage;
+    /** Handle on the configuration information. */
+    kmer::impl::Configuration _config;
 
-    /** */
+    /** Handle on the input bank. */
     gatb::core::bank::IBank* _bank;
     void setBank (gatb::core::bank::IBank* bank)  { SP_SETATTR(bank); }
 
-    /** */
-    tools::collections::Iterable<Type>* _solidKmers;
-    void setSolidKmers (tools::collections::Iterable<Type>* solidKmers)  { SP_SETATTR(solidKmers); }
+    /** Handle on the mininimizers hash function. */
+    Repartitor* _repartitor;
+    void setRepartitor (Repartitor* repartitor)  { SP_SETATTR(repartitor); }
 
-    tools::storage::impl::Partition<Count>* _solidCounts;
-    void setSolidCounts (tools::storage::impl::Partition<Count>* solidCounts)
-    {
-        SP_SETATTR(solidCounts);
-        setSolidKmers (solidCounts ? new tools::collections::impl::IterableAdaptor<Count,Type,Count2TypeAdaptor> (*_solidCounts) : 0);
-    }
+    /** Handle on the count processor object. */
+    CountProcessor* _processor;
 
-    /** Shortcuts for the user input parameters. . */
-    size_t      _kmerSize;
-    std::pair<size_t,size_t> _abundance;
-    size_t      _partitionType;
-    size_t      _minimizerType;
-    size_t      _repartitionType;
-    size_t      _nbCores;
-    size_t      _nbCores_per_partition;
-    size_t      _nb_partitions_in_parallel;
-    size_t      _minim_size;
-
-    std::string _prefix;
-
+    /** Handle on the progress information. */
     gatb::core::tools::dp::IteratorListener* _progress;
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
 
-    /** Values computed for algorithm parameterization. In particular, we have one value for the number
-     * of passes and one value for the number of partitions.
-     * Such values are computed both:
-     *      - from system resources (file system resources, memory resources)
-     *      - user preferences (max disk space, max memory)
-     */
-    u_int64_t _estimateSeqNb;
-    u_int64_t _estimateSeqTotalSize;
-    u_int64_t _estimateSeqMaxSize;
-    u_int64_t _max_disk_space;
-    u_int32_t _max_memory;
-    u_int64_t _volume;
-    u_int32_t _nb_passes;
-    u_int32_t _nb_partitions;
-    u_int32_t _current_pass;
+    /** Temporary partitions management. */
+    tools::storage::impl::Storage* _tmpPartitionsStorage;
+    void setPartitionsStorage (tools::storage::impl::Storage* tmpPartitionsStorage)  {  SP_SETATTR(tmpPartitionsStorage);  }
 
-    gatb::core::tools::misc::IHistogram* _histogram;
-    void setHistogram (gatb::core::tools::misc::IHistogram* histogram)  { SP_SETATTR(histogram); }
-
-    /** Partitions management. */
-    tools::storage::impl::Storage* _partitionsStorage;
-    void setPartitionsStorage (tools::storage::impl::Storage* partitionsStorage)
-    {
-        SP_SETATTR(partitionsStorage);
-    }
-
-    tools::storage::impl::Partition<Type>* _partitions;
-    void setPartitions (tools::storage::impl::Partition<Type>* partitions)  {  SP_SETATTR(partitions);  }
-
-    u_int64_t _tmpPartitionsMaxSize;
+    /** Temporary partitions management. */
+    tools::storage::impl::Partition<Type>* _tmpPartitions;
+    void setPartitions (tools::storage::impl::Partition<Type>* tmpPartitions)  {  SP_SETATTR(tmpPartitions);  }
 
     /** Get the memory size (in bytes) to be used by each item.
      * IMPORTANT : we may have to count both the size of Type and the size for the bank id. */
     int getSizeofPerItem () const { return Type::getSize()/8 + (_nbKmersPerPartitionPerBank.size()>1 ? sizeof(bank::BankIdType) : 0); }
 
-    u_int64_t _totalKmerNb;
-
-    struct Count2TypeAdaptor  {  Type& operator() (Count& c)  { return c.value; }  };
-
     tools::misc::impl::TimeInfo _fillTimeInfo;
-
-    u_int64_t _estimatedDistinctKmerNb;
-    bool _flagEstimateNbDistinctKmers; // whether we estimate the number of distinct kmers beforehand
-	
-    std::pair<int,int> _partCmdTypes;
 
     BankStats _bankStats;
 
     std::vector <std::vector<size_t> > _nbKmersPerPartitionPerBank;
 
-    tools::misc::KmerSolidityKind _solidityKind;
-
-    int _min_auto_threshold; // used for histogram.compute_threshold() : prevents the auto_cutoff from being below this value. Default =3
+    tools::storage::impl::Storage* _storage;
+    void setStorage (tools::storage::impl::Storage* storage)  { SP_SETATTR(storage); }
 };
-	
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

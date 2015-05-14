@@ -59,8 +59,8 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 *********************************************************************/
 template<size_t span>
 DebloomMinimizerAlgorithm<span>::DebloomMinimizerAlgorithm (
-    Storage& storage,
-    Storage& storageSolids,
+    Group&              bloomGroup,
+    Group&              debloomGroup,
     Partition<Count>*    solidIterable,
     size_t              kmerSize,
     size_t              miniSize,
@@ -69,9 +69,11 @@ DebloomMinimizerAlgorithm<span>::DebloomMinimizerAlgorithm (
     BloomKind           bloomKind,
     DebloomKind         cascadingKind,
     const std::string&  debloomUri,
-    IProperties*        options
+    IProperties*        options,
+    tools::storage::impl::Group* minimizersGroup
 )
-    :  DebloomAlgorithm<span>(storage, storageSolids, solidIterable, kmerSize, miniSize, max_memory, nb_cores, bloomKind, cascadingKind, debloomUri, options)
+    :  DebloomAlgorithm<span>(bloomGroup, debloomGroup, solidIterable, kmerSize, miniSize, max_memory, nb_cores, bloomKind, cascadingKind, debloomUri, options),
+       _groupMinimizers(minimizersGroup)
 {
 }
 
@@ -262,18 +264,20 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     u_int64_t&   totalSizeCFP
 )
 {
+    /** We retrieve the minimizers distribution from the solid kmers storage. */
+    Repartitor repart;
+    repart.load (*_groupMinimizers);
+
     /** We need two kmer models : one canonical, the other minimizers. */
     typedef typename Kmer<span>::template ModelMinimizer<Model>  ModelMini;
     Model      model     (this->_kmerSize);
-    ModelMini  modelMini (this->_kmerSize, this->_miniSize);
-
-    /** We retrieve the minimizers distribution from the solid kmers storage. */
-    Repartitor repart;
-    repart.load (this->_storageSolids().getGroup("dsk"));
+    ModelMini  modelMini (this->_kmerSize, this->_miniSize,
+        typename Kmer<span>::ComparatorMinimizerFrequency(), repart.getMinimizerFrequencies()
+    );
 
     /** We create the collection that will hold the critical false positive kmers. */
     string cfpFilename = System::file().getTemporaryFilename("cfp");
-    Collection<Type>* criticalCollection = new CollectionFile <Type> (cfpFilename);
+    Collection<Type>* criticalCollection = new CollectionFile<Type> (cfpFilename);
     LOCAL (criticalCollection);
 
     /***************************************************/

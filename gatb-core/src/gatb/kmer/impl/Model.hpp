@@ -29,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/system/api/Exception.hpp>
+
 #include <gatb/kmer/api/IModel.hpp>
 
 #include <gatb/tools/collections/api/Bag.hpp>
@@ -1230,19 +1231,16 @@ struct Kmer
      */
     struct Count : tools::misc::Abundance<Type,u_int32_t>
     {
-        /** Shortcut. */
-        typedef u_int32_t Number;
-
         /** Constructor.
          * \param[in] val : integer value of the kmer
          * \param[in] abund : abundance for the kmer */
-        Count(const Type& val, const Number& abund) : tools::misc::Abundance<Type,Number>(val, abund) {}
+        Count(const Type& val, const CountNumber& abund) : tools::misc::Abundance<Type,CountNumber>(val, abund) {}
 
         /** Default constructor. */
-        Count() : tools::misc::Abundance<Type,Number>(Type(), 0) {}
+        Count() : tools::misc::Abundance<Type,CountNumber>(Type(), 0) {}
 
         /** Copy constructor. */
-        Count(const Count& val) : tools::misc::Abundance<Type,Number>(val.value, val.abundance) {}
+        Count(const Count& val) : tools::misc::Abundance<Type,CountNumber>(val.value, val.abundance) {}
 
         /** Comparison operator
          * \param[in] other : object to be compared to

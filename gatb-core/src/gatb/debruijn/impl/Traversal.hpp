@@ -34,6 +34,7 @@ namespace impl      {
 // some stats
 struct TraversalStats
 {
+    // MonumentTraversal
     long ended_traversals;
     long couldnt_find_all_consensuses;
     long couldnt_validate_consensuses;
@@ -44,6 +45,11 @@ struct TraversalStats
     long couldnt_inbranching_breadth;
     long couldnt_inbranching_other;
     long couldnt_find_extension;
+
+    //SimplepathTraversal
+    long couldnt_no_extension;
+    long couldnt_inbranching;
+    long couldnt_outbranching;
 };
 
 /********************************************************************************/
@@ -130,11 +136,11 @@ public:
 
     /** Get the maximum allowed depth
      * \return maximum depth */
-    int getMaxDepth() const  { return max_depth; };
+    unsigned int getMaxDepth() const  { return max_depth; };
 
     /** Get the maximum allowed breadth
      * \return maximum breadth */
-    int getMaxBreadth () const  { return max_breadth; };
+    unsigned int getMaxBreadth () const  { return max_breadth; };
 
     static const int defaultMaxLen     = 10*1000*1000;
     static const int defaultMaxDepth   = 500;
@@ -153,6 +159,8 @@ public:
      * path.
      * \return vector of positions ranges. */
     const std::vector <std::pair<int, int> >& getBubbles()  const { return bubbles_positions; }
+
+    bool deadend;
 
 protected:
 
@@ -282,6 +290,19 @@ public:
         std::set<Node>& all_involved_extensions
     );
 
+
+    // those two used to be private, but I need them in GraphSimplification for now (until explore_branching gets templated or any way we can choose Frontline type)
+    bool validate_consensuses (std::set<Path>& consensuses, Path& consensus);
+
+    std::set<Path> all_consensuses_between (
+        Direction    dir,
+        const Node& startNode,
+        const Node& endNode,
+        int traversal_depth,
+        bool &success
+    );
+
+
 private:
 
     /* Implementation of the virtual method. */
@@ -294,7 +315,6 @@ private:
         const Node& previousNode
     );
 
-
     int find_end_of_branching (
         Direction dir,
         const Node& startingNode,
@@ -302,7 +322,7 @@ private:
         const Node& previousNode,
         std::set<Node>& all_involved_extensions
     );
-
+ 
     std::set<Path> all_consensuses_between (
         Direction    dir,
         const Node& startNode,
@@ -312,24 +332,15 @@ private:
         Path current_consensus,
         bool& success
     );
-
-    std::set<Path> all_consensuses_between (
-        Direction    dir,
-        const Node& startNode,
-        const Node& endNode,
-        int traversal_depth,
-        bool &success
-    );
-
-    bool validate_consensuses (std::set<Path>& consensuses, Path& consensus);
-
+   
     bool all_consensuses_almost_identical (std::set<Path>& consensuses);
 
     void mark_extensions (std::set<Node>& extensions_to_mark);
 
     Path most_abundant_consensus(std::set<Path>& consensuses);
 
-    static const int consensuses_identity = 90; // traversing bubble if paths are all pair-wise identical by > 90%
+    static const int consensuses_identity = 85; // traversing bubble if paths are all pair-wise identical by 85% 
+    //(used to be > 90% in legacy minia) // by legacy minia i mean minia 1 and minia 2 up to the assembly algo rewrite in may 2015
 };
 
 /********************************************************************************/

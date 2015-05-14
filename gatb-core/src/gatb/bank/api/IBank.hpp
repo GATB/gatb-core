@@ -98,6 +98,10 @@ public:
      * \return the bank size in bytes.*/
     virtual u_int64_t getSize () = 0;
 
+    /** In case of a composite bank, return the number of sub banks.
+     * \return number of sub banks. */
+    virtual size_t getCompositionNb () = 0;
+
     /** Give an estimation of sequences information in the bank.
      * \param[out] number : sequences number
      * \param[out] totalSize : sequences size (in bytes)

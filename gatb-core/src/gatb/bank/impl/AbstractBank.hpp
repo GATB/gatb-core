@@ -76,6 +76,13 @@ public:
     /** \copydoc IBank::finalize */
     void finalize ()  {}
 
+    /** \copydoc IBank::getCompositionNb */
+    size_t getCompositionNb ()
+    {
+        tools::dp::Iterator<Sequence>* it = this->iterator();  LOCAL(it);
+        return it->getComposition().size();
+    }
+
 private:
 
     u_int64_t _estimateThreshold;

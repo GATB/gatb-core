@@ -55,12 +55,10 @@ public:
     /** Constructor.
      * \param[in] length : maximum value for the X axis
      * \param[in] bag : bag where the values can be saved. */
-    Histogram (size_t length, tools::collections::Bag<Entry>* bag)
+    Histogram (size_t length)
         : _length(length), _cutoff(0), _nbsolids(0), _firstPeak(0),
-          _histogram(0), _histogram_smoothed(0), _bag(0)
+          _histogram(0), _histogram_smoothed(0)
     {
-        setBag (bag);
-
         _histogram = (Entry*) CALLOC (_length + 1, sizeof (Entry));
         memset (_histogram, 0, sizeof(Entry)*(_length + 1));
 
@@ -79,7 +77,6 @@ public:
     /** Destructor */
     virtual ~Histogram ()
     {
-        setBag(0);
         FREE (_histogram);
         FREE (_histogram_smoothed);
     }
@@ -88,7 +85,7 @@ public:
     void inc (u_int16_t index)  { _histogram [(index >= _length) ? _length : index].abundance ++; }
 
     /** \copydoc IHistogram::save */
-    void save ();
+    void save (tools::storage::impl::Group& group);
 
     /** \copydoc IHistogram::compute_threshold */
 	void compute_threshold (int min_auto_threshold) ;  //min_auto_threshold = prevents the auto_cutoff from being below this value. Default =3
@@ -110,16 +107,13 @@ public:
 
 private:
 
-    size_t  _length;
+    size_t    _length;
 	u_int16_t _cutoff;
 	u_int64_t _nbsolids;
     u_int16_t _firstPeak;
 	
     Entry*  _histogram;
 	Entry*  _histogram_smoothed;
-
-    tools::collections::Bag<Entry>* _bag;
-    void setBag (tools::collections::Bag<Entry>* bag)  { SP_SETATTR(bag); }
 };
 
 /********************************************************************************/
@@ -134,7 +128,7 @@ public:
     void inc (u_int16_t index) {}
 
     /** \copydoc IHistogram::save */
-    void save ()  {}
+    void save (tools::storage::impl::Group& group)  {}
 	
     /** \copydoc IHistogram::get_solid_cutoff */
 	u_int16_t get_solid_cutoff  () { return 0; }
@@ -171,7 +165,7 @@ public:
      * \param[in] ref : the referred instance.
      * \param[in] synchro : used for synchronization */
     HistogramCache (IHistogram* ref, system::ISynchronizer* synchro=0)
-        : _ref(0), _synchro(synchro), _localHisto(ref ? ref->getLength() : 0, 0) {  setRef(ref); }
+        : _ref(0), _synchro(synchro), _localHisto(ref ? ref->getLength() : 0) {  setRef(ref); }
 
     /** Destructor. */
     ~HistogramCache()
@@ -185,7 +179,7 @@ public:
     void inc (u_int16_t index)  { _localHisto.inc (index); }
 
     /** \copydoc IHistogram::save */
-    void save ()  { return _ref->save(); }
+    void save (tools::storage::impl::Group& group)  { return _ref->save(group); }
 
     /** \copydoc IHistogram::compute_threshold */
 	void compute_threshold (int min_auto_threshold) { return _ref->compute_threshold(min_auto_threshold); }

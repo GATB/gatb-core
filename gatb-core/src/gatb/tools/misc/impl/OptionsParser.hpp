@@ -116,6 +116,9 @@ public:
     /*********************   Miscellaneous   *********************/
     /*************************************************************/
 
+    /** \copydoc IOptionsParser::getDefaultProperties */
+    misc::IProperties* getDefaultProperties ();
+
     /** \copydoc IOptionsParser::accept */
     void accept (IOptionsParserVisitor& visitor, size_t depth=0)  { visitor.visitOptionsParser(*this, depth); }
 
@@ -171,6 +174,10 @@ public:
      * \return the default value (may be empty) */
     std::string getDefaultValue () const { return _defaultParam; }
 
+    /** Set the default value for the option
+     * \param[in] value : the default value (may be empty) */
+    void setDefaultValue (const std::string& value)  { _defaultParam = value; }
+
     /** Tells whether the option is mandatory or not.
      * \return the mandatory status.
      */
@@ -200,7 +207,7 @@ protected:
     bool            _mandatory;
     std::string     _defaultParam;
 
-    friend class ParserVisitor;
+    friend struct ParserVisitor;
     friend class OptionsHelpVisitor;
 };
 

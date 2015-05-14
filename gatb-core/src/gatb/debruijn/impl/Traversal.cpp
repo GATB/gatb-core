@@ -164,7 +164,7 @@ int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction 
         {
             bubble_end = consensus.size();
             bubbles_positions.push_back(std::make_pair(bubble_start,bubble_end));
-        }
+        }         
 
         if (looping)  {  break;  }
 
@@ -294,7 +294,20 @@ char SimplePathsTraversal::avance (
     const Node& previousNode
 )
 {
-    return  max (graph.simplePathAvance (node, dir, path[0]),  0);
+    int res = graph.simplePathAvance (node, dir, path[0]);
+    deadend = false; // whether the traversal ends with no extension or not -- helps filter out isolated contigs in Minia
+    switch (res)
+    {
+        case -2:
+           stats.couldnt_inbranching++; break;
+        case -1:
+           stats.couldnt_outbranching++; break;
+        case 0:
+           stats.couldnt_no_extension++; 
+           deadend = true; break;
+    }
+
+    return  max (res,  0);
 }
 
 /*********************************************************************
@@ -442,6 +455,7 @@ bool MonumentTraversal::explore_branching (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+//template <typename Frontline=FrontlineBranching> // TODO: someday do something along this line to refactor GraphSimplification in minia
 int MonumentTraversal::find_end_of_branching (
     Direction    dir,
     const Node&  startingNode,
@@ -491,8 +505,10 @@ int MonumentTraversal::find_end_of_branching (
             return 0;
         }
 
-        // if (frontline.size() == 1) // longer contigs but for some reason, higher mismatch rate
-        if (frontline.size() == 1 &&   (!terminator.isEnabled() || !terminator.is_branching(frontline.front().node)) )  {   break;  }
+         if (frontline.size() == 1) // longer contigs but for some reason, higher mismatch rate
+             {break;}
+            // TODO: didn't implement is_branching in MPHFTerminator, but the line above used to be commented and the one below enabled. see if it still affects assembly.
+        //if (frontline.size() == 1 &&   (!terminator.isEnabled() || !terminator.is_branching(frontline.front().node)) )  {   break;  }
     }
     while (1);
 
@@ -681,8 +697,9 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
         return false;
 
     // if all good, an arbitrary consensus is chosen (if no MPHF) or the most abundance one is chosen (if MPHF available)
-    bool has_mphf = (graph.getState() & Graph::STATE_MPHF_DONE);
-    Path chosen_consensus = *consensuses.begin();
+    bool has_mphf = graph.checkState(Graph::STATE_MPHF_DONE);
+
+    Path chosen_consensus;
     if (has_mphf)
         chosen_consensus = most_abundant_consensus(consensuses);
     else
@@ -735,19 +752,29 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
     Path res;
     bool debug = false;
 
-    long best_mean_abundance = 0;
+    unsigned long best_mean_abundance = 0;
+    string best_p_str = "";
+
+    if (debug)
+        cout << endl << "starting to decide which consensus to choose" << endl;
 
     for (set<Path>::iterator it = consensuses.begin(); it != consensuses.end(); it++)
     {
         // iterate over all kmers in consensus and get mean abundance
         Path p = *it;
 
+        // FIXME: I think that code might be buggy!! (wrong p_str constructed in the bubble.fa example of Minia. see GraphSimplification.cpp for a potential fix)
+        
+        
         // naive conversion from path to string
         string p_str = graph.toString(p.start);
         for (size_t i = 0; i < p.size(); i++)
             p_str.push_back(p.ascii(i));
 
-        long mean_abundance = 0;
+        if (debug)
+            cout << endl << "mean cov for path: " << p_str << endl << "abundance: " << endl;
+
+        unsigned long mean_abundance = 0;
         for (size_t i = 0; i < p.size(); i++)
         {            
             Node node = graph.buildNode((char *)(p_str.c_str()), i); 
@@ -756,18 +783,26 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
 
             unsigned char abundance = graph.queryAbundance(node.kmer);
             mean_abundance += abundance;
+        
+            if (debug)
+                cout << (unsigned int)abundance << " ";
         }
         mean_abundance /= p.size();
+        
+        if (debug)
+            cout << "mean: " << mean_abundance << endl;
 
         if (mean_abundance > best_mean_abundance)
         {
             best_mean_abundance = mean_abundance;
             res = p;
+            best_p_str = p_str;
         }
 
-        if (debug && consensuses.size() > 1)
-            printf("path: %s mean abundance: %ld\n",p_str.c_str(),mean_abundance);
     }
+
+    if (debug && consensuses.size() > 1)
+        cout << endl << "chosen path: " << best_p_str << " abundance: " << best_mean_abundance << endl;
 
     return res;
 }
