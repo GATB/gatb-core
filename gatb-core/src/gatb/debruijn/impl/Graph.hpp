@@ -226,6 +226,9 @@ struct Edge
 
     /** The direction of the transition. */
     Direction        direction;
+    
+    /** Overload of operator <.  May not really mean much to compare edges, but is used in Minia's graph simplifications */
+    bool operator< (const Edge& other) const  { return ((from < other.from) || (from == other.from && to < other.to)); }
 
     /** Setter for some attributes of the Edge object.
      * \param[in] kmer_from : kmer value of the 'from' Node
