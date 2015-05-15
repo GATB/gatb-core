@@ -71,55 +71,73 @@ public:
 
     static const u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
 
+
+	template<typename KType>
+	struct KmerFunctor
+	{
+		
+		Sequence2SuperKmer * caller;
+		SuperKmer& superKmer;
+		int maxs;
+		KmerFunctor (Sequence2SuperKmer * Seq2SupCaller,SuperKmer& superKmer,int maxs) :
+		caller(Seq2SupCaller),superKmer(superKmer), maxs(maxs) {}
+		
+		void operator() (const KType& kmer, size_t idx)  {
+			
+		 if (kmer.isValid() == false)
+		 {
+			 // on invalid kmer : output previous superk utput prev
+			 caller->processSuperkmer (superKmer);
+			 superKmer.reset();
+			 
+			 superKmer.minimizer = DEFAULT_MINIMIZER;  //marking will have to restart 'from new'
+			 
+			 caller->_bankStatsLocal.kmersNbInvalid ++;
+			 
+			 return;
+		 }
+			
+			caller->_bankStatsLocal.kmersNbValid ++;
+			
+			/** We get the value of the current minimizer. */
+			u_int64_t h = kmer.minimizer().value().getVal();
+			
+			/** We have to set minimizer value if not defined. */
+			if (superKmer.isValid() == false)  {  superKmer.minimizer = h;  }
+			
+			/** If the current super kmer is finished (or max size reached), we dump it. */
+			if (h != superKmer.minimizer || superKmer.size() >= (size_t)maxs)
+			{
+				caller->processSuperkmer (superKmer);
+				superKmer.reset();
+			}
+			
+			/** We update the superkmer properties (minimizer value and kmers range). */
+			superKmer.minimizer    = h;
+			superKmer.addKmer(kmer);
+			
+		}
+	};
+	
+	
+	
     void operator() (bank::Sequence& sequence)
     {
         /** We update statistics about the bank. */
         _bankStatsLocal.update (sequence);
 
         /** We first check whether we got kmers from the sequence or not. */
-        if (_model.build (sequence.getData(), _kmers) == false)  { return; }
-
+		int32_t nbKmers = sequence.getData().size() - _model.getKmerSize() + 1;
+		if (nbKmers <= 0)  { return ; }
+		
         int maxs = (Type::getSize() - 8 )/2 ;  // 8 is because  8 bit used for size of superkmers, not mini size
 
         /** We create a superkmer object. */
-        SuperKmer superKmer (_kmersize, _miniSize, _kmers);
+        SuperKmer superKmer (_kmersize, _miniSize);
 
-        /** We loop over the kmers of the sequence. */
-        for (size_t i=0; i<_kmers.size(); i++)
-        {
-            if (_kmers[i].isValid() == false)
-            {
-                // on invalid kmer : output previous superk utput prev
-                processSuperkmer (superKmer);
-
-                superKmer.minimizer = DEFAULT_MINIMIZER;  //marking will have to restart 'from new'
-                superKmer.range     = std::make_pair(i+1,i+1);
-
-                _bankStatsLocal.kmersNbInvalid ++;
-
-                continue;
-            }
-
-            _bankStatsLocal.kmersNbValid ++;
-
-            /** We get the value of the current minimizer. */
-            u_int64_t h = _kmers[i].minimizer().value().getVal();
-
-            /** We have to set minimizer value if not defined. */
-            if (superKmer.isValid() == false)  {  superKmer.minimizer = h;  }
-
-            /** If the current super kmer is finished (or max size reached), we dump it. */
-            if (h != superKmer.minimizer || superKmer.size() >= (size_t)maxs)
-            {
-                processSuperkmer (superKmer);
-                superKmer.range = std::make_pair(i,i);
-            }
-
-            /** We update the superkmer properties (minimizer value and kmers range). */
-            superKmer.minimizer    = h;
-            superKmer.range.second = i;
-        }
-
+		//iteration et traitement au fil de l'eau, without large kmer buffer (only small buffer for superkmer now )
+		_model.iterate(sequence.getData(), KmerFunctor<KmerType>(this,superKmer,maxs));
+		
         //output last superK
         processSuperkmer (superKmer);
 
@@ -157,7 +175,6 @@ protected:
     size_t           _pass;
     size_t           _nbPass;
     size_t           _nbPartitions;
-    std::vector<KmerType> _kmers;
     size_t           _kmersize;
     size_t           _miniSize;
     tools::dp::IteratorListener* _progress;

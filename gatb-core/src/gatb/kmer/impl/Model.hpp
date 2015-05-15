@@ -1122,6 +1122,8 @@ struct Kmer
     /************************************************************/
     /*********************  SUPER KMER    ***********************/
     /************************************************************/
+	
+	//now with  vector containing the overlapping kmers of the superkmers (instead of reference to large external vector buffer)
     class SuperKmer
     {
     public:
@@ -1133,21 +1135,35 @@ struct Kmer
 
         static const u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
 
-        SuperKmer (size_t kmerSize, size_t miniSize, std::vector<Kmer>&  kmers)
-            : minimizer(DEFAULT_MINIMIZER), range(0,0), kmerSize(kmerSize), miniSize(miniSize), kmers(kmers)
+        SuperKmer (size_t kmerSize, size_t miniSize)
+            : minimizer(DEFAULT_MINIMIZER), kmerSize(kmerSize), miniSize(miniSize)
         {
-            if (kmers.empty())  { kmers.resize(kmerSize); range.second = kmers.size()-1; }
+			kmers.clear();
+          //  if (kmers.empty())  { kmers.resize(kmerSize); range.second = kmers.size()-1; }
         }
 
         u_int64_t                minimizer;
-        std::pair<size_t,size_t> range;
 
-        Kmer& operator[] (size_t idx)  {  return kmers[idx+range.first];  }
+        Kmer& operator[] (size_t idx)  {
+			return kmers[idx];
+		}
 
-        size_t size() const { return range.second - range.first + 1; }
+		size_t size() const {
+			return kmers.size();
+		}
 
         bool isValid() const { return minimizer != DEFAULT_MINIMIZER; }
 
+		void addKmer(Kmer newkmer)
+		{
+			kmers.push_back(newkmer);
+		}
+		
+		void reset()
+		{
+			kmers.clear();
+		}
+		
         /** */
         void save (tools::collections::Bag<Type>& bag)
         {
@@ -1216,7 +1232,7 @@ struct Kmer
     private:
         size_t              kmerSize;
         size_t              miniSize;
-        std::vector<Kmer>&  kmers;
+        std::vector<Kmer>  kmers;
     };
 
     /************************************************************/
