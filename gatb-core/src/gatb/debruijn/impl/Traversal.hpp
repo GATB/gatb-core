@@ -45,6 +45,17 @@ struct TraversalStats
     long couldnt_inbranching_breadth;
     long couldnt_inbranching_other;
     long couldnt_find_extension;
+    //find_all_consensuses failures:
+    long couldnt_consensus_negative_depth;
+    long couldnt_consensus_amount;
+    long couldnt_consensus_loop;
+    //validate_consensus potentials failures:
+    long couldnt_validate_bubble_mean_depth;
+    long couldnt_validate_bubble_stdev;
+    long couldnt_validate_bubble_deadend;
+    long couldnt_validate_bubble_identity;
+    long couldnt_validate_bubble_long_chosen;
+
 
     //SimplepathTraversal
     long couldnt_no_extension;
@@ -339,7 +350,7 @@ private:
 
     Path most_abundant_consensus(std::set<Path>& consensuses);
 
-    static const int consensuses_identity = 85; // traversing bubble if paths are all pair-wise identical by 85% 
+    static const int consensuses_identity = 80; // traversing bubble if paths are all pair-wise identical by 80% 
     //(used to be > 90% in legacy minia) // by legacy minia i mean minia 1 and minia 2 up to the assembly algo rewrite in may 2015
 };
 
