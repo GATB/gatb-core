@@ -291,13 +291,13 @@ void BranchingTerminator::dump ()
 
 bool MPHFTerminator::is_marked (const Node& node) const
 {
-    int status = _graph.queryNodeState(node.kmer);
+    int status = _graph.queryNodeState(node);
     return status & 1 == 1;
 }
 
 void MPHFTerminator::mark (const Node& node) 
 {
-    int state = _graph.queryNodeState(node.kmer);
+    int state = _graph.queryNodeState(node);
     state |= 1;
     _graph.setNodeState(node, state);
 }
