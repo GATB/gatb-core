@@ -566,6 +566,7 @@ set<Path> MonumentTraversal::all_consensuses_between (
     if (traversal_depth < -1)
     {
         success = false;
+        stats.couldnt_consensus_negative_depth++;
         return consensuses;
     }
 
@@ -590,6 +591,7 @@ set<Path> MonumentTraversal::all_consensuses_between (
         if (usedNode.find(edge.to.kmer) != usedNode.end())
         {
             success = false;
+            stats.couldnt_consensus_loop++;
             return consensuses;
         }
 
@@ -615,7 +617,10 @@ set<Path> MonumentTraversal::all_consensuses_between (
         consensuses.insert (new_consensuses.begin(), new_consensuses.end());
 
         // mark to stop we end up with too many consensuses
-        if (consensuses.size() > (unsigned int )max_breadth)  {    success = false;  }
+        if (consensuses.size() > (unsigned int )max_breadth)  {
+            stats.couldnt_consensus_amount++;
+            success = false;  
+        }
 
         // propagate the stop if too many consensuses reached
         if (success == false)  {   return consensuses;  }
@@ -680,21 +685,33 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
 
     // don't traverse large bubbles
     if (mean > max_depth)
+    {
+        stats.couldnt_validate_bubble_mean_depth++;
         return false;
+    }
 
     // don't traverse large deadends (here, having one consensus means the other paths were large deadends)
     if (consensuses.size() == 1 && mean > (int)graph.getKmerSize()+1) // deadend length should be < k+1 (most have length 1, but have seen up to 10 in ecoli)
+    {
+        stats.couldnt_validate_bubble_deadend++;
         return false;
+    }
 
     if (debug) printf("%lu-bubble mean %d, stdev %.1f\n",consensuses.size(),mean,stdev);
 
     // traverse bubbles if paths have roughly the same length
     if (stdev>mean/5)
+    {
+        stats.couldnt_validate_bubble_stdev++;
         return false;
+    }
 
     // check that all consensuses are similar
     if (! all_consensuses_almost_identical(consensuses))
+    {
+        stats.couldnt_validate_bubble_identity++;
         return false;
+    }
 
     // if all good, an arbitrary consensus is chosen (if no MPHF) or the most abundance one is chosen (if MPHF available)
     bool has_mphf = graph.checkState(Graph::STATE_MPHF_DONE);
@@ -707,7 +724,10 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
 
     int result_length = chosen_consensus.size();
     if  (result_length> max_depth) // it can happen that consensus is longer than max_depth, despite that we didn't explore that far (in a messy bubble with branchings inside)
+    {
+        stats.couldnt_validate_bubble_long_chosen++;
         return false;
+    }
 
     /** We the the result consensus. */
     result = chosen_consensus;
@@ -730,8 +750,12 @@ bool MonumentTraversal::all_consensuses_almost_identical (set<Path>& consensuses
         advance(it_b,1);
         while (it_b != consensuses.end())
         {
-            if (needleman_wunch(*it_a,*it_b) * 100 < consensuses_identity)
+            int identity = needleman_wunch(*it_a,*it_b) * 100;
+            if (identity < consensuses_identity)
+            {
+                //cout << "couldn't pop bubble due to identity %:" << identity << " over length " << (*it_a).size() << " " << (*it_b).size() << endl;
                 return false;
+            }
             advance(it_b,1);
         }
     }
