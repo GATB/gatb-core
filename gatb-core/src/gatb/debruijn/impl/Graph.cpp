@@ -2565,12 +2565,19 @@ unsigned long getNodeIndex (const GraphData<span>& data, const Node& node)
 struct queryNodeState_visitor : public boost::static_visitor<int>    {
 
     const Node& node;
+    unsigned long _hashIndex;
+    bool _hashIndexSet;
 
-    queryNodeState_visitor (const Node& node) : node(node){}
+    queryNodeState_visitor (const Node& node) : node(node), _hashIndex(0), _hashIndexSet(false) {}
+    queryNodeState_visitor (unsigned long hashIndex) : node(Node()), _hashIndex(hashIndex), _hashIndexSet(true){}
 
     template<size_t span>  int operator() (const GraphData<span>& data) const
     {
-        unsigned long hashIndex = getNodeIndex<span>(data, node);
+        unsigned long hashIndex;
+        if (!_hashIndexSet)
+            hashIndex = getNodeIndex<span>(data, node);
+        else
+            hashIndex = _hashIndex;
 
         unsigned char value = (*(data._nodestate)).at(hashIndex / 2);
 
@@ -2584,10 +2591,17 @@ struct queryNodeState_visitor : public boost::static_visitor<int>    {
 };
 
 /** */
-int Graph::queryNodeState (const Node& node) const
+template<typename NodeOrNodeIndex>
+int Graph::queryNodeState (NodeOrNodeIndex node) const
 {
     return boost::apply_visitor (queryNodeState_visitor(node),  *(GraphDataVariant*)_variant);
 }
+// tell compiler to compile for:
+template int Graph::queryNodeState<const Node&>(const Node &) const ;
+template int Graph::queryNodeState<Node>(Node) const ;
+template int Graph::queryNodeState<unsigned long>(unsigned long) const;
+
+
 
 struct setNodeState_visitor : public boost::static_visitor<int>    {
 
@@ -2671,11 +2685,16 @@ template void Graph::deleteNode<const Node&>(const Node &node) const;
 template void Graph::deleteNode<Node>(Node node) const;
 template void Graph::deleteNode<unsigned long>(unsigned long) const;
 
-bool Graph::isNodeDeleted(const Node& node) const
+template<typename NodeOrNodeIndex>
+bool Graph::isNodeDeleted(NodeOrNodeIndex node) const
 {
     return ((!checkState(Graph::STATE_MPHF_DONE)) || (queryNodeState(node) >> 1) & 1 == 1);
 }
 
+// tell compiler to compile for:
+template bool Graph::isNodeDeleted<const Node&>(const Node &node) const;
+template bool Graph::isNodeDeleted<Node>(Node node) const;
+template bool Graph::isNodeDeleted<unsigned long>(unsigned long) const;
 
 
 // direct access to MPHF index
