@@ -41,13 +41,13 @@ int main (int argc, char* argv[])
 
         // We retrieve the repartitor hash function
         Repartitor repart;
-        repart.load (dskGroup);
+        repart.load (storage->getGroup("minimizers"));
 
         // We get the kmer size
         size_t kmerSize = atol (storage->root().getProperty("kmer_size").c_str());
 
         // We get a minimizer model
-        Model model (kmerSize, 8);
+        Model model (kmerSize, 8, typename Kmer<>::ComparatorMinimizerFrequency(), repart.getMinimizerFrequencies());
 
         // We create the output file
         string outputUri = options->get(STR_URI_OUTPUT) ?
@@ -56,6 +56,8 @@ int main (int argc, char* argv[])
 
         FILE* outputFile = fopen (outputUri.c_str(), "w");
         if (outputFile == 0)  { throw Exception ("unable to open output file"); }
+
+        fprintf (outputFile, "#   id   inLocal   inBound     total   %%local  \n");
 
         // A little bit of parallelization won't hurt
         Dispatcher dispatcher (options->getInt(STR_NB_CORES));
@@ -72,6 +74,9 @@ int main (int argc, char* argv[])
             Distrib neigbhorParts;
             Data (size_t nbSolids) : nbIn(0), nbOut(0), distrib(9), neigbhorParts(nbSolids) {}
         };
+
+        // We customize the progress bar width
+        StringLine::setDefaultWidth(8);
 
         // we read the couples [kmer,abundance] with an iterator over each collection of the partition
         ProgressIterator<size_t> itPart (range);
@@ -92,7 +97,11 @@ int main (int argc, char* argv[])
                 // We iterate the neighbors of the current kmer
                 model.iterateNeighbors (count.value, [&] (const Type& neighbor)
                 {
-                    size_t neighborPart = repart(model.getMinimizerValue(neighbor));
+                    // We get the minimizer value of the current kmer.
+                    u_int64_t mini = model.getMinimizerValue(neighbor);
+
+                    // We get the partition index of the neighbor from its minimizer value and the minimizer repartition table.
+                    u_int64_t neighborPart = repart (mini);
 
                     // We look whether or not the neighbor is in the same partition as the current one
                     if (neighborPart != currentPart)  {  match.insert (neighborPart);   d.neigbhorParts[neighborPart]++;  }
@@ -116,14 +125,15 @@ int main (int argc, char* argv[])
                 for (size_t i=0; i<data->neigbhorParts.size(); i++)  { (data->neigbhorParts)[i] += local.neigbhorParts[i];  }
             });
 
-            printf ("\n\n"); for (size_t i=0; i<data->neigbhorParts.size(); i++) { printf ("%5d ", (data->neigbhorParts)[i]);  }  printf ("\n");
-
-            fprintf (outputFile, "%ld  %ld  %ld  %ld  %.3f  %ld ",
-                currentPart , data->nbIn, data->nbOut, (data->nbIn+data->nbOut),
-                100.0 * (double)data->nbIn / (double)(data->nbIn+data->nbOut), data->neigbhorParts.size()
+            fprintf (outputFile, "%6ld  %8ld  %8ld  %8ld  %7.2f ",
+                currentPart ,
+                data->nbIn,
+                data->nbOut,
+                (data->nbIn+data->nbOut),
+                100.0 * (double)data->nbIn / (double)(data->nbIn+data->nbOut)
             );
 
-            for (size_t i=0; i<9; i++)  { fprintf(outputFile, "%2d ", (data->distrib)[i]);  }   fprintf (outputFile, "\n");
+            for (size_t i=0; i<9; i++)  { fprintf(outputFile, "%8d ", (data->distrib)[i]);  }   fprintf (outputFile, "\n");
         }
 
         fclose (outputFile);
