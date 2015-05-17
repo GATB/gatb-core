@@ -279,12 +279,23 @@ bool FrontlineReachable::check (const Node& node)
         /** Shortcut. */
         Node& neighbor = neighbors[i];
         if (_already_frontlined.find (neighbor.kmer) == _already_frontlined.end())  {
-            return false;  
+            checkLater.insert(neighbor);
+           //return false;   // strict
         }
     }
     return true;
 }
 
+bool FrontlineReachable::isReachable()
+{
+   for (set<Node>::iterator itNode = checkLater.begin(); itNode != checkLater.end(); itNode++)
+   {
+        if (_already_frontlined.find((*itNode).kmer) == _already_frontlined.end())
+            return false;
+
+   }
+   return true;
+}
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

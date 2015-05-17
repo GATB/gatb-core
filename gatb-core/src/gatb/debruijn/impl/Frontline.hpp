@@ -163,9 +163,12 @@ public:
         std::set<Node>*   all_involved_extensions
     );
 
+    bool isReachable();
+
 private:
 
     bool check (const Node& node);
+    std::set<Node> checkLater;
 };
 
 
