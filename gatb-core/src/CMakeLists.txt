@@ -7,8 +7,12 @@ SET (KSIZE_1  "32")
 SET (KSIZE_2  "64")
 SET (KSIZE_3  "96")
 SET (KSIZE_4 "128")
+SET (KSIZE_5 "160")
+SET (KSIZE_6 "192")
+SET (KSIZE_7 "224")
+SET (KSIZE_8 "256")
 
-# Users can overwrite the fourth value
+# Users can overwrite these values if needed
 IF (k1)
     SET (KSIZE_1 ${k1})
 ENDIF()
@@ -25,7 +29,25 @@ IF (k4)
     SET (KSIZE_4 ${k4})
 ENDIF()
 
-MESSAGE ("-- SUPPORTED KMER SIZES ARE ${KSIZE_1} ${KSIZE_2} ${KSIZE_3} ${KSIZE_4}")
+IF (k5)
+    SET (KSIZE_5 ${k5})
+ENDIF()
+
+IF (k6)
+    SET (KSIZE_6 ${k6})
+ENDIF()
+
+IF (k7)
+    SET (KSIZE_7 ${k7})
+ENDIF()
+
+IF (k8)
+    SET (KSIZE_8 ${k8})
+ENDIF()
+
+
+
+MESSAGE ("-- OPTIMIZED KMER SIZES INTERVALS ARE ${KSIZE_1} ${KSIZE_2} ${KSIZE_3} ${KSIZE_4} ${KSIZE_5} ${KSIZE_6} ${KSIZE_7} ${KSIZE_8} <-- max supported kmer size without recompilation")
 
 ################################################################################
 #  CONFIGURATION FILE

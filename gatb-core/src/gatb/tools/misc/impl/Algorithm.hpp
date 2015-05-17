@@ -165,6 +165,10 @@ public:
            else if (kmerSize < KSIZE_2)  {  Functor <KSIZE_2>() (options); }
            else if (kmerSize < KSIZE_3)  {  Functor <KSIZE_3>() (options); }
            else if (kmerSize < KSIZE_4)  {  Functor <KSIZE_4>() (options); }
+           else if (kmerSize < KSIZE_5)  {  Functor <KSIZE_5>() (options); }
+           else if (kmerSize < KSIZE_6)  {  Functor <KSIZE_6>() (options); }
+           else if (kmerSize < KSIZE_7)  {  Functor <KSIZE_7>() (options); }
+           else if (kmerSize < KSIZE_8)  {  Functor <KSIZE_8>() (options); }
            else { throw system::Exception ("failure because of unhandled kmer size %d", kmerSize); }
         }
 

@@ -349,6 +349,10 @@ template class BranchingAlgorithm <KSIZE_1>;
 template class BranchingAlgorithm <KSIZE_2>;
 template class BranchingAlgorithm <KSIZE_3>;
 template class BranchingAlgorithm <KSIZE_4>;
+template class BranchingAlgorithm <KSIZE_5>;
+template class BranchingAlgorithm <KSIZE_6>;
+template class BranchingAlgorithm <KSIZE_7>;
+template class BranchingAlgorithm <KSIZE_8>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

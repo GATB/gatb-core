@@ -824,15 +824,18 @@ void DebloomAlgorithm<span>::loadDebloomStructures ()
     }
 }
 
-/********************************************************************************/
-
-// since we didn't define the functions in a .h file, that trick removes linker errors,
-// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
-
+// wanted to do the Templates1 and Templates2 trick but the .pri file prevents me from doing it..
+//
 template class DebloomAlgorithm <KSIZE_1>;
 template class DebloomAlgorithm <KSIZE_2>;
 template class DebloomAlgorithm <KSIZE_3>;
 template class DebloomAlgorithm <KSIZE_4>;
+template class DebloomAlgorithm <KSIZE_5>;
+template class DebloomAlgorithm <KSIZE_6>;
+template class DebloomAlgorithm <KSIZE_7>;
+template class DebloomAlgorithm <KSIZE_8>;
+
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

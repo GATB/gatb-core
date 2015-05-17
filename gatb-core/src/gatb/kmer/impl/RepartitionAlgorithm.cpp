@@ -433,6 +433,11 @@ template class RepartitorAlgorithm <KSIZE_1>;
 template class RepartitorAlgorithm <KSIZE_2>;
 template class RepartitorAlgorithm <KSIZE_3>;
 template class RepartitorAlgorithm <KSIZE_4>;
+template class RepartitorAlgorithm <KSIZE_5>;
+template class RepartitorAlgorithm <KSIZE_6>;
+template class RepartitorAlgorithm <KSIZE_7>;
+template class RepartitorAlgorithm <KSIZE_8>;
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

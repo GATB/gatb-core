@@ -417,6 +417,11 @@ template class ConfigurationAlgorithm <KSIZE_1>;
 template class ConfigurationAlgorithm <KSIZE_2>;
 template class ConfigurationAlgorithm <KSIZE_3>;
 template class ConfigurationAlgorithm <KSIZE_4>;
+template class ConfigurationAlgorithm <KSIZE_5>;
+template class ConfigurationAlgorithm <KSIZE_6>;
+template class ConfigurationAlgorithm <KSIZE_7>;
+template class ConfigurationAlgorithm <KSIZE_8>;
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -201,15 +201,5 @@ void BloomAlgorithm<span>::execute ()
 }
 
 /********************************************************************************/
-
-// since we didn't define the functions in a .h file, that trick removes linker errors,
-// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
-
-template class BloomAlgorithm <KSIZE_1>;
-template class BloomAlgorithm <KSIZE_2>;
-template class BloomAlgorithm <KSIZE_3>;
-template class BloomAlgorithm <KSIZE_4>;
-
-/********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

@@ -88,15 +88,6 @@ namespace impl          {
         delete bloom;
     }
 
-// since we didn't define the functions in a .h file, that trick removes linker errors,
-// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
-
-template class LinearCounter <KSIZE_1>;
-template class LinearCounter <KSIZE_2>;
-template class LinearCounter <KSIZE_3>;
-template class LinearCounter <KSIZE_4>;
-
-
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

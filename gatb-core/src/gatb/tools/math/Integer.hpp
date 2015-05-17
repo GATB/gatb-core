@@ -37,7 +37,7 @@ namespace gatb  {  namespace core  { namespace tools {  namespace math  {
 
 /** \brief Class for large integers calculus
  *
- * The IntegerTemplate is implemented as a boost variant, which means that it can act like T1, T2, T3 or T4 type
+ * The IntegerTemplate is implemented as a boost variant, which means that it can act like T1, T2, T3 or T4, etc.. type
  * according to the configuration.
  *
  * The IntegerTemplate should be specialized with 4 different LargeInt implementation
@@ -57,12 +57,12 @@ namespace gatb  {  namespace core  { namespace tools {  namespace math  {
  *  class.
  *
  */
-template<typename T1, typename T2, typename T3, typename T4>
+template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
 class IntegerTemplate
 {
 private:
 
-    typedef boost::variant<T1,T2,T3,T4> Type;
+    typedef boost::variant<T1,T2,T3,T4,T5,T6,T7,T8> Type;
     Type v;
 
           Type& operator *()       { return v; }
@@ -92,7 +92,11 @@ public:
         case PREC_2: v = T2(n); break;
         case PREC_3: v = T3(n); break;
         case PREC_4: v = T4(n); break;
-        default:  if (getType()<=PREC_4) { v = T4(n);  break; }
+        case PREC_5: v = T5(n); break;
+        case PREC_6: v = T6(n); break;
+        case PREC_7: v = T7(n); break;
+        case PREC_8: v = T8(n); break;
+        default:  if (getType()<=PREC_8) { v = T8(n);  break; }
                   else { throw system::Exception ("class Integer not initialized"); }
         }
     }
@@ -423,7 +427,7 @@ private:
 
 /********************************************************************************/
 
-#define INTEGER_TYPES   LargeInt<PREC_1>,LargeInt<PREC_2>,LargeInt<PREC_3>,LargeInt<PREC_4>
+#define INTEGER_TYPES   LargeInt<PREC_1>,LargeInt<PREC_2>,LargeInt<PREC_3>,LargeInt<PREC_4>,LargeInt<PREC_5>,LargeInt<PREC_6>,LargeInt<PREC_7>,LargeInt<PREC_8>
 
 typedef IntegerTemplate <INTEGER_TYPES> Integer;
 

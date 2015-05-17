@@ -31,6 +31,11 @@ template struct Kmer <KSIZE_1>;
 template struct Kmer <KSIZE_2>;
 template struct Kmer <KSIZE_3>;
 template struct Kmer <KSIZE_4>;
+template struct Kmer <KSIZE_5>;
+template struct Kmer <KSIZE_6>;
+template struct Kmer <KSIZE_7>;
+template struct Kmer <KSIZE_8>;
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

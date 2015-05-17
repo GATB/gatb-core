@@ -335,14 +335,6 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::ProgressCustom::reset (u_int64
 
 /********************************************************************************/
 
-// since we didn't define the functions in a .h file, that trick removes linker errors,
-// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
-
-template class MPHFAlgorithm <KSIZE_1>;
-template class MPHFAlgorithm <KSIZE_2>;
-template class MPHFAlgorithm <KSIZE_3>;
-template class MPHFAlgorithm <KSIZE_4>;
-
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

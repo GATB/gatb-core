@@ -65,7 +65,7 @@ public:
             props->add (1, "build_system",   "%s", system::impl::System::info().getBuildSystem().c_str());
             props->add (1, "build_compiler", "%s", system::impl::System::info().getBuildCompiler().c_str());
             //props->add (1, "build_options",  "%s", system::impl::System::info().getBuildOptions().c_str());
-            props->add (1, "build_kmer_size", "%d %d %d %d", KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4);
+            props->add (1, "build_kmer_size", "%d %d %d %d %d %d %d %d", KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4, KSIZE_5, KSIZE_6, KSIZE_7, KSIZE_8);
             //props->add (1, "custom_memalloc", "%d", CUSTOM_MEM_ALLOC);
 
             singleton.setRef (props);
@@ -78,12 +78,12 @@ public:
      */
     static void displayVersion (std::ostream& os)
     {
-        os << Stringify::format ("* version %s (%s)\n* built on %s with compiler '%s'\n* supported kmer sizes %d %d %d %d",
+        os << Stringify::format ("* version %s (%s)\n* built on %s with compiler '%s'\n* optimized kmer sizes %d %d %d %d %d %d %d %d",
             system::impl::System::info().getVersion().c_str(),
             system::impl::System::info().getBuildDate().c_str(),
             system::impl::System::info().getBuildSystem().c_str(),
             system::impl::System::info().getBuildCompiler().c_str(),
-            KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4
+            KSIZE_1, KSIZE_2, KSIZE_3, KSIZE_4, KSIZE_5, KSIZE_6, KSIZE_7, KSIZE_8
         ) << std::endl;
     }
 };

@@ -190,7 +190,11 @@ typedef boost::variant <
     GraphData<KSIZE_1>,
     GraphData<KSIZE_2>,
     GraphData<KSIZE_3>,
-    GraphData<KSIZE_4>
+    GraphData<KSIZE_4>,
+    GraphData<KSIZE_5>,
+    GraphData<KSIZE_6>,
+    GraphData<KSIZE_7>,
+    GraphData<KSIZE_8>
 >  GraphDataVariant;
 
 /********************************************************************************/
@@ -216,6 +220,10 @@ static void setVariant (GraphDataVariant& data, size_t kmerSize, size_t integerP
     else if (kmerSize < KSIZE_2)  {  data = GraphData<KSIZE_2> (); }
     else if (kmerSize < KSIZE_3)  {  data = GraphData<KSIZE_3> (); }
     else if (kmerSize < KSIZE_4)  {  data = GraphData<KSIZE_4> (); }
+    else if (kmerSize < KSIZE_5)  {  data = GraphData<KSIZE_5> (); }
+    else if (kmerSize < KSIZE_6)  {  data = GraphData<KSIZE_6> (); }
+    else if (kmerSize < KSIZE_7)  {  data = GraphData<KSIZE_7> (); }
+    else if (kmerSize < KSIZE_8)  {  data = GraphData<KSIZE_8> (); }
     else { throw system::Exception ("Graph failure because of unhandled kmer size %d", kmerSize); }
 
     /** We convert the kmer size chosen by the user to the precision value. */
