@@ -1770,7 +1770,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
         /** Shortcuts. */
         typedef typename Kmer<span>::Count Count;
 
-        // TODO document that: soo.. we're defining a class inside a function? -r
+        // TODO document that: soo.. we're defining a class inside a function inside a struct (which is a visitor)? -r
         class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
         public:
