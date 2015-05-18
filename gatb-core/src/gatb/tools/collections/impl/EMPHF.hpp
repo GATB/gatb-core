@@ -131,7 +131,7 @@ public:
         /** We load the emphf object from the input stream. */
         mphf.load (is);
         /** We return the number of keys. */
-        return atol (group.getProperty("nb_keys").c_str());
+        return mphf.size();
     }
 
     /** Save hash function to a collection
@@ -143,7 +143,7 @@ public:
         /** We save the emphf object to the output stream. */
         mphf.save (os);
         /** We set the number of keys as an attribute of the group. */
-        group.addProperty ("nb_keys", misc::impl::Stringify().format("%d",nbKeys));
+        group.addProperty ("nb_keys", misc::impl::Stringify().format("%d",nbKeys)); // FIXME: maybe overflow here
         return os.tellp();
     }
 
