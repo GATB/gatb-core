@@ -89,7 +89,7 @@ public:
         hash = other->hash;
         
         /** We resize the vector of Value objects. */
-        data.resize ((hash.size() / x) + 1); // that +1 and not (hash.size+x-1) / x
+        data.resize ((unsigned long)((hash.size()) / (unsigned long)x) + 1LL); // that +1 and not (hash.size+x-1) / x
 
         clearData();
     }
