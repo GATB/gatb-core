@@ -16,7 +16,7 @@
 using namespace std;
 
 /** Kmer span definition. */
-const size_t span = KSIZE_1;
+const size_t span = KMER_SPAN(0);
 
 /** Implementation of a functor that defines what is a minimizer according to
  *  the list of mmers within a kmer. We mimic here the default behavior

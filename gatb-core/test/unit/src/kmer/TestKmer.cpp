@@ -318,6 +318,10 @@ public:
         size_t   kmerSizes[] = { 12,31, 33,63, 65,95, 97,127 };
         size_t   miniSizes[] = {  5,  9, 11 };
 
+        static const size_t KSIZE_1 = KMER_SPAN(0);
+        static const size_t KSIZE_2 = KMER_SPAN(1);
+        static const size_t KSIZE_3 = KMER_SPAN(2);
+
         try
         {
             for (size_t b=0; b<banks.size(); b++)
@@ -360,8 +364,8 @@ public:
         size_t kmerSize = 15;
         size_t mmerSize = 7;
 
-        typedef Kmer<KSIZE_1>::ModelDirect                  ModelDirect;
-        typedef Kmer<KSIZE_1>::ModelMinimizer<ModelDirect>  ModelMinimizer;
+        typedef Kmer<>::ModelDirect                  ModelDirect;
+        typedef Kmer<>::ModelMinimizer<ModelDirect>  ModelMinimizer;
 
         ModelMinimizer model (kmerSize, mmerSize);
 
@@ -404,7 +408,7 @@ public:
 
     /********************************************************************************/
 
-    typedef Kmer<KSIZE_1>::ModelDirect  ModelDirect;
+    typedef Kmer<>::ModelDirect  ModelDirect;
 
     struct kmer_badchar_info
     {
@@ -441,7 +445,7 @@ public:
     /** */
     void kmer_badchar (void)
     {
-        typedef Kmer<KSIZE_1>::ModelDirect  ModelDirect;
+        typedef Kmer<>::ModelDirect  ModelDirect;
 
         size_t kmerSize = 11;
         ModelDirect model (kmerSize);

@@ -39,6 +39,7 @@
 #include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <boost/variant.hpp>
+#include <boost/mpl/for_each.hpp>
 
 using namespace std;
 
@@ -70,15 +71,15 @@ extern std::string DBPATH (const string& a);
 namespace gatb  {  namespace tests  {
 /********************************************************************************/
 
+/** Backward compatibility. */
+static const int KSIZE_1 = KMER_SPAN(0);
+
 struct Functor_getValue : public boost::static_visitor<Integer>    {
     template<typename T>  Integer operator() (const T& a) const  { return Integer(a.getValue());  }};
 
-typedef boost::variant <
-    Kmer<KSIZE_1>::Count,
-    Kmer<KSIZE_2>::Count,
-    Kmer<KSIZE_3>::Count,
-    Kmer<KSIZE_4>::Count
->  KmerVariant;
+/** We define our variant according to the number of defined kmer spans. */
+template<typename T>  struct ToKmerVariant  {  typedef typename Kmer<T::value>::Count type;  };
+typedef boost::make_variant_over<boost::mpl::transform<IntegerList, ToKmerVariant<boost::mpl::_> >::type >::type KmerVariant;
 
 /** \brief Test class for genomic databases management
  */
@@ -317,13 +318,9 @@ public:
     void DSK_check3_aux (IBank* bank, size_t kmerSize, size_t nks)
     {
         /** Shortcut. */
-        typedef typename Kmer<span>::Type  Type;
         typedef typename Kmer<span>::Count Count;
 
         LOCAL (bank);
-
-        /** We set the default Integer precision. */
-        Integer::setType (sizeof(Type)/8);
 
         TimeInfo ti;
 
@@ -647,11 +644,11 @@ public:
     }
 
     /********************************************************************************/
-    template<size_t span>
-    void DSK_multibank_aux (size_t kmerSize)
+    struct DSK_multibank_aux  {  template<typename U> void operator() (U)
     {
-    	size_t nks      = 2;
-    	string filepath = DBPATH("album.txt");
+        size_t kmerSize = U::value-1;
+        size_t nks      = 2;
+        string filepath = DBPATH("album.txt");
 
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
@@ -662,19 +659,17 @@ public:
         IBank* bank = Bank::open(filepath);
 
         /** We create a DSK instance. */
-        SortingCountAlgorithm<span> dsk (bank, params);
+        SortingCountAlgorithm<U::value> dsk (bank, params);
 
         /** We launch DSK. */
         dsk.execute();
-    }
+    }};
 
-    /********************************************************************************/
     void DSK_multibank ()
     {
-    	DSK_multibank_aux<KSIZE_1> (KSIZE_1-1);
-    	DSK_multibank_aux<KSIZE_2> (KSIZE_2-1);  // used to crash on macos because non aligned uint128 in dsk 2nd part
-    	DSK_multibank_aux<KSIZE_3> (KSIZE_3-1);
-    	DSK_multibank_aux<KSIZE_4> (KSIZE_4-1);
+        // used to crash on macos because non aligned uint128 in dsk 2nd part
+
+        boost::mpl::for_each<gatb::core::tools::math::IntegerList>(DSK_multibank_aux());
     }
 };
 

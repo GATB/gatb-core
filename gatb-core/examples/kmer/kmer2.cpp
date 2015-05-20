@@ -12,8 +12,8 @@
 int main (int argc, char* argv[])
 {
     // We set the maximal span of the kmers. We use here a constant of gatb-core
-    // that gives a default span for kmers up to KSIZE_2 (likely 64)
-    const size_t span = KSIZE_2;
+    // that gives a default span for kmers up to the second kmer size value
+    const size_t span = KMER_SPAN(1);
 
     // We define some nucleotides sequence.
     const char* seq = argc<2 ? "CTACGAATT" : argv[1];

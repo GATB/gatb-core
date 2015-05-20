@@ -7,7 +7,7 @@
 // We use the required packages
 using namespace std;
 
-static const size_t span = KSIZE_1;
+static const size_t span = KMER_SPAN(0);
 
 /********************************************************************************/
 /*                              Kmer management                                 */

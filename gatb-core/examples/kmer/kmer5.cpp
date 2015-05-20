@@ -16,7 +16,7 @@
 using namespace std;
 
 /** Kmer span definition. */
-const size_t span = KSIZE_1;
+const size_t span = KMER_SPAN(0);
 
 /** Some shortcuts. */
 typedef Kmer<span>::ModelDirect    ModelDirect;

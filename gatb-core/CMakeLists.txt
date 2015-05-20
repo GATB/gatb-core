@@ -8,7 +8,7 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 SET (gatb-core_VERSION_MAJOR 1)
 SET (gatb-core_VERSION_MINOR 1)
-SET (gatb-core_VERSION_PATCH 0)
+SET (gatb-core_VERSION_PATCH 1)
 
 IF (DEFINED MAJOR)
     SET (gatb-core_VERSION_MAJOR ${MAJOR})

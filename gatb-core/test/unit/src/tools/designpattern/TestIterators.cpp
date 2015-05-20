@@ -289,10 +289,10 @@ public:
     /********************************************************************************/
     void iterators_checkVariant2 ()
     {
-        IteratorVariant<VectorIterator,INTEGER_TYPES> it;
-
-        vector<LargeInt<1> > v1;  v1.push_back(1);  VectorIterator<LargeInt<1> >  it1 (v1);
-        vector<LargeInt<2> > v2;  v2.push_back(2);  v2.push_back(3);  VectorIterator<LargeInt<2> > it2 (v2);
+		// IteratorVariant<VectorIterator,INTEGER_TYPES> it;
+		//
+		// vector<LargeInt<1> > v1;  v1.push_back(1);  VectorIterator<LargeInt<1> >  it1 (v1);
+		// vector<LargeInt<2> > v2;  v2.push_back(2);  v2.push_back(3);  VectorIterator<LargeInt<2> > it2 (v2);
 
         //it = it1;
         //size_t i=0;

@@ -131,11 +131,12 @@ public:
         math_checkBasicTemplate < LargeInt<4>, LargeInt<4> >     ();
         math_checkBasicTemplate < LargeInt<5>, LargeInt<5> >     ();
         math_checkBasicTemplate < LargeInt<6>, LargeInt<6> >     ();
-
+#if 0
         math_checkBasicTemplate <Integer, LargeInt<PREC_1> > ();
         math_checkBasicTemplate <Integer, LargeInt<PREC_2> > ();
         math_checkBasicTemplate <Integer, LargeInt<PREC_3> > ();
         math_checkBasicTemplate <Integer, LargeInt<PREC_4> > ();
+#endif
     }
 
     /********************************************************************************/
@@ -145,11 +146,12 @@ public:
         math_checkFiboTemplate < LargeInt<2>, LargeInt<2> >     ();
         math_checkFiboTemplate < LargeInt<3>, LargeInt<3> >     ();
         math_checkFiboTemplate < LargeInt<4>, LargeInt<4> >     ();
-
+#if 0
         math_checkFiboTemplate <Integer, LargeInt<PREC_1> > ();
         math_checkFiboTemplate <Integer, LargeInt<PREC_2> > ();
         math_checkFiboTemplate <Integer, LargeInt<PREC_3> > ();
         math_checkFiboTemplate <Integer, LargeInt<PREC_4> > ();
+#endif
     }
 
     /********************************************************************************/
