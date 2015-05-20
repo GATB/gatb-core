@@ -260,7 +260,7 @@ void ConfigurationAlgorithm<span>::execute ()
     _config._available_space = System::file().getAvailableSpace (System::file().getCurrentDirectory()) / 1024;
 
     size_t meanSeqLen = (size_t) ( (double) _config._estimateSeqTotalSize / (double) _config._estimateSeqNb);
-    size_t usedSeqLen = meanSeqLen > _config._kmerSize ? meanSeqLen : _config._estimateSeqMaxSize;
+    size_t usedSeqLen = meanSeqLen > _config._kmerSize ? meanSeqLen : _config._kmerSize; // the latter used to be estimated max seq size, but that was too big of an overestimation in some cases (think one large sequence and plenty of sequences of length k-1). Let's see if setting to kmerSize works.
 
     int64_t kmersNb = (usedSeqLen - _config._kmerSize + 1) * _config._estimateSeqNb;
 
