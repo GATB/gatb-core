@@ -1714,7 +1714,7 @@ struct contains_visitor : public boost::static_visitor<bool>    {
     const Node& node;
     contains_visitor (const Node& aNode) : node(aNode) {}
 
-    template<size_t span>  size_t operator() (const GraphData<span>& data) const
+    template<size_t span>  bool operator() (const GraphData<span>& data) const
     {
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
@@ -1755,7 +1755,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
         /** Shortcuts. */
         typedef typename Kmer<span>::Count Count;
 
-        // TODO document that: soo.. we're defining a class inside a function? -r
+        // TODO document that: soo.. we're defining a class inside a function inside a struct (which is a visitor)? -r
         class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
         public:
@@ -2693,7 +2693,7 @@ template bool Graph::isNodeDeleted<unsigned long>(unsigned long) const;
 // direct access to MPHF index
 
 
-struct nodeMPHFIndex_visitor : public boost::static_visitor<int>    {
+struct nodeMPHFIndex_visitor : public boost::static_visitor<unsigned long>    {
 
     const Node& node;
 

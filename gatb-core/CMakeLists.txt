@@ -215,6 +215,9 @@ set (gatb-core-cmake          ${gatb-core-cmake}          PARENT_SCOPE)
 ################################################################################
 ADD_SUBDIRECTORY(src)
 
+# NOTE... we have to duplicate the variables for the other scopes (in particular for sub directories)
+set (gatb-core-klist   ${gatb-core-klist}  PARENT_SCOPE)
+
 ################################################################################
 #  UNIT TESTS GENERATION 
 ################################################################################

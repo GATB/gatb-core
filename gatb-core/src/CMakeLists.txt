@@ -9,26 +9,28 @@ list (APPEND KSIZE_DEFAULT_LIST  32   64   96  128)
 
 # We use a default list of kmer sizes if no one is provided by the user
 if (NOT KSIZE_LIST)
-    set (KSIZE_LIST ${KSIZE_DEFAULT_LIST})
+    set (gatb-core-klist ${KSIZE_DEFAULT_LIST})
 else()
-    string(REPLACE " " ";" KSIZE_LIST ${KSIZE_LIST})
+    string(REPLACE " " ";" gatb-core-klist ${KSIZE_LIST})
 endif()
+
+set (gatb-core-klist ${gatb-core-klist} PARENT_SCOPE)
 
 # We set all KSIZE_x variables (used in config.in files)
 set (idx 0)
-FOREACH (ksize ${KSIZE_LIST})
+FOREACH (ksize ${gatb-core-klist})
     MATH(EXPR idx "${idx}+1")
     # We set the default value to KSIZE_i
     SET (KSIZE_${idx} ${ksize}) 
 ENDFOREACH()
 
 set (idx 0)
-FOREACH (ksize ${KSIZE_LIST})
+FOREACH (ksize ${gatb-core-klist})
     list (APPEND KSIZE_STRING_TYPE_TMP "boost::mpl::int_<${ksize}>")
 ENDFOREACH()
 
-string (REPLACE ";" "," KSIZE_STRING_COMMA "${KSIZE_LIST}")
-string (REPLACE ";" " " KSIZE_STRING_SPACE "${KSIZE_LIST}")
+string (REPLACE ";" "," KSIZE_STRING_COMMA "${gatb-core-klist}")
+string (REPLACE ";" " " KSIZE_STRING_SPACE "${gatb-core-klist}")
 string (REPLACE ";" "," KSIZE_STRING_TYPE  "${KSIZE_STRING_TYPE_TMP}")
 
 # We dump some information
@@ -48,7 +50,7 @@ configure_file (
 # We define the list of files that need template specializations for each possible kmer size
 file (GLOB_RECURSE  TemplateFiles  ${PROJECT_SOURCE_DIR}/src/gatb/template/*.cpp.in)
 
-FOREACH (KSIZE ${KSIZE_LIST})
+FOREACH (KSIZE ${gatb-core-klist})
 
     FOREACH (template ${TemplateFiles})
 

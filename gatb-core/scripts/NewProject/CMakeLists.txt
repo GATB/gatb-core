@@ -13,6 +13,13 @@ SET (GATB_CORE_HOME  ${PROJECT_SOURCE_DIR}/thirdparty/gatb-core)
 SET (CMAKE_MODULE_PATH ${GATB_CORE_HOME}/cmake)
 
 ################################################################################
+# SUPPORTED KMER SIZES
+################################################################################
+
+# One can uncomment this line and set the wanted values
+#set (KSIZE_LIST "32   64   96  128  160  192  224  256")
+
+################################################################################
 # THIRD PARTIES
 ################################################################################
 
