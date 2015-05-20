@@ -100,7 +100,7 @@ DebloomMinimizerAlgorithm<span>::DebloomMinimizerAlgorithm (tools::storage::impl
 ** REMARKS :
 *********************************************************************/
 template<typename Model, typename ModelMini, typename Count, typename Type>
-struct FunctorKmersExtension
+struct FunctorKmersExtensionMinimizer
 {
     struct FunctorNeighbors
     {
@@ -155,7 +155,7 @@ struct FunctorKmersExtension
     Model&        model;
     IBloom<Type>* bloom;
 
-    FunctorKmersExtension (
+    FunctorKmersExtensionMinimizer (
         Model&              model,
         ModelMini&          modelMini,
         IBloom<Type>*       bloom,
@@ -329,7 +329,7 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
             size_t k=0;  for (itKmers->first(); !itKmers->isDone(); itKmers->next()) { solids[k++] = itKmers->item().value; }
 
             /** We create functor that computes the neighbors extension of the solid kmers. */
-            FunctorKmersExtension<Model,ModelMini,Count,Type> functorKmers (model, modelMini, bloom, debloomParts, solids, repart);
+            FunctorKmersExtensionMinimizer<Model,ModelMini,Count,Type> functorKmers (model, modelMini, bloom, debloomParts, solids, repart);
 
             /** We iterate the solid kmers. */
             this->getDispatcher()->iterate (itKmers, functorKmers);

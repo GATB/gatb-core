@@ -39,7 +39,7 @@
 #include <gatb/tools/misc/api/Data.hpp>
 #include <gatb/tools/misc/api/Abundance.hpp>
 
-#include <gatb/tools/math/LargeInt.hpp>
+#include <gatb/tools/math/Integer.hpp>
 
 #include <vector>
 #include <algorithm>
@@ -60,7 +60,11 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-#define KMER_DEFAULT_SPAN KSIZE_1
+/** We get the nth defined kmer size. */
+#define KMER_SPAN(n)  (boost::mpl::at<gatb::core::tools::math::IntegerList, boost::mpl::int_<n> >::type::value)
+
+/** We get the first value in the kmer size list. */
+#define KMER_DEFAULT_SPAN  KMER_SPAN(0)
 
 /********************************************************************************/
 

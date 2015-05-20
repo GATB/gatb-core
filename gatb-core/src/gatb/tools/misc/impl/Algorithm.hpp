@@ -34,6 +34,7 @@
 #include <gatb/tools/misc/api/StringsRepository.hpp>
 #include <gatb/tools/misc/impl/TimeInfo.hpp>
 #include <gatb/tools/misc/impl/OptionsParser.hpp>
+#include <gatb/tools/math/Integer.hpp>
 #include <gatb/system/api/config.hpp>
 
 #include <string>
@@ -159,17 +160,9 @@ public:
             // We parse the user options.
             tools::misc::IProperties* options = parser->parse (argc, argv);
 
-            size_t kmerSize = options->getInt (STR_KMER_SIZE);
-
-                if (kmerSize < KSIZE_1)  {  Functor <KSIZE_1>() (options); }
-           else if (kmerSize < KSIZE_2)  {  Functor <KSIZE_2>() (options); }
-           else if (kmerSize < KSIZE_3)  {  Functor <KSIZE_3>() (options); }
-           else if (kmerSize < KSIZE_4)  {  Functor <KSIZE_4>() (options); }
-           else if (kmerSize < KSIZE_5)  {  Functor <KSIZE_5>() (options); }
-           else if (kmerSize < KSIZE_6)  {  Functor <KSIZE_6>() (options); }
-           else if (kmerSize < KSIZE_7)  {  Functor <KSIZE_7>() (options); }
-           else if (kmerSize < KSIZE_8)  {  Functor <KSIZE_8>() (options); }
-           else { throw system::Exception ("failure because of unhandled kmer size %d", kmerSize); }
+            // We apply the functor that calls the correct implementation of the functor
+            // according to the kmer size value.
+            tools::math::Integer::apply<Functor> (options->getInt (STR_KMER_SIZE), options);
         }
 
         catch (tools::misc::impl::OptionFailure& e)  {  return e.displayErrors (std::cerr);                         }

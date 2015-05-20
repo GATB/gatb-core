@@ -30,6 +30,10 @@
 #include <gatb/system/api/Exception.hpp>
 
 #include <boost/variant.hpp>
+#include <boost/mpl/vector.hpp>
+#include <boost/mpl/pop_front.hpp>
+#include <boost/mpl/int.hpp>
+#include <boost/mpl/at.hpp>
 
 /********************************************************************************/
 namespace gatb  {  namespace core  { namespace tools {  namespace math  {
@@ -40,13 +44,7 @@ namespace gatb  {  namespace core  { namespace tools {  namespace math  {
  * The IntegerTemplate is implemented as a boost variant, which means that it can act like T1, T2, T3 or T4, etc.. type
  * according to the configuration.
  *
- * The IntegerTemplate should be specialized with 4 different LargeInt implementation
- * classes.
- *
  * All the methods are implemented through a boost variant visitor.
- *
- *  According to the INTEGER_KIND compilation flag, we define the Integer class
- *  as an alias of one from several possible implementations.
  *
  *  Note that we have 2 possible native implementations (NativeInt64 and NativeInt128)
  *  that rely on native types uint64_t and __uint128_t.
@@ -57,49 +55,36 @@ namespace gatb  {  namespace core  { namespace tools {  namespace math  {
  *  class.
  *
  */
-template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
+template <typename IntegerList>
 class IntegerTemplate
 {
 private:
 
-    typedef boost::variant<T1,T2,T3,T4,T5,T6,T7,T8> Type;
-    Type v;
-
-          Type& operator *()       { return v; }
-    const Type& operator *() const { return v; }
+    /** We define a transformation of the provided integer list in order to get a LargeInt type list. */
+    template<typename T>  struct ToLargeInt  {  typedef LargeInt<((T::value+31)/32)> type;  };
+    typedef typename boost::mpl::transform<IntegerList, ToLargeInt<boost::mpl::_> >::type transfolist;
 
 public:
 
-    /** Get a number telling which template class is actually used by the variant.
-     * \return an integer n, meaning that the Tn template type is used.
-     */
-    static char& getType()  {  static char instance = 0; return instance; }
+    /** We define a boost variant from this type list. */
+    typedef typename boost::make_variant_over<transfolist>::type Type;
 
-    /** Set the type of which template class has to be used by the variant.
-     * \param[in] type : integer value
-     */
-    static void setType (char type)  {  getType() = type; }
+    /** Apply a functor with the best template specialization according to the provided kmer size. */
+    template <template<size_t> class Functor, typename Parameter>
+    static void apply (size_t kmerSize, Parameter params)
+    {
+        typedef typename boost::mpl::empty<IntegerList>::type empty;
+
+        /** We delegate the execution to the Apply structure, defined with two template specializations
+         * that allows recursion. */
+        Apply<Functor, Parameter, IntegerList, empty::value>::execute (kmerSize, params);
+    }
 
     /** Constructor. Note that the type (see getType and setType) has to be first initialized
      * otherwise no instance can be created (exception thrown).
      * \param[in] n : value for initialization of the integer.
      */
-    IntegerTemplate (int64_t n=0)
-    {
-        switch (getType())
-        {
-        case PREC_1: v = T1(n); break;
-        case PREC_2: v = T2(n); break;
-        case PREC_3: v = T3(n); break;
-        case PREC_4: v = T4(n); break;
-        case PREC_5: v = T5(n); break;
-        case PREC_6: v = T6(n); break;
-        case PREC_7: v = T7(n); break;
-        case PREC_8: v = T8(n); break;
-        default:  if (getType()<=PREC_8) { v = T8(n);  break; }
-                  else { throw system::Exception ("class Integer not initialized"); }
-        }
-    }
+    IntegerTemplate (int64_t n=0)  {}
 
     /** Copy constructor. Relies on the copy constructor of boost variant
      * \param[in] t : the object to be used for initialization
@@ -372,9 +357,6 @@ private:
         Visitor (Arg a=Arg()) : arg(a) {}
         Arg arg;
     };
-
-
-
 	
     struct Integer_hdf5 : public Visitor<hid_t,bool&>   {
         Integer_hdf5 (bool& c) : Visitor<IntegerTemplate,bool&>(c) {}
@@ -423,13 +405,64 @@ private:
     struct Integer_toString : public Visitor<std::string,size_t>   {
         Integer_toString (size_t c) : Visitor<std::string,size_t>(c) {}
         template<typename T>  std::string operator() (const T& a) const  { return a.toString(this->arg);  }};
+
+private:
+
+    /** We instantiate the boost variant. */
+    Type v;
+
+          Type& operator *()       { return v; }
+    const Type& operator *() const { return v; }
+
+
+    /** Now, we define the Apply structure that allows to find the correct implementation of LargeInt
+     * according to the given kmerSize (at runtime). */
+
+    /** My initial guess didn't work, although it should have (pb with boost::mpl ?)... I went back on an implementation
+     * similar to http://www.developpez.net/forums/d1193120/c-cpp/cpp/bibliotheques/boost/vecteur-vide-boost-mpl */
+
+    /** Template definition. */
+    template<template<size_t> class Functor, class Parameter, class T, bool empty> struct Apply  {};
+
+    /** Template specialization for a vector of types. */
+    template<template<size_t> class Functor, class Parameter, class T>
+    struct Apply<Functor, Parameter, T, false>
+    {
+        static void execute (size_t kmerSize, Parameter params)
+        {
+            /** Shortcut : we get the current kmer size threshold. */
+            static const size_t K = boost::mpl::front<T>::type::value;
+
+            /** We check whether the kmerSize parameter falls into the current K threshold.
+             * If yes, we run the functor and leave. */
+            if (kmerSize < K)  { Functor<K>() (params);  return; }
+
+            typedef typename boost::mpl::pop_front<T>::type tail;
+            typedef typename boost::mpl::empty<tail>::type  empty;
+
+            /** The current K threshold doesn't work, try the next kmer value. */
+            Apply<Functor, Parameter, tail, empty::value>::execute (kmerSize, params);
+        }
+    };
+
+    /** Template specialization for an empty type. */
+    template<template<size_t> class Functor, class Parameter, class T>
+    struct Apply<Functor, Parameter, T, true>
+    {
+        static void execute (size_t kmerSize, Parameter params)
+        {
+            throw system::Exception ("Failure because of unhandled kmer size %d", kmerSize);
+        }
+    };
 };
 
 /********************************************************************************/
 
-#define INTEGER_TYPES   LargeInt<PREC_1>,LargeInt<PREC_2>,LargeInt<PREC_3>,LargeInt<PREC_4>,LargeInt<PREC_5>,LargeInt<PREC_6>,LargeInt<PREC_7>,LargeInt<PREC_8>
+/** We define a mpl::vector holding the int_<K> types, one per kmer size value chosen by the user. */
+typedef boost::mpl::vector<KSIZE_LIST_TYPE>::type  IntegerList;
 
-typedef IntegerTemplate <INTEGER_TYPES> Integer;
+/** We specialize IntegerTemplate class based on the list of kmer size values chosen by the user. */
+typedef  IntegerTemplate <IntegerList> Integer;
 
 /********************************************************************************/
 }}}};

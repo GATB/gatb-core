@@ -353,19 +353,5 @@ void IterativeExtensions<span>::buildSequence (
 }
 
 /********************************************************************************/
-
-// since we didn't define the functions in a .h file, that trick removes linker errors,
-// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
-
-template class IterativeExtensions <KSIZE_1>;
-template class IterativeExtensions <KSIZE_2>;
-template class IterativeExtensions <KSIZE_3>;
-template class IterativeExtensions <KSIZE_4>;
-template class IterativeExtensions <KSIZE_5>;
-template class IterativeExtensions <KSIZE_6>;
-template class IterativeExtensions <KSIZE_7>;
-template class IterativeExtensions <KSIZE_8>;
-
-/********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

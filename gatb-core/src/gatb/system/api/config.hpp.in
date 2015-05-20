@@ -26,24 +26,10 @@
 
 #define STR_OPERATING_SYSTEM    "${CMAKE_SYSTEM}"
 
+#define KSIZE_LIST    ${KSIZE_STRING_COMMA}
+#define KSIZE_STRING "${KSIZE_STRING_SPACE}"
 
-#define KSIZE_1  ${KSIZE_1}
-#define KSIZE_2  ${KSIZE_2}
-#define KSIZE_3  ${KSIZE_3}   
-#define KSIZE_4  ${KSIZE_4}
-#define KSIZE_5  ${KSIZE_5}
-#define KSIZE_6  ${KSIZE_6}
-#define KSIZE_7  ${KSIZE_7}
-#define KSIZE_8  ${KSIZE_8}
-
-#define PREC_1  ((KSIZE_1+31)/32)
-#define PREC_2  ((KSIZE_2+31)/32)
-#define PREC_3  ((KSIZE_3+31)/32)
-#define PREC_4  ((KSIZE_4+31)/32)
-#define PREC_5  ((KSIZE_5+31)/32)
-#define PREC_6  ((KSIZE_6+31)/32)
-#define PREC_7  ((KSIZE_7+31)/32)
-#define PREC_8  ((KSIZE_8+31)/32)
+#define KSIZE_LIST_TYPE  ${KSIZE_STRING_TYPE}
 
 #ifdef GATB_USE_CUSTOM_ALLOCATOR
     #define CUSTOM_MEM_ALLOC  1

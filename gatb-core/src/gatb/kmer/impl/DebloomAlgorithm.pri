@@ -24,7 +24,7 @@
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 /********************************************************************************/
 
-double rvalues[129][2] = {
+static double rvalues[129][2] = {
     { 0.00000, 5.29625 },
     { 0.00000, 0.00000 },
     { 0.00000, 0.00000 },

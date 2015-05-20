@@ -39,7 +39,7 @@ using namespace gatb::core::tools::misc::impl;
 
 using namespace gatb::core::tools::math;
 
-#define DEBUG(a)  printf a
+#define DEBUG(a)  //printf a
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace debruijn  {   namespace impl {
@@ -129,7 +129,7 @@ IOptionsParser* BranchingAlgorithm<span>::getOptionsParser ()
 ** REMARKS :
 *********************************************************************/
 typedef pair<size_t,size_t> InOut_t;
-bool CompareFct (const pair<InOut_t,size_t>& a, const pair<InOut_t,size_t>& b) { return a.second > b.second; }
+inline bool CompareFct (const pair<InOut_t,size_t>& a, const pair<InOut_t,size_t>& b) { return a.second > b.second; }
 
 template<typename Count, typename Type>
 struct FunctorData
@@ -339,20 +339,6 @@ void BranchingAlgorithm<span>::execute ()
     getInfo()->add (1, "time");
     getInfo()->add (2, "build", "%.3f", status.time / 1000.0);
 }
-
-/********************************************************************************/
-
-// since we didn't define the functions in a .h file, that trick removes linker errors,
-// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
-
-template class BranchingAlgorithm <KSIZE_1>;
-template class BranchingAlgorithm <KSIZE_2>;
-template class BranchingAlgorithm <KSIZE_3>;
-template class BranchingAlgorithm <KSIZE_4>;
-template class BranchingAlgorithm <KSIZE_5>;
-template class BranchingAlgorithm <KSIZE_6>;
-template class BranchingAlgorithm <KSIZE_7>;
-template class BranchingAlgorithm <KSIZE_8>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

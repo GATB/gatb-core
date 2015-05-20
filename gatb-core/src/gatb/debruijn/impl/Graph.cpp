@@ -186,18 +186,16 @@ struct GraphData
  * This is done through a boost::variant; actually, we use a limited number of variant, corresponding
  * to some maximum kmer sizes.
  */
-typedef boost::variant <
-    GraphData<KSIZE_1>,
-    GraphData<KSIZE_2>,
-    GraphData<KSIZE_3>,
-    GraphData<KSIZE_4>,
-    GraphData<KSIZE_5>,
-    GraphData<KSIZE_6>,
-    GraphData<KSIZE_7>,
-    GraphData<KSIZE_8>
->  GraphDataVariant;
+template<typename T>  struct ToGraphDataVariant  {  typedef GraphData<T::value> type;  };
+
+typedef boost::make_variant_over<boost::mpl::transform<IntegerList, ToGraphDataVariant<boost::mpl::_> >::type >::type GraphDataVariant;
 
 /********************************************************************************/
+
+template<size_t span> struct FunctorSetVariant
+{
+    void operator ()  (GraphDataVariant& data)  {  data = GraphData<span> ();  }
+};
 
 /** This function set a specific value to the given GraphDataVariant object,
  * according to the provided kmer size.
@@ -215,20 +213,7 @@ static void setVariant (GraphDataVariant& data, size_t kmerSize, size_t integerP
 	/** We may force the kmer size and not use the optimized KSIZE value. */
 	if (integerPrecision > 0)  { kmerSize = integerPrecision*32 - 1; }
 
-    /** Here is the link between the kmer size (or precision) and the specific type to be used for the variant. */
-         if (kmerSize < KSIZE_1)  {  data = GraphData<KSIZE_1> (); }
-    else if (kmerSize < KSIZE_2)  {  data = GraphData<KSIZE_2> (); }
-    else if (kmerSize < KSIZE_3)  {  data = GraphData<KSIZE_3> (); }
-    else if (kmerSize < KSIZE_4)  {  data = GraphData<KSIZE_4> (); }
-    else if (kmerSize < KSIZE_5)  {  data = GraphData<KSIZE_5> (); }
-    else if (kmerSize < KSIZE_6)  {  data = GraphData<KSIZE_6> (); }
-    else if (kmerSize < KSIZE_7)  {  data = GraphData<KSIZE_7> (); }
-    else if (kmerSize < KSIZE_8)  {  data = GraphData<KSIZE_8> (); }
-    else { throw system::Exception ("Graph failure because of unhandled kmer size %d", kmerSize); }
-
-    /** We convert the kmer size chosen by the user to the precision value. */
-    size_t prec = 1 + kmerSize / 32;
-    Integer::setType (prec);
+     Integer::apply<FunctorSetVariant,GraphDataVariant&> (kmerSize, data);
 }
 
 /********************************************************************************/
