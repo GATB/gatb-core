@@ -826,6 +826,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
 
                //if capa pool ==0, reserve max memo , pass pool to partibyvec, will be used  for vec kmers
                 if (pool.getCapacity() == 0)  {  pool.reserve (memoryPoolSize); }
+				else if (memoryPoolSize > pool.getCapacity()) { pool.reserve(0); pool.reserve (memoryPoolSize); }
 
                 /** Recall that we got the following matrix in _nbKmersPerPartitionPerBank
                  *
