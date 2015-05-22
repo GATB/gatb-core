@@ -42,7 +42,7 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 *********************************************************************/
 void Histogram::save (tools::storage::impl::Group& group)
 {
-    DEBUG (("Histogram::save  size=%ld\n", _histogram.size()));
+    DEBUG (("Histogram::save  size=%ld\n", _length+1));
 
     tools::collections::Collection<Entry>& collection = group.getCollection<Entry> ("histogram");
 
