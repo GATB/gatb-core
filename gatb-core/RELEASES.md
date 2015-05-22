@@ -4,6 +4,8 @@
 * Re-design to support variable number of kmer sizes
  => now, one can use the cmake variable KSIZE_LIST, for instance "cmake -DKSIZE_LIST="32 64 96" ..
 
+* Allows "auto" value for the -abundance-min parameter
+
 --------------------------------------------------------------------------------
 # RELEASE 1.1.0
 
