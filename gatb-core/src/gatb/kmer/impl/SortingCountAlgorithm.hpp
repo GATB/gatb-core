@@ -179,6 +179,11 @@ public:
      * \return the Storage instance. */
     tools::storage::impl::Storage* getStorage () { return _storage; }
 
+    /** Get the repartitor instance, ie. the hash function built on minimizer information.
+     * \return the Repartitor instance
+     */
+    Repartitor* getRepartitor() { return _repartitor; }
+
 private:
 
     /** Configuration of the objects used by the algorithm. */
