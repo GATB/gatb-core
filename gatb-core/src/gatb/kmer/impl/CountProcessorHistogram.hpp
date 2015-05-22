@@ -51,9 +51,9 @@ public:
 
     /** Constructor. */
     CountProcessorHistogram (
-        tools::storage::impl::Group& group,
-        size_t histoMax           = 10000,
-        size_t min_auto_threshold = 3
+        tools::storage::impl::Group* group = 0,
+        size_t histoMax                    = 10000,
+        size_t min_auto_threshold          = 3
     )
         : _group(group), _histogram(0), _min_auto_threshold(min_auto_threshold)
     {
@@ -62,7 +62,7 @@ public:
 
     /** Constructor. */
     CountProcessorHistogram (
-        tools::storage::impl::Group& group,
+        tools::storage::impl::Group* group,
         tools::misc::IHistogram* histogram,
         size_t min_auto_threshold = 3
     )
@@ -86,20 +86,23 @@ public:
     {
         using namespace tools::math;
 
-        /** We save the histogram if any. */
-        _histogram->save (_group);
-
         /** compute auto cutoff **/
         _histogram->compute_threshold (_min_auto_threshold);
 
-        /** store auto cutoff and corresponding number of solid kmers **/
-        tools::collections::Collection<NativeInt64>& storecutoff = _group.getCollection<NativeInt64>("cutoff") ;
-        storecutoff.insert(_histogram->get_solid_cutoff());
-        storecutoff.flush();
+        if (_group != 0)
+        {
+            /** We save the histogram if any. */
+            _histogram->save (*_group);
 
-        tools::collections::Collection<NativeInt64>& storesolids = _group.getCollection<NativeInt64>("nbsolidsforcutoff") ;
-        storesolids.insert(_histogram->get_nbsolids_auto());
-        storesolids.flush();
+            /** store auto cutoff and corresponding number of solid kmers **/
+            tools::collections::Collection<NativeInt64>& storecutoff = _group->getCollection<NativeInt64>("cutoff") ;
+            storecutoff.insert(_histogram->get_solid_cutoff());
+            storecutoff.flush();
+
+            tools::collections::Collection<NativeInt64>& storesolids = _group->getCollection<NativeInt64>("nbsolidsforcutoff") ;
+            storesolids.insert(_histogram->get_nbsolids_auto());
+            storesolids.flush();
+        }
     }
 
     /** \copydoc ICountProcessor<span>::clone */
@@ -147,7 +150,7 @@ public:
 
 private:
 
-    tools::storage::impl::Group& _group;
+    tools::storage::impl::Group* _group;
 
     gatb::core::tools::misc::IHistogram* _histogram;
     void setHistogram (gatb::core::tools::misc::IHistogram* histogram)  { SP_SETATTR(histogram); }

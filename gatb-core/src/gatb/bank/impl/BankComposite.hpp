@@ -129,6 +129,9 @@ public:
         }
     }
 
+    /** */
+    size_t getCompositionNb() { return _banks.size(); }
+
     /** \return maximum number of files. */
     static const size_t getMaxNbFiles ()  { return 30; }
 

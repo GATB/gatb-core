@@ -51,8 +51,11 @@ Properties Configuration::getProperties() const
     result.add (1, "mini_size",         "%ld", _minim_size);
     result.add (1, "solidity_kind",      "%s", toString(_solidityKind).c_str());
 
-    result.add (1, "abundance_min",     "%ld", _abundance.getBegin());
-    result.add (1, "abundance_max",     "%ld", _abundance.getEnd());
+    std::stringstream ss;
+    for (size_t i=0; i<_abundanceUserNb; i++)  {  ss << (i==0 ? "" : " ") << _abundance[i].getBegin(); }
+
+    result.add (1, "abundance_min",     ss.str());
+    result.add (1, "abundance_max",     "%ld", _abundance[0].getEnd());
 
     result.add (1, "available_space",   "%ld", _available_space);
     result.add (1, "sequence_number",   "%ld", _estimateSeqNb);
@@ -71,6 +74,8 @@ Properties Configuration::getProperties() const
 
     result.add (1, "nb_cores_per_partition",     "%d",  _nbCores_per_partition);
     result.add (1, "nb_partitions_in_parallel",  "%d",  _nb_partitions_in_parallel);
+
+    result.add (1, "nb_banks",  "%d",  _nb_banks);
 
     return result;
 }

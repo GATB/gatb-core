@@ -1249,7 +1249,7 @@ struct Kmer
      *
      * By default, the abundance value is coded on 32 bits, so abundance up to 1<<32 can be used.
      */
-    struct Count : tools::misc::Abundance<Type,u_int32_t>
+    struct Count : tools::misc::Abundance<Type,CountNumber>
     {
         /** Constructor.
          * \param[in] val : integer value of the kmer

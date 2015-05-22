@@ -44,9 +44,10 @@ public:
       _solidityKind(tools::misc::KMER_SOLIDITY_SUM),
       _max_disk_space(0), _max_memory(0),
       _nbCores(0), _nb_partitions_in_parallel(0), _partitionType(0),
+      _abundanceUserNb(0),
       _isComputed(false), _nbCores_per_partition(0),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
-      _available_space(0), _volume(0), _kmersNb(0), _nb_passes(0), _nb_partitions(0), _nb_bits_per_kmer(0) {}
+      _available_space(0), _volume(0), _kmersNb(0), _nb_passes(0), _nb_partitions(0), _nb_bits_per_kmer(0), _nb_banks(0) {}
 
     /****************************************/
     /**             PROVIDED                */
@@ -66,7 +67,8 @@ public:
     size_t      _nb_partitions_in_parallel;
     size_t      _partitionType;
 
-    tools::misc::CountRange  _abundance;
+    std::vector<tools::misc::CountRange>  _abundance;
+    size_t _abundanceUserNb;
 
     /****************************************/
     /**             COMPUTED                */
@@ -88,6 +90,8 @@ public:
     u_int32_t   _nb_partitions;
 
     u_int16_t   _nb_bits_per_kmer;
+
+    u_int16_t   _nb_banks;
 
     /****************************************/
     /**               MISC                  */

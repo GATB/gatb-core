@@ -55,6 +55,9 @@ public:
     const Configuration&  getConfiguration() const { return _config; }
 
 private:
+    /** */
+    static std::vector<tools::misc::CountRange> getSolidityThresholds (tools::misc::IProperties* params);
+    
     /** Shortcut. */
     typedef typename Kmer<span>::Type Type;
 

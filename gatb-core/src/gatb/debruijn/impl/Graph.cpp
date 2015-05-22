@@ -424,7 +424,7 @@ struct build_visitor : public boost::static_visitor<>    {
             bank,
             config,
             new Repartitor(minimizersGroup),
-            SortingCountAlgorithm<span>::getDefaultProcessor (props, solidStorage, mainStorage)
+            SortingCountAlgorithm<span>::getDefaultProcessorVector (config, props, solidStorage, mainStorage)
         );
 
         executeAlgorithm (sortingCount, solidStorage, props, graph._info);

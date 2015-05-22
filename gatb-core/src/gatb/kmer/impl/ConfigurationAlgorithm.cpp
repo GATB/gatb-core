@@ -21,6 +21,7 @@
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
 #include <gatb/tools/misc/api/StringsRepository.hpp>
+#include <gatb/tools/misc/impl/Tokenizer.hpp>
 #include <gatb/kmer/impl/LinearCounter.hpp>
 
 #include <cmath>
@@ -198,7 +199,7 @@ ConfigurationAlgorithm<span>::ConfigurationAlgorithm (bank::IBank* bank, IProper
     _config._max_memory         = input->getInt (STR_MAX_MEMORY);
     _config._nbCores            = input->get(STR_NB_CORES) ? input->getInt(STR_NB_CORES) : 0;
 
-    _config._abundance = CountRange (input->getInt (STR_KMER_ABUNDANCE_MIN), input->getInt (STR_KMER_ABUNDANCE_MAX));
+    _config._abundance = getSolidityThresholds(input);
 
     if (_config._nbCores == 0)  { _config._nbCores = system::impl::System::info().getNbCores(); }
 
@@ -251,6 +252,32 @@ void ConfigurationAlgorithm<span>::execute ()
 
     /** We get some information about the bank. */
     _bank->estimate (_config._estimateSeqNb, _config._estimateSeqTotalSize, _config._estimateSeqMaxSize);
+
+    /** We get the number of sub banks. */
+    _config._nb_banks = _bank->getCompositionNb();
+
+    /** We memorize the number of abundance min values set by the user.
+     * Note that it can be lower than the number of banks. */
+    _config._abundanceUserNb = _config._abundance.size();
+
+    if (_config._abundanceUserNb == 0)  {  throw system::Exception("Kmer solidity has no defined value");  }
+
+    if (_config._abundanceUserNb > _config._nb_banks)
+    {
+        throw system::Exception ("Kmer solidity has more thresholds (%d) than banks (%d)",  _config._abundanceUserNb, _config._nb_banks);
+    }
+
+    /** We complete missing thresholds with the value of the last one. */
+    if (_config._abundanceUserNb < _config._nb_banks)
+    {
+        CountNumber lastValueMin = _config._abundance[_config._abundanceUserNb-1].getBegin();
+        CountNumber lastValueMax = _config._abundance[_config._abundanceUserNb-1].getEnd();
+
+        for (size_t i=_config._abundanceUserNb; i<_config._nb_banks; i++)
+        {
+            _config._abundance.push_back (tools::misc::CountRange (lastValueMin, lastValueMax));
+        }
+    }
 
     /** Some checks. */
     if (_config._estimateSeqNb==0)  { throw Exception ("Empty bank"); }
@@ -406,6 +433,37 @@ void ConfigurationAlgorithm<span>::execute ()
 
     /** We collect some statistics. */
     getInfo()->add (1, _config.getProperties());
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+vector<CountRange> ConfigurationAlgorithm<span>::getSolidityThresholds (IProperties* params)
+{
+    vector<CountRange> thresholds;
+
+    /** We get the abundance max value. */
+    u_int64_t abundanceMax = params->getInt(STR_KMER_ABUNDANCE_MAX);
+
+    /** We split the abundance min string. */
+    TokenizerIterator it (params->getStr(STR_KMER_ABUNDANCE_MIN).c_str(), ",");
+    for (it.first(); !it.isDone(); it.next())
+    {
+        CountNumber val = 0;
+
+        if (strcmp(it.item(),"auto")==0)  { val = -1; }
+        else                              { val = atoll (it.item());  }
+
+        thresholds.push_back (CountRange(val, abundanceMax));
+    }
+
+    return thresholds;
 }
 
 /********************************************************************************/

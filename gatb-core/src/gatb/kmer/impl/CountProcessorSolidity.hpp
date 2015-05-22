@@ -26,12 +26,45 @@
 #include <gatb/kmer/impl/CountProcessorAbstract.hpp>
 #include <gatb/tools/misc/api/Enums.hpp>
 #include <gatb/tools/misc/api/Range.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
 namespace kmer      {
 namespace impl      {
+/********************************************************************************/
+
+class CountProcessorSolidityInfo
+{
+public:
+    CountProcessorSolidityInfo () {}
+    CountProcessorSolidityInfo (const std::vector<tools::misc::CountRange>& thresholds) : _thresholds(thresholds) {};
+
+    /** Update abundance min in the threshold ranges. */
+    void setAbundanceMin (const std::vector<CountNumber>& cutoffs)
+    {
+        if (cutoffs.size() != _thresholds.size())
+        {
+            throw system::Exception ("Unable to set abundance min values (%d values for %d banks)", cutoffs.size(), _thresholds.size());
+        }
+
+        std::vector<tools::misc::CountRange> newThresholds;
+        for (size_t i=0; i<cutoffs.size(); i++)
+        {
+            /** We change the value only if it is "auto". */
+            CountNumber abundanceMin = _thresholds[i].getBegin()==-1 ? cutoffs[i] :  _thresholds[i].getBegin();
+            newThresholds.push_back (tools::misc::CountRange(abundanceMin, _thresholds[i].getEnd() ) );
+        }
+
+        /** We update the thresholds for the current count processor. */
+        _thresholds = newThresholds;
+    }
+
+protected:
+    std::vector<tools::misc::CountRange> _thresholds;
+};
+
 /********************************************************************************/
 
 /** The CountProcessorSolidityAbstract is an abstract class that factories stuff
@@ -46,12 +79,16 @@ namespace impl      {
  * the creation of the correct instance according to some user information.
  */
 template<size_t span, class Derived>
-class CountProcessorSolidityAbstract : public CountProcessorAbstract<span>
+class CountProcessorSolidityAbstract : public CountProcessorAbstract<span>, public CountProcessorSolidityInfo
 {
 public:
 
-    /** Constructor. */
-    CountProcessorSolidityAbstract (const tools::misc::CountRange& threshold) : _threshold(threshold), _total(0), _ok(0)   {}
+    /** Constructor for prototype instance. */
+    CountProcessorSolidityAbstract () : _total(0), _ok(0)   {}
+
+    /** Constructor for clone instance. */
+    CountProcessorSolidityAbstract (const std::vector<tools::misc::CountRange>& thresholds)
+        : CountProcessorSolidityInfo(thresholds), _total(0), _ok(0)   {}
 
     /** Destructor. */
     virtual ~CountProcessorSolidityAbstract()  {}
@@ -60,8 +97,15 @@ public:
     /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
     /********************************************************************/
 
+    /** \copydoc ICountProcessor<span>::begin */
+    void begin(const Configuration& config)
+    {
+        /** We copy the abundance thresholds got during configuration. */
+        this->_thresholds = config._abundance;
+    }
+
     /** \copydoc ICountProcessor<span>::clones */
-    CountProcessorAbstract<span>* clone ()  { return new Derived (_threshold); }
+    CountProcessorAbstract<span>* clone ()  { return new Derived (_thresholds); }
 
     /** \copydoc ICountProcessor<span>::finishClones */
     void finishClones (std::vector<ICountProcessor<span>*>& clones)
@@ -101,7 +145,12 @@ public:
     {
         tools::misc::impl::Properties result;
         result.add (0, "kmers");
-        result.add (1, "solidity_kind",      "%s", getName().c_str());
+        result.add (1, "solidity_kind",      "%s", this->getName().c_str());
+
+        std::stringstream ss;
+        for (size_t i=0; i<_thresholds.size(); i++)  {  ss << _thresholds[i].getBegin() << " "; }
+        result.add (1, "thresholds",         ss.str().c_str());
+
         result.add (1, "kmers_nb_distinct",  "%ld", _total);
         result.add (1, "kmers_nb_solid",     "%ld", _ok);
         result.add (1, "kmers_nb_weak",      "%ld", _total - _ok);
@@ -110,13 +159,7 @@ public:
         return result;
     }
 
-    /** Get a short id for the kind of solidity
-     * \return the solidity name. */
-    virtual std::string getName() const = 0;
-
 protected:
-
-    tools::misc::CountRange _threshold;
 
     u_int64_t _total;
     u_int64_t _ok;
@@ -124,17 +167,19 @@ protected:
 
 /********************************************************************************/
 
-template<size_t span=KMER_DEFAULT_SPAN>
+template<size_t span>
 class CountProcessorSoliditySum : public CountProcessorSolidityAbstract<span,CountProcessorSoliditySum<span> >
 {
 public:
 
-    CountProcessorSoliditySum (const tools::misc::CountRange& threshold)
-        : CountProcessorSolidityAbstract<span,CountProcessorSoliditySum<span> > (threshold)  {}
+    CountProcessorSoliditySum () {}
+
+    CountProcessorSoliditySum (const std::vector<tools::misc::CountRange>& thresholds)
+        : CountProcessorSolidityAbstract<span,CountProcessorSoliditySum<span> > (thresholds)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
-        return this->_threshold.includes (sum);
+        return this->_thresholds[0].includes (sum);
     }
 
     std::string getName() const  { return std::string("sum"); }
@@ -142,17 +187,19 @@ public:
 
 /********************************************************************************/
 
-template<size_t span=KMER_DEFAULT_SPAN>
+template<size_t span>
 class CountProcessorSolidityMax : public CountProcessorSolidityAbstract<span,CountProcessorSolidityMax<span> >
 {
 public:
 
-    CountProcessorSolidityMax (const tools::misc::CountRange& threshold)
-        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMax<span> > (threshold)  {}
+    CountProcessorSolidityMax () {}
+
+    CountProcessorSolidityMax (const std::vector<tools::misc::CountRange>& thresholds)
+        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMax<span> > (thresholds)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
-        return this->_threshold.includes (*std::max_element (count.begin(),count.end()));
+        return this->_thresholds[0].includes (*std::max_element (count.begin(),count.end()));
     }
 
     std::string getName() const  { return std::string("max"); }
@@ -160,17 +207,19 @@ public:
 
 /********************************************************************************/
 
-template<size_t span=KMER_DEFAULT_SPAN>
+template<size_t span>
 class CountProcessorSolidityMin : public CountProcessorSolidityAbstract<span,CountProcessorSolidityMin<span> >
 {
 public:
 
-    CountProcessorSolidityMin (const tools::misc::CountRange& threshold)
-        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMin<span> > (threshold)  {}
+    CountProcessorSolidityMin () {}
+
+    CountProcessorSolidityMin (const std::vector<tools::misc::CountRange>& thresholds)
+        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMin<span> > (thresholds)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
-        return this->_threshold.includes (*std::min_element (count.begin(),count.end()));
+        return this->_thresholds[0].includes (*std::min_element (count.begin(),count.end()));
     }
 
     std::string getName() const  { return std::string("min"); }
@@ -178,17 +227,19 @@ public:
 
 /********************************************************************************/
 
-template<size_t span=KMER_DEFAULT_SPAN>
+template<size_t span>
 class CountProcessorSolidityAll : public CountProcessorSolidityAbstract<span,CountProcessorSolidityAll<span> >
 {
 public:
 
-    CountProcessorSolidityAll (const tools::misc::CountRange& threshold)
-        : CountProcessorSolidityAbstract<span,CountProcessorSolidityAll<span> > (threshold)  {}
+    CountProcessorSolidityAll () {}
+
+    CountProcessorSolidityAll (const std::vector<tools::misc::CountRange>& thresholds)
+        : CountProcessorSolidityAbstract<span,CountProcessorSolidityAll<span> > (thresholds)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
-        for (size_t i=0; i<count.size(); i++)  {  if (this->_threshold.includes(count[i]) == false)   { return false; }  }
+        for (size_t i=0; i<count.size(); i++)  {  if (this->_thresholds[i].includes(count[i]) == false)   { return false; }  }
         return true;
     }
 
@@ -197,17 +248,19 @@ public:
 
 /********************************************************************************/
 
-template<size_t span=KMER_DEFAULT_SPAN>
-class CountProcessorSolidityOne : public CountProcessorSolidityAbstract<span,CountProcessorSolidityOne<span> >
+template<size_t span>
+class CountProcessorSolidityOne : public CountProcessorSolidityAbstract<span, CountProcessorSolidityOne<span> >
 {
 public:
 
-    CountProcessorSolidityOne (const tools::misc::CountRange& threshold)
-        : CountProcessorSolidityAbstract<span,CountProcessorSolidityOne<span> > (threshold)  {}
+    CountProcessorSolidityOne () {}
+
+    CountProcessorSolidityOne (const std::vector<tools::misc::CountRange>& thresholds)
+        : CountProcessorSolidityAbstract<span, CountProcessorSolidityOne<span> > (thresholds)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
-        for (size_t i=0; i<count.size(); i++)  {  if (this->_threshold.includes(count[i]) == true)   { return true; }  }
+        for (size_t i=0; i<count.size(); i++)  {  if (this->_thresholds[i].includes(count[i]) == true)   { return true; }  }
         return false;
     }
 
@@ -221,26 +274,27 @@ class CountProcessorSolidityFactory
 {
 public:
 
-    static ICountProcessor<span>* create (tools::misc::KmerSolidityKind kind, const tools::misc::CountRange& threshold)
+    /** */
+    static ICountProcessor<span>* create (tools::misc::KmerSolidityKind kind)
     {
         switch (kind)
         {
-        case tools::misc::KMER_SOLIDITY_MIN: return new CountProcessorSolidityMin<span> (threshold);
-        case tools::misc::KMER_SOLIDITY_MAX: return new CountProcessorSolidityMax<span> (threshold);
-        case tools::misc::KMER_SOLIDITY_ONE: return new CountProcessorSolidityOne<span> (threshold);
-        case tools::misc::KMER_SOLIDITY_ALL: return new CountProcessorSolidityAll<span> (threshold);
-        case tools::misc::KMER_SOLIDITY_SUM: return new CountProcessorSoliditySum<span> (threshold);
+        case tools::misc::KMER_SOLIDITY_MIN: return new CountProcessorSolidityMin<span> ();
+        case tools::misc::KMER_SOLIDITY_MAX: return new CountProcessorSolidityMax<span> ();
+        case tools::misc::KMER_SOLIDITY_ONE: return new CountProcessorSolidityOne<span> ();
+        case tools::misc::KMER_SOLIDITY_ALL: return new CountProcessorSolidityAll<span> ();
+        case tools::misc::KMER_SOLIDITY_SUM: return new CountProcessorSoliditySum<span> ();
         default:  throw system::Exception ("unable to create CountProcessorSolidity instance for kind %d", kind);
         }
     }
 
-    static ICountProcessor<span>* create (tools::misc::IProperties& props, const tools::misc::CountRange& threshold)
+    /** */
+    static ICountProcessor<span>* create (tools::misc::IProperties& props)
     {
         tools::misc::KmerSolidityKind kind;
         parse (props.getStr (STR_SOLIDITY_KIND), kind);
-        return create (kind, threshold);
+        return create (kind);
     }
-
 };
 
 /********************************************************************************/

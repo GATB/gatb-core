@@ -107,6 +107,13 @@ public:
     /** Called just after the mainloop of SortingCountAlgorithm. */
     virtual void end   () = 0;
 
+    /** Called just before starting a pass.
+     * \param[in] passId: index of the pass to begin */
+    virtual void beginPass (size_t passId) = 0;
+
+    /** Called just after the end of a pass. */
+    virtual void endPass   (size_t passId) = 0;
+
     /** Clone the instance.
      * An instance can be cloned N times in order to use the cloned instance in one thread.
      * \return the cloned instance. */
@@ -148,6 +155,14 @@ public:
     /*****************************************************************/
     /*                          MISCELLANEOUS.                       */
     /*****************************************************************/
+
+    /** Get a name for the count processor.
+     * \return the count processor name. */
+    virtual std::string getName() const = 0;
+
+    /** Set a name for the count processor.
+     * \param[in] name : the count processor name. */
+    virtual void setName (const std::string& name) = 0;
 
     /** Get some properties about the count processor.
      * \return properties. */

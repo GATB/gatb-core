@@ -23,9 +23,11 @@
 /********************************************************************************/
 
 #include <gatb/kmer/impl/CountProcessorChain.hpp>
+#include <gatb/kmer/impl/CountProcessorProxy.hpp>
 #include <gatb/kmer/impl/CountProcessorHistogram.hpp>
 #include <gatb/kmer/impl/CountProcessorDump.hpp>
 #include <gatb/kmer/impl/CountProcessorSolidity.hpp>
+#include <gatb/kmer/impl/CountProcessorCutoff.hpp>
 
 /********************************************************************************/
 

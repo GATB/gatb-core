@@ -95,7 +95,7 @@ static const char* progressFormat4 = "DSK: nb solid kmers found : %-9ld  ";
 template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (IProperties* params)
   : Algorithm("dsk", -1, params),
-    _bank(0), _repartitor(0), _processor(0),
+    _bank(0), _repartitor(0),
     _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0)
 {
 }
@@ -111,7 +111,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (IProperties* params)
 template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (IBank* bank, IProperties* params)
   : Algorithm("dsk", -1, params),
-    _bank(0), _repartitor(0), _processor(0),
+    _bank(0), _repartitor(0),
     _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0)
 {
     setBank (bank);
@@ -130,15 +130,16 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     IBank*                  bank,
     const Configuration&    config,
     Repartitor*             repartitor,
-    CountProcessor*         processor
+    vector<CountProcessor*> processors
 )
   : Algorithm("dsk", config._nbCores, 0),
-    _config(config), _bank(0), _repartitor(0), _processor(0),
+    _config(config), _bank(0), _repartitor(0),
     _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0)
 {
     setBank       (bank);
     setRepartitor (repartitor);
-    setProcessor  (processor);
+
+    for (size_t i=0; i<processors.size(); i++)  {  addProcessor  (processors[i]); }
 }
 
 /*********************************************************************
@@ -154,11 +155,12 @@ SortingCountAlgorithm<span>::~SortingCountAlgorithm ()
 {
     setBank                 (0);
     setRepartitor           (0);
-    setProcessor            (0);
     setProgress             (0);
     setPartitionsStorage    (0);
     setPartitions           (0);
     setStorage              (0);
+
+    for (size_t i=0; i<_processors.size(); i++)  { _processors[i]->forget(); }
 }
 
 /*********************************************************************
@@ -178,7 +180,6 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
 
         setBank                 (s._bank);
         setRepartitor           (s._repartitor);
-        setProcessor            (s._processor);
         setProgress             (s._progress);
         setPartitionsStorage    (s._tmpPartitionsStorage);
         setPartitions           (s._tmpPartitions);
@@ -200,10 +201,12 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
 {
     IOptionsParser* parser = new OptionsParser ("kmer count");
 
+    string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max());
+
     parser->push_back (new OptionOneParam (STR_URI_INPUT,         "reads file", mandatory ));
     parser->push_back (new OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                                 false, "31"    ));
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN,"min abundance threshold for solid kmers",        false, "3"     ));
-    parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",        false, "4294967295"));
+    parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",        false, abundanceMax));
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN_THRESHOLD,"min abundance automatic threshold",    false, "3"));
     parser->push_back (new OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",        false, "10000"));
     parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min, max, one, all)",false, "sum"));
@@ -264,15 +267,12 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
     result = new CountProcessorChain<span> (
 
         new CountProcessorHistogram<span> (
-            otherStorage->getGroup("histogram"),
+            & otherStorage->getGroup("histogram"),
             params->getInt(STR_HISTOGRAM_MAX),
             params->getInt(STR_KMER_ABUNDANCE_MIN_THRESHOLD)
         ),
 
-        CountProcessorSolidityFactory<span>::create (
-            *params,
-            CountRange(params->getInt(STR_KMER_ABUNDANCE_MIN), params->getInt(STR_KMER_ABUNDANCE_MAX))
-        ),
+        CountProcessorSolidityFactory<span>::create (*params),
 
         new CountProcessorDump     <span> (
             dskStorage->getGroup("dsk"),
@@ -280,6 +280,92 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
         ),
         NULL
     );
+
+    /** We set some name. */
+    result->setName ("dsk");
+
+    return result;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+
+/** We need a specific count processor proxy. */
+template<size_t span>
+class CountProcessorCustomProxy : public CountProcessorProxy<span>
+{
+    public:
+    CountProcessorCustomProxy (ICountProcessor<span>* cutoffProcessor, ICountProcessor<span>* dskProcessor)
+        : CountProcessorProxy<span>(cutoffProcessor), _cutoffProcessor(cutoffProcessor), _dskProcessor(dskProcessor) {}
+
+    /** \copydoc ICountProcessor<span>::end */
+    void endPass (size_t passId)
+    {
+        /** We call the parent method. */
+        CountProcessorProxy<span>::endPass (passId);
+
+        /** Now, we have the cutoffs information, and we can put it as abundance min of the dsk processor. */
+        if (CountProcessorCutoff<span>* cutoffProc = dynamic_cast<CountProcessorCutoff<span>*> (_cutoffProcessor))
+        {
+            if (CountProcessorSolidityInfo* info = _dskProcessor->template get<CountProcessorSolidityInfo> ())
+            {
+                info->setAbundanceMin (cutoffProc->getCutoffs());
+            }
+        }
+    }
+
+    private:
+        ICountProcessor<span>* _cutoffProcessor;
+        ICountProcessor<span>* _dskProcessor;
+};
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+vector<ICountProcessor<span>*> SortingCountAlgorithm<span>::getDefaultProcessorVector (
+    Configuration&  config,
+    IProperties*    params,
+    Storage*        dskStorage,
+    Storage*        otherStorage
+)
+{
+    vector<ICountProcessor<span>*> result;
+
+    ICountProcessor<span>* dskProcessor = getDefaultProcessor (params, dskStorage, otherStorage);
+
+    /** Now, we define the vector of count processors to be given to the SortingCountAlgorithm.
+     * The choice depends on the presence of "auto" min abundance in the configuration. */
+    bool foundAuto = false;
+    for (size_t i=0; !foundAuto && i<config._abundance.size(); i++) {  foundAuto = config._abundance[i].getBegin() == -1;  }
+
+    if (foundAuto)
+    {
+        /** We create a cutoff count processor to compute cutoffs of the N banks. */
+        ICountProcessor<span>* cutoffProcessor = new CountProcessorCutoff<span> (config._nb_banks);
+
+        /** We encapsulate both cutoff and dsk processors in a single one that link them. */
+        ICountProcessor<span>* proxyCutoff = new CountProcessorCustomProxy<span> (cutoffProcessor, dskProcessor);
+        proxyCutoff->setName("cutoffs_auto");
+
+        result.push_back (proxyCutoff);
+        result.push_back (dskProcessor);
+    }
+    else
+    {
+        result.push_back (dskProcessor);
+    }
 
     return result;
 }
@@ -295,8 +381,8 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 template<size_t span>
 void SortingCountAlgorithm<span>::configure ()
 {
-    DEBUG (("SortingCountAlgorithm<span>::configure  BEGIN  _bank=%p  _config.isComputed=%d  _repartitor=%p  _processor=%p\n",
-        _bank, _config._isComputed, _repartitor, _processor
+    DEBUG (("SortingCountAlgorithm<span>::configure  BEGIN  _bank=%p  _config.isComputed=%d  _repartitor=%p  \n",
+        _bank, _config._isComputed, _repartitor
     ));
 
     /** We check that the bank is ok, otherwise we build one. */
@@ -312,7 +398,7 @@ void SortingCountAlgorithm<span>::configure ()
 
     /** We may have to create a default storage. */
     Storage* storage = 0;
-    if (_repartitor==0 || _processor==0)
+    if (_repartitor==0 || _processors.size() == 0)
     {
         string output = getInput()->get(STR_URI_OUTPUT) ?
             getInput()->getStr(STR_URI_OUTPUT)   :
@@ -333,10 +419,10 @@ void SortingCountAlgorithm<span>::configure ()
     }
 
     /** We check that the processor is ok, otherwise we build one. */
-    if (_processor == 0)  {  setProcessor (getDefaultProcessor(getInput(), storage));  };
+    if (_processors.size() == 0)  {  addProcessor (getDefaultProcessor(getInput(), storage));  };
 
-    DEBUG (("SortingCountAlgorithm<span>::configure  END  _bank=%p  _config.isComputed=%d  _repartitor=%p  _processor=%p  storage=%p\n",
-        _bank, _config._isComputed, _repartitor, _processor, storage
+    DEBUG (("SortingCountAlgorithm<span>::configure  END  _bank=%p  _config.isComputed=%d  _repartitor=%p  storage=%p\n",
+        _bank, _config._isComputed, _repartitor, storage
     ));
 }
 
@@ -364,8 +450,9 @@ void SortingCountAlgorithm<span>::execute ()
 
     /** We configure the progress bar. Note that we create a ProgressSynchro since this progress bar
      * may me modified by several threads at the same time. */
+    size_t nbIterations = (1 + _processors.size()) * _config._volume * MBYTE / sizeof(Type);
     setProgress (new ProgressSynchro (
-        createIteratorListener (2 * _config._volume * MBYTE / sizeof(Type), progressFormat0),
+        createIteratorListener (nbIterations, progressFormat0),
         System::thread().newSynchronizer())
     );
     _progress->init ();
@@ -374,7 +461,7 @@ void SortingCountAlgorithm<span>::execute ()
     PartiInfo<5> pInfo (_config._nb_partitions, _config._minim_size);
 
     /** We notify the count processor about the start of the main loop. */
-    _processor->begin (_config);
+    for (size_t i=0; i<_processors.size(); i++)  {  _processors[i]->begin (_config); }
 
     /*************************************************************/
     /*                         MAIN LOOP                         */
@@ -394,11 +481,14 @@ void SortingCountAlgorithm<span>::execute ()
     }
 
     /** We notify the count processor about the stop of the main loop. */
-    _processor->end();
+    for (size_t i=0; i<_processors.size(); i++)  {  _processors[i]->end (); }
 
     /** We update the progress information. */
-    CountProcessorDump<span>* processorDump = _processor->template get <CountProcessorDump<span> > ();
-    if (processorDump != 0) {  _progress->setMessage (Stringify::format(progressFormat4, processorDump->getNbItems())); }
+    for (size_t i=0; i<_processors.size(); i++)
+    {
+        CountProcessorDump<span>* processorDump = _processors[i]->template get <CountProcessorDump<span> > ();
+        if (processorDump != 0) {  _progress->setMessage (Stringify::format(progressFormat4, processorDump->getNbItems())); }
+    }
 
     _progress->finish ();
 
@@ -429,7 +519,16 @@ void SortingCountAlgorithm<span>::execute ()
 
     getInfo()->add (1, "stats");
 
-    getInfo()->add (2, _processor->getProperties());
+    /** We dump information about count processors. */
+    if (_processors.size()==1)  {  getInfo()->add (2, _processors[0]->getProperties()); }
+    else
+    {
+        for (size_t i=0; i<_processors.size(); i++)
+        {
+            getInfo()->add (2, _processors[i]->getName());
+            getInfo()->add (3, _processors[i]->getProperties());
+        }
+    }
 
     _fillTimeInfo /= getDispatcher()->getExecutionUnitsNumber();
     getInfo()->add (2, _fillTimeInfo.getProperties("fillsolid_time"));
@@ -700,6 +799,29 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
 {
     TIME_INFO (getTimeInfo(), "fill_solid_kmers");
 
+    for (size_t i=0; i<_processors.size(); i++)
+    {
+        /** We notify the count processor about the start of the pass. */
+        _processors[i]->beginPass (pass);
+
+        fillSolidKmers_aux (_processors[i], pass, pInfo);
+
+        /** We notify the count processor about the end of the pass. */
+        _processors[i]->endPass (pass);
+    }
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+template<size_t span>
+void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* processor, size_t pass, PartiInfo<5>& pInfo)
+{
     DEBUG (("SortingCountAlgorithm<span>::fillSolidKmers\n"));
 
     /** We update the message of the progress bar. */
@@ -750,7 +872,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
             LOCAL (synchro);
 
             /** We clone the prototype count processor instance for the current 'p' kmers partition. */
-            CountProcessor* processorClone = _processor->clone ();
+            CountProcessor* processorClone = processor->clone ();
 
             /** We use and put the clone into a vector. */
             processorClone->use();
@@ -864,7 +986,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers (size_t pass, PartiInfo<5>& pIn
 
         /** The N CountProcessor clones should have done their job during the 'dispatchCommands'
          * We can send a notification about it and get rid of them. */
-        _processor->finishClones (clones);
+        processor->finishClones (clones);
         for (size_t i=0; i<clones.size(); i++)  { clones[i]->forget(); }  clones.clear();
 
         // free internal memory of pool here
@@ -886,8 +1008,11 @@ Partition<typename SortingCountAlgorithm<span>::Count>* SortingCountAlgorithm<sp
     Partition<Count>* result = 0;
 
     /** We look in the count processor a potential CountProcessorDump instance. */
-    CountProcessorDump<span>* p = _processor->template get <CountProcessorDump<span> > ();
-    if (p != 0)  {  return p->getSolidCounts();  }
+    for (size_t i=0; i<_processors.size(); i++)
+    {
+        CountProcessorDump<span>* p = _processors[i]->template get <CountProcessorDump<span> > ();
+        if (p != 0)  {  return p->getSolidCounts();  }
+    }
 
     throw Exception ("SortingCountAlgorithm not configured with a CountProcessorDump instance");
 }

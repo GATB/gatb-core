@@ -17,11 +17,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-#ifndef _COUNT_PROCESSOR_ABSTRACT_HPP_
-#define _COUNT_PROCESSOR_ABSTRACT_HPP_
+#ifndef _COUNT_PROCESSOR_PROXY_HPP_
+#define _COUNT_PROCESSOR_PROXY_HPP_
 
 /********************************************************************************/
 
+#include <gatb/kmer/impl/Model.hpp>
 #include <gatb/kmer/api/ICountProcessor.hpp>
 
 /********************************************************************************/
@@ -31,82 +32,81 @@ namespace kmer      {
 namespace impl      {
 /********************************************************************************/
 
-/** Abstract implementation of ICountProcessor interface.
- */
-template<size_t span>
-class CountProcessorAbstract : public ICountProcessor<span>
+/** */
+template<size_t span=KMER_DEFAULT_SPAN>
+class CountProcessorProxy : public ICountProcessor<span>
 {
 public:
 
-    /** Shortcuts. */
+    typedef ICountProcessor<span> CountProcessor;
     typedef typename Kmer<span>::Type Type;
 
     /** Constructor. */
-    CountProcessorAbstract (const std::string& name="processor") : _name(name)  {}
+    CountProcessorProxy (ICountProcessor<span>* ref) : _ref(0)  { setRef (ref); }
 
     /** Destructor. */
-    virtual ~CountProcessorAbstract ()  {}
+    virtual ~CountProcessorProxy()  {  setRef(0); }
 
     /********************************************************************/
     /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
     /********************************************************************/
 
     /** \copydoc ICountProcessor<span>::begin */
-    virtual void begin(const Configuration& config) {}
+    void begin (const impl::Configuration& config)  { _ref->begin (config); }
 
     /** \copydoc ICountProcessor<span>::end */
-    virtual void end  () {}
+    void end   ()  { _ref->end (); }
 
-    /** \copydoc ICountProcessor<span>::end */
-    virtual void beginPass (size_t passId) {}
+    /** \copydoc ICountProcessor<span>::beginPass */
+    void beginPass (size_t passId)  { _ref->beginPass (passId); }
 
-    /** \copydoc ICountProcessor<span>::end */
-    virtual void endPass   (size_t passId) {}
+    /** \copydoc ICountProcessor<span>::endPass */
+    void endPass   (size_t passId)  {  _ref->endPass (passId); }
+
+    /** \copydoc ICountProcessor<span>::clone */
+    ICountProcessor<span>* clone ()  { return _ref->clone(); }
 
     /** \copydoc ICountProcessor<span>::finishClones */
-    virtual void finishClones (std::vector<ICountProcessor<span>*>& clones)  {}
+    void finishClones (std::vector<ICountProcessor<span>*>& clones)  { _ref->finishClones (clones); }
 
     /********************************************************************/
     /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
     /********************************************************************/
 
     /** \copydoc ICountProcessor<span>::beginPart */
-    virtual void beginPart (size_t passId, size_t partId, size_t cacheSize, const char* name) {}
+    void beginPart (size_t passId, size_t partId, size_t cacheSize, const char* name)  { _ref->beginPart (passId, partId, cacheSize, name); }
 
     /** \copydoc ICountProcessor<span>::endPart */
-    virtual void endPart   (size_t passId, size_t partId) {}
+    void endPart   (size_t passId, size_t partId)  { _ref->endPart (passId, partId); }
 
     /** \copydoc ICountProcessor<span>::process */
-    virtual bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum=0)  {  return true;  }
+    bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum=0)
+    {  return _ref->process (partId, kmer, count, sum);  }
 
     /*****************************************************************/
     /*                          MISCELLANEOUS.                       */
     /*****************************************************************/
 
     /** \copydoc ICountProcessor<span>::getName */
-    virtual std::string getName() const  { return _name; }
+    std::string getName() const {  return _ref->getName(); }
 
     /** \copydoc ICountProcessor<span>::setName */
-    virtual void setName (const std::string& name) { _name = name; }
+    void setName (const std::string& name)  { _ref->setName (name); }
 
     /** \copydoc ICountProcessor<span>::getProperties */
-    virtual tools::misc::impl::Properties getProperties() const { return tools::misc::impl::Properties(); }
+    tools::misc::impl::Properties getProperties() const  { return _ref->getProperties(); }
 
     /** \copydoc ICountProcessor<span>::getInstances */
-    virtual std::vector<ICountProcessor<span>*> getInstances () const
-    {
-        std::vector<ICountProcessor<span>*> res;
-        res.push_back((CountProcessorAbstract*)this);
-        return res;
-    }
+    std::vector<ICountProcessor<span>*> getInstances () const  { return _ref->getInstances(); }
 
-private:
+protected:
 
-    std::string _name;
+    ICountProcessor<span>* _ref;
+    void setRef (ICountProcessor<span>* ref) { SP_SETATTR(ref); }
 };
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _COUNT_PROCESSOR_ABSTRACT_HPP_ */
+#endif /* _COUNT_PROCESSOR_PROXY_HPP_ */

@@ -95,10 +95,10 @@ public:
      * \param[in] processor : object that processes counts
      */
     SortingCountAlgorithm (
-        gatb::core::bank::IBank* bank,
-        const Configuration&     config,
-        Repartitor*              repartitor = 0,
-        CountProcessor*          processor  = 0
+        gatb::core::bank::IBank*     bank,
+        const Configuration&         config,
+        Repartitor*                  repartitor,
+        std::vector<CountProcessor*> processors
     );
 
     /** Destructor */
@@ -129,21 +129,39 @@ public:
         tools::storage::impl::Storage*  otherStorage = 0
     );
 
+    /** Creates a vector holding the default CountProcessor configuration
+     * \param[in] params : used for configuring the processor
+     * \param[in] dskStorage : storage for dumping [kmer,count] couples
+     * \param[in] otherStorage : used for histogram for instance
+     * \return a vector of CountProcessor instances
+     */
+    static std::vector<ICountProcessor<span>*> getDefaultProcessorVector (
+        Configuration&                  config,
+        tools::misc::IProperties*       params,
+        tools::storage::impl::Storage*  dskStorage,
+        tools::storage::impl::Storage*  otherStorage = 0
+    );
+
     /** Process the kmers counting. It is mainly composed of a loop over the passes, and for each pass :
      *      1) we build the partition files then
      *      2) we fill the solid kmers file from the partitions.
      */
     void  execute ();
 
+    /** Get the number of count processors associated to the object.
+     * \return number of processors. */
+    size_t getProcessorNumber() const { return _processors.size(); }
+
     /** Getter for the CountProcessor to be used by the algorithm.
+     * \param[in] idx : index of the processor to be retrieved
      * \return the processor
      */
-    CountProcessor* getProcessor ()  { return _processor; }
+    CountProcessor* getProcessor (size_t idx)  { return _processors[idx]; }
 
     /** Setter for the CountProcessor to be used by the algorithm.
      * \param[in] processor : the count processor to be used.
      */
-    void setProcessor (CountProcessor* processor)  { SP_SETATTR(processor); }
+    void addProcessor (CountProcessor* processor)  { processor->use(); _processors.push_back (processor); }
 
     /** Get the iterable over the computed solid kmers.
      * \return the solid kmers iterable. */
@@ -177,6 +195,11 @@ private:
      */
     void fillSolidKmers (size_t pass, PartiInfo<5>& pInfo);
 
+    /** Fill the solid kmers bag from the partition files (one partition after another one).
+     * \param[in] solidKmers : bag to put the solid kmers into.
+     */
+    void fillSolidKmers_aux (ICountProcessor<span>* processor, size_t pass, PartiInfo<5>& pInfo);
+
     /** */
     std::vector <size_t> getNbCoresList (PartiInfo<5>& pInfo);
 
@@ -192,7 +215,7 @@ private:
     void setRepartitor (Repartitor* repartitor)  { SP_SETATTR(repartitor); }
 
     /** Handle on the count processor object. */
-    CountProcessor* _processor;
+    std::vector<CountProcessor*> _processors;
 
     /** Handle on the progress information. */
     gatb::core::tools::dp::IteratorListener* _progress;
