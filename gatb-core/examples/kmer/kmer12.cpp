@@ -133,8 +133,8 @@ template<size_t span>  struct MainLoop  {  void operator () (IProperties* option
     SortingCountAlgorithm<span> algo (options);
 
     // We create a custom count processor and give it to the sorting count algorithm
-    CountProcessorCustom<span>* processor = new CountProcessorCustom<span> (nbSources, CountRange(nks,~0));
-    algo.setProcessor (processor);
+    CountProcessorCustom<span>* processor = new CountProcessorCustom<span> (nbSources, CountRange(nks,1<<30));
+    algo.addProcessor(processor);
 
     // We launch the algorithm
     algo.execute();

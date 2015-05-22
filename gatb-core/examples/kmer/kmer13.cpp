@@ -106,7 +106,7 @@ template<size_t span>  struct MainLoop  {  void operator () (IProperties* option
     vector <CountProcessorHistogram<span>* > histogramProcessors;
     for (size_t i=0; i<nbSources; i++)
     {
-        histogramProcessors.push_back (new CountProcessorHistogram<span> (histoGroup.getGroup(Stringify::format("%d", i))));
+        histogramProcessors.push_back (new CountProcessorHistogram<span> (& histoGroup.getGroup(Stringify::format("%d", i))));
     }
 
     // We create a custom count processor that encapsulates N CountProcessorHistogram instances
@@ -116,7 +116,7 @@ template<size_t span>  struct MainLoop  {  void operator () (IProperties* option
     );
 
     // We configure the sorting count algorithm with this custom processor instance
-    algo.setProcessor (processor);
+    algo.addProcessor (processor);
 
     // We launch the SortingCountAlgorithm instance
     algo.execute();
