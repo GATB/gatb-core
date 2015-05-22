@@ -1,4 +1,4 @@
-abundance_max                              4294967295
+abundance_max                              2147483647
 abundance_min                              3
 bank_total_nt                              490816200
 checksum_branching                         91bff9b3a42da848.31d1c197db45fd1c.a5a80c50501a2b69

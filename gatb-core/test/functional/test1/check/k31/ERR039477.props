@@ -1,7 +1,7 @@
 kmer_size 31
 solidity_kind sum
 abundance_min 3
-abundance_max 4294967295
+abundance_max 2147483647
 bank_total_nt 36019596
 seq_number 390976
 seq_size_min 16

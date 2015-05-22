@@ -103,6 +103,8 @@ class TestDSK : public Test
 
 public:
 
+    static const CountNumber NKS_MAX = (CountNumber)(1<<30);  // can't use std::numeric_limits not available on old gcc
+
     /********************************************************************************/
     void setUp    () {}
     void tearDown () {}
@@ -447,7 +449,7 @@ public:
     /********************************************************************************/
     void DSK_perBank1 ()
     {
-        size_t nksMax = ~0;  // a big value here
+        CountNumber nksMax = NKS_MAX;  // a big value here
 
         const char* seqs[] = {      //  KMERS ARE...
             "CGCTACAGCAGCTAGTT",    // CGCTACAGCAGCTAG  GCTACAGCAGCTAGT  CTACAGCAGCTAGTT
@@ -481,7 +483,7 @@ public:
     /********************************************************************************/
     void DSK_perBank2 ()
     {
-        size_t nksMax = 100000;
+        CountNumber nksMax = NKS_MAX;
 
         const char* seqs[] = {
             "CGCTATCGCTA",    // CGCTA  GCTAT  CTATC  TATCG  ATCGC  TCGCT  CGCTA
