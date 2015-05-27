@@ -103,9 +103,18 @@ public:
     /*                          MISCELLANEOUS.                       */
     /*****************************************************************/
 
-    u_int64_t getNbKmersCore  () { return  _nbKmersCore;  }
-    u_int64_t getNbKmersBound () { return  _nbKmersBound; }
-    u_int64_t getNbKmersTotal () { return  _nbKmersCore + _nbKmersBound; }
+    /** \copydoc ICountProcessor<span>::getProperties */
+    Properties getProperties() const
+    {
+        double total = _nbKmersCore + _nbKmersBound;
+
+        Properties result;
+        result.add (0, "result");
+        result.add (1, "total", "%9ld", _nbKmersCore + _nbKmersBound);
+        result.add (1, "core",  "%9ld  %5.1f ", _nbKmersCore,  100.0*(double)_nbKmersCore  / total);
+        result.add (1, "bound", "%9ld  %5.1f ", _nbKmersBound, 100.0*(double)_nbKmersBound / total);
+        return result;
+    }
 
 private:
 
@@ -135,11 +144,8 @@ template<size_t span>  struct MainLoop  {  void operator () (IProperties* option
     // We launch the algorithm
     algo.execute();
 
-    double total = processor->getNbKmersTotal();
-
-    printf ("total : %9ld\n", processor->getNbKmersTotal());
-    printf ("core  : %9ld  %5.1f \n", processor->getNbKmersCore(),  100.0 * (double) processor->getNbKmersCore()  / total);
-    printf ("bound : %9ld  %5.1f \n", processor->getNbKmersBound(), 100.0 * (double) processor->getNbKmersBound() / total);
+    // We dump statistics
+    cout << processor->getProperties() << endl;
 }};
 
 /********************************************************************************/
