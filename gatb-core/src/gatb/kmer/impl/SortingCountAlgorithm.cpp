@@ -352,8 +352,31 @@ vector<ICountProcessor<span>*> SortingCountAlgorithm<span>::getDefaultProcessorV
 
     if (foundAuto)
     {
-        /** We create a cutoff count processor to compute cutoffs of the N banks. */
-        ICountProcessor<span>* cutoffProcessor = new CountProcessorCutoff<span> (config._nb_banks);
+        /** We create a cutoff count processor to compute cutoffs. */
+        ICountProcessor<span>* cutoffProcessor = 0;
+
+        /** We look what kind of solidity is required. If it is in [sum,min,max], we consider that we have only one bank
+         * to compute the histogram for, even if N banks are provided. In such a case, the histogram is computed for the
+         * concatenation of the N banks. */
+        switch (config._solidityKind)
+        {
+        case KMER_SOLIDITY_MIN:
+        case KMER_SOLIDITY_MAX:
+        case KMER_SOLIDITY_SUM:
+            cutoffProcessor = new CountProcessorCutoff<span> (1);
+            break;
+
+        case KMER_SOLIDITY_ONE:
+        case KMER_SOLIDITY_ALL:
+            /** We create a cutoff count processor to compute cutoffs of the N banks. */
+            cutoffProcessor = new CountProcessorCutoff<span> (config._nb_banks);
+            break;
+
+        default:
+            break;
+        }
+
+        if (cutoffProcessor == 0)  { throw Exception ("Unable to configure count processor due to bad solidity kind %d", config._solidityKind); }
 
         /** We encapsulate both cutoff and dsk processors in a single one that link them. */
         ICountProcessor<span>* proxyCutoff = new CountProcessorCustomProxy<span> (cutoffProcessor, dskProcessor);

@@ -44,7 +44,7 @@ public:
     /** Update abundance min in the threshold ranges. */
     void setAbundanceMin (const std::vector<CountNumber>& cutoffs)
     {
-        if (cutoffs.size() != _thresholds.size())
+        if (cutoffs.size() > _thresholds.size())
         {
             throw system::Exception ("Unable to set abundance min values (%d values for %d banks)", cutoffs.size(), _thresholds.size());
         }
@@ -56,6 +56,10 @@ public:
             CountNumber abundanceMin = _thresholds[i].getBegin()==-1 ? cutoffs[i] :  _thresholds[i].getBegin();
             newThresholds.push_back (tools::misc::CountRange(abundanceMin, _thresholds[i].getEnd() ) );
         }
+
+        /** We may have less cutoffs than banks; we complete with the last cutoff value. */
+        tools::misc::CountRange lastRange (newThresholds[newThresholds.size()-1]);
+        for (size_t i=cutoffs.size(); i<_thresholds.size(); i++)  {  newThresholds.push_back (lastRange);  }
 
         /** We update the thresholds for the current count processor. */
         _thresholds = newThresholds;

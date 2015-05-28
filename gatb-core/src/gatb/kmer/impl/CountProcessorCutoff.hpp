@@ -107,8 +107,18 @@ public:
     /** \copydoc ICountProcessor<span>::process */
     bool process (size_t partId, const Type& kmer, const CountVector& count, CountNumber sum)
     {
-        // Note that we provide the 'sum' argument as being the count of the ith bank
-        for (size_t i=0; i<_histogramProcessors.size(); i++)  {  _histogramProcessors[i]->process (partId, kmer, count, count[i]);  }
+        // In case we have only one bank, we use the sum by convention. Note that it can still
+        // be the sum of several bank counts (here the _histogramProcessors.size() value may not reflect
+        // the actual number of banks processed, see SortingCountAlgorithm<span>::getDefaultProcessorVector)
+
+        if (_histogramProcessors.size()==1)
+        {
+            _histogramProcessors[0]->process (partId, kmer, count, std::accumulate(count.begin(),count.end(),0) );
+        }
+        else
+        {
+            for (size_t i=0; i<_histogramProcessors.size(); i++)  {  _histogramProcessors[i]->process (partId, kmer, count, count[i]);  }
+        }
         return true;
     }
 
