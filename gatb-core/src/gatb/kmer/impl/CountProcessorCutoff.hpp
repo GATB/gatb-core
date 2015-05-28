@@ -113,7 +113,8 @@ public:
 
         if (_histogramProcessors.size()==1)
         {
-            _histogramProcessors[0]->process (partId, kmer, count, std::accumulate(count.begin(),count.end(),0) );
+            sum=0; for (size_t i=0; i<count.size(); i++)  { sum += count[i]; }
+            _histogramProcessors[0]->process (partId, kmer, count, sum);
         }
         else
         {
