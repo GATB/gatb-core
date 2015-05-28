@@ -399,7 +399,7 @@ struct build_visitor : public boost::static_visitor<>    {
         DEBUG ((cout << "build_visitor : ConfigurationAlgorithm BEGIN\n"));
 
         ConfigurationAlgorithm<span> configAlgo (bank, props);
-        executeAlgorithm (configAlgo, 0, props, graph._info);
+        executeAlgorithm (configAlgo, & graph.getStorage(), props, graph._info);
         Configuration config = configAlgo.getConfiguration();
 
         DEBUG ((cout << "build_visitor : ConfigurationAlgorithm END\n"));
