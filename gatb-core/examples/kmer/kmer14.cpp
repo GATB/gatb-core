@@ -111,8 +111,8 @@ public:
         Properties result;
         result.add (0, "result");
         result.add (1, "total", "%9ld", _nbKmersCore + _nbKmersBound);
-        result.add (1, "core",  "%9ld  %5.1f ", _nbKmersCore,  100.0*(double)_nbKmersCore  / total);
-        result.add (1, "bound", "%9ld  %5.1f ", _nbKmersBound, 100.0*(double)_nbKmersBound / total);
+        result.add (2, "core",  "%9ld  %5.1f ", _nbKmersCore,  100.0*(double)_nbKmersCore  / total);
+        result.add (2, "bound", "%9ld  %5.1f ", _nbKmersBound, 100.0*(double)_nbKmersBound / total);
         return result;
     }
 
