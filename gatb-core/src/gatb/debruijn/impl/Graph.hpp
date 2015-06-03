@@ -830,7 +830,7 @@ public:
     enum StateMask
     {
         STATE_INIT_DONE           = (1<<0),
-        STATE_BANKCONVERTER_DONE  = (1<<1),
+        STATE_CONFIGURATION_DONE  = (1<<1),
         STATE_SORTING_COUNT_DONE  = (1<<2),
         STATE_BLOOM_DONE          = (1<<3),
         STATE_DEBLOOM_DONE        = (1<<4),

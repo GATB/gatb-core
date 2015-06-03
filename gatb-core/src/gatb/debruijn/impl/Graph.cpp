@@ -243,6 +243,18 @@ struct configure_visitor : public boost::static_visitor<>    {
         /** We create the kmer model. */
         data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
+        if (graph.getState() & Graph::STATE_CONFIGURATION_DONE)
+        {
+            /** We get the configuration group in the storage. */
+            Group& configGroup = storage.getGroup("configuration");
+
+            /** We read the XML file and update the global info. */
+            stringstream ss; ss << configGroup.getProperty ("xml");
+
+            Properties props; props.readXML (ss);
+            graph.getInfo().add (1, props);
+        }
+
         if (graph.getState() & Graph::STATE_SORTING_COUNT_DONE)
         {
             /** We get the dsk group in the storage. */
@@ -253,7 +265,9 @@ struct configure_visitor : public boost::static_visitor<>    {
 
             /** We read the XML file and update the global info. */
             stringstream ss; ss << dskGroup.getProperty ("xml");
-            graph.getInfo().readXML (ss);
+
+            Properties props; props.readXML (ss);
+            graph.getInfo().add (1, props);
        }
 
         if (graph.getState() & Graph::STATE_BLOOM_DONE)
@@ -401,6 +415,7 @@ struct build_visitor : public boost::static_visitor<>    {
         ConfigurationAlgorithm<span> configAlgo (bank, props);
         executeAlgorithm (configAlgo, & graph.getStorage(), props, graph._info);
         Configuration config = configAlgo.getConfiguration();
+        graph.setState(Graph::STATE_CONFIGURATION_DONE);
 
         DEBUG ((cout << "build_visitor : ConfigurationAlgorithm END\n"));
 
@@ -557,7 +572,6 @@ struct build_visitor : public boost::static_visitor<>    {
         if (props->get(STR_URI_SOLID_KMERS) != 0)
         {
             data.setSolid (0);
-            graph.unsetState (Graph::STATE_BANKCONVERTER_DONE);
             graph.unsetState (Graph::STATE_SORTING_COUNT_DONE);
         }
 
