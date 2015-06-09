@@ -145,7 +145,22 @@ public:
     /** \copydoc tools::collections::Iterable::iterator */
     tools::dp::Iterator<Sequence>* iterator ()
     {
-        return new tools::dp::impl::FilterIterator<Sequence,Filter> (_ref->iterator (), _filter);
+        // We create one iterator from the reference
+        tools::dp::Iterator<Sequence>* it = _ref->iterator ();
+
+        // We get the composition for this iterator
+        std::vector<tools::dp::Iterator<Sequence>*> iterators = it->getComposition();
+
+        if (iterators.size() == 1)  { return new tools::dp::impl::FilterIterator<Sequence,Filter> (it, _filter); }
+        else
+        {
+            // we are going to create a new CompositeIterator, we won't need the one we just got from the reference
+            LOCAL(it);
+
+            // We may have to encapsulate each sub iterator with the filter.
+            for (size_t i=0; i<iterators.size(); i++)  { iterators[i] = new tools::dp::impl::FilterIterator<Sequence,Filter> (iterators[i], _filter); }
+            return new tools::dp::impl::CompositeIterator<Sequence> (iterators);
+        }
     }
 
 private:
