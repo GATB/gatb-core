@@ -154,11 +154,17 @@ public:
         if (iterators.size() == 1)  { return new tools::dp::impl::FilterIterator<Sequence,Filter> (it, _filter); }
         else
         {
-            // we are going to create a new CompositeIterator, we won't need the one we just got from the reference
+            // We are going to create a new CompositeIterator, we won't need the one we just got from the reference
             LOCAL(it);
 
             // We may have to encapsulate each sub iterator with the filter.
-            for (size_t i=0; i<iterators.size(); i++)  { iterators[i] = new tools::dp::impl::FilterIterator<Sequence,Filter> (iterators[i], _filter); }
+            for (size_t i=0; i<iterators.size(); i++)  {
+
+            	// We create a distinct filter per bank
+            	Filter bankFilter(_filter);
+
+            	iterators[i] = new tools::dp::impl::FilterIterator<Sequence,Filter> (iterators[i], bankFilter);
+            }
             return new tools::dp::impl::CompositeIterator<Sequence> (iterators);
         }
     }
