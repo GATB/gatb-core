@@ -98,7 +98,7 @@ void ThreadGroup::start ()
     /** We join each thread. */
     for (std::vector<system::IThread*>::iterator it = _threads.begin(); it != _threads.end(); it++)
     {
-        (*it)->join (); //un ici
+        (*it)->join ();
     }
 }
 

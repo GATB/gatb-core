@@ -629,6 +629,7 @@ bool BankFasta::Iterator::get_next_seq (Vector<char>& data)
 *********************************************************************/
 void BankFasta::Iterator::init ()
 {
+
     if (_isInitialized == true)  { return ;}
 
     /** We initialize the array of files. */
@@ -647,15 +648,19 @@ void BankFasta::Iterator::init ()
         *bf = (buffered_file_t *)  CALLOC (1, sizeof(buffered_file_t));
         (*bf)->buffer = (unsigned char*)  MALLOC (BUFFER_SIZE);
         (*bf)->stream = gzopen (fname, "r");
-
+		
         /** We check that we can open the file. */
         if ((*bf)->stream == NULL)
         {
             /** We first try do do some cleanup. */
-            finalize ();
+            finalize (); // GR:  cannot finalize here because finalize returns if (_isInitialized == false) which is the case here
 
+			//GR : dunno why this exception does not show up, adding a message here
+			fprintf(stderr,"unable to open file %s  : %s \n",fname,strerror(errno));
+			
             /** We launch an exception. */
             throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, fname);
+
         }
     }
 

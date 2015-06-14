@@ -441,7 +441,7 @@ void SortingCountAlgorithm<span>::configure ()
         setRepartitor (new Repartitor(storage->getGroup("minimizers")));
     }
 
-    /** We check that the processor is ok, otherwise we build one. */
+	/** We check that the processor is ok, otherwise we build one. */
     if (_processors.size() == 0)  {  addProcessor (getDefaultProcessor(getInput(), storage));  };
 
     DEBUG (("SortingCountAlgorithm<span>::configure  END  _bank=%p  _config.isComputed=%d  _repartitor=%p  storage=%p\n",
@@ -761,9 +761,12 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     
         /** We fill the partitions. Each thread will read synchronously and will call FillPartitions
          * in a synchronous way (in order to have global BanksStats correctly computed). */
+
+	
         getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
             model, _config._nb_passes, pass, _config._nb_partitions, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo
         ), groupSize, deleteSynchro);
+
 
         /** We flush the partitions in order to be sure to have the exact number of items per partition. */
         _tmpPartitions->flush();
@@ -777,6 +780,10 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
         /** We add the current number of kmers in each partition for the reached ith bank. */
         _nbKmersPerPartitionPerBank.push_back (nbItems);
+		
+		
+		//GR: close the input bank here with call to finalize 
+		itBanks[i]->finalize();
     }
 }
 
@@ -937,7 +944,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
                     static const int EXCEED_FACTOR = 2;
 
                     if (pInfo.getNbSuperKmer(p)*getSizeofPerItem()  < EXCEED_FACTOR*memoryPoolSize)
-                    {
+                    {						
                         /** We accept in this case to exceed the allowed memory. */
                         memoryPoolSize = pInfo.getNbSuperKmer(p)*getSizeofPerItem();
                     }
