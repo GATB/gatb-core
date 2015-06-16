@@ -159,11 +159,7 @@ public:
 
             // We may have to encapsulate each sub iterator with the filter.
             for (size_t i=0; i<iterators.size(); i++)  {
-
-            	// We create a distinct filter per bank
-            	Filter bankFilter(_filter);
-
-            	iterators[i] = new tools::dp::impl::FilterIterator<Sequence,Filter> (iterators[i], bankFilter);
+            	iterators[i] = new tools::dp::impl::FilterIterator<Sequence,Filter> (iterators[i], _filter);
             }
             return new tools::dp::impl::CompositeIterator<Sequence> (iterators);
         }
