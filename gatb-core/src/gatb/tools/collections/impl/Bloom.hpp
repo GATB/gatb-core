@@ -808,6 +808,156 @@ private:
     Item _kmerMask;
     size_t _kmerSize;
 };
+    
+/********************************************************************************/
+
+/** \brief Bloom filter implementation with cache consideration
+ *
+ * This implementation improve memory locality in the Bloom filter between a kmer
+ * and its neighbors, and takes advantage of kmer minimizer. This means that this 
+ * implementation should be used only with Item being a kmer.
+ */
+template <typename Item> class BloomMinimizerCoherent : public Bloom<Item>
+{
+public:
+
+    /** Constructor.
+     * \param[in] tai_bloom : size (in bits) of the bloom filter.
+     * \param[in] kmersize : kmer size
+     * \param[in] nbHash : number of hash functions to use
+     * \param[in] block_nbits : size of the block (actual 2^nbits)
+     * \param[in] minimizer_block_nbits : size of the minimizer block (actual 2^nbits) */
+    BloomMinimizerCoherent (u_int64_t tai_bloom, size_t kmersize, size_t nbHash = 4, size_t block_nbits = 6, size_t minimizer_block_nbits = 12)
+        : Bloom<Item> (tai_bloom + (1<<minimizer_block_nbits), nbHash),_nbits_BlockSize(block_nbits),_nbits_MinimizerBlockSize(minimizer_block_nbits)
+    {
+        // TODO : check block_nbits <= minimizer_block_nbits
+
+        _mask_block = (1<<_nbits_BlockSize) - 1;
+        _minimizer_mask_block = (1<<_nbits_MinimizerBlockSize) - 1;
+        _reduced_tai = this->tai - (1<<_nbits_MinimizerBlockSize);
+
+        cano2[ 0] = 0;
+        cano2[ 1] = 1;
+        cano2[ 2] = 2;
+        cano2[ 3] = 3;
+        cano2[ 4] = 4;
+        cano2[ 5] = 5;
+        cano2[ 6] = 3;
+        cano2[ 7] = 7;
+        cano2[ 8] = 8;
+        cano2[ 9] = 9;
+        cano2[10] = 0;
+        cano2[11] = 4;
+        cano2[12] = 9;
+        cano2[13] = 13;
+        cano2[14] = 1;
+        cano2[15] = 5;
+
+        Item un = 1;
+        _maskkm2  = (un << ((_kmerSize-2)*2)) - un;
+        _kmerMask = (un << (_kmerSize*2))     - un;
+
+        Item trois = 3;
+
+        _prefmask = trois << ((_kmerSize-1)*2); //bug was here 3 instead of item trois
+    }
+
+    /** \copydoc Bag::insert. */
+    void insert (const Item& item, const Item& minimizer)
+    {
+        u_int64_t h0, h1;
+        u_int64_t pre_h1;
+
+        Item suffix = item & 3 ;
+        Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
+        prefix += suffix;
+        prefix = prefix  & 15 ;
+
+        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        Item hashpart = ( item >> 2 ) & _maskkm2 ;  // delete 1 nt at each side
+        Item rev =  revcomp(hashpart,_kmerSize-2);
+        if(rev<hashpart) hashpart = rev; //transform to canonical
+        
+        h0 = this->_hash(minimizer,0) % _reduced_tai;
+        __sync_fetch_and_or (this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
+
+        pre_h1 = this->_hash(hashpart, 1) + pref_val;
+        h1 = h0 + (pre_h1 & _minimizer_mask_block);
+        __sync_fetch_and_or (this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+
+        for (size_t i=2; i<this->n_hash_func; i++)
+        {
+            u_int64_t h2 = h1 + (simplehash16(hashpart, i) & this->_mask_block);
+            __sync_fetch_and_or (this->blooma + (h2 >> 3), bit_mask[h2 & 7]);
+        }
+    }
+
+    /** \copydoc IBloom::getName*/
+    std::string  getName () const { return "minimizer"; }
+
+    /** \copydoc IBloom::getBitSize*/
+    u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
+
+    /** \copydoc Container::contains. */
+    bool contains (const Item& item, const Item& minimizer)
+    {
+        u_int64_t h0, h1;
+        u_int64_t pre_h1;
+
+        Item suffix = item & 3 ;
+        Item prefix = (item & _prefmask)  >> ((_kmerSize-2)*2);
+        prefix += suffix;
+        prefix = prefix  & 15 ;
+
+        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        Item hashpart = (item >> 2) & _maskkm2 ;  // delete 1 nt at each side
+        Item rev =  revcomp(hashpart,_kmerSize-2);
+        if (rev<hashpart) hashpart = rev; //transform to canonical
+
+        u_int64_t tab_keys [20];
+
+        h0 = this->_hash(minimizer,0) % _reduced_tai;
+        pre_h1 = this->_hash(hashpart, 1) + pref_val;
+        h1 = h0 + (pre_h1 & _minimizer_mask_block);
+        __builtin_prefetch(&(this->blooma[h1 >> 3]), 0, 3); //preparing for read
+
+        // compute all hashes during prefetch
+        for (size_t i=2; i<this->n_hash_func; i++) {
+            tab_keys[i] =  h1 + (simplehash16(hashpart, i) & this->_mask_block); // with simplest hash
+        }
+
+        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  } // was != bit_mask[h0 & 7]
+        if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } // was != bit_mask[h0 & 7]
+
+        for (size_t i=2; i<this->n_hash_func; i++) {
+            u_int64_t h2 = tab_keys[i];
+            if ((this->blooma[h2 >> 3 ] & bit_mask[h2 & 7]) == 0 )  {  return false;  } // was != bit_mask[h0 & 7]
+        }
+
+        return true;
+    }
+    
+    /** \copydoc IBloom::weight*/
+    unsigned long weight()
+    {
+        throw system::ExceptionNotImplemented();
+    }
+
+private:
+    u_int64_t _mask_block;
+    size_t    _nbits_BlockSize;
+    u_int64_t _minimizer_mask_block;
+    size_t    _nbits_MinimizerBlockSize;
+    u_int64_t _reduced_tai;
+
+    unsigned int cano2[16];
+    Item _maskkm2;
+    Item _prefmask;
+    Item _kmerMask;
+    size_t _kmerSize;
+};
 	
 /********************************************************************************/
 
