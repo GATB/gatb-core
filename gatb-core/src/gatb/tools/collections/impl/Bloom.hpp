@@ -808,6 +808,345 @@ private:
     Item _kmerMask;
     size_t _kmerSize;
 };
+    
+/********************************************************************************/
+
+/** \brief Bloom filter implementation with cache consideration
+ *
+ * This implementation improve memory locality in the Bloom filter between a kmer
+ * and its neighbors. This means that this implementation should be used only
+ * with Item being a kmer.
+ *
+ * In particular, it implements contains4 and contains8 in a clever way.
+ */
+template <typename Item> class BloomExtendedNeighborCoherent : public BloomCacheCoherent<Item>
+{
+public:
+
+    /** Constructor.
+     * \param[in] tai_bloom : size (in bits) of the bloom filter.
+     * \param[in] kmersize : kmer size
+     * \param[in] hmersize : hashpart size
+     * \param[in] nbHash : number of hash functions to use
+     * \param[in] block_nbits : size of the block (actual 2^nbits) */
+    BloomExtendedNeighborCoherent (u_int64_t tai_bloom, size_t kmersize, size_t hmersize, Item pattern, size_t patternSize, size_t nbHash = 7, size_t block_nbits = 12)
+        : BloomCacheCoherent<Item> (tai_bloom , nbHash,block_nbits), _kmerSize(kmersize), _hmerSize(hmersize), _pattern(pattern)
+    {
+        _smerSize = _kmerSize - 2;
+
+        cano2[ 0] = 0;
+        cano2[ 1] = 1;
+        cano2[ 2] = 2;
+        cano2[ 3] = 3;
+        cano2[ 4] = 4;
+        cano2[ 5] = 5;
+        cano2[ 6] = 3;
+        cano2[ 7] = 7;
+        cano2[ 8] = 8;
+        cano2[ 9] = 9;
+        cano2[10] = 0;
+        cano2[11] = 4;
+        cano2[12] = 9;
+        cano2[13] = 13;
+        cano2[14] = 1;
+        cano2[15] = 5;
+
+        Item un = 1;
+        _kmerMask = (un << (_kmerSize*2))   - un;
+        _smerMask = (un << (_smerSize*2))   - un;
+        _hmerMask = (un << (_hmerSize*2))   - un;
+
+        Item trois = 3;
+        _kmerPrefMask = trois << ((_kmerSize-1)*2);
+        _smerPrefMask = trois << ((_smerSize-1)*2);
+
+        _hmerCount = (_kmerSize - 2) - _hmerSize + 1; // (_kmerSize - 2) <=> shared part size
+
+        _sharedpart = _smerMask + un; // > max value
+        _hashpart = _hmerMask + un; // > max value
+        _position = -1;
+        _reverse = false;
+
+        _pattern = pattern << (2*(_hmerSize - patternSize));
+        _hmerPatternMask = ((un << (patternSize*2)) - un) << (2*(_hmerSize - patternSize));
+
+        //_i = 0;
+    }
+
+    void begin()
+    {
+        _sharedpart = _smerMask + 1; // > max value
+        _position = -1;
+        _reverse = false;
+
+        _computeCount = 0;
+        _hashpartHits = 0;
+
+        //_i = 0;
+    }
+
+    /** \copydoc Bag::insert. */
+    void insert (const Item& item, bool verbose = false)
+    {
+        u_int64_t h0, h1;
+        u_int64_t racine;
+
+        Item suffix = item & 3 ;
+        Item prefix = (item & _kmerPrefMask)  >> ((_kmerSize-2)*2);
+        prefix += suffix;
+        prefix = prefix & 15 ;
+
+        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        Item sharedpart = (item >> 2) & _smerMask;  // delete 1 nt at each side
+        Item rev =  revcomp(sharedpart, _smerSize);
+        if(rev < sharedpart) sharedpart = rev; //transform to canonical
+
+        u_int64_t spref_val = (((sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (sharedpart & 3)).getVal();
+
+        computeHashpart(sharedpart);
+        _hashpartHash = this->_hash (_hashpart, 0);
+        
+        racine = _hashpartHash % this->_reduced_tai;
+        h0 = racine;// + spref_val;
+        __sync_fetch_and_or(this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
+
+        h1 = h0 + pref_val;
+        __sync_fetch_and_or(this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
+
+        for (size_t i=2; i<this->n_hash_func; i++)
+        {
+            u_int64_t h2 = h1 + ((simplehash16( sharedpart, i)) & this->_mask_block);
+            __sync_fetch_and_or(this->blooma + (h2 >> 3), bit_mask[h2 & 7]);
+        }
+
+        if (verbose) {
+            std::cout << "insert " << item.getVal() << std::endl;
+            std::cout << "\tpref_val : " << pref_val << std::endl;
+            std::cout << "\tspref_val : " << spref_val << std::endl;
+            std::cout << "\tracine : " << racine << std::endl;
+            std::cout << "\th0 : " << h0 << std::endl;
+            std::cout << "\th1 : " << h1 << std::endl;
+        }
+    }
+
+    /** \copydoc IBloom::getName*/
+    std::string  getName () const { return "neighbor2"; }
+
+    /** \copydoc IBloom::getBitSize*/
+    u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
+
+    /** \copydoc Container::contains. */
+    bool contains (const Item& item, bool verbose = false)
+    {
+        u_int64_t racine;
+
+        Item suffix = item & 3 ;
+        Item prefix = (item & _kmerPrefMask)  >> ((_kmerSize-2)*2);
+        prefix += suffix;
+        prefix = prefix & 15 ;
+
+        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        bool reverse = false;
+        Item sharedpart = (item >> 2) & _smerMask ;  // delete 1 nt at each side
+        Item rev =  revcomp(sharedpart, _smerSize);
+        if(rev < sharedpart) {
+            sharedpart = rev; //transform to canonical
+            reverse = true;
+        }
+
+        if (_sharedpart != sharedpart)
+        {
+            if (_reverse != reverse) {
+                _position = -1;
+            } else if (_reverse) {
+                _position++;
+            } else {
+                _position--;
+            }
+
+            if (_position < 0 || _position >= _hmerCount)
+            {
+                computeHashpart(sharedpart);
+                _hashpartHash = this->_hash(_hashpart, 0);
+            } else if (_reverse) {
+                Item hmer = (sharedpart >> (2*(_hmerCount - 1))) & _hmerMask;
+
+                if ((hmer & _hmerPatternMask) == _pattern)
+                {
+                    _hashpart = hmer;
+                    _hashpartHash = this->_hash(_hashpart, 0);
+                }
+            } else {
+                _hashpartHits++;
+            }
+
+            _sharedpart = sharedpart;
+            _sprefVal = (((_sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (_sharedpart & 3)).getVal();
+        }
+        _reverse = reverse;
+
+        /*
+        _lstSP[_i % 10] = _sharedpart;
+        _lstHP[_i % 10] = _hashpart;
+        _lstPos[_i % 10] = (_position >= 0) ? _position : 0;
+        _lstRev[_i % 10] = _reverse;
+        _i++;
+        //*/
+
+        u_int64_t tab_keys [20];
+        u_int64_t h0, h1;
+
+        racine = _hashpartHash % this->_reduced_tai;
+        h0 = racine;// + _sprefVal;
+        h1 = h0 + pref_val;
+
+        if (verbose) {
+            std::cout << "contains " << item.getVal() << std::endl;
+            std::cout << "\tpref_val : " << pref_val << std::endl;
+            std::cout << "\tspref_val : " << _sprefVal << std::endl;
+            std::cout << "\tracine : " << racine << std::endl;
+            std::cout << "\th0 : " << h0 << std::endl;
+            std::cout << "\th1 : " << h1 << std::endl;
+        }
+
+        __builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); // preparing for read
+
+        // compute all hashes during prefetch
+        for (size_t i=2; i<this->n_hash_func; i++)
+        {
+            tab_keys[i] =  h1 + ((simplehash16(sharedpart, i)) & this->_mask_block); // with simplest hash
+        }
+
+        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  } // was != bit_mask[h0 & 7]
+        if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } // was != bit_mask[h1 & 7]
+
+        for (size_t i=2; i<this->n_hash_func; i++)
+        {
+            u_int64_t h2 = tab_keys[i];
+            if ((this->blooma[h2 >> 3 ] & bit_mask[h2 & 7]) == 0 )  {  return false;  } // was != bit_mask[h2 & 7]
+        }
+        return true;
+    }
+
+    u_int64_t getComputeCount() const {
+        return _computeCount;
+    }
+
+    u_int64_t getHashpartHits() const {
+        return _hashpartHits;
+    }
+
+    /*
+    Item getSP(uint i) const
+    {
+        return _lstSP[(_i + i) % 10];
+    }
+
+    Item getHP(uint i) const
+    {
+        return _lstHP[(_i + i) % 10];
+    }
+
+    int16_t getPos(uint i) const
+    {
+        return _lstPos[(_i + i) % 10];
+    }
+
+    bool getRev(uint i) const
+    {
+        return _lstRev[(_i + i) % 10];
+    }
+    //*/
+
+private:
+    unsigned int cano2[16];
+    Item _kmerMask;
+    Item _smerMask;
+    Item _hmerMask;
+    Item _kmerPrefMask;
+    Item _smerPrefMask;
+    size_t _kmerSize;
+    size_t _smerSize;
+    size_t _hmerSize;
+    size_t _hmerCount;
+
+    Item _sharedpart;
+    u_int64_t _sprefVal;
+    Item _hashpart;
+    u_int64_t _hashpartHash;
+    int16_t _position;
+    bool _reverse;
+
+    Item _pattern;
+    Item _hmerPatternMask;
+
+    u_int64_t _computeCount;
+    u_int64_t _hashpartHits;
+
+    /*
+    uint _i;
+    Item _lstSP[10];
+    Item _lstHP[10];
+    int16_t _lstPos[10];
+    bool _lstRev[10];
+    //*/
+
+    /** Full hashpart computing
+    * The hashpart is the first hmer beginning with AC
+    * \param[in] item : item for which we want the hashpart (size = kmersize - 2)
+    * \return the hashpart for the item
+    */
+    //*
+    void computeHashpart(const Item& item)
+    {
+        _computeCount++;
+
+        for (size_t i = 0; i < _hmerCount; i++)
+        {
+            Item cur = (item >> (2*(_hmerCount - 1 - i))) & _hmerMask;
+            if ((cur & _hmerPatternMask) == _pattern) {
+                _hashpart = cur;
+                _position = i;
+                return;
+            }
+        }
+
+        // If no valid hmer found
+        _hashpart = (item >> (2*(_hmerCount - 1))) & _hmerMask;
+        _position = -2;
+    }
+    //*/
+
+    /** Full hashpart computing
+    * The hashpart is the first hmer beginning by AC or the last finishing by GT
+    * \param[in] item : item for which we want the hashpart (size = kmersize - 2)
+    * \return the hashpart for the item
+    */
+    /*
+    void computeHashpart(const Item& item)
+    {
+        Item ac = 1 << (2*(_hmerSize - 2));
+        Item gt = 14 << (2*(_hmerSize - 2));
+        Item begin_mask = 3 << (2*(_hmerSize - 2));
+
+        for (size_t i = 0; i < _hmerCount; i++)
+        {
+            Item cur = (item >> (2*(_hmerCount - 1 - i))) & _hmerMask;
+            if ((cur & begin_mask) == ac || (cur & begin_mask) == gt) {
+                _hashpart = cur;
+                _position = i;
+                return;
+            }
+        }
+
+        // If no valid hmer found
+        _hashpart = (item >> (2*(_hmerCount - 1))) & _hmerMask;
+        _position = 0;
+    }
+    //*/
+};
 	
 /********************************************************************************/
 
