@@ -867,6 +867,8 @@ public:
         _position = -1;
         _reverse = false;
 
+        _precomputed = false;
+
         _pattern = pattern << (2*(_hmerSize - patternSize));
         _hmerPatternMask = ((un << (patternSize*2)) - un) << (2*(_hmerSize - patternSize));
 
@@ -879,9 +881,14 @@ public:
         _position = -1;
         _reverse = false;
 
+        _noPrecomputeCount = 0;
+        _precomputed = false;
+
         _computeCount = 0;
         _hashpartHits = 0;
 
+        for (int i = 0; i < 32; ++i) _hashpartLifetime[i] = 0;
+        _lifetime = 0;
         //_i = 0;
     }
 
@@ -936,17 +943,14 @@ public:
     /** \copydoc IBloom::getBitSize*/
     u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
 
-    /** \copydoc Container::contains. */
-    bool contains (const Item& item, bool verbose = false)
+    inline void precompute(const Item& item)
     {
-        u_int64_t racine;
-
         Item suffix = item & 3 ;
         Item prefix = (item & _kmerPrefMask)  >> ((_kmerSize-2)*2);
         prefix += suffix;
         prefix = prefix & 15 ;
 
-        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        _prefVal = cano2[prefix.getVal()]; //get canonical of pref+suffix
 
         bool reverse = false;
         Item sharedpart = (item >> 2) & _smerMask ;  // delete 1 nt at each side
@@ -970,6 +974,8 @@ public:
             {
                 computeHashpart(sharedpart);
                 _hashpartHash = this->_hash(_hashpart, 0);
+                if (_lifetime >= 1) _hashpartLifetime[_lifetime-1]++;
+                _lifetime = 0;
             } else if (_reverse) {
                 Item hmer = (sharedpart >> (2*(_hmerCount - 1))) & _hmerMask;
 
@@ -977,6 +983,8 @@ public:
                 {
                     _hashpart = hmer;
                     _hashpartHash = this->_hash(_hashpart, 0);
+                    if (_lifetime >= 1) _hashpartLifetime[_lifetime-1]++;
+                    _lifetime = 0;
                 }
             } else {
                 _hashpartHits++;
@@ -995,29 +1003,38 @@ public:
         _i++;
         //*/
 
-        u_int64_t tab_keys [20];
-        u_int64_t h0, h1;
+        _lifetime++;
+        _precomputed = true;
+        _precomputedItem = item;
+    }
+
+    /** \copydoc Container::contains. */
+    bool contains (const Item& item, const Item& next = 0)
+    {
+        //*
+        if (!_precomputed || _precomputedItem != item) {
+            precompute(item);
+            _noPrecomputeCount++;
+        }
+        //*/
+        //precompute(item);
+        
+        u_int64_t racine, h0, h1;
 
         racine = _hashpartHash % this->_reduced_tai;
         h0 = racine;// + _sprefVal;
-        h1 = h0 + pref_val;
-
-        if (verbose) {
-            std::cout << "contains " << item.getVal() << std::endl;
-            std::cout << "\tpref_val : " << pref_val << std::endl;
-            std::cout << "\tspref_val : " << _sprefVal << std::endl;
-            std::cout << "\tracine : " << racine << std::endl;
-            std::cout << "\th0 : " << h0 << std::endl;
-            std::cout << "\th1 : " << h1 << std::endl;
-        }
+        h1 = h0 + _prefVal;
 
         __builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); // preparing for read
 
         // compute all hashes during prefetch
+        u_int64_t tab_keys [20];
         for (size_t i=2; i<this->n_hash_func; i++)
         {
-            tab_keys[i] =  h1 + ((simplehash16(sharedpart, i)) & this->_mask_block); // with simplest hash
+            tab_keys[i] =  h1 + ((simplehash16(_sharedpart, i)) & this->_mask_block); // with simplest hash
         }
+
+        if (next != 0) precompute(next);
 
         if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  } // was != bit_mask[h0 & 7]
         if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } // was != bit_mask[h1 & 7]
@@ -1027,6 +1044,7 @@ public:
             u_int64_t h2 = tab_keys[i];
             if ((this->blooma[h2 >> 3 ] & bit_mask[h2 & 7]) == 0 )  {  return false;  } // was != bit_mask[h2 & 7]
         }
+
         return true;
     }
 
@@ -1036,6 +1054,23 @@ public:
 
     u_int64_t getHashpartHits() const {
         return _hashpartHits;
+    }
+
+    double getLifetimeAverage() const {
+        double score = 0;
+        double total = 0;
+
+        for (int i = 1; i < 32; ++i)
+        {
+            total += _hashpartLifetime[i];
+            score += i * _hashpartLifetime[i];
+        }
+
+        return score / total;
+    }
+
+    u_int64_t getNoPrecomputeCount() const {
+        return _noPrecomputeCount;
     }
 
     /*
@@ -1072,7 +1107,10 @@ private:
     size_t _hmerSize;
     size_t _hmerCount;
 
+    bool _precomputed;
+    Item _precomputedItem;
     Item _sharedpart;
+    u_int64_t _prefVal;
     u_int64_t _sprefVal;
     Item _hashpart;
     u_int64_t _hashpartHash;
@@ -1082,8 +1120,11 @@ private:
     Item _pattern;
     Item _hmerPatternMask;
 
+    u_int64_t _noPrecomputeCount;
     u_int64_t _computeCount;
     u_int64_t _hashpartHits;
+    u_int8_t _lifetime;
+    u_int64_t _hashpartLifetime[32];
 
     /*
     uint _i;
