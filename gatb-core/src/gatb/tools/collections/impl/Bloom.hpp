@@ -863,9 +863,11 @@ public:
         _hmerCount = (_kmerSize - 2) - _hmerSize + 1; // (_kmerSize - 2) <=> shared part size
 
         _sharedpart = _smerMask + un; // > max value
-        _hashpart = _hmerMask + un; // > max value
-        _position = -1;
-        _reverse = false;
+        _hashpartFwd = _hmerMask + un; // > max value
+        _hashpartRev = _hmerMask + un; // > max value
+        _positionFwd = -1;
+        _positionRev = _hmerCount;
+        //_reverse = false;
 
         _precomputed = false;
 
@@ -878,8 +880,10 @@ public:
     void begin()
     {
         _sharedpart = _smerMask + 1; // > max value
-        _position = -1;
-        _reverse = false;
+        _positionFwd = -1;
+        _positionRev = _hmerCount;
+        _hpartRevHashComputed = false;
+        //_reverse = false;
 
         _noPrecomputeCount = 0;
         _precomputed = false;
@@ -887,13 +891,13 @@ public:
         _computeCount = 0;
         _hashpartHits = 0;
 
-        for (int i = 0; i < 32; ++i) _hashpartLifetime[i] = 0;
+        for (int i = 0; i < 64; ++i) _hashpartLifetime[i] = 0;
         _lifetime = 0;
         //_i = 0;
     }
 
     /** \copydoc Bag::insert. */
-    void insert (const Item& item, bool verbose = false)
+    void insert (const Item& item)
     {
         u_int64_t h0, h1;
         u_int64_t racine;
@@ -909,31 +913,21 @@ public:
         Item rev =  revcomp(sharedpart, _smerSize);
         if(rev < sharedpart) sharedpart = rev; //transform to canonical
 
-        u_int64_t spref_val = (((sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (sharedpart & 3)).getVal();
+        //u_int64_t spref_val = (((sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (sharedpart & 3)).getVal();
 
         computeHashpart(sharedpart);
-        _hashpartHash = this->_hash (_hashpart, 0);
+        _hpart = _hashpartFwd;
+        _hpartHash = this->_hash (_hashpartFwd, 0);
         
-        racine = _hashpartHash % this->_reduced_tai;
-        h0 = racine;// + spref_val;
+        racine = _hpartHash % this->_reduced_tai;
+        h0 = racine + pref_val;
         __sync_fetch_and_or(this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
 
-        h1 = h0 + pref_val;
-        __sync_fetch_and_or(this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
 
-        for (size_t i=2; i<this->n_hash_func; i++)
+        for (size_t i=1; i<this->n_hash_func; i++)
         {
-            u_int64_t h2 = h1 + ((simplehash16( sharedpart, i)) & this->_mask_block);
-            __sync_fetch_and_or(this->blooma + (h2 >> 3), bit_mask[h2 & 7]);
-        }
-
-        if (verbose) {
-            std::cout << "insert " << item.getVal() << std::endl;
-            std::cout << "\tpref_val : " << pref_val << std::endl;
-            std::cout << "\tspref_val : " << spref_val << std::endl;
-            std::cout << "\tracine : " << racine << std::endl;
-            std::cout << "\th0 : " << h0 << std::endl;
-            std::cout << "\th1 : " << h1 << std::endl;
+            u_int64_t h1 = h0 + ((simplehash16( _hpart, i)) & this->_mask_block);
+            __sync_fetch_and_or(this->blooma + (h1 >> 3), bit_mask[h1 & 7]);
         }
     }
 
@@ -942,6 +936,14 @@ public:
 
     /** \copydoc IBloom::getBitSize*/
     u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
+
+    inline void prepareTabHashes(u_int64_t* tab, const Item& toHash)
+    {
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+            tab[i] = simplehash16(toHash, i) & this->_mask_block ;
+        }
+    }
 
     inline void precompute(const Item& item)
     {
@@ -962,14 +964,73 @@ public:
 
         if (_sharedpart != sharedpart)
         {
+            _positionFwd--;
+            _positionRev++;
+
+            /*
             if (_reverse != reverse) {
                 _position = -1;
             } else if (_reverse) {
                 _position++;
             } else {
                 _position--;
+            }*/
+
+            if (reverse)
+            {
+                if (_positionRev >= _hmerCount)
+                {
+                    computeHashpart(sharedpart, true);
+                    _hashpartRevHash = this->_hash(_hashpartRev, 0);
+                    prepareTabHashes(_tabHashesRev, _hashpartRev);
+                    _hpartRevHashComputed = true;
+                }
+                else
+                {
+                    Item hmer = (sharedpart >> (2*(_hmerCount - 1))) & _hmerMask;
+
+                    if ((hmer & _hmerPatternMask) == _pattern)
+                    {
+                        _hashpartRev = hmer;
+                        _hashpartRevHash = this->_hash(_hashpartRev, 0);
+                        prepareTabHashes(_tabHashesRev, _hashpartRev);
+                        _hpartRevHashComputed = true;
+                    }
+                    else if (!_hpartRevHashComputed)
+                    {
+                        _hashpartRevHash = this->_hash(_hashpartRev, 0);
+                        prepareTabHashes(_tabHashesRev, _hashpartRev);
+                        _hpartRevHashComputed = true;
+                    }
+                    else
+                    {
+                        _hashpartHits++;
+                    }
+                }
+            }
+            else
+            {
+                // We have to check new hpart in the reversed shared part
+                Item hmer = (rev >> (2*(_hmerCount - 1))) & _hmerMask;
+                if ((hmer & _hmerPatternMask) == _pattern)
+                {
+                    _hashpartRev = hmer;
+                    _hpartRevHashComputed = false;
+                }
+
+                if (_positionFwd < 0)
+                {
+                    computeHashpart(sharedpart, false);
+                    _hashpartFwdHash = this->_hash(_hashpartFwd, 0);
+                    prepareTabHashes(_tabHashesFwd, _hashpartFwd);
+                }
+                else
+                {
+                    _hashpartHits++;
+                }
             }
 
+            /*
             if (_position < 0 || _position >= _hmerCount)
             {
                 computeHashpart(sharedpart);
@@ -983,17 +1044,21 @@ public:
                 {
                     _hashpart = hmer;
                     _hashpartHash = this->_hash(_hashpart, 0);
-                    if (_lifetime >= 1) _hashpartLifetime[_lifetime-1]++;
+                    if (_lifetime >= 1 & _lifetime <= 64) _hashpartLifetime[_lifetime-1]++;
                     _lifetime = 0;
                 }
             } else {
                 _hashpartHits++;
             }
+            */
 
             _sharedpart = sharedpart;
-            _sprefVal = (((_sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (_sharedpart & 3)).getVal();
+            _hpart = reverse ? _hashpartRev : _hashpartFwd;
+            _hpartHash = reverse ? _hashpartRevHash : _hashpartFwdHash;
+            _tabHashes = reverse ? _tabHashesRev : _tabHashesFwd;
+            //_sprefVal = (((_sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (_sharedpart & 3)).getVal();
         }
-        _reverse = reverse;
+        //_reverse = reverse;
 
         /*
         _lstSP[_i % 10] = _sharedpart;
@@ -1003,7 +1068,7 @@ public:
         _i++;
         //*/
 
-        _lifetime++;
+        //_lifetime++;
         _precomputed = true;
         _precomputedItem = item;
     }
@@ -1021,28 +1086,28 @@ public:
         
         u_int64_t racine, h0, h1;
 
-        racine = _hashpartHash % this->_reduced_tai;
-        h0 = racine;// + _sprefVal;
-        h1 = h0 + _prefVal;
+        racine = _hpartHash % this->_reduced_tai;
+        h0 = racine + _prefVal;
 
         __builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); // preparing for read
+        // todo : test with multiple prefetch
 
         // compute all hashes during prefetch
         u_int64_t tab_keys [20];
-        for (size_t i=2; i<this->n_hash_func; i++)
+        for (size_t i=1; i<this->n_hash_func; i++)
         {
-            tab_keys[i] =  h1 + ((simplehash16(_sharedpart, i)) & this->_mask_block); // with simplest hash
+            tab_keys[i] =  h0 + _tabHashes[i]; // with simplest hash
         }
 
+        _precomputed = false;
         if (next != 0) precompute(next);
 
         if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  } // was != bit_mask[h0 & 7]
-        if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } // was != bit_mask[h1 & 7]
 
-        for (size_t i=2; i<this->n_hash_func; i++)
+        for (size_t i=1; i<this->n_hash_func; i++)
         {
-            u_int64_t h2 = tab_keys[i];
-            if ((this->blooma[h2 >> 3 ] & bit_mask[h2 & 7]) == 0 )  {  return false;  } // was != bit_mask[h2 & 7]
+            u_int64_t h1 = tab_keys[i];
+            if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } // was != bit_mask[h1 & 7]
         }
 
         return true;
@@ -1060,7 +1125,7 @@ public:
         double score = 0;
         double total = 0;
 
-        for (int i = 1; i < 32; ++i)
+        for (int i = 1; i < 64; ++i)
         {
             total += _hashpartLifetime[i];
             score += i * _hashpartLifetime[i];
@@ -1111,11 +1176,25 @@ private:
     Item _precomputedItem;
     Item _sharedpart;
     u_int64_t _prefVal;
+
     u_int64_t _sprefVal;
-    Item _hashpart;
-    u_int64_t _hashpartHash;
-    int16_t _position;
-    bool _reverse;
+
+    Item _hpart;
+    u_int64_t _hpartHash;
+    u_int64_t* _tabHashes;
+
+    Item _hashpartFwd;
+    u_int64_t _hashpartFwdHash;
+    int16_t _positionFwd;
+    u_int64_t _tabHashesFwd[20];
+
+    Item _hashpartRev;
+    u_int64_t _hashpartRevHash;
+    bool _hpartRevHashComputed;
+    int16_t _positionRev;
+    u_int64_t _tabHashesRev[20];
+
+    //bool _reverse;
 
     Item _pattern;
     Item _hmerPatternMask;
@@ -1124,7 +1203,7 @@ private:
     u_int64_t _computeCount;
     u_int64_t _hashpartHits;
     u_int8_t _lifetime;
-    u_int64_t _hashpartLifetime[32];
+    u_int64_t _hashpartLifetime[64];
 
     /*
     uint _i;
@@ -1135,28 +1214,41 @@ private:
     //*/
 
     /** Full hashpart computing
-    * The hashpart is the first hmer beginning with AC
+    * The hashpart is the first hmer beginning with the a specific pattern 
     * \param[in] item : item for which we want the hashpart (size = kmersize - 2)
     * \return the hashpart for the item
     */
     //*
-    void computeHashpart(const Item& item)
+    void computeHashpart(const Item& item, bool reverse = false)
     {
         _computeCount++;
+        Item hpart;
+        int16_t pos;
+        bool hpartFound = false;
 
-        for (size_t i = 0; i < _hmerCount; i++)
+        for (size_t i = 0; i < _hmerCount & !hpartFound; i++)
         {
             Item cur = (item >> (2*(_hmerCount - 1 - i))) & _hmerMask;
             if ((cur & _hmerPatternMask) == _pattern) {
-                _hashpart = cur;
-                _position = i;
-                return;
+                hpart = cur;
+                pos = i;
+                hpartFound = true;
             }
         }
 
         // If no valid hmer found
-        _hashpart = (item >> (2*(_hmerCount - 1))) & _hmerMask;
-        _position = -2;
+        if (!hpartFound) {
+            hpart = (item >> (2*(_hmerCount - 1))) & _hmerMask;
+            pos = (reverse ? _hmerCount : -1);
+        }
+
+        if (reverse) {
+            _hashpartRev = hpart;
+            _positionRev = pos;
+        } else {
+            _hashpartFwd = hpart;
+            _positionFwd = pos;
+        }
     }
     //*/
 
