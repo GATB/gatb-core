@@ -84,6 +84,9 @@ struct Sequence
     /** \return description of the sequence */
     virtual const std::string& getComment ()  const  { return _comment; }
 
+    /** \return description of the sequence until first space */
+    virtual const std::string getCommentShort ()  const  { return _comment.substr(0, _comment.find(' ')); }
+
     /** \return quality of the sequence (set if the underlying bank is a fastq file). */
     virtual const std::string& getQuality ()  const  { return _quality; }
     
