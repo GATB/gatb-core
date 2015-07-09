@@ -869,8 +869,6 @@ public:
         _positionRev = _hmerCount;
         //_reverse = false;
 
-        _precomputed = false;
-
         _pattern = pattern << (2*(_hmerSize - patternSize));
         _hmerPatternMask = ((un << (patternSize*2)) - un) << (2*(_hmerSize - patternSize));
 
@@ -884,9 +882,6 @@ public:
         _positionRev = _hmerCount;
         _hpartRevHashComputed = false;
         //_reverse = false;
-
-        _noPrecomputeCount = 0;
-        _precomputed = false;
 
         _computeCount = 0;
         _hashpartHits = 0;
@@ -945,14 +940,15 @@ public:
         }
     }
 
-    inline void precompute(const Item& item)
+    /** \copydoc Container::contains. */
+    bool contains (const Item& item, const Item& next = 0)
     {
         Item suffix = item & 3 ;
         Item prefix = (item & _kmerPrefMask)  >> ((_kmerSize-2)*2);
         prefix += suffix;
         prefix = prefix & 15 ;
 
-        _prefVal = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
 
         bool reverse = false;
         Item sharedpart = (item >> 2) & _smerMask ;  // delete 1 nt at each side
@@ -966,15 +962,6 @@ public:
         {
             _positionFwd--;
             _positionRev++;
-
-            /*
-            if (_reverse != reverse) {
-                _position = -1;
-            } else if (_reverse) {
-                _position++;
-            } else {
-                _position--;
-            }*/
 
             if (reverse)
             {
@@ -1030,64 +1017,16 @@ public:
                 }
             }
 
-            /*
-            if (_position < 0 || _position >= _hmerCount)
-            {
-                computeHashpart(sharedpart);
-                _hashpartHash = this->_hash(_hashpart, 0);
-                if (_lifetime >= 1) _hashpartLifetime[_lifetime-1]++;
-                _lifetime = 0;
-            } else if (_reverse) {
-                Item hmer = (sharedpart >> (2*(_hmerCount - 1))) & _hmerMask;
-
-                if ((hmer & _hmerPatternMask) == _pattern)
-                {
-                    _hashpart = hmer;
-                    _hashpartHash = this->_hash(_hashpart, 0);
-                    if (_lifetime >= 1 & _lifetime <= 64) _hashpartLifetime[_lifetime-1]++;
-                    _lifetime = 0;
-                }
-            } else {
-                _hashpartHits++;
-            }
-            */
-
             _sharedpart = sharedpart;
             _hpart = reverse ? _hashpartRev : _hashpartFwd;
             _hpartHash = reverse ? _hashpartRevHash : _hashpartFwdHash;
             _tabHashes = reverse ? _tabHashesRev : _tabHashesFwd;
-            //_sprefVal = (((_sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (_sharedpart & 3)).getVal();
         }
-        //_reverse = reverse;
-
-        /*
-        _lstSP[_i % 10] = _sharedpart;
-        _lstHP[_i % 10] = _hashpart;
-        _lstPos[_i % 10] = (_position >= 0) ? _position : 0;
-        _lstRev[_i % 10] = _reverse;
-        _i++;
-        //*/
-
-        //_lifetime++;
-        _precomputed = true;
-        _precomputedItem = item;
-    }
-
-    /** \copydoc Container::contains. */
-    bool contains (const Item& item, const Item& next = 0)
-    {
-        //*
-        if (!_precomputed || _precomputedItem != item) {
-            precompute(item);
-            _noPrecomputeCount++;
-        }
-        //*/
-        //precompute(item);
         
         u_int64_t racine, h0, h1;
 
         racine = _hpartHash % this->_reduced_tai;
-        h0 = racine + _prefVal;
+        h0 = racine + pref_val;
 
         __builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); // preparing for read
         // todo : test with multiple prefetch
@@ -1099,9 +1038,6 @@ public:
             tab_keys[i] =  h0 + _tabHashes[i]; // with simplest hash
         }
 
-        _precomputed = false;
-        if (next != 0) precompute(next);
-
         if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  } // was != bit_mask[h0 & 7]
 
         for (size_t i=1; i<this->n_hash_func; i++)
@@ -1111,6 +1047,178 @@ public:
         }
 
         return true;
+    }
+
+    /** \copydoc IBloom::contains4*/
+    std::bitset<4> contains4 (const Item& item, bool right)
+    {
+        //ask for all 4 neighbors of item in one call
+        // give it CAAA
+        // if right == true  it wil test the 4 neighbors AAAA, AAAC, AAAT, AAAG
+        // if right == false : left extension   ACAA, CCAA , TCAA  , GCAA
+
+        u_int64_t h0, i0, j0, k0;
+        Item elem,sharedpart,rev ;
+        Item un = 1;
+        Item deux = 2;
+        Item trois = 3;
+        bool reverse = false;
+
+        size_t shifts = (_kmerSize -1)*2;
+
+        if (right)  {  elem = (item << 2) & _kmerMask ;  }
+        else        {  elem = (item >> 2) ;              }
+
+        //get the canonical of middle part
+        sharedpart = ( elem >> 2 ) & _smerMask ;
+        rev =  revcomp(sharedpart,_smerSize);
+        if(rev<sharedpart) {
+            sharedpart = rev;
+            reverse = true;
+        }
+
+
+            _positionFwd--;
+            _positionRev++;
+
+            if (reverse)
+            {
+                if (_positionRev >= _hmerCount)
+                {
+                    computeHashpart(sharedpart, true);
+                    _hashpartRevHash = this->_hash(_hashpartRev, 0);
+                    prepareTabHashes(_tabHashesRev, _hashpartRev);
+                    _hpartRevHashComputed = true;
+                }
+                else
+                {
+                    Item hmer = (sharedpart >> (2*(_hmerCount - 1))) & _hmerMask;
+
+                    if ((hmer & _hmerPatternMask) == _pattern)
+                    {
+                        _hashpartRev = hmer;
+                        _hashpartRevHash = this->_hash(_hashpartRev, 0);
+                        prepareTabHashes(_tabHashesRev, _hashpartRev);
+                        _hpartRevHashComputed = true;
+                    }
+                    else if (!_hpartRevHashComputed)
+                    {
+                        _hashpartRevHash = this->_hash(_hashpartRev, 0);
+                        prepareTabHashes(_tabHashesRev, _hashpartRev);
+                        _hpartRevHashComputed = true;
+                    }
+                    else
+                    {
+                        _hashpartHits++;
+                    }
+                }
+            }
+            else
+            {
+                // We have to check new hpart in the reversed shared part
+                Item hmer = (rev >> (2*(_hmerCount - 1))) & _hmerMask;
+                if ((hmer & _hmerPatternMask) == _pattern)
+                {
+                    _hashpartRev = hmer;
+                    _hpartRevHashComputed = false;
+                }
+
+                if (_positionFwd < 0)
+                {
+                    computeHashpart(sharedpart, false);
+                    _hashpartFwdHash = this->_hash(_hashpartFwd, 0);
+                    prepareTabHashes(_tabHashesFwd, _hashpartFwd);
+                }
+                else
+                {
+                    _hashpartHits++;
+                }
+            }
+
+            _sharedpart = sharedpart;
+            _hpart = reverse ? _hashpartRev : _hashpartFwd;
+            _hpartHash = reverse ? _hashpartRevHash : _hashpartFwdHash;
+            _tabHashes = reverse ? _tabHashesRev : _tabHashesFwd;
+
+
+        u_int64_t racine = _hpartHash % this->_reduced_tai;
+
+        __builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); //preparing for read
+
+        Item tmp,suffix,prefix;
+        u_int64_t pref_val;
+
+        //with val of prefix+suffix  for neighbor shift
+
+        tmp = elem;
+        suffix = tmp & 3 ;
+        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
+        prefix += suffix;
+        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        h0 = racine + pref_val;
+
+        if(right) tmp = elem+un;
+        else tmp = elem + (un<<shifts) ;
+        suffix = tmp & 3 ;
+        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
+        prefix += suffix;
+        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        i0 = racine + pref_val;
+
+        if(right) tmp = elem+deux;
+        else tmp = elem + (deux<<shifts) ;
+        suffix = tmp & 3 ;
+        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
+        prefix += suffix;
+        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        j0 = racine + pref_val;
+
+        if(right) tmp = elem+trois;
+        else tmp = elem + (trois<<shifts) ;
+        suffix = tmp & 3 ;
+        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
+        prefix += suffix;
+        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+
+        k0 = racine + pref_val;
+
+
+        std::bitset<4> resu;
+        resu.set (0, true);
+        resu.set (1, true);
+        resu.set (2, true);
+        resu.set (3, true);
+
+        if ((this->blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0)  {  resu.set (0, false);  }
+        if ((this->blooma[i0 >> 3 ] & bit_mask[i0 & 7]) == 0)  {  resu.set (1, false);  }
+        if ((this->blooma[j0 >> 3 ] & bit_mask[j0 & 7]) == 0)  {  resu.set (2, false);  }
+        if ((this->blooma[k0 >> 3 ] & bit_mask[k0 & 7]) == 0)  {  resu.set (3, false);  }
+
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+            u_int64_t h1 =  h0 +  _tabHashes[i]   ;
+            if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (0, false); break; }
+        }
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+            u_int64_t h1 =  i0 +  _tabHashes[i]   ;
+            if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (1, false); break; }
+        }
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+            u_int64_t h1 =  j0 +  _tabHashes[i]   ;
+            if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (2, false); break; }
+        }
+        for (size_t i=1; i<this->n_hash_func; i++)
+        {
+            u_int64_t h1 =  k0 +  _tabHashes[i]   ;
+            if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (3, false); break; }
+        }
+
+        return resu;
     }
 
     u_int64_t getComputeCount() const {
@@ -1132,10 +1240,6 @@ public:
         }
 
         return score / total;
-    }
-
-    u_int64_t getNoPrecomputeCount() const {
-        return _noPrecomputeCount;
     }
 
     /*
@@ -1172,12 +1276,7 @@ private:
     size_t _hmerSize;
     size_t _hmerCount;
 
-    bool _precomputed;
-    Item _precomputedItem;
     Item _sharedpart;
-    u_int64_t _prefVal;
-
-    u_int64_t _sprefVal;
 
     Item _hpart;
     u_int64_t _hpartHash;
@@ -1194,12 +1293,9 @@ private:
     int16_t _positionRev;
     u_int64_t _tabHashesRev[20];
 
-    //bool _reverse;
-
     Item _pattern;
     Item _hmerPatternMask;
 
-    u_int64_t _noPrecomputeCount;
     u_int64_t _computeCount;
     u_int64_t _hashpartHits;
     u_int8_t _lifetime;
