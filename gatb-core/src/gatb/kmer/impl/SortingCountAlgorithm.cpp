@@ -215,6 +215,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",                    false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                                    false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                               false, "."));
+    parser->push_back (new OptionOneParam (STR_URI_OUTPUT_TMP,    "output directory for temporary files",           false, "."));
     parser->push_back (new OptionOneParam (STR_MINIMIZER_TYPE,    "minimizer type (0=lexi, 1=freq)",                false, "0"));
     parser->push_back (new OptionOneParam (STR_MINIMIZER_SIZE,    "size of a minimizer",                            false, "8"));
     parser->push_back (new OptionOneParam (STR_REPARTITION_TYPE,  "minimizer repartition (0=unordered, 1=ordered)", false, "0"));
@@ -710,7 +711,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     if (_tmpPartitionsStorage)  { _tmpPartitionsStorage->remove (); }
 
     /** We build the temporary storage name from the output storage name. */
-    string tmpStorageName = System::file().getTemporaryFilename("dsk_partitions");
+    string tmpStorageName = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("dsk_partitions");
 
     /** We create the partition files for the current pass. */
     setPartitionsStorage (StorageFactory(STORAGE_TYPE).create (tmpStorageName, true, false));
