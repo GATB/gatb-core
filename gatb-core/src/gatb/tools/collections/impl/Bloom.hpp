@@ -857,7 +857,7 @@ public:
         _hmerMask = (un << (_hmerSize*2))   - un;
 
         Item trois = 3;
-        _kmerPrefMask = trois << ((_kmerSize-1)*2);
+        _kmerPrefMask = ((Item)0x3f) << ((_kmerSize-3)*2);
         _smerPrefMask = trois << ((_smerSize-1)*2);
 
         _hmerCount = (_kmerSize - 2) - _hmerSize + 1; // (_kmerSize - 2) <=> shared part size
@@ -897,16 +897,27 @@ public:
         u_int64_t h0, h1;
         u_int64_t racine;
 
-        Item suffix = item & 3 ;
-        Item prefix = (item & _kmerPrefMask)  >> ((_kmerSize-2)*2);
-        prefix += suffix;
-        prefix = prefix & 15 ;
+        Item suffix = item & 0x3f;
+        Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+        limits += suffix;
+        //u_int64_t delta1 = cano2[limits.getVal()];
 
-        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        //u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        //*
+        Item delta = revcomp(limits, 6);
+        if (limits < delta) delta = limits;
+        //*/
 
         Item sharedpart = (item >> 2) & _smerMask;  // delete 1 nt at each side
         Item rev =  revcomp(sharedpart, _smerSize);
         if(rev < sharedpart) sharedpart = rev; //transform to canonical
+
+        /*
+        suffix = sharedpart & 0x03;
+        limits = (sharedpart & _smerPrefMask)  >> ((_smerSize-2)*2);
+        limits += suffix;
+        u_int64_t delta2 = limits.getVal();
+        */
 
         //u_int64_t spref_val = (((sharedpart & _smerPrefMask) >> ((_smerSize-2)*2)) + (sharedpart & 3)).getVal();
 
@@ -915,7 +926,7 @@ public:
         _hpartHash = this->_hash (_hashpartFwd, 0);
         
         racine = _hpartHash % this->_reduced_tai;
-        h0 = racine + pref_val;
+        h0 = racine + delta.getVal();
         __sync_fetch_and_or(this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
 
 
@@ -943,12 +954,15 @@ public:
     /** \copydoc Container::contains. */
     bool contains (const Item& item, const Item& next = 0)
     {
-        Item suffix = item & 3 ;
-        Item prefix = (item & _kmerPrefMask)  >> ((_kmerSize-2)*2);
-        prefix += suffix;
-        prefix = prefix & 15 ;
+        Item suffix = item & 0x3f;
+        Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+        limits += suffix;
+        //u_int64_t delta1 = cano2[limits.getVal()];
 
-        u_int64_t pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        //*
+        Item delta = revcomp(limits, 6);
+        if (limits < delta) delta = limits;
+        //*/
 
         bool reverse = false;
         Item sharedpart = (item >> 2) & _smerMask ;  // delete 1 nt at each side
@@ -957,6 +971,13 @@ public:
             sharedpart = rev; //transform to canonical
             reverse = true;
         }
+
+        /*
+        suffix = sharedpart & 0x03;
+        limits = (sharedpart & _smerPrefMask)  >> ((_smerSize-2)*2);
+        limits += suffix;
+        u_int64_t delta2 = cano2[limits.getVal()];
+        */
 
         if (_sharedpart != sharedpart)
         {
@@ -978,6 +999,7 @@ public:
 
                     if ((hmer & _hmerPatternMask) == _pattern)
                     {
+                        _positionRev = 0;
                         _hashpartRev = hmer;
                         _hashpartRevHash = this->_hash(_hashpartRev, 0);
                         prepareTabHashes(_tabHashesRev, _hashpartRev);
@@ -1001,6 +1023,7 @@ public:
                 Item hmer = (rev >> (2*(_hmerCount - 1))) & _hmerMask;
                 if ((hmer & _hmerPatternMask) == _pattern)
                 {
+                    _positionRev = 0;
                     _hashpartRev = hmer;
                     _hpartRevHashComputed = false;
                 }
@@ -1026,7 +1049,7 @@ public:
         u_int64_t racine, h0, h1;
 
         racine = _hpartHash % this->_reduced_tai;
-        h0 = racine + pref_val;
+        h0 = racine + delta.getVal();
 
         __builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); // preparing for read
         // todo : test with multiple prefetch
@@ -1096,6 +1119,7 @@ public:
 
                     if ((hmer & _hmerPatternMask) == _pattern)
                     {
+                        _positionRev = 0;
                         _hashpartRev = hmer;
                         _hashpartRevHash = this->_hash(_hashpartRev, 0);
                         prepareTabHashes(_tabHashesRev, _hashpartRev);
@@ -1119,6 +1143,7 @@ public:
                 Item hmer = (rev >> (2*(_hmerCount - 1))) & _hmerMask;
                 if ((hmer & _hmerPatternMask) == _pattern)
                 {
+                    _positionRev = 0;
                     _hashpartRev = hmer;
                     _hpartRevHashComputed = false;
                 }
@@ -1330,6 +1355,49 @@ private:
                 pos = i;
                 hpartFound = true;
             }
+        }
+
+        // If no valid hmer found
+        if (!hpartFound) {
+            hpart = (item >> (2*(_hmerCount - 1))) & _hmerMask;
+            pos = (reverse ? _hmerCount : -1);
+        }
+
+        if (reverse) {
+            _hashpartRev = hpart;
+            _positionRev = pos;
+        } else {
+            _hashpartFwd = hpart;
+            _positionFwd = pos;
+        }
+    }
+    //*/
+
+    // Error if smersize > 31
+    /*
+    void computeHashpart(const Item& item, bool reverse = false)
+    {
+        static const u_int64_t mask = (_smerMask & (_smerMask << ((_hmerSize-1)*2))).getVal();
+        static const u_int64_t m01 = 0x5555555555555555;
+        static const u_int64_t m10 = 0xaaaaaaaaaaaaaaaa;
+        static const double LN2_INVERT = 1.442695040888964;
+
+
+        _computeCount++;
+        Item hpart;
+        int16_t pos;
+        bool hpartFound = false;
+
+        u_int64_t inv = ~(item.getVal());
+        u_int64_t r1 = inv & m01;
+        u_int64_t r2 = (inv & m10) >> 1;
+        u_int64_t res = r1 & r2 & mask;
+
+        if (res) {
+            hpartFound = true;
+            uint right_pos = log(res) * LN2_INVERT;
+            pos = _smerSize - 1 - (right_pos >> 1);
+            hpart = (item >> (2*(_hmerCount - 1 - pos))) & _hmerMask;
         }
 
         // If no valid hmer found
