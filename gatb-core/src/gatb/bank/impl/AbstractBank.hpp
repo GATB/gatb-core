@@ -52,6 +52,10 @@ public:
     /** Constructor. */
     AbstractBank () : _estimateThreshold(5000) {}
 
+	
+	std::string getIdNb (int i)  { return std::string("not_a_compo_bank"); }
+
+	
     /** \copydoc IBank::estimateNbItems */
     int64_t estimateNbItems ()
     {

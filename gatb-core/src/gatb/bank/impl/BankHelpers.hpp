@@ -83,6 +83,8 @@ public:
     /** \copydoc AbstractBank::getId */
     std::string getId ()  { return _ref->getId(); }
 
+	std::string getIdNb (int i)  { return _ref->getIdNb(i); }
+
     /** \copydoc AbstractBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return _ref->iterator(); }
 

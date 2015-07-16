@@ -83,6 +83,10 @@ public:
      * \return the identifier */
     virtual std::string getId () = 0;
 
+	/** In case of a composite bank, return the id of bank i
+	 * \return id of sub bank i */
+	virtual std::string getIdNb (int i) = 0;
+
     /** \copydoc tools::collections::Iterable::iterator */
     virtual tools::dp::Iterator<Sequence>* iterator () = 0;
 

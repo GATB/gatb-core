@@ -416,6 +416,11 @@ public:
 
     /* */
     void reset ()  { _ref->reset(); }
+	
+	/* GR : this func was missing, previously caused subject iterator to return false composition*/
+	std::vector<Iterator<Item>*> getComposition()  { return _ref->getComposition(); }
+	
+
 
 private:
 
