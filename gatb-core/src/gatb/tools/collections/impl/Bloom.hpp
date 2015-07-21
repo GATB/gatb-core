@@ -875,9 +875,6 @@ public:
         _sharedpart = _smerMask + un; // > max value
         _hashpartFwd = _hmerMask + un; // > max value
         _hashpartRev = _hmerMask + un; // > max value
-        //_reverse = false;
-
-        //_i = 0;
     }
 
     ~BloomExtendedNeighborCoherent() {
@@ -888,11 +885,8 @@ public:
     void begin()
     {
         _sharedpart = _smerMask + 1; // > max value
-        //_reverse = false;
 
         _hashpartHits = 0;
-
-        //_i = 0;
     }
 
     /** \copydoc Bag::insert. */
@@ -904,12 +898,7 @@ public:
         Item suffix = item & 0x3f;
         Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
-        Item delta = (Item)cano6[limits.getVal()];
-
-        /*
-        Item delta = revcomp(limits, 6);
-        if (limits < delta) delta = limits;
-        //*/
+        u_int64_t delta = cano6[limits.getVal()];
 
         Item sharedpart = (item >> 2) & _smerMask;  // delete 1 nt at each side
         Item rev =  revcomp(sharedpart, _smerSize);
@@ -919,7 +908,7 @@ public:
         _hpartHash = this->_hash (_hpart, 0);
         
         racine = _hpartHash % this->_reduced_tai;
-        h0 = racine + delta.getVal();
+        h0 = racine + delta;
         __sync_fetch_and_or(this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
 
 
@@ -942,12 +931,7 @@ public:
         Item suffix = item & 0x3f;
         Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
-        //Item delta = (Item)cano6[limits.getVal()];
-
-        //*
-        Item delta = revcomp(limits, 6);
-        if (limits < delta) delta = limits;
-        //*/
+        u_int64_t delta = cano6[limits.getVal()];
 
         bool reverse = false;
         Item sharedpart = (item >> 2) & _smerMask ;  // delete 1 nt at each side
@@ -1000,10 +984,9 @@ public:
         u_int64_t racine, h0, h1;
 
         racine = _hpartHash % this->_reduced_tai;
-        h0 = racine + delta.getVal();
+        h0 = racine + delta;
 
-        __builtin_prefetch(&(this->blooma [h0 >> 3] ), 0, 3); // preparing for read
-        // todo : test with multiple prefetch
+        __builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); // preparing for read
 
         // compute all hashes during prefetch
         u_int64_t tab_keys [20];
@@ -1036,6 +1019,7 @@ public:
         Item un = 1;
         Item deux = 2;
         Item trois = 3;
+        // soleil !
         bool reverse = false;
 
         size_t shifts = (_kmerSize -1)*2;
@@ -1050,116 +1034,89 @@ public:
             sharedpart = rev;
             reverse = true;
         }
-//
-//
-//            _positionFwd--;
-//            _positionRev++;
-//
-//            if (reverse)
-//            {
-//                if (_positionRev >= _hmerCount)
-//                {
-//                    computeHashpart(sharedpart, true);
-//                    _hashpartRevHash = this->_hash(_hashpartRev, 0);
-//                    prepareTabHashes(_tabHashesRev, _hashpartRev);
-//                    _hpartRevHashComputed = true;
-//                }
-//                else
-//                {
-//                    Item hmer = (sharedpart >> (2*(_hmerCount - 1))) & _hmerMask;
-//
-//                    if ((hmer & _hmerPatternMask) == _pattern)
-//                    {
-//                        _positionRev = 0;
-//                        _hashpartRev = hmer;
-//                        _hashpartRevHash = this->_hash(_hashpartRev, 0);
-//                        prepareTabHashes(_tabHashesRev, _hashpartRev);
-//                        _hpartRevHashComputed = true;
-//                    }
-//                    else if (!_hpartRevHashComputed)
-//                    {
-//                        _hashpartRevHash = this->_hash(_hashpartRev, 0);
-//                        prepareTabHashes(_tabHashesRev, _hashpartRev);
-//                        _hpartRevHashComputed = true;
-//                    }
-//                    else
-//                    {
-//                        _hashpartHits++;
-//                    }
-//                }
-//            }
-//            else
-//            {
-//                // We have to check new hpart in the reversed shared part
-//                Item hmer = (rev >> (2*(_hmerCount - 1))) & _hmerMask;
-//                if ((hmer & _hmerPatternMask) == _pattern)
-//                {
-//                    _positionRev = 0;
-//                    _hashpartRev = hmer;
-//                    _hpartRevHashComputed = false;
-//                }
-//
-//                if (_positionFwd < 0)
-//                {
-//                    computeHashpart(sharedpart, false);
-//                    _hashpartFwdHash = this->_hash(_hashpartFwd, 0);
-//                    prepareTabHashes(_tabHashesFwd, _hashpartFwd);
-//                }
-//                else
-//                {
-//                    _hashpartHits++;
-//                }
-//            }
-//
-//            _sharedpart = sharedpart;
-//            _hpart = reverse ? _hashpartRev : _hashpartFwd;
-//            _hpartHash = reverse ? _hashpartRevHash : _hashpartFwdHash;
-//            _tabHashes = reverse ? _tabHashesRev : _tabHashesFwd;
+
+
+            Item hpart = extractHashpart(sharedpart);
+
+            if (reverse)
+            {
+                if (hpart != _hashpartRev) {
+                    _hashpartRev = hpart;
+                    _hashpartRevHash = this->_hash(_hashpartRev, 0);
+                    prepareTabHashes(_tabHashesRev, _hashpartRev);
+                }
+                else
+                {
+                    _hashpartHits++;
+                }
+
+                _hpart = reverse ? _hashpartRev : _hashpartFwd;
+                _hpartHash = _hashpartRevHash;
+                _tabHashes = _tabHashesRev;
+            }
+            else
+            {
+                 if (hpart != _hashpartFwd) {
+                    _hashpartFwd = hpart;
+                    _hashpartFwdHash = this->_hash(_hashpartFwd, 0);
+                    prepareTabHashes(_tabHashesFwd, _hashpartFwd);
+                }
+                else
+                {
+                    _hashpartHits++;
+                }
+
+                _hpart = _hashpartFwd;
+                _hpartHash = _hashpartFwdHash;
+                _tabHashes = _tabHashesFwd;
+            }
+
+            _sharedpart = sharedpart;
 
 
         u_int64_t racine = _hpartHash % this->_reduced_tai;
 
         __builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); //preparing for read
 
-        Item tmp,suffix,prefix;
-        u_int64_t pref_val;
+        Item tmp,suffix,limits;
+        u_int64_t delta;
 
         //with val of prefix+suffix  for neighbor shift
 
         tmp = elem;
-        suffix = tmp & 3 ;
-        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
-        prefix += suffix;
-        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        suffix = tmp & 0x3f ;
+        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+        limits += suffix;
+        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
 
-        h0 = racine + pref_val;
+        h0 = racine + delta;
 
         if(right) tmp = elem+un;
         else tmp = elem + (un<<shifts) ;
-        suffix = tmp & 3 ;
-        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
-        prefix += suffix;
-        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        suffix = tmp & 0x3f ;
+        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+        limits += suffix;
+        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
 
-        i0 = racine + pref_val;
+        i0 = racine + delta;
 
         if(right) tmp = elem+deux;
         else tmp = elem + (deux<<shifts) ;
-        suffix = tmp & 3 ;
-        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
-        prefix += suffix;
-        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        suffix = tmp & 0x3f ;
+        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+        limits += suffix;
+        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
 
-        j0 = racine + pref_val;
+        j0 = racine + delta;
 
         if(right) tmp = elem+trois;
         else tmp = elem + (trois<<shifts) ;
-        suffix = tmp & 3 ;
-        prefix = (tmp & _kmerPrefMask)  >> (_smerSize*2);
-        prefix += suffix;
-        pref_val = cano2[prefix.getVal()]; //get canonical of pref+suffix
+        suffix = tmp & 0x3f ;
+        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+        limits += suffix;
+        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
 
-        k0 = racine + pref_val;
+        k0 = racine + delta;
 
 
         std::bitset<4> resu;
@@ -1180,18 +1137,18 @@ public:
         }
         for (size_t i=1; i<this->n_hash_func; i++)
         {
-            u_int64_t h1 =  i0 +  _tabHashes[i]   ;
-            if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (1, false); break; }
+            u_int64_t i1 =  i0 +  _tabHashes[i]   ;
+            if ( (this->blooma[i1 >> 3 ] & bit_mask[i1 & 7]) == 0  )  {  resu.set (1, false); break; }
         }
         for (size_t i=1; i<this->n_hash_func; i++)
         {
-            u_int64_t h1 =  j0 +  _tabHashes[i]   ;
-            if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (2, false); break; }
+            u_int64_t j1 =  j0 +  _tabHashes[i]   ;
+            if ( (this->blooma[j1 >> 3 ] & bit_mask[j1 & 7]) == 0  )  {  resu.set (2, false); break; }
         }
         for (size_t i=1; i<this->n_hash_func; i++)
         {
-            u_int64_t h1 =  k0 +  _tabHashes[i]   ;
-            if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (3, false); break; }
+            u_int64_t k1 =  k0 +  _tabHashes[i]   ;
+            if ( (this->blooma[k1 >> 3 ] & bit_mask[k1 & 7]) == 0  )  {  resu.set (3, false); break; }
         }
 
         return resu;
@@ -1201,27 +1158,6 @@ public:
         return _hashpartHits;
     }
 
-    /*
-    Item getSP(uint i) const
-    {
-        return _lstSP[(_i + i) % 10];
-    }
-
-    Item getHP(uint i) const
-    {
-        return _lstHP[(_i + i) % 10];
-    }
-
-    int16_t getPos(uint i) const
-    {
-        return _lstPos[(_i + i) % 10];
-    }
-
-    bool getRev(uint i) const
-    {
-        return _lstRev[(_i + i) % 10];
-    }
-    //*/
 
 private:
     unsigned int cano2[16];
@@ -1255,13 +1191,6 @@ private:
 
     u_int64_t _hashpartHits;
 
-    /*
-    uint _i;
-    Item _lstSP[10];
-    Item _lstHP[10];
-    int16_t _lstPos[10];
-    bool _lstRev[10];
-    //*/
 
     inline void prepareTabHashes(u_int64_t* tab, const Item& toHash)
     {
@@ -1292,7 +1221,7 @@ private:
 
     unsigned char minpos(const u_int64_t& nmer, size_t n)
     {
-        static const size_t MINIMIZER_SIZE = 3;
+        static const size_t MINIMIZER_SIZE = 1;
         static const uint64_t minMask = (1 << (MINIMIZER_SIZE*2)) - 1;
 
         uint64_t min = nmer & minMask;
