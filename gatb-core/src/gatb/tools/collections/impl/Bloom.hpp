@@ -830,33 +830,16 @@ public:
      * \param[in] nbHash : number of hash functions to use
      * \param[in] block_nbits : size of the block (actual 2^nbits) */
     BloomExtendedNeighborCoherent (u_int64_t tai_bloom, size_t kmersize, size_t nbHash = 7, size_t block_nbits = 12)
-        : BloomCacheCoherent<Item> (tai_bloom , nbHash,block_nbits), _kmerSize(kmersize)
+        : BloomCacheCoherent<Item> (tai_bloom, nbHash,block_nbits), _kmerSize(kmersize)
     {
         _smerSize = _kmerSize - 2;
         _hmerSize = _smerSize - 8;
 
-        cano2[ 0] = 0;
-        cano2[ 1] = 1;
-        cano2[ 2] = 2;
-        cano2[ 3] = 3;
-        cano2[ 4] = 4;
-        cano2[ 5] = 5;
-        cano2[ 6] = 3;
-        cano2[ 7] = 7;
-        cano2[ 8] = 8;
-        cano2[ 9] = 9;
-        cano2[10] = 0;
-        cano2[11] = 4;
-        cano2[12] = 9;
-        cano2[13] = 13;
-        cano2[14] = 1;
-        cano2[15] = 5;
-
         cano6 = (unsigned short int *) MALLOC (0x1000 * sizeof(unsigned short int));
         system::impl::System::memory().memset (cano6, 0, 0x1000 * sizeof(unsigned short int));
 
-        hpos = (unsigned char *) MALLOC (0x10000 * sizeof(unsigned char));
-        system::impl::System::memory().memset (hpos, 0, 0x10000 * sizeof(unsigned char));
+        hpos = (unsigned char *) MALLOC (0x40000 * sizeof(unsigned char));
+        system::impl::System::memory().memset (hpos, 0, 0x40000 * sizeof(unsigned char));
 
         precomputeCano6();
         precomputeHpos();
@@ -875,18 +858,13 @@ public:
         _sharedpart = _smerMask + un; // > max value
         _hashpartFwd = _hmerMask + un; // > max value
         _hashpartRev = _hmerMask + un; // > max value
+
+        _hashpartHits = 0;
     }
 
     ~BloomExtendedNeighborCoherent() {
         system::impl::System::memory().free (cano6);
         system::impl::System::memory().free (hpos);
-    }
-
-    void begin()
-    {
-        _sharedpart = _smerMask + 1; // > max value
-
-        _hashpartHits = 0;
     }
 
     /** \copydoc Bag::insert. */
@@ -895,7 +873,7 @@ public:
         u_int64_t h0, h1;
         u_int64_t racine;
 
-        Item suffix = item & 0x3f;
+        Item suffix = item & ((Item)0x3f);
         Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
         u_int64_t delta = cano6[limits.getVal()];
@@ -928,7 +906,7 @@ public:
     /** \copydoc Container::contains. */
     bool contains (const Item& item, const Item& next = 0)
     {
-        Item suffix = item & 0x3f;
+        Item suffix = item & ((Item)0x3f);
         Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
         u_int64_t delta = cano6[limits.getVal()];
@@ -1084,7 +1062,7 @@ public:
         //with val of prefix+suffix  for neighbor shift
 
         tmp = elem;
-        suffix = tmp & 0x3f ;
+        suffix = tmp & ((Item)0x3f) ;
         limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
         delta = cano6[limits.getVal()]; //get canonical of pref+suffix
@@ -1093,7 +1071,7 @@ public:
 
         if(right) tmp = elem+un;
         else tmp = elem + (un<<shifts) ;
-        suffix = tmp & 0x3f ;
+        suffix = tmp & ((Item)0x3f) ;
         limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
         delta = cano6[limits.getVal()]; //get canonical of pref+suffix
@@ -1102,7 +1080,7 @@ public:
 
         if(right) tmp = elem+deux;
         else tmp = elem + (deux<<shifts) ;
-        suffix = tmp & 0x3f ;
+        suffix = tmp & ((Item)0x3f) ;
         limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
         delta = cano6[limits.getVal()]; //get canonical of pref+suffix
@@ -1111,7 +1089,7 @@ public:
 
         if(right) tmp = elem+trois;
         else tmp = elem + (trois<<shifts) ;
-        suffix = tmp & 0x3f ;
+        suffix = tmp & ((Item)0x3f) ;
         limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
         limits += suffix;
         delta = cano6[limits.getVal()]; //get canonical of pref+suffix
@@ -1160,7 +1138,6 @@ public:
 
 
 private:
-    unsigned int cano2[16];
     unsigned short int *cano6;
     unsigned char *hpos;
 
@@ -1202,7 +1179,7 @@ private:
 
     Item extractHashpart(const Item& sharedpart)
     {
-        Item posPart = sharedpart >> (_smerSize*2 - 16);
+        Item posPart = sharedpart >> (_smerSize*2 - 18);
         unsigned char pos = hpos[posPart.getVal()];
 
         Item hpart = (sharedpart >> ((_hmerCount - pos - 1)*2)) & _hmerMask;
@@ -1221,7 +1198,7 @@ private:
 
     unsigned char minpos(const u_int64_t& nmer, size_t n)
     {
-        static const size_t MINIMIZER_SIZE = 1;
+        static const size_t MINIMIZER_SIZE = 2;
         static const uint64_t minMask = (1 << (MINIMIZER_SIZE*2)) - 1;
 
         uint64_t min = nmer & minMask;
@@ -1241,8 +1218,8 @@ private:
 
     void precomputeHpos()
     {
-        for (uint64_t i=0; i<0x10000; i++) {
-            hpos[i] = minpos(i, 8);
+        for (uint64_t i=0; i<0x40000; i++) {
+            hpos[i] = minpos(i, 9);
         }
     }
 };
