@@ -130,9 +130,11 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
     IBank*                  bank,
     const Configuration&    config,
     Repartitor*             repartitor,
-    vector<CountProcessor*> processors
+    vector<CountProcessor*> processors,
+	tools::misc::IProperties* params
+
 )
-  : Algorithm("dsk", config._nbCores, 0),
+  : Algorithm("dsk", config._nbCores, params),
     _config(config), _bank(0), _repartitor(0),
     _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0)
 {
@@ -428,7 +430,7 @@ void SortingCountAlgorithm<span>::configure ()
             getInput()->getStr(STR_URI_OUTPUT)   :
             (getInput()->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (_bank->getId()));
 
-        storage = StorageFactory(STORAGE_HDF5).create (output, true, false);
+        storage = StorageFactory(STORAGE_HDF5).create (output, true, false); ////GR ici choix du hdf5 pour le storage de sortie
     }
 
     /** In case the storage is created in this method, we need to keep an eye on it. */
@@ -712,6 +714,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
     /** We build the temporary storage name from the output storage name. */
     string tmpStorageName = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("dsk_partitions");
+	//string tmpStorageName =  "./" + System::file().getTemporaryFilename("dsk_partitions");
 
     /** We create the partition files for the current pass. */
     setPartitionsStorage (StorageFactory(STORAGE_TYPE).create (tmpStorageName, true, false));
