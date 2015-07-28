@@ -87,6 +87,11 @@ public:
 	 * \return id of sub bank i */
 	virtual std::string getIdNb (int i) = 0;
 
+	
+	/** In case of a composite bank,
+	 * \return estimation of the number of sequences of sub bank i */
+	virtual int64_t estimateNbItemsBanki (int i) = 0;
+	
     /** \copydoc tools::collections::Iterable::iterator */
     virtual tools::dp::Iterator<Sequence>* iterator () = 0;
 

@@ -98,7 +98,9 @@ public:
         gatb::core::bank::IBank*     bank,
         const Configuration&         config,
         Repartitor*                  repartitor,
-        std::vector<CountProcessor*> processors
+        std::vector<CountProcessor*> processors,
+		tools::misc::IProperties* params
+
     );
 
     /** Destructor */
