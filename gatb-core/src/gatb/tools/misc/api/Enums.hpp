@@ -77,6 +77,8 @@ enum BloomKind
     BLOOM_CACHE,
     /** Implementation of Bloom filters improving CPU cache management. */
     BLOOM_NEIGHBOR,
+    /** Implementation of Bloom filters improving CPU cache management. */
+    BLOOM_EXT_NEIGHBOR,
     BLOOM_DEFAULT
 };
 
@@ -89,6 +91,7 @@ static void parse (const std::string& s, BloomKind& kind)
     else if (s == "basic")       { kind = BLOOM_BASIC;  }
     else if (s == "cache")       { kind = BLOOM_CACHE; }
 	else if (s == "neighbor")    { kind = BLOOM_NEIGHBOR; }
+    else if (s == "neighbor2")   { kind = BLOOM_EXT_NEIGHBOR; }
     else if (s == "default")     { kind = BLOOM_CACHE; }
     else   { throw system::Exception ("bad Bloom kind '%s'", s.c_str()); }
 }
@@ -100,11 +103,12 @@ static const char* toString (BloomKind kind)
 {
     switch (kind)
     {
-        case BLOOM_NONE:      return "none";
-        case BLOOM_BASIC:     return "basic";
-        case BLOOM_CACHE:     return "cache";
-		case BLOOM_NEIGHBOR:  return "neighbor";
-        case BLOOM_DEFAULT:   return "cache";
+        case BLOOM_NONE:          return "none";
+        case BLOOM_BASIC:         return "basic";
+        case BLOOM_CACHE:         return "cache";
+		case BLOOM_NEIGHBOR:      return "neighbor";
+        case BLOOM_EXT_NEIGHBOR:  return "neighbor2";
+        case BLOOM_DEFAULT:       return "cache";
         default:        throw system::Exception ("bad Bloom kind %d", kind);
     }
 }

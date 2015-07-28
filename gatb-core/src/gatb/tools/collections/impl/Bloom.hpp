@@ -117,6 +117,10 @@ public:
     /** Destructor. */
     virtual ~IBloom() {}
 
+    /** Get a copy of the object, sharing the same Bloom filter.
+     *  \return a new instance of the object */
+    virtual IBloom<Item> *newInstance() = 0;
+
     /** Get the raw bit set of the Bloom filter.
      * \return Bloom filter's bit set. */
     virtual u_int8_t*& getArray    () = 0;
@@ -178,6 +182,8 @@ public:
     BloomContainer (u_int64_t tai_bloom, size_t nbHash = 4)
         : _hash(nbHash), n_hash_func(nbHash), blooma(0), tai(tai_bloom), nchar(0), isSizePowOf2(false)
     {
+        _origin = true;
+
         nchar  = (1+tai/8LL);
         blooma = (unsigned char *) MALLOC (nchar*sizeof(unsigned char)); // 1 bit per elem
         system::impl::System::memory().memset (blooma, 0, nchar*sizeof(unsigned char));
@@ -192,11 +198,31 @@ public:
         if (isSizePowOf2)  {  tai --;  }
     }
 
+    /** Copy constructor.
+     * \param[in] origin : original bloom. */
+    BloomContainer (BloomContainer<Item> *origin)
+        : _hash(origin->n_hash_func)
+    {
+        _origin = false;
+
+        n_hash_func = origin->n_hash_func;
+        blooma = origin->blooma;
+        tai = origin->tai;
+        nchar = origin->nchar;
+        isSizePowOf2 = origin->isSizePowOf2;
+    }
+
     /** Destructor. */
     virtual ~BloomContainer ()
     {
-        system::impl::System::memory().free (blooma);
+        if (_origin) {
+            system::impl::System::memory().free (blooma);    
+        }
     }
+
+    /** \copydoc IBloom::newInstance. */
+    virtual IBloom<Item> *newInstance()
+    {   throw system::ExceptionNotImplemented ();  }
 
     /** \copydoc IBloom::getNbHash */
     size_t getNbHash () const { return n_hash_func; }
@@ -248,6 +274,7 @@ public:
     virtual std::string  getName    () const  = 0;
 
 protected:
+    bool _origin;
 
     HashFunctors<Item> _hash;
     size_t n_hash_func;
@@ -267,6 +294,9 @@ public:
 
     /** \copydoc BloomContainer::BloomContainer */
     Bloom (u_int64_t tai_bloom, size_t nbHash = 4)  : BloomContainer<Item> (tai_bloom, nbHash)  {}
+
+    /** \copydoc BloomContainer::BloomContainer */
+    Bloom (Bloom<Item> *origin)  : BloomContainer<Item> (origin)  {}
 
     /** \copydoc Bag::insert. */
     void insert (const Item& item)
@@ -332,6 +362,9 @@ public:
 
     /** Destructor. */
     virtual ~BloomNull() {}
+
+    /** \copydoc IBloom::newInstance */
+    virtual IBloom<Item> *newInstance() { return new BloomNull<Item>(); }
 
     /** \copydoc IBloom::getArray */
     u_int8_t*& getArray    () { return a; }
@@ -433,6 +466,16 @@ public:
     {
         _mask_block = (1<<_nbits_BlockSize) - 1;
         _reduced_tai = this->tai -  2*(1<<_nbits_BlockSize) ;//2* for neighbor coherent
+    }
+
+    /** Constructor.
+     * \param[in] origin : original bloom */
+    BloomCacheCoherent (BloomCacheCoherent<Item> *origin)
+        : Bloom<Item> (origin)
+    {
+        _nbits_BlockSize = origin->_nbits_BlockSize;
+        _mask_block = origin->_mask_block;
+        _reduced_tai = origin->_reduced_tai;
     }
     
      /** \copydoc Bag::insert. */
@@ -862,9 +905,45 @@ public:
         _hashpartHits = 0;
     }
 
+    /** Copy constructor.
+     * \param[in] origin : original bloom. */
+    BloomExtendedNeighborCoherent (BloomExtendedNeighborCoherent<Item> *origin)
+        : BloomCacheCoherent<Item> (origin)
+    {
+        _kmerSize = origin->_kmerSize;
+        _smerSize = origin->_smerSize;
+        _hmerSize = origin->_hmerSize;
+
+        cano6 = origin->cano6;
+        hpos = origin->hpos;
+
+        _kmerMask = origin->_kmerMask;
+        _smerMask = origin->_smerMask;
+        _hmerMask = origin->_hmerMask;
+
+        _kmerPrefMask = origin->_kmerPrefMask;
+        _smerPrefMask = origin->_smerPrefMask;
+
+        _hmerCount = origin->_hmerCount;
+
+        Item un = 1;
+        _sharedpart = _smerMask + un; // > max value
+        _hashpartFwd = _hmerMask + un; // > max value
+        _hashpartRev = _hmerMask + un; // > max value
+
+        _hashpartHits = 0;
+    }
+
     ~BloomExtendedNeighborCoherent() {
-        system::impl::System::memory().free (cano6);
-        system::impl::System::memory().free (hpos);
+        if (this->_origin) {
+            system::impl::System::memory().free (cano6);
+            system::impl::System::memory().free (hpos);
+        }
+    }
+
+    /** \copydoc IBloom::newInstance. */
+    virtual IBloom<Item> *newInstance(){
+        return new BloomExtendedNeighborCoherent<Item>(this);
     }
 
     /** \copydoc Bag::insert. */
@@ -904,7 +983,7 @@ public:
     u_int64_t  getBitSize   ()  { return this->_reduced_tai;    }
 
     /** \copydoc Container::contains. */
-    bool contains (const Item& item, const Item& next = 0)
+    bool contains (const Item& item)
     {
         Item suffix = item & ((Item)0x3f);
         Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
@@ -1138,6 +1217,8 @@ public:
 
 
 private:
+    bool _origin;
+
     unsigned short int *cano6;
     unsigned char *hpos;
 
@@ -1247,11 +1328,12 @@ public:
     {
         switch (kind)
         {
-            case tools::misc::BLOOM_NONE:      return new BloomNull<T>             ();
-            case tools::misc::BLOOM_BASIC:     return new BloomSynchronized<T>     (tai_bloom, nbHash);
-            case tools::misc::BLOOM_CACHE:     return new BloomCacheCoherent<T>    (tai_bloom, nbHash);
-			case tools::misc::BLOOM_NEIGHBOR:  return new BloomNeighborCoherent<T> (tai_bloom, kmersize, nbHash);
-            case tools::misc::BLOOM_DEFAULT:   return new BloomCacheCoherent<T>    (tai_bloom, nbHash);
+            case tools::misc::BLOOM_NONE:            return new BloomNull<T>                     ();
+            case tools::misc::BLOOM_BASIC:           return new BloomSynchronized<T>             (tai_bloom, nbHash);
+            case tools::misc::BLOOM_CACHE:           return new BloomCacheCoherent<T>            (tai_bloom, nbHash);
+			case tools::misc::BLOOM_NEIGHBOR:        return new BloomNeighborCoherent<T>         (tai_bloom, kmersize, nbHash);
+            case tools::misc::BLOOM_EXT_NEIGHBOR:    return new BloomExtendedNeighborCoherent<T> (tai_bloom, kmersize, nbHash);
+            case tools::misc::BLOOM_DEFAULT:         return new BloomCacheCoherent<T>            (tai_bloom, nbHash);
             default:        throw system::Exception ("bad Bloom kind %d in createBloom", kind);
         }
     }
