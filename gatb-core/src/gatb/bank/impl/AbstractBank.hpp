@@ -56,6 +56,10 @@ public:
 	std::string getIdNb (int i)  { return std::string("not_a_compo_bank"); }
 
 	
+	int64_t estimateNbItemsBanki (int i)  { return this->estimateNbItems(); }
+
+	
+	
     /** \copydoc IBank::estimateNbItems */
     int64_t estimateNbItems ()
     {
