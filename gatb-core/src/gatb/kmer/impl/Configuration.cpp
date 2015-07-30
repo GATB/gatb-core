@@ -80,6 +80,91 @@ Properties Configuration::getProperties() const
     return result;
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Configuration::load (tools::storage::impl::Group& group)
+{
+
+	_isComputed = true;
+
+    tools::storage::impl::Storage::istream is (group, "config");
+
+    is.read ((char*)&_kmerSize,                    sizeof(_kmerSize));
+    is.read ((char*)&_minim_size,                    sizeof(_minim_size));
+    is.read ((char*)&_repartitionType,                    sizeof(_repartitionType));
+    is.read ((char*)&_minimizerType,                    sizeof(_minimizerType));
+    is.read ((char*)&_max_disk_space,                    sizeof(_max_disk_space));
+    is.read ((char*)&_max_memory,                    sizeof(_max_memory));
+    is.read ((char*)&_nbCores,                    sizeof(_nbCores));
+    is.read ((char*)&_nb_partitions_in_parallel,                    sizeof(_nb_partitions_in_parallel));
+    is.read ((char*)&_partitionType,                    sizeof(_partitionType));
+    is.read ((char*)&_abundanceUserNb,                    sizeof(_abundanceUserNb));
+    _abundance.resize (_abundanceUserNb);
+    is.read ((char*)_abundance.data(),    sizeof(tools::misc::CountRange)*_abundance.size());
+
+    is.read ((char*)&_nbCores_per_partition,                sizeof(_nbCores_per_partition));
+    is.read ((char*)&_estimateSeqNb,                    sizeof(_estimateSeqNb));
+    is.read ((char*)&_estimateSeqTotalSize,             sizeof(_estimateSeqTotalSize));
+    is.read ((char*)&_estimateSeqMaxSize,                sizeof(_estimateSeqMaxSize));
+    is.read ((char*)&_available_space,    sizeof(_available_space));
+    is.read ((char*)&_volume, sizeof(_volume));
+    is.read ((char*)&_kmersNb,           sizeof(_kmersNb));
+    is.read ((char*)&_nb_passes,           sizeof(_nb_passes));
+    is.read ((char*)&_nb_partitions,           sizeof(_nb_partitions));
+    is.read ((char*)&_nb_bits_per_kmer,           sizeof(_nb_bits_per_kmer));
+    is.read ((char*)&_nb_banks,           sizeof(_nb_banks));
+
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+void Configuration::save (tools::storage::impl::Group& group)
+{
+    DEBUG (("[Config::save]\n"));
+
+    tools::storage::impl::Storage::ostream os (group, "config");
+
+    os.write ((const char*)&_kmerSize,                    sizeof(_kmerSize));
+    os.write ((const char*)&_minim_size,                    sizeof(_minim_size));
+    os.write ((const char*)&_repartitionType,                    sizeof(_repartitionType));
+    os.write ((const char*)&_minimizerType,                    sizeof(_minimizerType));
+    os.write ((const char*)&_max_disk_space,                    sizeof(_max_disk_space));
+    os.write ((const char*)&_max_memory,                    sizeof(_max_memory));
+    os.write ((const char*)&_nbCores,                    sizeof(_nbCores));
+    os.write ((const char*)&_nb_partitions_in_parallel,                    sizeof(_nb_partitions_in_parallel));
+    os.write ((const char*)&_partitionType,                    sizeof(_partitionType));
+    os.write ((const char*)&_abundanceUserNb,                    sizeof(_abundanceUserNb));
+    os.write ((const char*)_abundance.data(),    sizeof(tools::misc::CountRange)*_abundance.size());
+
+
+    os.write ((const char*)&_nbCores_per_partition,                sizeof(_nbCores_per_partition));
+    os.write ((const char*)&_estimateSeqNb,                    sizeof(_estimateSeqNb));
+    os.write ((const char*)&_estimateSeqTotalSize,             sizeof(_estimateSeqTotalSize));
+    os.write ((const char*)&_estimateSeqMaxSize,                sizeof(_estimateSeqMaxSize));
+    os.write ((const char*)&_available_space,    sizeof(_available_space));
+    os.write ((const char*)&_volume, sizeof(_volume));
+    os.write ((const char*)&_kmersNb,           sizeof(_kmersNb));
+    os.write ((const char*)&_nb_passes,           sizeof(_nb_passes));
+    os.write ((const char*)&_nb_partitions,           sizeof(_nb_partitions));
+    os.write ((const char*)&_nb_bits_per_kmer,           sizeof(_nb_bits_per_kmer));
+    os.write ((const char*)&_nb_banks,           sizeof(_nb_banks));
+
+    os.flush();
+
+}
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

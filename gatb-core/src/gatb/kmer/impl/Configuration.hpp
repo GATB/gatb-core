@@ -26,6 +26,7 @@
 #include <gatb/tools/misc/api/Enums.hpp>
 #include <gatb/tools/misc/impl/Property.hpp>
 #include <gatb/tools/misc/api/Range.hpp>
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -97,6 +98,14 @@ public:
     /**               MISC                  */
     /****************************************/
     tools::misc::impl::Properties getProperties() const;
+
+    /** Load config properties from a storage object.
+     * \param[in] group : group where the repartition table has to be loaded */
+    void load (tools::storage::impl::Group& group);
+
+    /** Save config properties into a storage object.
+     * \param[in] group : group where the repartition table has to be saved */
+    void save (tools::storage::impl::Group& group);
 };
 
 /********************************************************************************/
