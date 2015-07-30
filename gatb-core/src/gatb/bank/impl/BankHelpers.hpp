@@ -83,6 +83,9 @@ public:
     /** \copydoc AbstractBank::getId */
     std::string getId ()  { return _ref->getId(); }
 
+	std::string getIdNb (int i)  { return _ref->getIdNb(i); }
+
+	
     /** \copydoc AbstractBank::iterator */
     tools::dp::Iterator<Sequence>* iterator ()  { return _ref->iterator(); }
 
@@ -104,6 +107,9 @@ public:
     /** \copydoc AbstractBank::estimateNbItems */
     int64_t estimateNbItems () { return _ref->estimateNbItems(); }
 
+	/** \copydoc AbstractBank::estimateNbItems */
+	int64_t estimateNbItemsBanki (int i) { return _ref->estimateNbItemsBanki(i); }
+	
     /** \copydoc AbstractBank::estimateSequencesSize */
     u_int64_t estimateSequencesSize ()  { return _ref->estimateSequencesSize(); }
 

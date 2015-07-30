@@ -84,6 +84,26 @@ public:
         return _id;
     }
 
+	
+	std::string getIdNb (int i)
+	{
+		if(i<_banks.size())
+			return _banks[i]->getId();
+		else
+			return
+				this->getId();
+	}
+	
+	
+	int64_t estimateNbItemsBanki (int i)  {
+		if(i<_banks.size())
+			return _banks[i]->estimateNbItems();
+		else
+			return  this->estimateNbItems();
+	
+	}
+
+	
     /** Add a bank into the composite
      * \param[in] bank : the bank to be added. */
     void addBank (IBank* bank)  { bank->use();  _banks.push_back(bank); }
