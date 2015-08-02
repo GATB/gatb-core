@@ -6,6 +6,7 @@ FIND_PATH (CPPUNIT_INCLUDE_DIR cppunit/extensions/HelperMacros.h
   $ENV{HOME}/.linuxbrew/include
   /local/include
   /usr/include
+  /usr/local/include
   /usr/local/Cellar/cppunit/1.12.1/include
   NO_DEFAULT_PATH
 )

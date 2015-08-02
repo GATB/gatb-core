@@ -64,6 +64,19 @@ BranchingTerminator::BranchingTerminator (const Graph& graph)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+BranchingTerminator::BranchingTerminator (const BranchingTerminator& terminator)
+	: Terminator(terminator._graph), branching_kmers (terminator.branching_kmers)
+{
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 BranchingTerminator::~BranchingTerminator()
 {
 }
@@ -274,17 +287,7 @@ bool BranchingTerminator::is_indexed (const Node& node) const
 *********************************************************************/
 void BranchingTerminator::dump ()
 {
-    Value checksum = 0;
-
-    std::vector<Node::Value>& liste = branching_kmers.liste ;
-
-    for (size_t i=0; i<liste.size(); i++)
-    {
-        Value v;  if (branching_kmers.get (liste[i],v))  { checksum += v; }
-    }
-    cout << "TERMINATOR:  nb=" << liste.size() << "  checksum=" << checksum << endl;
 }
-
 
 
 /***********************/

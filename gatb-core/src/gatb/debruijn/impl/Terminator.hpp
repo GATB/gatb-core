@@ -32,72 +32,6 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
-template <typename Item> class ListSet
-{
-public:
-    std::vector<Item> liste;
-public:
-    void insert (const Item& elem)  {     liste.push_back(elem); }
-    void finalize() {    sort(liste.begin(), liste.end()); }
-    bool contains(const Item& elem)  const {    return binary_search(liste.begin(), liste.end(), elem);  }
-    uint64_t capacity() {return (u_int64_t)liste.capacity();}
-    static const int bits_per_element = sizeof(Item)*8;
-    ListSet(u_int64_t taille_approx)  {   liste.reserve(taille_approx);  }
-    ListSet()  {}
-};
-
-/********************************************************************************/
-
-template <typename Key, typename Value>  class AssocSet : public ListSet<Key>
-{
-public:
-    std::vector<Value> liste_value;
-
-public:
-    int get (const Key& elem, Value& val) const
-    {
-        typename std::vector<Key>::const_iterator it;
-        it = lower_bound(this->liste.begin(), this->liste.end(),elem);
-        if (it == this->liste.end() || elem != *it) return 0;
-        size_t rank = it - this->liste.begin();
-        val = liste_value[rank];
-        return 1;
-    }
-
-    int set (const Key& elem, const Value& val)
-    {
-        typename  std::vector<Key>::iterator it;
-        it = lower_bound(this->liste.begin(), this->liste.end(),elem);
-        if (it == this->liste.end() ||elem != *it) return 0;
-        size_t rank = it - this->liste.begin();
-        liste_value[rank]=val;
-        return 1;
-    }
-
-    void finalize (bool doSort=true)
-    {
-        if (doSort) {  sort(this->liste.begin(), this->liste.end());  }
-        liste_value.assign(this->liste.size(),0);
-    }
-
-    AssocSet() {}
-
-    void clear()  { liste_value.assign(liste_value.size(),0); }
-
-
-    void start_iterator()  {   iterator = this->liste.begin()-1;  }
-    bool next_iterator()
-    {
-        iterator++;
-        if (iterator==this->liste.end()) return false;
-        return true;
-    }
-
-    typename std::vector<Key>::iterator iterator;
-};
-
-/********************************************************************************/
-
 /** \brief Interface that allows to mark nodes in a graph.
  *
  * De Bruijn graphs in GATB are immutable and therefore it is not
@@ -236,6 +170,10 @@ public:
      * \param[in] graph : the graph */
     BranchingTerminator (const Graph& graph);
 
+    /** Copy constructor
+     * \param[in] terminator: the graph */
+    BranchingTerminator (const BranchingTerminator& terminator);
+
     /** Destructor. */
     ~BranchingTerminator();
 
@@ -264,6 +202,63 @@ public:
     void dump ();
 
 private:
+
+    /* Custom implementation of a map.
+     * IMPORTANT : The keys set is supposed to be built only by one instance and is shared
+     * with other instances through the copy constructor.
+     */
+    template <typename Key, typename Value>  class AssocSet
+    {
+    public:
+
+        AssocSet () : isRef(false)  {  keys = new std::vector<Key>();  }
+
+        AssocSet (const AssocSet& other) : isRef(true)
+        {
+        	keys = other.keys;
+            liste_value.assign(this->keys->size(),0);
+        }
+
+        ~AssocSet ()  {  if (isRef==false)  { delete keys; }  }
+
+    	void insert (const Key& elem) { keys->push_back(elem); }
+
+        bool contains(const Key& elem)  const  {  return binary_search(keys->begin(), keys->end(), elem);  }
+
+        int get (const Key& elem, Value& val) const
+        {
+            typename std::vector<Key>::const_iterator it;
+            it = lower_bound(this->keys->begin(), this->keys->end(),elem);
+            if (it == this->keys->end() || elem != *it) return 0;
+            size_t rank = it - this->keys->begin();
+            val = liste_value[rank];
+            return 1;
+        }
+
+        int set (const Key& elem, const Value& val)
+        {
+            typename  std::vector<Key>::iterator it;
+            it = lower_bound(this->keys->begin(), this->keys->end(),elem);
+            if (it == this->keys->end() ||elem != *it) return 0;
+            size_t rank = it - this->keys->begin();
+            liste_value[rank]=val;
+            return 1;
+        }
+
+        void finalize (bool doSort=true)
+        {
+            if (doSort) {  sort(this->keys->begin(), this->keys->end());  }
+            liste_value.assign(this->keys->size(),0);
+        }
+
+        void clear()  { liste_value.assign(liste_value.size(),0); }
+
+    private:
+        std::vector<Key>*  keys;
+        std::vector<Value> liste_value;
+        bool isRef;
+    };
+
 
     bool is_indexed (const Node& node) const ;
 

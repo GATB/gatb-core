@@ -31,6 +31,8 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
+#include <gatb/debruijn/impl/Terminator.hpp>
+#include <gatb/debruijn/impl/Traversal.hpp>
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/BloomAlgorithm.hpp>
@@ -104,6 +106,7 @@ class TestDebruijn : public Test
 #ifdef WITH_MPHF
         CPPUNIT_TEST_GATB (debruijn_mphf);
 #endif
+        CPPUNIT_TEST_GATB (debruijn_traversal1);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -988,6 +991,75 @@ public:
             if (i > 0) {  CPPUNIT_ASSERT (previous < it->kmer);  }
             previous = it->kmer;
         }
+    }
+
+    /********************************************************************************/
+
+    void debruijn_traversal1_aux_aux (bool useCopyTerminator, size_t kmerSize, const char** seqs, size_t seqsSize,
+		TraversalKind traversalKind, const char* checkStr
+	)
+    {
+        // We create a fake bank with a SNP
+        IBank* bank = new BankStrings (seqs, seqsSize);
+
+        // We load the graph
+        Graph graph = Graph::create (bank, "-abundance-min 1  -verbose 0  -kmer-size %d  -max-memory %d",
+			kmerSize, MAX_MEMORY);
+
+        // We create a Terminator object
+        BranchingTerminator terminator (graph);
+
+		// We create a node from the start of the first sequence
+		Node node = graph.buildNode (seqs[0]);
+
+        Path path;
+
+        if (useCopyTerminator == false)
+        {
+			// We create a Traversal instance according to the chosen traversal kind
+			Traversal* traversal = Traversal::create (traversalKind, graph, terminator);
+			LOCAL (traversal);
+
+			traversal->traverse (node, DIR_OUTCOMING, path);
+        }
+        else
+        {
+            // We create a Terminator object, copy of the other one
+            BranchingTerminator terminatorCpy (terminator);
+
+			// We create a Traversal instance according to the chosen traversal kind
+			Traversal* traversal = Traversal::create (traversalKind, graph, terminator);
+			LOCAL (traversal);
+
+			traversal->traverse (node, DIR_OUTCOMING, path);
+        }
+
+        stringstream ss;  ss << graph.toString (node) << path ;
+        CPPUNIT_ASSERT (ss.str().compare(checkStr)==0);
+    }
+
+    void debruijn_traversal1_aux (bool useCopyTerminator)
+    {
+        const char* seqs[] =
+        {
+            "CGCTACAGCAGCTAGTTCATCATTGTTTATCAATGATAAAATATAATAAGCTAAAAGGAAACTATAAATA",
+            "CGCTACAGCAGCTAGTTCATCATTGTTTATCGATGATAAAATATAATAAGCTAAAAGGAAACTATAAATA"
+            //      SNP HERE at pos 31      x
+        };
+
+    	debruijn_traversal1_aux_aux (useCopyTerminator, 15, seqs, ARRAY_SIZE(seqs), TRAVERSAL_UNITIG,
+			"CGCTACAGCAGCTAGTTCATCATTGTTTATC"
+		);
+
+    	debruijn_traversal1_aux_aux (useCopyTerminator, 15, seqs, ARRAY_SIZE(seqs), TRAVERSAL_CONTIG,
+			"CGCTACAGCAGCTAGTTCATCATTGTTTATCAATGATAAAATATAATAAGCTAAAAGGAAACTATAAATA"
+		);
+    }
+
+    void debruijn_traversal1 ()
+    {
+    	debruijn_traversal1_aux (false);
+    	debruijn_traversal1_aux (true);
     }
 };
 
