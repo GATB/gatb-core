@@ -26,6 +26,8 @@
 #ifndef _GATB_CORE_TOOLS_COLLECTIONS_IMPL_BLOOM_HPP_
 #define _GATB_CORE_TOOLS_COLLECTIONS_IMPL_BLOOM_HPP_
 
+//#define COUNT_NB_CALLS
+//#define PROFILING_BLOOM
 /********************************************************************************/
 
 #include <gatb/tools/collections/api/Container.hpp>
@@ -137,6 +139,11 @@ public:
      * \return the number of hash functions. */
     virtual size_t     getNbHash   () const = 0;
 
+	
+	/** Get the number of times contains has been called, for testing purposes
+	 * \return the number of times contains has been called */
+	virtual u_int64_t  getNBcalls  () = 0;
+	
     /** Tells whether the 4 neighbors of the given item are in the Bloom filter.
      * The 4 neighbors are computed from the given item by adding successively
      * nucleotides 'A', 'C', 'T' and 'G'
@@ -163,6 +170,12 @@ public:
     /** Return the number of 1's in the Bloom (nibble by nibble)
      * \return the weight of the Bloom filter */
     virtual unsigned long  weight () = 0;
+	
+	
+#ifdef PROFILING_BLOOM
+	virtual void  printProfilingStats   () = 0;
+#endif
+	
 };
 
 /********************************************************************************/
@@ -196,6 +209,16 @@ public:
          *     a % 2^N  <=>  a & (2^N-1)
          * */
         if (isSizePowOf2)  {  tai --;  }
+		
+#ifdef PROFILING_BLOOM
+		_nb_calls_profi = 0;
+		_total_nb_cycles_contains = 0;
+		_total_nb_cycles_revcomp = 0;
+		
+		printf("clock freq :  %f  \n",ts.getClockFrequency());
+
+#endif
+		
     }
 
     /** Copy constructor.
@@ -210,8 +233,23 @@ public:
         tai = origin->tai;
         nchar = origin->nchar;
         isSizePowOf2 = origin->isSizePowOf2;
+		_nb_calls_contains=0;
+		
+		
+#ifdef PROFILING_BLOOM
+		 _nb_calls_profi = 0;
+		 _total_nb_cycles_contains = 0;
+		 _total_nb_cycles_revcomp = 0;
+#endif
+		
     }
 
+	
+	virtual u_int64_t  getNBcalls  ()
+	{
+		return  _nb_calls_contains;
+	}
+	
     /** Destructor. */
     virtual ~BloomContainer ()
     {
@@ -230,6 +268,11 @@ public:
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
+		
+#ifdef COUNT_NB_CALLS
+		__sync_fetch_and_add (&(this->_nb_calls_contains), 1);
+#endif
+		
         if (isSizePowOf2)
         {
             for (size_t i=0; i<n_hash_func; i++)
@@ -273,16 +316,35 @@ public:
     /** \copydoc IBloom::getName. */
     virtual std::string  getName    () const  = 0;
 
+#ifdef PROFILING_BLOOM
+	virtual void  printProfilingStats   ()
+	{
+		printf("------- Profiling stats  %s -------- \n", this->getName().c_str());
+		printf("NB calls : %lli , cycles/call   %f \n",_nb_calls_profi, (float)_total_nb_cycles_contains /(float) _nb_calls_profi);
+		printf("Revcomp  : %f     cyc \n",(float)_total_nb_cycles_revcomp /(float) _nb_calls_profi);
+    }
+#endif
+	
+	
 protected:
     bool _origin;
 
     HashFunctors<Item> _hash;
     size_t n_hash_func;
 
+	u_int64_t _nb_calls_contains;
     u_int8_t* blooma;
     u_int64_t tai;
     u_int64_t nchar;
     bool      isSizePowOf2;
+	
+#ifdef PROFILING_BLOOM
+	u_int64_t _nb_calls_profi;
+	u_int64_t _total_nb_cycles_contains;
+	u_int64_t _total_nb_cycles_revcomp;
+	system::impl::TimeCycle ts;
+#endif
+	
 };
 
 /********************************************************************************/
@@ -381,6 +443,12 @@ public:
     /** \copydoc IBloom::getName */
     virtual std::string  getName   () const  { return "BloomNull"; }
 
+	virtual u_int64_t  getNBcalls  () {return  0;}
+	
+#ifdef PROFILING_BLOOM
+	virtual void  printProfilingStats   () {};
+#endif
+	
     /** \copydoc IBloom::contains4 */
     std::bitset<4> contains4 (const Item& item, bool right)  {return std::bitset<4>();}
 
@@ -420,6 +488,11 @@ public:
     /** \copydoc Bag::insert. */
     void insert (const Item& item)
     {
+		
+#ifdef COUNT_NB_CALLS
+		__sync_fetch_and_add (&(this->_nb_calls_contains), 1);
+#endif
+		
         if (this->isSizePowOf2)
         {
             for (size_t i=0; i<this->n_hash_func; i++)
@@ -504,6 +577,11 @@ public:
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
+		
+#ifdef COUNT_NB_CALLS
+		__sync_fetch_and_add (&(this->_nb_calls_contains), 1);
+#endif
+		
         u_int64_t tab_keys [20];
         u_int64_t h0;
 
@@ -631,6 +709,10 @@ public:
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
+		
+#ifdef COUNT_NB_CALLS
+		__sync_fetch_and_add (&(this->_nb_calls_contains), 1);
+#endif
         u_int64_t racine;
 
         Item suffix = item & 3 ;
@@ -679,6 +761,14 @@ public:
     /** \copydoc IBloom::contains4*/
     std::bitset<4> contains4 (const Item& item, bool right)
     {
+		
+		
+#ifdef PROFILING_BLOOM
+		uint64_t debutc4 = this->ts.getTimeStamp();
+#endif
+
+		
+		
         //ask for all 4 neighbors of item in one call
         // give it CAAA
         // if right == true  it wil test the 4 neighbors AAAA, AAAC, AAAT, AAAG
@@ -690,20 +780,37 @@ public:
         Item deux = 2;
         Item trois = 3;
 
+		
+
+		
+		
         size_t shifts = (_kmerSize -1)*2;
 
         if (right)  {  elem = (item << 2) & _kmerMask ;  }
         else        {  elem = (item >> 2) ;              }
 
+
+		
+
+		
         //get the canonical of middle part
         hashpart = ( elem >> 2 ) & _maskkm2 ;
         rev =  revcomp(hashpart,_kmerSize-2);
         if(rev<hashpart) hashpart = rev;
 
+		
+
         u_int64_t racine = ((this->_hash (hashpart,0) ) % this->_reduced_tai) ;
+
+		
 
         __builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); //preparing for read
 
+
+		
+
+		
+		
         Item tmp,suffix,prefix;
         u_int64_t pref_val;
 
@@ -744,7 +851,11 @@ public:
 
         k0 = racine + (pref_val  & this->_mask_block);
 
-        /*
+
+
+		
+
+		/*
          //with full hash of kmer for neighbor shift
         tmp = elem;
         rev =  revcomp(tmp,_kmerSize);
@@ -777,6 +888,9 @@ public:
         {
             tab_hashes[i] = simplehash16( hashpart, i) & this->_mask_block ;
         }
+
+
+		
 
         std::bitset<4> resu;
         resu.set (0, true);
@@ -811,6 +925,7 @@ public:
             if ( (this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0  )  {  resu.set (3, false); break; }
         }
 
+
         /*
         for (size_t i=1; i<this->n_hash_func; i++)
         {
@@ -828,10 +943,20 @@ public:
                 break;
         }
          */
-
+#ifdef PROFILING_BLOOM
+		uint64_t finc4 = this->ts.getTimeStamp ();
+		this->_total_nb_cycles_contains  += (finc4 - debutc4);
+		this->_nb_calls_profi ++;
+#endif
+		
         return resu;
     }
 
+	virtual u_int64_t  getNBcalls  ()
+	{
+		return  this->_nb_calls_contains;
+	}
+	
     /** \copydoc IBloom::contains8*/
     std::bitset<8> contains8 (const Item& item)
     {
@@ -893,6 +1018,11 @@ public:
         _hmerMask = (un << (_hmerSize*2))   - un;
 
         Item trois = 3;
+		
+		
+		_pref1mask = trois << ((_kmerSize-1)*2);
+
+		
         _kmerPrefMask = ((Item)0x3f) << ((_kmerSize-3)*2);
         _smerPrefMask = trois << ((_smerSize-1)*2);
 
@@ -902,7 +1032,19 @@ public:
         _hashpartFwd = _hmerMask + un; // > max value
         _hashpartRev = _hmerMask + un; // > max value
 
+		_shared_nb_calls_contains = NULL;
+		
+#ifdef COUNT_NB_CALLS
+		_shared_nb_calls_contains = & this->_nb_calls_contains;
+#endif
         _hashpartHits = 0;
+		
+		
+		
+		comp1[0]=2;
+		comp1[1]=3;
+		comp1[2]=0;
+		comp1[3]=1;
     }
 
     /** Copy constructor.
@@ -924,6 +1066,10 @@ public:
         _kmerPrefMask = origin->_kmerPrefMask;
         _smerPrefMask = origin->_smerPrefMask;
 
+		
+		_pref1mask = origin->_pref1mask;
+
+
         _hmerCount = origin->_hmerCount;
 
         Item un = 1;
@@ -931,6 +1077,23 @@ public:
         _hashpartFwd = _hmerMask + un; // > max value
         _hashpartRev = _hmerMask + un; // > max value
 
+#ifdef COUNT_NB_CALLS
+		if(origin->_origin)
+			_shared_nb_calls_contains = &(origin->_nb_calls_contains);
+		else
+			_shared_nb_calls_contains = (origin->_shared_nb_calls_contains);
+
+#endif
+		
+	//	precomputeCano6();
+
+		comp1[0]=2;
+		comp1[1]=3;
+		comp1[2]=0;
+		comp1[3]=1;
+		
+		
+		
         _hashpartHits = 0;
     }
 
@@ -952,10 +1115,10 @@ public:
         u_int64_t h0, h1;
         u_int64_t racine;
 
-        Item suffix = item & ((Item)0x3f);
-        Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
-        limits += suffix;
-        u_int64_t delta = cano6[limits.getVal()];
+//        Item suffix = item & ((Item)0x3f);
+//        Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+//        limits += suffix;
+//        u_int64_t delta = cano6[limits.getVal()];
 
         Item sharedpart = (item >> 2) & _smerMask;  // delete 1 nt at each side
         Item rev =  revcomp(sharedpart, _smerSize);
@@ -963,12 +1126,25 @@ public:
 
         _hpart = extractHashpart(sharedpart);
         _hpartHash = this->_hash (_hpart, 0);
-        
+		
+		
+		//GR test
+		 Item km = item;
+		 rev =  revcomp(km,_kmerSize);
+		 if(rev < km) km = rev; //transform to canonical
+	//	delta = (simplehash16 (km,_kmerSize*2-16)  & this->_mask_block); // simplehash16  this->_hash
+	u_int64_t 	delta = (this->_hash (km,0)  & this->_mask_block); // simplehash16  this->_hash
+
+		
+		//
+	
         racine = _hpartHash % this->_reduced_tai;
         h0 = racine + delta;
         __sync_fetch_and_or(this->blooma + (h0 >> 3), bit_mask[h0 & 7]);
 
 
+		
+		
         for (size_t i=1; i<this->n_hash_func; i++)
         {
             u_int64_t h1 = h0 + ((simplehash16( _hpart, i)) & this->_mask_block);
@@ -985,18 +1161,40 @@ public:
     /** \copydoc Container::contains. */
     bool contains (const Item& item)
     {
-        Item suffix = item & ((Item)0x3f);
-        Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
-        limits += suffix;
-        u_int64_t delta = cano6[limits.getVal()];
+		
+#ifdef COUNT_NB_CALLS
+			__sync_fetch_and_add ((this->_shared_nb_calls_contains), 1);
+#endif
+		
+//        Item suffix = item & ((Item)0x3f);
+//        Item limits = (item & _kmerPrefMask)  >> ((_kmerSize-6)*2);
+//        limits += suffix;
+//        u_int64_t delta = cano6[limits.getVal()];
 
-        bool reverse = false;
-        Item sharedpart = (item >> 2) & _smerMask ;  // delete 1 nt at each side
-        Item rev =  revcomp(sharedpart, _smerSize);
-        if(rev < sharedpart) {
-            sharedpart = rev; //transform to canonical
-            reverse = true;
-        }
+		
+		//compute cano of shared part
+		
+		bool reverse = false;
+		Item sharedpart = (item >> 2) & _smerMask ;  // delete 1 nt at each side
+		Item rev =  revcomp(sharedpart, _smerSize);
+		if(rev < sharedpart) {
+			sharedpart = rev; //transform to canonical
+			reverse = true;
+		}
+		
+		
+		//		//GR test  compute revcomp of item from revcomp of sharedpart
+		Item lastnt  = item & ((Item)3) ;
+		Item firstnt =  (item & _pref1mask)  >> ((_kmerSize-1)*2);
+		Item kmf = item;
+		Item kmcano = rev |     (    ((Item) (comp1[ lastnt.getVal()]))   << (_smerSize*2)   )      ;
+		kmcano = (kmcano << 2) |  ((Item) (comp1[ firstnt.getVal()])) ;
+		if (kmf< kmcano)
+			kmcano= kmf;
+		//u_int64_t delta = (simplehash16 (kmcano,_kmerSize*2-16)  & this->_mask_block); // simplehash16  this->_hash
+		u_int64_t delta = ( this->_hash (kmcano,0)  & this->_mask_block); // simplehash16  this->_hash
+		
+
 
         if (_sharedpart != sharedpart)
         {
@@ -1043,7 +1241,7 @@ public:
         racine = _hpartHash % this->_reduced_tai;
         h0 = racine + delta;
 
-        __builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); // preparing for read
+       // __builtin_prefetch(&(this->blooma [racine >> 3] ), 0, 3); // preparing for read
 
         // compute all hashes during prefetch
         u_int64_t tab_keys [20];
@@ -1060,6 +1258,7 @@ public:
             if ((this->blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0 )  {  return false;  } // was != bit_mask[h1 & 7]
         }
 
+		
         return true;
     }
 
@@ -1138,41 +1337,71 @@ public:
         Item tmp,suffix,limits;
         u_int64_t delta;
 
-        //with val of prefix+suffix  for neighbor shift
 
-        tmp = elem;
-        suffix = tmp & ((Item)0x3f) ;
-        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
-        limits += suffix;
-        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
 
+		
+		Item lastnt,firstnt,kmf,kmcano;
+		
+		lastnt = elem & ((Item)3) ;
+		firstnt =  (elem & _pref1mask)  >> ((_kmerSize-1)*2);
+		 kmf = elem;
+		 kmcano = rev |     (    ((Item) (comp1[ lastnt.getVal()]))   << (_smerSize*2)   )      ;
+		kmcano = (kmcano << 2) |  ((Item) (comp1[ firstnt.getVal()])) ;
+		if (kmf< kmcano) kmcano= kmf;
+		//delta = (simplehash16 (kmcano,_kmerSize*2-16)  & this->_mask_block); // simplehash16  this->_hash
+		delta = (this->_hash (kmcano,0)  & this->_mask_block); // simplehash16  this->_hash
+
+	
         h0 = racine + delta;
 
         if(right) tmp = elem+un;
         else tmp = elem + (un<<shifts) ;
-        suffix = tmp & ((Item)0x3f) ;
-        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
-        limits += suffix;
-        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
+
+		
+		lastnt = tmp & ((Item)3) ;
+		firstnt =  (tmp & _pref1mask)  >> ((_kmerSize-1)*2);
+		kmf = tmp;
+		kmcano = rev |     (    ((Item) (comp1[ lastnt.getVal()]))   << (_smerSize*2)   )      ;
+		kmcano = (kmcano << 2) |  ((Item) (comp1[ firstnt.getVal()])) ;
+		if (kmf< kmcano) kmcano= kmf;
+		//delta = (simplehash16 (kmcano,_kmerSize*2-16)  & this->_mask_block); // simplehash16  this->_hash
+		delta = (this->_hash (kmcano,0)  & this->_mask_block); // simplehash16  this->_hash
 
         i0 = racine + delta;
-
+		
+		
         if(right) tmp = elem+deux;
         else tmp = elem + (deux<<shifts) ;
-        suffix = tmp & ((Item)0x3f) ;
-        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
-        limits += suffix;
-        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
 
+
+		
+		lastnt = tmp & ((Item)3) ;
+		firstnt =  (tmp & _pref1mask)  >> ((_kmerSize-1)*2);
+		kmf = tmp;
+		kmcano = rev |     (    ((Item) (comp1[ lastnt.getVal()]))   << (_smerSize*2)   )      ;
+		kmcano = (kmcano << 2) |  ((Item) (comp1[ firstnt.getVal()])) ;
+		if (kmf< kmcano) kmcano= kmf;
+		//delta = (simplehash16 (kmcano,_kmerSize*2-16)  & this->_mask_block); // simplehash16  this->_hash
+		delta = (this->_hash (kmcano,0)  & this->_mask_block); // simplehash16  this->_hash
+
+		
         j0 = racine + delta;
 
         if(right) tmp = elem+trois;
         else tmp = elem + (trois<<shifts) ;
-        suffix = tmp & ((Item)0x3f) ;
-        limits = (tmp & _kmerPrefMask)  >> ((_kmerSize-6)*2);
-        limits += suffix;
-        delta = cano6[limits.getVal()]; //get canonical of pref+suffix
 
+		
+		
+		lastnt = tmp & ((Item)3) ;
+		firstnt =  (tmp & _pref1mask)  >> ((_kmerSize-1)*2);
+		kmf = tmp;
+		kmcano = rev |     (    ((Item) (comp1[ lastnt.getVal()]))   << (_smerSize*2)   )      ;
+		kmcano = (kmcano << 2) |  ((Item) (comp1[ firstnt.getVal()])) ;
+		if (kmf< kmcano) kmcano= kmf;
+		//delta = (simplehash16 (kmcano,_kmerSize*2-16)  & this->_mask_block); // simplehash16  this->_hash
+		delta = (this->_hash (kmcano,0)  & this->_mask_block); // simplehash16  this->_hash
+		
+		
         k0 = racine + delta;
 
 
@@ -1215,13 +1444,23 @@ public:
         return _hashpartHits;
     }
 
+	virtual u_int64_t  getNBcalls  ()
+	{
+		if(! this->_origin)
+			return * _shared_nb_calls_contains;
+		else return this->_nb_calls_contains;
+	}
+	
 
 private:
-    bool _origin;
+ //   bool _origin;
 
+	
+	unsigned char comp1[4];
     unsigned short int *cano6;
     unsigned char *hpos;
 
+	Item _pref1mask;
     Item _kmerMask;
     Item _smerMask;
     Item _hmerMask;
@@ -1238,6 +1477,8 @@ private:
     u_int64_t _hpartHash;
     u_int64_t* _tabHashes;
 
+	u_int64_t* _shared_nb_calls_contains;
+	
     Item _hashpartFwd;
     u_int64_t _hashpartFwdHash;
     u_int64_t _tabHashesFwd[20];
@@ -1252,9 +1493,19 @@ private:
 
     inline void prepareTabHashes(u_int64_t* tab, const Item& toHash)
     {
-        for (size_t i=1; i<this->n_hash_func; i++)
+        for (size_t i=1; i<this->n_hash_func; i++) // n_hash_func must be odd number for this optim
         {
+//			
+//			u_int64_t hh = simplehash16(toHash, i)  ; // simplehash16
+//			
+//			tab[i] = hh & this->_mask_block ;
+//			
+//			i++;
+//			tab[i] = (hh>>12) & this->_mask_block;
+			
+			
             tab[i] = simplehash16(toHash, i) & this->_mask_block ;
+			
         }
     }
 
@@ -1275,6 +1526,13 @@ private:
             Item cano = (cur < rev) ? cur : rev;
             cano6[i] = cano.getVal();
         }
+		
+		for (uint64_t i=0; i<4; i++) {
+			Item cur = (Item)i;
+			Item rev = revcomp(cur, 1);
+			comp1[i] = rev.getVal();
+		}
+		
     }
 
     unsigned char minpos(const u_int64_t& nmer, size_t n)
@@ -1300,7 +1558,7 @@ private:
     void precomputeHpos()
     {
         for (uint64_t i=0; i<0x40000; i++) {
-            hpos[i] = minpos(i, 9);
+			hpos[i] =  minpos(i, 9);
         }
     }
 };
