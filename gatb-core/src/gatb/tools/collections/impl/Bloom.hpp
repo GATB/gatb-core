@@ -865,7 +865,6 @@ private:
 template <typename Item> class BloomExtendedNeighborCoherent : public BloomCacheCoherent<Item>
 {
 public:
-
     /** Constructor.
      * \param[in] tai_bloom : size (in bits) of the bloom filter.
      * \param[in] kmersize : kmer size
@@ -1091,8 +1090,6 @@ public:
             sharedpart = rev;
             reverse = true;
         }
-
-
             Item hpart = extractHashpart(sharedpart);
 
             if (reverse)
@@ -1217,8 +1214,6 @@ public:
 
 
 private:
-    bool _origin;
-
     unsigned short int *cano6;
     unsigned char *hpos;
 
