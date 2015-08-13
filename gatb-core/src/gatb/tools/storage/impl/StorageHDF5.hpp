@@ -350,6 +350,23 @@ private:
 
             return result;
         }
+        
+        void delProperty (const std::string& key)
+        {
+            H5Adelete(_groupId, key.c_str());
+        }
+
+        /** hack to set the attribute if it already exists: so i'm deleting and inserting again.
+         * I had cleaner code based on H5Aopen / H5Awrite but I didn't know if it was the cause of 
+         * a bug or not, so I opted for this failsafe solution */
+        void setProperty (const std::string& key, const std::string value)
+        {
+            if ( H5Aexists(_groupId, key.c_str()) > 0)
+            {
+                delProperty(key);
+            }
+            addProperty(key, value);
+        }
 
     private:
         hid_t _groupId;

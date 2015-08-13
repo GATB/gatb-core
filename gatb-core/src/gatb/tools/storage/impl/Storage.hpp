@@ -196,18 +196,21 @@ public:
     void remove ();
 
     /** Associate a [key,value] to the group. Note: according to the kind of storage,
-     * this feature may be not supported.
+     * this feature may be not supported (looks like it's only supported in HDF5).
      * \param[in] key : key
      * \param[in] value : value
      */
     virtual void addProperty (const std::string& key, const std::string value) { /*throw system::ExceptionNotImplemented ();*/ }
 
     /** Get a [key,value] from the group. Note: according to the kind of storage,
-     * this feature may be not supported.
+     * this feature may be not supported (looks like it's only supported in HDF5).
      * \param[in] key : key
      * \return the value associated to the string.
      */
     virtual std::string getProperty (const std::string& key)  { return "?"; /*throw system::ExceptionNotImplemented ();*/  }
+    
+    /* same as addProperty but sets the value if it already exists */
+    virtual void setProperty (const std::string& key, const std::string value) { /*throw system::ExceptionNotImplemented ();*/ }
 
 protected:
 
@@ -508,7 +511,7 @@ public:
      */
     StorageFactory (StorageMode_e mode) : _mode(mode)  {}
 
-    /** Create a Storage instance.
+    /** Create a Storage instance. This function is a bit of a misnomer: it can create a new storage instance and is also used to load an existing one.
      * \param[in] name : name of the instance to be created
      * \param[in] deleteIfExist : if the storage exits in file system, delete it if true.
      * \param[in] autoRemove : auto delete the storage from file system during Storage destructor.

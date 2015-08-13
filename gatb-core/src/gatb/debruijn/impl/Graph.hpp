@@ -936,7 +936,8 @@ private:
     Node getNode (const Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
 
     /** Friends. */
-    friend struct build_visitor;
+    friend struct build_visitor_solid;
+    friend struct build_visitor_postsolid;
 };
 
 /********************************************************************************/
