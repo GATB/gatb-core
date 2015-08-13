@@ -181,6 +181,9 @@ public:
     /** \copydoc IFileSystem::getRealPath */
     Path getRealPath (const Path& file);
 
+    /** \copydoc IFileSystem::getExtension */
+    std::string getExtension (const Path& path);
+
     /** \copydoc IFileSystem::getTemporaryFilename */
     std::string getTemporaryFilename (const std::string& filename="");
 

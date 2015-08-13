@@ -334,7 +334,7 @@ void executeAlgorithm (Algorithm& algorithm, Storage* storage, IProperties* prop
     if (storage != 0)
     {
         /** We memorize information of the algorithm execution as a property of the corresponding group. */
-        storage->getGroup(algorithm.getName()).addProperty("xml", string("\n") + algorithm.getInfo()->getXML());
+        storage->getGroup(algorithm.getName()).setProperty("xml", string("\n") + algorithm.getInfo()->getXML());
     }
 }
 
@@ -421,7 +421,7 @@ struct build_visitor_solid : public boost::static_visitor<>    {
              * Now, since debloom may use the minimizer repartition function (stored in the solid file),
              * we must not delete the solid file. */
             bool autoDelete = false; // (solidsName == "none") || (solidsName == "null");
-            solidStorage = StorageFactory(graph._storageMode).create (solidsName, true, autoDelete); /* false,false = load it, don't delete if it exists */
+            solidStorage = StorageFactory(graph._storageMode).create (solidsName, true, autoDelete);
         }
         else
         {
@@ -494,12 +494,15 @@ struct build_visitor_solid : public boost::static_visitor<>    {
 /* now build the rest of the graph */
 struct build_visitor_postsolid : public boost::static_visitor<>    {
 
-    Graph& graph; bank::IBank* bank; tools::misc::IProperties* props; 
+    Graph& graph; tools::misc::IProperties* props; 
 
-    build_visitor_postsolid (Graph& aGraph, bank::IBank* aBank, tools::misc::IProperties* aProps)  : graph(aGraph), bank(aBank), props(aProps) {}
+    build_visitor_postsolid (Graph& aGraph, tools::misc::IProperties* aProps)  : graph(aGraph), props(aProps) {}
 
     template<size_t span>  void operator() (GraphData<span>& data) const
     {
+        typedef typename Kmer<span>::Count Count;
+        typedef typename Kmer<span>::Type  Type;
+
         if (!graph.checkState(Graph::STATE_SORTING_COUNT_DONE))
         {
             throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers");
@@ -536,17 +539,14 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
         /************************************************************/
        
         Group& dskGroup = (*solidStorage)("dsk"); 
+        Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
 
         /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
         if (graph._mphfKind != MPHF_NONE && (!graph.checkState(Graph::STATE_MPHF_DONE)))
         {
             DEBUG ((cout << "build_visitor : MPHFAlgorithm BEGIN\n"));
 
-            typedef typename Kmer<span>::Count Count;
-            typedef typename Kmer<span>::Type  Type;
-
             /** We get the iterable for the solid counts and solid kmers. */
-            Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
             Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 
             MPHFAlgorithm<span> mphf_algo (
@@ -828,7 +828,7 @@ Graph::Graph (const std::string& uri)
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
 {
     /** We create a storage instance. */
-    /* (this is actually loading the storage at "uri") */
+    /* (this is actually loading, not creating, the storage at "uri") */
     setStorage (StorageFactory(_storageMode).create (uri, false, false));
 
     /** We get some properties. */
@@ -880,16 +880,16 @@ Graph::Graph (bank::IBank* bank, tools::misc::IProperties* params)
 
     /** We build the graph according to the wanted precision. */
     boost::apply_visitor (build_visitor_solid (*this, bank,params),  *(GraphDataVariant*)_variant);
-    boost::apply_visitor (build_visitor_postsolid (*this, bank,params),  *(GraphDataVariant*)_variant);
+    boost::apply_visitor (build_visitor_postsolid (*this, params),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
 ** METHOD  :
-** PURPOSE : creates a graph from parsed command line arguments
-** INPUT   :
+** PURPOSE : creates (or completes; new feature) a graph from parsed command line arguments.
+** INPUT   : a bank or a h5 file (new feature)
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS : this is mostly duplicated code with function above, TODO refactor?
+** REMARKS : this code could also work for (and is more generic than) the function above, TODO refactor?
 *********************************************************************/
 Graph::Graph (tools::misc::IProperties* params)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
@@ -914,12 +914,54 @@ Graph::Graph (tools::misc::IProperties* params)
     /** We configure the data variant according to the provided kmer size. */
     setVariant (*((GraphDataVariant*)_variant), _kmerSize, integerPrecision);
 
-    /** We build a Bank instance for the provided reads uri. */
-    bank::IBank* bank = Bank::open (params->getStr(STR_URI_INPUT));
+    string input = params->getStr(STR_URI_INPUT);
 
-    /** We build the graph according to the wanted precision. */
-    boost::apply_visitor (build_visitor_solid (*this, bank,params),  *(GraphDataVariant*)_variant);
-    boost::apply_visitor (build_visitor_postsolid (*this, bank,params),  *(GraphDataVariant*)_variant);
+    if (system::impl::System::file().getExtension(input) == "h5")
+    {
+        /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
+        
+        string output = input;//.substr(0,input.find_last_of(".h5")) + "_new.h5";
+        //cout << "To avoid overwriting the input (" << input << "), output will be saved to: "<< output << std::endl;
+
+        cout << "Input is a h5 file (we assume that it contains at least the solid kmers), we will complete it into a graph if necessary\n"; 
+        cout << "This is an experimental feature, use at your own risk. (Well technically, since you're seeing this message, it's too late to abort :)\n";
+        
+        /** We create a storage instance. */
+        /* (this is actually loading, not creating, the storage at "uri") */
+        setStorage (StorageFactory(_storageMode).create (output , false, false));
+    
+        /** We get some properties. */
+        _state     = (Graph::StateMask) atol (getGroup().getProperty ("state").c_str());
+        _kmerSize  =                    atol (getGroup().getProperty ("kmer_size").c_str());
+
+        // TODO: code a check that the dsk group exists and put those three lines in, else print an exception
+        if (_kmerSize == 0) /* try the dsk group; this assumes kmer counting is done */
+            _kmerSize  =    atol (getGroup("dsk").getProperty ("kmer_size").c_str());
+        // also assume kmer counting is done
+        setState(Graph::STATE_SORTING_COUNT_DONE);
+        
+        /** We get library information in the root of the storage. */
+        string xmlString = getGroup().getProperty ("xml");
+        stringstream ss; ss << xmlString;   IProperties* props = new Properties(); LOCAL(props);
+        props->readXML (ss);  getInfo().add (1, props);
+        
+        /** We configure the data variant according to the provided kmer size. */
+        setVariant (*((GraphDataVariant*)_variant), _kmerSize);
+
+        /* call the configure visitor to load everything (e.g. solid kmers, MPHF, etc..) that's been done so far */
+        boost::apply_visitor (configure_visitor (*this, getStorage()),  *(GraphDataVariant*)_variant);
+
+        boost::apply_visitor (build_visitor_postsolid (*this, params),  *(GraphDataVariant*)_variant);
+    }
+    else
+    {
+        /** We build a Bank instance for the provided reads uri. */
+        bank::IBank* bank = Bank::open (params->getStr(STR_URI_INPUT));
+
+        /** We build the graph according to the wanted precision. */
+        boost::apply_visitor (build_visitor_solid (*this, bank,params),  *(GraphDataVariant*)_variant);
+        boost::apply_visitor (build_visitor_postsolid (*this, params),  *(GraphDataVariant*)_variant);
+    }
 }
 
 /*********************************************************************

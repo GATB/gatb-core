@@ -140,6 +140,13 @@ IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
     return reads_name;
 }
 
+
+std::string FileSystemCommon::getExtension(const Path &path)
+{
+    std::string spath = string(path.c_str());
+    return spath.substr(spath.find_last_of(".") + 1);
+}
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :

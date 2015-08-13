@@ -180,6 +180,11 @@ public:
       * \return the real path. */
      virtual Path getRealPath (const Path& file) = 0;
 
+     /** Return the extension to the given file,
+      * \param[in] file : file
+      * \return extension */
+     virtual std::string getExtension (const Path& file) = 0;
+ 
      /** Get a temporary file name. One may provide an argument; in such a case some prefix/suffix will
       * be appended to this name in order to make it unique.
       * \param[in] filename : file name (may be empty)

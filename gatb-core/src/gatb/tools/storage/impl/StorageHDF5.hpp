@@ -203,7 +203,7 @@ private:
             if (exists==true)
             {
                 /** We open the existing file. */
-                _fileId = H5Fopen (getActualName().c_str(), H5P_DEFAULT, H5P_DEFAULT);
+                _fileId = H5Fopen (getActualName().c_str(), H5F_ACC_RDWR, H5P_DEFAULT); /* FIXME: now all files are opened as read/write because I need that in Graph.cpp for opening exiting h5 files this needs better interface */
             }
             else
             {
