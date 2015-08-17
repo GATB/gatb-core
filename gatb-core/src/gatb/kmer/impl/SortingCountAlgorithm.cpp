@@ -943,14 +943,14 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
 
                 /** In case of forcing sorted vector (multiple banks counting for instance), we may have a
                  * partition bigger than the max memory. */
-                if (forceVector  &&  pInfo.getNbSuperKmer(p)*getSizeofPerItem() >= memoryPoolSize)
+                if (forceVector  &&  memoryPartition >= memoryPoolSize)
                 {
                     static const int EXCEED_FACTOR = 2;
 
-                    if (pInfo.getNbSuperKmer(p)*getSizeofPerItem()  < EXCEED_FACTOR*memoryPoolSize)
+                    if (memoryPartition  < EXCEED_FACTOR*memoryPoolSize)
                     {						
                         /** We accept in this case to exceed the allowed memory. */
-                        memoryPoolSize = pInfo.getNbSuperKmer(p)*getSizeofPerItem();
+                        memoryPoolSize = memoryPartition;
                     }
                     else
                     {
@@ -960,22 +960,22 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
                         {
                             /** We launch an exception. */
                             throw Exception ("memory issue: %lld bytes required and %lld bytes available",
-                                pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize
+                                memoryPartition, memoryPoolSize
                             );
                         }
                         else
                         {
                             unsigned long system_mem = System::info().getMemoryPhysicalTotal();
-                            memoryPoolSize = pInfo.getNbSuperKmer(p)*getSizeofPerItem(); 
+                            memoryPoolSize = memoryPartition; 
 
                             if (memoryPoolSize > system_mem*0.95)
                             {
                                 throw Exception ("memory issue: %lld bytes required, %lld bytes set by command-line limit, %lld bytes in system memory",
-                                    pInfo.getNbSuperKmer(p)*getSizeofPerItem(), memoryPoolSize, system_mem
+                                    memoryPartition, memoryPoolSize, system_mem
                                 );
                             }
                             else
-                                cout << "Warning: forced to allocate extra memory: " << memoryPoolSize / MBYTE << " MB" << endl;
+                                cout << "Warning: memory was initially restricted to " << _config._max_memory << " MB, but we actually need to allocate " << memoryPoolSize / MBYTE << " MB due to a partition with " << pInfo.getNbSuperKmer(p) << " superkmers." << endl;
                         }
                     }
                 }
