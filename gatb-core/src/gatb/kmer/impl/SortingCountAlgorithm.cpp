@@ -209,18 +209,22 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_KMER_SIZE,         "size of a kmer",                                 false, "31"    ));
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN,"min abundance threshold for solid kmers",        false, "3"     ));
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",        false, abundanceMax));
-    parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN_THRESHOLD,"min abundance automatic threshold",    false, "3"));
+    parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN_THRESHOLD,"min abundance hard threshold (only used when min abundance is \"auto\")",false, "3"));
     parser->push_back (new OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",        false, "10000"));
-    parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute solids (sum, min, max, one, all)",false, "sum"));
+    parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute counts of several files (sum, min, max, one, all)",false, "sum"));
     parser->push_back (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                         false, "2000"));
     parser->push_back (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                         false, "0"));
     parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",                    false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                                    false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                               false, "."));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_TMP,    "output directory for temporary files",           false, "."));
-    parser->push_back (new OptionOneParam (STR_MINIMIZER_TYPE,    "minimizer type (0=lexi, 1=freq)",                false, "0"));
-    parser->push_back (new OptionOneParam (STR_MINIMIZER_SIZE,    "size of a minimizer",                            false, "8"));
-    parser->push_back (new OptionOneParam (STR_REPARTITION_TYPE,  "minimizer repartition (0=unordered, 1=ordered)", false, "0"));
+
+    IOptionsParser* devParser = new OptionsParser ("kmer count, advanced (developer)");
+
+    devParser->push_back (new OptionOneParam (STR_MINIMIZER_TYPE,    "minimizer type (0=lexi, 1=freq)",                false, "0"));
+    devParser->push_back (new OptionOneParam (STR_MINIMIZER_SIZE,    "size of a minimizer",                            false, "8"));
+    devParser->push_back (new OptionOneParam (STR_REPARTITION_TYPE,  "minimizer repartition (0=unordered, 1=ordered)", false, "0"));
+    parser->push_back (devParser);
 
     return parser;
 }
