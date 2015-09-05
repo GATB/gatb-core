@@ -218,6 +218,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                                    false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                               false, "."));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_TMP,    "output directory for temporary files",           false, "."));
+    parser->push_back (new OptionOneParam (STR_COMPRESS_LEVEL,    "output compression level (0:none, 9:best)",      false, "0"));
 
     IOptionsParser* devParser = new OptionsParser ("kmer count, advanced (developer)");
 

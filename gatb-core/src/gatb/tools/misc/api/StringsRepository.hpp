@@ -117,6 +117,7 @@ public:
     const char* solidity_kind  ()  { return "-solidity-kind"; }
     const char* minimizer_type ()  { return "-minimizer-type"; }
     const char* repartition_type() { return "-repartition-type"; }
+    const char* compress_level()   { return "-out-compress"; }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -167,6 +168,7 @@ public:
 #define STR_SOLIDITY_KIND       gatb::core::tools::misc::StringRepository::singleton().solidity_kind()
 #define STR_MINIMIZER_TYPE      gatb::core::tools::misc::StringRepository::singleton().minimizer_type()
 #define STR_REPARTITION_TYPE    gatb::core::tools::misc::StringRepository::singleton().repartition_type()
+#define STR_COMPRESS_LEVEL      gatb::core::tools::misc::StringRepository::singleton().compress_level()
 
 /********************************************************************************/
 

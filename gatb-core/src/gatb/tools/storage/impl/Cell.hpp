@@ -45,7 +45,11 @@ class Cell : public virtual ICell, public system::SmartPointer
 public:
 
     /** Constructor. */
-    Cell (ICell* parent, const std::string& id)  : _parent(0), _id(id)  { setParent(parent); }
+    Cell (ICell* parent, const std::string& id)  : _parent(0), _id(id), _compressLevel(0)
+	{
+    	setParent(parent);
+    	if (_parent != 0)  { _compressLevel = _parent->getCompressLevel(); }
+	}
 
     /** Destructor. */
     ~Cell ()   {  setParent(0);  }
@@ -63,12 +67,20 @@ public:
         else                {  return getId();  }
     }
 
+    /** \copydoc ICell::setCompressLevel  */
+    void setCompressLevel (int level)  { _compressLevel = level; }
+
+    /** \copydoc ICell::getCompressLevel  */
+    int getCompressLevel () const  { return _compressLevel; }
+
 private:
 
     ICell* _parent;
     void setParent (ICell* parent)  {  _parent = parent;  }
 
     std::string _id;
+
+    int _compressLevel;
 };
 
 /********************************************************************************/

@@ -151,7 +151,7 @@ public:
 
         /** NOTE: we use here CollectionHDF5Patch and not CollectionHDF5 in order to reduce resources leaks due to HDF5.
          * (see also comments in CollectionHDF5Patch). */
-        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionHDF5Patch<Type>(storage->getFileId(), actualName, synchro));
+        return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionHDF5Patch<Type>(storage->getFileId(), actualName, synchro, parent->getCompressLevel()));
     }
 
 private:

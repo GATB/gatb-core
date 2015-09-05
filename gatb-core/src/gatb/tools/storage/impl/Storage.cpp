@@ -63,7 +63,7 @@ Storage::~Storage ()
 *********************************************************************/
 Group* Storage::getRoot ()
 {
-    if (_root == 0)  { setRoot    (_factory->createGroup (this, "")); }
+    if (_root == 0)  { setRoot    (_factory->createGroup (this, ""));   _root->setCompressLevel (this->getCompressLevel()); }
     return _root;
 }
 

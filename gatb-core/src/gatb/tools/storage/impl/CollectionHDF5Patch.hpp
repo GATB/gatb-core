@@ -65,8 +65,8 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
 //public:
 
     /** */
-    CollectionDataHDF5Patch (hid_t fileId, const std::string& filename, system::ISynchronizer* synchro)
-     : _fileId(fileId), _datasetId(0), _typeId(0), _nbItems(0), _name(filename), _synchro(synchro), _nbCalls(0)
+    CollectionDataHDF5Patch (hid_t fileId, const std::string& filename, system::ISynchronizer* synchro, int compress)
+     : _fileId(fileId), _datasetId(0), _typeId(0), _nbItems(0), _name(filename), _synchro(synchro), _nbCalls(0), _compress(compress)
     {
         /** We get the HDF5 type of the item. */
         bool isCompound=false;
@@ -177,6 +177,13 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
             /* Modify dataset creation properties, i.e. enable chunking  */
             hsize_t chunk_dims = GATB_HDF5_NB_ITEMS_PER_BLOCK;
             hid_t propId = H5Pcreate     (H5P_DATASET_CREATE);
+
+            if (_compress > 0)
+            {
+            	status = H5Pset_shuffle (propId);
+            	status = H5Pset_deflate (propId, _compress);
+            }
+
             status       = H5Pset_layout (propId, H5D_CHUNKED);
             status       = H5Pset_chunk  (propId, 1, &chunk_dims);
             if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Pset_chunk), status %d", status);  }
@@ -216,6 +223,7 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
     std::string             _name;
     system::ISynchronizer*  _synchro;
     u_int64_t               _nbCalls;
+    int                     _compress;
 
     void checkCleanup ()
     {
@@ -517,12 +525,12 @@ template <class Item> class CollectionHDF5Patch : public collections::impl::Coll
 public:
 
     /** Constructor. */
-    CollectionHDF5Patch (hid_t fileId, const std::string& name, system::ISynchronizer* synchro)
+    CollectionHDF5Patch (hid_t fileId, const std::string& name, system::ISynchronizer* synchro, int compressLevel)
         : collections::impl::CollectionAbstract<Item> (0,0), _common(0)
     {
         system::LocalSynchronizer localsynchro (synchro);
 
-        CollectionDataHDF5Patch<Item>* common = new CollectionDataHDF5Patch<Item> (fileId, name, synchro);
+        CollectionDataHDF5Patch<Item>* common = new CollectionDataHDF5Patch<Item> (fileId, name, synchro, compressLevel);
 
         /** We create the bag and the iterable instances. */
         this->setBag      (new BagHDF5Patch<Item>      (common));

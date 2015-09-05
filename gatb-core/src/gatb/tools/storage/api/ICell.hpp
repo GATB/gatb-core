@@ -74,6 +74,14 @@ public:
         ICell* loop=0;  for (loop=cell ; loop && loop->getParent() != 0;  loop=loop->getParent())  {}
         return loop;
     }
+
+    /** Set the compression level (if supported)
+     * \param[in] level : from 0 (no compression) to 9 (best compression). */
+    virtual void setCompressLevel (int level) = 0;
+
+    /** Get the compression level
+     * \return the compression level. */
+    virtual int getCompressLevel () const = 0;
 };
 
 /********************************************************************************/
