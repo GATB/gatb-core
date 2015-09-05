@@ -87,7 +87,7 @@ public:
 	
 	std::string getIdNb (int i)
 	{
-		if(i<_banks.size())
+		if(i<(int)_banks.size())
 			return _banks[i]->getId();
 		else
 			return
@@ -96,7 +96,7 @@ public:
 	
 	
 	int64_t estimateNbItemsBanki (int i)  {
-		if(i<_banks.size())
+		if(i<(int)_banks.size())
 			return _banks[i]->estimateNbItems();
 		else
 			return  this->estimateNbItems();
