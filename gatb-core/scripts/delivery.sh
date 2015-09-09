@@ -33,7 +33,7 @@ read
 scp -q $4 $5
 
 # We check that the delivery doesn't already exist.
-if grep -q "$6" $5 ; then echo"" ; echo '===> THIS VERSION ALREADY EXISTS' ; echo"" ; exit 0 ; fi
+if [[ ! "$*" =~ "--override" ]] ; then if grep -q "$6" $5 ; then echo"" ; echo '===> THIS VERSION ALREADY EXISTS' ; echo"" ; exit 0 ; fi ; fi
 
 # SHA 1 MANAGEMENT
 export set GIT_SHA1=`git rev-parse HEAD`
