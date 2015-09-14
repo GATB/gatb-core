@@ -118,6 +118,7 @@ public:
     const char* minimizer_type ()  { return "-minimizer-type"; }
     const char* repartition_type() { return "-repartition-type"; }
     const char* compress_level()   { return "-out-compress"; }
+    const char* config_only()      { return "-config-only"; }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -169,6 +170,7 @@ public:
 #define STR_MINIMIZER_TYPE      gatb::core::tools::misc::StringRepository::singleton().minimizer_type()
 #define STR_REPARTITION_TYPE    gatb::core::tools::misc::StringRepository::singleton().repartition_type()
 #define STR_COMPRESS_LEVEL      gatb::core::tools::misc::StringRepository::singleton().compress_level()
+#define STR_CONFIG_ONLY         gatb::core::tools::misc::StringRepository::singleton().config_only()
 
 /********************************************************************************/
 

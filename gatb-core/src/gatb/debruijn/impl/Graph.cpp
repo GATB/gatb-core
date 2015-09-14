@@ -385,6 +385,7 @@ struct build_visitor_solid : public boost::static_visitor<>    {
         size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
         size_t repartitionType = props->get(STR_REPARTITION_TYPE) ? props->getInt(STR_REPARTITION_TYPE)    : 0;
         size_t compressLevel   = props->get(STR_COMPRESS_LEVEL)   ? props->getInt(STR_COMPRESS_LEVEL)      : 0;
+        bool   configOnly      = props->get(STR_CONFIG_ONLY) != 0;
 
         string output = props->get(STR_URI_OUTPUT) ?
             props->getStr(STR_URI_OUTPUT)   :
@@ -452,6 +453,9 @@ struct build_visitor_solid : public boost::static_visitor<>    {
 
         DEBUG ((cout << "build_visitor : ConfigurationAlgorithm END\n"));
 
+        /** We may have to stop just after configuration. */
+        if (configOnly)  { return; }
+
         /************************************************************/
         /*                  Minimizers repartition                  */
         /************************************************************/
@@ -507,6 +511,9 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
     {
         typedef typename Kmer<span>::Count Count;
         typedef typename Kmer<span>::Type  Type;
+
+        /** We may have to stop just after configuration. */
+        if (props->get(STR_CONFIG_ONLY))  { return; }
 
         if (!graph.checkState(Graph::STATE_SORTING_COUNT_DONE))
         {
@@ -726,6 +733,7 @@ IOptionsParser* Graph::getOptionsParser (bool includeMandatory, bool enableMphf)
     parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
     parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
     parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
+    parserGeneral->push_front (new OptionNoParam  (STR_CONFIG_ONLY,       "dump config only"));
 
     /** We add it to the root parser. */
     parser->push_back  (parserGeneral);
