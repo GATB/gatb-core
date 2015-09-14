@@ -33,7 +33,12 @@ read
 scp -q $4 $5
 
 # We check that the delivery doesn't already exist.
-if [[ ! "$*" =~ "--override" ]] ; then if grep -q "$6" $5 ; then echo"" ; echo '===> THIS VERSION ALREADY EXISTS' ; echo"" ; exit 0 ; fi ; fi
+if grep -q "$6" $5 ; then echo"" ; echo '===> THIS VERSION ALREADY EXISTS' ; echo"" ; 
+    versionexists=1
+    if [[ ! "$*" =~ "--override" ]] ; then 
+      exit 0 
+    fi
+fi
 
 # SHA 1 MANAGEMENT
 export set GIT_SHA1=`git rev-parse HEAD`
@@ -63,7 +68,11 @@ chmod a+r $7
 scp -q $7 $8
 
 # We add information to the versions file
-echo $6 >> $5  
-
+if [[ ! "$versionexists" == 1 ]]
+then
+    echo $6 >> $5  
+else
+    echo "not adding version to the .txt list as it already exists"
+fi
 # We set the versions.txt file to the server
 scp -q $5  $4 
