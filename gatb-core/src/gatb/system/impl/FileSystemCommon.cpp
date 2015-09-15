@@ -124,7 +124,7 @@ IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
     free (reads_path);
 
 	//string prefix = System::file().getBaseName(_inputFilename);;
-	while(reads_name.find('.') != string::npos){ // Hum this a while() and not an if()? This is an indirect way to trim up to the first '.'. TODO perhaps fix it. Anyway, it's harmless
+	if (reads_name.find('.') != string::npos){ // make sure there is a dot in the file, else the basename is the file itself
 
 	    /** We look for the beginnin of the suffix. */
 		int lastindex = reads_name.find_last_of(".");
