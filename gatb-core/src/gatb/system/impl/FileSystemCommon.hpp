@@ -176,7 +176,7 @@ public:
     Path getTemporaryDirectory ();
 
     /** \copydoc IFileSystem::getBaseName */
-    Path getBaseName (const Path& path);
+    Path getBaseName (const Path& path, bool cutToFirstDot = false);
 
     /** \copydoc IFileSystem::getRealPath */
     Path getRealPath (const Path& file);

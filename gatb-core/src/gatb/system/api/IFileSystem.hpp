@@ -171,9 +171,10 @@ public:
 
      /** Return the base of the URI
       * \param[in] path : uri from which we want to extract the base name.
+      * \param[in] cutToFirstDot : by default, getBaseName("a.b.c.fq") = "a.b.c". If cutToFirstDot is true, will return just "a"
       * \return the base name of the uri
       */
-     virtual Path getBaseName (const Path& path) = 0;
+     virtual Path getBaseName (const Path& path, bool cutToFirstDot = false) = 0;
 
      /** Return the canonical path to the given file, ie replace symbolic links or relative path.
       * \param[in] file : the file we want the canonical path.

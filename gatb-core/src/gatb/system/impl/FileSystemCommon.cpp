@@ -112,7 +112,7 @@ IFileSystem::Path FileSystemCommon::getTemporaryDirectory ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
+IFileSystem::Path FileSystemCommon::getBaseName (const Path& path, bool cutToFirstDot)
 {
     /** We duplicate the provided path. */
     char* reads_path = strdup (path.c_str());
@@ -124,13 +124,16 @@ IFileSystem::Path FileSystemCommon::getBaseName (const Path& path)
     free (reads_path);
 
 	//string prefix = System::file().getBaseName(_inputFilename);;
-	if (reads_name.find('.') != string::npos){ // make sure there is a dot in the file, else the basename is the file itself
+	while (reads_name.find('.') != string::npos){ // make sure there is a dot in the file, else the basename is the file itself
 
 	    /** We look for the beginnin of the suffix. */
 		int lastindex = reads_name.find_last_of(".");
 
 	    /** We build the result. */
 		reads_name = reads_name.substr(0, lastindex);
+
+        if (cutToFirstDot == false)
+            break;
 	}
 
     //int lastindex = reads_name.find_last_of (".");
