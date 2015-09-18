@@ -204,6 +204,44 @@ IThreadGroup* ThreadGroup::find (IThread::Id id)
     return 0;
 }
 
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
+bool ThreadGroup::findThreadInfo (IThread::Id id, std::pair<IThread*,size_t>& info)
+{
+	init_mutex_if_needed();
+
+	LOCK();
+
+    /** We look for the provided thread group. */
+    for (std::list<ThreadGroup*>::iterator it = _groups.begin(); it != _groups.end(); it++)
+    {
+        ThreadGroup* group = *it;
+
+    	size_t idx=0;
+        for (std::vector<IThread*>::iterator itThread = group->_threads.begin();  itThread != group->_threads.end(); itThread++, idx++)
+        {
+            if ((*itThread)->getId() == id)
+            {
+            	info.first  = *itThread;
+            	info.second = idx;
+
+            	UNLOCK();
+            	return true;
+            }
+        }
+    }
+
+	UNLOCK();
+
+    return false;
+}
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

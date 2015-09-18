@@ -133,8 +133,10 @@ size_t Dispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand*
 
     system::IThreadGroup* threadGroup = system::impl::ThreadGroup::create ();
 
+    size_t idx = 0;
+
     /** We create threads and add them to the thread group. */
-    for (std::vector<ICommand*>::iterator it = commands.begin(); it != commands.end(); it++)
+    for (std::vector<ICommand*>::iterator it = commands.begin(); it != commands.end(); it++, idx++)
     {
         /** We add the thread to the group. Note that we have to set two things:
          *  - the main loop function to be called by the thread
@@ -145,7 +147,7 @@ size_t Dispatcher::dispatchCommands (std::vector<ICommand*>& commands, ICommand*
          *  type from the void* data. */
         threadGroup->add (
             mainloop,
-            new IThreadGroup::Info (threadGroup,  new CommandStartSynchro (*it, threadGroup->getSynchro()))
+            new IThreadGroup::Info (threadGroup,  new CommandStartSynchro (*it, threadGroup->getSynchro()), idx )
         );
     }
 

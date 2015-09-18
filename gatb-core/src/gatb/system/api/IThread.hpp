@@ -80,9 +80,10 @@ public:
 
     struct Info : public SmartPointer
     {
-        Info (IThreadGroup* group, void* data) : group(group), data(data) {}
+        Info (IThreadGroup* group, void* data, size_t idx) : group(group), data(data), idx(idx) {}
         IThreadGroup* group;
         void*         data;
+        size_t        idx;
     };
 
     /** Destructor */

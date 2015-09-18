@@ -182,6 +182,11 @@ public:
      * \return the IThreadGroup instance if found, NULL otherwise */
     static IThreadGroup* find (IThread::Id id);
 
+    /** Get thread information (IThread and index within the group);
+     * \param[in] id : the thread id
+     * \return true if found */
+    static bool findThreadInfo (IThread::Id id, std::pair<IThread*,size_t>& info);
+
     /** \copydoc IThreadGroup::add */
     void add (void* (*mainloop) (void*), void* data);
 
