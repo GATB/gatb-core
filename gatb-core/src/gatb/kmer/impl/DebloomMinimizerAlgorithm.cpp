@@ -107,19 +107,23 @@ struct FunctorKmersExtensionMinimizer
         IBloom<Type>*         bloom;
         ModelMini&           _modelMini;
         vector<Type>&        _solids;
-        PartitionCache<Type> _partition;
         Repartitor&          _repart;
         size_t               _nbPass;
         size_t               _nbPartsPerPass;
+        int                  _currentThreadIndex;
+		vector<PartitionCache<Type>*>& _partCacheVec;
 
         FunctorNeighbors (
             IBloom<Type>*       bloom,
             ModelMini&          modelMini,
             vector<Type>&       solids,
             Partition<Type>*    extentParts,
-            Repartitor&         repart
+            Repartitor&         repart,
+			vector<PartitionCache<Type>*>& partCacheVec
         )
-            : bloom(bloom), _modelMini(modelMini), _solids(solids), _partition(*extentParts,1<<12), _repart(repart)
+            : bloom(bloom), _modelMini(modelMini), _solids(solids),
+			  _repart(repart), _currentThreadIndex(-1),
+			  _partCacheVec(partCacheVec)
         {
             _nbPass = _repart.getNbPasses();
 
@@ -145,9 +149,30 @@ struct FunctorKmersExtensionMinimizer
                  * several passes (see FillPartitions in SortingCountAlgorithm). */
                 mm += (mini % _nbPass) * _nbPartsPerPass;
 
+                /** We retrieve the partition of interest. Note that we have a lazy accessor for the thread index
+                 * within the ThreadGroup, because this value wouldn't be known during the constructor of the functor. */
+                PartitionCache<Type>* partition = _partCacheVec[getThreadIndex()];
+
                 /** We add the neighbor to the correct debloom partition. */
-                _partition[mm].insert (neighbor);
+                (*partition)[mm].insert (neighbor);
             }
+        }
+
+        int getThreadIndex()
+        {
+        	if (_currentThreadIndex < 0)
+        	{
+				std::pair<IThread*,size_t> info;
+				if (ThreadGroup::findThreadInfo (System::thread().getThreadSelf(), info) == true)
+				{
+					_currentThreadIndex = info.second;
+				}
+				else
+				{
+					throw Exception("Unable to find thread index during debloom(minimizer)");
+				}
+        	}
+        	return _currentThreadIndex;
         }
 
     } functorNeighbors;
@@ -161,9 +186,12 @@ struct FunctorKmersExtensionMinimizer
         IBloom<Type>*       bloom,
         Partition<Type>*    extentParts,
         vector<Type>&       solids,
-        Repartitor&         repart
+        Repartitor&         repart,
+		vector<PartitionCache<Type>*>& partCacheVec
     )
-        : functorNeighbors(bloom,modelMini, solids, extentParts, repart),  model(model),  bloom(bloom)  {}
+        : functorNeighbors(bloom,modelMini, solids, extentParts, repart, partCacheVec),  model(model),  bloom(bloom)
+    {
+    }
 
     void operator() (const Count& kmer) const
     {
@@ -302,6 +330,15 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     /** We build the solid neighbors extension.      */
     /*************************************************/
     {
+    	/** We create a vector of PartitionCache available for the process of all solid kmers partition.
+    	 *  We have one item per thread.
+    	 */
+    	vector<PartitionCache<Type>*> partCacheVec (this->getDispatcher()->getExecutionUnitsNumber());
+    	for (size_t i=0; i<this->getDispatcher()->getExecutionUnitsNumber(); i++)
+    	{
+    		partCacheVec[i] = new PartitionCache<Type> (*debloomParts,1<<12,0);
+    	}
+
         TIME_INFO (this->getTimeInfo(), "fill_debloom_file");
 
         DEBUG (("DebloomMinimizerAlgorithm<span>::execute_aux   fill_debloom_file BEGIN   nbParts=%ld\n", nbPartitions));
@@ -329,12 +366,18 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
             size_t k=0;  for (itKmers->first(); !itKmers->isDone(); itKmers->next()) { solids[k++] = itKmers->item().value; }
 
             /** We create functor that computes the neighbors extension of the solid kmers. */
-            FunctorKmersExtensionMinimizer<Model,ModelMini,Count,Type> functorKmers (model, modelMini, bloom, debloomParts, solids, repart);
+            FunctorKmersExtensionMinimizer<Model,ModelMini,Count,Type> functorKmers (model, modelMini, bloom, debloomParts, solids, repart, partCacheVec);
 
             /** We iterate the solid kmers. */
             this->getDispatcher()->iterate (itKmers, functorKmers);
 
         }  /* for (itParts->first (); ...) */
+
+        /** We get rid of the PartitionCache objets. */
+        for (size_t i=0; i<this->getDispatcher()->getExecutionUnitsNumber(); i++)
+        {
+        	delete partCacheVec[i];
+        }
 
         /** We flush the built partition. */
         debloomParts->flush();
