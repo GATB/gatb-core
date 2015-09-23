@@ -2,7 +2,9 @@
 #  MACROS 
 ################################################################################
 FUNCTION (LOOKUP_PATH name items prefix result)
-    
+
+    SET (TMP "/notfound" )
+
     FOREACH (path ${items})
         IF (EXISTS "${prefix}/${path}")
             SET (TMP "${prefix}/${path}" )
