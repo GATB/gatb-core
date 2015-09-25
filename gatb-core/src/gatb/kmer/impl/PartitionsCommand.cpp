@@ -822,7 +822,10 @@ void PartitionsByVectorCommand<span>::executeDump ()
 
     std::priority_queue< kxp, std::vector<kxp>,kxpcomp > pq;
 
-    CounterBuilder solidCounter (_nbItemsPerBankPerPart.size());
+    size_t nbBanks = _nbItemsPerBankPerPart.size();
+    if (nbBanks == 0) nbBanks = 1;
+
+    CounterBuilder solidCounter (nbBanks);
 
     Type previous_kmer ;
 
