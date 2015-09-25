@@ -928,8 +928,6 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
             /** If we have several input banks, we may have to compute kmer solidity for each bank, which
              * can be currently done only with sorted vector. */
             bool forceVector  = _nbKmersPerPartitionPerBank.size() > 1 && \
-                                (_config._solidityKind != KMER_SOLIDITY_MIN) && \
-                                ( _config._solidityKind != KMER_SOLIDITY_MAX) && \
                                 ( _config._solidityKind != KMER_SOLIDITY_SUM);
 
             ICommand* cmd = 0;
@@ -1006,9 +1004,12 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
                  *   offsets :   xxx     xxx           xxx
                  */
                 vector<size_t> nbItemsPerBankPerPart;
-                for (size_t i=0; i<_nbKmersPerPartitionPerBank.size(); i++)
+                if ( _config._solidityKind != KMER_SOLIDITY_SUM)
                 {
-                    nbItemsPerBankPerPart.push_back (_nbKmersPerPartitionPerBank[i][p] - (i==0 ? 0 : _nbKmersPerPartitionPerBank[i-1][p]) );
+                    for (size_t i=0; i<_nbKmersPerPartitionPerBank.size(); i++)
+                    {
+                        nbItemsPerBankPerPart.push_back (_nbKmersPerPartitionPerBank[i][p] - (i==0 ? 0 : _nbKmersPerPartitionPerBank[i-1][p]) );
+                    }
                 }
 
                 cmd = new PartitionsByVectorCommand<span> (
