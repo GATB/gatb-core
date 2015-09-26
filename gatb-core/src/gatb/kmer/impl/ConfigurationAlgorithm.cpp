@@ -310,15 +310,15 @@ void ConfigurationAlgorithm<span>::execute ()
     if (_config._max_disk_space == 0)  { _config._max_disk_space = 10000; }
 
     if (_config._max_memory == 0)  {  _config._max_memory = System::info().getMemoryProject(); }
-    if (_config._max_memory == 0)  {  _config._max_memory = 1000; }
+    if (_config._max_memory == 0)  {  _config._max_memory = 5000; }
 
     /* make sure to not use more mem than system, when max_memory has default value (useful for docker images) */
-    if (_config._max_memory == 2000)  {
+    if (_config._max_memory == 5000)  {
         unsigned long system_mem = System::info().getMemoryPhysicalTotal() / MBYTE;
         if (_config._max_memory > (system_mem * 2) / 3)
         {
             _config._max_memory = (system_mem * 2) / 3;
-            cout << "Warning: default memory usage (2000 MB) is close or above system max, setting memory to: " << _config._max_memory << " MB" << endl;
+            cout << "Warning: default memory usage (5000 MB) is close or above system max, setting memory to: " << _config._max_memory << " MB" << endl;
         }
     }
 
