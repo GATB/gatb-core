@@ -435,7 +435,7 @@ void ConfigurationAlgorithm<span>::execute ()
      * number of cached items * number of partition * number of cores * size of a kmer
      * e.g. (4096 kmers * 8 bytes = 32 KB per partion) * 6000 partitions * 32 cores = 6 GB of buffer */
 
-    int64_t memoryUsageCachedItems;
+    uint64_t memoryUsageCachedItems;
     _config._nb_cached_items_per_core_per_part = 1 << 8; // cache at least 256 items (128 here, then * 2 in the next while loop)
 
     do
