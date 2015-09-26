@@ -74,6 +74,7 @@ Properties Configuration::getProperties() const
 
     result.add (1, "nb_cores_per_partition",     "%d",  _nbCores_per_partition);
     result.add (1, "nb_partitions_in_parallel",  "%d",  _nb_partitions_in_parallel);
+    result.add (1, "nb_cached_items_per_core_per_part",  "%d",  _nb_cached_items_per_core_per_part);
 
     result.add (1, "nb_banks",  "%d",  _nb_banks);
 

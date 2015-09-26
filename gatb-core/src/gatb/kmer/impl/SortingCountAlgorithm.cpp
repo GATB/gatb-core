@@ -663,6 +663,7 @@ public:
         size_t             nbPasses,
         size_t             currentPass,
         size_t             nbPartitions,
+        size_t             nbCacheItems,
         IteratorListener*  progress,
         BankStats&         bankStats,
         Partition<Type>*   partition,
@@ -672,7 +673,7 @@ public:
     :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
         _kx(4),
         _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
-        _repartition (repartition), _partition (*partition,1<<12,0)
+        _repartition (repartition), _partition (*partition, nbCacheItems, 0)
     {
         _mask_radix = (int64_t) 255 ;
         _mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
@@ -773,7 +774,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
 	
         getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
-            model, _config._nb_passes, pass, _config._nb_partitions, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo
+            model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo
         ), groupSize, deleteSynchro);
 
 

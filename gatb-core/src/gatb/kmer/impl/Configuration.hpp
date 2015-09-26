@@ -93,6 +93,9 @@ public:
     u_int16_t   _nb_bits_per_kmer;
 
     u_int16_t   _nb_banks;
+    
+    u_int32_t   _nb_cached_items_per_core_per_part;
+
 
     /****************************************/
     /**               MISC                  */

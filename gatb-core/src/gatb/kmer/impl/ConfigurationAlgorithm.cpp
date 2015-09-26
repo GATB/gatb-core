@@ -428,6 +428,28 @@ void ConfigurationAlgorithm<span>::execute ()
 
     assert(_nbCores_per_partition > 0);
 
+    /* optimize the number of cached items per partition per core */
+    /* add more items to partition cache as long as the total memory of cached items 
+     * don't use more than a 10th of the requested memory (accepatble overhead) 
+     * detail of the memory usage of items in partitions cache:
+     * number of cached items * number of partition * number of cores * size of a kmer
+     * e.g. (4096 kmers * 8 bytes = 32 KB per partion) * 6000 partitions * 32 cores = 6 GB of buffer */
+
+    int64_t memoryUsageCachedItems;
+    _config._nb_cached_items_per_core_per_part = 1 << 8; // cache at least 256 items (128 here, then * 2 in the next while loop)
+
+    do
+    {
+        _config._nb_cached_items_per_core_per_part *= 2;
+        memoryUsageCachedItems = 1LL * _config._nb_cached_items_per_core_per_part *_config._nb_partitions * _config._nbCores * sizeof(Type); 
+    }
+    while (memoryUsageCachedItems < _config._max_memory * MBYTE / 10);
+        
+    DEBUG (("ConfigurationAlgorithm<span>::execute  _config._nb_cached_items_per_core_per_part : %zu ; total memory usage of cached items : %lld MB \n",
+        _config._nb_cached_items_per_core_per_part, memoryUsageCachedItems / MBYTE
+    ));
+
+
     /** We set the config as set. */
     _config._isComputed = true;
 
