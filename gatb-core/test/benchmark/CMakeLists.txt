@@ -4,6 +4,9 @@
 
 include_directories (${gatb-core-includes})
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") # needed for bench_mphf
+
+
 list (APPEND PROGRAMS bench1 bench_bloom bench_mphf)
 
 FOREACH (program ${PROGRAMS})
