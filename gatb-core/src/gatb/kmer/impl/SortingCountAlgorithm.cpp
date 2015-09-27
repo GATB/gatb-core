@@ -924,8 +924,6 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
             uint64_t memoryPartition = (pInfo.getNbSuperKmer(p)*getSizeofPerItem()); //in bytes
             DEBUG (("  (%llu  MB) ",memoryPartition/MBYTE));
 
-            bool forceHashing = (_config._partitionType == 1);
-
             /** If we have several input banks, we may have to compute kmer solidity for each bank, which
              * can be currently done only with sorted vector. */
             bool forceVector  = _nbKmersPerPartitionPerBank.size() > 1 && \
@@ -934,7 +932,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
             ICommand* cmd = 0;
 
             //still use hash if by vector would be too large even with single part at a time
-            if ( ((memoryPartition > mem && currentNbCores==1) || forceHashing) && !forceVector)
+            if ( (memoryPartition > mem && currentNbCores==1)  && !forceVector)
             {
                 if (pool.getCapacity() != 0)  {  pool.reserve(0);  }
 

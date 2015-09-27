@@ -68,7 +68,6 @@ Properties Configuration::getProperties() const
     result.add (1, "nb_partitions",     "%d",  _nb_partitions);
     result.add (1, "nb_bits_per_kmer",  "%d",  _nb_bits_per_kmer);
     result.add (1, "nb_cores",          "%d",  _nbCores);
-    result.add (1, "partition_type",    "%d",  _partitionType);
     result.add (1, "minimizer_type",    "%s",  (_minimizerType == 0) ? "lexicographic (kmc2 heuristic)" : "frequency");
     result.add (1, "repartition_type",  "%s",  (_repartitionType == 0) ? "unordered" : "ordered");
 
@@ -104,7 +103,6 @@ void Configuration::load (tools::storage::impl::Group& group)
     is.read ((char*)&_max_memory,                    sizeof(_max_memory));
     is.read ((char*)&_nbCores,                    sizeof(_nbCores));
     is.read ((char*)&_nb_partitions_in_parallel,                    sizeof(_nb_partitions_in_parallel));
-    is.read ((char*)&_partitionType,                    sizeof(_partitionType));
     is.read ((char*)&_abundanceUserNb,                    sizeof(_abundanceUserNb));
     _abundance.resize (_abundanceUserNb);
     is.read ((char*)_abundance.data(),    sizeof(tools::misc::CountRange)*_abundance.size());
@@ -145,7 +143,6 @@ void Configuration::save (tools::storage::impl::Group& group)
     os.write ((const char*)&_max_memory,                    sizeof(_max_memory));
     os.write ((const char*)&_nbCores,                    sizeof(_nbCores));
     os.write ((const char*)&_nb_partitions_in_parallel,                    sizeof(_nb_partitions_in_parallel));
-    os.write ((const char*)&_partitionType,                    sizeof(_partitionType));
     os.write ((const char*)&_abundanceUserNb,                    sizeof(_abundanceUserNb));
     os.write ((const char*)_abundance.data(),    sizeof(tools::misc::CountRange)*_abundance.size());
 

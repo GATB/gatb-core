@@ -205,8 +205,6 @@ ConfigurationAlgorithm<span>::ConfigurationAlgorithm (bank::IBank* bank, IProper
 
     _config._nb_partitions_in_parallel = _config._nbCores;
 
-    _config._partitionType = 0;
-
     _config._nb_bits_per_kmer = Type::getSize();
 }
 
@@ -375,33 +373,13 @@ void ConfigurationAlgorithm<span>::execute ()
         assert (_max_memory > 0);
         //printf("volume_per_pass %lli  _nbCores %zu _max_memory %i \n",volume_per_pass, _nbCores,_max_memory);
 
-        if (_config._partitionType == 1) // adjust partition size for hash table
-        {
-            _config._nb_partitions = (u_int32_t) ceil((float) _config._nb_partitions / load_factor);
-            _config._nb_partitions = ((_config._nb_partitions * OAHash<Type>::size_entry()) + sizeof(Type)-1) / sizeof(Type); // also adjust for hash overhead
-#if 0
-            if (_flagEstimateNbDistinctKmers)
-            {
-                // use our estimation of number of distinct kmers to refine number of partitions
-                // it's essentially a way to set optimism optimally
-                // i'm not enabling it because computing it is slow, and reward was too small
-                _nb_partitions = std::max ((u_int32_t) ceil( (float) _nb_partitions *  est_volume_distinct_ratio  * 1.3 ), (u_int32_t)1);  // 1.3 is for security
-            }
-            else
-#endif
-            {
-                _config._nb_partitions = std::max ((_config._nb_partitions/(optimism+1)), (u_int32_t)1);
-            }
-        }
-        else
-        {
-            // _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
-            _config._nb_partitions  = ( ( volume_per_pass* _config._nb_partitions_in_parallel) / _config._max_memory ) + 1;
+        // _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
+        _config._nb_partitions  = ( ( volume_per_pass* _config._nb_partitions_in_parallel) / _config._max_memory ) + 1;
 
-            //printf("nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
-            //_nb_partitions = max_open_files; break;
-        }
-             if (_config._nb_partitions >= max_open_files && _config._nb_partitions_in_parallel >1)     { _config._nb_partitions_in_parallel  = _config._nb_partitions_in_parallel /2;  }
+        //printf("nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
+        //_nb_partitions = max_open_files; break;
+
+        if (_config._nb_partitions >= max_open_files && _config._nb_partitions_in_parallel >1)     { _config._nb_partitions_in_parallel  = _config._nb_partitions_in_parallel /2;  }
         else if (_config._nb_partitions >= max_open_files && _config._nb_partitions_in_parallel == 1)   { _config._nb_passes++;  }
         else                                                                            { break;         }
 
