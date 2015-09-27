@@ -23,7 +23,6 @@
 #include <gatb/bank/impl/BankHelpers.hpp>
 
 #include <gatb/kmer/impl/Model.hpp>
-#include <gatb/kmer/impl/ModelAbstract.hpp>
 #include <gatb/kmer/impl/BankKmerIterator.hpp>
 
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>

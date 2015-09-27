@@ -740,7 +740,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We may have to retrieve the minimizers frequencies computed in the RepartitorAlgorithm. */
     if (_config._minimizerType == 1)  {  freq_order = _repartitor->getMinimizerFrequencies ();  }
 
-    Model model( _config._kmerSize, _config._minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequency(), freq_order);
+    Model model( _config._kmerSize, _config._minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequencyOrLex(), freq_order);
 
     int mmsize = model.getMmersModel().getKmerSize();
 
