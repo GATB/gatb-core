@@ -118,6 +118,8 @@ void Configuration::load (tools::storage::impl::Group& group)
     is.read ((char*)&_nb_partitions,           sizeof(_nb_partitions));
     is.read ((char*)&_nb_bits_per_kmer,           sizeof(_nb_bits_per_kmer));
     is.read ((char*)&_nb_banks,           sizeof(_nb_banks));
+    is.read ((char*)&_nb_cached_items_per_core_per_part,           sizeof(_nb_cached_items_per_core_per_part));
+
 
 }
 
@@ -158,6 +160,7 @@ void Configuration::save (tools::storage::impl::Group& group)
     os.write ((const char*)&_nb_partitions,           sizeof(_nb_partitions));
     os.write ((const char*)&_nb_bits_per_kmer,           sizeof(_nb_bits_per_kmer));
     os.write ((const char*)&_nb_banks,           sizeof(_nb_banks));
+    os.write ((const char*)&_nb_cached_items_per_core_per_part,           sizeof(_nb_cached_items_per_core_per_part));
 
     os.flush();
 
