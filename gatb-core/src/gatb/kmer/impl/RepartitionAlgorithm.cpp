@@ -369,7 +369,7 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
     DEBUG (("RepartitorAlgorithm<span>::computeRepartition\n"));
 
     /** We create a kmer model; using the frequency order if we're in that mode */
-    Model model (_config._kmerSize, _config._minim_size, typename Kmer<span>::ComparatorMinimizerFrequency(), _freq_order);
+    Model model (_config._kmerSize, _config._minim_size, typename Kmer<span>::ComparatorMinimizerFrequencyOrLex(), _freq_order);
 
     int mmsize = model.getMmersModel().getKmerSize();
 

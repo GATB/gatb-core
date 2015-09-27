@@ -850,7 +850,7 @@ struct Kmer
     /* compare the minimizers by frequency, if information is available, else lexicographical */
     /* maybe this code can be factorized with ComparatorMinimizer or also one can say that it subsumes it 
      * (at the cost of accessing has_frequency for each comparison) */
-    struct ComparatorMinimizerFrequency
+    struct ComparatorMinimizerFrequencyOrLex
     {
         template<class Model>  void init (const Model& model, Type& best) 
         {   
@@ -895,7 +895,7 @@ struct Kmer
      * Example of use:
      * \snippet kmer2.cpp  snippet1_minimizer
      */
-    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizerFrequency> // TODO: decide whether we keep that as default or not
+    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizerFrequencyOrLex> // TODO: decide whether we keep that as default or not
     class ModelMinimizer :  public ModelAbstract <ModelMinimizer<ModelType,Comparator>, KmerMinimizer<ModelType,Comparator> >
     {
     public:

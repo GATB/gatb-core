@@ -300,7 +300,7 @@ void DebloomMinimizerAlgorithm<span>::execute_aux (
     typedef typename Kmer<span>::template ModelMinimizer<Model>  ModelMini;
     Model      model     (this->_kmerSize);
     ModelMini  modelMini (this->_kmerSize, this->_miniSize,
-        typename Kmer<span>::ComparatorMinimizerFrequency(), repart.getMinimizerFrequencies()
+        typename Kmer<span>::ComparatorMinimizerFrequencyOrLex(), repart.getMinimizerFrequencies()
     );
 
     /** We create the collection that will hold the critical false positive kmers. */
