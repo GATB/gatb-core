@@ -33,7 +33,7 @@ SET (GATB_CORE_INSTALL_EXCLUDE "1")
 # We look for the gatb-core directory
 # We look for the gatb-core directory
 # WARNING: GATB-core has to be in one of the following HARDCODED locations in your project!!
-LOOKUP_PATH ("gatb-core" "../thirdparty/gatb-core;../../thirdparty/gatb-core/gatb-core;thirdparty/gatb-core" ${PROJECT_SOURCE_DIR} GATB_CORE_PATH)
+LOOKUP_PATH ("gatb-core" "gatb-core/gatb-core;../thirdparty/gatb-core;../../thirdparty/gatb-core/gatb-core;thirdparty/gatb-core" ${PROJECT_SOURCE_DIR} GATB_CORE_PATH)
 
 # we depend on gatb-core; here, we define where to find all the required material
 add_subdirectory (${GATB_CORE_PATH}  "${CMAKE_CURRENT_BINARY_DIR}/ext/gatb-core")
