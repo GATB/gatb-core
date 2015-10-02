@@ -199,6 +199,11 @@ struct Kmer
          * \return the kmer value as a Type object. */
         const Type& value  () const { return table[(int)choice];   }
 
+        /** Returns the value of the kmer.
+         * \param[in] which: forward or reverse strand
+         * \return the kmer value as a Type object. */
+        const Type& value  (int which) const { return table[which];   }
+
         /** Comparison operator between two instances.
          * \param[in] t : object to be compared to
          * \return true if the values are the same, false otherwise. */
@@ -1035,6 +1040,13 @@ struct Kmer
             return km.minimizer().value().getVal();
         }
 
+        u_int64_t getMinimizerValueNew (const Type& k) const /* optimized code, hopefully */
+        {
+            Kmer km; km.set(k);  this->computeNewMinimizerNew (km);
+            return km.minimizer().value().getVal();
+        }
+
+
         void setMinimizersFrequency (uint32_t *freq_order)
         {
             _cmp.include_frequency(freq_order);
@@ -1123,6 +1135,45 @@ struct Kmer
                 if (_cmp (mmer.value(), kmer._minimizer.value()) == true)  {  kmer._minimizer = mmer;   kmer._position = idx;  }
             }
         }
+
+        /** Returns the minimizer of the provided vector of mmers. */
+        void computeNewMinimizerNew (Kmer& kmer) const
+        {
+            /** We update the attributes of the provided kmer. Note that an invalid minimizer is
+             * memorized by convention by a negative minimizer position. */
+            kmer._minimizer = this->_minimizerDefault;
+            kmer._position  = -1;
+            kmer._changed   = true;
+
+            /** We need a local object that loops each mmer of the provided kmer (and we don't want
+             * to modify the kmer value of this provided kmer). */
+            Kmer loop = kmer;
+
+            typename ModelType::Kmer mmer;
+
+            /** We compute each mmer and memorize the minimizer among them. */
+
+            Type kmer_minimizer_value = kmer._minimizer.value();
+            Type val = kmer.value(0);
+            
+            for (int16_t idx=_nbMinimizers-1; idx>=0; idx--)
+            {
+                /** We extract the most left mmer in the kmer. */
+                Type candidate_minim = _mmer_lut[(val & _mask).getVal()];
+
+                /** We check whether this mmer is the new minimizer. */
+                if (_cmp (candidate_minim, kmer_minimizer_value ) == true)  
+                {  
+                    mmer.set(candidate_minim);
+                    kmer._minimizer = mmer;   
+                    kmer._position = idx; 
+                    kmer_minimizer_value = candidate_minim; 
+                }
+            
+                val >>= 2;    
+            }
+        }
+
     };
 
     /************************************************************/
