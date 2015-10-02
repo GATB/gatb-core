@@ -1071,14 +1071,16 @@ struct Kmer
             u_int64_t  _mmask_m1  ;
             u_int64_t  _mask_0101 ;
             u_int64_t  _mask_ma1 ;
+			
+			//code to ban mmer with AA inside except if at the beginnning
+			// A C T G        00   01   10   11
+            _mmask_m1  = (1 << ((len-2)*2)) -1 ; //vire 2 premieres lettres m = 8  donne    00 00 11 11 11 11 11 11
+            _mask_0101 = 0x5555555555555555  ; //         01 01 01 01 01 01 01 01
+            _mask_ma1  = _mask_0101 & _mmask_m1;//        00 00 01 01 01 01 01 01
 
-            _mmask_m1  = (1 << ((len-2)*2)) -1 ;
-            _mask_0101 = 0x5555555555555555  ;
-            _mask_ma1  = _mask_0101 & _mmask_m1;
-
-            u_int64_t a1 = mmer;
-            a1 =   ~(( a1 )   | (  a1 >>2 ));
-            a1 =((a1 >>1) & a1) & _mask_ma1 ;
+            u_int64_t a1 = mmer; //
+            a1 =   ~(( a1 )   | (  a1 >>2 ));  //
+            a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
 
             if(a1 != 0) return false;
 
