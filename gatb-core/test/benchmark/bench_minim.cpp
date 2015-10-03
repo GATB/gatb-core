@@ -103,7 +103,6 @@ void debruijn_minim_bench (const Graph& graph, size_t kmerSize)
     for (unsigned int i = 0 ; i < NB_REPETITIONS ; i++)
         modelMini.getMinimizerValue(kmer);
     auto end_t=chrono::system_clock::now();
-    cout << "start of function 4" << endl;
 			
     cout << NB_REPETITIONS << " minimizers of length " << miniSize << " on a " << kmerSize << "-mer : " << diff_wtime(start_t, end_t) / unit << " seconds" << endl;
 	
@@ -126,6 +125,8 @@ void debruijn_minim_bench (const Graph& graph, size_t kmerSize)
     end_t=chrono::system_clock::now();
     cout << nodes.size() << " minimizers of length " << miniSize << " on all nodes (" << kmerSize << "-mers), " << to_string(times) << " times, with existing code : " << (diff_wtime(start_t, end_t) / unit) - baseline_time << " seconds" << endl;
 
+    /* uncomment this if we have a new minimizer code to test against (getMinimizerValueNew) */
+#if 0
     start_t=chrono::system_clock::now();
     for (int i=0; i < times; i++)
         for (nodes.first(); !nodes.isDone(); nodes.next())
@@ -144,6 +145,7 @@ void debruijn_minim_bench (const Graph& graph, size_t kmerSize)
         }
     }
     cout << "all good." << endl;
+#endif
 }
 
 

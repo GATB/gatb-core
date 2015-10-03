@@ -1040,13 +1040,6 @@ struct Kmer
             return km.minimizer().value().getVal();
         }
 
-        u_int64_t getMinimizerValueNew (const Type& k) const /* optimized code, hopefully */
-        {
-            Kmer km; km.set(k);  this->computeNewMinimizerNew (km);
-            return km.minimizer().value().getVal();
-        }
-
-
         void setMinimizersFrequency (uint32_t *freq_order)
         {
             _cmp.include_frequency(freq_order);
@@ -1111,33 +1104,6 @@ struct Kmer
         
         /** Returns the minimizer of the provided vector of mmers. */
         void computeNewMinimizer (Kmer& kmer) const
-        {
-            /** We update the attributes of the provided kmer. Note that an invalid minimizer is
-             * memorized by convention by a negative minimizer position. */
-            kmer._minimizer = this->_minimizerDefault;
-            kmer._position  = -1;
-            kmer._changed   = true;
-
-            /** We need a local object that loops each mmer of the provided kmer (and we don't want
-             * to modify the kmer value of this provided kmer). */
-            Kmer loop = kmer;
-
-            typename ModelType::Kmer mmer;
-
-            /** We compute each mmer and memorize the minimizer among them. */
-
-            for (int16_t idx=_nbMinimizers-1; idx>=0; idx--)
-            {
-                /** We extract the most left mmer in the kmer. */
-                mmer = loop.extractShift (_mask, _shift, _mmer_lut);
-
-                /** We check whether this mmer is the new minimizer. */
-                if (_cmp (mmer.value(), kmer._minimizer.value()) == true)  {  kmer._minimizer = mmer;   kmer._position = idx;  }
-            }
-        }
-
-        /** Returns the minimizer of the provided vector of mmers. */
-        void computeNewMinimizerNew (Kmer& kmer) const
         {
             /** We update the attributes of the provided kmer. Note that an invalid minimizer is
              * memorized by convention by a negative minimizer position. */
