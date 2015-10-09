@@ -972,9 +972,6 @@ struct Kmer
 
             if (freq_order)
                 setMinimizersFrequency(freq_order);
-
-            _invalidMinimizersCounter = 0; 
-            _minimizersCounter = 0; 
         }
 
         /** Destructor */
@@ -1107,9 +1104,6 @@ struct Kmer
                 return a <= b;
             return _freq_order[a] <= _freq_order[b];
         }
-        
-        u_int64_t _invalidMinimizersCounter;
-        u_int64_t _minimizersCounter;
 
     private:
         ModelType  _kmerModel;
