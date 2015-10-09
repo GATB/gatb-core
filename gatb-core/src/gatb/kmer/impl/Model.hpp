@@ -141,6 +141,14 @@ struct Kmer
          * \return the kmer value as a Type object. */
         const Type& value  () const { return _value;   }
 
+        /** This is a dummy function that always returns the value of the kmer in the forward direction, even when "which" is 1.
+         * it's provided for API compatibility with KmerCanonical
+         * We could compute revcomp(_value) when which=1, but KmerDirect doesn't know about its k-mer size.
+         * \param[in] which: dummy parameter
+         * \return the kmer value as a Type object. */
+        const Type& value  (int which) const { if (which==1){ std::cout << "unsupported call to value(which) for KmerDirect" << std::endl; exit(1); } 
+                                               return _value;   }
+
         /** Comparison operator between two instances.
          * \param[in] t : object to be compared to
          * \return true if the values are the same, false otherwise. */
@@ -900,7 +908,7 @@ struct Kmer
      * Example of use:
      * \snippet kmer2.cpp  snippet1_minimizer
      */
-    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizerFrequencyOrLex> // TODO: decide whether we keep that as default or not
+    template<class ModelType, class Comparator=Kmer<span>::ComparatorMinimizerFrequencyOrLex> 
     class ModelMinimizer :  public ModelAbstract <ModelMinimizer<ModelType,Comparator>, KmerMinimizer<ModelType,Comparator> >
     {
     public:
@@ -927,12 +935,14 @@ struct Kmer
         {
             if (kmerSize < minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
+            _minimizerSize = minimizerSize;
+
             /** We compute the number of mmers found in a kmer. */
-            _nbMinimizers = _kmerModel.getKmerSize() - _miniModel.getKmerSize() + 1;
+            _nbMinimizers = _kmerModel.getKmerSize() - minimizerSize + 1;
 
             /** We need a mask to extract a mmer from a kmer. */
 
-            _mask  = ((u_int64_t)1 << (2*_miniModel.getKmerSize())) - 1;
+            _mask  = ((u_int64_t)1 << (2*_minimizerSize)) - 1;
             _shift = 2*(_nbMinimizers-1);
 
             /** We initialize the default value of the minimizer.
@@ -941,7 +951,7 @@ struct Kmer
             _cmp.template init<ModelType> (getMmersModel(), tmp);
             _minimizerDefault.set (tmp);
 			
-			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_miniModel.getKmerSize()));
+			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_minimizerSize));
 			_mmer_lut = (Type *) MALLOC(sizeof(Type) * nbminims_total ); //free that in destructor
 
 			for(u_int64_t ii=0; ii< nbminims_total; ii++)
@@ -962,6 +972,9 @@ struct Kmer
 
             if (freq_order)
                 setMinimizersFrequency(freq_order);
+
+            _invalidMinimizersCounter = 0; 
+            _minimizersCounter = 0; 
         }
 
         /** Destructor */
@@ -977,7 +990,7 @@ struct Kmer
          * \param[in] startIndex : index of the first nucleotide of the kmer to retrieve in the buffer
          */
         template <class Convert>
-        int first (const char* seq, Kmer& kmer, size_t startIndex)   const
+        int first (const char* seq, Kmer& kmer, size_t startIndex) const 
         {
             /** We compute the first kmer. */
             int result = _kmerModel.template first<Convert> (seq, kmer, startIndex);
@@ -997,7 +1010,7 @@ struct Kmer
          * \param[in] isValid : tells whether the updated kmer is valid or not
          */
         template <class Convert>
-        void  next (char c, Kmer& kmer, bool isValid)   const
+        void  next (char c, Kmer& kmer, bool isValid) const
         {
             /** We compute the next kmer. */
             _kmerModel.template next<Convert> (c, kmer, isValid);
@@ -1034,11 +1047,52 @@ struct Kmer
         /** Get the minimizer value of the provided kmer. Note that minimizers are supposed to be
          * of small sizes, so their values can fit a u_int64_t type.
          * \return the miminizer value as an integer. */
-        u_int64_t getMinimizerValue (const Type& k) const
+        u_int64_t getMinimizerValue (const Type& k, bool fastMethod = true) const
         {
-            Kmer km; km.set(k);  this->computeNewMinimizer (km);
+            Kmer km; km.set(k);  this->computeNewMinimizer (km, fastMethod);
             return km.minimizer().value().getVal();
         }
+
+
+        /* for profiling purpose only */ 
+        u_int64_t getMinimizerValueDummy (const Type& k) 
+        {
+            Kmer km; km.set(k);  /* don't execute anything, this function is here to get a baseline time */
+            return km.minimizer().value().getVal();
+        }
+        
+        /** Get the minimizer string of the provided kmer. (used for debugging purposes only)
+            \return the miminizer as a nucleotide string. */
+        std::string getMinimizerString (const Type& k, bool fastMethod = true) const
+        {
+            Kmer km; km.set(k);  this->computeNewMinimizer (km, fastMethod);
+            return _miniModel.toString(km.minimizer().value());
+        }
+
+         /** Get the minimizer position of the provided kmer. (used for debugging purposes only)
+            \return the miminizer position */
+        int getMinimizerPosition (const Type& k, bool fastMethod = true) const
+        {
+            Kmer km; km.set(k);  this->computeNewMinimizer(km, fastMethod);
+            return km.position();
+        }
+
+        /* for profiling only, sweep the kmer to count the number of AA's */
+        void sweepForAA(const Type &k) const
+        {
+            unsigned int dummy;
+            Kmer km; km.set(k);
+            justSweepForAA(km.value(0), _nbMinimizers, dummy);
+        }
+
+        /* for profiling only, compute kmer hash */
+        void getHash(const Type &k) const
+        {
+            Kmer km; km.set(k);
+            hash1(km.value(0), 1LL);
+        }
+
+
 
         void setMinimizersFrequency (uint32_t *freq_order)
         {
@@ -1053,10 +1107,14 @@ struct Kmer
                 return a <= b;
             return _freq_order[a] <= _freq_order[b];
         }
+        
+        u_int64_t _invalidMinimizersCounter;
+        u_int64_t _minimizersCounter;
 
     private:
         ModelType  _kmerModel;
         ModelType  _miniModel;
+        size_t     _minimizerSize;
         Comparator _cmp;
         size_t     _nbMinimizers;
         Type       _mask;
@@ -1103,7 +1161,7 @@ struct Kmer
         }
         
         /** Returns the minimizer of the provided vector of mmers. */
-        void computeNewMinimizer (Kmer& kmer) const
+        void computeNewMinimizerOriginal(Kmer& kmer) const
         {
             /** We update the attributes of the provided kmer. Note that an invalid minimizer is
              * memorized by convention by a negative minimizer position. */
@@ -1140,6 +1198,34 @@ struct Kmer
             }
         }
 
+        /** Returns the minimizer of the provided vector of mmers, fast method (may fallback to normal method) */
+        void computeNewMinimizer(Kmer& kmer, bool fastMethod = true) const 
+        {
+            if (!fastMethod)
+            {
+                computeNewMinimizerOriginal(kmer);
+                return;
+            }
+
+            bool validResult;
+            size_t position = -1;
+            u_int32_t minim;
+            fastLexiMinimizer(kmer.value(0), _nbMinimizers, _minimizerSize, minim, position, validResult);
+
+            if (!validResult)
+            {
+                computeNewMinimizerOriginal(kmer);
+                //_invalidMinimizersCounter++; // have to get rid of this metric else that function isn't "const" anymore, and it's a cascade (next() uses it for instance)
+            }
+            else
+            {
+                kmer._minimizer.set(minim);
+                kmer._changed = true;
+                kmer._position = position; 
+                // _minimizersCounter++; // have to get rid of this metric else that function isn't "const" anymore, and it's a cascade
+            }
+        }
+        
     };
 
     /************************************************************/

@@ -22,7 +22,9 @@
  *  \brief Integer class relying on native u_int64_t type
  */
 
-template<>  class LargeInt<1> :  private misc::ArrayData<u_int64_t, 1>
+
+template<>  class LargeInt<1> :  public misc::ArrayData<u_int64_t, 1>
+/* ArrayData used to be private but then fastLexiMinimizer would need a specialization here, so I'm setting it private */
 {
 public:
 
@@ -238,3 +240,4 @@ inline u_int64_t simplehash16 (const LargeInt<1>& key, int  shift)
 {
     return LargeInt<1>::simplehash16_64 (key.value[0], shift);
 }
+

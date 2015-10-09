@@ -770,6 +770,7 @@ public:
 
     // a direct query to the MPHF
     unsigned long nodeMPHFIndex(const Node& node) const;
+    unsigned long nodeMPHFIndexDummy(const Node& node) const; // debug function, for profiling only
 
     /**********************************************************************/
     /*                         EDGE METHODS                               */

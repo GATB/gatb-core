@@ -61,9 +61,19 @@ using namespace gatb::core::tools::storage::impl;
 
 /* inspired by debruijn_test3 from unit tests*/
 
-
-void debruijn_mphf_bench (const Graph& graph, size_t kmerSize)
+struct Parameter
 {
+    Parameter (size_t k, const Graph& graph) : graph(graph), k(k) {}
+    const Graph& graph;
+    size_t k;    
+};
+
+
+template<size_t span> struct debruijn_mphf_bench {  void operator ()  (Parameter params)
+{
+    size_t kmerSize = params.k;
+    const Graph& graph = params.graph;
+    
     int miniSize = 8;
     int NB_REPETITIONS = 2000000;
 
@@ -77,7 +87,6 @@ void debruijn_mphf_bench (const Graph& graph, size_t kmerSize)
     /** We get the first node. */
     Node node = nodes.item();
 
-    #define span KMER_SPAN(0)
     typedef typename Kmer<span>::Type  Type;
     typedef typename Kmer<span>::ModelCanonical  ModelCanonical;
     typedef typename Kmer<span>::ModelDirect     ModelDirect;
@@ -85,6 +94,7 @@ void debruijn_mphf_bench (const Graph& graph, size_t kmerSize)
     typedef typename ModelMini::Kmer                        KmerType;
 
     ModelMini  modelMini (kmerSize, miniSize);
+    ModelCanonical  modelCanonical (kmerSize);
 
     /** We get the value of the current minimizer. */
     Type kmer = node.kmer.get<Type>();
@@ -100,28 +110,84 @@ void debruijn_mphf_bench (const Graph& graph, size_t kmerSize)
     for (unsigned int i = 0 ; i < NB_REPETITIONS ; i++)
          graph.nodeMPHFIndex(node);
     end_t=chrono::system_clock::now();
-    cout << "mphf index of node " << graph.toString(node) << " is " << graph.nodeMPHFIndex(node) << endl;
+    //cout << "mphf index of node " << graph.toString(node) << " is " << graph.nodeMPHFIndex(node) << endl;
 
     cout << "time to do " << NB_REPETITIONS << " computations of MPHF index on a " << kmerSize << "-mer : " << diff_wtime(start_t, end_t) / unit << " seconds" << endl;
 		
     cout << "----\nnow on all nodes of the graph\n-----\n";
 
+    /* compute baseline times (= overheads we're not interested in) */
+
     start_t=chrono::system_clock::now();
     for (nodes.first(); !nodes.isDone(); nodes.next())
-        modelMini.getMinimizerValue(nodes.item().kmer.get<Type>());
+    {}
     end_t=chrono::system_clock::now();
-    cout << "time to do " << nodes.size() << " computations of minimizers of length " << miniSize << " on all nodes (" << kmerSize << "-mers) : " << diff_wtime(start_t, end_t) / unit << " seconds" << endl;
+    auto baseline_graph_time = diff_wtime(start_t, end_t) / unit;
+    cout << "baseline overhead for graph nodes enumeration (" << nodes.size() << " nodes) : " << baseline_graph_time << " seconds" << endl;
+
+    start_t=chrono::system_clock::now();
+    for (nodes.first(); !nodes.isDone(); nodes.next())
+        modelMini.getMinimizerValueDummy(nodes.item().kmer.get<Type>());
+    end_t=chrono::system_clock::now();
+    auto baseline_minim_time = diff_wtime(start_t, end_t) / unit;
+    cout << "baseline overhead for graph nodes enumeration and minimizer computation setup (" << nodes.size() << " nodes) : " << baseline_minim_time << " seconds" << endl;
+
+    start_t=chrono::system_clock::now();
+    for (nodes.first(); !nodes.isDone(); nodes.next())
+        modelMini.getMinimizerValueDummy(nodes.item().kmer.get<Type>());
+    end_t=chrono::system_clock::now();
+    auto baseline_mphf_time = diff_wtime(start_t, end_t) / unit;
+    cout << "baseline overhead for graph nodes enumeration and mphf query setup (" << nodes.size() << " nodes) : " << baseline_mphf_time << " seconds" << endl;
+
+    /* do actual benchmark */
+
+
+    start_t=chrono::system_clock::now();
+    for (nodes.first(); !nodes.isDone(); nodes.next())
+        modelMini.getMinimizerValue(nodes.item().kmer.get<Type>(), false);
+    end_t=chrono::system_clock::now();
+
+    cout << "time to do " << nodes.size() << " computations of minimizers of length " << miniSize << " on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_minim_time << " seconds" << endl;
+
+    start_t=chrono::system_clock::now();
+    for (nodes.first(); !nodes.isDone(); nodes.next())
+        modelMini.getMinimizerValue(nodes.item().kmer.get<Type>(), true);
+    end_t=chrono::system_clock::now();
+
+    cout << "time to do " << nodes.size() << " computations of minimizers (fast method) of length " << miniSize << " on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_minim_time << " seconds" << endl;
 
     start_t=chrono::system_clock::now();
     for (nodes.first(); !nodes.isDone(); nodes.next())
         graph.nodeMPHFIndex(nodes.item());
     end_t=chrono::system_clock::now();
-    cout << "time to do " << nodes.size() << " computations of MPHF index on all nodes (" << kmerSize << "-mers) : " << diff_wtime(start_t, end_t) / unit << " seconds" << endl;
+
+    cout << "time to do " << nodes.size() << " computations of MPHF index on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_mphf_time << " seconds" << endl;
+
+    start_t=chrono::system_clock::now();
+    for (nodes.first(); !nodes.isDone(); nodes.next())
+        modelCanonical.reverse(nodes.item().kmer.get<Type>());
+    end_t=chrono::system_clock::now();
+
+    cout << "time to do " << nodes.size() << " revcomps of all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_graph_time << " seconds" << endl;
+
+    start_t=chrono::system_clock::now();
+    for (nodes.first(); !nodes.isDone(); nodes.next())
+        modelMini.sweepForAA(nodes.item().kmer.get<Type>());
+    end_t=chrono::system_clock::now();
+
+    cout << "time to do " << nodes.size() << " just sweepings for AA's across kmers on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_minim_time << " seconds" << endl;
+
+    start_t=chrono::system_clock::now();
+    for (nodes.first(); !nodes.isDone(); nodes.next())
+        modelMini.getHash(nodes.item().kmer.get<Type>());
+    end_t=chrono::system_clock::now();
+
+    cout << "time to do " << nodes.size() << " computing hash1 of kmers on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_minim_time << " seconds" << endl;
 
 
 
 }
-
+};
 
 void debruijn_mphf ()
 {
@@ -133,7 +199,7 @@ void debruijn_mphf ()
     };
 
     //        size_t kmerSizes[] = { 13, 15, 17, 19, 21, 23, 25, 27, 29, 31};
-    size_t kmerSizes[] = {21, 31};
+    size_t kmerSizes[] = {81};
 
     for (size_t i=0; i<ARRAY_SIZE(sequences); i++)
     {
@@ -145,7 +211,7 @@ void debruijn_mphf ()
                     "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", kmerSizes[j], 500 
                     );
 
-            debruijn_mphf_bench (graph, kmerSizes[j]);
+            Integer::apply<debruijn_mphf_bench, Parameter> (kmerSizes[j], Parameter( kmerSizes[j], graph) );
 
             /** We remove the graph. */
             graph.remove ();
@@ -164,10 +230,14 @@ int main (int argc, char* argv[])
             // else, use a real file! 
         {
             cout << "building graph" << endl;
-            string args = "-in " + string(argv[1]) + " -kmer-size 31  -abundance-min 1  -verbose 0  -max-memory 500 -mphf emphf";
+            int k = 31;
+            if (argc > 2)
+                k = stoi(argv[2]);
+
+            string args = "-in " + string(argv[1]) + " -kmer-size " + std::to_string(k) + " -abundance-min 1  -verbose 0  -max-memory 500 -mphf emphf";
             Graph graph = Graph::create (args.c_str());
             cout << "graph built, benchmarking.." << endl;
-            debruijn_mphf_bench (graph, 31);
+            Integer::apply<debruijn_mphf_bench, Parameter> (k, Parameter( k, graph) );
         }
 
 

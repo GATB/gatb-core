@@ -40,6 +40,7 @@
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/system/api/config.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>
+#include <gatb/tools/math/FastMinimizer.hpp>
 
 #ifndef ASSERTS
 #define NDEBUG // disable asserts; those asserts make sure that with PRECISION == [1 or 2], all is correct
@@ -600,7 +601,7 @@ public:
      * \param[in] idx : index of the nucleotide to be retrieved
      * \return the nucleotide value as follow: A=0, C=1, T=2 and G=3
      */
-    u_int8_t  operator[]  (size_t idx) const    {  return (this->value[idx/32] >> (2*idx)) & 3; }
+    u_int8_t  operator[]  (size_t idx) const    {  return (this->value[idx/32] >> (2*idx)) & 3; } // FIXME (or delete this comment): isn't this buggy when idx > 32? then the shift becomes more than 64. needs to be tested.
 
 private:
 
@@ -608,7 +609,11 @@ private:
     template<int T>  friend u_int64_t   hash1    (const LargeInt<T>& key, u_int64_t  seed);
     template<int T>  friend u_int64_t   oahash  (const LargeInt<T>& key);
     template<int T>  friend u_int64_t   simplehash16    (const LargeInt<T>& key, int  shift);
-
+    template<int T, typename m_T>  \
+                     friend void fastLexiMinimizer (const LargeInt<T>& key, const unsigned int _nbMinimizers, \
+                             const unsigned int m, m_T &minimizer, size_t &position, bool &validResult);
+    template<int T>  friend void justSweepForAA(const LargeInt<T>& x, const unsigned int _nbMinimizers, unsigned int &dummy);
+    
     // c++ fun fact:
     // "const" will ban the function from being anything which can attempt to alter any member variables in the object.
     // 2 months later: I don't understand this fun fact anymore. thanks c++.
@@ -666,7 +671,7 @@ template<int precision>  u_int64_t oahash (const LargeInt<precision>& elem)
 	
 
 /********************************************************************************/
-template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision>& elem, int  shift)
+template<int precision> inline u_int64_t simplehash16 (const LargeInt<precision>& elem, int  shift)
 {
     u_int64_t result = 0, chunk, mask = ~0;
     LargeInt<precision> intermediate = elem;
@@ -677,6 +682,74 @@ template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision
     return result;
 }
 
+/*
+ * fast computation of minimizer 
+ * assumes lexicographic ordering and a constraint: no 'AA' inside except as prefix
+ *
+ * this function works by hypothesizing that the kmer contains AA or TT (even though it may not),
+ * and when it does, then this function is guaranteed to return the correct result.
+ * if the k-mer doesn't contain AA or TT, then the function will return garbage with validResult=false
+ * (then one shall use the classical minimizer computation procedure)
+ * 
+ * NOTE: iteration is from last m-mer to first m-mer due to GATB binary kmer representation.. it's a bit confusing.
+ *
+ * I've set a template for the minimizer type, but actually u_int32_t seems to be as fast (if not faster?!) than u_int16_t
+ */
+template<int precision, typename minimizer_type=u_int32_t> inline void fastLexiMinimizer (const LargeInt<precision>& x, const unsigned int _nbMinimizers, const unsigned int m,  minimizer_type &minimizer, size_t &position, bool &validResult) 
+{
+    if (m > sizeof(minimizer_type)*4) {std::cout << "wrong minimizer size for fastLeximinimizer :" << std::to_string(m); exit(1);}
+
+    const minimizer_type default_minimizer = ~0 & ((1 << (2*m)) - 1); 
+    minimizer = default_minimizer; 
+
+    validResult = false;
+    bool AA_found = false;
+
+    u_int64_t val;
+    const u_int64_t mask = ~0;
+    minimizer_type high_bits;
+
+    for (int i=0 ; i < precision ; i++)
+    {
+        val = x.value[i];
+
+        if (i < precision - 1)
+          high_bits = x.value[i+1] & ((1 << 16) - 1);
+        else
+          high_bits = 0;
+
+        // could even possibly use something like https://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
+        // to do a prefilter to see if that whole chunk has AA or TT, like "if (haszerobyte(val & (val << 2))"
+
+        const int position_offset = i*32;
+   
+        fastLexiMinimizerChunk<u_int64_t,minimizer_type>(val, _nbMinimizers, m, high_bits, minimizer, position, position_offset, AA_found);
+
+    } // end for (precision)
+
+    validResult = AA_found && (minimizer != default_minimizer) /* might happen that AA was found but resulted in forbidden minimizers */;
+}
+
+/* debug function, for profiling only; counts the AA's in a kmer */
+template<int precision> inline void justSweepForAA(const LargeInt<precision>& x, const unsigned int _nbMinimizers, unsigned int &dummy) 
+{
+    for (int i=0 ; i < precision ; i++)
+    {
+        u_int64_t val = x.value[i];
+
+        const int it = std::min((unsigned int)sizeof(u_int64_t)*4,(unsigned int) _nbMinimizers); 
+        int j = 0;
+        while (j < it)
+        {
+            if (val & 15 == 0) // val starts with AA
+                dummy++;
+
+            val >>= 2;
+            j++;
+        }
+
+    } // end for (precision)
+}
 
 /********************************************************************************/
 /********************     SPECIALIZATION FOR precision=1     ********************/
@@ -686,7 +759,7 @@ template<int precision>  inline u_int64_t simplehash16 (const LargeInt<precision
 /********************************************************************************/
 /********************     SPECIALIZATION FOR precision=2     ********************/
 /********************************************************************************/
-#include <gatb/tools/math/LargeInt2.pri>
+#include <gatb/tools/math/LargeInt2.pri> 
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

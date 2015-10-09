@@ -246,7 +246,7 @@ public:
      * \param[in] sizeKmer : size of the kmer
      * \return the reverse complement kmer as a IntegerTemplate value
      */
-    friend IntegerTemplate revcomp (const IntegerTemplate& a,  size_t sizeKmer)  {  return  boost::apply_visitor (Integer_revomp(sizeKmer),  *a);  }
+    friend IntegerTemplate revcomp (const IntegerTemplate& a,  size_t sizeKmer)  {  return  boost::apply_visitor (Integer_revcomp(sizeKmer),  *a);  }
 
     /** Get a hash value on 64 bits for a given IntegerTemplate object.
      * \param[in] a : the integer value
@@ -268,6 +268,16 @@ public:
      * \return the hash value on 64 bits.
      */
     friend u_int64_t simplehash16 (const IntegerTemplate& a,  int shift)       {  return  boost::apply_visitor (Integer_simplehash16(shift),  *a);  }
+
+    /** Get the lexicographical minimizer of the k-mer, quickly, using bit tricks. 
+     * minimizers containing 'AA' are forbidden. might not return a valid result sometimes.
+     * \param[in] nbminimizers: number of minimizers inside this kmer
+     * \param[in] &validResult: whether the returned result should be considered valid (if not, compute minimizer with another approach please)
+     * \return the reverse complement kmer as a IntegerTemplate value
+     */
+    friend u_int32_t fastLexiMinimizer (const IntegerTemplate& a, int _nbMinimizers, bool &validResult) {  return  boost::apply_visitor (Integer_fastLexiMinimizer(_nbMinimizers, validResult),  *a);  }
+
+
 
     /** Get an ASCII string representation of a kmer encoded as a IntegerTemplate object
      * \param[in] sizeKmer : size of the kmer
@@ -358,6 +368,14 @@ private:
         Arg arg;
     };
 	
+    template<typename Result, typename Arg1, typename Arg2>
+    struct Visitor2Args : public boost::static_visitor<Result>
+    {
+        Visitor2Args (Arg1 a1=Arg1(), Arg2 a2=Arg2()) : arg1(a1), arg2(a2) {}
+        Arg1 arg1;
+        Arg2 arg2;
+    };
+
     struct Integer_hdf5 : public Visitor<hid_t,bool&>   {
         Integer_hdf5 (bool& c) : Visitor<IntegerTemplate,bool&>(c) {}
         template<typename T>  hid_t operator() (const T& a)  { return a.hdf5 (this->arg);  }};
@@ -382,8 +400,8 @@ private:
         Integer_shiftRight (const int& c) : Visitor<IntegerTemplate,const int>(c) {}
         template<typename T>  IntegerTemplate operator() (const T& a) const  { return IntegerTemplate (a << this->arg);  }};
 
-    struct Integer_revomp : public Visitor<IntegerTemplate,size_t>    {
-        Integer_revomp (const size_t& c) : Visitor<IntegerTemplate,size_t>(c) {}
+    struct Integer_revcomp : public Visitor<IntegerTemplate,size_t>    {
+        Integer_revcomp (const size_t& c) : Visitor<IntegerTemplate,size_t>(c) {}
         template<typename T>  IntegerTemplate operator() (const T& a) const  { return IntegerTemplate (revcomp(a,this->arg));  }};
 
     struct Integer_hash1 : public Visitor<u_int64_t,u_int64_t>    {
@@ -393,11 +411,14 @@ private:
     struct Integer_oahash : public boost::static_visitor<u_int64_t>    {
         template<typename T>  u_int64_t operator() (const T& a) const  { return (oahash(a));  }};
 
-	
     struct Integer_simplehash16 : public Visitor<u_int64_t,int>    {
         Integer_simplehash16 (const int& c) : Visitor<u_int64_t,int>(c) {}
         template<typename T>  u_int64_t operator() (const T& a) const  { return (simplehash16(a,this->arg));  }};
 
+    struct Integer_fastLexiMinimizer : public Visitor2Args<u_int32_t, int, bool&>    {
+        Integer_fastLexiMinimizer (int b, bool& c) : Visitor2Args<u_int32_t,int, bool&>(b,c) {}
+        template<typename T>  u_int32_t operator() (const T& a) const  { return (fastLexiMinimizer (a,this->arg1, this->arg2));  }};
+	
     struct Integer_value_at : public Visitor<u_int8_t,size_t>   {
         Integer_value_at (size_t idx) : Visitor<u_int8_t,size_t>(idx) {}
         template<typename T>  u_int8_t operator() (const T& a) const { return a[this->arg];  }};

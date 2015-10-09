@@ -2861,6 +2861,29 @@ unsigned long Graph::nodeMPHFIndex(const Node& node) const
     return boost::apply_visitor (nodeMPHFIndex_visitor(node),  *(GraphDataVariant*)_variant);
 }
 
+/* debug function, only for profiling */
+struct nodeMPHFIndex_visitorDummy : public boost::static_visitor<unsigned long>    {
+
+    const Node& node;
+
+    nodeMPHFIndex_visitorDummy (const Node& node) : node(node) {}
+
+    template<size_t span> unsigned long operator() (const GraphData<span>& data) const
+    {
+        /** We get the specific typed value from the generic typed value. */
+        unsigned long hashIndex = 0;
+        return hashIndex;
+    }
+};
+
+unsigned long Graph::nodeMPHFIndexDummy(const Node& node) const /* debug function, only for profiling*/
+{
+    if (!checkState(Graph::STATE_MPHF_DONE))
+       return 0;
+    return boost::apply_visitor (nodeMPHFIndex_visitorDummy(node),  *(GraphDataVariant*)_variant);
+}
+
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

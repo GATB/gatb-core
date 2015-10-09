@@ -27,7 +27,7 @@
 #if  INT128_FOUND == 1
 /********************************************************************************/
 
-template<>  class LargeInt<2> :  private misc::ArrayData<__uint128_t, 1>
+template<>  class LargeInt<2> :  public /* used to be private, see LargeInt1*/ misc::ArrayData<__uint128_t, 1>
 {
 public:
 
@@ -143,6 +143,9 @@ private:
     friend u_int64_t    hash1    (const LargeInt<2>& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const LargeInt<2>& key);
     friend u_int64_t    simplehash16    (const LargeInt<2>& key, int  shift);
+    template<typename m_T> friend void fastLexiMinimizer (const LargeInt<2>& x, const unsigned int _nbMinimizers, \
+                             const unsigned int m, m_T &minimizer, size_t &position, bool &validResult);
+    friend void justSweepForAA(const LargeInt<2>& x, const unsigned int _nbMinimizers, unsigned int &dummy);
 
 };
 
@@ -199,6 +202,36 @@ inline u_int64_t simplehash16 (const LargeInt<2>& key, int  shift)
 {
     return NativeInt64::simplehash16_64 ((u_int64_t)key.value[0], shift);
 }
+
+/********************************************************************************/
+template<typename minimizer_type> void fastLexiMinimizer (const LargeInt<2>& x, const unsigned int _nbMinimizers, \
+                             const unsigned int m, minimizer_type &minimizer, size_t &position, bool &validResult)
+{
+    const minimizer_type default_minimizer = ~0 & ((1 << (2*m)) - 1); 
+    minimizer = default_minimizer; 
+    validResult = false;
+
+    fastLexiMinimizerChunk<__uint128_t,minimizer_type>(x.value[0], _nbMinimizers, m, 0,  minimizer, position, 0, validResult);
+
+    validResult = validResult && (minimizer != default_minimizer) /* might happen that AA was found but resulted in forbidden minimizers */;
+}
+
+/* debug function, for profiling only; counts the AA's in a kmer */
+inline void justSweepForAA(const LargeInt<2>& x, const unsigned int _nbMinimizers, unsigned int &dummy) 
+{
+        __uint128_t val = x.value[0];
+
+        const int it = std::min((unsigned int)sizeof(__uint128_t)*4, _nbMinimizers); 
+        int j = 0;
+        while (j < it)
+        {
+            if (val & 15 == 0) // val starts with AA
+                dummy++;
+
+            val >>= 2;
+        }
+}
+
 
 /********************************************************************************/
 #endif //INT128_FOUND
