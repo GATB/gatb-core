@@ -957,13 +957,18 @@ struct Kmer
 			for(u_int64_t ii=0; ii< nbminims_total; ii++)
 			{
 				Type mmer = ii;
-				Type rev_mmer = revcomp(mmer, minimizerSize);
 				
                 // if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
                 // if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
-				
-				if(rev_mmer < mmer) mmer = rev_mmer;
-			
+
+                /* if it's ModelDirect, don't do a revcomp */
+                ModelCanonical* isModelCanonical = dynamic_cast<ModelCanonical*>(&_kmerModel);
+                if ( isModelCanonical != NULL)
+                {
+    				Type rev_mmer = revcomp(mmer, minimizerSize);
+    				if(rev_mmer < mmer) mmer = rev_mmer;
+                }
+
                 if (!is_allowed(mmer.getVal(),minimizerSize)) 
                     mmer = _mask;
 
@@ -973,6 +978,8 @@ struct Kmer
             if (freq_order)
                 setMinimizersFrequency(freq_order);
         }
+
+
 
         /** Destructor */
         ~ModelMinimizer ()
@@ -1023,12 +1030,14 @@ struct Kmer
 
             /** By default, we consider that the minimizer is still the same. */
             kmer._changed  = false;
+                
+            Type candidate_minim = _mmer_lut[mmer.value().getVal()];
 
             /** We have to update the minimizer in the following case:
              *      1) the new mmer is the new minimizer
              *      2) the previous minimizer is invalid or out from the new kmer window.
              */
-            if (_cmp (mmer.value(), kmer._minimizer.value()) == true) // .value()
+            if (_cmp (candidate_minim, kmer._minimizer.value()) == true) // .value()
             {
                 kmer._minimizer = mmer; //ici intercalet une lut pour revcomp et minim interdits
                 kmer._position  = _nbMinimizers - 1;
@@ -1178,7 +1187,7 @@ struct Kmer
             {
                 /** We extract the most left mmer in the kmer. */
                 Type candidate_minim = _mmer_lut[(val & _mask).getVal()];
-
+            
                 /** We check whether this mmer is the new minimizer. */
                 if (_cmp (candidate_minim, kmer_minimizer_value ) == true)  
                 {  
@@ -1191,9 +1200,10 @@ struct Kmer
                 val >>= 2;    
             }
         }
-
-        /** Returns the minimizer of the provided vector of mmers, fast method (may fallback to normal method) */
-        void computeNewMinimizer(Kmer& kmer, bool fastMethod = true) const 
+   
+        /** Returns the minimizer of the provided vector of mmers, fast method (may fallback to normal method)
+         * Note: only used for KmerCanonicals */
+        void computeNewMinimizer(KmerMinimizer<ModelCanonical, Comparator>& kmer, bool fastMethod = true) const 
         {
             if (!fastMethod)
             {
@@ -1219,8 +1229,18 @@ struct Kmer
                 // _minimizersCounter++; // have to get rid of this metric else that function isn't "const" anymore, and it's a cascade
             }
         }
-        
+
+        /* direct model cannot use the speed-up version because it handles reverse complements in a hardcoded way */
+        void computeNewMinimizer(KmerMinimizer<ModelDirect, Comparator>  &kmer, bool fastMethod = true) const
+        {
+            computeNewMinimizerOriginal(kmer);
+            //std::cout << "specialized kmer minimizer " << _miniModel.toString(kmer.minimizer().value()) << std::endl;
+        }
+
+
+
     };
+
 
     /************************************************************/
     /*********************  SUPER KMER    ***********************/

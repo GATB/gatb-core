@@ -184,7 +184,7 @@ public:
     {
         u_int64_t synced_used_space = __sync_fetch_and_add(&used_space, requested_size);
 
-        if (requested_size> (capacity - synced_used_space))
+        if (requested_size > (capacity - synced_used_space))
         {
             __sync_fetch_and_add(&used_space, -requested_size);
 
@@ -194,6 +194,11 @@ public:
 
             return NULL;
         }
+    
+        if (mainbuffer == NULL)
+            throw system::Exception ("Pool allocation failed for %lld bytes (%s), mainbuffer is null?. Current usage is %lld and capacity is %lld",
+                requested_size, message, used_space, capacity
+                );
 
         return mainbuffer + synced_used_space;
     }

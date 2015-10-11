@@ -34,12 +34,15 @@ extern const unsigned char revcomp_4NT[];
 
 template<typename T, typename minimizer_type> inline void fastLexiMinimizerChunk (T val, const unsigned int _nbMinimizers, const unsigned int m, const minimizer_type high_bits, minimizer_type &minimizer, size_t &position, size_t position_offset, bool &AA_found) 
 {
+    // FIXME: useless for minimizer size larger than 16 just because of the 0x55555555 mask 
+    if (m > 16) {AA_found = false; return;}
+    
     /* those require only a single AND operation, rest are constants */
     #define BINARY_MMER_STARTS_WITH_2MER(val,m,binnucl) ((val & (15 << (2*(m-2)))) == (binnucl << (2*(m-2))) )
     #define BINARY_MMER_ENDS_WITH_2MER(val,binnucl)  ((val & 15) == binnucl)
-    int j = 0;
+    unsigned int j = 0;
     bool adjusted_near_end = (high_bits == 0); /* will adjust only if there are bits */
-    const int nb_minim_in_chunk = sizeof(T)*4;
+    const unsigned int nb_minim_in_chunk = sizeof(T)*4;
     const minimizer_type m_mask = (1 << (2*m)) - 1;
     
     //int next_TT_in_shifts = -1;
@@ -47,15 +50,15 @@ template<typename T, typename minimizer_type> inline void fastLexiMinimizerChunk
     /* numbers of minimizers to examine in this chunk
      * we assume that each nucleotide of a chunk is the start of a minimizer
      * because we add missing (m-1) nucl as high bits later */
-    const int it = std::min(sizeof(T)*4, _nbMinimizers - position_offset); 
+    const unsigned int it = std::min((unsigned int)nb_minim_in_chunk, _nbMinimizers - (unsigned int)position_offset); 
 
     while (j < it)
     {
-        if ((j >= nb_minim_in_chunk - 8) && (! adjusted_near_end))
+        if ((j >= nb_minim_in_chunk - m) && (! adjusted_near_end))
         { 
             /* append the next m-1 (or less) characters to "val", in order 
              * to keep iterating minimizers smoothly across the boundary of our representation*/
-            val |= high_bits << ((32 - j)*2);
+            val |= high_bits << ((nb_minim_in_chunk - j)*2);
             adjusted_near_end = true;
         }
 
@@ -67,7 +70,7 @@ template<typename T, typename minimizer_type> inline void fastLexiMinimizerChunk
 
         if (mmer_ends_with_TT)
         {
-            minimizer_type candidate_revcomp = (revcomp_4NT [val&0xFF] << 8) | revcomp_4NT [(val>>8)&0xFF]; 
+            minimizer_type candidate_revcomp = ((revcomp_4NT [val&0xFF] << 8) | revcomp_4NT [(val>>8)&0xFF]) & m_mask; 
             if (mmer_starts_with_AA) 
                 candidate = std::min(candidate, candidate_revcomp);
             else
@@ -84,7 +87,8 @@ template<typename T, typename minimizer_type> inline void fastLexiMinimizerChunk
                    for comments of that code, see the is_allowed function */
                 minimizer_type a1 = candidate & m_mask; //
                 a1 =   ~(( a1 )   | (  a1 >>2 ));  //
-                a1 =((a1 >>1) & a1) & ((1 << ((m-2)*2)) -1 ) & 0x5555;  //
+                a1 =((a1 >>1) & a1) & ((1 << ((m-2)*2)) -1 ) & 0x55555555;  //
+                
                 if (a1 == 0)
                 {
                     /* set new minimizer */

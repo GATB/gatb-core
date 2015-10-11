@@ -87,6 +87,7 @@ class TestDebruijn : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestDebruijn);
 
+        CPPUNIT_TEST_GATB (debruijn_checksum);
         CPPUNIT_TEST_GATB (debruijn_test2);
         CPPUNIT_TEST_GATB (debruijn_test3);
         CPPUNIT_TEST_GATB (debruijn_test4);
@@ -101,7 +102,6 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test13);
         CPPUNIT_TEST_GATB (debruijn_mutation);
         CPPUNIT_TEST_GATB (debruijn_build);
-        CPPUNIT_TEST_GATB (debruijn_checksum);
         CPPUNIT_TEST_GATB (debruijn_checkbranching);
 #ifdef WITH_MPHF
         CPPUNIT_TEST_GATB (debruijn_mphf);

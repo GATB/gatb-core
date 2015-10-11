@@ -366,15 +366,25 @@ public:
 			//idx = _r_idx[IX(kx_size,rid)]++;
 			idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
 					
-			_radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2);   // [kx_size][rid]
+
+            
+                        if (idx >= _radix_sizes[IX(kx_size,rid)] ||  _radix_sizes[IX(kx_size,rid)]  == 0)
+                        {  cout << "error, accessing _radix_kmers beyond bound" << endl; exit(1); }
+//                    cout << "tbl ref " << IX(kx_size,rid) << " idx " << idx << " radix sizes " <<   _radix_sizes[IX(kx_size,rid)]   << endl;
+                    _radix_kmers [IX(kx_size,rid)][ idx] = 1;
+  //                  cout << "tried a write okay " << endl;
+            
+                        _radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2);   // [kx_size][rid]
+                    //cout << "went okay " << idx << endl;
+
 			if (_bankIdMatrix)  { _bankIdMatrix[IX(kx_size,rid)][ idx] = _bankId; }
 
 			_first = true;
 		}
 	}
 	
-	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type** radix_kmers, bank::BankIdType** bankIdMatrix, size_t bankId=0)
-	: _kmerSize (kmerSize), _kx(4), _radix_kmers(radix_kmers), _bankIdMatrix(bankIdMatrix), _r_idx (r_idx), _first(true), _bankId(bankId)
+	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type** radix_kmers, uint64_t* radix_sizes, bank::BankIdType** bankIdMatrix, size_t bankId=0)
+	: _kmerSize (kmerSize), _kx(4), _radix_kmers(radix_kmers), _radix_sizes(radix_sizes), _bankIdMatrix(bankIdMatrix), _r_idx (r_idx), _first(true), _bankId(bankId)
 	 {
 		 Type un = 1;
 		 _kmerMask    = (un << (kmerSize*2)) - un;
@@ -393,6 +403,8 @@ private :
 	size_t _shift_radix ;
 	int    _kx;
 	Type** _radix_kmers;
+      uint64_t*          _radix_sizes;
+
 	bank::BankIdType** _bankIdMatrix;
 	uint64_t* _r_idx ;
 	bool _first;
@@ -533,6 +545,13 @@ void PartitionsByVectorCommand<span>::executeRead ()
                 _radix_kmers  [IX(xx,ii)] = (Type*)     this->_pool.pool_malloc (nbKmers * sizeof(Type),     "kmers alloc");
                 _radix_sizes  [IX(xx,ii)] = nbKmers;
 
+
+                    //cout << "alloc nbkmers " << nbKmers << " for pos " << IX(xx,ii) << endl;
+                    if (_radix_kmers[IX(xx,ii)] == NULL)  cout << "bad pool malloc!" << endl;
+                    if (nbKmers)                _radix_kmers[IX(xx,ii)][0] = 0;
+                    //cout << "write okay" << endl;
+
+
                 sum_nbxmer +=  nbKmers;
             }
         }
@@ -580,7 +599,7 @@ void PartitionsByVectorCommand<span>::executeRead ()
             LOCAL (itLocal);
 
             /** We iterate this local iterator. */
-            _dispatcher->iterate (itLocal, SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _bankIdMatrix, b), 10000); //must be even , reading by pairs
+            _dispatcher->iterate (itLocal, SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, _bankIdMatrix, b), 10000); //must be even , reading by pairs
         }
 
         /** We check that the global iterator is finished. */
@@ -589,7 +608,7 @@ void PartitionsByVectorCommand<span>::executeRead ()
     else
     {
         /** We iterate the superkmers. */
-        _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, 0, 0), 10000); //must be even , reading by pairs
+        _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, 0, 0), 10000); //must be even , reading by pairs
     }
 }
 

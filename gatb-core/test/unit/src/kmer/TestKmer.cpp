@@ -271,7 +271,7 @@ public:
         {
             string currentKmer = model.toString(kmers.value());
 
-            typename Kmer<span>::Type currentMini (~0);
+            typename Kmer<span>::Type currentMini (~0 & ((1 << (model.getMmersModel().getKmerSize() * 2)) - 1));
             for (size_t i=0; i<model.getKmerSize() - model.getMmersModel().getKmerSize() + 1; i++)
             {
                 typename ModelDirect::Kmer tmp = model.getMmersModel().codeSeed (
@@ -279,9 +279,16 @@ public:
                     Data::ASCII
                 );
 
+                string m_minus_one_suffix = currentKmer.substr(i+1,model.getMmersModel().getKmerSize()-1);
+
+                if (m_minus_one_suffix.find("AA") != m_minus_one_suffix.npos)
+                    continue; // disallowed m-mer under KMC2 lexicographic heuristic
+
                 if (tmp.value() < currentMini)  { currentMini = tmp.value(); }
             }
 
+            if (currentMini != kmers.minimizer().value())
+                cout << "kmer " << currentKmer <<" should be " << model.getMmersModel().toString(currentMini) << " but actually found " <<  model.getMmersModel().toString(kmers.minimizer().value()) << " raw values : " << to_string(currentMini.getVal()) << " " << to_string(kmers.minimizer().value().getVal()) <<  endl;
             CPPUNIT_ASSERT (currentMini == kmers.minimizer().value() );
 
             nbKmers++;
