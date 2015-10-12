@@ -124,6 +124,11 @@ public:
         /** We launch DSK. */
         dsk.execute();
 
+        if ((int) checkNbSolids != dsk.getInfo()->getInt("kmers_nb_solid"))
+        {
+            std::cout << "problem with sequences " << sequences << " kmersize " << kmerSize << " nks " << nks << " expected " << checkNbSolids << " solids, had " << dsk.getInfo()->getInt("kmers_nb_solid") <<std::endl;
+
+        }
         CPPUNIT_ASSERT ((int) checkNbSolids == dsk.getInfo()->getInt("kmers_nb_solid"));
     }
 

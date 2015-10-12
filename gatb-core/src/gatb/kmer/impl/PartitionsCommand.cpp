@@ -368,11 +368,9 @@ public:
 					
 
             
-                        if (idx >= _radix_sizes[IX(kx_size,rid)] ||  _radix_sizes[IX(kx_size,rid)]  == 0)
-                        {  cout << "error, accessing _radix_kmers beyond bound" << endl; exit(1); }
+//                        if (idx >= _radix_sizes[IX(kx_size,rid)] ||  _radix_sizes[IX(kx_size,rid)]  == 0)
+//                        {  cout << "error, accessing _radix_kmers beyond bound" << endl; exit(1); }
 //                    cout << "tbl ref " << IX(kx_size,rid) << " idx " << idx << " radix sizes " <<   _radix_sizes[IX(kx_size,rid)]   << endl;
-                    _radix_kmers [IX(kx_size,rid)][ idx] = 1;
-  //                  cout << "tried a write okay " << endl;
             
                         _radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2);   // [kx_size][rid]
                     //cout << "went okay " << idx << endl;
@@ -544,13 +542,6 @@ void PartitionsByVectorCommand<span>::executeRead ()
                 //use memory pool here to avoid memory fragmentation
                 _radix_kmers  [IX(xx,ii)] = (Type*)     this->_pool.pool_malloc (nbKmers * sizeof(Type),     "kmers alloc");
                 _radix_sizes  [IX(xx,ii)] = nbKmers;
-
-
-                    //cout << "alloc nbkmers " << nbKmers << " for pos " << IX(xx,ii) << endl;
-                    if (_radix_kmers[IX(xx,ii)] == NULL)  cout << "bad pool malloc!" << endl;
-                    if (nbKmers)                _radix_kmers[IX(xx,ii)][0] = 0;
-                    //cout << "write okay" << endl;
-
 
                 sum_nbxmer +=  nbKmers;
             }
