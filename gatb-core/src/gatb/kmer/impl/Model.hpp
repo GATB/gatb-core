@@ -1022,7 +1022,7 @@ struct Kmer
             /** We set the valid status according to the Convert result. */
             kmer._isValid = isValid;
 
-            /** We extract the new mmer from the kmer. */
+            /** We extract the new mmer from the kmer. also applies the mmer_lut */
             typename ModelType::Kmer mmer = kmer.extract (this->_mask, this->_shift,_mmer_lut);
 
             /** We update the position of the previous minimizer. */
@@ -1031,15 +1031,13 @@ struct Kmer
             /** By default, we consider that the minimizer is still the same. */
             kmer._changed  = false;
                 
-            Type candidate_minim = _mmer_lut[mmer.value().getVal()];
-
             /** We have to update the minimizer in the following case:
              *      1) the new mmer is the new minimizer
              *      2) the previous minimizer is invalid or out from the new kmer window.
              */
-            if (_cmp (candidate_minim, kmer._minimizer.value()) == true) // .value()
+            if (_cmp (mmer.value(), kmer._minimizer.value()) == true) // .value()
             {
-                kmer._minimizer = mmer; //ici intercalet une lut pour revcomp et minim interdits
+                kmer._minimizer = mmer; // extract() above has already done the job of querying mmer_lut for revcomp / forbidden kmers
                 kmer._position  = _nbMinimizers - 1;
                 kmer._changed   = true;
             }
