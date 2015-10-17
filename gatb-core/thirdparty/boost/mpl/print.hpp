@@ -11,9 +11,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Id: print.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
-// $Date: 2008-10-10 23:19:02 -0700 (Fri, 10 Oct 2008) $
-// $Revision: 49267 $
+// $Id$
+// $Date$
+// $Revision$
 
 #include <boost/mpl/aux_/config/msvc.hpp>
 #include <boost/mpl/identity.hpp>
@@ -37,29 +37,31 @@ namespace aux {
       static const unsigned value = 1;
   };
 #endif
-} // namespace aux 
-
+} // namespace aux
 
 template <class T>
 struct print
     : mpl::identity<T>
 #if defined(__MWERKS__)
     , aux::print_base
-#endif
+#endif 
 {
-#if defined(BOOST_MSVC)
+#if defined(__clang__)
+    const int m_x = 1 / (sizeof(T) - sizeof(T));
+#elif defined(BOOST_MSVC)
     enum { n = sizeof(T) + -1 };
 #elif defined(__MWERKS__)
     void f(int);
-#elif defined(__EDG_VERSION__)
-    enum { n = aux::dependent_unsigned<T>::value > -1 };
-#elif defined(BOOST_GCC)
-    enum { n1 };
-    enum { n2 };
-    enum { n = n1 != n2 };
-#else
-    enum { n = sizeof(T) > -1 };
-#endif
+#else 
+    enum {
+        n =
+# if defined(__EDG_VERSION__)
+           aux::dependent_unsigned<T>::value > -1
+# else 
+           sizeof(T) > -1
+# endif 
+        };
+#endif 
 };
 
 #if defined(BOOST_MSVC)
