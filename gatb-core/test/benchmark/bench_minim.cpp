@@ -142,7 +142,7 @@ template<size_t span> struct debruijn_minim_bench {  void operator ()  (Paramete
             modelMini.getMinimizerValue(nodes.item().kmer.get<Type>(), true);
     end_t=chrono::system_clock::now();
     cout << nodes.size() << " minimizers of length " << miniSize << " on all nodes (" << kmerSize << "-mers), " << to_string(times) << " times, with new method    : " << (diff_wtime(start_t, end_t) / unit) - baseline_time << " seconds" << endl;
-    cout << modelMini._invalidMinimizersCounter << "/" << modelMini._minimizersCounter << " normal/fast minimizer computations" << endl,
+    //cout << modelMini._invalidMinimizersCounter << "/" << modelMini._minimizersCounter << " normal/fast minimizer computations" << endl,
 
    /* checking agreement between old and new method*/
     
@@ -167,7 +167,6 @@ template<size_t span> struct debruijn_minim_bench {  void operator ()  (Paramete
 
     }
     cout << "all good." << endl;
-#endif
 }
 }; // end functor debruijn_minim_bench
 
