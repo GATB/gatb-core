@@ -695,9 +695,10 @@ template<int precision> inline u_int64_t simplehash16 (const LargeInt<precision>
  *
  * I've set a template for the minimizer type, but actually u_int32_t seems to be as fast (if not faster?!) than u_int16_t
  */
-template<int precision, typename minimizer_type=u_int32_t> inline void fastLexiMinimizer (const LargeInt<precision>& x, const unsigned int _nbMinimizers, const unsigned int m,  minimizer_type &minimizer, size_t &position, bool &validResult) 
+
+template<int precision, typename minimizer_type> inline void fastLexiMinimizer (const LargeInt<precision>& x, const unsigned int _nbMinimizers, const unsigned int m,  minimizer_type &minimizer, size_t &position, bool &validResult)
 {
-    if (m > sizeof(minimizer_type)*4) {std::cout << "wrong minimizer size for fastLeximinimizer :" << std::to_string(m); exit(1);}
+    if (m > sizeof(minimizer_type)*4) {std::cout << "wrong minimizer size for fastLeximinimizer :" << m; exit(1);}
 
     const minimizer_type default_minimizer = ~0 & ((1 << (2*m)) - 1); 
     minimizer = default_minimizer; 
