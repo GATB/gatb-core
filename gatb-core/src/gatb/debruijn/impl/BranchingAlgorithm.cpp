@@ -151,8 +151,8 @@ struct FunctorNodes
     void operator() (Node& node)
     {
         // We get branching nodes neighbors for the current branching node.
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> successors   = graph->template successors  <Node> (node);
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> predecessors = graph->template predecessors<Node> (node);
+        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> successors   = graph->template successors   (node);
+        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> predecessors = graph->template predecessors (node);
 
         if ( ! (successors.size()==1 && predecessors.size()==1) )
         {

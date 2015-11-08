@@ -146,7 +146,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
 template<typename Node, typename Edge, typename GraphDataVariant>
 double Simplifications<Node,Edge,GraphDataVariant>::getSimplePathCoverage(Node node, Direction dir, unsigned int *pathLenOut, unsigned int maxLength)
 {
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath<Node> (node, dir);
+    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (node, dir);
     unsigned long total_abundance = _graph.queryAbundance(node);
     unsigned int pathLen = 1;
     for (itNodes.first(); !itNodes.isDone(); itNodes.next())
@@ -379,7 +379,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             
             /* it may appear that we're only going to follow its first neighbor, but in fact, neighbors[0].from is node.kmer */
             /* so, follow the simple path from this start tip node to the further node that has out-branching (out is w.r.t to the direction) */
-            typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath<Node> (neighbors[0].from, neighbors[0].direction); //
+            typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[0].from, neighbors[0].direction); //
             //DEBUG(cout << endl << "neighbors from: " << _graph.toString (neighbors[0].from) << " direction: " << neighbors[0].direction << endl);
             unsigned int pathLen = 1;
             vector<Node> nodes;
@@ -714,7 +714,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
                 /* explore the simple path from that node */
                 TIME(auto start_simplepath_t=get_wtime());
-                typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath<Node> (neighbors[i].to, dir);
+                typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[i].to, dir);
                 DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                 bool isShort = true;
                 pathLen = 0;
@@ -982,7 +982,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                         bool foundShortPath = false;
                         unsigned int pathLen = 0;
                         TIME(auto start_simplepath_t=get_wtime());
-                        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath<Node> (neighbors[i].to, dir);
+                        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[i].to, dir);
                         DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                         bool isShort = true;
                         pathLen = 0;

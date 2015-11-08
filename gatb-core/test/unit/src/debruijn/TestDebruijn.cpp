@@ -31,7 +31,6 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 
 #include <gatb/debruijn/impl/Graph.hpp>
-#include <gatb/debruijn/impl/Instantiations.cpp> // that's the way I found to avoid those linkers errors on neighbors<Node> and iterator<Node>!! yey!
 #include <gatb/debruijn/impl/Terminator.hpp>
 #include <gatb/debruijn/impl/Traversal.hpp>
 
@@ -162,7 +161,7 @@ public:
                 info.incNodes();
 
                 /** We retrieve the outcoming edges. */
-                successors = graph.successors<Edge> (itNodes.item());
+                successors = graph.successorsEdge (itNodes.item());
 
                 /** We iterate all outcoming edges. */
                 for (size_t i=0; i<successors.size(); i++)  {  info.inc (successors[i].to.kmer);  }
@@ -175,8 +174,8 @@ public:
     /********************************************************************************/
     void getNearestBranchingRange (const Graph& graph, Node& node, Node& begin, Node& end) const
     {
-        begin = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.predecessors<Node> (begin)).size() == 1;  begin = nodes[0])  {}
-        end   = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.successors  <Node> (end  )).size() == 1;  end   = nodes[0])  {}
+        begin = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.predecessors (begin)).size() == 1;  begin = nodes[0])  {}
+        end   = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.successors  (end  )).size() == 1;  end   = nodes[0])  {}
     }
 
     void debruijn_check_sequence (const Graph& graph, size_t kmerSize, const char* seq)
@@ -514,7 +513,7 @@ public:
         // We get the first node.
         Node node = graph.buildNode (seq);
 
-        Graph::Iterator<Edge> path = graph.simplePath<Edge> (node, DIR_OUTCOMING);
+        Graph::Iterator<Edge> path = graph.simplePathEdge (node, DIR_OUTCOMING);
 
         for (path.first(); !path.isDone(); path.next())
         {
@@ -555,7 +554,7 @@ public:
         Node node = graph.buildNode (seq1);
 
         /** We get a simple path iterator starting from the beginning of the seq1. */
-        Graph::Iterator<Edge> path = graph.simplePath<Edge> (node, DIR_OUTCOMING);
+        Graph::Iterator<Edge> path = graph.simplePathEdge (node, DIR_OUTCOMING);
 
         for (path.first(); !path.isDone(); path.next())
         {
@@ -584,7 +583,7 @@ public:
         CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
 
         /** We retrieve the branching neighbors for the node. */
-        Graph::Vector<BranchingNode> branchingNeighbors = graph.successors <BranchingNode> (node);
+        Graph::Vector<BranchingNode> branchingNeighbors = graph.successorsBranching (node);
 
         /** In our example, we should have only one branching neighbor. */
         CPPUNIT_ASSERT (branchingNeighbors.size() == 1);
@@ -622,7 +621,7 @@ public:
         CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
 
         /** We retrieve the branching neighbors for the node. */
-        Graph::Vector<BranchingNode> branchingNeighbors = graph.successors <BranchingNode> (node);
+        Graph::Vector<BranchingNode> branchingNeighbors = graph.successorsBranching (node);
 
         /** In our example, we should have 3 branching neighbors. */
         CPPUNIT_ASSERT (branchingNeighbors.size() == 3);
@@ -660,7 +659,7 @@ public:
         CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
 
         /** We retrieve the branching neighbors for the node. */
-        Graph::Vector<BranchingEdge> branchingNeighbors = graph.successors <BranchingEdge> (node);
+        Graph::Vector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (node);
 
         /** In our example, we should have 3 branching neighbors. */
         CPPUNIT_ASSERT (branchingNeighbors.size() == 3);
@@ -675,9 +674,9 @@ public:
 
             /** We check the simple path between the two branching nodes.
              *  We need first to retrieve the first (simple) neighbor from the origin. */
-            Node simpleNeighbor = graph.successor<Node> (branchingNeighbors[i].from, branchingNeighbors[i].nt);
+            Node simpleNeighbor = graph.successor (branchingNeighbors[i].from, branchingNeighbors[i].nt);
 
-            Graph::Iterator<Edge> path = graph.simplePath<Edge> (simpleNeighbor, branchingNeighbors[i].direction);
+            Graph::Iterator<Edge> path = graph.simplePathEdge (simpleNeighbor, branchingNeighbors[i].direction);
             for (path.first(); !path.isDone(); path.next())
             {
                 CPPUNIT_ASSERT (graph.toString(path->from) == string (sequences[i], path.rank()+1, kmerSize));

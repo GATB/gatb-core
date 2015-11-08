@@ -598,7 +598,17 @@ public:
      * Warning: be sure to check if edge.from (or node.from) is actually your input node, or its reverse complement.
      */
     inline Vector<Node> neighbors    ( Node& node, Direction dir=DIR_END) const  {  return getNodes(node, dir);           }
+    
+    /** Returns a vector of neighbors of the provided kmer. It has to be understood as the following:
+     *  - a node N is built with the kmer, with the strand FORWARD
+     *  - a call to 'neighbors<T> (N,          DIR_OUTGOING)' is done; we get v1
+     *  - a call to 'neighbors<T> (reverse(N), DIR_OUTGOING)' is done; we get v2
+     *  - the result is the concatenation of v1 and v2
+     *  \param[in] kmer : the kmer whose neighbors are wanted.
+     *  \return a vector of the neighbors (may be empty).
+     */
     inline Vector<Node> neighbors    ( const typename Node::Value& kmer) const          {  return getNodeValues (kmer);           }
+    
     inline Node* neighborsDummy      ( Node& node, Direction dir=DIR_END) const  {   return NULL;           }
 
 
@@ -627,23 +637,29 @@ public:
      * \param[in] node : the node whose neighbors are wanted
      * \return a vector of the node neighbors (may be empty).
      */
-    template <typename T>  GraphTemplate::Vector<T> successors (Node& node) const;
+    inline Vector<Node> successors   ( Node& node) const                 {  return getNodes(node, DIR_OUTCOMING); }
 
     /** Shortcut for 'neighbors' method with direction==DIR_INCOMING.
      * \param[in] node : the node whose neighbors are wanted
      * \return a vector of the node neighbors (may be empty).
      */
-    template <typename T>  GraphTemplate::Vector<T> predecessors (Node& node) const;
+    inline Vector<Node> predecessors ( Node& node) const                 {  return getNodes(node, DIR_INCOMING);  }
+    
+    inline Vector<Edge> successorsEdge   ( Node& node) const                 {  return getEdges(node, DIR_OUTCOMING); }
+    inline Vector<Edge> predecessorsEdge ( Node& node) const                 {  return getEdges(node, DIR_INCOMING);  }
 
-    /** Returns a vector of neighbors of the provided kmer. It has to be understood as the following:
-     *  - a node N is built with the kmer, with the strand FORWARD
-     *  - a call to 'neighbors<T> (N,          DIR_OUTGOING)' is done; we get v1
-     *  - a call to 'neighbors<T> (reverse(N), DIR_OUTGOING)' is done; we get v2
-     *  - the result is the concatenation of v1 and v2
-     *  \param[in] kmer : the kmer whose neighbors are wanted.
-     *  \return a vector of the neighbors (may be empty).
-     */
-    template <typename T>  GraphTemplate::Vector<T> neighbors (const typename Node::Value& kmer) const;
+    inline Vector<BranchingNode_t<Node>> successorsBranching (Node& node) const
+        { return getBranchingNodeNeighbors (node, DIR_OUTCOMING);  }
+
+    inline Vector<BranchingNode_t<Node>> predecessorsBranching (Node& node) const
+        { return getBranchingNodeNeighbors (node, DIR_INCOMING);  }
+
+    inline Vector<BranchingEdge_t<Node,Edge>> successorsBranchingEdge (Node& node) const
+        { return getBranchingEdgeNeighbors (node, DIR_OUTCOMING);  }
+
+    inline Vector<BranchingEdge_t<Node,Edge>> predecessorsBranchingEdge (Node& node) const
+        { return getBranchingEdgeNeighbors (node, DIR_INCOMING);  }
+
 
     /** Returns a set of neighbors for each node iterated with the provided two iterators
      * \param[in] first : beginning of the iteration
@@ -659,14 +675,23 @@ public:
      * \param[in] node2 : sedond node
      * \return the vector of pairs of items as successors
      */
-    template <typename T>  GraphTemplate::Vector<std::pair<T,T> > successors   (const Node& node1, const Node& node2) const;
+    inline Vector<std::pair<Edge,Edge> > successorsEdge (const Node& node1, const Node& node2) const
+    { return getEdgesCouple (node1, node2, DIR_OUTCOMING); }
+
+    inline Vector<std::pair<Node,Node> > successors (const Node& node1, const Node& node2) const
+    { return getNodesCouple (node1, node2, DIR_OUTCOMING); }
 
     /** Returns the predecessors of two nodes, ie with the same transition nucleotide from both nodes.
      * \param[in] node1 : first node
      * \param[in] node2 : sedond node
      * \return the vector of pairs of items as predecessors
      */
-    template <typename T>  GraphTemplate::Vector<std::pair<T,T> > predecessors (const Node& node1, const Node& node2) const;
+    inline Vector<std::pair<Edge,Edge> > predecessorsEdge (const Node& node1, const Node& node2) const
+    { return getEdgesCouple (node1, node2, DIR_INCOMING); }
+
+    inline Vector<std::pair<Node,Node> > predecessors (const Node& node1, const Node& node2) const
+    { return getNodesCouple (node1, node2, DIR_INCOMING); }
+
 
     /**********************************************************************/
     /*                     ONE NEIGHBOR METHODS                           */
@@ -682,7 +707,8 @@ public:
      * \param[in] nt : the nucleotide of the transition
      * \return the neighbor object.
      */
-    template <typename T>  T neighbor (Node& source, Direction dir, kmer::Nucleotide nt) const;
+    inline Node neighbor ( Node& source, Direction dir, kmer::Nucleotide nt) const
+    {  bool exists=true; return getNode (source, dir, nt, exists);  }
 
     /** Return a specific neighbor from a given node. The neighbor is defined by a direction and the transition
      * nucleotide.
@@ -694,19 +720,24 @@ public:
      * \param[out] exists : yes means that the neighbor is in the graph, false otherwise
      * \return the neighbor object.
      */
-    template <typename T>  T neighbor (Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
+    inline Node neighbor ( Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
+    {  return getNode (source, dir, nt, exists);  }
 
     /** Shortcut for neighbor with dir==DIR_OUTCOMING. */
-    template <typename T>  T successor (Node& source, kmer::Nucleotide nt, bool& exists) const;
+    inline Node successor ( Node& source, kmer::Nucleotide nt) const
+    {  bool exists=true; return getNode (source, DIR_OUTCOMING, nt, exists);  }
 
-    /** Shortcut for neighbor with dir==DIR_OUTCOMING. */
-    template <typename T>  T successor (Node& source, kmer::Nucleotide nt) const;
+    inline Node successor ( Node& source, kmer::Nucleotide nt, bool& exists) const
+    {  return getNode (source, DIR_OUTCOMING, nt, exists);  }
 
+   
     /** Shortcut for neighbor with dir==DIR_INCOMING. */
-    template <typename T>  T predecessor (Node& source, kmer::Nucleotide nt, bool& exists) const;
+    inline Node predecessor ( Node& source, kmer::Nucleotide nt) const
+    {  bool exists=true; return getNode (source, DIR_INCOMING, nt, exists);  }
 
-    /** Shortcut for neighbor with dir==DIR_INCOMING. */
-    template <typename T>  T predecessor (Node& source, kmer::Nucleotide nt) const;
+    inline Node predecessor ( Node& source, kmer::Nucleotide nt, bool& exists) const
+    {  return getNode (source, DIR_INCOMING, nt, exists);  }
+
 
     /**********************************************************************/
     /*                      MISC NEIGHBORS METHODS                        */
@@ -767,7 +798,8 @@ public:
     int simplePathAvance (Node& node, Direction dir, kmer::Nucleotide& nt) const;
 
     /** */
-    template<typename T> GraphTemplate::Iterator<T> simplePath (Node& node, Direction dir) const;
+    Iterator<Node> simplePath     (Node& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }
+    Iterator<Edge> simplePathEdge (Node& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
 
 
     /**********************************************************************/

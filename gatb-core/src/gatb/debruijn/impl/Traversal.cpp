@@ -155,7 +155,7 @@ int TraversalTemplate<Node,Edge,GraphDataVariant>::traverse (Node& startingNode,
              * WARNING: we 'build' here a node without checking that it belongs to the Debruijn graph, because
              * the transition nucleotide has been got through a call to Graph::neighbors, and therefore it should
              * be a trustable transition nucleotide. */
-            currentNode  = this->graph.template neighbor<Node> (currentNode, dir, path[i]);
+            currentNode  = this->graph.neighbor (currentNode, dir, path[i]);
 
             /** We mark the node as used in assembly. */
             terminator.mark (currentNode);

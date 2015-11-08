@@ -1815,7 +1815,7 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingN
     for (size_t i=0; i<neighbors.size(); i++)
     {
         /** We get a simple path iterator from the current neighbor. */
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Edge> path = this->simplePath<Edge> (neighbors[i].to, direction);
+        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Edge> path = this->simplePathEdge (neighbors[i].to, direction);
 
         /** We iterate this simple path from the current neighbor. */
         for (path.first(); !path.isDone(); path.next())  {}
@@ -1855,7 +1855,7 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingE
         DEBUG ((cout << "neighbor[" << i << "] " << this->toString(neighbors[i]) << endl));
 
         /** We get a simple path iterator from the current neighbor. */
-        GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Edge> path = this->simplePath<Edge> (neighbors[i].to, direction);
+        GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Edge> path = this->simplePathEdge (neighbors[i].to, direction);
 
         /** We iterate this simple path from the current neighbor. */
         for (path.first(); !path.isDone(); path.next())
