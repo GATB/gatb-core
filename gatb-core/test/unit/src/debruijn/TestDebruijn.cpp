@@ -87,8 +87,8 @@ class TestDebruijn : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestDebruijn);
 
-        CPPUNIT_TEST_GATB (debruijn_deletenode);/*//TODO ameliorer ce test
         CPPUNIT_TEST_GATB (debruijn_test7); 
+        CPPUNIT_TEST_GATB (debruijn_deletenode);
         CPPUNIT_TEST_GATB (debruijn_checksum);
         CPPUNIT_TEST_GATB (debruijn_test2);
         CPPUNIT_TEST_GATB (debruijn_test3);
@@ -108,8 +108,7 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_mphf);
 #endif
         CPPUNIT_TEST_GATB (debruijn_traversal1);
-
-    */
+        
         CPPUNIT_TEST_SUITE_GATB_END();
 
 public:
@@ -420,25 +419,36 @@ public:
                 {
                     CPPUNIT_ASSERT (neighbors.size()==2);
 
-                    if (graph.toString(edge.from)=="GCGCC")
+                    if (graph.toString(edge.to) == "CGCCT")
                     {
+                        if (graph.toString(edge.to) != "CGCCT") 
+                            std::cout << "anticipation of assert fail: graph.toString(edge.to) = " << graph.toString(edge.to) << std::endl;
+                        if (edge.nt != NUCL_T) 
+                            std::cout << "anticipation of assert fail: edge.nt = " << (int)edge.nt << " and not T" << std::endl;
+                        if (edge.direction != DIR_OUTCOMING) 
+                            std::cout << "anticipation of assert fail: edge.direction = " << (int)edge.direction << std::endl;
+
                         CPPUNIT_ASSERT (graph.toString(edge.to)=="CGCCT");
                         CPPUNIT_ASSERT (edge.nt==NUCL_T);
                         CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
 
                     }
-                    else if (graph.toString(edge.from)=="GGCGC")
-                    {
-                        if (graph.toString(edge.to) != "GCGCC") 
-                            std::cout << "anticipation of assert fail: graph.toString(edge.to) = " << graph.toString(edge.to) << std::endl;
-
-                        CPPUNIT_ASSERT (graph.toString(edge.to)=="GCGCC");
-                        CPPUNIT_ASSERT (edge.nt==NUCL_C);
-                        CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
-                    }
                     else
-                    {
-                        CPPUNIT_ASSERT (false);
+                    { if (graph.toString(edge.to)=="GGCGC")
+                        {
+                            if (graph.toString(edge.from) != "GCGCC") 
+                                std::cout << "anticipation of assert fail: graph.toString(edge.from) = " << graph.toString(edge.from) << std::endl;
+
+                            CPPUNIT_ASSERT (graph.toString(edge.from)=="GCGCC");
+                            CPPUNIT_ASSERT (edge.nt==NUCL_G);
+                            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+                        }
+                        else
+                        {
+                            std::cout << "unknown edge found" << std::endl;
+                            std::cout << "anticipation of assert fail: graph.toString(edge.to) = " << graph.toString(edge.to) << " graph.toString(edge.from) = " << graph.toString(edge.from) << std::endl;
+                            CPPUNIT_ASSERT (false);
+                        }
                     }
                 }
             }
