@@ -264,7 +264,7 @@ void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_s
         // there may be just one 1 possibility (there was in-branching)
 
         /** We get the successors of the node. */
-        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> successors = graph.template successors<Node> (endNode);
+        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> successors = graph.successors (endNode);
 
         /** We iterate the successors. */
         for (size_t i=0; i<successors.size(); i++)

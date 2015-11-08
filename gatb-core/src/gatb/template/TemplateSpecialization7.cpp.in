@@ -1,9 +1,6 @@
-#include <gatb/debruijn/impl/Graph.cpp>
 #include <gatb/debruijn/impl/Simplifications.cpp>
-#include <gatb/debruijn/impl/Traversal.cpp>
-#include <gatb/debruijn/impl/Terminator.cpp>
-#include <gatb/debruijn/impl/Frontline.cpp>
-#include <gatb/debruijn/impl/BranchingAlgorithm.cpp>
+#include <gatb/debruijn/impl/Graph.cpp>
+
 #include <gatb/tools/math/Integer.hpp>
 
 using namespace gatb::core::kmer;
@@ -17,30 +14,15 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
  TemplateSpecialization7.cpp.in_32.cpp:(..): undefined reference to `GraphTemplate<NodeFast<1>,.. >::Iterator<NodeFast<1> > GraphTemplate<NodeFast<1>, .. >::iterator<NodeFast<1> >() const'
  i'm adding the specializations here again */ 
 typedef boost::variant<GraphData<${KSIZE}>> GraphDataVariantT;
-typedef GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>, Edge_t<Node_t<Kmer<${KSIZE}>::Type>>, GraphDataVariantT> GraphT;
-typedef Node_t<Kmer<${KSIZE}>::Type> NodeT;
-typedef Edge_t<Node_t<Kmer<${KSIZE}>::Type>> EdgeT;
-typedef BranchingNode_t<Node_t<Kmer<${KSIZE}>::Type>> BranchingNodeT;
-typedef BranchingEdge_t<Node_t<Kmer<${KSIZE}>::Type>, Edge_t<Node_t<Kmer<${KSIZE}>::Type>>> BranchingEdgeT;
-
-#include <gatb/debruijn/impl/Instantiations.hpp> // this might be a bit exotic to do it like that.. but it works.
 
 template struct Node_t<Kmer<${KSIZE}>::Type >; 
 template struct Edge_t<Node_t<Kmer<${KSIZE}>::Type >>; 
 template class GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
 
 template class Simplifications <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class TraversalTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class MonumentTraversalTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class TerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class MPHFTerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class BranchingTerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class FrontlineTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class FrontlineBranchingTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
-template class BranchingAlgorithm <${KSIZE},Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>;
-
 
 // special instantiation (or specialization, i never know what's the difference)
+// actually not sure if it's ever used
 template <> template <> Kmer<${KSIZE}>::Type Node_t<Kmer<${KSIZE}>::Type>::getKmer() const
 {
     return kmer;
