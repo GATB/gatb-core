@@ -69,6 +69,7 @@ class TestKmer : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestKmer);
 
+        CPPUNIT_TEST_GATB (kmer_tostring);
         CPPUNIT_TEST_GATB (kmer_checkInfo);
         CPPUNIT_TEST_GATB (kmer_checkCompute);
         CPPUNIT_TEST_GATB (kmer_checkIterator);
@@ -335,7 +336,7 @@ public:
         banks.push_back (new BankRandom (500, 200));
 
         size_t   kmerSizes[] = { 12,31, 33,63, 65,95, 97,127 };
-        size_t   miniSizes[] = {  5,  9, 11 };
+        size_t   miniSizes[] = {  5,  8, 10 };
 
         static const size_t KSIZE_1 = KMER_SPAN(0);
         static const size_t KSIZE_2 = KMER_SPAN(1);
@@ -561,6 +562,22 @@ public:
         kmer_badchar_functor fct (model, info, ARRAY_SIZE(info));
 
         model.iterate (data, fct);
+    }
+
+    void kmer_tostring (void)
+    {
+        size_t kmerSize = 121;
+        static const size_t KSIZE_3 = KMER_SPAN(3);
+        typedef typename Kmer<KSIZE_3>::ModelCanonical Model;
+        Model model (kmerSize);
+
+        string kmer_str = "ACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAATTCAATATTATATAGGCAAAGATACCATGTATAATTATAAGTAGGTACCTATTTTTTTATTTTAAACTGAAA";
+ 
+        Model::Kmer kmer = model.codeSeed (kmer_str.c_str(), Data::ASCII);
+        
+        if (model.toString(kmer.value()) != kmer_str)
+             std::cout << "in anticipation of failed assert, model.toString(kmer) = " << model.toString(kmer.value()) << ", kmer = " << kmer_str << std::endl;       
+        CPPUNIT_ASSERT (model.toString(kmer.value()) == kmer_str);
     }
 };
 

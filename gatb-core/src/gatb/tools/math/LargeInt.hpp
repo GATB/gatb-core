@@ -675,9 +675,7 @@ public:
      * \return the nucleotide value as follow: A=0, C=1, T=2 and G=3
      */
     u_int8_t  operator[]  (size_t idx) const    {  
-        std::cout << "operator[" << (int)idx << "] called on largeint; but it has a fixme; address it!" << std::endl; 
-        throw system::Exception ("LargeInt<%d> call to operator [%d]", precision,idx); 
-        return (this->value[idx/32] >> (2*(idx % 32))) & 3; } // FIXME (or delete this comment): isn't this buggy when idx > 32? then the shift becomes more than 64. needs to be tested.
+        return (this->value[idx/32] >> (2*(idx % 32))) & 3; }
 
 private:
     u_int64_t value[precision];
