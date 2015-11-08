@@ -48,7 +48,7 @@ public:
 
     double getSimplePathCoverage(Node node, Direction dir, unsigned int* pathLen = NULL, unsigned int maxLength = 0);
     double getMeanAbundanceOfNeighbors(Node branchingNode, Node nodeToExclude);
-    bool satisfyRCTC(std::vector<Node> nodes, double RCTCcutoff);
+    bool satisfyRCTC(std::vector<Node>& nodes, double RCTCcutoff);
 
     int _nbTipRemovalPasses;
     int _nbBubbleRemovalPasses;

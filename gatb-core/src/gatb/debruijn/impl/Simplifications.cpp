@@ -223,7 +223,7 @@ inline string maybe_print(long value, string str)
 /* coverage of the simple path (stored in "nodes" vector)
       then compares it to coverage of other paths connected to the last node of it. */
 template<typename Node, typename Edge, typename GraphDataVariant>
-bool Simplifications<Node,Edge,GraphDataVariant>::satisfyRCTC(vector<Node> nodes, double RCTCcutoff)
+bool Simplifications<Node,Edge,GraphDataVariant>::satisfyRCTC(vector<Node>& nodes, double RCTCcutoff)
 {
 
     unsigned long mean_abundance = 0;
@@ -423,7 +423,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             bool isRCTCTip = false;
             if (!isTopologicalShortTip && isMaybeRCTCTip)
             {
-                isRCTCTip = satisfyRCTC(nodes, RCTCcutoff);
+                isRCTCTip = this->satisfyRCTC(nodes, RCTCcutoff); /* fun fact: not putting "this->" crashes gcc 4.7; was fun to debug :\ */
             }
 
             bool isTip = isTopologicalShortTip || isRCTCTip; 
@@ -1032,10 +1032,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                         if (isTopologicalEC)
                         {
 
-                            bool isRCTC = satisfyRCTC(nodes, RCTCcutoff);
+                            bool isRCTC = this->satisfyRCTC(nodes, RCTCcutoff);
 
                             std::reverse(nodes.begin(), nodes.end());
-                            isRCTC |= satisfyRCTC(nodes, RCTCcutoff); // also check in the other direction
+                            isRCTC |= this->satisfyRCTC(nodes, RCTCcutoff); // also check in the other direction
                             std::reverse(nodes.begin(), nodes.end());
 
                             bool isEC = isRCTC;
