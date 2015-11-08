@@ -3558,6 +3558,9 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::simplify(unsigned int nbCores,
         graphSimplifications.simplify();
 }
 
+// instantiation
+// uses Node and Edge as defined in Graph.hpp (legacy GATB compatibility, when Graph was not templated)
+template class GraphTemplate<Node, Edge, GraphDataVariant>; 
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -306,6 +306,12 @@ bool FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::isReachable()
    return true;
 }
 
+// legacy GATB compatbility
+template class FrontlineTemplate<Node, Edge, GraphDataVariant>; 
+template class FrontlineBranchingTemplate<Node, Edge, GraphDataVariant>; 
+template class FrontlineReachableTemplate<Node, Edge, GraphDataVariant>; 
+
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

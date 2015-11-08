@@ -850,6 +850,13 @@ Path_t<Node> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::most_abundan
     return res;
 }
 
+// legacy GATB compatibility
+template class TraversalTemplate<Node, Edge, GraphDataVariant>; 
+template class MonumentTraversalTemplate<Node, Edge, GraphDataVariant>; 
+template class SimplePathsTraversalTemplate<Node, Edge, GraphDataVariant>; 
+template class NullTraversalTemplate<Node, Edge, GraphDataVariant>; 
+
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

@@ -1084,6 +1084,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     return nbECRemoved;
 }
 
+// instantiation
+template class Simplifications<Node, Edge, GraphDataVariant>; 
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -328,6 +328,12 @@ void MPHFTerminatorTemplate<Node,Edge,GraphDataVariant>::reset()
     this->_graph.resetNodeState();
 }
 
+// instantiation of GATB legacy compatibility 
+template class MPHFTerminatorTemplate<Node, Edge, GraphDataVariant>; 
+template class BranchingTerminatorTemplate<Node, Edge, GraphDataVariant>; 
+template class TerminatorTemplate<Node, Edge, GraphDataVariant>; 
+
+
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
