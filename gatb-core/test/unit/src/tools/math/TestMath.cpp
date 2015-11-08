@@ -18,6 +18,8 @@
 
 #include <CppunitCommon.hpp>
 
+#define USE_LARGEINT_CONSTRUCTOR 1 // one of the only cases where LargeInt should be using its constructor; but really I didn't want to change the unit tests here.
+
 #include <gatb/tools/math/LargeInt.hpp>
 #include <gatb/tools/math/Integer.hpp>
 

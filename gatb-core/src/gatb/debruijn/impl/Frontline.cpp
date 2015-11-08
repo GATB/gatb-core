@@ -40,18 +40,19 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** REMARKS :
 *********************************************************************/
 // a frontline is a set of nodes having equal depth in the BFS
-Frontline::Frontline (
+template <typename Node, typename Edge, typename GraphDataVariant>
+FrontlineTemplate<Node,Edge,GraphDataVariant>::FrontlineTemplate (
     Direction         direction,
-    const Graph&      graph,
-    Terminator&       terminator,
-    const Node&       startingNode
+    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    Node&       startingNode
 ) :
     _direction(direction), _graph(graph), _terminator(terminator), _depth(0),
     _all_involved_extensions(0)
 {
     _already_frontlined.insert (startingNode.kmer);
 
-    _frontline.push (NodeNt (startingNode, kmer::NUCL_UNKNOWN));
+    _frontline.push (NodeNt<Node>(startingNode, kmer::NUCL_UNKNOWN));
 }
 
 /*********************************************************************
@@ -63,12 +64,13 @@ Frontline::Frontline (
 ** REMARKS :
 *********************************************************************/
 // a frontline is a set of nodes having equal depth in the BFS
-Frontline::Frontline (
+template <typename Node, typename Edge, typename GraphDataVariant>
+FrontlineTemplate<Node,Edge,GraphDataVariant>::FrontlineTemplate (
     Direction         direction,
-    const Graph&      graph,
-    Terminator&       terminator,
-    const Node&       startingNode,
-    const Node&       previousNode,
+    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    Node&       startingNode,
+    Node&       previousNode,
     std::set<Node>*   all_involved_extensions
 ) :
     _direction(direction), _graph(graph), _terminator(terminator), _depth(0),
@@ -77,7 +79,7 @@ Frontline::Frontline (
     _already_frontlined.insert (startingNode.kmer);
     _already_frontlined.insert (previousNode.kmer);
 
-    _frontline.push (NodeNt (startingNode, kmer::NUCL_UNKNOWN));
+    _frontline.push (NodeNt<Node>(startingNode, kmer::NUCL_UNKNOWN));
 }
 
 /*********************************************************************
@@ -88,29 +90,30 @@ Frontline::Frontline (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool Frontline::go_next_depth()
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool FrontlineTemplate<Node,Edge,GraphDataVariant>::go_next_depth()
 {
     // extend all nodes in this frontline simultaneously, creating a new frontline
     stopped_reason=NONE;
     queue_nodes new_frontline;
 
-    while (!_frontline.empty())
+    while (!this->_frontline.empty())
     {
         /** We get the first item of the queue and remove it from the queue. */
-        NodeNt current_node = _frontline.front();
+        NodeNt<Node> current_node = this->_frontline.front();
         _frontline.pop();
 
         /** We check whether we use this node or not. we always use the first node at depth 0 */
         if (_depth > 0 && check(current_node.node) == false)  { return false; }
 
         /** We loop the neighbors edges of the current node. */
-        Graph::Vector<Edge> edges = _graph.neighbors<Edge> (current_node.node, _direction);
+        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> edges = _graph.neighborsEdge (current_node.node, _direction);
 
         for (size_t i=0; i<edges.size(); i++)
         {
             /** Shortcuts. */
-            const Edge& edge     = edges[i];
-            const Node& neighbor = edge.to;
+            Edge& edge     = edges[i];
+            Node& neighbor = edge.to;
 
             // test if that node hasn't already been explored
             if (_already_frontlined.find (neighbor.kmer) != _already_frontlined.end())  { continue; }
@@ -119,7 +122,7 @@ bool Frontline::go_next_depth()
             //if (_terminator.isEnabled() && _terminator.is_branching (neighbor) &&  _terminator.is_marked_branching(neighbor))   // legacy, before MPHFTerminator
             if (_terminator.isEnabled() && _terminator.is_marked(neighbor))   // to accomodate MPHFTerminator
             {  
-                stopped_reason=Frontline::MARKED;
+                stopped_reason=FrontlineTemplate<Node,Edge,GraphDataVariant>::MARKED;
                 return false;  
             }
 
@@ -127,7 +130,7 @@ bool Frontline::go_next_depth()
             kmer::Nucleotide from_nt = (current_node.nt == kmer::NUCL_UNKNOWN) ? edge.nt : current_node.nt;
 
             /** We add the new node to the new front line. */
-            new_frontline.push (NodeNt (neighbor, from_nt));
+            new_frontline.push (NodeNt<Node> (neighbor, from_nt));
 
             /** We memorize the new node. */
             _already_frontlined.insert (neighbor.kmer);
@@ -151,14 +154,15 @@ bool Frontline::go_next_depth()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-FrontlineBranching::FrontlineBranching (
+template <typename Node, typename Edge, typename GraphDataVariant>
+FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::FrontlineBranchingTemplate (
     Direction         direction,
-    const Graph&      graph,
-    Terminator&       terminator,
-    const Node&       startingNode,
-    const Node&       previousNode,
+    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    Node&       startingNode,
+    Node&       previousNode,
     std::set<Node>*   all_involved_extensions
-)  : Frontline (direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
+)  : FrontlineTemplate<Node,Edge,GraphDataVariant>(direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
 {
 }
 
@@ -170,12 +174,13 @@ FrontlineBranching::FrontlineBranching (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-FrontlineBranching::FrontlineBranching (
+template <typename Node, typename Edge, typename GraphDataVariant>
+FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::FrontlineBranchingTemplate (
     Direction         direction,
-    const Graph&      graph,
-    Terminator&       terminator,
-    const Node&       startingNode
-) : Frontline(direction,graph,terminator,startingNode)
+    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    Node&       startingNode
+) : FrontlineTemplate<Node,Edge,GraphDataVariant>(direction,graph,terminator,startingNode)
 {
 }
 
@@ -188,13 +193,14 @@ FrontlineBranching::FrontlineBranching (
 ** REMARKS :
 *********************************************************************/
 // new code, not in monument, to detect any in-branching longer than 3k
-bool FrontlineBranching::check (const Node& node)
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::check (Node& node)
 {
 	/** We reverse the node for the inbranching path. */
-    Node actual = _graph.reverse(node);
+    Node actual = this->_graph.reverse(node);
 
     /** We loop the neighbors nodes of the current node. */
-    Graph::Vector<Node> neighbors = _graph.neighbors<Node> (actual, (_direction));
+    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> neighbors = this->_graph.neighbors(actual, (this->_direction));
 
     for (size_t i=0; i<neighbors.size(); i++)
     {
@@ -204,31 +210,31 @@ bool FrontlineBranching::check (const Node& node)
         // only check in-branching from kmers not already frontlined
         // which, for the first extension, includes the previously traversed kmer (previous_kmer)
         // btw due to avance() invariant, previous_kmer is always within a simple path
-        if (_already_frontlined.find (neighbor.kmer) != _already_frontlined.end())  {   continue;  }
+        if (this->_already_frontlined.find (neighbor.kmer) != this->_already_frontlined.end())  {   continue;  }
 
         // create a new frontline inside this frontline to check for large in-branching (i know, we need to go deeper, etc..)
-        Frontline frontline (_direction, _graph, _terminator, neighbor, actual, _all_involved_extensions);
+        FrontlineTemplate<Node,Edge,GraphDataVariant> frontline (this->_direction, this->_graph, this->_terminator, neighbor, actual, this->_all_involved_extensions);
 
         do  {
             bool should_continue = frontline.go_next_depth();
 
             if (!should_continue)  
             {  
-                stopped_reason=Frontline::IN_BRANCHING_OTHER;
+                this->stopped_reason = FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_OTHER;
                 break;
             }
 
             // don't allow a depth > 3k
-            if (frontline.depth() > 3 * _graph.getKmerSize())  
+            if (frontline.depth() > 3 * this->_graph.getKmerSize())  
             {  
-                stopped_reason=Frontline::IN_BRANCHING_DEPTH;
+                this->stopped_reason = FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_DEPTH;
                 break;
             }
 
             // don't allow a breadth too large
             if (frontline.size() > 10)  
             {  
-                stopped_reason=Frontline::IN_BRANCHING_BREADTH;
+                this->stopped_reason = FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_BREADTH;
                 break;
             }
 
@@ -253,32 +259,34 @@ bool FrontlineBranching::check (const Node& node)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-FrontlineReachable::FrontlineReachable(
+template <typename Node, typename Edge, typename GraphDataVariant>
+FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::FrontlineReachableTemplate(
     Direction         direction,
-    const Graph&      graph,
-    Terminator&       terminator,
-    const Node&       startingNode,
-    const Node&       previousNode,
+    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    Node&       startingNode,
+    Node&       previousNode,
     std::set<Node>*   all_involved_extensions
-)  : Frontline (direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
+)  : FrontlineTemplate<Node,Edge,GraphDataVariant> (direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
 {
 }
 
 
 
-bool FrontlineReachable::check (const Node& node)
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::check (Node& node)
 {
 	/** We reverse the node for the inbranching path. */
-    Node actual = _graph.reverse(node);
+    Node actual = this->_graph.reverse(node);
 
     /** neighbors nodes of the current node. */
-    Graph::Vector<Node> neighbors = _graph.neighbors<Node> (actual, (_direction));
+    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> neighbors = this->_graph.neighbors(actual, (this->_direction));
 
     for (size_t i=0; i<neighbors.size(); i++)
     {
         /** Shortcut. */
         Node& neighbor = neighbors[i];
-        if (_already_frontlined.find (neighbor.kmer) == _already_frontlined.end())  {
+        if (this->_already_frontlined.find (neighbor.kmer) == this->_already_frontlined.end())  {
             checkLater.insert(neighbor);
            //return false;   // strict
         }
@@ -286,11 +294,12 @@ bool FrontlineReachable::check (const Node& node)
     return true;
 }
 
-bool FrontlineReachable::isReachable()
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::isReachable()
 {
-   for (set<Node>::iterator itNode = checkLater.begin(); itNode != checkLater.end(); itNode++)
+   for (typename std::set<Node>::iterator itNode = checkLater.begin(); itNode != checkLater.end(); itNode++)
    {
-        if (_already_frontlined.find((*itNode).kmer) == _already_frontlined.end())
+        if (this->_already_frontlined.find((*itNode).kmer) == this->_already_frontlined.end())
             return false;
 
    }

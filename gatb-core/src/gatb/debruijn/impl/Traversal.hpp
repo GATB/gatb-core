@@ -65,7 +65,7 @@ struct TraversalStats
 
 /********************************************************************************/
 
-/** \brief Class that traverse nodes of a Graph
+/** \brief Class that traverse nodes of a GraphTemplate<Node,Edge,GraphDataVariant>
  *
  * The Traversal class looks for path in a graph according to several criteria. This
  * is done through the 'traverse' method. As a result, one gets a Path object that
@@ -85,7 +85,8 @@ struct TraversalStats
  * \snippet traversal2.cpp  snippet1_traversal
  *
  */
-class Traversal : public system::SmartPointer
+template <typename Node, typename Edge, typename GraphDataVariant>
+class TraversalTemplate: public system::SmartPointer
 {
 public:
 
@@ -97,13 +98,13 @@ public:
      * \param[in] max_depth : maximum depth of the traversal
      * \param[in] max_breadth : maximum depth of the traversal
      */
-    static Traversal* create (
+    static TraversalTemplate<Node,Edge,GraphDataVariant>* create (
         tools::misc::TraversalKind  type,
-        const Graph&                graph,
-        Terminator&                 terminator,
-        int                         max_len     = Traversal::defaultMaxLen,
-        int                         max_depth   = Traversal::defaultMaxDepth,
-        int                         max_breadth = Traversal::defaultMaxBreadth
+        const GraphTemplate<Node,Edge,GraphDataVariant>&                graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&                         terminator,
+        int                         max_len     = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
+        int                         max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
+        int                         max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
     );
 
     /** Factory method that creates an instance of Traversal
@@ -114,13 +115,13 @@ public:
      * \param[in] max_depth : maximum depth of the traversal
      * \param[in] max_breadth : maximum depth of the traversal
      */
-    static Traversal* create (
+    static TraversalTemplate<Node,Edge,GraphDataVariant>* create (
         const std::string&  type,
-        const Graph&        graph,
-        Terminator&         terminator,
-        int                 max_len     = Traversal::defaultMaxLen,
-        int                 max_depth   = Traversal::defaultMaxDepth,
-        int                 max_breadth = Traversal::defaultMaxBreadth
+        const GraphTemplate<Node,Edge,GraphDataVariant>&        graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&                 terminator,
+        int                 max_len     = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
+        int                 max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
+        int                 max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
     );
 
     /** Get the name of the traversal.
@@ -132,7 +133,7 @@ public:
      * \param[in] node : starting node of the traversal.
      * \param[in] dir :  direction of the traversal
      * \param[out] resulting_sequence : path of the traversal */
-    int traverse (const Node& node, Direction dir, Path& resulting_sequence)
+    int traverse (Node& node, Direction dir, Path_t<Node>& resulting_sequence)
     {
         Node endingNode;  return traverse (node, endingNode, dir, resulting_sequence);
     }
@@ -143,7 +144,7 @@ public:
      * \param[out] endingNode : starting node of the traversal.
      * \param[in] dir :  direction of the traversal
      * \param[out] resulting_sequence : path of the traversal */
-    int traverse (const Node& startingNode, Node& endingNode, Direction dir, Path& resulting_sequence);
+    int traverse (Node& startingNode, Node& endingNode, Direction dir, Path_t<Node>& resulting_sequence);
 
     /** Get the maximum allowed depth
      * \return maximum depth */
@@ -164,7 +165,7 @@ public:
     /** Compute a global alignment between two path. NOTE: could be moved to Path class.
      * \param[in] a : first path
      * \param[in] b : second path. */
-    static float needleman_wunch (const Path& a, const Path& b);
+    static float needleman_wunch (const Path_t<Node>& a, const Path_t<Node>& b);
 
     /** Get the bubbles found during traversal. One bubble is defined by the [begin,end] positions in the
      * path.
@@ -176,22 +177,22 @@ public:
 protected:
 
     /** */
-    Traversal (
-        const Graph& graph,
-        Terminator& terminator,
+    TraversalTemplate (
+        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>         & terminator,
         int maxlen,
         int max_depth,
         int max_breadth
     );
 
-    const Graph& graph;
-    Terminator&  terminator;
+    const GraphTemplate<Node,Edge,GraphDataVariant>& graph;
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&          terminator;
 
     int maxlen;
     int max_depth;
     int max_breadth;
 
-    virtual char avance (const Node& node, Direction dir, bool first_extension, Path& path, const Node& previousNode) = 0;
+    virtual char avance (Node& node, Direction dir, bool first_extension, Path_t<Node>& path, Node& previousNode) = 0;
 
     void mark_extensions (std::set<Node>& extensions_to_mark);
 
@@ -205,7 +206,8 @@ protected:
  *
  * This class returns empty Path as a result of traverse.
  */
-class NullTraversal: public Traversal
+template <typename Node, typename Edge, typename GraphDataVariant>
+class NullTraversalTemplate: public TraversalTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
@@ -216,13 +218,13 @@ public:
      * \param[in] max_depth : maximum depth of the traversal
      * \param[in] max_breadth : maximum depth of the traversal
      */
-    NullTraversal (
-        const Graph& graph,
-        Terminator& terminator,
-        int maxlen      = Traversal::defaultMaxLen,
-        int max_depth   = Traversal::defaultMaxDepth,
-        int max_breadth = Traversal::defaultMaxBreadth
-    ) : Traversal (graph, terminator, maxlen, max_depth, max_breadth) {}
+    NullTraversalTemplate (
+        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
+        int maxlen      = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
+        int max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
+        int max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
+    ) : TraversalTemplate<Node,Edge,GraphDataVariant> (graph, terminator, maxlen, max_depth, max_breadth) {}
 
     /** Get the name of the traversal
      * \return the name */
@@ -230,14 +232,15 @@ public:
 
 private:
 
-    char avance (const Node& node, Direction dir, bool first_extension, Path& path, const Node& previousNode) { return 0; }
+    char avance (Node& node, Direction dir, bool first_extension, Path_t<Node>& path, Node& previousNode) { return 0; }
 };
 
 /********************************************************************************/
 
 /** \brief Implementation of Traversal that produces unitigs.
  */
-class SimplePathsTraversal: public Traversal
+template <typename Node, typename Edge, typename GraphDataVariant>
+class SimplePathsTraversalTemplate: public TraversalTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
@@ -248,12 +251,12 @@ public:
      * \param[in] max_depth : maximum depth of the traversal
      * \param[in] max_breadth : maximum depth of the traversal
      */
-    SimplePathsTraversal (
-        const Graph& graph,
-        Terminator& terminator,
-        int maxlen      = Traversal::defaultMaxLen,
-        int max_depth   = Traversal::defaultMaxDepth,
-        int max_breadth = Traversal::defaultMaxBreadth
+    SimplePathsTraversalTemplate (
+        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
+        int maxlen      = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
+        int max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
+        int max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
     );
 
     /** Get the name of the traversal
@@ -263,14 +266,15 @@ public:
 private:
 
     /* Implementation of the virtual method. */
-    char avance (const Node& node, Direction dir, bool first_extension, Path& path, const Node& previousNode);
+    char avance (Node& node, Direction dir, bool first_extension, Path_t<Node>& path, Node& previousNode);
 };
 
 /********************************************************************************/
 
 /** \brief Implementation of Traversal that produces contigs.
  */
-class MonumentTraversal: public Traversal
+template <typename Node, typename Edge, typename GraphDataVariant>
+class MonumentTraversalTemplate: public TraversalTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
@@ -281,12 +285,12 @@ public:
      * \param[in] max_depth : maximum depth of the traversal
      * \param[in] max_breadth : maximum depth of the traversal
      */
-    MonumentTraversal (
-        const Graph& graph,
-        Terminator& terminator,
-        int maxlen      = Traversal::defaultMaxLen,
-        int max_depth   = Traversal::defaultMaxDepth,
-        int max_breadth = Traversal::defaultMaxBreadth
+    MonumentTraversalTemplate (
+        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&          terminator,
+        int maxlen      = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
+        int max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
+        int max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
     );
 
     /** Get the name of the traversal
@@ -294,21 +298,21 @@ public:
     std::string getName() const  { return tools::misc::toString(tools::misc::TRAVERSAL_CONTIG); }
 
     bool explore_branching (
-        const Node& node,
+        Node& node,
         Direction dir,
-        Path& consensus,
-        const Node& previousNode,
+        Path_t<Node>& consensus,
+        Node& previousNode,
         std::set<Node>& all_involved_extensions
     );
 
 
-    // those two used to be private, but I need them in GraphSimplification for now (until explore_branching gets templated or any way we can choose Frontline type)
-    bool validate_consensuses (std::set<Path>& consensuses, Path& consensus);
+    // those two used to be private, but I need them in graph Simplifications for now (until explore_branching gets templated or any way we can choose Frontline type)
+    bool validate_consensuses (std::set<Path_t<Node>>& consensuses, Path_t<Node>& consensus);
 
-    std::set<Path> all_consensuses_between (
+        std::set<Path_t<Node>> all_consensuses_between (
         Direction    dir,
-        const Node& startNode,
-        const Node& endNode,
+        Node& startNode,
+        Node& endNode,
         int traversal_depth,
         bool &success
     );
@@ -317,42 +321,51 @@ public:
 private:
 
     /* Implementation of the virtual method. */
-    char avance (const Node& node, Direction dir, bool first_extension, Path& path, const Node& previousNode);
+    char avance (Node& node, Direction dir, bool first_extension, Path_t<Node>& path, Node& previousNode);
 
     bool explore_branching (
-        const Node& node,
+        Node& node,
         Direction dir,
-        Path& consensus,
-        const Node& previousNode
+        Path_t<Node>& consensus,
+        Node& previousNode
     );
 
     int find_end_of_branching (
         Direction dir,
-        const Node& startingNode,
+        Node& startingNode,
         Node& endNode,
-        const Node& previousNode,
+        Node& previousNode,
         std::set<Node>& all_involved_extensions
     );
  
-    std::set<Path> all_consensuses_between (
+    std::set<Path_t<Node>> all_consensuses_between (
         Direction    dir,
-        const Node& startNode,
-        const Node& endNode,
+        Node& startNode,
+        Node& endNode,
         int traversal_depth,
-        std::set<Node::Value> usedNode,
-        Path current_consensus,
+        std::set<typename Node::Value> usedNode,
+        Path_t<Node> current_consensus,
         bool& success
     );
    
-    bool all_consensuses_almost_identical (std::set<Path>& consensuses);
+    bool all_consensuses_almost_identical (std::set<Path_t<Node>>& consensuses);
 
     void mark_extensions (std::set<Node>& extensions_to_mark);
 
-    Path most_abundant_consensus(std::set<Path>& consensuses);
+    Path_t<Node> most_abundant_consensus(std::set<Path_t<Node>>& consensuses);
 
     static const int consensuses_identity = 80; // traversing bubble if paths are all pair-wise identical by 80% 
     //(used to be > 90% in legacy minia) // by legacy minia i mean minia 1 and minia 2 up to the assembly algo rewrite in may 2015
 };
+
+/* typedef for compatibility with all existing GATB tools */
+
+typedef TraversalTemplate<Node, Edge, GraphDataVariant> Traversal; 
+typedef MonumentTraversalTemplate<Node, Edge, GraphDataVariant> MonumentTraversal; 
+typedef NullTraversalTemplate<Node, Edge, GraphDataVariant> NullTraversal; 
+typedef SimplePathsTraversalTemplate<Node, Edge, GraphDataVariant> SimplePathsTraversal;
+
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

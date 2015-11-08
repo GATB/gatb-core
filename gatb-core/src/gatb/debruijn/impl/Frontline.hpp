@@ -34,6 +34,7 @@ namespace impl      {
 /********************************************************************************/
 
 // types using in advanced traversal functions
+template <typename Node>
 struct NodeNt
 {
     Node             node;
@@ -53,30 +54,31 @@ struct NodeNt
 /********************************************************************************/
 
 // auxiliary class that is used by MonumentTraversal and deblooming
-class Frontline
+template <typename Node, typename Edge, typename GraphDataVariant>
+class FrontlineTemplate
 {
 public:
 
     /** Constructor. */
-    Frontline (
+    FrontlineTemplate (
         Direction         direction,
-        const Graph&      graph,
-        Terminator&       terminator,
-        const Node&       startingNode,
-        const Node&       previousNode,
+        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        Node&       startingNode,
+        Node&       previousNode,
         std::set<Node>*   all_involved_extensions = 0
     );
 
     /** Constructor. */
-    Frontline (
+    FrontlineTemplate (
         Direction         direction,
-        const Graph&      graph,
-        Terminator&       terminator,
-        const Node&       startingNode
+        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        Node&       startingNode
     );
 
     /** */
-    virtual ~Frontline() {}
+    virtual ~FrontlineTemplate() {}
 
     /** */
     bool go_next_depth();
@@ -84,7 +86,7 @@ public:
     size_t size  () const  {  return _frontline.size();  }
     size_t depth () const  {  return _depth;             }
 
-    NodeNt front () { return _frontline.front(); }
+    NodeNt<Node> front () { return _frontline.front(); }
 
     enum reason
     {
@@ -99,67 +101,69 @@ public:
 
 protected:
 
-    virtual bool check (const Node& node)  { return true; }
+    virtual bool check (Node& node)  { return true; }
 
     Direction _direction;
 
-    const Graph& _graph;
+    const GraphTemplate<Node,Edge,GraphDataVariant>& _graph;
 
-    Terminator&  _terminator;
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&  _terminator;
 
-    typedef std::queue<NodeNt> queue_nodes;
+    typedef std::queue<NodeNt<Node>> queue_nodes;
     queue_nodes _frontline;
 
     int  _depth;
 
     std::set<Node>* _all_involved_extensions;
 
-    std::set<Node::Value> _already_frontlined; // making it simpler now
+    std::set<typename Node::Value> _already_frontlined; // making it simpler now
 };
 
 /********************************************************************************/
 
 // auxiliary class that is used by MonumentTraversal and deblooming
-class FrontlineBranching : public Frontline
+template <typename Node, typename Edge, typename GraphDataVariant>
+class FrontlineBranchingTemplate : public FrontlineTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
     /** Constructor. */
-    FrontlineBranching (
+    FrontlineBranchingTemplate (
         Direction         direction,
-        const Graph&      graph,
-        Terminator&       terminator,
-        const Node&       startingNode,
-        const Node&       previousNode,
+        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        Node&       startingNode,
+        Node&       previousNode,
         std::set<Node>*   all_involved_extensions
     );
 
     /** Constructor. */
-    FrontlineBranching (
+    FrontlineBranchingTemplate (
         Direction         direction,
-        const Graph&      graph,
-        Terminator&       terminator,
-        const Node&       startingNode
+        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        Node&       startingNode
     );
 
 private:
 
-    bool check (const Node& node);
+    bool check (Node& node);
 };
 
 // a middle ground between Frontline and FrontlineBranching:
 // check whether all nodes inside the frontline must be reachable from startingNode
-class FrontlineReachable : public Frontline
+template <typename Node, typename Edge, typename GraphDataVariant>
+class FrontlineReachableTemplate : public FrontlineTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
     /** Constructor. */
-    FrontlineReachable(
+    FrontlineReachableTemplate(
         Direction         direction,
-        const Graph&      graph,
-        Terminator&       terminator,
-        const Node&       startingNode,
-        const Node&       previousNode,
+        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        Node&       startingNode,
+        Node&       previousNode,
         std::set<Node>*   all_involved_extensions
     );
 
@@ -167,10 +171,13 @@ public:
 
 private:
 
-    bool check (const Node& node);
+    bool check (Node& node);
     std::set<Node> checkLater;
 };
 
+typedef FrontlineTemplate<Node, Edge, GraphDataVariant> Frontline; 
+typedef FrontlineReachableTemplate<Node, Edge, GraphDataVariant> FrontlineReachable; 
+typedef FrontlineBranchingTemplate<Node, Edge, GraphDataVariant> FrontlineBranching; 
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

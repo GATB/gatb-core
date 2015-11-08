@@ -38,7 +38,7 @@ namespace impl      {
  * The implementation relies on the Graph class of GATB-CORE, which provides the
  * API to traverse a de Bruijn graph.
  */
-template<size_t span=KMER_DEFAULT_SPAN>
+template <size_t span=KMER_DEFAULT_SPAN, typename Node=Node_t<>, typename Edge=Edge_t<Node_t<>>, typename GraphDataVariant_template=GraphDataVariant>
 class IterativeExtensions
 {
 public:
@@ -59,8 +59,8 @@ public:
      * \param[in] max_nodes : max nodes
      */
     IterativeExtensions (
-        const Graph&                  graph,
-        Terminator&                   terminator,
+        const GraphTemplate<Node,Edge,GraphDataVariant_template>&                  graph,
+        TerminatorTemplate<Node,Edge,GraphDataVariant_template>&                   terminator,
         tools::misc::TraversalKind    traversalKind,
         tools::misc::ExtendStopMode_e whenToStop,
         tools::misc::SearchMode_e     searchMode,
@@ -99,8 +99,8 @@ public:
 
 private:
 
-    const Graph&                    graph;
-    Terminator&                     terminator;
+    const GraphTemplate<Node,Edge,GraphDataVariant_template>&                  graph;
+    TerminatorTemplate<Node,Edge,GraphDataVariant_template>&                   terminator;
     tools::misc::TraversalKind      traversalKind;
     tools::misc::ExtendStopMode_e   when_to_stop_extending;
     tools::misc::SearchMode_e       searchMode;
@@ -120,7 +120,7 @@ private:
      */
     void buildSequence (
         const Node&     node,
-        const Path&     consensusRight,
+        const Path_t<Node>&     consensusRight,
         size_t          nbNodes,
         size_t          depth,
         bank::Sequence& seq

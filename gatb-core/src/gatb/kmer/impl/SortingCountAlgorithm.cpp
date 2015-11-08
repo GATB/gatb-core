@@ -675,7 +675,7 @@ public:
         _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
         _repartition (repartition), _partition (*partition, nbCacheItems, 0)
     {
-        _mask_radix = (int64_t) 255 ;
+        _mask_radix.setVal((int64_t) 255);
         _mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
     }
 

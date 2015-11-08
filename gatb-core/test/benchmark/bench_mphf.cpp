@@ -134,7 +134,7 @@ template<size_t span> struct debruijn_mphf_bench {  void operator ()  (Parameter
 
     start_t=chrono::system_clock::now();
     for (nodes.first(); !nodes.isDone(); nodes.next())
-        modelMini.getMinimizerValueDummy(nodes.item().kmer.get<Type>());
+        graph.nodeMPHFIndexDummy(nodes.item());
     end_t=chrono::system_clock::now();
     auto baseline_mphf_time = diff_wtime(start_t, end_t) / unit;
     cout << "baseline overhead for graph nodes enumeration and mphf query setup (" << nodes.size() << " nodes) : " << baseline_mphf_time << " seconds" << endl;

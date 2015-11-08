@@ -68,6 +68,10 @@ public:
 
     /** We define a boost variant from this type list. */
     typedef typename boost::make_variant_over<transfolist>::type Type;
+    /* so, before, Type was defined as a plain boost::variant like this: 
+     typedef typename boost::variant<LargeInt<1>, LargeInt<2>, LargeInt<3>, LargeInt<4> > Type;
+     I checked: the new make_variant_over has no impact on runtime performance. Probably not surprising, as this code is probably purely compile-time.
+     */
 
     /** Apply a functor with the best template specialization according to the provided kmer size. */
     template <template<size_t> class Functor, typename Parameter>
@@ -477,6 +481,20 @@ private:
     };
 };
 
+
+// this is just for benchmarking. It helped me see that indeed, instantiating a class that constains a boost::variant takes significant run-time :(
+template <typename IntegerList>
+class IntegerTemplateDummy
+{
+public:
+
+    typedef typename boost::variant<LargeInt<1>, LargeInt<2>, LargeInt<3>, LargeInt<4> > Type;
+
+private:
+    /** We instantiate the boost variant. */
+    Type v;
+};
+
 /********************************************************************************/
 
 /** We define a mpl::vector holding the int_<K> types, one per kmer size value chosen by the user. */
@@ -484,6 +502,7 @@ typedef boost::mpl::vector<KSIZE_LIST_TYPE>::type  IntegerList;
 
 /** We specialize IntegerTemplate class based on the list of kmer size values chosen by the user. */
 typedef  IntegerTemplate <IntegerList> Integer;
+typedef  IntegerTemplateDummy<IntegerList> IntegerDummy;
 
 /********************************************************************************/
 }}}};

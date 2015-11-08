@@ -1,3 +1,5 @@
+// TODO: this unit test isn't perfect. For k=121, a bug slipped through. one day, remember to code a test that covers the case of counting with large kmers.
+//
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
  *   Copyright (C) 2014  R.Chikhi, G.Rizk, E.Drezen
@@ -73,6 +75,9 @@ namespace gatb  {  namespace tests  {
 
 /** Backward compatibility. */
 static const int KSIZE_1 = KMER_SPAN(0);
+static const int KSIZE_2 = KMER_SPAN(1);
+static const int KSIZE_3 = KMER_SPAN(2);
+static const int KSIZE_4 = KMER_SPAN(3);
 
 struct Functor_getValue : public boost::static_visitor<Integer>    {
     template<typename T>  Integer operator() (const T& a) const  { return Integer(a.getValue());  }};
@@ -263,14 +268,20 @@ public:
          *  -> we have to do this because we are not sure about the order of the iterated items.
          */
         set<Type> okValues;
-        okValues.insert (0x1CA68D1E55561150);
-        okValues.insert (0x09CA68D1E5556115);
-        okValues.insert (0x2729A34795558454);
-        okValues.insert (0x32729A3479555845);
-        okValues.insert (0x0AFEE3FFF1ED8309);
+        Type v1; v1.setVal( 0x1CA68D1E55561150 );
+        okValues.insert (v1);
+        Type v2; v2.setVal( 0x09CA68D1E5556115);
+        okValues.insert (v2);
+        Type v3; v3.setVal( 0x2729A34795558454);
+        okValues.insert (v3);
+        Type v4; v4.setVal( 0x32729A3479555845); 
+        okValues.insert (v4);
+        Type v5; v5.setVal( 0x0AFEE3FFF1ED8309);
+        okValues.insert (v5);
 
         set<Type> checkValues;
-        Type checksum = 0;
+        Type checksum;
+        checksum.setVal(0);
 
         size_t idx=0;
         for (iter->first(); !iter->isDone(); iter->next(), idx++)
@@ -315,8 +326,8 @@ public:
     void DSK_check2 ()
     {
         DSK_check2_aux<KSIZE_1> ();
-        // FIXME: DSK_check2_aux<KSIZE_2> ();
-        // FIXME: DSK_check2_aux<KSIZE_3> ();
+        DSK_check2_aux<KSIZE_2> ();
+        DSK_check2_aux<KSIZE_3> ();
     }
 
     /********************************************************************************/
@@ -409,8 +420,8 @@ public:
         LOCAL (bank);
 
         DSK_check3_aux<KSIZE_1> (bank, kmerSize, nks);
-        // FIXME: DSK_check3_aux<KSIZE_2> (bank, kmerSize, nks);
-        // FIXME: DSK_check3_aux<KSIZE_3> (bank, kmerSize, nks);
+        DSK_check3_aux<KSIZE_2> (bank, kmerSize, nks);
+        DSK_check3_aux<KSIZE_3> (bank, kmerSize, nks);
     }
 
     /********************************************************************************/

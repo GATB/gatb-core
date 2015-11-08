@@ -50,17 +50,18 @@ namespace tools {
 namespace math  {
 /********************************************************************************/
 
-class NativeInt128 : private misc::ArrayData<__uint128_t, 1>
+class NativeInt128
 {
 public:
 
     /** Constructor.
      * \param[in] c : initial value of the large integer. */
-    NativeInt128 (const __uint128_t& c=0)  {  value[0] = c;  }
+    NativeInt128 (const __uint128_t& c=0)  {  value[0] = c;  value[1] = 0;}
 
     static const char* getName ()  { return "NativeInt128"; }
 
-    u_int64_t getVal ()  { return *value; }
+    u_int64_t getVal ()  { return value[0]; }
+    void setVal (u_int64_t c)  { value[0] = c; value[1] = 0; }
 
     static const size_t getSize ()  { return 8*sizeof(__uint128_t); }
 
@@ -152,6 +153,8 @@ public:
     }
 
 private:
+    __uint128_t value[2];
+
     friend NativeInt128 revcomp (const NativeInt128& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const NativeInt128& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const NativeInt128& key);

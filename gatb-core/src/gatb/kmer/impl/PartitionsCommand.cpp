@@ -187,7 +187,7 @@ void PartitionsByHashCommand<span>:: execute ()
 	u_int8_t		nbK, rem ;
 	Type compactedK;
 	int ks = this->_kmerSize;
-	Type un = 1;
+	Type un; un.setVal(1);
 	size_t _shift_val = Type::getSize() -8;
 	Type kmerMask = (un << (ks*2)) - un;
 	size_t shift = 2*(ks-1);
@@ -221,7 +221,7 @@ void PartitionsByHashCommand<span>:: execute ()
 			newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
 			
 			temp = ((temp << 2 ) |  newnt   ) & kmerMask;
-			newnt =  Type(comp_NT[newnt.getVal()]) ;
+			newnt.setVal(comp_NT[newnt.getVal()]) ;
 			rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
 		}
 	}
@@ -285,13 +285,14 @@ public:
 			Type temp = _seedk;
 			Type rev_temp = revcomp(temp,_kmerSize);
 			Type newnt ;
-			Type mink, prev_mink;
+			Type mink, prev_mink; prev_mink.setVal(0);
 			uint64_t idx;
 			
 			bool prev_which =  (temp < rev_temp );
 			int kx_size = -1; //next loop start at ii=0, first kmer will put it at 0
 			Type radix_kxmer_forward =  (temp & _mask_radix) >> ((_kmerSize - 4)*2);
 			Type  first_revk, kinsert,radix_kxmer;
+            first_revk.setVal(0);
 			
 			if(!prev_which) first_revk = rev_temp;
 			
@@ -344,7 +345,7 @@ public:
 				newnt =  ( _superk >> ( 2*(rem-2)) ) & 3 ;
 				
 				temp = ((temp << 2 ) |  newnt   ) & _kmerMask;
-				newnt =  Type(comp_NT[newnt.getVal()]) ;
+				newnt.setVal(comp_NT[newnt.getVal()]) ;
 				rev_temp = ((rev_temp >> 2 ) |  (newnt << _shift) ) & _kmerMask;
 			}
 			
@@ -384,9 +385,10 @@ public:
 	SuperKReader (size_t kmerSize,  uint64_t * r_idx, Type** radix_kmers, uint64_t* radix_sizes, bank::BankIdType** bankIdMatrix, size_t bankId=0)
 	: _kmerSize (kmerSize), _kx(4), _radix_kmers(radix_kmers), _radix_sizes(radix_sizes), _bankIdMatrix(bankIdMatrix), _r_idx (r_idx), _first(true), _bankId(bankId)
 	 {
-		 Type un = 1;
-		 _kmerMask    = (un << (kmerSize*2)) - un;
-		 _mask_radix  = Type((int64_t) 255);
+		 Type un;
+         un.setVal(1);
+		 _kmerMask    = (un << (kmerSize*2)) - 1;
+		 _mask_radix.setVal((int64_t) 255);
 		 _mask_radix  = _mask_radix << ((_kmerSize - 4)*2);
 		 _shift       = 2*(kmerSize-1);
 		 _shift_val   = un.getSize() -8;
@@ -758,11 +760,11 @@ public:
           _prefix_size(prefix_size), _kmerSize(kmerSize),  _x_size(x_size)
     {
         _idx_radix = min_radix;
-        Type un = 1;
+        Type un; un.setVal( 1);
         _kmerMask = (un << (_kmerSize*2)) - un;
 
         _shift_size = ( (4 - _prefix_size) *2) ;
-        _radixMask = Type(_idx_radix) ;
+        _radixMask.setVal(_idx_radix) ;
         _radixMask = _radixMask << ((_kmerSize-4)*2);
         _radixMask = _radixMask  << (2*_prefix_size)  ;
 
@@ -780,7 +782,7 @@ public:
             _idx_radix++;
             _cur_idx = 0;
             //update radix mask does not happen often
-            _radixMask = Type(_idx_radix) ;
+            _radixMask.setVal(_idx_radix) ;
             _radixMask = _radixMask << ((_kmerSize-4)*2);
             _radixMask = _radixMask  << (2*_prefix_size)  ;
         }

@@ -212,7 +212,6 @@ public:
     {
         _nb_kmers_per_parti  = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
         _nb_kxmers_per_parti = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
-
         _num_mm_bins =   1 << (2*_mm);
         _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
         _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));

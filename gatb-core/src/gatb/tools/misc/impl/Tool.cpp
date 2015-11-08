@@ -176,7 +176,7 @@ void Tool::preExecute ()
     /** We may have to add a default prefix for temporary files. */
 //    if (_input->get(STR_PREFIX)==0)  { _input->add (1, STR_PREFIX, "tmp.");  }
 
-    /** We may have to add a default prefix for temporary files. */
+    /** set nb cores to be actual number of free cores, if was 0. */
     if (_input->getInt(STR_NB_CORES)<=0)  { _input->setInt (STR_NB_CORES, System::info().getNbCores());  }
 
 //    /** We add the input properties to the statistics result. */

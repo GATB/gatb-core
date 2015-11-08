@@ -88,7 +88,7 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     IProperties*        options
 )
     :  Algorithm("emphf", 1, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
-       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _progress(0)
+       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _adjacencyMap(0), _progress(0)
 {
     /** We keep a reference on the solid kmers. */
     setSolidCounts (solidCounts);
@@ -99,6 +99,7 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     /** We build the hash object. */
     setAbundanceMap (new AbundanceMap());
     setNodeStateMap (new NodeStateMap());
+    setAdjacencyMap (new AdjacencyMap());
 
     /** We gather some statistics. */
     getInfo()->add (1, "enabled", "%d", AbundanceMap::enabled);
@@ -135,6 +136,7 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::~MPHFAlgorithm ()
     setSolidKmers  (0);
     setAbundanceMap(0);
     setNodeStateMap(0);
+    setAdjacencyMap(0);
     setProgress    (0);
 }
 
@@ -185,7 +187,7 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::execute ()
 template<size_t span,typename Abundance_t, typename NodeState_t>
 float MPHFAlgorithm<span,Abundance_t,NodeState_t>::getNbBitsPerKmer () const
 {
-    float nbitsPerKmer = sizeof(Abundance_t)*8 + sizeof(NodeState_t) * 4;
+    float nbitsPerKmer = sizeof(Abundance_t)*8 + sizeof(NodeState_t) * 4 + sizeof(Adjacency_t) * 8 ;
     return nbitsPerKmer;
 }
 
@@ -198,7 +200,6 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::initNodeStates()
 
     _nodeStateMap->useHashFrom(_abundanceMap, 2); // use abundancemap's MPHF, and allocate n/2 bytes
 }
-
 
 /*********************************************************************
 ** METHOD  :

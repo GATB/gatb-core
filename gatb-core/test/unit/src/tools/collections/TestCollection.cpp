@@ -27,6 +27,7 @@
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
+#define USE_LARGEINT_CONSTRUCTOR 1 // got lazy to change the unit test to avoid construction.
 #include <gatb/tools/misc/api/Macros.hpp>
 #include <gatb/tools/math/NativeInt64.hpp>
 #include <gatb/tools/math/LargeInt.hpp>

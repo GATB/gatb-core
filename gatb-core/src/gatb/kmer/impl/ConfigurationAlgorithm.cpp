@@ -316,7 +316,8 @@ void ConfigurationAlgorithm<span>::execute ()
         if (_config._max_memory > (system_mem * 2) / 3)
         {
             _config._max_memory = (system_mem * 2) / 3;
-            cout << "Warning: default memory usage (5000 MB) is close or above system max, setting memory to: " << _config._max_memory << " MB" << endl;
+            if (_config._max_memory < 4500) // don't print a message if we were close to 5 GB anyway
+                cout << "Warning: default memory usage (5000 MB) is close or above system max, setting memory to: " << _config._max_memory << " MB" << endl;
         }
     }
 

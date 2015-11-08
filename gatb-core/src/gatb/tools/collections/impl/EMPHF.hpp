@@ -87,6 +87,7 @@ public:
 
         // a small fix, emphf for 2 nodes doesn't seem to work
         if (nbElts <= 2)  {  nbElts = 3;  }
+        if (nbElts <= 3) { std::cout << "Warning: MPHF has a tiny amount of elements (" << nbElts << "), might not work correctly." << std::endl; }
 
         iterator_wrapper kmers (iter);
 

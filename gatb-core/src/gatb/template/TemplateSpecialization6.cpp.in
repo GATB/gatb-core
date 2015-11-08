@@ -1,0 +1,33 @@
+
+// since we didn't define the functions in a .h file, that trick removes linker errors,
+// see http://www.parashift.com/c++-faq-lite/separate-template-class-defn-from-decl.html
+
+#include <gatb/debruijn/impl/Graph.hpp>
+#include <gatb/tools/math/Integer.hpp>
+
+using namespace gatb::core::kmer;
+using namespace gatb::core::kmer::impl;
+
+
+/********************************************************************************/
+namespace gatb { namespace core { namespace debruijn { namespace impl  {
+/********************************************************************************/
+
+
+// now to specialize the templated functions inside the graph class:
+// (it follows the same mechanism as debruijn/impl/Instantiations[2].cpp)
+
+
+typedef boost::variant<GraphData<${KSIZE}>> GraphDataVariantT;
+typedef GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>, Edge_t<Node_t<Kmer<${KSIZE}>::Type>>, GraphDataVariantT> GraphT;
+typedef Node_t<Kmer<${KSIZE}>::Type> NodeT;
+typedef Edge_t<Node_t<Kmer<${KSIZE}>::Type>> EdgeT;
+typedef BranchingNode_t<Node_t<Kmer<${KSIZE}>::Type>> BranchingNodeT;
+typedef BranchingEdge_t<Node_t<Kmer<${KSIZE}>::Type>, Edge_t<Node_t<Kmer<${KSIZE}>::Type>>> BranchingEdgeT;
+
+#include <gatb/debruijn/impl/Instantiations.hpp> // this might be a bit exotic to do it like that.. but it works.
+
+
+/********************************************************************************/
+} } } } /* end of namespaces. */
+/********************************************************************************/

@@ -132,7 +132,13 @@ public:
             0xc0620,    0x288f40,   0x188f40,   0x2aaa29,   0x8000b,    0x200881,   0x288081,   0x820db,    0x52e23,    0x2888f,
             0xaaa8b,    0x28838d,   0x20000,    0xa93ab,    0x2c18d,    0x2ba89,    0x183600,   0xea00b,    0x1a4ea0,   0xf8585
         };
-        set<Kmer<>::Type> okValues (values, values + ARRAY_SIZE(values));
+        set<Kmer<>::Type> okValues;
+        
+        for (unsigned int i = 0; i < ARRAY_SIZE(values); i++)
+        {
+            Kmer<>::Type val; val.setVal(values[i]);
+            okValues.insert(val);
+        }
 
         CPPUNIT_ASSERT (debloom.getCriticalKmers()->getNbItems() == ARRAY_SIZE(values));
 

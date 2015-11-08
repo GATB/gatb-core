@@ -43,20 +43,22 @@ namespace impl      {
  * The Terminator interface provides such a service. It is often used
  * by the \ref Traversal class during its traversing process.
  */
-class Terminator : public system::SmartPointer
+
+template <typename Node, typename Edge, typename GraphDataVariant>
+class TerminatorTemplate : public system::SmartPointer
 {
 public:
 
     /** Constructor
      * \param[in] graph : the graph */
-    Terminator (const Graph& graph) : _graph(graph)  {}
+    TerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph) : _graph(graph)  {}
 
     /** Destructor. */
-    virtual ~Terminator ()  {}
+    virtual ~TerminatorTemplate ()  {}
 
     /** Get the graph.
      * \return the graph. */
-    const Graph& getGraph() const { return _graph; }
+    const GraphTemplate<Node,Edge,GraphDataVariant>& getGraph() const { return _graph; }
 
     /** Tells whether marking nodes is allowed or not
      * \return true if marking nodes is allowed, false otherwise. */
@@ -64,35 +66,35 @@ public:
 
     /** Mark the provided edge
      * \param[in] edge : edge to be marked. */
-    virtual void mark      (const Edge& edge) = 0;
+    virtual void mark      (Edge& edge) = 0;
 
     /** Tells whether an edge is marked
      * \param[in] edge : edge to be checked
      * \return true if the edge is marked, false otherwise
      */
-    virtual bool is_marked (const Edge& edge)  const = 0;
+    virtual bool is_marked (Edge& edge)  const = 0;
 
     /** Mark the provided node.
      * \param[in] node : node to be marked. */
-    virtual void mark      (const Node& node) = 0;
+    virtual void mark      (Node& node) = 0;
 
     /** Tells whether a node is marked
      * \param[in] node : node to be checked
      * \return true if the node is marked, false otherwise
      */
-    virtual bool is_marked (const Node& node)  const = 0;
+    virtual bool is_marked (Node& node)  const = 0;
 
     /** Tells whether a branching node is marked
      * \param[in] node : node to be checked
      * \return true if the node is marked, false otherwise
      */
-    virtual bool is_marked_branching (const Node& node) const = 0;
+    virtual bool is_marked_branching (Node& node) const = 0;
 
     /** Tells whether a node is branching
      * \param[in] node : node to be checked
      * \return true if the node is branching, false otherwise.
      */
-    virtual bool is_branching (const Node& node) const = 0;
+    virtual bool is_branching (Node& node) const = 0;
 
     /** Reset the current marked nodes/edges. */
     virtual void reset () = 0;
@@ -102,7 +104,7 @@ public:
 
 protected:
 
-    const Graph& _graph;
+    const GraphTemplate<Node,Edge,GraphDataVariant>& _graph;
 };
 
 /********************************************************************************/
@@ -111,39 +113,40 @@ protected:
  *
  * This class provides a null implementation, which means that no marks are done.
  */
-class NullTerminator :  public Terminator
+template <typename Node, typename Edge, typename GraphDataVariant>
+class NullTerminatorTemplate :  public TerminatorTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
     /** Singleton method.
      * \return a singleton instance.
      */
-    static Terminator& singleton()
+    static TerminatorTemplate<Node,Edge,GraphDataVariant>& singleton()
     {
-        static Graph dummy;
-        static NullTerminator instance(dummy); return instance;
+        static GraphTemplate<Node,Edge,GraphDataVariant> dummy;
+        static NullTerminatorTemplate instance(dummy); return instance;
     }
 
     /** \copydoc Terminator::isEnabled */
     virtual bool isEnabled () const { return false; }
 
     /** \copydoc Terminator::mark */
-    virtual void mark      (const Edge& edge) {}
+    virtual void mark      (Edge& edge) {}
 
     /** \copydoc Terminator::is_marked */
-    virtual bool is_marked (const Edge& edge)  const  { return false; };
+    virtual bool is_marked (Edge& edge)  const  { return false; };
 
     /** \copydoc Terminator::mark(const gatb::core::debruijn::impl::Node&)  */
-    virtual void mark      (const Node& node) {}
+    virtual void mark      (Node& node) {}
 
     /** \copydoc Terminator::is_marked(const gatb::core::debruijn::impl::Node&) const */
-    virtual bool is_marked (const Node& node)  const  { return false; }
+    virtual bool is_marked (Node& node)  const  { return false; }
 
     /** \copydoc Terminator::is_marked_branching */
-    virtual bool is_marked_branching (const Node& node) const { return false; }
+    virtual bool is_marked_branching (Node& node) const { return false; }
 
     /** \copydoc Terminator::is_branching */
-    virtual bool is_branching (const Node& node) const { return false; }
+    virtual bool is_branching (Node& node) const { return false; }
 
     /** \copydoc Terminator::reset */
     virtual void reset () {}
@@ -153,14 +156,15 @@ public:
 
 //private:
 
-    NullTerminator (const Graph& graph) : Terminator(graph)  {}
+    NullTerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph) : TerminatorTemplate<Node,Edge,GraphDataVariant>(graph)  {}
 };
 
 /********************************************************************************/
 
 /** \brief Implementation of Terminator that marks branching nodes.
  */
-class BranchingTerminator :  public Terminator
+template <typename Node, typename Edge, typename GraphDataVariant>
+class BranchingTerminatorTemplate :  public TerminatorTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
@@ -168,32 +172,32 @@ public:
 
     /** Constructor
      * \param[in] graph : the graph */
-    BranchingTerminator (const Graph& graph);
+    BranchingTerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph);
 
     /** Copy constructor
      * \param[in] terminator: the graph */
-    BranchingTerminator (const BranchingTerminator& terminator);
+    BranchingTerminatorTemplate (const BranchingTerminatorTemplate& terminator);
 
     /** Destructor. */
-    ~BranchingTerminator();
+    ~BranchingTerminatorTemplate();
 
     /** \copydoc Terminator::mark */
-    void mark      (const Edge& edge);
+    void mark      (Edge& edge);
 
     /** \copydoc Terminator::is_marked */
-    bool is_marked (const Edge& edge)  const;
+    bool is_marked (Edge& edge)  const;
 
     /** \copydoc Terminator::mark(const gatb::core::debruijn::impl::Node&)  */
-    void mark      (const Node& node);
+    void mark      (Node& node);
 
     /** \copydoc Terminator::is_marked(const gatb::core::debruijn::impl::Node&) const */
-    bool is_marked (const Node& node) const ;
+    bool is_marked (Node& node) const ;
 
     /** \copydoc Terminator::is_marked_branching */
-    bool is_marked_branching (const Node& node) const ;
+    bool is_marked_branching (Node& node) const ;
 
     /** \copydoc Terminator::is_branching */
-    bool is_branching (const Node& node) const ;
+    bool is_branching (Node& node) const ;
 
     /** \copydoc Terminator::reset */
     void reset();
@@ -260,38 +264,39 @@ private:
     };
 
 
-    bool is_indexed (const Node& node) const ;
+    bool is_indexed (Node& node) const ;
 
-    AssocSet<Node::Value, Value> branching_kmers;
+    AssocSet<typename Node::Value, Value> branching_kmers;
 
-    int getDelta (const Edge& edge) const;
+    int getDelta (Edge& edge) const;
 };
 
 
 /** \brief MPHF implementation of Terminator.
  *
  */
-class MPHFTerminator :  public Terminator
+template <typename Node, typename Edge, typename GraphDataVariant>
+class MPHFTerminatorTemplate :  public TerminatorTemplate<Node,Edge,GraphDataVariant>
 {
 public:
 
     /** \copydoc Terminator::mark */
-    virtual void mark      (const Edge& edge)  { printf("not expecting a call to MPHFTermiantor.mark(edge)\n"); exit(1); }
+    virtual void mark      (Edge& edge)  { printf("not expecting a call to MPHFTermiantor.mark(edge)\n"); exit(1); }
 
     /** \copydoc Terminator::is_marked */
-    virtual bool is_marked (const Edge& edge)  const  { printf("not expecting a call to MPHFTermiantor.is_marked(edge)\n"); exit(1); return false; }
+    virtual bool is_marked (Edge& edge)  const  { printf("not expecting a call to MPHFTermiantor.is_marked(edge)\n"); exit(1); return false; }
 
     /** \copydoc Terminator::mark(const gatb::core::debruijn::impl::Node&)  */
-    virtual void mark      (const Node& node);
+    virtual void mark      (Node& node);
 
     /** \copydoc Terminator::is_marked(const gatb::core::debruijn::impl::Node&) const */
-    virtual bool is_marked (const Node& node)  const  ;
+    virtual bool is_marked (Node& node)  const  ;
 
     /** \copydoc Terminator::is_marked_branching */
-    virtual bool is_marked_branching (const Node& node) const { printf("not expecting a call to MPHFTermiantor.is_marked_branching\n"); exit(1); return false; }
+    virtual bool is_marked_branching (Node& node) const { printf("not expecting a call to MPHFTermiantor.is_marked_branching\n"); exit(1); return false; }
 
     /** \copydoc Terminator::is_branching */
-    virtual bool is_branching (const Node& node) const { printf("not expecting a call to MPHFTermiantor.is_branching\n"); exit(1);return false; }
+    virtual bool is_branching (Node& node) const { printf("not expecting a call to MPHFTermiantor.is_branching\n"); exit(1);return false; }
 
     /** \copydoc Terminator::reset */
     virtual void reset ();
@@ -299,8 +304,12 @@ public:
     /** \copydoc Terminator::dump */
     virtual void dump () { printf("not expecting a call to MPHFTermiantor.dump\n"); exit(1); };
 
-    MPHFTerminator (const Graph& graph) : Terminator(graph)  {}
+    MPHFTerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph) : TerminatorTemplate<Node,Edge,GraphDataVariant>(graph)  {}
 };
+
+typedef TerminatorTemplate<Node, Edge, GraphDataVariant> Terminator; 
+typedef MPHFTerminatorTemplate<Node, Edge, GraphDataVariant> MPHFTerminator; 
+typedef BranchingTerminatorTemplate<Node, Edge, GraphDataVariant> BranchingTerminator; 
 
 
 /********************************************************************************/

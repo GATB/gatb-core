@@ -4,12 +4,13 @@
 
 #include <gatb/debruijn/impl/BranchingAlgorithm.cpp>
 #include <gatb/debruijn/impl/IterativeExtensions.cpp>
+#include <gatb/debruijn/impl/Instantiations.cpp>
 
 /********************************************************************************/
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 /********************************************************************************/
 
-template class BranchingAlgorithm   <${KSIZE}>;
+template class BranchingAlgorithm   <${KSIZE}, Node, Edge, GraphDataVariant>;
 template class IterativeExtensions  <${KSIZE}>;
 
 /********************************************************************************/

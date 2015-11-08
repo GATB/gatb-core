@@ -582,8 +582,8 @@ void DebloomAlgorithm<span>::createCFP (
 {
     DEBUG (("DebloomAlgorithm<span>::createCFP   criticalCollection->size=%lld \n", criticalCollection->getNbItems() ));
 
+    _criticalChecksum.setVal(0);
 #if 0
-    _criticalChecksum = 0;
     Iterator<Type>* ii = criticalCollection->iterator();  LOCAL(ii);
     for (ii->first(); !ii->isDone(); ii->next())  { _criticalChecksum += ii->item(); }
 #endif

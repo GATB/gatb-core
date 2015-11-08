@@ -76,16 +76,23 @@ public:
         /** We create a hash with a maximum memory size. */
         OAHash <T> hash (maxMemory);
 
-        size_t badKey = hash.getMaxNbItems() + 100;
+        T badKey;
+        badKey.setVal(hash.getMaxNbItems() + 100);
 
         /** We insert the maximum number of items. */
-        for (int i=1; i<=hash.getMaxNbItems(); i++)  {  CPPUNIT_ASSERT_NO_THROW (hash.increment (i));  }
+        for (int i=1; i<=hash.getMaxNbItems(); i++)  {  
+            T idx; idx.setVal(i);
+            CPPUNIT_ASSERT_NO_THROW (hash.increment (idx));  
+        }
 
         /** We add a new key => we should get an exception. */
         CPPUNIT_ASSERT_THROW (hash.increment (badKey), core::system::Exception);
 
         /** We check that we have all the required keys. */
-        for (int i=1; i<=hash.getMaxNbItems(); i++)  {  CPPUNIT_ASSERT (hash.get (i) == true);  }
+        for (int i=1; i<=hash.getMaxNbItems(); i++)  {  
+            T idx; idx.setVal(i);
+            CPPUNIT_ASSERT (hash.get (idx) == true);  
+        }
 
         /** We check that we don't have an non registered key. */
         CPPUNIT_ASSERT (hash.get (badKey) == false);

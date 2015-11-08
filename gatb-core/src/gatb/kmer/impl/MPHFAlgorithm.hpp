@@ -92,6 +92,11 @@ public:
     /** We define the type of the hash table of couples [kmer/node state]. */
     typedef tools::collections::impl::MapMPHF<Type,NodeState_t>  NodeStateMap;
 
+    /** We define the type of the hash table of couples [kmer/graph adjacency information]. */
+    typedef u_int8_t Adjacency_t;
+    typedef tools::collections::impl::MapMPHF<Type,Adjacency_t>  AdjacencyMap;
+
+
     /** Constructor.
      * \param[in] group : storage group where to save the MPHF once built
      * \param[in] name : name of the collection in the group where the MPHF will be saved
@@ -124,6 +129,7 @@ public:
      * \return the map instance. */
     AbundanceMap* getAbundanceMap () const  { return _abundanceMap; }
     NodeStateMap* getNodeStateMap () const  { return _nodeStateMap; }
+    NodeStateMap* getAdjacencyMap () const  { return _adjacencyMap; }
 
 private:
 
@@ -144,8 +150,10 @@ private:
     /** Hash table instance. */
     AbundanceMap* _abundanceMap;
     NodeStateMap* _nodeStateMap;
+    AdjacencyMap* _adjacencyMap;
     void setAbundanceMap (AbundanceMap* abundanceMap)  { SP_SETATTR(abundanceMap); }
     void setNodeStateMap (NodeStateMap* nodeStateMap)  { SP_SETATTR(nodeStateMap); }
+    void setAdjacencyMap (AdjacencyMap* adjacencyMap)  { SP_SETATTR(adjacencyMap); }
 
     /** Set the abundance for each entry in the hash table. */
     void populate ();

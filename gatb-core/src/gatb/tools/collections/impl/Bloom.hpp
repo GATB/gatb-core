@@ -534,11 +534,13 @@ public:
         cano2[14] = 1;
         cano2[15] = 5;
 
-        Item un = 1;
+        Item un;
+        un.setVal(1);
         _maskkm2  = (un << ((_kmerSize-2)*2)) - un;
         _kmerMask = (un << (_kmerSize*2))     - un;
 
-        Item trois = 3;
+        Item trois;
+        trois.setVal(3);
 
         _prefmask = trois << ((_kmerSize-1)*2); //bug was here 3 instead of item trois
     }
@@ -643,9 +645,9 @@ public:
 
         u_int64_t h0, i0, j0, k0;
         Item elem,hashpart,rev ;
-        Item un = 1;
-        Item deux = 2;
-        Item trois = 3;
+        Item un ; un.setVal(1);
+        Item deux ; deux.setVal(2);
+        Item trois ; trois.setVal(3);
 
         size_t shifts = (_kmerSize -1)*2;
 

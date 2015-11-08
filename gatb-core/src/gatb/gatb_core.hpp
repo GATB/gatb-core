@@ -81,6 +81,7 @@
 #include <gatb/debruijn/impl/Frontline.hpp>
 #include <gatb/debruijn/impl/IterativeExtensions.hpp>
 #include <gatb/debruijn/impl/BranchingAlgorithm.hpp>
+#include <gatb/debruijn/impl/Instantiations.cpp>
 
 
 #include <gatb/tools/compression/RangeCoder.hpp>

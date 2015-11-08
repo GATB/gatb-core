@@ -71,7 +71,9 @@ template<typename Type, typename Number=u_int16_t> struct Abundance
      * \param[in] val : value of the item
      * \param[in] abund : abundance of the item.
      */
-    Abundance (const Type& val=0, const Number& abund=0) : value(val), abundance(abund) {}
+    Abundance (const Type& val, const Number& abund) : value(val), abundance(abund) {}
+    Abundance (const Type& val) : value(val), abundance(0) {}
+    Abundance () :  abundance(0) { Type zero; zero.setVal(0); value = zero;}
 
     /** Affectation operator.
      * \param[in] a : object to be copied.

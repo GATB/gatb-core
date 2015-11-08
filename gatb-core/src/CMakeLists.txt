@@ -3,11 +3,13 @@
 ################################################################################
 
 # We define the default values for kmer sizes.
-#list (APPEND KSIZE_DEFAULT_LIST  32   64)
-list (APPEND KSIZE_DEFAULT_LIST  32   64   96  128)
-#list (APPEND KSIZE_DEFAULT_LIST  32   64   96  128  160  192  224  256)
+if (NOT KSIZE_DEFAULT_LIST) # only if the tool cmake didn't override it
+    #list (APPEND KSIZE_DEFAULT_LIST  32   64)
+    list (APPEND KSIZE_DEFAULT_LIST  32   64   96  128)
+    #list (APPEND KSIZE_DEFAULT_LIST  32   64   96  128  160  192  224  256)
+endif()
 
-# We use a default list of kmer sizes if no one is provided by the user
+# We use a default list of kmer sizes if no one is provided by the user (via cmake -dKSIZE_LIST command)
 if (NOT KSIZE_LIST)
     set (gatb-core-klist ${KSIZE_DEFAULT_LIST})
 else()

@@ -46,6 +46,7 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
 
 // We define a structure holding a Node and a depth
+template <typename Node>
 struct NodeDepth
 {
     Node node;
@@ -53,7 +54,7 @@ struct NodeDepth
 
     NodeDepth () : node(0,STRAND_FORWARD), depth(0) {}
 
-    NodeDepth (Node::Value kmer, Strand strand, int depth) : node(kmer,strand), depth(depth) {}
+    NodeDepth (typename Node::Value kmer, Strand strand, int depth) : node(kmer,strand), depth(depth) {}
 
     // needed for comparisons inside a list
     bool operator<(const NodeDepth &other) const
@@ -76,8 +77,8 @@ struct NodeDepth
  * our assembly graph is connected by (k-1)-overlaps,
  * so this function is used to make sure we see each (k-1)-overlap in at most one right extremity
  */
-template<size_t span>
-bool IterativeExtensions<span>::compare_and_mark_last_k_minus_one_mer (const string& node, set<kmer_type>& kmers_set)
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+bool IterativeExtensions<span, Node, Edge, GraphDataVariant>::compare_and_mark_last_k_minus_one_mer (const string& node, set<kmer_type>& kmers_set)
 {
     kmer_type kmer_fw, kmer_rc;
 
@@ -99,10 +100,10 @@ bool IterativeExtensions<span>::compare_and_mark_last_k_minus_one_mer (const str
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-template<size_t span>
-IterativeExtensions<span>::IterativeExtensions (
-    const Graph&        graph,
-    Terminator&         terminator,
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+IterativeExtensions<span, Node, Edge, GraphDataVariant>::IterativeExtensions (
+    const GraphTemplate<Node,Edge,GraphDataVariant>&        graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&         terminator,
     TraversalKind       traversalKind,
     ExtendStopMode_e    whenToStop,
     SearchMode_e        searchMode,
@@ -127,8 +128,8 @@ IterativeExtensions<span>::IterativeExtensions (
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-template<size_t span>
-void IterativeExtensions<span>::construct_linear_seqs (
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_seqs (
     const string& L,
     const string& R,
     IBank*        outputBank,
@@ -149,20 +150,20 @@ void IterativeExtensions<span>::construct_linear_seqs (
     LOCAL (outputBank);
 
     /** We create a Traversal instance. */
-    Traversal* traversal = Traversal::create (traversalKind, graph, terminator, max_depth, 500, 20);
+    TraversalTemplate<Node,Edge,GraphDataVariant>* traversal = TraversalTemplate<Node,Edge,GraphDataVariant>::create (traversalKind, graph, terminator, max_depth, 500, 20);
     LOCAL (traversal);
 
     long long nbNodes = 0;
     long long totalnt = 0;
 
     /** We need a container that holds NodeDepth objects during the extension. */
-    vector <NodeDepth> kmers_to_traverse;
+    vector <NodeDepth<Node>> kmers_to_traverse;
 
     /** We get the first kmer of the L string. */
     KmerModel leftKmer = model.codeSeed (L.c_str(), Data::ASCII, 0);
 
     /** We put this kmer into the vector of kmers to be processed. */
-    NodeDepth ksd (Node::Value(leftKmer.value()), leftKmer.which() ? STRAND_FORWARD : STRAND_REVCOMP, 0);
+    NodeDepth<Node> ksd (typename Node::Value(leftKmer.value()), leftKmer.which() ? STRAND_FORWARD : STRAND_REVCOMP, 0);
     kmers_to_traverse.push_back (ksd);
 
     DEBUG ((cout << "---> kmer=" <<  leftKmer.value() << " strand=" << (leftKmer.which() ? "FW" : "RC") << endl));
@@ -173,7 +174,7 @@ void IterativeExtensions<span>::construct_linear_seqs (
 #endif
 
     /** We will need a Path object and a Sequence object during the extension. */
-    Path rightTraversal;
+    Path_t<Node> rightTraversal;
     Node endNode;
     Sequence seq (Data::ASCII);
 
@@ -263,12 +264,12 @@ void IterativeExtensions<span>::construct_linear_seqs (
         // there may be just one 1 possibility (there was in-branching)
 
         /** We get the successors of the node. */
-        Graph::Vector<Node> successors = graph.successors<Node> (endNode);
+        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> successors = graph.template successors<Node> (endNode);
 
         /** We iterate the successors. */
         for (size_t i=0; i<successors.size(); i++)
         {
-            kmers_to_traverse.push_back ( NodeDepth (successors[i].kmer, successors[i].strand, ksd.depth + len_right +1) );
+            kmers_to_traverse.push_back ( NodeDepth<Node> (successors[i].kmer, successors[i].strand, ksd.depth + len_right +1) );
             // ou plutot depth + len_right +1 (+1 = la nt ajoutee ici) (et pas node_len)  ?
         }
 
@@ -288,8 +289,8 @@ void IterativeExtensions<span>::construct_linear_seqs (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span>
-void IterativeExtensions<span>::construct_linear_seqs (
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_seqs (
     const std::string& L,
     const std::string& R,
     const std::string& output_file,
@@ -310,10 +311,10 @@ void IterativeExtensions<span>::construct_linear_seqs (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span>
-void IterativeExtensions<span>::buildSequence (
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+void IterativeExtensions<span, Node, Edge, GraphDataVariant>::buildSequence (
     const Node&     node,
-    const Path&     consensusRight,
+    const Path_t<Node>&     consensusRight,
     size_t          nbNodes,
     size_t          depth,
     Sequence&       seq

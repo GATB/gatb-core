@@ -18,6 +18,7 @@
 
 #include <CppunitCommon.hpp>
 
+#define USE_LARGEINT_CONSTRUCTOR 1 // one of the only cases where LargeInt should be using its constructor; but got lazy to want to change the unit tests here.
 #include <gatb/tools/collections/impl/Bloom.hpp>
 
 #include <gatb/tools/misc/api/Macros.hpp>
@@ -84,7 +85,9 @@ public:
                 nbNotFound++;
 
                 /** We check true negatives. */
-                CPPUNIT_ASSERT (bloom.contains(i) == false);
+                Item idx;
+                idx.setVal(i);
+                CPPUNIT_ASSERT (bloom.contains(idx) == false);
             }
         }
 

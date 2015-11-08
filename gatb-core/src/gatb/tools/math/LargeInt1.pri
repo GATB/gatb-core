@@ -23,53 +23,59 @@
  */
 
 
-template<>  class LargeInt<1> :  public misc::ArrayData<u_int64_t, 1>
-/* ArrayData used to be private but then fastLexiMinimizer would need a specialization here, so I'm setting it private */
+template<>  class LargeInt<1> 
 {
 public:
 
+#ifdef USE_LARGEINT_CONSTRUCTOR
     /** Constructor.
      * \param[in] c : initial value of the large integer. */
-    LargeInt<1> (const u_int64_t& c=0)  {  value[0] = c;  }
+    LargeInt<1> (const u_int64_t& c=0)  {  value = c;  }
+#endif
 
-     u_int64_t getVal () const  { return *value; }
+     u_int64_t getVal () const   { return value; }
+     inline void setVal (u_int64_t val) { value = val; }
 
     static const char* getName ()  { return "LargeInt<1>"; }
 
     static const size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
     /** Returns lower 64 bits */
-    u_int64_t toInt () const  {  return value[0];  }
+    u_int64_t toInt () const  {  return value;  }
 
-    LargeInt<1> operator+  (const LargeInt<1>& other)   const   {  return value[0] + other.value[0];  }
-    LargeInt<1> operator-  (const LargeInt<1>& other)   const   {  return value[0] - other.value[0];  }
-    LargeInt<1> operator|  (const LargeInt<1>& other)   const   {  return value[0] | other.value[0];  }
-    LargeInt<1> operator*  (const int& coeff)           const   {  return value[0] * coeff;        }
-    LargeInt<1> operator/  (const u_int32_t& divisor)   const   {  return value[0] / divisor;      }
-    u_int32_t   operator%  (const u_int32_t& divisor)   const   {  return value[0] % divisor;      }
-    LargeInt<1> operator^  (const LargeInt<1>& other)   const   {  return value[0] ^ other.value[0];  }
-    LargeInt<1> operator&  (const LargeInt<1>& other)   const   {  return value[0] & other.value[0];  }
-    LargeInt<1> operator&  (const char& other)          const   {  return value[0] & other;        }
-    LargeInt<1> operator~  ()                           const   {  return ~value[0];               }
-    LargeInt<1> operator<< (const int& coeff)           const   {  return value[0] << coeff;       }
-    LargeInt<1> operator>> (const int& coeff)           const   {  return value[0] >> coeff;       }
-    bool        operator!= (const LargeInt<1>& c)       const   {  return value[0] != c.value[0];     }
-    bool        operator== (const LargeInt<1>& c)       const   {  return value[0] == c.value[0];     }
-    bool        operator<  (const LargeInt<1>& c)       const   {  return value[0] < c.value[0];      }
-    bool        operator<= (const LargeInt<1>& c)       const   {  return value[0] <= c.value[0];     }
+    LargeInt<1> operator+  (const LargeInt<1>& other)   const   {  LargeInt<1> res; res.value = value + other.value; return res; }
+    LargeInt<1> operator+  (const u_int64_t& other)     const   {  LargeInt<1> res; res.value = value + other; return res; }
+    LargeInt<1> operator-  (const LargeInt<1>& other)   const   {  LargeInt<1> res; res.value = value - other.value; return res; }
+    LargeInt<1> operator-  (const u_int64_t& other)     const   {  LargeInt<1> res; res.value = value - other; return res; }
+    LargeInt<1> operator|  (const LargeInt<1>& other)   const   {   LargeInt<1> res; res.value = value | other.value; return res; }
+    LargeInt<1> operator*  (const int& coeff)           const   {   LargeInt<1> res; res.value = value * coeff;       return res; }
+    LargeInt<1> operator/  (const u_int32_t& divisor)   const   {   LargeInt<1> res; res.value = value / divisor;     return res; }
+    u_int32_t   operator%  (const u_int32_t& divisor)   const   {   return value % divisor;  }
+    LargeInt<1> operator^  (const LargeInt<1>& other)   const   {   LargeInt<1> res; res.value = value ^ other.value; return res; }
+    LargeInt<1> operator&  (const LargeInt<1>& other)   const   {   LargeInt<1> res; res.value = value & other.value; return res; }
+    LargeInt<1> operator&  (const char& other)          const   {   LargeInt<1> res; res.value = value & other;       return res; }
+    LargeInt<1> operator~  ()                           const   {   LargeInt<1> res; res.value = ~value;              return res; }
+    LargeInt<1> operator<< (const int& coeff)           const   {   LargeInt<1> res; res.value = value << coeff;      return res; }
+    LargeInt<1> operator>> (const int& coeff)           const   {   LargeInt<1> res; res.value = value >> coeff;      return res; }
+    bool        operator!= (const LargeInt<1>& c)       const   {   return value != c.value; }
+    bool        operator!= (const u_int64_t& c)         const   {   return value != c; }
+    bool        operator== (const LargeInt<1>& c)       const   {   return value == c.value; }
+    bool        operator== (const u_int64_t& c)         const   {   return value == c; }
+    bool        operator<  (const LargeInt<1>& c)       const   {   return value < c.value; }
+    bool        operator<= (const LargeInt<1>& c)       const   {   return value <= c.value; }
 
-    LargeInt<1>& operator+=  (const LargeInt<1>& other)    {  value[0] += other.value[0]; return *this; }
-    LargeInt<1>& operator^=  (const LargeInt<1>& other)    {  value[0] ^= other.value[0]; return *this; }
+    LargeInt<1>& operator+=  (const LargeInt<1>& other)    {  value += other.value; return *this; }
+    LargeInt<1>& operator^=  (const LargeInt<1>& other)    {  value ^= other.value; return *this; }
 
-    LargeInt<1>& operator<<=  (const int& coeff)  { value[0] <<= coeff; return *this; } 
-    LargeInt<1>& operator>>=  (const int& coeff)  { value[0] >>= coeff; return *this; }
+    LargeInt<1>& operator<<=  (const int& coeff)  { value <<= coeff; return *this; } 
+    LargeInt<1>& operator>>=  (const int& coeff)  { value >>= coeff; return *this; }
 
-    u_int8_t  operator[]  (size_t idx) const   {  return (value[0] >> (2*idx)) & 3; }
+    u_int8_t  operator[]  (size_t idx) const   {  return (value >> (2*idx)) & 3; }
 
     /********************************************************************************/
     friend std::ostream & operator<<(std::ostream & s, const LargeInt<1> & l)
     {
-        s << std::hex << l.value[0] << std::dec;  return s;
+        s << std::hex << l.value << std::dec;  return s;
     }
     /********************************************************************************/
     /** Print corresponding kmer in ASCII
@@ -78,7 +84,7 @@ public:
     inline void printASCII ( size_t sizeKmer = 32)
     {
         int i;
-        u_int64_t temp = value[0];
+        u_int64_t temp = value;
 
         
         char seq[33];
@@ -101,7 +107,7 @@ public:
     std::string toString (size_t sizeKmer) const
     {
         int i;
-        u_int64_t temp = value[0];
+        u_int64_t temp = value;
 
         char seq[33];
         char bin2NT[4] = {'A','C','T','G'};
@@ -202,42 +208,101 @@ public:
     template<typename Map>
     static LargeInt<1> polynom (const char* data, size_t size, Map fct)
     {
-        LargeInt<1> res (0);
-        for (size_t i=0; i<size; ++i)  {  res.value[0] = 4 * res.value[0] + fct(data[i]);  }
+        LargeInt<1> res;
+        res.value = 0;
+        for (size_t i=0; i<size; ++i)  {  res.value = 4 * res.value + fct(data[i]);  }
         return res;
     }
+
+    u_int64_t value; // not ArrayData anymore
 
 private:
 
     friend LargeInt<1> revcomp (const LargeInt<1>& i,   size_t sizeKmer);
     friend u_int64_t    hash1    (const LargeInt<1>& key, u_int64_t  seed);
+    friend u_int64_t    hash2    (const LargeInt<1>& key, u_int64_t  seed);
     friend u_int64_t    oahash  (const LargeInt<1>& key);
     friend u_int64_t    simplehash16    (const LargeInt<1>& key, int  shift);
+    friend void fastLexiMinimizer (const LargeInt<1>& x, const unsigned int _nbMinimizers, const unsigned int m,  u_int32_t &minimizer, size_t &position, bool &validResult);
 
 };
 
 /********************************************************************************/
 inline LargeInt<1> revcomp (const LargeInt<1>& x, size_t sizeKmer)
 {
-    return LargeInt<1>::revcomp64 (x.value[0], sizeKmer);
+    LargeInt<1> res;
+    res.value = LargeInt<1>::revcomp64 (x.value, sizeKmer);
+    return res;
 }
 
 /********************************************************************************/
 inline u_int64_t hash1 (const LargeInt<1>& key, u_int64_t seed=0)
 {
 
-    return LargeInt<1>::hash64 (key.value[0], seed);
+    return LargeInt<1>::hash64 (key.value, seed);
+}
+
+
+inline u_int64_t hash2 (const LargeInt<1>& x, u_int64_t seed=0)
+{
+// from inline uint64_t twang_mix64(uint64_t key) taken from https://github.com/facebook/folly/blob/master/folly/Hash.h
+  u_int64_t key = x.value;
+  key = (~key) + (key << 21);  // key *= (1 << 21) - 1; key -= 1;
+  key = key ^ (key >> 24);
+  key = key + (key << 3) + (key << 8);  // key *= 1 + (1 << 3) + (1 << 8)
+  key = key ^ (key >> 14);
+  key = key + (key << 2) + (key << 4);  // key *= 1 + (1 << 2) + (1 << 4)
+  key = key ^ (key >> 28);
+  key = key + (key << 31);  // key *= 1 + (1 << 31)
+  return key;
 }
 
 /********************************************************************************/
 inline u_int64_t oahash (const LargeInt<1>& key)
 {
-    return LargeInt<1>::oahash64 (key.value[0]);
+    return LargeInt<1>::oahash64 (key.value);
 }
 
 /********************************************************************************/
 inline u_int64_t simplehash16 (const LargeInt<1>& key, int  shift)
 {
-    return LargeInt<1>::simplehash16_64 (key.value[0], shift);
+    return LargeInt<1>::simplehash16_64 (key.value, shift);
 }
+
+inline void fastLexiMinimizer (const LargeInt<1>& x, const unsigned int _nbMinimizers, const unsigned int m,  u_int32_t &minimizer, size_t &position, bool &validResult) 
+{
+    if (m > sizeof(u_int32_t)*4) {std::cout << "wrong minimizer size for fastLeximinimizer :" << std::to_string(m); exit(1);}
+
+    const u_int32_t default_minimizer = ~0 & ((1 << (2*m)) - 1); 
+    minimizer = default_minimizer; 
+
+    validResult = false;
+    bool AA_found = false;
+
+    u_int64_t val = x.value;
+    const u_int32_t high_bits = 0;
+    const int position_offset = 0;
+
+    fastLexiMinimizerChunk<u_int64_t,u_int32_t>(val, _nbMinimizers, m, high_bits, minimizer, position, position_offset, AA_found);
+
+    validResult = AA_found && (minimizer != default_minimizer) /* might happen that AA was found but resulted in forbidden minimizers */;
+}
+
+/* debug function, for profiling only; counts the AA's in a kmer */
+inline void justSweepForAA(const LargeInt<1>& x, const unsigned int _nbMinimizers, unsigned int &dummy) 
+{
+    u_int64_t val = x.value;
+
+    const int it = std::min((unsigned int)sizeof(u_int64_t)*4,(unsigned int) _nbMinimizers); 
+    int j = 0;
+    while (j < it)
+    {
+        if (val & 15 == 0) // val starts with AA
+            dummy++;
+
+        val >>= 2;
+        j++;
+    }
+}
+
 

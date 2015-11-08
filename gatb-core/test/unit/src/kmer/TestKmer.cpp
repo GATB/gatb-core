@@ -73,8 +73,9 @@ class TestKmer : public Test
         CPPUNIT_TEST_GATB (kmer_checkCompute);
         CPPUNIT_TEST_GATB (kmer_checkIterator);
         CPPUNIT_TEST_GATB (kmer_build);
-        CPPUNIT_TEST_GATB (kmer_minimizer);
-        CPPUNIT_TEST_GATB (kmer_minimizer2);
+        CPPUNIT_TEST_GATB (kmer_minimizer); // with ModelDirect
+        CPPUNIT_TEST_GATB (kmer_minimizer2); // with ModelDirect
+        CPPUNIT_TEST_GATB (kmer_minimizer3); // with ModelCanonical
         CPPUNIT_TEST_GATB (kmer_badchar);
 
     CPPUNIT_TEST_SUITE_GATB_END();
@@ -117,6 +118,10 @@ public:
 
             /** We compute the kmer for a given sequence */
             kmer = model.codeSeed (seq, Data::ASCII);
+
+            if (kmer.value() != check[0])
+                    std::cout << std::endl << "in anticipation of failed unit test, here is kmer.value(): " << (int)(kmer.value().getVal()) << " and check[0]: " << (int)(check[0]) << std::endl;
+
             CPPUNIT_ASSERT (kmer.value() == check[0]);
 
             /** We compute some of the next kmers. */
@@ -271,7 +276,13 @@ public:
         {
             string currentKmer = model.toString(kmers.value());
 
-            typename Kmer<span>::Type currentMini (~0 & ((1 << (model.getMmersModel().getKmerSize() * 2)) - 1));
+            
+            typename Kmer<span>::Type currentMini; // (~0 & ((1 << (model.getMmersModel().getKmerSize() * 2)) - 1));
+            currentMini.setVal(1);
+            currentMini <<= (model.getMmersModel().getKmerSize() * 2);
+            currentMini = currentMini - 1;
+
+            
             for (size_t i=0; i<model.getKmerSize() - model.getMmersModel().getKmerSize() + 1; i++)
             {
                 typename ModelDirect::Kmer tmp = model.getMmersModel().codeSeed (
@@ -288,7 +299,8 @@ public:
             }
 
             if (currentMini != kmers.minimizer().value())
-                cout << "kmer " << currentKmer <<" should be " << model.getMmersModel().toString(currentMini) << " but actually found " <<  model.getMmersModel().toString(kmers.minimizer().value()) << " raw values : " << to_string(currentMini.getVal()) << " " << to_string(kmers.minimizer().value().getVal()) <<  endl;
+                cout << endl << "ModelDirect: " << "kmer " << currentKmer <<" should be " << model.getMmersModel().toString(currentMini) << " but actually found " <<  model.getMmersModel().toString(kmers.minimizer().value()) << " raw values : " << to_string(currentMini.getVal()) << " " << to_string(kmers.minimizer().value().getVal()) <<  endl;
+
             CPPUNIT_ASSERT (currentMini == kmers.minimizer().value() );
 
             nbKmers++;
@@ -409,9 +421,81 @@ public:
         for ( ; idx < ARRAY_SIZE(table); idx++)
         {
             kmer = model.codeSeedRight (kmer, *(seq++), Data::ASCII);
+
             CHECK (idx);
         }
     }
+
+    void kmer_minimizer3 ()
+    {
+        const char* seq = "ATGTCTGAAGTGACCTAACATTGCAGTGTGTT"; 
+        size_t sequenceSize = strlen(seq);
+
+        size_t kmerSize = 15;
+        size_t mmerSize = 7;
+
+        typedef Kmer<>::ModelCanonical                  ModelCanonical;
+        typedef Kmer<>::ModelMinimizer<ModelCanonical>  ModelMinimizer;
+
+        ModelMinimizer model (kmerSize, mmerSize);
+
+        const ModelCanonical& modelMini = model.getMmersModel();
+
+        kmer_minimizer2_info table[] =
+        {
+            {"ATGTCTGAAGTGACC", "AAGTGAC", 7, true },
+            {"AGGTCACTTCAGACA", "AAGTGAC", 6, false},
+            {"TAGGTCACTTCAGAC", "AAGTGAC", 5, false},
+            {"TCTGAAGTGACCTAA", "AAGTGAC", 4, false},
+            {"CTGAAGTGACCTAAC", "AAGTGAC", 3, false},
+            {"TGAAGTGACCTAACA", "AAGTGAC", 2, false},
+            {"ATGTTAGGTCACTTC", "AAGTGAC", 1, false},
+            {"AATGTTAGGTCACTT", "AATGTTA", 8, true }, // first revcomp minimizer
+            {"AGTGACCTAACATTG", "AACATTG", 8, true },
+            {"GCAATGTTAGGTCAC", "AACATTG", 7, false},
+            {"TGACCTAACATTGCA", "AACATTG", 6, false},
+            {"CTGCAATGTTAGGTC", "AACATTG", 5, false},
+            {"ACCTAACATTGCAGT", "AACATTG", 4, false},
+            {"CACTGCAATGTTAGG", "AACATTG", 3, false},
+            {"ACACTGCAATGTTAG", "AACATTG", 2, false},
+            {"CACACTGCAATGTTA", "AACATTG", 1, false},
+            {"AACATTGCAGTGTGT", "AACATTG", 0, false},
+            {"AACACACTGCAATGT", "AACACAC", 8, true }  // revcomp minimizer
+          };
+
+        size_t idx = 0;
+
+        #define CHECK(idx) \
+            CPPUNIT_ASSERT (  \
+                   model.toString (kmer.value()) == table[idx].kmer \
+                && modelMini.toString(kmer.minimizer().value()) == table[idx].minimizer \
+                && kmer.position()   == table[idx].position  \
+                && kmer.hasChanged() == table[idx].changed)
+
+        ModelMinimizer::Kmer kmer = model.codeSeed (seq, Data::ASCII);
+        CHECK (idx);  idx++;
+        seq += kmerSize;
+
+        for ( ; idx < ARRAY_SIZE(table); idx++)
+        {
+            kmer = model.codeSeedRight (kmer, *(seq++), Data::ASCII);
+
+            if (model.toString (kmer.value()) != table[idx].kmer)
+                cout << endl << "ModelCanonical: " << "canonical kmer is " << model.toString (kmer.value()) <<" and not, in the table, " << table[idx].kmer << " (TestKmer is wrong)" <<  endl;
+
+            if (modelMini.toString(kmer.minimizer().value()) != table[idx].minimizer)
+                cout << endl << "ModelCanonical: " << "kmer " << model.toString (kmer.value()) <<", minimizer should be " << table[idx].minimizer << " but actually found " <<  modelMini.toString(kmer.minimizer().value()) <<  endl;
+
+            if (kmer.position() != table[idx].position)
+                cout << endl << "ModelCanonical: " << "kmer " << model.toString (kmer.value()) <<", minimizer should be at position " << table[idx].position << " but actually found at position " <<  kmer.position()  <<  endl;
+
+            if (kmer.hasChanged() != table[idx].changed)
+                cout << endl << "ModelCanonical: " << "kmer " << model.toString (kmer.value()) <<", minimizer should changed y/n: " << table[idx].changed << " but actually changed y/n: " <<  kmer.hasChanged()  <<  endl;
+
+            CHECK (idx);
+        }
+    }
+
 
     /********************************************************************************/
 

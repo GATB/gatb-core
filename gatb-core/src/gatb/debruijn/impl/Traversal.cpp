@@ -42,21 +42,22 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Traversal* Traversal::create (
+template <typename Node, typename Edge, typename GraphDataVariant>
+TraversalTemplate<Node,Edge,GraphDataVariant>* TraversalTemplate<Node,Edge,GraphDataVariant>::create (
     TraversalKind   type,
-    const Graph&    graph,
-    Terminator&     terminator,
+    const GraphTemplate<Node,Edge,GraphDataVariant>&    graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&     terminator,
     int             max_len,
     int             max_depth,
     int             max_breadth
 )
 {
-    Traversal* result = 0;
+    TraversalTemplate<Node,Edge,GraphDataVariant>* result = 0;
 
-         if (type == TRAVERSAL_UNITIG)  { result = new SimplePathsTraversal (graph, terminator, max_len, max_depth, max_breadth); }
-    else if (type == TRAVERSAL_CONTIG)  { result = new MonumentTraversal    (graph, terminator, max_len, max_depth, max_breadth); }
-    else if (type == TRAVERSAL_NONE)    { result = new NullTraversal        (graph, terminator, max_len, max_depth, max_breadth); }
-    else                                { result = new MonumentTraversal    (graph, terminator, max_len, max_depth, max_breadth); }
+         if (type == TRAVERSAL_UNITIG)  { result = new SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant> (graph, terminator, max_len, max_depth, max_breadth); }
+    else if (type == TRAVERSAL_CONTIG)  { result = new MonumentTraversalTemplate<Node,Edge,GraphDataVariant>    (graph, terminator, max_len, max_depth, max_breadth); }
+    else if (type == TRAVERSAL_NONE)    { result = new NullTraversalTemplate<Node,Edge,GraphDataVariant>        (graph, terminator, max_len, max_depth, max_breadth); }
+    else                                { result = new MonumentTraversalTemplate<Node,Edge,GraphDataVariant>    (graph, terminator, max_len, max_depth, max_breadth); }
 
     return result;
 }
@@ -69,10 +70,11 @@ Traversal* Traversal::create (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Traversal* Traversal::create (
+template <typename Node, typename Edge, typename GraphDataVariant>
+TraversalTemplate<Node,Edge,GraphDataVariant>* TraversalTemplate<Node,Edge,GraphDataVariant>::create (
     const std::string&  type,
-    const Graph&        graph,
-    Terminator&         terminator,
+    const GraphTemplate<Node,Edge,GraphDataVariant>&        graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>&         terminator,
     int                 max_len,
     int                 max_depth,
     int                 max_breadth
@@ -91,18 +93,19 @@ Traversal* Traversal::create (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Traversal::Traversal (
-    const Graph& graph,
-    Terminator& terminator,
+template <typename Node, typename Edge, typename GraphDataVariant>
+TraversalTemplate<Node,Edge,GraphDataVariant>::TraversalTemplate (
+    const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
     int max_len,
     int max_depth,
     int max_breadth
 )
     : final_stats(TraversalStats()), stats(TraversalStats()),
       graph(graph), terminator(terminator),
-      maxlen      (max_len     == 0 ? Traversal::defaultMaxLen     : max_len),
-      max_depth   (max_depth   == 0 ? Traversal::defaultMaxDepth   : max_depth),
-      max_breadth (max_breadth == 0 ? Traversal::defaultMaxBreadth : max_breadth)
+      maxlen      (max_len     == 0 ? TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen     : max_len),
+      max_depth   (max_depth   == 0 ? TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth   : max_depth),
+      max_breadth (max_breadth == 0 ? TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth : max_breadth)
 {
 }
 
@@ -114,7 +117,8 @@ Traversal::Traversal (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction dir, Path& consensus)
+template <typename Node, typename Edge, typename GraphDataVariant>
+int TraversalTemplate<Node,Edge,GraphDataVariant>::traverse (Node& startingNode, Node& currentNode, Direction dir, Path_t<Node>& consensus)
 {
     currentNode = startingNode;
     Node previousNode;
@@ -123,7 +127,7 @@ int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction 
 
     bool looping = false;
 
-    Path path;  path.resize (max_depth+1);
+    Path_t<Node> path;  path.resize (this->max_depth+1);
 
     int bubble_start=0, bubble_end=0;
     bubbles_positions.clear();
@@ -151,7 +155,7 @@ int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction 
              * WARNING: we 'build' here a node without checking that it belongs to the Debruijn graph, because
              * the transition nucleotide has been got through a call to Graph::neighbors, and therefore it should
              * be a trustable transition nucleotide. */
-            currentNode  = graph.neighbor<Node> (currentNode, dir, path[i]);
+            currentNode  = this->graph.template neighbor<Node> (currentNode, dir, path[i]);
 
             /** We mark the node as used in assembly. */
             terminator.mark (currentNode);
@@ -183,7 +187,8 @@ int Traversal::traverse (const Node& startingNode, Node& currentNode, Direction 
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-float Traversal::needleman_wunch (const Path& a, const Path& b)
+template <typename Node, typename Edge, typename GraphDataVariant>
+float TraversalTemplate<Node,Edge,GraphDataVariant>::needleman_wunch (const Path_t<Node>& a, const Path_t<Node>& b)
 {
     float gap_score = -5;
     float mismatch_score = -5;
@@ -267,14 +272,15 @@ float Traversal::needleman_wunch (const Path& a, const Path& b)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-SimplePathsTraversal::SimplePathsTraversal (
-    const Graph& graph,
-    Terminator& terminator,
+template <typename Node, typename Edge, typename GraphDataVariant>
+SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant>::SimplePathsTraversalTemplate (
+    const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
     int maxlen,
     int max_depth,
     int max_breadth
 )
-    : Traversal (graph, terminator, maxlen, max_depth, max_breadth)
+    : TraversalTemplate<Node,Edge,GraphDataVariant>(graph, terminator, maxlen, max_depth, max_breadth)
 {
 }
 
@@ -286,25 +292,26 @@ SimplePathsTraversal::SimplePathsTraversal (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-char SimplePathsTraversal::avance (
-    const Node& node,
+template <typename Node, typename Edge, typename GraphDataVariant>
+char SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant>::avance (
+    Node& node,
     Direction dir,
     bool first_extension,
-    Path& path,
-    const Node& previousNode
+    Path_t<Node>& path,
+    Node& previousNode
 )
 {
-    int res = graph.simplePathAvance (node, dir, path[0]);
-    deadend = false; // whether the traversal ends with no extension or not -- helps filter out isolated contigs in Minia
+    int res = this->graph.simplePathAvance (node, dir, path[0]);
+    this->deadend = false; // whether the traversal ends with no extension or not -- helps filter out isolated contigs in Minia
     switch (res)
     {
         case -2:
-           stats.couldnt_inbranching++; break;
+           this->stats.couldnt_inbranching++; break;
         case -1:
-           stats.couldnt_outbranching++; break;
+           this->stats.couldnt_outbranching++; break;
         case 0:
-           stats.couldnt_no_extension++; 
-           deadend = true; break;
+           this->stats.couldnt_no_extension++; 
+           this->deadend = true; break;
     }
 
     return  max (res,  0);
@@ -328,14 +335,15 @@ char SimplePathsTraversal::avance (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-MonumentTraversal::MonumentTraversal (
-    const Graph& graph,
-    Terminator& terminator,
+template <typename Node, typename Edge, typename GraphDataVariant>
+MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::MonumentTraversalTemplate (
+    const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
+    TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
     int maxlen,
     int max_depth,
     int max_breadth
 )
-    : Traversal (graph, terminator, maxlen, max_depth, max_breadth)
+    : TraversalTemplate<Node,Edge,GraphDataVariant>(graph, terminator, maxlen, max_depth, max_breadth)
 {
 }
 
@@ -347,16 +355,17 @@ MonumentTraversal::MonumentTraversal (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-char MonumentTraversal::avance (
-    const Node& node,
+template <typename Node, typename Edge, typename GraphDataVariant>
+char MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::avance (
+    Node& node,
     Direction dir,
     bool first_extension,
-    Path& consensus,
-    const Node& previousNode
+    Path_t<Node>& consensus,
+    Node& previousNode
 )
 {
     // if we're on a simple path, just traverse it
-    int is_simple_path = graph.simplePathAvance (node, dir, consensus[0]);
+    int is_simple_path = this->graph.simplePathAvance (node, dir, consensus[0]);
     if (is_simple_path > 0)  {  return 1;  }
 
     // the following function does:
@@ -370,7 +379,7 @@ char MonumentTraversal::avance (
     bool success = explore_branching (node, dir, consensus, previousNode);
     if (!success)
     { 
-        stats.ended_traversals++;
+        this->stats.ended_traversals++;
         return 0;
     }
 
@@ -385,11 +394,12 @@ char MonumentTraversal::avance (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool MonumentTraversal::explore_branching (
-    const Node& node,
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::explore_branching (
+    Node& node,
     Direction dir,
-    Path& consensus,
-    const Node& previousNode
+    Path_t<Node>& consensus,
+    Node& previousNode
 )
 {
     set<Node> all_involved_extensions;
@@ -405,11 +415,12 @@ bool MonumentTraversal::explore_branching (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool MonumentTraversal::explore_branching (
-    const Node& startNode,
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::explore_branching (
+    Node& startNode,
     Direction dir,
-    Path& consensus,
-    const Node& previousNode,
+    Path_t<Node>& consensus,
+    Node& previousNode,
     std::set<Node>& all_involved_extensions
 )
 {
@@ -420,13 +431,13 @@ bool MonumentTraversal::explore_branching (
     int traversal_depth = find_end_of_branching (dir, startNode, endNode, previousNode, all_involved_extensions);
     if (!traversal_depth)  
     {
-        stats.couldnt_find_all_consensuses++;
+        this->stats.couldnt_find_all_consensuses++;
         return false;
     }
 
     // find all consensuses between start node and end node
     bool success;
-    set<Path> consensuses = all_consensuses_between (dir, startNode, endNode, traversal_depth+1, success);
+    set<Path_t<Node>> consensuses = all_consensuses_between (dir, startNode, endNode, traversal_depth+1, success);
 
     // if consensus phase failed, stop
     if (!success)  {  return false;  }
@@ -436,7 +447,7 @@ bool MonumentTraversal::explore_branching (
     bool validated = validate_consensuses (consensuses, consensus);
     if (!validated)   
     {  
-        stats.couldnt_validate_consensuses++;
+        this->stats.couldnt_validate_consensuses++;
         return false;  
     }
 
@@ -456,43 +467,44 @@ bool MonumentTraversal::explore_branching (
 ** REMARKS :
 *********************************************************************/
 //template <typename Frontline=FrontlineBranching> // TODO: someday do something along this line to refactor GraphSimplification in minia
-int MonumentTraversal::find_end_of_branching (
+template <typename Node, typename Edge, typename GraphDataVariant>
+int MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::find_end_of_branching (
     Direction    dir,
-    const Node&  startingNode,
+    Node&  startingNode,
     Node&        endNode,
-    const Node&  previousNode,
+    Node&  previousNode,
     std::set<Node>& all_involved_extensions
 )
 {
     /** We need a branching frontline. */
-    FrontlineBranching frontline (dir, graph, terminator, startingNode, previousNode, &all_involved_extensions);
+    FrontlineBranchingTemplate<Node,Edge,GraphDataVariant> frontline (dir, this->graph, this->terminator, startingNode, previousNode, &all_involved_extensions);
 
     do  {
         bool should_continue = frontline.go_next_depth();
         if (!should_continue) 
         {
-            if (frontline.stopped_reason == Frontline::MARKED)
-                stats.couldnt_because_marked_kmer++;
-            if (frontline.stopped_reason == Frontline::IN_BRANCHING_DEPTH)
-                stats.couldnt_inbranching_depth++;
-            if (frontline.stopped_reason == Frontline::IN_BRANCHING_BREADTH)
-                stats.couldnt_inbranching_breadth++;
-            if (frontline.stopped_reason == Frontline::IN_BRANCHING_OTHER)
-                stats.couldnt_inbranching_other++;
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::MARKED)
+                this->stats.couldnt_because_marked_kmer++;
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_DEPTH)
+                this->stats.couldnt_inbranching_depth++;
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_BREADTH)
+                this->stats.couldnt_inbranching_breadth++;
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_OTHER)
+                this->stats.couldnt_inbranching_other++;
             return 0;
         }
 
         // don't allow a depth too large
-        if ((int)frontline.depth() > max_depth)
+        if ((int)frontline.depth() > this->max_depth)
         {  
-            stats.couldnt_traverse_bubble_depth++;
+            this->stats.couldnt_traverse_bubble_depth++;
             return 0;  
         }
 
         // don't allow a breadth too large
-        if ((int)frontline.size()> max_breadth)
+        if ((int)(frontline.size())> this->max_breadth)
         {  
-            stats.couldnt_traverse_bubble_breadth++;
+            this->stats.couldnt_traverse_bubble_breadth++;
             return 0;
         }
 
@@ -501,7 +513,7 @@ int MonumentTraversal::find_end_of_branching (
         // affects mismatch rate in ecoli greatly
         if (frontline.size() == 0)  
         {
-            stats.couldnt_find_extension++;
+            this->stats.couldnt_find_extension++;
             return 0;
         }
 
@@ -529,13 +541,15 @@ int MonumentTraversal::find_end_of_branching (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-void MonumentTraversal::mark_extensions (std::set<Node>& extensions_to_mark)
+template <typename Node, typename Edge, typename GraphDataVariant>
+void MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::mark_extensions (std::set<Node>& extensions_to_mark)
 {
-    if (terminator.isEnabled())
+    if (this->terminator.isEnabled())
     {
-        for(set<Node>::iterator it = extensions_to_mark.begin(); it != extensions_to_mark.end() ; ++it)
+        for(typename std::set<Node>::iterator it = extensions_to_mark.begin(); it != extensions_to_mark.end() ; ++it)
         {
-            terminator.mark (*it);
+            Node node = *it; // need this, because terminator.mark will want to modify node to cache its mphf index, hence it cannot be const.
+            this->terminator.mark (node);
         }
     }
 }
@@ -548,17 +562,18 @@ void MonumentTraversal::mark_extensions (std::set<Node>& extensions_to_mark)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-set<Path> MonumentTraversal::all_consensuses_between (
+template <typename Node, typename Edge, typename GraphDataVariant>
+set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
     Direction    dir,
-    const Node& startNode,
-    const Node& endNode,
+    Node& startNode,
+    Node& endNode,
     int traversal_depth,
-    set<Node::Value> usedNode,
-    Path current_consensus,
+    std::set<typename Node::Value> usedNode,
+    Path_t<Node> current_consensus,
     bool& success
 )
 {
-    set<Path> consensuses;
+    set<Path_t<Node>> consensuses;
 
     // find_end_of_branching and all_consensues_between do not always agree on clean bubbles ends
     // until I can fix the problem, here is a fix
@@ -566,7 +581,7 @@ set<Path> MonumentTraversal::all_consensuses_between (
     if (traversal_depth < -1)
     {
         success = false;
-        stats.couldnt_consensus_negative_depth++;
+        this->stats.couldnt_consensus_negative_depth++;
         return consensuses;
     }
 
@@ -577,7 +592,7 @@ set<Path> MonumentTraversal::all_consensuses_between (
     }
 
     /** We retrieve the neighbors of the provided node. */
-    Graph::Vector<Edge> neighbors = graph.neighbors<Edge> (startNode, dir);
+    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = this->graph.neighborsEdge (startNode, dir);
 
     /** We loop these neighbors. */
     for (size_t i=0; i<neighbors.size(); i++)
@@ -591,20 +606,20 @@ set<Path> MonumentTraversal::all_consensuses_between (
         if (usedNode.find(edge.to.kmer) != usedNode.end())
         {
             success = false;
-            stats.couldnt_consensus_loop++;
+            this->stats.couldnt_consensus_loop++;
             return consensuses;
         }
 
         // generate extended consensus sequence
-        Path extended_consensus(current_consensus);
+        Path_t<Node> extended_consensus(current_consensus);
         extended_consensus.push_back (edge.nt);
 
         // generate list of used kmers (to prevent loops)
-        set<Node::Value> extended_kmers (usedNode);
+        set<typename Node::Value> extended_kmers (usedNode);
         extended_kmers.insert (edge.to.kmer);
 
         // recursive call to all_consensuses_between
-        set<Path> new_consensuses = all_consensuses_between (
+        set<Path_t<Node>> new_consensuses = all_consensuses_between (
             dir,
             edge.to,
             endNode,
@@ -617,8 +632,8 @@ set<Path> MonumentTraversal::all_consensuses_between (
         consensuses.insert (new_consensuses.begin(), new_consensuses.end());
 
         // mark to stop we end up with too many consensuses
-        if (consensuses.size() > (unsigned int )max_breadth)  {
-            stats.couldnt_consensus_amount++;
+        if (consensuses.size() > (unsigned int)this->max_breadth)  {
+            this->stats.couldnt_consensus_amount++;
             success = false;  
         }
 
@@ -637,17 +652,18 @@ set<Path> MonumentTraversal::all_consensuses_between (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-set<Path> MonumentTraversal::all_consensuses_between (
+template <typename Node, typename Edge, typename GraphDataVariant>
+set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
     Direction    dir,
-    const Node& startNode,
-    const Node& endNode,
+    Node& startNode,
+    Node& endNode,
     int traversal_depth,
     bool &success
 )
 {
-    set<Node::Value> usedNode;
+    set<typename Node::Value> usedNode;
     usedNode.insert(startNode.kmer);
-    Path current_consensus;
+    Path_t<Node> current_consensus;
     current_consensus.start = startNode;
     success = true;
 
@@ -662,13 +678,14 @@ set<Path> MonumentTraversal::all_consensuses_between (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& result)
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses (set<Path_t<Node>>& consensuses, Path_t<Node>& result)
 {
     bool debug = false;
     // compute mean and stdev of consensuses
     int mean = 0;
     int path_number = 0;
-    for(set<Path>::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
+    for(typename set<Path_t<Node>>::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
     {
         //if (debug)  printf("bubble path %d: %s (len=%lu)\n",path_number,(*it).c_str(),(*it).length());
         mean+=(*it).size();
@@ -676,7 +693,7 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
     }
     mean/=consensuses.size();
     double stdev = 0;
-    for(set<Path>::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
+    for(typename set<Path_t<Node>>::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
     {
         int consensus_length = (*it).size();
         stdev += pow(fabs(consensus_length-mean),2);
@@ -684,16 +701,16 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
     stdev = sqrt(stdev/consensuses.size());
 
     // don't traverse large bubbles
-    if (mean > max_depth)
+    if (mean > this->max_depth)
     {
-        stats.couldnt_validate_bubble_mean_depth++;
+        this->stats.couldnt_validate_bubble_mean_depth++;
         return false;
     }
 
     // don't traverse large deadends (here, having one consensus means the other paths were large deadends)
-    if (consensuses.size() == 1 && mean > (int)graph.getKmerSize()+1) // deadend length should be < k+1 (most have length 1, but have seen up to 10 in ecoli)
+    if (consensuses.size() == 1 && mean > (int)(this->graph.getKmerSize())+1) // deadend length should be < k+1 (most have length 1, but have seen up to 10 in ecoli)
     {
-        stats.couldnt_validate_bubble_deadend++;
+        this->stats.couldnt_validate_bubble_deadend++;
         return false;
     }
 
@@ -702,30 +719,30 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
     // traverse bubbles if paths have roughly the same length
     if (stdev>mean/5)
     {
-        stats.couldnt_validate_bubble_stdev++;
+        this->stats.couldnt_validate_bubble_stdev++;
         return false;
     }
 
     // check that all consensuses are similar
     if (! all_consensuses_almost_identical(consensuses))
     {
-        stats.couldnt_validate_bubble_identity++;
+        this->stats.couldnt_validate_bubble_identity++;
         return false;
     }
 
     // if all good, an arbitrary consensus is chosen (if no MPHF) or the most abundance one is chosen (if MPHF available)
-    bool has_mphf = graph.checkState(Graph::STATE_MPHF_DONE);
+    bool has_mphf = this->graph.checkState(GraphTemplate<Node,Edge,GraphDataVariant>::STATE_MPHF_DONE);
 
-    Path chosen_consensus;
+    Path_t<Node> chosen_consensus;
     if (has_mphf)
         chosen_consensus = most_abundant_consensus(consensuses);
     else
         chosen_consensus = *consensuses.begin();
 
     int result_length = chosen_consensus.size();
-    if  (result_length> max_depth) // it can happen that consensus is longer than max_depth, despite that we didn't explore that far (in a messy bubble with branchings inside)
+    if  (result_length> this->max_depth) // it can happen that consensus is longer than max_depth, despite that we didn't explore that far (in a messy bubble with branchings inside)
     {
-        stats.couldnt_validate_bubble_long_chosen++;
+        this->stats.couldnt_validate_bubble_long_chosen++;
         return false;
     }
 
@@ -742,15 +759,16 @@ bool MonumentTraversal::validate_consensuses (set<Path>& consensuses, Path& resu
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-bool MonumentTraversal::all_consensuses_almost_identical (set<Path>& consensuses)
+template <typename Node, typename Edge, typename GraphDataVariant>
+bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almost_identical (set<Path_t<Node>>& consensuses)
 {
-    for (set<Path>::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
+    for (typename set<Path_t<Node>>::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
     {
-        set<Path>::iterator it_b = it_a;
+        typename set<Path_t<Node>>::iterator it_b = it_a;
         advance(it_b,1);
         while (it_b != consensuses.end())
         {
-            int identity = needleman_wunch(*it_a,*it_b) * 100;
+            int identity = this->needleman_wunch(*it_a,*it_b) * 100;
             if (identity < consensuses_identity)
             {
                 //cout << "couldn't pop bubble due to identity %:" << identity << " over length " << (*it_a).size() << " " << (*it_b).size() << endl;
@@ -769,11 +787,12 @@ bool MonumentTraversal::all_consensuses_almost_identical (set<Path>& consensuses
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : might have a bug, see remark in there. need investigation.
 *********************************************************************/
-Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
+template <typename Node, typename Edge, typename GraphDataVariant>
+Path_t<Node> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::most_abundant_consensus(set<Path_t<Node>>& consensuses)
 {
-    Path res;
+    Path_t<Node> res;
     bool debug = false;
 
     unsigned long best_mean_abundance = 0;
@@ -782,16 +801,16 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
     if (debug)
         cout << endl << "starting to decide which consensus to choose" << endl;
 
-    for (set<Path>::iterator it = consensuses.begin(); it != consensuses.end(); it++)
+    for (typename set<Path_t<Node>>::iterator it = consensuses.begin(); it != consensuses.end(); it++)
     {
         // iterate over all kmers in consensus and get mean abundance
-        Path p = *it;
+        Path_t<Node> p = *it;
 
         // FIXME: I think that code might be buggy!! (wrong p_str constructed in the bubble.fa example of Minia. see GraphSimplification.cpp for a potential fix)
-        
-        
+        // it might have to do with a previous DIR_INCOMING nt bug.
+
         // naive conversion from path to string
-        string p_str = graph.toString(p.start);
+        string p_str = this->graph.toString(p.start);
         for (size_t i = 0; i < p.size(); i++)
             p_str.push_back(p.ascii(i));
 
@@ -801,11 +820,11 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
         unsigned long mean_abundance = 0;
         for (size_t i = 0; i < p.size(); i++)
         {            
-            Node node = graph.buildNode((char *)(p_str.c_str()), i); 
+            Node node = this->graph.buildNode((char *)(p_str.c_str()), i); 
             /* I know that buildNode was supposed to be used for test purpose only,
              * but couldn't find anything else to transform my substring into a kmer */
 
-            unsigned char abundance = graph.queryAbundance(node.kmer);
+            unsigned char abundance = this->graph.queryAbundance(node);
             mean_abundance += abundance;
         
             if (debug)
@@ -830,8 +849,6 @@ Path MonumentTraversal::most_abundant_consensus(set<Path>& consensuses)
 
     return res;
 }
-
-
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

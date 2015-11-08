@@ -92,9 +92,27 @@ namespace math  {
  *
  *  \see IntegerTemplate
  */
-template<int precision>  class LargeInt : public misc::ArrayData<u_int64_t, precision>
+
+template<int precision>  class LargeIntDummy 
+{
+    public:
+
+};
+
+template<int precision>  class LargeInt
 {
 public:
+
+    /********************************************************************************/
+    /** Constructor.
+     * \param[in] val : initial value of the large integer. */
+
+#ifdef USE_LARGEINT_CONSTRUCTOR // normally this isn't enabled; only in unit tests for convenience.
+        LargeInt(const u_int64_t& val = 0)
+        {
+            this->value[0] = val;   for (int i = 1; i < precision; i++)  {  this->value[i] = 0;  }
+        }
+#endif
 
     /** Get the name of the class used by the variant (ie. one of the Ti template class parameters)
      * \return the class name.
@@ -111,19 +129,12 @@ public:
      * \return (part of) the LargeInt object as a native integer type.
      */
     u_int64_t getVal() const  { return this->value[0]; }
+    inline void      setVal(u_int64_t val) { this->value[0] = val; for (int i = 1; i < precision; i++)  {  this->value[i] = 0;}  }
 
     /** Get the size of an instance of the class
      * \return the size of an object (in bits).
      */
     static const size_t getSize ()  { return 8*sizeof(u_int64_t)*precision; }
-
-    /********************************************************************************/
-    /** Constructor.
-     * \param[in] val : initial value of the large integer. */
-    LargeInt(const u_int64_t& val = 0)
-    {
-        this->value[0] = val;   for (int i = 1; i < precision; i++)  {  this->value[i] = 0;  }
-    }
 
     /********************************************************************************/
     /** Returns lower 64 bits */
@@ -141,6 +152,23 @@ public:
         for (int i = 0 ; i < precision ; i++)
         {
             result.value[i] = this->value[i] + other.value[i] + carry;
+            carry = (result.value[i] < this->value[i]) ? 1 : 0;
+        }
+
+        assert    (precision != 1 || (result == other.value[0] + this->value[0]));
+        assert128 (result.toInt128() == other.toInt128() + toInt128());
+        return result;
+    }
+
+    LargeInt operator+ (const u_int64_t& other) const
+    {
+        LargeInt result;
+        int carry = 0;
+        result.value[0] = this->value[0] + other;
+        carry = (result.value[0] < this->value[0]) ? 1 : 0;
+        for (int i = 1 ; i < precision ; i++)
+        {
+            result.value[i] = this->value[i] + carry;
             carry = (result.value[i] < this->value[i]) ? 1 : 0;
         }
 
@@ -169,6 +197,23 @@ public:
         return result;
     }
 
+    LargeInt operator- (const u_int64_t& other) const
+    {
+        LargeInt result;
+        int carry = 0;
+        result.value[0] = this->value[0] - other;
+        carry = (result.value[0] > this->value[0]) ? 1 : 0;
+        for (int i = 1 ; i < precision ; i++)
+        {
+            result.value[i] = this->value[i] - carry;
+            carry = (result.value[i] > this->value[i]) ? 1 : 0;
+        }
+
+        assert(precision != 1 || (result == this->value[0] - other));
+        return result;
+    }
+
+
     /********************************************************************************/
     /** Operator *
      * \param[in] coeff : operand
@@ -176,7 +221,10 @@ public:
      */
     LargeInt operator*(const int& coeff) const
     {
-        LargeInt result (*this);
+        LargeInt result;
+        for (int i = 0; i < precision ; i++)
+            result.value[i] = this->value[i];
+
         // minia doesn't have that many multiplications cases
 
         if (coeff == 2 || coeff == 4)
@@ -209,7 +257,7 @@ public:
     LargeInt operator/(const uint32_t& divisor) const
     {
         LargeInt result;
-        std::fill( result.value, result.value + precision, 0 );
+        result.setVal(0);
 
         // inspired by Divide32() from http://subversion.assembla.com/svn/pxcode/RakNet/Source/BigInt.cpp
 
@@ -308,6 +356,7 @@ public:
     LargeInt operator&(const char& other) const
     {
         LargeInt result;
+        result.setVal(0);
         result.value[0] = this->value[0] & other;
         return result;
     }
@@ -335,7 +384,8 @@ public:
      */
     LargeInt operator<<(const int& coeff) const
     {
-        LargeInt result (0);
+        LargeInt result;
+        result.setVal(0);
 
         int large_shift = coeff / 64;
         int small_shift = coeff % 64;
@@ -369,7 +419,8 @@ public:
      */
     LargeInt operator>>(const int& coeff) const
     {
-        LargeInt result (0);
+        LargeInt result;
+        result.setVal(0);
 
         int large_shift = coeff / 64;
         int small_shift = coeff % 64;
@@ -407,6 +458,16 @@ public:
         return false;
     }
 
+    bool operator!=(const u_int64_t& c) const
+    {
+        if (this->value[0] != c)
+            return true;
+        for (int i = 1 ; i < precision ; i++)
+            if( this->value[i] != 0 )
+                return true;
+        return false;
+    }
+
     /********************************************************************************/
     /** Operator ==
      * \param[in] c: operand
@@ -419,6 +480,17 @@ public:
                 return false;
         return true;
     }
+
+    bool operator==(const u_int64_t& c) const
+    {
+        if (this->value[0] != c)
+            return false;
+        for (int i = 1 ; i < precision ; i++)
+            if( this->value[i] != 0 )
+                return false;
+        return true;
+    }
+
 
     /********************************************************************************/
     /** Operator <
@@ -575,7 +647,8 @@ public:
     template<typename Map>
     static LargeInt polynom (const char* data, size_t size, Map fct)
     {
-        LargeInt res (0);
+        LargeInt res;
+        res.setVal(0);
         for (size_t i=0; i<size; ++i)  {  res = res * 4 + fct(data[i]);  }
         return res;
     }
@@ -601,12 +674,17 @@ public:
      * \param[in] idx : index of the nucleotide to be retrieved
      * \return the nucleotide value as follow: A=0, C=1, T=2 and G=3
      */
-    u_int8_t  operator[]  (size_t idx) const    {  return (this->value[idx/32] >> (2*idx)) & 3; } // FIXME (or delete this comment): isn't this buggy when idx > 32? then the shift becomes more than 64. needs to be tested.
+    u_int8_t  operator[]  (size_t idx) const    {  
+        std::cout << "operator[" << (int)idx << "] called on largeint; but it has a fixme; address it!" << std::endl; 
+        return (this->value[idx/32] >> (2*idx)) & 3; } // FIXME (or delete this comment): isn't this buggy when idx > 32? then the shift becomes more than 64. needs to be tested.
 
 private:
-
+    u_int64_t value[precision];
+   
+    // hum, why do we template these and not just include them in the class? the whole class is already templated by precision. i'm maybe missing something but i don't understand the merits of that scheme. -r
     template<int T>  friend LargeInt<T> revcomp (const LargeInt<T>& i, size_t sizeKmer);
     template<int T>  friend u_int64_t   hash1    (const LargeInt<T>& key, u_int64_t  seed);
+    template<int T>  friend u_int64_t   hash2    (const LargeInt<T>& key, u_int64_t  seed);
     template<int T>  friend u_int64_t   oahash  (const LargeInt<T>& key);
     template<int T>  friend u_int64_t   simplehash16    (const LargeInt<T>& key, int  shift);
     template<int T, typename m_T>  \
@@ -622,8 +700,8 @@ private:
 /********************************************************************************/
 template<int precision>  inline LargeInt<precision> revcomp (const LargeInt<precision>& x, size_t sizeKmer)
 {
-    const LargeInt<precision> res = x;
-
+    LargeInt<precision> res;
+    res.setVal(0);
     unsigned char* kmerrev  = (unsigned char *) (&(res.value[0]));
     unsigned char* kmer     = (unsigned char *) (&(x.value[0]));
 
@@ -639,18 +717,37 @@ template<int precision>  inline LargeInt<precision> revcomp (const LargeInt<prec
 template<int precision>  inline u_int64_t hash1 (const LargeInt<precision>& elem, u_int64_t seed=0)
 {
     // hash = XOR_of_series[hash(i-th chunk iof 64 bits)]
-    u_int64_t result = 0, chunk, mask = ~0;
+    u_int64_t result = 0, chunk;
 
-    LargeInt<precision> intermediate = elem;
     for (size_t i=0;i<precision;i++)
     {
-        chunk = (intermediate & mask).value[0];
-        intermediate = intermediate >> 64;
-
-        result ^= NativeInt64::hash64 (chunk,seed);
+        result ^= NativeInt64::hash64 (elem.value[i],seed);
     }
     return result;
 }
+
+template<int precision>  inline u_int64_t hash2 (const LargeInt<precision>& elem, u_int64_t seed=0)
+{
+    // hash = XOR_of_series[hash(i-th chunk of 64 bits)]
+    u_int64_t result = 0, key;
+
+    for (size_t i=0;i<precision;i++)
+    {
+        // from inline uint64_t twang_mix64(uint64_t key) taken from https://github.com/facebook/folly/blob/master/folly/Hash.h
+        key = elem.value[i];
+        key = (~key) + (key << 21);  // key *= (1 << 21) - 1; key -= 1;
+        key = key ^ (key >> 24);
+        key = key + (key << 3) + (key << 8);  // key *= 1 + (1 << 3) + (1 << 8)
+        key = key ^ (key >> 14);
+        key = key + (key << 2) + (key << 4);  // key *= 1 + (1 << 2) + (1 << 4)
+        key = key ^ (key >> 28);
+        key = key + (key << 31);  // key *= 1 + (1 << 31)
+
+        result ^= key;
+    }
+    return result;
+}
+
 
 /********************************************************************************/
 template<int precision>  u_int64_t oahash (const LargeInt<precision>& elem)
@@ -707,7 +804,6 @@ template<int precision, typename minimizer_type> inline void fastLexiMinimizer (
     bool AA_found = false;
 
     u_int64_t val;
-    const u_int64_t mask = ~0;
     minimizer_type high_bits;
 
     for (int i=0 ; i < precision ; i++)

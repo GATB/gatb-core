@@ -56,9 +56,9 @@ static const char* progressFormat2 = "Graph: nb branching found : %-9d  ";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span>
-BranchingAlgorithm<span>::BranchingAlgorithm (
-    const Graph& graph,
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+BranchingAlgorithm<span, Node, Edge, GraphDataVariant>::BranchingAlgorithm (
+    const GraphTemplate<Node, Edge, GraphDataVariant>& graph,
     tools::storage::impl::Storage& storage,
     tools::misc::BranchingKind  kind,
     size_t                      nb_cores,
@@ -77,8 +77,8 @@ BranchingAlgorithm<span>::BranchingAlgorithm (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span>
-BranchingAlgorithm<span>::BranchingAlgorithm (tools::storage::impl::Storage& storage)
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+BranchingAlgorithm<span, Node, Edge, GraphDataVariant>::BranchingAlgorithm (tools::storage::impl::Storage& storage)
     : Algorithm("branching", 0, 0), _graph(0), _storage(storage), _branchingCollection(0)
 {
     setBranchingCollection (& storage("branching").getCollection<Count> ("nodes"));
@@ -95,8 +95,8 @@ BranchingAlgorithm<span>::BranchingAlgorithm (tools::storage::impl::Storage& sto
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span>
-BranchingAlgorithm<span>::~BranchingAlgorithm ()
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+BranchingAlgorithm<span, Node, Edge, GraphDataVariant>::~BranchingAlgorithm ()
 {
     setBranchingCollection(0);
 }
@@ -109,8 +109,8 @@ BranchingAlgorithm<span>::~BranchingAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span>
-IOptionsParser* BranchingAlgorithm<span>::getOptionsParser ()
+template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
+IOptionsParser* BranchingAlgorithm<span, Node, Edge, GraphDataVariant>::getOptionsParser ()
 {
     IOptionsParser* parser = new OptionsParser ("branching");
 
@@ -139,26 +139,26 @@ struct FunctorData
     map <InOut_t, size_t> topology;
 };
 
-template<typename Count, typename Type>
+template<typename Count, typename Type, typename Node, typename Edge, typename GraphDataVariant>
 struct FunctorNodes
 {
-    const Graph* graph;
+    const GraphTemplate<Node, Edge, GraphDataVariant>* graph;
     ThreadObject<FunctorData<Count,Type> >& functorData;
 
-    FunctorNodes (const Graph* graph, ThreadObject<FunctorData<Count,Type> >& functorData)
+    FunctorNodes (const GraphTemplate<Node, Edge, GraphDataVariant>* graph, ThreadObject<FunctorData<Count,Type> >& functorData)
         : graph(graph), functorData(functorData)  {}
 
-    void operator() (const Node& node)
+    void operator() (Node& node)
     {
         // We get branching nodes neighbors for the current branching node.
-        Graph::Vector<Node> successors   = graph->successors  <Node> (node);
-        Graph::Vector<Node> predecessors = graph->predecessors<Node> (node);
+        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> successors   = graph->template successors  <Node> (node);
+        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> predecessors = graph->template predecessors<Node> (node);
 
         if ( ! (successors.size()==1 && predecessors.size()==1) )
         {
         	FunctorData<Count,Type>& data = functorData();
 
-        	data.branchingNodes.push_back (Count (node.kmer.get<Type>(), node.abundance));
+        	data.branchingNodes.push_back (Count (node.template getKmer<Type>(), node.abundance));
 
         	data.topology [make_pair(predecessors.size(), successors.size())] ++;
         }
@@ -207,11 +207,11 @@ public:
 
 /*********************************************************************/
 
-template<size_t span>
-void BranchingAlgorithm<span>::execute ()
+template <size_t span, typename Node, typename Edge, typename GraphDataVariant>
+void BranchingAlgorithm<span, Node, Edge, GraphDataVariant>::execute ()
 {
     /** We get an iterator over all graph nodes. */
-    Graph::Iterator<Node> itNodes = _graph->iterator<Node>();
+    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Node> itNodes = _graph->GraphTemplate<Node, Edge, GraphDataVariant>::iterator();
 
     /** We create a custom listener that refines the finish method in order it does nothing...
      * => we define our own 'finishPostponed' method that is called when all the information is ok. */
@@ -232,7 +232,7 @@ void BranchingAlgorithm<span>::execute ()
     /** We get a synchronized object on the data handled by functors. */
     ThreadObject <FunctorData<Count,Type> > functorData;
 
-    FunctorNodes<Count,Type> functorNodes (this->_graph, functorData);
+    FunctorNodes<Count,Type, Node, Edge, GraphDataVariant> functorNodes (this->_graph, functorData);
 
     /** We iterate the nodes. */
     tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, functorNodes);
@@ -256,7 +256,7 @@ void BranchingAlgorithm<span>::execute ()
     /** We use a cache to improve IO performances. */
     CollectionCache<Count> branchingCache (*_branchingCollection, 16*1024, 0);
 
-    Type checksum = 0;
+    Type checksum; checksum.setVal( 0);
 
     /** We initialize our priority queue. */
     priority_queue <BranchingIteratorPair, vector<BranchingIteratorPair>, Compare<BranchingIteratorPair> > pq;

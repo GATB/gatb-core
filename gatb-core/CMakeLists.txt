@@ -133,11 +133,50 @@ if (use_new_cxx)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION ${CXX_STD_VERSION}")
 endif()
 
+# detect SSE 
+# from https://github.com/rurban/smhasher/blob/master/CMakeLists.txt
+# i do not see much performance gain for now, but let's keep that code here, might be useful later.
+# list of performance gain observed:
+# popcount in Graph::countNeighbors
+IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    EXEC_PROGRAM(cat ARGS "/proc/cpuinfo" OUTPUT_VARIABLE CPUINFO)
+    STRING(REGEX REPLACE "^.*(sse2).*$" "\\1" SSE_THERE ${CPUINFO})
+    STRING(COMPARE EQUAL "sse2" "${SSE_THERE}" SSE2_TRUE)
+    STRING(REGEX REPLACE "^.*(sse4_2).*$" "\\1" SSE_THERE ${CPUINFO})
+    STRING(COMPARE EQUAL "sse4_2" "${SSE_THERE}" SSE42_TRUE)
+ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    EXEC_PROGRAM("/usr/sbin/sysctl -n machdep.cpu.features" OUTPUT_VARIABLE
+        CPUINFO)
+    STRING(REGEX REPLACE "^.*[^S](SSE2).*$" "\\1" SSE_THERE ${CPUINFO})
+    STRING(COMPARE EQUAL "SSE2" "${SSE_THERE}" SSE2_TRUE)
+    STRING(REGEX REPLACE "^.*(SSE4.2).*$" "\\1" SSE_THERE ${CPUINFO})
+    STRING(COMPARE EQUAL "SSE4.2" "${SSE_THERE}" SSE42_TRUE)
+ENDIF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+IF (SSE2_TRUE)
+    set(SSE2_FOUND true CACHE BOOL "SSE2 available")
+ELSE (SSE2_TRUE)
+    set(SSE2_FOUND false CACHE BOOL "SSE2 not available")
+ENDIF (SSE2_TRUE)
+IF (SSE42_TRUE)
+    set(SSE4_2_FOUND true CACHE BOOL "SSE4.2 available")
+ELSE (SSE42_TRUE)
+    set(SSE4_2_FOUND false CACHE BOOL "SSE4.2 not available")
+ENDIF (SSE42_TRUE)
+# I could use LIBRARY_COMPILE_DEFINITIONS, but it's actually passed to "add_definitions", which isn't made for passing compilation flags, only -D ones.
+IF(SSE4_2_FOUND)
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -msse2 -msse4.2 -mpopcnt")
+    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -msse2 -msse4.2 -mpopcnt")
+    message ("-- SSE 4.2 detected")
+ENDIF()
+
 if (use_mphf)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
         message ("-------------------------------------------------------------------------------------")
         message ("-- WILL COMPILE MPHF! (COMPILER VERSION IS HIGH ENOUGH) ")
         message ("-------------------------------------------------------------------------------------")
+    if (SSE4_2_FOUND)
+        set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DEMPHF_USE_POPCOUNT")
+    endif()
 endif()
 
 # We also set a flag for TR1 management
