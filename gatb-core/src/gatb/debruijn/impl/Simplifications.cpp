@@ -178,7 +178,7 @@ double Simplifications<Node,Edge,GraphDataVariant>::getMeanAbundanceOfNeighbors(
         }
 
         unsigned int pathLen;
-        double simplePathCoverage = getSimplePathCoverage(neighbor, neighbors[i].direction, &pathLen, 100);
+        double simplePathCoverage = this->getSimplePathCoverage(neighbor, neighbors[i].direction, &pathLen, 100);
         meanNeighborsCoverage += simplePathCoverage;
         nbNeighbors++;
 
@@ -275,7 +275,7 @@ bool Simplifications<Node,Edge,GraphDataVariant>::satisfyRCTC(vector<Node>& node
             foundIt = true;
             continue;
         }
-        meanNeighborsCoverage += getMeanAbundanceOfNeighbors(connectedBranchingNodes[j].to, nodes.back());
+        meanNeighborsCoverage += this->getMeanAbundanceOfNeighbors(connectedBranchingNodes[j].to, nodes.back());
         nbBranchingNodes++;
     }
     if (foundIt == false && nodes.size() >= 2)
@@ -772,7 +772,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
                 TIME(auto start_pathfinding_t=get_wtime());
 
-                Path_t<Node> heuristic_p_most = heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,
+                Path_t<Node> heuristic_p_most = this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,
                         true, // most covered
                         backtrackingLimit, // avoid too much backtracking
                         &(neighbors[i].to) // avoid that node
@@ -796,18 +796,18 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                 }
                 TIME(auto start_post_t=get_wtime());
 
-                DEBUG(cout << "alternative path is:  "<< path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl);
+                DEBUG(cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl);
 
                 bool debug = false;
                 if (debug)
                 {
                     double mean_abundance_least_covered;
-                    Path_t<Node> heuristic_p_least = heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered,false);
-                    DEBUG(cout << endl << "alternative least is: "<< path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
+                    Path_t<Node> heuristic_p_least = this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered,false);
+                    DEBUG(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
                 }
 
                 unsigned int dummyLen;
-                double simplePathCoverage = getSimplePathCoverage(nodes[1], dir, &dummyLen);
+                double simplePathCoverage = this->getSimplePathCoverage(nodes[1], dir, &dummyLen);
 
                 DEBUG(cout << "retraced bulge path over length: " << dummyLen << endl);
 
