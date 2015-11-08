@@ -34,7 +34,6 @@
 #include <gatb/debruijn/impl/Simplifications.hpp>
 #include <gatb/debruijn/impl/Terminator.hpp>
 #include <gatb/debruijn/impl/Traversal.hpp>
-#include <gatb/debruijn/impl/Instantiations.cpp> // that's the way I found to avoid those linkers errors on neighbors<Node> and iterator<Node>!! yey!
 
 #include <gatb/kmer/impl/SortingCountAlgorithm.hpp>
 #include <gatb/kmer/impl/BloomAlgorithm.hpp>
