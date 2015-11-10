@@ -2860,7 +2860,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
         while (end != last)
         {
             end = begin;
-            advance (end, std::min (nbPerThread, (int)distance(end,last)));
+            std::advance (end, std::min (nbPerThread, (int)distance(end,last)));
             iteratorPairs.push_back (std::make_pair(begin, end) );
 
 			tools::dp::ICommand* cmd = new Cmd (*this, std::make_pair(begin, end));
