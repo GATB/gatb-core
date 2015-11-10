@@ -437,7 +437,7 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::explore_branching (
 
     // find all consensuses between start node and end node
     bool success;
-    set<Path_t<Node>> consensuses = all_consensuses_between (dir, startNode, endNode, traversal_depth+1, success);
+    set<Path_t<Node> > consensuses = all_consensuses_between (dir, startNode, endNode, traversal_depth+1, success);
 
     // if consensus phase failed, stop
     if (!success)  {  return false;  }
@@ -563,7 +563,7 @@ void MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::mark_extensions (std
 ** REMARKS :
 *********************************************************************/
 template <typename Node, typename Edge, typename GraphDataVariant>
-set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
+set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
     Direction    dir,
     Node& startNode,
     Node& endNode,
@@ -573,7 +573,7 @@ set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_con
     bool& success
 )
 {
-    set<Path_t<Node>> consensuses;
+    set<Path_t<Node> > consensuses;
 
     // find_end_of_branching and all_consensues_between do not always agree on clean bubbles ends
     // until I can fix the problem, here is a fix
@@ -619,7 +619,7 @@ set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_con
         extended_kmers.insert (edge.to.kmer);
 
         // recursive call to all_consensuses_between
-        set<Path_t<Node>> new_consensuses = all_consensuses_between (
+        set<Path_t<Node> > new_consensuses = all_consensuses_between (
             dir,
             edge.to,
             endNode,
@@ -653,7 +653,7 @@ set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_con
 ** REMARKS :
 *********************************************************************/
 template <typename Node, typename Edge, typename GraphDataVariant>
-set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
+set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
     Direction    dir,
     Node& startNode,
     Node& endNode,
@@ -679,13 +679,13 @@ set<Path_t<Node>> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_con
 ** REMARKS :
 *********************************************************************/
 template <typename Node, typename Edge, typename GraphDataVariant>
-bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses (set<Path_t<Node>>& consensuses, Path_t<Node>& result)
+bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses (set<Path_t<Node> >& consensuses, Path_t<Node>& result)
 {
     bool debug = false;
     // compute mean and stdev of consensuses
     int mean = 0;
     int path_number = 0;
-    for(typename set<Path_t<Node>>::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
+    for(typename set<Path_t<Node> >::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
     {
         //if (debug)  printf("bubble path %d: %s (len=%lu)\n",path_number,(*it).c_str(),(*it).length());
         mean+=(*it).size();
@@ -693,7 +693,7 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses
     }
     mean/=consensuses.size();
     double stdev = 0;
-    for(typename set<Path_t<Node>>::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
+    for(typename set<Path_t<Node> >::iterator it = consensuses.begin(); it != consensuses.end() ; ++it)
     {
         int consensus_length = (*it).size();
         stdev += pow(fabs(consensus_length-mean),2);
@@ -760,11 +760,11 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses
 ** REMARKS :
 *********************************************************************/
 template <typename Node, typename Edge, typename GraphDataVariant>
-bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almost_identical (set<Path_t<Node>>& consensuses)
+bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almost_identical (set<Path_t<Node> >& consensuses)
 {
-    for (typename set<Path_t<Node>>::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
+    for (typename set<Path_t<Node> >::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
     {
-        typename set<Path_t<Node>>::iterator it_b = it_a;
+        typename set<Path_t<Node> >::iterator it_b = it_a;
         advance(it_b,1);
         while (it_b != consensuses.end())
         {
@@ -790,7 +790,7 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almo
 ** REMARKS : might have a bug, see remark in there. need investigation.
 *********************************************************************/
 template <typename Node, typename Edge, typename GraphDataVariant>
-Path_t<Node> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::most_abundant_consensus(set<Path_t<Node>>& consensuses)
+Path_t<Node> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::most_abundant_consensus(set<Path_t<Node> >& consensuses)
 {
     Path_t<Node> res;
     bool debug = false;
@@ -801,7 +801,7 @@ Path_t<Node> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::most_abundan
     if (debug)
         cout << endl << "starting to decide which consensus to choose" << endl;
 
-    for (typename set<Path_t<Node>>::iterator it = consensuses.begin(); it != consensuses.end(); it++)
+    for (typename set<Path_t<Node> >::iterator it = consensuses.begin(); it != consensuses.end(); it++)
     {
         // iterate over all kmers in consensus and get mean abundance
         Path_t<Node> p = *it;
