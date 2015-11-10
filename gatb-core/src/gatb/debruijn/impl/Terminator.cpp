@@ -46,7 +46,7 @@ BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::BranchingTerminatorTemp
     : TerminatorTemplate<Node,Edge,GraphDataVariant> (graph)
 {
     /** We loop over the branching nodes. */
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator<BranchingNode_t<Node>> itBranching = this->_graph.GraphTemplate<Node,Edge,GraphDataVariant>::template iteratorBranching();
+    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator<BranchingNode_t<Node> > itBranching = this->_graph.GraphTemplate<Node,Edge,GraphDataVariant>::template iteratorBranching();
     for (itBranching.first(); !itBranching.isDone(); itBranching.next())
     {
         /** We add the current branching node into the map. */

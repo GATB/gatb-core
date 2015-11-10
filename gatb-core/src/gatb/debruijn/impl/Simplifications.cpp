@@ -328,6 +328,10 @@ bool Simplifications<Node,Edge,GraphDataVariant>::satisfyRCTC(vector<Node>& node
 template<typename Node, typename Edge, typename GraphDataVariant>
 unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 {
+#ifndef WITH_MPHF
+    std::cout << "Graph simplifications aren't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
+    return 0;
+#else
     unsigned int k = _graph.getKmerSize();
     
     unsigned int maxTipLengthTopological = (unsigned int)((float)k * (3.5 - 1.0)); // aggressive with SPAdes length threshold, but no coverage criterion
@@ -471,6 +475,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     _graph.deleteNodesByIndex(nodesToDelete);
     
     return nbTipsRemoved;
+#endif
 }
 
 enum HMCP_Success { HMCP_DEADEND = 0, HMCP_FOUND_END = 1 , HMCP_MAX_DEPTH = -1, HMCP_LOOP = - 2};
@@ -625,6 +630,11 @@ Path_t<Node> Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered
 template<typename Node, typename Edge, typename GraphDataVariant>
 unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 {
+#ifndef WITH_MPHF
+    std::cout << "Graph simplifications aren't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
+    return 0;
+#else
+
     unsigned int k = _graph.getKmerSize();
     unsigned int coeff = 3;
     unsigned int additive_coeff = 100;
@@ -880,6 +890,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     }
 
     return nbBulgesRemoved;
+#endif
 }
 
 
@@ -910,6 +921,11 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 template<typename Node, typename Edge, typename GraphDataVariant>
 unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnections()
 {
+#ifndef WITH_MPHF
+    std::cout << "Graph simplifications aren't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
+    return 0;
+#else
+
     unsigned int k = _graph.getKmerSize();
     unsigned int maxECLength = (unsigned int)((float)k * (10 - 1.0)) ;  // SPAdes mode 
     double RCTCcutoff = 4.0;
@@ -1087,6 +1103,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     }
 
     return nbECRemoved;
+#endif
 }
 
 // instantiation
