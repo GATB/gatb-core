@@ -1389,6 +1389,9 @@ struct Functor_getEdges {   void operator() (
     items[idx++].set (kmer_from, strand_from, kmer_to, strand_to, nt, dir);
 }};
 
+/* TODO: so in principle, when Node is a NodeFast, we should be able to call the getItems_visitor 
+ * operator directly, without apply_visitor (which seems to be expensive in the minia profiling using valgrind) 
+ * but this seems tricky to code, so I gave up quickly */
 template<typename Node, typename Edge, typename GraphDataVariant>
 typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> GraphTemplate<Node, Edge, GraphDataVariant>::getEdges (Node source, Direction direction)  const
 {

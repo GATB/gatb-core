@@ -271,7 +271,7 @@ inline u_int64_t simplehash16 (const LargeInt<1>& key, int  shift)
 
 inline void fastLexiMinimizer (const LargeInt<1>& x, const unsigned int _nbMinimizers, const unsigned int m,  u_int32_t &minimizer, size_t &position, bool &validResult) 
 {
-    if (m > sizeof(u_int32_t)*4) {std::cout << "wrong minimizer size for fastLeximinimizer :" << std::to_string(m); exit(1);}
+    if (m > sizeof(u_int32_t)*4) {std::cout << "wrong minimizer size for fastLeximinimizer :" << m; exit(1);}
 
     const u_int32_t default_minimizer = ~0 & ((1 << (2*m)) - 1); 
     minimizer = default_minimizer; 

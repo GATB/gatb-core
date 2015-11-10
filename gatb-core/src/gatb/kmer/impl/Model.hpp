@@ -881,6 +881,7 @@ struct Kmer
             hash2(k, 1LL);
         }
 
+#ifdef WITH_MPHF
         gatb::core::tools::collections::impl::AdaptatorDefault<Type> adaptor;
         //emphf::jenkins64_hasher emphf_hasher; // for some reason, if I re-use this hasher, now MPHF takes 3x more times. (really! try it with bench_graph)
 
@@ -998,6 +999,7 @@ struct Kmer
             return std::get<2>(hasher(adaptor(k)));
             //return std::get<2>(emphf_hasher(adaptor(k)));
         }
+#endif
 
     };
 
