@@ -765,7 +765,7 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almo
     for (typename set<Path_t<Node> >::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
     {
         typename set<Path_t<Node> >::iterator it_b = it_a;
-        advance(it_b,1);
+        std::advance(it_b,1);
         while (it_b != consensuses.end())
         {
             int identity = this->needleman_wunch(*it_a,*it_b) * 100;
@@ -774,7 +774,7 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almo
                 //cout << "couldn't pop bubble due to identity %:" << identity << " over length " << (*it_a).size() << " " << (*it_b).size() << endl;
                 return false;
             }
-            advance(it_b,1);
+            std::advance(it_b,1);
         }
     }
     return true;

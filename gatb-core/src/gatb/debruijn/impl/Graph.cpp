@@ -1804,9 +1804,9 @@ Node GraphTemplate<Node, Edge, GraphDataVariant>::buildNode (const char* sequenc
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeNeighbors (Node& source, Direction direction) const
+typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeNeighbors (Node& source, Direction direction) const
 {
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node>>  result;
+    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> >  result;
 
     /** We get the neighbors of the source node. */
     typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> neighbors = this->neighborsEdge (source, direction);
@@ -1842,9 +1842,9 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingN
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge>> GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeNeighbors (Node& source, Direction direction) const
+typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeNeighbors (Node& source, Direction direction) const
 {
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge>>  result;
+    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> >  result;
 
     /** We get the neighbors of the source node. */
     typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> neighbors = this->neighborsEdge (source, direction);
@@ -2104,7 +2104,7 @@ template<typename Node, typename Edge, typename GraphDataVariant>
 Node GraphTemplate<Node, Edge, GraphDataVariant>::getNode (Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
 {
     bool hasAdjacency = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_ADJACENCY_DONE;
-    return boost::apply_visitor (getItem_visitor<Node, Edge, Node, Functor_getNode<Node, Edge, GraphDataVariant>>(source, dir, nt, hasAdjacency, exists, Functor_getNode<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
+    return boost::apply_visitor (getItem_visitor<Node, Edge, Node, Functor_getNode<Node, Edge, GraphDataVariant> >(source, dir, nt, hasAdjacency, exists, Functor_getNode<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
 }
 
 /*********************************************************************
@@ -2163,13 +2163,13 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> Grap
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge>> GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeValues (const typename Node::Value& kmer) const
+typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeValues (const typename Node::Value& kmer) const
 {
     Node source (kmer);
     Node rev_source (rev_source);
 
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge>> v1 = getBranchingEdgeNeighbors (source,          DIR_OUTCOMING);
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge>> v2 = getBranchingEdgeNeighbors (rev_source, DIR_OUTCOMING);
+    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > v1 = getBranchingEdgeNeighbors (source,          DIR_OUTCOMING);
+    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > v2 = getBranchingEdgeNeighbors (rev_source, DIR_OUTCOMING);
 #if 0
     v1.insert (v1.end(), v2.begin(), v2.end());
 #else
@@ -2183,13 +2183,13 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingE
 
 /********************************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeValues (const typename Node::Value& kmer) const
+typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeValues (const typename Node::Value& kmer) const
 {
     Node source (kmer);
     Node rev_source (reverse(source));
 
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node>> v1 = getBranchingNodeNeighbors (source,          DIR_OUTCOMING);
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node>> v2 = getBranchingNodeNeighbors (rev_source, DIR_OUTCOMING);
+    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > v1 = getBranchingNodeNeighbors (source,          DIR_OUTCOMING);
+    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > v2 = getBranchingNodeNeighbors (rev_source, DIR_OUTCOMING);
 
 
 #if 0
@@ -2394,9 +2394,9 @@ GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> GraphTemplate<Node, 
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodes () const
+typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodes () const
 {
-    return typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<BranchingNode_t<Node>> (boost::apply_visitor (nodes_visitor<Node, Edge, BranchingNode_t<Node>, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
+    return typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<BranchingNode_t<Node> > (boost::apply_visitor (nodes_visitor<Node, Edge, BranchingNode_t<Node>, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
 }
 
 /*********************************************************************
@@ -2800,7 +2800,7 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Edge> Gr
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant> 
-std::set<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::neighbors (typename std::set<BranchingNode_t<Node>>::iterator first, typename std::set<BranchingNode_t<Node>>::iterator last) const
+std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::neighbors (typename std::set<BranchingNode_t<Node> >::iterator first, typename std::set<BranchingNode_t<Node> >::iterator last) const
 {
 #if 0
     std::set<BranchingNode> result;
@@ -2815,24 +2815,24 @@ std::set<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::nei
     static const size_t nbThread = 8;
     static const size_t nbThreshold = nbThread*1;
 
-    std::set<BranchingNode_t<Node>> result;
+    std::set<BranchingNode_t<Node> > result;
 
     size_t nb = std::distance (first, last);
 
     if (nb >= nbThreshold)
     {
-        typename std::set<BranchingNode_t<Node>>::iterator begin = first;
-        typename std::set<BranchingNode_t<Node>>::iterator end;
+        typename std::set<BranchingNode_t<Node> >::iterator begin = first;
+        typename std::set<BranchingNode_t<Node> >::iterator end;
 
 
         int nbPerThread = nb/nbThread;
 
-        vector<pair<typename std::set<BranchingNode_t<Node>>::iterator, typename std::set<BranchingNode_t<Node>>::iterator> > iteratorPairs;
+        vector<pair<typename std::set<BranchingNode_t<Node> >::iterator, typename std::set<BranchingNode_t<Node> >::iterator> > iteratorPairs;
 
         class Cmd : public tools::dp::ICommand, public system::SmartPointer
         {
         public:
-            Cmd (const GraphTemplate<Node, Edge, GraphDataVariant>& graph, const pair<typename std::set<BranchingNode_t<Node>>::iterator, typename std::set<BranchingNode_t<Node>>::iterator>& range)
+            Cmd (const GraphTemplate<Node, Edge, GraphDataVariant>& graph, const pair<typename std::set<BranchingNode_t<Node> >::iterator, typename std::set<BranchingNode_t<Node> >::iterator>& range)
                 : graph(graph), range(range)
             {
                 result.reserve (std::distance(range.first,range.second)*8);
@@ -2840,19 +2840,19 @@ std::set<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::nei
 
             void execute ()
             {
-                for (typename std::set<BranchingNode_t<Node>>::iterator it=range.first; it!=range.second; ++it)
+                for (typename std::set<BranchingNode_t<Node> >::iterator it=range.first; it!=range.second; ++it)
                 {
-                    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node>> neighbors = graph.template neighborsBranchingNode (it->kmer);
+                    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = graph.template neighborsBranchingNode (it->kmer);
                     for (size_t i=0; i<neighbors.size(); i++)  { result.push_back (neighbors[i]); }
                 }
             }
 
-            vector<BranchingNode_t<Node>>& get() { return result; }
+            vector<BranchingNode_t<Node> >& get() { return result; }
 
         private:
             const GraphTemplate<Node, Edge, GraphDataVariant>& graph;
-            pair<typename std::set<BranchingNode_t<Node>>::iterator, typename std::set<BranchingNode_t<Node>>::iterator> range;
-            vector<BranchingNode_t<Node>> result;
+            pair<typename std::set<BranchingNode_t<Node> >::iterator, typename std::set<BranchingNode_t<Node> >::iterator> range;
+            vector<BranchingNode_t<Node> > result;
         };
 
         vector<tools::dp::ICommand*> cmds;
@@ -2873,7 +2873,7 @@ std::set<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::nei
 
         for (size_t i=0; i<cmds.size(); i++)
         {
-            vector<BranchingNode_t<Node>>& current = ((Cmd*)cmds[i])->get();
+            vector<BranchingNode_t<Node> >& current = ((Cmd*)cmds[i])->get();
 
             result.insert (current.begin(), current.end());
             cmds[i]->forget();
@@ -2881,9 +2881,9 @@ std::set<BranchingNode_t<Node>> GraphTemplate<Node, Edge, GraphDataVariant>::nei
     }
     else
     {
-        for (typename std::set<BranchingNode_t<Node>>::iterator it=first; it!=last; ++it)
+        for (typename std::set<BranchingNode_t<Node> >::iterator it=first; it!=last; ++it)
         {
-            GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node>> neighbors = this->neighborsBranchingNode (it->kmer);
+            GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = this->neighborsBranchingNode (it->kmer);
             for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
         }
     }
