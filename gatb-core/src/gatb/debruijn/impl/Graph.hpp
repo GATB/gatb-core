@@ -668,7 +668,7 @@ public:
     /* used to be a template, but I can't specialize it without specializing the whole graph templated class now. so got rid of templates for now*/
     //template <typename T, typename IteratorInput>
     //std::set<T> neighbors (IteratorInput first, IteratorInput last) const;
-    std::set<BranchingNode_t<Node> > neighbors (typename std::set<BranchingNode_t<Node> >::iterator first, typename std::set<BranchingNode_t<Node> >::iterator last) const;
+    inline std::set<BranchingNode_t<Node> > neighbors (typename std::set<BranchingNode_t<Node> >::iterator first, typename std::set<BranchingNode_t<Node> >::iterator last) const;
 
     /** Returns the successors of two nodes, ie with the same transition nucleotide from both nodes.
      * \param[in] node1 : first node
