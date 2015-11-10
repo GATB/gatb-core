@@ -307,9 +307,9 @@ public:
 
 
     // those two used to be private, but I need them in graph Simplifications for now (until explore_branching gets templated or any way we can choose Frontline type)
-    bool validate_consensuses (std::set<Path_t<Node>>& consensuses, Path_t<Node>& consensus);
+    bool validate_consensuses (std::set<Path_t<Node> >& consensuses, Path_t<Node>& consensus);
 
-        std::set<Path_t<Node>> all_consensuses_between (
+        std::set<Path_t<Node> > all_consensuses_between (
         Direction    dir,
         Node& startNode,
         Node& endNode,
@@ -338,7 +338,7 @@ private:
         std::set<Node>& all_involved_extensions
     );
  
-    std::set<Path_t<Node>> all_consensuses_between (
+    std::set<Path_t<Node> > all_consensuses_between (
         Direction    dir,
         Node& startNode,
         Node& endNode,
@@ -348,11 +348,11 @@ private:
         bool& success
     );
    
-    bool all_consensuses_almost_identical (std::set<Path_t<Node>>& consensuses);
+    bool all_consensuses_almost_identical (std::set<Path_t<Node> >& consensuses);
 
     void mark_extensions (std::set<Node>& extensions_to_mark);
 
-    Path_t<Node> most_abundant_consensus(std::set<Path_t<Node>>& consensuses);
+    Path_t<Node> most_abundant_consensus(std::set<Path_t<Node> >& consensuses);
 
     static const int consensuses_identity = 80; // traversing bubble if paths are all pair-wise identical by 80% 
     //(used to be > 90% in legacy minia) // by legacy minia i mean minia 1 and minia 2 up to the assembly algo rewrite in may 2015

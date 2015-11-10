@@ -157,7 +157,7 @@ void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_s
     long long totalnt = 0;
 
     /** We need a container that holds NodeDepth objects during the extension. */
-    vector <NodeDepth<Node>> kmers_to_traverse;
+    vector <NodeDepth<Node> > kmers_to_traverse;
 
     /** We get the first kmer of the L string. */
     KmerModel leftKmer = model.codeSeed (L.c_str(), Data::ASCII, 0);

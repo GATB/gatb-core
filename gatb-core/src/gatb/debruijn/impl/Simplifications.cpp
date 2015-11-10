@@ -59,6 +59,11 @@ static const char* simplprogressFormat2 = "removing bulges,  pass %2d ";
 static const char* simplprogressFormat3 = "removing ec,      pass %2d ";
 
 
+static string to_string(unsigned long x)
+{
+    string r;    stringstream s;    s << x;    r = s.str();    return r;
+}
+
 template<typename Node, typename Edge, typename GraphDataVariant>
 Simplifications<Node,Edge,GraphDataVariant>::Simplifications(const GraphTemplate<Node,Edge,GraphDataVariant> & graph, int nbCores, bool verbose)
         : _nbTipRemovalPasses(0), _nbBubbleRemovalPasses(0), _nbBulgeRemovalPasses(0), _nbECRemovalPasses(0), _graph(graph), 
@@ -92,7 +97,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
         nbTipsRemoved = removeTips();
         if (tipRemoval.size() != 0)
             tipRemoval += " + ";
-        tipRemoval += std::to_string(nbTipsRemoved);
+        tipRemoval += to_string(nbTipsRemoved);
     }
     while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || nbTipsRemoved >= 10) 
             && _nbTipRemovalPasses < 20);
@@ -103,7 +108,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
         nbBubblesRemoved = removeBulges(); // now we're using bulges removal, not bubbles (to follow SPAdes)
         if (bubbleRemoval.size() != 0)
             bubbleRemoval += " + ";
-        bubbleRemoval += std::to_string(nbBubblesRemoved);
+        bubbleRemoval += to_string(nbBubblesRemoved);
     }
     while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || nbBubblesRemoved >= 20)
             && _nbBubbleRemovalPasses < 20);
@@ -114,7 +119,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
         nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
         if (ECRemoval.size() != 0)
             ECRemoval += " + ";
-        ECRemoval += std::to_string(nbECRemoved);
+        ECRemoval += to_string(nbECRemoved);
     }
     while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || nbECRemoved >= 10) 
             && _nbECRemovalPasses < 20);
@@ -131,11 +136,11 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
         nbECRemovedPreviously = nbECRemoved;
         nbECRemoved = removeErroneousConnections();
 
-        tipRemoval += " + " + std::to_string(nbTipsRemoved);
+        tipRemoval += " + " + to_string(nbTipsRemoved);
 
-        bubbleRemoval += " + " + std::to_string(nbBubblesRemoved);
+        bubbleRemoval += " + " + to_string(nbBubblesRemoved);
 
-        ECRemoval += " + " + std::to_string(nbECRemoved);
+        ECRemoval += " + " + to_string(nbECRemoved);
 
     }
     while (((nbECRemovedPreviously == 0 && nbECRemoved > 0) || nbECRemoved >= 10)
@@ -216,7 +221,7 @@ inline string maybe_print(long value, string str)
 {
     if (value == 0)
         return "";
-    return std::to_string(value) + " " + str;
+    return to_string(value) + " " + str;
 }
 
 
