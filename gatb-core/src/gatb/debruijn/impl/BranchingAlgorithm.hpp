@@ -50,7 +50,7 @@ namespace impl      {
  * Actually, this class is mainly used in the debruijn::impl::Graph class as a fourth step for
  * the de Bruijn graph creation.
  */
-template <size_t span=KMER_DEFAULT_SPAN, typename Node=Node_t<>, typename Edge=Edge_t<Node_t<>>, typename GraphDataVariant_t=GraphDataVariant>
+template <size_t span=KMER_DEFAULT_SPAN, typename Node=Node_t<>, typename Edge=Edge_t<Node_t<> >, typename GraphDataVariant_t=GraphDataVariant>
 class BranchingAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
