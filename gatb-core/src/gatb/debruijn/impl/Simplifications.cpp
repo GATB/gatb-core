@@ -34,7 +34,7 @@
 #include <gatb/debruijn/impl/Simplifications.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp> // for ProgressTimerAndSystem
 
-#if WITH_MPHF
+#ifdef WITH_MPHF
 #include <chrono>
 #define get_wtime() chrono::system_clock::now()
 #define diff_wtime(x,y) (unsigned long)chrono::duration_cast<chrono::nanoseconds>(y - x).count()
