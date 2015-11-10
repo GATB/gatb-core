@@ -11,8 +11,8 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
 template class BranchingAlgorithm   <${KSIZE}, Node, Edge, GraphDataVariant>;
 
-typedef boost::variant<GraphData<${KSIZE}>> GraphDataVariantT;
-template class BranchingAlgorithm <${KSIZE},Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>;
+typedef boost::variant<GraphData<${KSIZE}> > GraphDataVariantT;
+template class BranchingAlgorithm <${KSIZE},Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphDataVariantT>;
 
 template class IterativeExtensions  <${KSIZE}>;
 

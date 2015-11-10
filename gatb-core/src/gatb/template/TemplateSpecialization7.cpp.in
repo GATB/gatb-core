@@ -10,13 +10,13 @@ using namespace gatb::core::kmer::impl;
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 /********************************************************************************/
 
-typedef boost::variant<GraphData<${KSIZE}>> GraphDataVariantT;
+typedef boost::variant<GraphData<${KSIZE}> > GraphDataVariantT;
 
 template struct Node_t<Kmer<${KSIZE}>::Type >; 
-template struct Edge_t<Node_t<Kmer<${KSIZE}>::Type >>; 
-template class GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
+template struct Edge_t<Node_t<Kmer<${KSIZE}>::Type > >; 
+template class GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphDataVariantT>; 
 
-template class Simplifications <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type >>, GraphDataVariantT>; 
+template class Simplifications <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphDataVariantT>; 
 
 // special instantiation (or specialization, i never know what's the difference)
 // actually not sure if it's ever used
