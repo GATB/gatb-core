@@ -3344,6 +3344,11 @@ struct allocateAdjacency_visitor : public boost::static_visitor<void>    {
 template<typename Node, typename Edge, typename GraphDataVariant> 
 void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned int nbCores) 
 {
+#ifndef WITH_MPHF
+    std::cout << "Adjacency precomputation isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
+    return 0;
+#else
+
     ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem, Node, Edge, GraphDataVariant> itNode (iterator(), "precomputing adjacency");
     
     bool hasMPHF = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE;
@@ -3404,6 +3409,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
                 }
         }); // end of parallel node iterate
     }
+#endif
 }
 
 // now deleteNode depends on getNodeAdjacency
