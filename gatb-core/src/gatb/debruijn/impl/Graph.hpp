@@ -584,7 +584,7 @@ public:
      * \return the nodes iterator. */
 
     inline Iterator<Node> iterator () const  {  return getNodes ();           }
-    inline Iterator<BranchingNode_t<Node>> iteratorBranching () const  {  return getBranchingNodes ();           }
+    inline Iterator<BranchingNode_t<Node> > iteratorBranching () const  {  return getBranchingNodes ();           }
 
 
     /**********************************************************************/
@@ -619,16 +619,16 @@ public:
     inline Vector<Edge> neighborsEdge    ( const typename Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
 
 
-    inline Vector<BranchingNode_t<Node>> neighborsBranchingNode (Node& node, Direction direction) const
+    inline Vector<BranchingNode_t<Node> > neighborsBranchingNode (Node& node, Direction direction) const
     { return getBranchingNodeNeighbors (node, direction);  }
 
-    inline Vector<BranchingNode_t<Node>> neighborsBranchingNode (const typename Node::Value& kmer) const
+    inline Vector<BranchingNode_t<Node> > neighborsBranchingNode (const typename Node::Value& kmer) const
     { return getBranchingNodeValues (kmer);  }
 
-     inline Vector<BranchingEdge_t<Node,Edge>> neighborsBranchingEdge (Node& node, Direction direction) const
+     inline Vector<BranchingEdge_t<Node,Edge> > neighborsBranchingEdge (Node& node, Direction direction) const
     { return getBranchingEdgeNeighbors (node, direction);  }
 
-    inline Vector<BranchingEdge_t<Node,Edge>> neighborsBranchingEdge (const typename Node::Value& kmer) const
+    inline Vector<BranchingEdge_t<Node,Edge> > neighborsBranchingEdge (const typename Node::Value& kmer) const
     { return getBranchingEdgeValues (kmer);  }
 
 
@@ -648,16 +648,16 @@ public:
     inline Vector<Edge> successorsEdge   ( Node& node) const                 {  return getEdges(node, DIR_OUTCOMING); }
     inline Vector<Edge> predecessorsEdge ( Node& node) const                 {  return getEdges(node, DIR_INCOMING);  }
 
-    inline Vector<BranchingNode_t<Node>> successorsBranching (Node& node) const
+    inline Vector<BranchingNode_t<Node> > successorsBranching (Node& node) const
         { return getBranchingNodeNeighbors (node, DIR_OUTCOMING);  }
 
-    inline Vector<BranchingNode_t<Node>> predecessorsBranching (Node& node) const
+    inline Vector<BranchingNode_t<Node> > predecessorsBranching (Node& node) const
         { return getBranchingNodeNeighbors (node, DIR_INCOMING);  }
 
-    inline Vector<BranchingEdge_t<Node,Edge>> successorsBranchingEdge (Node& node) const
+    inline Vector<BranchingEdge_t<Node,Edge> > successorsBranchingEdge (Node& node) const
         { return getBranchingEdgeNeighbors (node, DIR_OUTCOMING);  }
 
-    inline Vector<BranchingEdge_t<Node,Edge>> predecessorsBranchingEdge (Node& node) const
+    inline Vector<BranchingEdge_t<Node,Edge> > predecessorsBranchingEdge (Node& node) const
         { return getBranchingEdgeNeighbors (node, DIR_INCOMING);  }
 
 
@@ -668,7 +668,7 @@ public:
     /* used to be a template, but I can't specialize it without specializing the whole graph templated class now. so got rid of templates for now*/
     //template <typename T, typename IteratorInput>
     //std::set<T> neighbors (IteratorInput first, IteratorInput last) const;
-    std::set<BranchingNode_t<Node>> neighbors (typename std::set<BranchingNode_t<Node>>::iterator first, typename std::set<BranchingNode_t<Node>>::iterator last) const;
+    std::set<BranchingNode_t<Node> > neighbors (typename std::set<BranchingNode_t<Node> >::iterator first, typename std::set<BranchingNode_t<Node> >::iterator last) const;
 
     /** Returns the successors of two nodes, ie with the same transition nucleotide from both nodes.
      * \param[in] node1 : first node
@@ -1007,7 +1007,7 @@ public: // was private: before, but had many compilation errors during the chang
     void countNeighbors (Node&, size_t&, size_t&) const;  // compute in and out degree at the same time
 
     /** */
-    GraphTemplate::Iterator<BranchingNode_t<Node>> getBranchingNodes () const;
+    GraphTemplate::Iterator<BranchingNode_t<Node> > getBranchingNodes () const;
 
     /** */
     GraphTemplate::Iterator<Node> getSimpleNodeIterator (Node& node, Direction dir) const;
@@ -1028,10 +1028,10 @@ public: // was private: before, but had many compilation errors during the chang
     GraphTemplate::Vector<Node> getNodes (Node &source, Direction direction)  const;
 
     /** */
-    GraphTemplate::Vector<BranchingNode_t<Node>> getBranchingNodeNeighbors (Node& source, Direction direction) const;
+    GraphTemplate::Vector<BranchingNode_t<Node> > getBranchingNodeNeighbors (Node& source, Direction direction) const;
 
     /** */
-    GraphTemplate::Vector<BranchingEdge_t<Node,Edge>> getBranchingEdgeNeighbors (Node& source, Direction direction) const;
+    GraphTemplate::Vector<BranchingEdge_t<Node,Edge> > getBranchingEdgeNeighbors (Node& source, Direction direction) const;
 
     /** */
     GraphTemplate::Vector<Edge> getEdgeValues (const typename Node::Value& kmer) const;
@@ -1040,10 +1040,10 @@ public: // was private: before, but had many compilation errors during the chang
     GraphTemplate::Vector<Node> getNodeValues (const typename Node::Value& kmer) const;
 
     /** */
-    GraphTemplate::Vector<BranchingEdge_t<Node,Edge>> getBranchingEdgeValues (const typename Node::Value& kmer) const;
+    GraphTemplate::Vector<BranchingEdge_t<Node,Edge> > getBranchingEdgeValues (const typename Node::Value& kmer) const;
 
     /** */
-    GraphTemplate::Vector<BranchingNode_t<Node>> getBranchingNodeValues (const typename Node::Value& kmer) const;
+    GraphTemplate::Vector<BranchingNode_t<Node> > getBranchingNodeValues (const typename Node::Value& kmer) const;
 
     /** */
     Node getNode (Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;

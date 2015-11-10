@@ -38,7 +38,7 @@ namespace impl      {
  * The implementation relies on the Graph class of GATB-CORE, which provides the
  * API to traverse a de Bruijn graph.
  */
-template <size_t span=KMER_DEFAULT_SPAN, typename Node=Node_t<>, typename Edge=Edge_t<Node_t<>>, typename GraphDataVariant_template=GraphDataVariant>
+template <size_t span=KMER_DEFAULT_SPAN, typename Node=Node_t<>, typename Edge=Edge_t<Node_t<> >, typename GraphDataVariant_template=GraphDataVariant>
 class IterativeExtensions
 {
 public:

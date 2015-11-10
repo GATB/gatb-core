@@ -109,7 +109,7 @@ protected:
 
     TerminatorTemplate<Node,Edge,GraphDataVariant>&  _terminator;
 
-    typedef std::queue<NodeNt<Node>> queue_nodes;
+    typedef std::queue<NodeNt<Node> > queue_nodes;
     queue_nodes _frontline;
 
     int  _depth;
