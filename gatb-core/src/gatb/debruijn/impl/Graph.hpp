@@ -28,6 +28,7 @@
 
 /********************************************************************************/
 
+#include <gatb/system/api/IThread.hpp> // for ISynchronizer 
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/kmer/impl/BloomBuilder.hpp>
@@ -866,7 +867,7 @@ public:
 
     // deleted nodes, related to NodeState above
     void deleteNode (Node node) const;
-    void deleteNodesByIndex(std::vector<bool> &bitmap) const;
+    void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
     bool isNodeDeleted(Node node) const;
 
     // a direct query to the MPHF

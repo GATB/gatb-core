@@ -22,6 +22,7 @@
 #include <gatb/debruijn/api/IContainerNode.hpp>
 
 #include <gatb/system/impl/System.hpp>
+#include <gatb/system/api/IThread.hpp> // for ISynchronizer 
 
 #include <gatb/tools/collections/impl/ContainerSet.hpp>
 #include <gatb/tools/collections/impl/IterableHelpers.hpp>
@@ -3545,18 +3546,29 @@ bool GraphTemplate<Node, Edge, GraphDataVariant>::debugCompareNeighborhoods(Node
     return bad;
 }
 
+// TODO: it makes sense someday to introduce a graph._nbCore parameter, because this function, simplify() and precomputeAdjacency() all want it
 template<typename Node, typename Edge, typename GraphDataVariant>
-void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool> &bitmap) const
+void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool> &bitmap, int nbCores, gatb::core::system::ISynchronizer* synchro) const
 {
     GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> itNode = this->iterator();
-    for (itNode.first(); !itNode.isDone(); itNode.next())
-    {
-        Node node = itNode.item();
-        unsigned long i = this->template nodeMPHFIndex(*itNode); 
+    Dispatcher dispatcher (nbCores); 
+
+    dispatcher.iterate (itNode, [&] (Node& node)        {
+
+        unsigned long i = this->template nodeMPHFIndex(node); 
 
         if (bitmap[i])
+        {
+            // make this deletion atomic with respect to other node deletions
+            if (synchro)
+                synchro->lock();
+
             this->template deleteNode(node);
-    }
+
+            if (synchro)
+                synchro->unlock();
+        }
+    }); // end of parallel node iteration
 }
     
 template<typename Node, typename Edge, typename GraphDataVariant>

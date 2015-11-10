@@ -450,8 +450,6 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                 for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
                 {
                     //DEBUG(cout << endl << "deleting tip node: " <<  _graph.toString (*itVecNodes) << endl);
-                    //_graph.deleteNode(*itVecNodes); // sequential version
-
                     unsigned long index = _graph.nodeMPHFIndex(*itVecNodes); // parallel version
                     nodesToDelete[index] = true; // parallel version
 
@@ -474,8 +472,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
         // } // sequential
     }); // parallel
 
-    // now delete all nodes, in sequential (shouldn't take long)
-    _graph.deleteNodesByIndex(nodesToDelete);
+    // now delete all nodes, in parallel
+    _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
     
     return nbTipsRemoved;
 #endif
@@ -864,9 +862,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
         TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
     }); // parallel
     
-    // now delete all nodes, in sequential (shouldn't take long)
+    // now delete all nodes, in parallel
     TIME(auto start_nodedelete_t=get_wtime());
-    _graph.deleteNodesByIndex(nodesToDelete);
+    _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
     TIME(auto end_nodedelete_t=get_wtime());
     TIME(__sync_fetch_and_add(&timeDelete, diff_wtime(start_nodedelete_t,end_nodedelete_t)));
 
@@ -1074,8 +1072,6 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                                 for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
                                 {
                                     //DEBUG(cout << endl << "deleting EC node: " <<  _graph.toString (*itVecNodes) << endl);
-                                    //_graph.deleteNode(*itVecNodes); // sequential version
-
                                     unsigned long index = _graph.nodeMPHFIndex(*itVecNodes); // parallel version
                                     nodesToDelete[index] = true; // parallel version
                                 }
@@ -1093,7 +1089,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
             }); // parallel
 
     // now delete all nodes, in sequential (check if it takes long)
-    _graph.deleteNodesByIndex(nodesToDelete);
+    _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
 
     if (_verbose)
     {
