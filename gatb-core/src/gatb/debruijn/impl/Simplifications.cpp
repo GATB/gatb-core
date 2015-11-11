@@ -387,7 +387,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             //DEBUG(cout << endl << "deadend node: " << _graph.toString (node) << endl);
 
             /** We follow the simple path to get its length */
-            typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(node.kmer); // so, it has one or more neighbors in a single direction
+            typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(node); // so, it has one or more neighbors in a single direction
             
             /* it may appear that we're only going to follow its first neighbor, but in fact, neighbors[0].from is node.kmer */
             /* so, follow the simple path from this start tip node to the further node that has out-branching (out is w.r.t to the direction) */
