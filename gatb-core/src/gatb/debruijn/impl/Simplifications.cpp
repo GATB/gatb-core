@@ -484,7 +484,7 @@ enum HMCP_Success { HMCP_DEADEND = 0, HMCP_FOUND_END = 1 , HMCP_MAX_DEPTH = -1, 
 /* note: the returned mean abundance does not include start and end nodes */
 template<typename Node, typename Edge, typename GraphDataVariant>
 Path_t<Node> Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
-        Direction dir, Node startNode, Node endNode, 
+        Direction dir, Node& startNode, Node& endNode, 
         int traversal_depth, int& success, double &abundance, bool most_covered, 
         unsigned int backtrackingLimit, Node *avoidFirstNode)
 {
@@ -522,8 +522,8 @@ Path_t<Node> Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered
         
 template<typename Node, typename Edge, typename GraphDataVariant>
 Path_t<Node> Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
-        Direction dir, Node startNode, Node endNode, 
-        int traversal_depth, Path_t<Node> current_path, set<typename Node::Value> usedNode, int& success, vector<int>& abundances, bool most_covered,
+        Direction dir, Node& startNode, Node& endNode, 
+        int traversal_depth, Path_t<Node>& current_path, set<typename Node::Value>& usedNode, int& success, vector<int>& abundances, bool most_covered,
         unsigned int backtrackingLimit, Node *avoidFirstNode, unsigned long &nbCalls)
 {
     // inspired by all_consensuses_between

@@ -164,12 +164,12 @@ struct Node_t
     }
 
     template<typename T>
-    T getKmer() const;
+    const T& getKmer() const;
 };
 
 template <> 
 template<typename T>
-T& Node_t<tools::math::Integer>::getKmer() const
+const T& Node_t<tools::math::Integer>::getKmer() const
 {
     return this->kmer.get<T>();
 }

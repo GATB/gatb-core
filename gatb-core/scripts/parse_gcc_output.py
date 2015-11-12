@@ -30,7 +30,7 @@ for line in fileinput.input():
     line = line.replace("boost::variant<gatb::core::debruijn::impl::GraphData<32ul> >", bcolors.OKBLUE + "GraphDataVariantFast<1>" + bcolors.ENDC)
 
     line = line.replace("boost::variant<boost::detail::variant::over_sequence<boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<128ul>, boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<96ul>, boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<64ul>, boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<32ul>, boost::mpl::vector0<mpl_::na>, 0>, 0>, 0>, 0> > >", bcolors.OKBLUE + "GraphDataVariant" + bcolors.ENDC)
-
+    line = line.replace("boost::variant<boost::detail::variant::over_sequence<boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<128>, boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<96>, boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<64>, boost::mpl::v_item<gatb::core::debruijn::impl::GraphData<32>, boost::mpl::vector0<mpl_::na>, 0>, 0>, 0>, 0> >",  bcolors.OKBLUE + "GraphDataVariant" + bcolors.ENDC) # clang flavor
 
     line = line.replace("gatb::core::tools::math::LargeInt<1>", bcolors.OKBLUE + "LargeInt<1>" + bcolors.ENDC)
     line = line.replace("gatb::core::debruijn::impl::GraphTemplate", bcolors.OKBLUE + "GraphTemplate" + bcolors.ENDC)

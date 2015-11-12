@@ -67,11 +67,11 @@ protected:
 
     std::string path2string(Direction dir, Path_t<Node> p, Node endNode);
 
-    Path_t<Node> heuristic_most_covered_path(Direction dir, const Node startingNode, const Node endingNode, 
+    Path_t<Node> heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endingNode, 
                                     int traversal_depth, int& success, double& mean_abundance, bool most_covered = true,
                                     unsigned int backtrackingLimit = 0, Node *avoidFirstNode = NULL);
-    Path_t<Node> heuristic_most_covered_path(Direction dir, const Node startingNode, const Node endingNode, 
-                                    int traversal_depth, Path_t<Node> current_path, std::set<typename Node::Value> usedNode, int& success, std::vector<int>& abundances, bool most_covered,
+    Path_t<Node> heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endingNode, 
+                                    int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& abundances, bool most_covered,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, unsigned long &nbCalls);
 
     std::vector<bool> interestingNodes;

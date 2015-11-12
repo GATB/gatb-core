@@ -20,7 +20,7 @@ template class Simplifications <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<
 
 // special instantiation (or specialization, i never know what's the difference)
 // actually not sure if it's ever used
-template <> template <> Kmer<${KSIZE}>::Type Node_t<Kmer<${KSIZE}>::Type>::getKmer() const
+template <> template <> const Kmer<${KSIZE}>::Type& Node_t<Kmer<${KSIZE}>::Type>::getKmer() const
 {
     return kmer;
 }

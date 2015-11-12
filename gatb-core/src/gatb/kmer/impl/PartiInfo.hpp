@@ -195,7 +195,8 @@ public:
         for (int np=0; np<_num_mm_bins; np++)
         {
             typedef typename Kmer<31>::Type           Typem; //should be kmer size
-            Typem cur = np;
+            Typem cur;
+            cur.setVal(np);
 
             printf("Bin[%5i (%s) ]= %lli    %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
 

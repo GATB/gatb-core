@@ -2167,7 +2167,7 @@ template<typename Node, typename Edge, typename GraphDataVariant>
 typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeValues (const typename Node::Value& kmer) const
 {
     Node source (kmer);
-    Node rev_source (rev_source);
+    Node rev_source (reverse(source));
 
     typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > v1 = getBranchingEdgeNeighbors (source,          DIR_OUTCOMING);
     typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > v2 = getBranchingEdgeNeighbors (rev_source, DIR_OUTCOMING);
@@ -2843,7 +2843,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
             {
                 for (typename std::set<BranchingNode_t<Node> >::iterator it=range.first; it!=range.second; ++it)
                 {
-                    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = graph.template neighborsBranchingNode (it->kmer);
+                    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = graph.neighborsBranchingNode (it->kmer);
                     for (size_t i=0; i<neighbors.size(); i++)  { result.push_back (neighbors[i]); }
                 }
             }
@@ -2901,6 +2901,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
 ** RETURN  :
 ** REMARKS : what's this? is it used? TODO documentation
 *********************************************************************/
+#if 0 // FIXME: this code crashes clang, so i disable it for now; actually, i still dont know whether this code is used anywhere
 template<typename Node, typename Edge, typename GraphDataVariant> 
 struct mutate_visitor : public boost::static_visitor<typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> >    {
 
@@ -3020,6 +3021,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::Vector<Node> GraphTemplate<Node, Ed
 {
     return boost::apply_visitor (mutate_visitor<Node, Edge, GraphDataVariant>(node,idx,mode),  *(GraphDataVariant*)_variant);
 }
+#endif
 
 /*********************************************************************
 ** METHOD  :
@@ -3555,7 +3557,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool
 
     dispatcher.iterate (itNode, [&] (Node& node)        {
 
-        unsigned long i = this->template nodeMPHFIndex(node); 
+        unsigned long i = this->nodeMPHFIndex(node); 
 
         if (bitmap[i])
         {
@@ -3563,7 +3565,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool
             if (synchro)
                 synchro->lock();
 
-            this->template deleteNode(node);
+            this->deleteNode(node);
 
             if (synchro)
                 synchro->unlock();
