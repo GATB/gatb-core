@@ -3552,6 +3552,10 @@ bool GraphTemplate<Node, Edge, GraphDataVariant>::debugCompareNeighborhoods(Node
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool> &bitmap, int nbCores, gatb::core::system::ISynchronizer* synchro) const
 {
+#ifndef WITH_MPHF
+    std::cout << "Node deletion isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
+#else
+
     GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> itNode = this->iterator();
     Dispatcher dispatcher (nbCores); 
 
@@ -3571,8 +3575,9 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool
                 synchro->unlock();
         }
     }); // end of parallel node iteration
+#endif
 }
-    
+
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::simplify(unsigned int nbCores, bool verbose)
 {
