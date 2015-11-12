@@ -102,9 +102,9 @@ public:
         tools::misc::TraversalKind  type,
         const GraphTemplate<Node,Edge,GraphDataVariant>&                graph,
         TerminatorTemplate<Node,Edge,GraphDataVariant>&                         terminator,
-        int                         max_len     = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
-        int                         max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
-        int                         max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
+        int                         max_len     = defaultMaxLen,
+        int                         max_depth   = defaultMaxDepth,
+        int                         max_breadth = defaultMaxBreadth
     );
 
     /** Factory method that creates an instance of Traversal
@@ -119,9 +119,9 @@ public:
         const std::string&  type,
         const GraphTemplate<Node,Edge,GraphDataVariant>&        graph,
         TerminatorTemplate<Node,Edge,GraphDataVariant>&                 terminator,
-        int                 max_len     = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
-        int                 max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
-        int                 max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
+        int                 max_len     = defaultMaxLen,
+        int                 max_depth   = defaultMaxDepth,
+        int                 max_breadth = defaultMaxBreadth
     );
 
     /** Get the name of the traversal.
@@ -221,9 +221,9 @@ public:
     NullTraversalTemplate (
         const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
         TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
-        int maxlen      = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
-        int max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
-        int max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
+        int maxlen      = NullTraversalTemplate::defaultMaxLen,
+        int max_depth   = NullTraversalTemplate::defaultMaxDepth,
+        int max_breadth = NullTraversalTemplate::defaultMaxBreadth
     ) : TraversalTemplate<Node,Edge,GraphDataVariant> (graph, terminator, maxlen, max_depth, max_breadth) {}
 
     /** Get the name of the traversal
@@ -254,9 +254,9 @@ public:
     SimplePathsTraversalTemplate (
         const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
         TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
-        int maxlen      = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
-        int max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
-        int max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
+        int maxlen      = SimplePathsTraversalTemplate::defaultMaxLen,
+        int max_depth   = SimplePathsTraversalTemplate::defaultMaxDepth,
+        int max_breadth = SimplePathsTraversalTemplate::defaultMaxBreadth
     );
 
     /** Get the name of the traversal
@@ -288,9 +288,9 @@ public:
     MonumentTraversalTemplate (
         const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
         TerminatorTemplate<Node,Edge,GraphDataVariant>&          terminator,
-        int maxlen      = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen,
-        int max_depth   = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth,
-        int max_breadth = TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth
+        int maxlen      = MonumentTraversalTemplate::defaultMaxLen,
+        int max_depth   = MonumentTraversalTemplate::defaultMaxDepth,
+        int max_breadth = MonumentTraversalTemplate::defaultMaxBreadth
     );
 
     /** Get the name of the traversal
