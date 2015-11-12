@@ -99,12 +99,12 @@ public:
         if (max_nodes >= uint64_t(1) << 32)
         {
             HypergraphSorter64 sorter;
-            mphf_t(sorter, nbElts, kmers, adaptor, *progress).swap(mphf);
+            mphf_t(sorter, nbElts, kmers, adaptor, progress).swap(mphf);
         }
         else
         {
             HypergraphSorter32 sorter;
-            mphf_t(sorter, nbElts, kmers, adaptor, *progress).swap(mphf);
+            mphf_t(sorter, nbElts, kmers, adaptor, progress).swap(mphf);
         }
 
         isBuilt = true;
