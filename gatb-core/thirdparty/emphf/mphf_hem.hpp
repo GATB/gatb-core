@@ -18,9 +18,9 @@ namespace emphf {
         mphf_hem()
         {}
 
-        template <typename MemoryModel, typename Range, typename Adaptor>
+        template <typename MemoryModel, typename Range, typename Adaptor, typename Progress>
         mphf_hem(MemoryModel& mm, size_t n, Range const& input_range,
-                 Adaptor adaptor, double gamma = 1.23,
+                 Adaptor adaptor, Progress *progress, double gamma = 1.23,
                  size_t log2_expected_bucket = 8)
             : m_n(n)
         {
@@ -33,6 +33,13 @@ namespace emphf {
 
             auto high_bits = int(std::ceil(std::log2(n >> log2_expected_bucket)));
             m_chunk_shift = size_t(sizeof(get<0>(hash_triple_t())) * 8 - high_bits);
+
+            if (progress)
+            {
+                progress->reset (3); // should perform only one mphf round (if it successed); so if counter goes above 100%, means it had to retry
+                progress->init  ();
+            }
+
 
             while (true) {
                 m_hasher = BaseHasher::generate(rng);
@@ -47,6 +54,11 @@ namespace emphf {
                     max_hash = std::max(max_hash, h);
                 }
 
+                // progress notification
+                if (progress)
+                    progress->inc (1);
+
+
                 logger() << "Sorting hashes" << std::endl;
                 auto sorted_hashes =
                     mm.make_sorter(hashes.begin(),
@@ -58,14 +70,31 @@ namespace emphf {
                                        return uint64_t(this->chunk_of(h) * k) >> high_bits;
                                    });
 
+                // progress notification
+                if (progress)
+                    progress->inc (1);
+
                 bitpair_vector bv;
                 logger() << "Generating chunk functions" << std::endl;
                 if (try_generate_outer_hashes(sorted_hashes, max_hash,
-                                              bv, rng, gamma)) {
+                                              bv, rng, gamma, progress)) {
                     m_bv.build(std::move(bv));
+
+                    //progress notification
+                    if (progress)
+                        progress->inc (1);
+
                     break;
                 }
+                //std::cout << "Unsuccessful mphf_hem creation, retrying.." << std::endl; // (rayan) 
+                if (progress)
+                    progress->inc (1);
             }
+
+            if (progress)
+                progress->finish  ();
+
+
         }
 
         uint64_t size() const
@@ -161,11 +190,11 @@ namespace emphf {
         typedef typename BaseHasher::hash_triple_t hash_triple_t;
         typedef OffsetType offset_type;
 
-        template <typename HashesVector, typename Rng>
+        template <typename HashesVector, typename Rng, typename Progress>
         bool try_generate_outer_hashes(HashesVector& hashes,
                                        hash_triple_t max_hash,
                                        bitpair_vector& bv,
-                                       Rng& rng, double gamma)
+                                       Rng& rng, double gamma, Progress *progress)
         {
             size_t n_chunks = chunk_of(max_hash) + 1;
             m_offsets.resize(n_chunks + 1);
@@ -197,7 +226,7 @@ namespace emphf {
                     if (try_generate_inner_hashes(chunk, bv,
                                                   chunk_hashes.begin(),
                                                   chunk_hashes.end(),
-                                                  gamma)) {
+                                                  gamma, progress)) {
                         break;
                     }
                 }
@@ -206,12 +235,12 @@ namespace emphf {
             return true;
         }
 
-        template <typename Iterator>
+        template <typename Iterator, typename Progress>
         bool try_generate_inner_hashes(size_t chunk, bitpair_vector& bv,
                                        Iterator begin, Iterator end,
-                                       double gamma)
+                                       double gamma, Progress *progress)
         {
-            typedef uint32_t node_t;
+            typedef uint64_t node_t; // (rayan) changed 32 to 64 here
             typedef hypergraph_sorter_seq<hypergraph<node_t>> sorter_t;
             sorter_t sorter;
             typedef sorter_t::hyperedge hyperedge;
@@ -238,6 +267,7 @@ namespace emphf {
             if (!sorter.try_generate_and_sort(range(begin, end),
                                               edge_gen,
                                               chunk_size, chunk_hash_domain,
+                                              progress,
                                               false)) {
                 return false;
             }

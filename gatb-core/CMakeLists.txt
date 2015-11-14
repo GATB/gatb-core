@@ -175,7 +175,7 @@ if (use_mphf)
         message ("-- WILL COMPILE MPHF! (COMPILER VERSION IS HIGH ENOUGH) ")
         message ("-------------------------------------------------------------------------------------")
     if (SSE4_2_FOUND)
-        set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DEMPHF_USE_POPCOUNT")
+        set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DEMPHF_USE_POPCOUNT=1")
     endif()
 endif()
 

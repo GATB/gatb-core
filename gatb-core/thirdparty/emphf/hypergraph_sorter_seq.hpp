@@ -26,11 +26,12 @@ namespace emphf {
         hypergraph_sorter_seq()
         {}
 
-        template <typename Range, typename EdgeGenerator>
+        template <typename Range, typename EdgeGenerator, typename Progress>
         bool try_generate_and_sort(Range const& input_range,
                                    EdgeGenerator const& edge_gen,
                                    size_t n,
                                    size_t hash_domain,
+                                   Progress *progress,
                                    bool verbose = true)
         {
             using std::get;
@@ -84,6 +85,13 @@ namespace emphf {
                 }
             };
 
+            if (progress)
+            {
+                progress->reset (m);
+                progress->init  ();
+            }
+
+
             size_t queue_position = 0;
             for (node_t v0 = 0; v0 < m; ++v0) {
                 visit(v0);
@@ -105,6 +113,9 @@ namespace emphf {
                 }
                 return false;
             }
+
+            if (progress)
+                progress->finish  ();
 
             assert(m_peeling_order.size() == n);
 

@@ -32,11 +32,17 @@
 #include <gatb/tools/misc/impl/Stringify.hpp>
 
 #include <emphf/common.hpp>
-#include <emphf/mphf.hpp>
 #include <emphf/base_hash.hpp>
 #include <emphf/mmap_memory_model.hpp>
-#include <emphf/hypergraph_sorter_scan.hpp>
 
+#define USE_HEM 1 // switching to HEM, as it's faster to construct. will use more memory and might have slower queries, but let's give it a try.
+
+#ifdef USE_HEM
+#include <emphf/mphf_hem.hpp>
+#else
+#include <emphf/mphf.hpp>
+#include <emphf/hypergraph_sorter_scan.hpp>
+#endif
 /********************************************************************************/
 namespace gatb        {
 namespace core        {
@@ -55,12 +61,16 @@ template<typename Key,typename Adaptator, class Progress>
 class MPHF<Key,Adaptator,Progress,true> : public system::SmartPointer
 {
 private:
+
+#ifdef USE_HEM
+    typedef emphf::mphf_hem<emphf::jenkins64_hasher> mphf_t; 
+#else
     // adapted from compute_mphf_scan_mmap.cpp
     typedef emphf::hypergraph_sorter_scan<uint32_t, emphf::mmap_memory_model> HypergraphSorter32;
     typedef emphf::hypergraph_sorter_scan<uint64_t, emphf::mmap_memory_model> HypergraphSorter64;
     typedef emphf::jenkins64_hasher BaseHasher;
     typedef emphf::mphf<BaseHasher> mphf_t;
-
+#endif
 public:
 
     /** Template specialization.  */
@@ -95,6 +105,10 @@ public:
         if (progress==0)  { progress = new tools::dp::IteratorListener; }
         LOCAL (progress);
 
+#ifdef USE_HEM
+        emphf::mmap_memory_model mm;
+        mphf_t(mm, nbElts, kmers, adaptor, progress).swap(mphf);
+#else
         size_t max_nodes = (size_t(std::ceil(double(nbElts) * 1.23)) + 2) / 3 * 3;
         if (max_nodes >= uint64_t(1) << 32)
         {
@@ -106,6 +120,7 @@ public:
             HypergraphSorter32 sorter;
             mphf_t(sorter, nbElts, kmers, adaptor, progress).swap(mphf);
         }
+#endif
 
         isBuilt = true;
         nbKeys  = iterable->getNbItems();
