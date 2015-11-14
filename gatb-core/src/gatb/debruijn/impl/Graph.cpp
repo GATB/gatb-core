@@ -2266,7 +2266,10 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
         {
         public:
             NodeIterator (tools::dp::Iterator<Count>* ref, u_int64_t nbItems)
-                : _ref(0),  _rank(0), _isDone(true), _nbItems(nbItems)   {  setRef(ref);  this->_item->strand = STRAND_FORWARD; }
+                : _ref(0),  _rank(0), _isDone(true), _nbItems(nbItems)   {  
+                    setRef(ref);  
+                    this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
+                }
 
             ~NodeIterator ()  { setRef(0);   }
 
@@ -2281,11 +2284,12 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
 
                 if (!_isDone)
                 {
-                    // TODO: perhaps check if node is deleted (using mphf) -- although we do take care of checking that in Minia already; but could help other software.
+                    // NOTE: doesn't check if node is deleted (as it would be expensive to compute MPHF index)
                     this->_rank ++;
                     this->_item->kmer      = _ref->item().value;
                     this->_item->abundance = _ref->item().abundance;
                     this->_item->mphfIndex = 0;
+                    //this->_item->iterationRank = this->_rank;
                 }
             }
 
@@ -2296,11 +2300,12 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
                 _isDone = _ref->isDone();
                 if (!_isDone)
                 {
-                    // TODO: perhaps check if node is deleted (using mphf)
+                    // NOTE: doesn't check if node is deleted (as it would be expensive to compute MPHF index)
                     this->_rank ++;
                     this->_item->kmer      = _ref->item().value;
                     this->_item->abundance = _ref->item().abundance;
                     this->_item->mphfIndex = 0;
+                    //this->_item->iterationRank = this->_rank;
                 }
             }
 
@@ -2954,6 +2959,7 @@ struct mutate_visitor : public boost::static_visitor<typename GraphTemplate<Node
                         node.kmer   = direct;
                         node.strand = STRAND_FORWARD;
                         node.mphfIndex = 0;
+                        // would need to add iterationRank if it's enabled 
                     }
                 }
                 else
@@ -2964,6 +2970,7 @@ struct mutate_visitor : public boost::static_visitor<typename GraphTemplate<Node
                         node.kmer   = rev;
                         node.strand = STRAND_REVCOMP;
                         node.mphfIndex = 0;
+                        // would need to add iterationRank if it's enabled 
                     }
                 }
             } /* end of or (size_t nt=nt0; */
@@ -2994,6 +3001,7 @@ struct mutate_visitor : public boost::static_visitor<typename GraphTemplate<Node
                         node.kmer   = direct;
                         node.strand = STRAND_REVCOMP;
                         node.mphfIndex = 0;
+                        // would need to add iterationRank if it's enabled 
                     }
                 }
                 else
@@ -3004,6 +3012,7 @@ struct mutate_visitor : public boost::static_visitor<typename GraphTemplate<Node
                         node.kmer   = rev;
                         node.strand = STRAND_FORWARD;
                         node.mphfIndex = 0;
+                        // would need to add iterationRank if it's enabled 
                     }
                 }
             }

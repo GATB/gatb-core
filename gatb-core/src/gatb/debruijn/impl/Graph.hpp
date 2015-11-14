@@ -121,7 +121,7 @@ struct Node_t
     typedef Value_t Value;
 
     /** Default constructor. */
-    Node_t() : strand(kmer::STRAND_FORWARD), abundance(0), mphfIndex(0) {}
+    Node_t() : strand(kmer::STRAND_FORWARD), abundance(0), mphfIndex(0) /*, iterationRank(0)*/ {}
 
     /** Constructor.
      * \param[in] kmer : kmer value. By default, it is the minimum value of the forward and revcomp value.
@@ -129,7 +129,7 @@ struct Node_t
      * \param[in] abundance : abundance of the kmer. Default value is 0 if not set.
      */
     Node_t (const Node_t::Value& kmer, kmer::Strand strand=kmer::STRAND_FORWARD, u_int16_t abundance=0, u_int64_t mphfIndex = 0)
-        : kmer(kmer), strand(strand), abundance(abundance), mphfIndex(mphfIndex) {}
+        : kmer(kmer), strand(strand), abundance(abundance), mphfIndex(mphfIndex) /*, iterationRank(0) */ {}
 
     /** kmer value for the node (min of the forward and revcomp value of the bi-directed DB graph). */
     Node_t::Value  kmer;
@@ -141,6 +141,7 @@ struct Node_t
     u_int16_t    abundance;
 
     u_int64_t mphfIndex;
+    //u_int64_t iterationRank; // maybe one day activate it -- I havn't found the use yet in Simplifications.cpp (see note on tips)
 
     /** Overload of operator ==  NOTE: by now, it doesn't take care of the strand... */
     bool operator== (const Node_t& other) const  { return kmer == other.kmer; }
@@ -161,6 +162,7 @@ struct Node_t
         this->kmer      = kmer;
         this->strand    = strand;
         this->mphfIndex = 0;
+        //this->iterationRank = 0;
     }
 
     template<typename T>

@@ -364,11 +364,53 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
     dispatcher.iterate (itNode, [&] (Node& node)
     {
-        unsigned long index = _graph.nodeMPHFIndex(node);
+        /* since nodes are always iterated in the same order,
+         * their rank is a nice proxy to index interestingNodes
+         * rather than doing an expensive MPHF query.
+         * or so I thought. but actually, 
+         * a non-interesting node can become interesting;
+         * must be some strange dBG motif. so I'm keeping the code as it is right now.
+         * upon investigation, here a strange dbg motif:
+         *
+         *  
+         *       (t)
+         *       / \
+         *      /   \
+         *     v     v
+         *  -->o    (n1)-->
+         *
+         *  node n1 is simple, but node (t) is considered a tip so will be deleted.
+         *  question is, should we actually delete (t)?
+         *  i'd argue so, it's likely artefactual. (n1) could be artefactual too.
+         *  consider those erroneous kmers:
+         *
+         *  AAT
+         *   ATC
+         *   ATG
+         *
+         * and assuming a true genome is TCTGTC (circular)
+         *
+         * so graph is:
+         *
+         *                   /-------------\
+         *                  v              |
+         *   AAT -> ATC -> TCT -> CTG      |
+         *    \                   /        |
+         *     \                 /         |
+         *      \               v          |
+         *       \-> ATG  --> TGT --> GTC -/
+         *
+         *  the three leftmost nodes should be removed and the four right nodes are correct.
+         *  once AAT is removed, ATC and ATG are legit tips; but they were simple nodes initially. QED
+         *
+         */
 
+        unsigned long index = _graph.nodeMPHFIndex(node);
+        u_int64_t iterationRank = index; //node.iterationRank;
         if (haveInterestingNodesInfo)
-            if (interestingNodes[index] == false)
+            if (interestingNodes[iterationRank] == false)
                 return; // no point in examining non-branching nodes, saves calls to in/out-degree, i.e. accesses to the minia datastructure
+
 
         if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
         if (nodesToDelete[index]) { return; }  // parallel // actually not sure if really useful
@@ -376,7 +418,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
         unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
 
         if (!haveInterestingNodesInfo)
-            interestingNodes[index] = interestingNodes[index] || (!(inDegree == 1 && outDegree == 1));
+            interestingNodes[iterationRank] = interestingNodes[iterationRank] || (!(inDegree == 1 && outDegree == 1));
 
         /* tips have out/in degree of 0 on one side, and any non-zero degree on the other */
         if ((inDegree == 0 || outDegree == 0) && (inDegree != 0 || outDegree != 0))
@@ -392,7 +434,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             /* it may appear that we're only going to follow its first neighbor, but in fact, neighbors[0].from is node.kmer */
             /* so, follow the simple path from this start tip node to the further node that has out-branching (out is w.r.t to the direction) */
             typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[0].from, neighbors[0].direction); //
-            //DEBUG(cout << endl << "neighbors from: " << _graph.toString (neighbors[0].from) << " direction: " << neighbors[0].direction << endl);
+            DEBUG(cout << endl << "node:" <<  _graph.toString (node) << "neighbors from: " << _graph.toString (neighbors[0].from) << " direction: " << neighbors[0].direction << endl);
+            
             unsigned int pathLen = 1;
             vector<Node> nodes;
             nodes.push_back(node);
@@ -452,21 +495,28 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                     //DEBUG(cout << endl << "deleting tip node: " <<  _graph.toString (*itVecNodes) << endl);
                     unsigned long index = _graph.nodeMPHFIndex(*itVecNodes); // parallel version
                     nodesToDelete[index] = true; // parallel version
-
                 }
+                
 
                 // update interesting status of connected nodes
                 typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> connectedBranchingNodes = _graph.neighbors(nodes.back());
                 for (size_t j = 0; j < connectedBranchingNodes.size(); j++)
                 {
                     unsigned long index = _graph.nodeMPHFIndex(connectedBranchingNodes[j]);
+
+                    // soem debugging
+                    /*if (_graph.isNodeDeleted(connectedBranchingNodes[j])) { continue; } // {continue;} // sequential and also parallel
+                    if (nodesToDelete[index]) { continue; }  // parallel // actually not sure if really useful
+                    unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
+                    if (haveInterestingNodesInfo && ((interestingNodes[index] == false) && ((inDegree == 1 && outDegree == 1))))
+                    {
+                        std::cout  << "previously uninteresting node became interesting: " << inDegree << " " << outDegree << " simplepath length " << pathLen << std::endl;
+                    }*/
+
                     interestingNodes[index] = true;
                 }
 
-
                 __sync_fetch_and_add(&nbTipsRemoved, 1);
-
-
             }
         }
         // } // sequential
