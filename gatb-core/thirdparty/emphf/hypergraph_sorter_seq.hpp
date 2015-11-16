@@ -85,13 +85,6 @@ namespace emphf {
                 }
             };
 
-            if (progress)
-            {
-                progress->reset (m);
-                progress->init  ();
-            }
-
-
             size_t queue_position = 0;
             for (node_t v0 = 0; v0 < m; ++v0) {
                 visit(v0);
@@ -113,9 +106,6 @@ namespace emphf {
                 }
                 return false;
             }
-
-            if (progress)
-                progress->finish  ();
 
             assert(m_peeling_order.size() == n);
 
