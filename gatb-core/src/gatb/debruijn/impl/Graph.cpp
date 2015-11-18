@@ -3415,7 +3415,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
                     for (int otherStrand = 0; otherStrand <= 2; otherStrand++) // test both strands
                     {
                         node.strand = (otherStrand == 0) ? STRAND_FORWARD: STRAND_REVCOMP;
-                        if (debugCompareNeighborhoods(node, dir, "bad adjacency check")) exit(1);
+                        if (this->debugCompareNeighborhoods(node, dir, "bad adjacency check")) exit(1);
                     }
                 }
         }); // end of parallel node iterate
