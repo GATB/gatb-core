@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-#include <CppunitCommon.hpp>
+#include "CppunitCommon.hpp"
 
 #include <iostream>
 #include <cstdlib>
