@@ -177,6 +177,12 @@ if (use_mphf)
     if (SSE4_2_FOUND)
         set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DEMPHF_USE_POPCOUNT=1")
     endif()
+
+    # for emphf
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+    endif ()
+
 endif()
 
 # We also set a flag for TR1 management
