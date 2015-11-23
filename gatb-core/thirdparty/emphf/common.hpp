@@ -11,6 +11,7 @@
 #include <ctime>
 #include <cstring>
 #include <cassert>
+#include <numeric>
 
 #include "emphf_config.hpp"
 
