@@ -179,7 +179,7 @@ template<size_t span> struct debruijn_mphf_bench {  void operator ()  (Parameter
 
     start_t=chrono::system_clock::now();
     for (nodes.first(); !nodes.isDone(); nodes.next())
-        modelMini.getHash(nodes.item().kmer.get<Type>());
+        modelCanonical.getHash(nodes.item().kmer.get<Type>());
     end_t=chrono::system_clock::now();
 
     cout << "time to do " << nodes.size() << " computing hash1 of kmers on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_minim_time << " seconds" << endl;

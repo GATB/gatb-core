@@ -523,6 +523,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     }); // parallel
 
     // now delete all nodes, in parallel
+    // TODO: implement deletion of nodes using a set of nodes, if this set is not too large. else, use index. will be faster.
     _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
     
     return nbTipsRemoved;

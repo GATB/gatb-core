@@ -165,7 +165,7 @@ ENDIF (SSE42_TRUE)
 # I could use LIBRARY_COMPILE_DEFINITIONS, but it's actually passed to "add_definitions", which isn't made for passing compilation flags, only -D ones.
 IF(SSE4_2_FOUND AND (NOT NO_SSE))
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -msse2 -msse4.2 -mpopcnt")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -msse2 -msse4.2 -mpopcnt")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse2 -msse4.2 -mpopcnt")
     message ("-- SSE 4.2 detected")
 ENDIF()
 
@@ -180,6 +180,7 @@ if (use_mphf)
 
     # for emphf
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        message ("-- EMPHF CLANG FIX ")
        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     endif ()
 

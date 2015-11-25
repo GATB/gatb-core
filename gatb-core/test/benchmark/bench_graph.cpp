@@ -1,3 +1,7 @@
+/* this is the most advanced benchmark i've coded (more recent than bench_mphf, and some benchmarks overlap) 
+ * */
+
+#define WITH_MPHF 1  // funny story: even though gatb-core defines WITH_MPHF in its cmakefile, this isn't taken into account in compiling benchmarks. haha. i'm sad it took me so many minutes to find.
 
 #include <chrono>
 #define get_wtime() chrono::system_clock::now()
@@ -302,7 +306,7 @@ template<size_t span> struct debruijn_mphf_bench {  void operator ()  (Parameter
         graphFast.neighbors(nodesFast.item());
     end_t=chrono::system_clock::now();
 
-    cout << "time to do " << nodes.size() << " fast neighbors() query on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_graphfast_time << " seconds" << endl;
+    cout << "time to do " << nodes.size() << " neighbors() query on all NodeFast (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_graphfast_time << " seconds" << endl;
 
 
 /* isBranching */
@@ -318,7 +322,7 @@ template<size_t span> struct debruijn_mphf_bench {  void operator ()  (Parameter
         graphFast.isBranching(nodesFast.item());
     end_t=chrono::system_clock::now();
 
-    cout << "time to do " << nodes.size() << " fast isBranching() query on all nodes (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_graphfast_time << " seconds" << endl;
+    cout << "time to do " << nodes.size() << " isBranching() query on all NodeFast (" << kmerSize << "-mers) : " << (diff_wtime(start_t, end_t) / unit) - baseline_graphfast_time << " seconds" << endl;
 
 
 
