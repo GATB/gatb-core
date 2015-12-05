@@ -17,32 +17,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/** \file EMPHF.hpp
- *  \date 01/03/2013
- *  \author edrezen
- *  \brief Minimal Perfect Hash Function
+/** \file BooPHF.hpp
+ *  \brief Minimal Perfect Hash Function from Guillaume
  */
 
-#ifndef _GATB_CORE_TOOLS_MISC_IMPL_EMPHF_HPP_
-#define _GATB_CORE_TOOLS_MISC_IMPL_EMPHF_HPP_
+#ifndef _GATB_CORE_TOOLS_MISC_IMPL_BOOPHF_HPP_
+#define _GATB_CORE_TOOLS_MISC_IMPL_BOOPHF_HPP_
 
 /********************************************************************************/
 
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 
-#include <emphf/common.hpp>
+#include <BooPHF/BooPHF.h>
+
+// let's use emphf base_hash for hashing elements here
 #include <emphf/base_hash.hpp>
-#include <emphf/mmap_memory_model.hpp>
 
-#define USE_HEM 1 // switching to HEM, as it's faster to construct. will use more memory and might have slower queries, but let's give it a try.
-
-#ifdef USE_HEM
-#include <emphf/mphf_hem.hpp>
-#else
-#include <emphf/mphf.hpp>
-#include <emphf/hypergraph_sorter_scan.hpp>
-#endif
 /********************************************************************************/
 namespace gatb        {
 namespace core        {
@@ -54,23 +45,27 @@ namespace impl        {
 /** \brief Minimal Perfect Hash Function
  *
  * This is a specialization of the MPHF<Key,Adaptor,exist> class for exist=true.
- * It uses EMPHF for the implementation and is most a wrapper between EMPHF and
+ * It uses BooPHF for the implementation and is most a wrapper between BooPHF and
  * GATB-CORE concepts.
  */
 template<typename Key,typename Adaptator, class Progress>
-class EMPHF : public system::SmartPointer
+class BooPHF : public system::SmartPointer
 {
 private:
 
-#ifdef USE_HEM
-    typedef emphf::mphf_hem<emphf::jenkins64_hasher> mphf_t; 
-#else
-    // adapted from compute_mphf_scan_mmap.cpp
-    typedef emphf::hypergraph_sorter_scan<uint32_t, emphf::mmap_memory_model> HypergraphSorter32;
-    typedef emphf::hypergraph_sorter_scan<uint64_t, emphf::mmap_memory_model> HypergraphSorter64;
-    typedef emphf::jenkins64_hasher BaseHasher;
-    typedef emphf::mphf<BaseHasher> mphf_t;
-#endif
+    // a hash wrapper that calls emphf's hasher to produce, given an element, a single hash value for BooPHF
+    class hasher_t
+    {
+        typedef emphf::jenkins64_hasher BaseHasher;
+        BaseHasher emphf_hasher;
+        Adaptator adaptor;
+        
+        public:
+            uint64_t operator ()  (const Key& key) const  {  return std::get<0>(emphf_hasher(adaptor(key)));  }
+    };
+
+    typedef boomphf::mphf<  Key, hasher_t  > boophf_t;
+
 public:
 
     /** Template specialization.  */
@@ -80,7 +75,7 @@ public:
     typedef u_int64_t Code;
 
     /** Constructor. */
-    EMPHF () : isBuilt(false), nbKeys(0)  {}
+    BooPHF () : isBuilt(false), nbKeys(0)  {}
 
     /** Build the hash function from a set of items.
      * \param[in] iterable : keys iterator
@@ -95,32 +90,13 @@ public:
 
         size_t nbElts = iterable->getNbItems();
 
-        // a small fix, emphf for 2 nodes doesn't seem to work
-        if (nbElts <= 2)  {  nbElts = 3;  }
-        if (nbElts <= 3) { std::cout << "Warning: MPHF has a tiny amount of elements (" << nbElts << "), might not work correctly." << std::endl; }
-
-        iterator_wrapper kmers (iter);
+        iterator_wrapper kmers (iter); // TODO use EMPHF's to prevent code duplication, or actually, put it in MPHFWrapper.
 
         // We may have no provided listener => use default one.
         if (progress==0)  { progress = new tools::dp::IteratorListener; }
         LOCAL (progress);
-
-#ifdef USE_HEM
-        emphf::mmap_memory_model mm;
-        mphf_t(mm, nbElts, kmers, adaptor, progress).swap(mphf);
-#else
-        size_t max_nodes = (size_t(std::ceil(double(nbElts) * 1.23)) + 2) / 3 * 3;
-        if (max_nodes >= uint64_t(1) << 32)
-        {
-            HypergraphSorter64 sorter;
-            mphf_t(sorter, nbElts, kmers, adaptor, progress).swap(mphf);
-        }
-        else
-        {
-            HypergraphSorter32 sorter;
-            mphf_t(sorter, nbElts, kmers, adaptor, progress).swap(mphf);
-        }
-#endif
+	
+        bphf = new boophf_t(nbElts, kmers, 2.5);
 
         isBuilt = true;
         nbKeys  = iterable->getNbItems();
@@ -132,12 +108,12 @@ public:
      * \return the hash value. */
     Code operator () (const Key& key)
     {
-        return mphf.lookup (key, adaptor);
+        return bphf->lookup (key);
     }
 
     /** Returns the number of keys.
      * \return keys number */
-    size_t size() const { return mphf.size(); }
+    size_t size() const { return bphf->nbKeys(); }
 
     /** Load hash function from a collection*/
     size_t load (tools::storage::impl::Group& group, const std::string& name)
@@ -145,9 +121,10 @@ public:
         /** We need an input stream for the given collection given by group/name. */
         tools::storage::impl::Storage::istream is (group, name);
         /** We load the emphf object from the input stream. */
-        mphf.load (is);
+        //mphf.load (is);
+        std::cout << "BooPHF load not implemented" << std::endl; exit(1);
         /** We return the number of keys. */
-        return mphf.size();
+        return size();
     }
 
     /** Save hash function to a collection
@@ -157,7 +134,8 @@ public:
         /** We need an output stream for the given collection given by group/name. */
         tools::storage::impl::Storage::ostream os (group, name);
         /** We save the emphf object to the output stream. */
-        mphf.save (os);
+        //mphf.save (os);
+        std::cout << "BooPHF save not implemented" << std::endl; 
         /** We set the number of keys as an attribute of the group. */
         group.addProperty ("nb_keys", misc::impl::Stringify().format("%d",nbKeys)); // FIXME: maybe overflow here
         return os.tellp();
@@ -165,8 +143,7 @@ public:
 
 private:
 
-    mphf_t    mphf;
-    Adaptator adaptor;
+    boophf_t  *bphf;
     bool      isBuilt;
     size_t    nbKeys;
 
@@ -216,9 +193,9 @@ private:
         size_t        size () const  {  return 0;                        }
 
     private:
-        // noncopyble
-        iterator_wrapper(iterator_wrapper const&);
-        iterator_wrapper& operator=(iterator_wrapper const&);
+        // noncopyble // FIXME: made it copyable because boophf needed it; need to see if it's correct
+        //iterator_wrapper(iterator_wrapper const&);
+        //iterator_wrapper& operator=(iterator_wrapper const&);
         tools::dp::Iterator<Key>* iterator;
     };
 };
@@ -227,4 +204,4 @@ private:
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
-#endif /* _GATB_CORE_TOOLS_MISC_IMPL_EMPHF_HPP_ */
+#endif /* _GATB_CORE_TOOLS_MISC_IMPL_BOOPHF_HPP_ */

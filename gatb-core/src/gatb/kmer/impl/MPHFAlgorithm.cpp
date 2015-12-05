@@ -80,6 +80,7 @@ const Abundance_t MPHFAlgorithm<span,Abundance_t,NodeState_t>::MAX_ABUNDANCE = s
 *********************************************************************/
 template<size_t span, typename Abundance_t, typename NodeState_t>
 MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
+    tools::misc::MPHFKind mphfKind,
     Group&              group,
     const std::string&  name,
     Iterable<Count>*    solidCounts,
@@ -87,7 +88,7 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     bool                buildOrLoad,
     IProperties*        options
 )
-    :  Algorithm("emphf", 1, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
+    :  Algorithm("mphf",1, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
        _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _adjacencyMap(0), _progress(0)
 {
     /** We keep a reference on the solid kmers. */
@@ -97,9 +98,9 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     setSolidKmers (solidKmers);
 
     /** We build the hash object. */
-    setAbundanceMap (new AbundanceMap());
-    setNodeStateMap (new NodeStateMap());
-    setAdjacencyMap (new AdjacencyMap());
+    setAbundanceMap (new AbundanceMap(mphfKind));
+    setNodeStateMap (new NodeStateMap(mphfKind));
+    setAdjacencyMap (new AdjacencyMap(mphfKind));
 
     /** We gather some statistics. */
     getInfo()->add (1, "enabled", "%d", AbundanceMap::enabled);

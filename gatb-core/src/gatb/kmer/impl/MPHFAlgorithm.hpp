@@ -105,6 +105,7 @@ public:
      * \param[in] buildOrLoad : true for build/save the MPHF, false for load only
      * \param[in] options : extra options for configuration (may be empty) */
     MPHFAlgorithm (
+        tools::misc::MPHFKind                 mphfKind,
         tools::storage::impl::Group&          group,
         const std::string&                    name,
         tools::collections::Iterable<Count>*  solidCounts,

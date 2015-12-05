@@ -136,9 +136,10 @@ private:
 } } } } } /* end of namespaces. */
 /********************************************************************************/
 
-/** NOW HERE THE TRICK... We include the EMPHF implementation if allowed by compilation flag. */
+/** NOW HERE THE TRICK... We include the wrapper (for EMPHF and BooPHF implementations) if allowed by compilation flag. */
 #ifdef WITH_MPHF
-    #include <gatb/tools/collections/impl/EMPHF.hpp>
+    #include <gatb/tools/collections/impl/MPHFWrapper.hpp>
 #endif
+/* sooo many indirections for the MPHF code.. MPHFAlgorithm > MapMPHF > MPHF > MPHFWrapper > EMPHF/BooMHF. could perhaps simplify someday? */
 
 #endif /* _GATB_CORE_TOOLS_MISC_IMPL_MPHF_HPP_ */

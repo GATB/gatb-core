@@ -49,8 +49,6 @@
 #include <gatb/kmer/impl/MPHFAlgorithm.hpp>
 #include <gatb/kmer/impl/RepartitionAlgorithm.hpp>
 
-#include <gatb/tools/collections/impl/MPHF.hpp>
-
 #include <gatb/debruijn/impl/Simplifications.hpp>
 
 using namespace std;
@@ -227,6 +225,7 @@ struct configure_visitor : public boost::static_visitor<>    {
             Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 
             MPHFAlgorithm<span> mphf_algo (
+                graph._mphfKind,
                 dskGroup,
                 "mphf",
                 solidCounts,
@@ -486,11 +485,13 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
             Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 
             MPHFAlgorithm<span> mphf_algo (
+                graph._mphfKind,
                 dskGroup,
                 "mphf",
                 solidCounts,
                 solidKmers,
                 true  /* build=true, load=false */
+
             );
             executeAlgorithm (mphf_algo, & graph.getStorage(), props, graph._info);
             data.setAbundance(mphf_algo.getAbundanceMap());
@@ -649,8 +650,8 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     /** We activate MPHF option only if available. */
     if (MPHF<char>::enabled)
     {
-        IOptionsParser* parserEmphf  = new OptionsParser ("emphf");
-        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf')", false,  enableMphf ? "emphf":"none"));
+        IOptionsParser* parserEmphf  = new OptionsParser ("mphf");
+        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf' or 'BooPHF')", false,  enableMphf ? "BooPHF":"none"));
         parser->push_back  (parserEmphf);
     }
 

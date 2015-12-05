@@ -108,7 +108,7 @@ endif()
 # GENERAL DEFINITIONS
 ################################################################################
 
-set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-unused-variable -Wno-parentheses -Wno-format -Wno-strict-aliasing -Wno-array-bounds")
+set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-unused-variable -Wno-parentheses -Wno-format -Wno-strict-aliasing -Wno-array-bounds -Wno-unknown-pragmas") # last one is exclusively for BooPHF
 
 if (debug)
     #set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p -pg")

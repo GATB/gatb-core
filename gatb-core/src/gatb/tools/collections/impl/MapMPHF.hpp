@@ -51,7 +51,7 @@ namespace impl        {
  * The values can be stored in a simple vector. The keys are not stored in memory, only
  * the mphf is needed.
  *
- * Note that such an implementation can't afford to add items into the map.
+ * Note that such an implementation can't afford to add items into the map (it's static).
  */
 template <class Key, class Value, class Adaptator=AdaptatorDefault<Key> >
 class MapMPHF : public system::SmartPointer
@@ -65,7 +65,10 @@ public:
     static const bool enabled = Hash::enabled;
 
     /** Default constructor. */
-    MapMPHF ()  {}
+    MapMPHF (tools::misc::MPHFKind mphfKind) : hash(mphfKind) {}
+
+    /** Default constructor. */
+    MapMPHF () : hash() {}
 
     /** Build the hash function from a set of items.
      * \param[in] keys : iterable over the keys of the hash table
@@ -141,7 +144,6 @@ private:
 
     Hash               hash;
     std::vector<Value> data;
-
 };
 
 /********************************************************************************/

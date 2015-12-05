@@ -46,10 +46,12 @@
 #include <iostream>
 #include <bitset>
 
-//#ifdef WITH_MPHF 
-//#include <emphf/base_hash.hpp>
-//#endif
+//#define TESTING_EMPHF_HASH
+//#ifdef TESTING_EMPHF_HASH 
+#if 0 // let's not have Model depend on modifications to MPHF for now.
+#include <emphf/base_hash.hpp>
 #include <gatb/tools/collections/impl/MPHF.hpp>
+#endif
 
 extern const char bin2NT[] ;
 extern const char binrev[] ;
@@ -881,7 +883,8 @@ struct Kmer
             hash2(k, 1LL);
         }
 
-#ifdef WITH_MPHF
+//#ifdef TESTING_EMPHF_HASH 
+#if 0
         gatb::core::tools::collections::impl::AdaptatorDefault<Type> adaptor;
         //emphf::jenkins64_hasher emphf_hasher; // for some reason, if I re-use this hasher, now MPHF takes 3x more times. (really! try it with bench_graph)
 

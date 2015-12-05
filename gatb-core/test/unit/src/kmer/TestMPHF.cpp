@@ -90,6 +90,8 @@ public:
     /********************************************************************************/
     void MPHF_check1 ()
     {
+        MPHFKind mphfKind = MPHF_BOOPHF; // TODO: test with emphf also
+
         if (MPHFAlgorithm<>::AbundanceMap::enabled == false)  { return; }
 
         size_t kmerSize = 11;
@@ -118,7 +120,7 @@ public:
         Storage* storage = sortingCount.getStorage();
 
         /** We create a mphf instance. */
-        MPHFAlgorithm<> mphf (storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), true);
+        MPHFAlgorithm<> mphf (mphfKind, storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), true);
 
         /** We actually execute the mphf construction. */
         mphf.execute();

@@ -212,6 +212,7 @@ namespace emphf {
                 while (++hash_it != hashes.end() &&
                        chunk_of(*hash_it) == chunk) {
                     if (*hash_it == last_hash) {
+                        std::cout << "MPHF HEM problem: Duplicate hash value found; restarting." << std::endl;
                         logger() << "Duplicate hash value found; restarting."
                                  << std::endl;
                         return false;
@@ -229,6 +230,7 @@ namespace emphf {
                                                   gamma, progress)) {
                         break;
                     }
+                        //std::cout << "MPHF HEM : restarting inner hash." << std::endl;
                 }
             }
 

@@ -229,7 +229,9 @@ enum MPHFKind
     /** No MPHF */
     MPHF_NONE,
     /** Usage of EMPHF library */
-    MPHF_EMPHF
+    MPHF_EMPHF,
+    /** Usage of BooPHF library */
+    MPHF_BOOPHF
 };
 
 /** Get the enum from a string.
@@ -239,6 +241,7 @@ static void parse (const std::string& s, MPHFKind& kind)
 {
          if (s == "none")     { kind = MPHF_NONE;  }
     else if (s == "emphf")    { kind = MPHF_EMPHF;  }
+    else if (s == "boophf" || s == "BooPHF" )   { kind = MPHF_BOOPHF;  }
     else   { throw system::Exception ("bad mphf kind '%s'", s.c_str()); }
 }
 
@@ -250,7 +253,8 @@ static std::string toString (MPHFKind kind)
     switch (kind)
     {
         case MPHF_NONE:     return "none";
-        case MPHF_EMPHF:   return "emphf";
+        case MPHF_EMPHF:    return "emphf";
+        case MPHF_BOOPHF:   return "BooPHF";
         default:        throw system::Exception ("bad mphf kind %d", kind);
     }
 }
