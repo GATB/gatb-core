@@ -105,9 +105,10 @@ public:
 
     /** Build the hash function from a set of items.
      * \param[in] iterable : keys iterator
+     * \param[in] nb threads
      * \param[in] progress : object that listens to the event of the algorithm */
-    void build (tools::collections::Iterable<Key>* iterable, tools::dp::IteratorListener* progress=0)   { error(); }
-
+    void build (tools::collections::Iterable<Key>* iterable, int nbThreads = 1, tools::dp::IteratorListener* progress=0)   { error(); }
+    
     /** Returns the hash code for the given key. WARNING : default implementation here will
      * throw an exception.
      * \param[in] key : the key to be hashed

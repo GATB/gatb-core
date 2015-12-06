@@ -110,6 +110,7 @@ public:
         const std::string&                    name,
         tools::collections::Iterable<Count>*  solidCounts,
         tools::collections::Iterable<Type>*   solidKmers,
+        unsigned int                          nbCores,
         bool                                  buildOrLoad,
         tools::misc::IProperties*   options    = 0
     );

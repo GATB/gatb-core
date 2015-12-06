@@ -71,12 +71,12 @@ public:
     /** Build the hash function from a set of items.
      * \param[in] iterable : keys iterator
      * \param[in] progress : object that listens to the event of the algorithm */
-    void build (tools::collections::Iterable<Key>* iterable, tools::dp::IteratorListener* progress=0)
+    void build (tools::collections::Iterable<Key>* iterable, int nbThreads = 1, tools::dp::IteratorListener* progress=0)
     {
         if (mphfKind == tools::misc::MPHF_EMPHF)
-            emphf.build(iterable,progress);
+            emphf.build(iterable, nbThreads, progress);
         if (mphfKind == tools::misc::MPHF_BOOPHF)
-            boophf.build(iterable,progress);
+            boophf.build(iterable, nbThreads, progress);
     }
 
     /** Returns the hash code for the given key. WARNING : default implementation here will

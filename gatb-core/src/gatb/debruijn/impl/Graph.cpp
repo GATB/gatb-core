@@ -230,6 +230,7 @@ struct configure_visitor : public boost::static_visitor<>    {
                 "mphf",
                 solidCounts,
                 solidKmers,
+                1,  // loading using 1 thread
                 false  /* build=true, load=false */
             );
 
@@ -490,6 +491,8 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
                 "mphf",
                 solidCounts,
                 solidKmers,
+                props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0, 
+                // TODO enhancement: also pass the MAX_MEMORY parameter to enable or disable fast mode depending on it
                 true  /* build=true, load=false */
 
             );

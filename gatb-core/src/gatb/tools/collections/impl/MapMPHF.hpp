@@ -74,10 +74,10 @@ public:
      * \param[in] keys : iterable over the keys of the hash table
      * \param[in] progress : listener called during the building of the MPHF
      */
-    void build (tools::collections::Iterable<Key>& keys, tools::dp::IteratorListener* progress=0)
+    void build (tools::collections::Iterable<Key>& keys, int nbThreads = 1, tools::dp::IteratorListener* progress=0)
     {
         /** We build the hash function. */
-        hash.build (&keys, progress);
+        hash.build (&keys, nbThreads, progress);
 
         /** We resize the vector of Value objects. */
         data.resize (keys.getNbItems());

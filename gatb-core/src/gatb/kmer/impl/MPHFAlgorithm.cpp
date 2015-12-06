@@ -85,10 +85,11 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     const std::string&  name,
     Iterable<Count>*    solidCounts,
     Iterable<Type>*     solidKmers,
+    unsigned int        nbCores,
     bool                buildOrLoad,
     IProperties*        options
 )
-    :  Algorithm("mphf",1, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
+    :  Algorithm("mphf", nbCores, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
        _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _adjacencyMap(0), _progress(0)
 {
     /** We keep a reference on the solid kmers. */
@@ -159,9 +160,13 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::execute ()
         tools::dp::IteratorListener* delegate = createIteratorListener(0,"");  LOCAL (delegate);
         setProgress (new ProgressCustom(delegate));
 
+
+        // get number of threads from dispatcher 
+        unsigned int nbThreads = this->getDispatcher()->getExecutionUnitsNumber();
+
         /** We build the hash. */
         {   TIME_INFO (getTimeInfo(), "build");
-            _abundanceMap->build (*_solidKmers, _progress);
+            _abundanceMap->build (*_solidKmers, nbThreads, _progress);
         }
 
         /** We save the hash object in the dedicated storage group. */
