@@ -35,7 +35,9 @@
 #include <emphf/base_hash.hpp>
 #include <emphf/mmap_memory_model.hpp>
 
-#define USE_HEM 1 // switching to HEM, as it's faster to construct. will use more memory and might have slower queries, but let's give it a try.
+//#define USE_HEM 1 
+// **warning**: HEM is buggy with k=21; it just is. I have not investigated why because we switched to boophf.
+// otherwise, HEM, is faster to construct. will use more memory and might have slower queries.
 
 #ifdef USE_HEM
 #include <emphf/mphf_hem.hpp>

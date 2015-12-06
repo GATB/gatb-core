@@ -120,7 +120,7 @@ public:
         Storage* storage = sortingCount.getStorage();
 
         /** We create a mphf instance. */
-        MPHFAlgorithm<> mphf (mphfKind, storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), true);
+        MPHFAlgorithm<> mphf (mphfKind, storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), 1, true);
 
         /** We actually execute the mphf construction. */
         mphf.execute();
