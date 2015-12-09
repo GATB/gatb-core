@@ -23,7 +23,9 @@
 // We use the required packages
 using namespace std;
 
-#define DEBUG(a) // printf a
+#define DEBUG(a) //printf a
+#define DEBUG2(a) //printf a
+// wanted to debug separately
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
@@ -66,10 +68,10 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
     //sort minim bins per size
     std::sort (bin_size_vec.begin (), bin_size_vec.end (), comp_bins);
 
-    DEBUG (("Repartitor : 20 largest estimated bin sizes \n"));
+    DEBUG2(("Repartitor : 20 largest estimated bin sizes \n"));
     for (size_t ii=0; ii<20 &&  ii< bin_size_vec.size(); ii++ )
     {
-        DEBUG (("binsize [%llu] = %llu \n",bin_size_vec[ii].second,bin_size_vec[ii].first));
+        DEBUG2 (("binsize [%llu] = %llu \n",bin_size_vec[ii].second,bin_size_vec[ii].first));
     }
 
     //GC suggestion : put the largest in the emptiest (la plus grosse dans la plus grosse)

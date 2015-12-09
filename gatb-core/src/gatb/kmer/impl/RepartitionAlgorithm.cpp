@@ -114,13 +114,22 @@ public:
         }
 
         if (_nbProcessedMmers > 500000)   {  _progress.inc (_nbProcessedMmers);  _nbProcessedMmers = 0;  }
+
+        // see if we need to stop. 
+        // mimics SampleRepart below. but actually, as TruncatedIterator would have worked too, since all seqs are at least larger than a mmer. oh well. using CancellableIterator anyway.
+        _nbSeqsSeenSoFar ++;
+        if (_nbSeqsSeenSoFar > _nbSeqsToSee)
+        {
+            *_cancelIterator = true;
+        }
+
     }
 
     /** Constructor. */
-    MmersFrequency (int mmerSize,  IteratorListener* progress,  uint32_t* m_mer_counts)
+    MmersFrequency (int mmerSize,  IteratorListener* progress,  uint32_t* m_mer_counts, size_t nbSeqsToSee /* for when to stop estimation*/, bool* cancelIterator)
     :
         _minimodel(mmerSize), _progress (progress,System::thread().newSynchronizer()),
-      _m_mer_counts(m_mer_counts),  _nbProcessedMmers(0)
+      _m_mer_counts(m_mer_counts),  _nbProcessedMmers(0), _nbSeqsToSee(nbSeqsToSee), _nbSeqsSeenSoFar(0), _cancelIterator(cancelIterator)
     {
         u_int64_t nbminim = (uint64_t)pow(4.0,mmerSize);
 
@@ -134,6 +143,9 @@ protected:
     ProgressSynchro         _progress;
     uint32_t*               _m_mer_counts;
     size_t                  _nbProcessedMmers;
+    size_t        _nbSeqsToSee;
+    size_t        _nbSeqsSeenSoFar;
+    bool *            _cancelIterator;
 };
 
 /********************************************************************************/
@@ -191,6 +203,13 @@ public:
 
             /** We add the pending kxmer to the bin. */
             _local_pInfo.incKxmer_per_minimBin (superKmer.minimizer);
+        
+            // see if we need to stop
+            _nbSuperKmersSeenSoFar ++;
+            if (_nbSuperKmersSeenSoFar > _nbSeqsToSee) // it's a bit of an approximation here (comparing # of superkmers to # of seqs)
+            {
+                *_cancelIterator = true;
+            }
         }
     }
 
@@ -202,11 +221,14 @@ public:
         size_t            currentPass,
         size_t            nbPartitions,
         IteratorListener* progress,
+        bool *            cancelIterator,
+        size_t            nbSeqsToSee,
         BankStats&        bankStats,
         PartiInfo<5>&     pInfo
     )
     :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats)
-        ,_kx(4), _extern_pInfo(pInfo), _local_pInfo(config._nb_partitions, model.getMmersModel().getKmerSize())
+        ,_kx(4), _extern_pInfo(pInfo), _local_pInfo(config._nb_partitions, model.getMmersModel().getKmerSize()),
+        _cancelIterator(cancelIterator), _nbSeqsToSee(nbSeqsToSee), _nbSuperKmersSeenSoFar(0)
     {
     }
 
@@ -222,6 +244,9 @@ private:
     size_t        _kx;
     PartiInfo<5>& _extern_pInfo;
     PartiInfo<5>  _local_pInfo;
+    bool*         _cancelIterator;
+    size_t        _nbSeqsToSee;
+    size_t        _nbSuperKmersSeenSoFar;
 };
 
 /*********************************************************************
@@ -306,22 +331,22 @@ void RepartitorAlgorithm<span>::computeFrequencies (Repartitor& repartitor)
 
     Model model (_config._kmerSize, _config._minim_size);
 
-    /** We create a sequence iterator. */
-    Iterator<Sequence>* itSeq = _bank->iterator();
-    LOCAL (itSeq);
+    CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(_bank->iterator()));
+    LOCAL(cancellable_it);
 
-    // can we reuse the it_sample variable above?
-    Iterator<Sequence>* it_sample = createIterator (
-        new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
-        nbseq_sample,
-        "Approximating frequencies of minimizers"
-    );
-    LOCAL (it_sample);
+    /** We create a sequence iterator and give it a progress message */
+    Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
+            cancellable_it,
+            _bank->getNbItems(),
+             "Approximating frequencies of minimizers"
+            );
+    LOCAL (it_all_reads);
 
     /** We compute an estimation of minimizers frequencies from a part of the bank. */
-    // actually.. let's try with the whole thing (itSeq instead of it_sample)
-    getDispatcher()->iterate (it_sample,  MmersFrequency<span> (
-        _config._minim_size, 0 /*_progress*/, m_mer_counts)
+    getDispatcher()->iterate (it_all_reads,  MmersFrequency<span> (
+        _config._minim_size, 0 /*_progress*/, m_mer_counts, 
+        nbseq_sample,
+        &(cancellable_it->_cancel))// will be set to true when iteration needs to be stopped
     );
 
     // single threaded, for debugging
@@ -375,34 +400,37 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 
     PartiInfo<5> sample_info (_config._nb_partitions, mmsize);
 
-    /** We create a sequence iterator. */
-    Iterator<Sequence>* itSeq = _bank->iterator();
-    LOCAL (itSeq);
+    string bankShortName = System::file().getBaseName(_bank->getId());
+    
+    CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(_bank->iterator()));
+    LOCAL(cancellable_it);
 
+    // how many seqs we need to see
     u_int64_t nbseq_sample = std::max ( u_int64_t (_config._estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
 
-    string bankShortName = System::file().getBaseName(_bank->getId());
+    /** We create a sequence iterator and give it a progress message */
+    Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
+            cancellable_it,
+            _bank->getNbItems(),
+            Stringify::format (progressFormat0, bankShortName.c_str()).c_str()
+            );
+    LOCAL (it_all_reads);
 
-    /** We create an iterator over a truncated part of the input bank. */
-    Iterator<Sequence>* it_sample = createIterator (
-        new TruncateIterator<Sequence> (*itSeq, nbseq_sample),
-        nbseq_sample,
-        Stringify::format (progressFormat0, bankShortName.c_str()).c_str()
-    );
-    LOCAL (it_sample);
 
     BankStats bstatsDummy;
 
     size_t  currentPass = 0;
 
     /** We compute a distribution of Superkmers from a part of the bank. */
-    getDispatcher()->iterate (it_sample,  SampleRepart<span> (
+    getDispatcher()->iterate (it_all_reads,  SampleRepart<span> (
         model,
         _config,
         1, // we don't care about the actual number of passes, we just use 1
         0, // we don't care about the actual number of passes, the current one is 0
         _config._nb_partitions,
-        0,
+        NULL,
+        &(cancellable_it->_cancel), // will be set to true when iteration needs to be stopped
+        nbseq_sample, // how many sequences we need to see
         bstatsDummy,
         sample_info
     ));

@@ -553,6 +553,74 @@ private:
     bool            _isDone;
 };
 
+
+/********************************************************************************/
+/** \brief Iterator that can be cancelled at some point during iteration
+ *
+ * This iterator iterates a referred iterator and will finish:
+ *      - when the referred iterator is over
+ *   or - when the cancel member variable is set to true
+ *
+ */
+template <class Item> class CancellableIterator : public Iterator<Item>
+{
+public:
+
+    /** Constructor.
+     * \param[in] ref : the referred iterator
+     * \param[in] initRef : will call 'first' on the reference if true
+     */
+    CancellableIterator (Iterator<Item>& ref, bool initRef=true)
+        : _cancel(true),  _ref(ref),  _initRef(initRef), _isDone(true) {}
+
+    /** \copydoc  Iterator::first */
+    void first()
+    {
+        _cancel = false;
+
+        if (_initRef)  { _ref.first(); }
+
+        /** We check whether the iteration is finished or not. */
+        _isDone = _ref.isDone();
+
+        /** IMPORTANT : we need to copy the referred item => we just can't rely on a simple
+         * pointer (in case of usage of Dispatcher for instance where a buffer of items is kept
+         * and could be wrong if the referred items doesn't exist any more when accessing the
+         * buffer).
+         * TODO doc: I get it, but why is it done only in this iterator and not other iterators like FilterIterator?*/
+        if (!_isDone)  { *(this->_item) = _ref.item(); }
+    }
+
+    /** \copydoc  Iterator::next */
+    void next()
+    {
+        _ref.next();
+
+        /** We check whether the iteration is finished or not. */
+        _isDone = _ref.isDone() || _cancel;
+
+        /** IMPORTANT : we need to copy the referred item => we just can't rely on a simple
+         * pointer (in case of usage of Dispatcher for instance where a buffer of items is kept
+         * and could be wrong if the referred items doesn't exist any more when accessing the
+         * buffer). */
+        if (!_isDone)  { *(this->_item) = _ref.item(); }
+    }
+
+    /** \copydoc  Iterator::isDone */
+    bool isDone()  {  return _isDone || _cancel;  }
+
+    /** \copydoc  Iterator::item */
+    Item& item ()  {  return *(this->_item);  }
+
+    bool        _cancel;
+
+private:
+
+    Iterator<Item>& _ref;
+    bool            _initRef;
+    bool            _isDone;
+};
+
 /********************************************************************************/
 /** \brief Iterator that filters out some iterated items
  *

@@ -81,7 +81,6 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 static const char* progressFormat0 = "DSK: counting kmers                    ";
 static const char* progressFormat1 = "DSK: Pass %d/%d, Step 1: partitioning    ";
 static const char* progressFormat2 = "DSK: Pass %d/%d, Step 2: counting kmers  ";
-static const char* progressFormat3 = "DSK: Collecting stats on %s ";
 static const char* progressFormat4 = "DSK: nb solid kmers found : %-9ld  ";
 
 /*********************************************************************

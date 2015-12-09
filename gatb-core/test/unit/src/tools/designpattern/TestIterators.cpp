@@ -50,6 +50,7 @@ class TestIterators : public Test
         CPPUNIT_TEST_GATB (iterators_checkCartesianIterator);
         CPPUNIT_TEST_GATB (iterators_checkCompoundIterator);
         CPPUNIT_TEST_GATB (iterators_checkTruncateIterator);
+        CPPUNIT_TEST_GATB (iterators_checkCancellableIterator);
         CPPUNIT_TEST_GATB (iterators_checkPairedIterator);
         CPPUNIT_TEST_GATB (iterators_checkVariant1);
         CPPUNIT_TEST_GATB (iterators_checkVariant2);
@@ -236,6 +237,37 @@ public:
         for (itTrunc2.first(); !itTrunc2.isDone(); itTrunc2.next())  {  CPPUNIT_ASSERT (*itTrunc2 == values[nbItems++]);  }
         CPPUNIT_ASSERT (nbItems == valuesLen);
     }
+
+    /********************************************************************************/
+    /** \brief check the cancellation of the given iterator
+     *
+     * Test of \ref gatb::core::tools::dp::impl::CancellableIterator \n
+     */
+    void iterators_checkCancellableIterator ()
+    {
+        int nbItems = 0;
+
+        /** We declare a STL list with some values. */
+        int values[] = {1,2,3,5,8,13,21,34};
+        int valuesLen = sizeof(values)/sizeof(values[0]);
+        list<int> l (values, values + valuesLen);
+
+        /** We declare an iterator on this list and loop the items. */
+        ListIterator<int> itRef (l);
+        nbItems = 0;
+        for (itRef.first(); !itRef.isDone(); itRef.next())  {  CPPUNIT_ASSERT (*itRef == values[nbItems++]);  }
+        CPPUNIT_ASSERT (nbItems == valuesLen);
+
+        /** We declare a truncated iterator for the list iterator. */
+        CancellableIterator<int> itCanc (itRef);
+        nbItems = 0;
+        for (itCanc.first(); !itCanc.isDone(); itCanc.next())  {  
+            CPPUNIT_ASSERT (*itCanc == values[nbItems++]);
+            if (nbItems == valuesLen/2) itCanc._cancel = true;
+        }
+        CPPUNIT_ASSERT (nbItems == valuesLen/2 );
+    }
+
 
     /********************************************************************************/
     /** \brief check the PairedIterator
