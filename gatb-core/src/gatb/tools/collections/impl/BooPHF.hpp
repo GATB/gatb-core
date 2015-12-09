@@ -61,7 +61,14 @@ private:
         Adaptator adaptor;
         
         public:
-            uint64_t operator ()  (const Key& key) const  {  return std::get<0>(emphf_hasher(adaptor(key)));  }
+            uint64_t operator ()  (const Key& key, uint64_t seed = 0) const  {  
+                if (seed != 0x33333333CCCCCCCCULL)
+                    return std::get<0>(emphf_hasher(adaptor(key)));  
+                return std::get<1>(emphf_hasher(adaptor(key)));   
+                // this is a big hack, because I'm lazy. 
+                // I wanted to return two different hashes depending on how boophf calls it
+                // since I contrl BooPHF code's, I know it calls this function with 0x33333333CCCCCCCCULL as the second seed.
+                }
     };
 
     typedef boomphf::mphf<  Key, hasher_t  > boophf_t;

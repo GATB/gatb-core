@@ -41,7 +41,7 @@ namespace boomphf {
 	{
 		
 		unsigned int low = x & 0xffffffff ;
-		unsigned int high = ( x >> 32) & 0xffffffff ;
+		unsigned int high = ( x >> 32LL) & 0xffffffff ;
 		
 		return (popcount_32(low) + popcount_32(high));
 	}
@@ -223,6 +223,8 @@ namespace boomphf {
 		
 		//return one hash
         uint64_t operator ()  (const Item& key, size_t idx)  const {  return hash64 (key, _seed_tab[idx]);  }
+       
+        uint64_t hashWithSeed(const Item& key, uint64_t seed)  const {  return hash64 (key, seed);  }
 		
 		//this one returns all the 7 hashes
 		//maybe use xorshift instead, for faster hash compute
@@ -283,17 +285,61 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 
     // wrapper around HashFunctors to return only one value instead of 7
     template <typename Item> class SingleHashFunctor 
-    {
-    public:
-        uint64_t operator ()  (const Item& key) const  {  return hashFunctors (key, 0);  }
+	{
+	public:
+		uint64_t operator ()  (const Item& key, uint64_t seed=0xAAAAAAAA55555555ULL) const  {  return hashFunctors.hashWithSeed(key, seed);  }
+		
+	private:
+		HashFunctors<Item> hashFunctors;
+		
+	};
 
-    private:
-        HashFunctors<Item> hashFunctors;
-    };
+	
+	
+	// the SingleHasher_t must have  operator()(elem_t key, uint64_t seed)
+	//this class simply generates a list of seeds
+	template <typename Item, class SingleHasher_t> class IndepHashFunctors
+	{
+		
+	public:
 
+		IndepHashFunctors ()
+		{
+			generate_hash_seed ();
+		}
+		hash_set_t operator ()  (const Item& key)
+		{
+			hash_set_t	 hset;
+			
+			for(size_t ii=0;ii<7; ii++)
+			{
+				hset[ii] =  singleHasher (key, _seed_tab[ii]);
+			}
+			return hset;
+		}
+		
+	private:
+		void generate_hash_seed ()
+		{
+			static const uint64_t rbase[MAXNBFUNC] =
+			{
+				0xAAAAAAAA55555555ULL,  0x33333333CCCCCCCCULL,  0x6666666699999999ULL,  0xB5B5B5B54B4B4B4BULL,
+				0xAA55AA5555335533ULL,  0x33CC33CCCC66CC66ULL,  0x6699669999B599B5ULL,  0xB54BB54B4BAA4BAAULL,
+				0xAA33AA3355CC55CCULL,  0x33663366CC99CC99ULL
+			};
+			
+			for (size_t i=0; i<MAXNBFUNC; ++i)  {  _seed_tab[i] = rbase[i];  }
+			for (size_t i=0; i<MAXNBFUNC; ++i)  {  _seed_tab[i] = _seed_tab[i] * _seed_tab[(i+3) % MAXNBFUNC]  ;  }
+		}
+		
+		static const size_t MAXNBFUNC = 10;
+		uint64_t _seed_tab[MAXNBFUNC];
+		SingleHasher_t singleHasher;
+	};
+	
     template <typename Item, class SingleHasher_t> class XorshiftHashFunctors
     {
-        /*  Xorshift128
+        /*  Xorshift128*
             Written in 2014 by Sebastiano Vigna (vigna@acm.org)
 
             To the extent possible under law, the author has dedicated all copyright
@@ -305,13 +351,14 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
            systematic failures, but due to the relatively short period it is
            acceptable only for applications with a mild amount of parallelism;
            otherwise, use a xorshift1024* generator.
+
            The state must be seeded so that it is not everywhere zero. If you have
            a nonzero 64-bit seed, we suggest to pass it twice through
            MurmurHash3's avalanching function. */
 
-        uint64_t s[ 2 ];
+      //  uint64_t s[ 2 ];
 
-        uint64_t next(void) { 
+        uint64_t next(uint64_t * s) {
             uint64_t s1 = s[ 0 ];
             const uint64_t s0 = s[ 1 ];
             s[ 0 ] = s0;
@@ -319,49 +366,28 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
             return ( s[ 1 ] = ( s1 ^ s0 ^ ( s1 >> 17 ) ^ ( s0 >> 26 ) ) ) + s0; // b, c
         }
 
-        // MurMurhash3 avalanche
-#define BIG_CONSTANT(x) (x##LLU)
-#define FORCE_INLINE inline __attribute__((always_inline))
-        FORCE_INLINE uint64_t fmix64 ( uint64_t k )
-        {
-            k ^= k >> 33;
-            k *= BIG_CONSTANT(0xff51afd7ed558ccd);
-            k ^= k >> 33;
-            k *= BIG_CONSTANT(0xc4ceb9fe1a85ec53);
-            k ^= k >> 33;
-
-            return k;
-        }
-
-        /** Constructor.
-         * \param[in] nbFct : number of hash functions to be used
-         * \param[in] seed : some initialization code for defining the hash functions. */
         public:
-        XorshiftHashFunctors ()
-        {
-            _nbFct = 7; // use 7 hash func
-        }
-        
         //this one returns all the 7 hashes
         hash_set_t operator ()  (const Item& key)
         {
+			uint64_t s[ 2 ];
+
             hash_set_t   hset;
             
-            hset[0] =  singleHasher (key); 
+            hset[0] =  singleHasher (key, 0xAAAAAAAA55555555ULL); 
+            hset[1] =  singleHasher (key, 0x33333333CCCCCCCCULL); 
             
             s[0] = hset[0];
-            s[1] = fmix64(fmix64(hset[0])); //more or less, as per xorshift recommendation
-              // repartition looks good with this one. but TODO: try just a xorshift64: http://xorshift.di.unimi.it/xorshift64star.c
+            s[1] = hset[1];
 
-            for(size_t ii=1;ii<_nbFct; ii++)
+            for(size_t ii=2;ii< 7 /* it's much better have a constant here, for inlining; this loop is super performance critical*/; ii++)
             {
-                hset[ii] = next();
+                hset[ii] = next(s);
             }
 
             return hset;
         }
     private:
-        size_t _nbFct;
         SingleHasher_t singleHasher;
     };
 
@@ -408,7 +434,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		
 		bitVector(uint64_t n) : _size(n)
 		{
-			_nchar  = (1+n/64LL);
+			_nchar  = (1ULL+n/64ULL);
 			_bitArray = (uint64_t *) calloc (_nchar,sizeof(uint64_t));
 		}
 		
@@ -420,7 +446,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		void resize(uint64_t newsize)
 		{
 			//printf("bitvector resize from  %llu bits to %llu \n",_size,newsize);
-			_nchar  = (1+newsize/64LL);
+			_nchar  = (1ULL+newsize/64ULL);
 			_bitArray = (uint64_t *) realloc(_bitArray,_nchar*sizeof(uint64_t));
 			_size = newsize;
 		}
@@ -430,7 +456,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 			return _size;
 		}
 		
-		uint64_t bitSize() const {return (_nchar*64LL + _ranks.capacity()*64 );}
+		uint64_t bitSize() const {return (_nchar*64ULL + _ranks.capacity()*64ULL );}
 		
 		//clear whole array
 		void clear()
@@ -443,7 +469,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		{
 			assert( (start & 63) ==0);
 			assert( (size & 63) ==0);
-			memset(_bitArray + (start/64),0,(size/64)*sizeof(uint64_t));
+			memset(_bitArray + (start/64ULL),0,(size/64ULL)*sizeof(uint64_t));
 		}
 		
 		//for debug purposes
@@ -470,7 +496,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		//return value at pos
 		uint64_t operator[](uint64_t pos) const
 		{
-			return (_bitArray[pos >> 6] >> (pos & 63 ) ) & 1;
+			return (_bitArray[pos >> 6ULL] >> (pos & 63 ) ) & 1;
 		}
 		
 		//atomically   return old val and set to 1
@@ -487,7 +513,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		{
 			assert(pos<_size);
 			//_bitArray [pos >> 6] |=   (1ULL << (pos & 63) ) ;
-			__sync_fetch_and_or (_bitArray + (pos >> 6), (1ULL << (pos & 63)) );
+			__sync_fetch_and_or (_bitArray + (pos >> 6ULL), (1ULL << (pos & 63)) );
 
 		}
 		
@@ -495,7 +521,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		void reset(uint64_t pos)
 		{
 			//_bitArray [pos >> 6] &=   ~(1ULL << (pos & 63) ) ;
-			__sync_fetch_and_and (_bitArray + (pos >> 6), ~(1ULL << (pos & 63) ));
+			__sync_fetch_and_and (_bitArray + (pos >> 6ULL), ~(1ULL << (pos & 63) ));
 
 		}
 		
@@ -515,7 +541,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		
 		uint64_t rank(uint64_t pos) const
 		{
-			uint64_t word_idx = pos / 64;
+			uint64_t word_idx = pos / 64ULL;
 			uint64_t word_offset = pos % 64;
 			uint64_t block = pos / _nb_bits_per_rank_sample;
 			uint64_t r = _ranks[block];
@@ -569,12 +595,12 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		bbloom (uint64_t tai_bloom, size_t nbHash = 7, size_t block_nbits = 12)
 		:  _n_hash_func(nbHash), _blooma(0), _tai(tai_bloom+2*(1<<block_nbits)), _nchar(0), _nbits_BlockSize(block_nbits)
 		{
-			_nchar  = (1+_tai/8LL);
+			_nchar  = (1ULL+_tai/8ULL);
 			_blooma = (unsigned char *) malloc (_nchar*sizeof(unsigned char));
 			memset (_blooma, 0, _nchar*sizeof(unsigned char));
 			
-			_mask_block = (1<<_nbits_BlockSize) - 1;
-			_reduced_tai = _tai -  2*(1<<_nbits_BlockSize) ;//2* for neighbor coherent
+			_mask_block = (1ULL<<_nbits_BlockSize) - 1ULL;
+			_reduced_tai = _tai -  2ULL*(1ULL<<_nbits_BlockSize) ;//2* for neighbor coherent
 		}
 		virtual ~bbloom ()  { free (_blooma); }
 		
@@ -585,12 +611,12 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		{
 			uint64_t h0 =  hashes[0] % _reduced_tai;
 			
-			if ((_blooma[h0 >> 3 ] & bit_mask[h0 & 7]) == 0 )  {  return false;  }
+			if ((_blooma[h0 >> 3ULL ] & bit_mask[h0 & 7]) == 0 )  {  return false;  }
 			
 			for (size_t i=1; i<_n_hash_func; i++)
 			{
 				uint64_t h1 = h0  + (hashes[i] & _mask_block ) ;
-				if ((_blooma[h1 >> 3 ] & bit_mask[h1 & 7]) == 0)  {  return false;  }
+				if ((_blooma[h1 >> 3ULL ] & bit_mask[h1 & 7]) == 0)  {  return false;  }
 			}
 			return true;
 		}
@@ -598,12 +624,12 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 		void insert (hash_set_t & hashes)
 		{
 			uint64_t h0 = hashes[0] % _reduced_tai;
-			__sync_fetch_and_or (_blooma + (h0 >> 3), bit_mask[h0 & 7]);
+			__sync_fetch_and_or (_blooma + (h0 >> 3ULL), bit_mask[h0 & 7]);
 			
 			for (size_t i=1; i< _n_hash_func; i++)
 			{
 				uint64_t h1 = h0  + (hashes[i] & _mask_block )   ;
-				__sync_fetch_and_or (_blooma + (h1 >> 3), bit_mask[h1 & 7]);
+				__sync_fetch_and_or (_blooma + (h1 >> 3ULL), bit_mask[h1 & 7]);
 			}
 		}
 		
@@ -663,12 +689,15 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 	void * thread_processLevel(void * args);
 	
 
-    template <typename elem_t, typename Hasher_t> /* Hasher_t returns a single hash*/
+    /* Hasher_t returns a single hash when operator()(elem_t key) is called.
+       if used with XorshiftHashFunctors, it must have the following operator: operator()(elem_t key, uint64_t seed) */
+    template <typename elem_t, typename Hasher_t>
 	class mphf {
 		
         /* this mechanisms gets 7 hashes (for the Bloom filters) out of Hasher_t */
-        typedef XorshiftHashFunctors<elem_t,Hasher_t> BloomHasher_t ;
-        //typedef HashFunctors<elem_t> BloomHasher_t; // original code (but only works for int64 keys)  (seems to be as fast as the current xorshift)
+        typedef XorshiftHashFunctors<elem_t,Hasher_t> MultiHasher_t ;
+       // typedef HashFunctors<elem_t> MultiHasher_t; // original code (but only works for int64 keys)  (seems to be as fast as the current xorshift)
+		//typedef IndepHashFunctors<elem_t,Hasher_t> MultiHasher_t; //faster than xorshift
 		
 	public:
 		mphf()
@@ -713,7 +742,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 			
 			_lastbitsetrank = _bitset->rank( _bitset->size() -1);
 			
-			//printf("used temp ram for construction : %lli MB \n",setLevel2.capacity()* sizeof(elem_t) /1024LL/1024LL);
+			//printf("used temp ram for construction : %lli MB \n",setLevel2.capacity()* sizeof(elem_t) /1024ULL/1024ULL);
 			
 			std::vector<elem_t>().swap(setLevel2);   // clear setLevel2 reallocating
 			
@@ -755,7 +784,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 			{
 				bloomsizes+= _levels[ii]->bloom->bitSize();
 			}
-			uint64_t totalsize = _bitset->bitSize() + bloomsizes + _final_hash.size()*42*8 ;  // unordered map takes approx 42B per elem [personal test]
+			uint64_t totalsize = _bitset->bitSize() + bloomsizes + _final_hash.size()*42*8 ;  // unordered map takes approx 42B per elem [personal test] (42B with uint64_t key, would be larger for other type of elem)
 			
 			
 			printf("Bitarray    %12llu  bits (%.2f %%)   (array + ranks )\n",
@@ -1044,7 +1073,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 	private:
 		level ** _levels;
 		int _nb_levels;
-        BloomHasher_t _hasher;
+        MultiHasher_t _hasher;
 		bitVector * _bitset;
 		double _gamma;
 		uint64_t _hash_domain;
