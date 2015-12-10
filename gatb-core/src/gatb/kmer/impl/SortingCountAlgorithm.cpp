@@ -434,6 +434,14 @@ void SortingCountAlgorithm<span>::configure ()
             getInput()->getStr(STR_URI_OUTPUT)   :
             (getInput()->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (_bank->getId()));
 
+        /* create output dir if it doesn't exist */
+        if(!System::file().doesExist(getInput()->getStr(STR_URI_OUTPUT_DIR))){
+            int ok = System::file().mkdir(getInput()->getStr(STR_URI_OUTPUT_DIR), 0755);
+            if(ok != 0){
+                throw Exception ("Error: can't create output directory");
+            }
+        }
+
         storage = StorageFactory(STORAGE_HDF5).create (output, true, false); ////GR ici choix du hdf5 pour le storage de sortie
     }
 

@@ -314,6 +314,14 @@ struct build_visitor_solid : public boost::static_visitor<>    {
             props->getStr(STR_URI_OUTPUT)   :
             (props->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (bank->getId()));
 
+        /* create output dir if it doesn't exist */
+        if(!System::file().doesExist(props->getStr(STR_URI_OUTPUT_DIR))){
+            int ok = System::file().mkdir(props->getStr(STR_URI_OUTPUT_DIR), 0755);
+            if(ok != 0){
+                throw system::Exception ("Error: can't create output directory");
+            }
+        }
+
         DEBUG ((cout << "builGraph for bank '" << bank->getId() << "'"
             << " kmerSize=" << kmerSize
             << " nksMin=" << nksMin
