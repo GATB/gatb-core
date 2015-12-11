@@ -729,10 +729,6 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We update the message of the progress bar. */
     _progress->setMessage (Stringify::format(progressFormat1, pass+1, _config._nb_passes));
 
-    u_int64_t nbseq_sample = std::max ( u_int64_t (_config._estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
-
-    DEBUG (("SortingCountAlgorithm<span>::fillPartitions : nb seq for sample :  %llu \n ",nbseq_sample));
-
     /** We create a kmer model; using the frequency order if we're in that mode */
     uint32_t* freq_order = NULL;
 
