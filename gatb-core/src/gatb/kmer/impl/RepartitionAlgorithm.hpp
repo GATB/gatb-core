@@ -56,7 +56,9 @@ public:
     RepartitorAlgorithm (
         gatb::core::bank::IBank*        bank,
         tools::storage::impl::Group&    group,
-        const Configuration&            config
+        const Configuration&            config,
+        unsigned int                    nb_cores = 0,
+        tools::misc::IProperties*   options    = 0
     );
 
     /** */

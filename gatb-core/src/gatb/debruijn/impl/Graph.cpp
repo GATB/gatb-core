@@ -392,7 +392,11 @@ struct build_visitor_solid : public boost::static_visitor<>    {
         /************************************************************/
         DEBUG ((cout << "build_visitor : RepartitorAlgorithm BEGIN\n"));
 
-        RepartitorAlgorithm<span> repart (bank, minimizersGroup, config);
+        RepartitorAlgorithm<span> repart (bank, 
+                 minimizersGroup, 
+                 config,
+                 props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
+                 );
         executeAlgorithm (repart, 0, props, graph._info);
 
         DEBUG ((cout << "build_visitor : RepartitorAlgorithm END\n"));

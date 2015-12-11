@@ -451,7 +451,12 @@ void SortingCountAlgorithm<span>::configure ()
     /** We check that the minimizers hash function is ok, otherwise we build one. */
     if (_repartitor == 0)
     {
-        RepartitorAlgorithm<span> repart (_bank, storage->getGroup("minimizers"), _config);
+        RepartitorAlgorithm<span> repart (
+                _bank, 
+                storage->getGroup("minimizers"), 
+                _config,
+                getInput()->getInt(STR_NB_CORES)
+                );
         repart.execute ();
         setRepartitor (new Repartitor(storage->getGroup("minimizers")));
     }

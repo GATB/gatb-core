@@ -261,9 +261,11 @@ template<size_t span>
 RepartitorAlgorithm<span>::RepartitorAlgorithm (
     IBank* bank,
     Group& group,
-    const Configuration& config
+    const Configuration& config,
+    unsigned int nb_cores,
+    tools::misc::IProperties*   options
 )
-    :  Algorithm("repartition"), _config(config), _bank(bank), _group(group), _freq_order(0)
+    :  Algorithm("repartition", nb_cores, options), _config(config), _bank(bank), _group(group), _freq_order(0)
 {
 }
 
