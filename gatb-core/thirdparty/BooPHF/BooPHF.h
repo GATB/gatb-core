@@ -356,8 +356,6 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
            a nonzero 64-bit seed, we suggest to pass it twice through
            MurmurHash3's avalanching function. */
 
-      //  uint64_t s[ 2 ];
-
         uint64_t next(uint64_t * s) {
             uint64_t s1 = s[ 0 ];
             const uint64_t s0 = s[ 1 ];

@@ -424,7 +424,7 @@ struct build_visitor_solid : public boost::static_visitor<>    {
         data.setSolid (solidCounts);
 
         /** We check that we got solid kmers. */
-        if (solidCounts->getNbItems() == 0)  {  return;  /*throw "NO SOLID KMERS FOUND...";*/  }
+        if (solidCounts->getNbItems() == 0)  {  throw system::Exception ("This dataset has no solid kmers"); }
 
         DEBUG ((cout << "build_visitor : SortingCountAlgorithm END\n"));
 
