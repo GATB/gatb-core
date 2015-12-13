@@ -104,7 +104,7 @@ void Configuration::load (tools::storage::impl::Group& group)
     is.read ((char*)&_nbCores,                    sizeof(_nbCores));
     is.read ((char*)&_nb_partitions_in_parallel,                    sizeof(_nb_partitions_in_parallel));
     is.read ((char*)&_abundanceUserNb,                    sizeof(_abundanceUserNb));
-    //_abundance.resize (_abundanceUserNb);
+    _abundance.resize (_abundanceUserNb);
     //is.read ((char*)_abundance.data(),    sizeof(tools::misc::CountRange)*_abundance.size());
 
     is.read ((char*)&_nbCores_per_partition,                sizeof(_nbCores_per_partition));
