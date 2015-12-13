@@ -145,7 +145,7 @@ void Configuration::save (tools::storage::impl::Group& group)
     os.write ((const char*)&_max_memory,                    sizeof(_max_memory));
     os.write ((const char*)&_nbCores,                    sizeof(_nbCores));
     os.write ((const char*)&_nb_partitions_in_parallel,                    sizeof(_nb_partitions_in_parallel));
-    //os.write ((const char*)&_abundanceUserNb,                    sizeof(_abundanceUserNb));
+    os.write ((const char*)&_abundanceUserNb,                    sizeof(_abundanceUserNb));
     //os.write ((const char*)_abundance.data(),    sizeof(tools::misc::CountRange)*_abundance.size());
 
 
