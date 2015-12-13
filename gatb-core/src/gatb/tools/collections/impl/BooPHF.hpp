@@ -59,12 +59,19 @@ private:
         typedef emphf::jenkins64_hasher BaseHasher;
         BaseHasher emphf_hasher;
         Adaptator adaptor;
-        
-        public:
-            uint64_t operator ()  (const Key& key, uint64_t seed = 0) const  {  
+            
+       public:
+        hasher_t(){
+            std::mt19937_64 rng(37); // deterministic seed
+            emphf_hasher = BaseHasher::generate(rng);
+        }
+
+ 
+
+        uint64_t operator ()  (const Key& key, uint64_t seed = 0) const  {  
                 if (seed != 0x33333333CCCCCCCCULL)
                     return std::get<0>(emphf_hasher(adaptor(key)));  
-                return std::get<1>(emphf_hasher(adaptor(key)));   
+                return std::get<2>(emphf_hasher(adaptor(key)));   
                 // this is a big hack, because I'm lazy. 
                 // I wanted to return two different hashes depending on how boophf calls it
                 // since I contrl BooPHF code's, I know it calls this function with 0x33333333CCCCCCCCULL as the second seed.

@@ -345,7 +345,9 @@ void RepartitorAlgorithm<span>::computeFrequencies (Repartitor& repartitor)
     LOCAL (it_all_reads);
 
     /** We compute an estimation of minimizers frequencies from a part of the bank. */
-    getDispatcher()->iterate (it_all_reads,  MmersFrequency<span> (
+    
+    SerialDispatcher serialDispatcher;
+    serialDispatcher.iterate (it_all_reads,  MmersFrequency<span> (
         _config._minim_size, 0 /*_progress*/, m_mer_counts, 
         nbseq_sample,
         &(cancellable_it->_cancel))// will be set to true when iteration needs to be stopped
@@ -424,7 +426,8 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
     size_t  currentPass = 0;
 
     /** We compute a distribution of Superkmers from a part of the bank. */
-    getDispatcher()->iterate (it_all_reads,  SampleRepart<span> (
+    SerialDispatcher serialDispatcher;
+    serialDispatcher.iterate (it_all_reads, SampleRepart<span> (
         model,
         _config,
         1, // we don't care about the actual number of passes, we just use 1
