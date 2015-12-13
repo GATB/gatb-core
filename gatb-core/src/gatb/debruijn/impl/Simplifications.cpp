@@ -32,6 +32,7 @@
 
 #include <stack>
 #include <gatb/debruijn/impl/Simplifications.hpp>
+#include <gatb/debruijn/impl/NodesDeleter.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp> // for ProgressTimerAndSystem
 
 #ifdef WITH_MPHF
@@ -350,15 +351,11 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
-    ISynchronizer* synchro = System::thread().newSynchronizer();
 
-    // parallel stuff
-    vector<bool> nodesToDelete; // don't delete while parallel traversal, do it afterwards
+    // nodes deleter stuff
     unsigned long nbNodes = itNode.size();
-    nodesToDelete.resize(nbNodes); // number of graph nodes // (!) this will alloc 1 bit per kmer.
-    for (unsigned long i = 0; i < nbNodes; i++)
-        nodesToDelete[i] = false;
-
+    NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
+    
     bool haveInterestingNodesInfo = !_firstNodeIteration;
     _firstNodeIteration = false;
 
@@ -406,19 +403,19 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
          */
 
         unsigned long index = _graph.nodeMPHFIndex(node);
-        u_int64_t iterationRank = index; //node.iterationRank;
+        //u_int64_t iterationRank = node.iterationRank;
         if (haveInterestingNodesInfo)
-            if (interestingNodes[iterationRank] == false)
+            if (interestingNodes[index /*iterationRank didn't work*/] == false)
                 return; // no point in examining non-branching nodes, saves calls to in/out-degree, i.e. accesses to the minia datastructure
 
 
         if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
-        if (nodesToDelete[index]) { return; }  // parallel // actually not sure if really useful
+        if (nodesDeleter.get(index)) { return; }  // parallel // actually not sure if really useful
 
         unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
 
         if (!haveInterestingNodesInfo)
-            interestingNodes[iterationRank] = interestingNodes[iterationRank] || (!(inDegree == 1 && outDegree == 1));
+            interestingNodes[index] = interestingNodes[index] || (!(inDegree == 1 && outDegree == 1));
 
         /* tips have out/in degree of 0 on one side, and any non-zero degree on the other */
         if ((inDegree == 0 || outDegree == 0) && (inDegree != 0 || outDegree != 0))
@@ -493,8 +490,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                 for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
                 {
                     //DEBUG(cout << endl << "deleting tip node: " <<  _graph.toString (*itVecNodes) << endl);
-                    unsigned long index = _graph.nodeMPHFIndex(*itVecNodes); // parallel version
-                    nodesToDelete[index] = true; // parallel version
+                    nodesDeleter.markToDelete(*itVecNodes);
                 }
                 
 
@@ -506,7 +502,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
                     // soem debugging
                     /*if (_graph.isNodeDeleted(connectedBranchingNodes[j])) { continue; } // {continue;} // sequential and also parallel
-                    if (nodesToDelete[index]) { continue; }  // parallel // actually not sure if really useful
+                    if (nodesDeleter.get(index)) { continue; }  // parallel // actually not sure if really useful
                     unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
                     if (haveInterestingNodesInfo && ((interestingNodes[index] == false) && ((inDegree == 1 && outDegree == 1))))
                     {
@@ -523,8 +519,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     }); // parallel
 
     // now delete all nodes, in parallel
-    // TODO: implement deletion of nodes using a set of nodes, if this set is not too large. else, use index. will be faster.
-    _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
+    nodesDeleter.flush();
     
     return nbTipsRemoved;
 #endif
@@ -718,14 +713,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
-    ISynchronizer* synchro = System::thread().newSynchronizer();
 
-    // parallel stuff
-    vector<bool> nodesToDelete; // don't delete while parallel traversal, do it afterwards
     unsigned long nbNodes = itNode.size();
-    nodesToDelete.resize(nbNodes); // number of graph nodes // (!) this will alloc 1 bit per kmer.
-    for (unsigned long i = 0; i < nbNodes; i++)
-        nodesToDelete[i] = false;
+    NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
 
     bool haveInterestingNodesInfo = !_firstNodeIteration;
 
@@ -734,9 +724,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
       TIME(auto start_thread_t=get_wtime());
 
-      unsigned long index = _graph.nodeMPHFIndex(node);
       if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
-      if (nodesToDelete[index]) { return; }  // parallel // actually not sure if really useful
+      if (nodesDeleter.get(node)) { return; }  // parallel // actually not sure if really useful
+      unsigned long index = _graph.nodeMPHFIndex(node);
 
 
       // TODO think about cases where bulge suppression could make a node intresting
@@ -771,8 +761,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                 if (_graph.isNodeDeleted(neighbors[i].to)) { 
                      __sync_fetch_and_add(&nbFirstNodeGraphDeleted, 1);
                     continue;}
-                unsigned long index =_graph.nodeMPHFIndex(neighbors[i].to);
-                if (nodesToDelete[index]) { 
+                if (nodesDeleter.get(neighbors[i].to)) { 
                      __sync_fetch_and_add(&nbFirstNodeDeleted, 1);
                     continue;}
 
@@ -897,9 +886,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                 DEBUG(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
                 for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
                 {
-                    //DEBUG(cout << endl << "deleting node " << _graph.toString(*itVecNodes) << endl);
-                    unsigned long index = _graph.nodeMPHFIndex(*itVecNodes); // parallel version
-                    nodesToDelete[index] = true; // parallel version
+                    nodesDeleter.markToDelete(*itVecNodes);
                 }
 
                 __sync_fetch_and_add(&nbBulgesRemoved, 1);
@@ -915,7 +902,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     
     // now delete all nodes, in parallel
     TIME(auto start_nodedelete_t=get_wtime());
-    _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
+    nodesDeleter.flush();
     TIME(auto end_nodedelete_t=get_wtime());
     TIME(__sync_fetch_and_add(&timeDelete, diff_wtime(start_nodedelete_t,end_nodedelete_t)));
 
@@ -995,14 +982,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
-    ISynchronizer* synchro = System::thread().newSynchronizer();
 
     // parallel stuff
-    vector<bool> nodesToDelete; // don't delete while parallel traversal, do it afterwards
     unsigned long nbNodes = itNode.size();
-    nodesToDelete.resize(nbNodes); // number of graph nodes // (!) this will alloc 1 bit per kmer.
-    for (unsigned long i = 0; i < nbNodes; i++)
-        nodesToDelete[i] = false;
+    NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
 
     unsigned long timeAll = 0, timeSimplePath = 0;
 
@@ -1010,15 +993,15 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
             {
             TIME(auto start_thread_t=get_wtime());
 
-            unsigned long index = _graph.nodeMPHFIndex(node);
-
 
             /* TODO think about interestingnodes info, at the same time as we think for it for bulge removal. right now it's only implemented for tips. might speed bulges/EC removal up too */
             //if (interestingNodes[index] == false)
             //return; // no point in examining non-branching nodes, saves calls to in/out-degree, i.e. accesses to the minia datastructure
 
             if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
-            if (nodesToDelete[index]) { return; }  // parallel // actually not sure if really useful
+            if (nodesDeleter.get(node)) { return; }  // parallel // actually not sure if really useful
+
+            unsigned long index = _graph.nodeMPHFIndex(node);
 
             unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
 
@@ -1046,8 +1029,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
 
                         if (_graph.isNodeDeleted(neighbors[i].to)) { 
                             continue;}
-                        unsigned long index =_graph.nodeMPHFIndex(neighbors[i].to);
-                        if (nodesToDelete[index]) { 
+                        if (nodesDeleter.get(neighbors[i].to)) { 
                             continue;}
 
                         /* explore the simple path from that node */
@@ -1123,8 +1105,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                                 for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
                                 {
                                     //DEBUG(cout << endl << "deleting EC node: " <<  _graph.toString (*itVecNodes) << endl);
-                                    unsigned long index = _graph.nodeMPHFIndex(*itVecNodes); // parallel version
-                                    nodesToDelete[index] = true; // parallel version
+                                    nodesDeleter.markToDelete(*itVecNodes); // parallel version
                                 }
 
                                 __sync_fetch_and_add(&nbECRemoved, 1);
@@ -1139,8 +1120,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
 
             }); // parallel
 
-    // now delete all nodes, in sequential (check if it takes long)
-    _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
+    nodesDeleter.flush();
 
     if (_verbose)
     {
