@@ -48,6 +48,7 @@ class NodesDeleter
         int _nbCores;
         bool useList;
         unsigned long explicitLimit;
+        system::ISynchronizer* synchro;
 
     NodesDeleter(const GraphTemplate<Node,Edge,GraphDataVariant> &  graph, uint64_t nbNodes, int nbCores) : nbNodes(nbNodes), _graph(graph), _nbCores(nbCores)
     {
@@ -63,6 +64,9 @@ class NodesDeleter
         //std::cout << "sizeof node: " << sizeof(Node) << std::endl;
         useList = true;
         explicitLimit = 10000000; 
+            
+        // set insertions aren't thread safe, so let's use a synchronizer
+        synchro = system::impl::System::thread().newSynchronizer();
     }
 
     bool get(uint64_t index)
@@ -89,7 +93,11 @@ class NodesDeleter
         nodesToDelete[index] = true;
 
         if (useList)
+        {
+            synchro->lock();
             setNodesToDelete.insert(node);
+            synchro->unlock();
+        }
 
         if (setNodesToDelete.size() > explicitLimit)
             useList = false;
@@ -106,7 +114,6 @@ class NodesDeleter
         }
         else
         {
-            system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer();
             _graph.deleteNodesByIndex(nodesToDelete, _nbCores, synchro);
         }
     }
