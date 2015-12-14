@@ -921,11 +921,11 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
     if (_verbose)
     {
-        TIME(cout << "Timings: " << timeAll / unit << " CPUsecs total."<< endl);
-        TIME(cout << "         " << timeSimplePath / unit << " CPUsecs simple path traversal." << endl);
-        TIME(cout << "         " << timePathFinding / unit << "(/" << timePathFinding / unit << ") CPUsecs path-finding(/failed). Longest: " << timeLongestFailure / (unit/1000) << " CPUmillisecs (depth " << longestFailureDepth << ")." << endl);
-        TIME(cout << "         " << timePost / unit << " CPUsecs topological bulge processing, " << timeDelete / unit << " CPUsecs nodes deletion." << endl);
-        TIME(cout << "         " << timeVarious / unit << " CPUsecs various overhead." << endl);
+        TIME(cout << "Bulges timings: " << timeAll / unit << " CPUsecs total."<< endl);
+        TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal." << endl);
+        TIME(cout << "                " << timePathFinding / unit << "(/" << timePathFinding / unit << ") CPUsecs path-finding(/failed). Longest: " << timeLongestFailure / (unit/1000) << " CPUmillisecs (depth " << longestFailureDepth << ")." << endl);
+        TIME(cout << "                " << timePost / unit << " CPUsecs topological bulge processing, " << timeDelete / unit << " CPUsecs nodes deletion." << endl);
+        TIME(cout << "                " << timeVarious / unit << " CPUsecs various overhead." << endl);
     }
 
     return nbBulgesRemoved;
@@ -1129,7 +1129,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
         double unit = 1000000000;
         cout.setf(ios_base::fixed);
         cout.precision(1);
-        TIME(cout << "Timings: " << timeAll / unit << " CPUsecs total."<< endl);
+        TIME(cout << "EC Timings: " << timeAll / unit << " CPUsecs total."<< endl);
     }
 
     return nbECRemoved;
