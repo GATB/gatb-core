@@ -742,6 +742,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
     // stats
     //
+    unsigned long nbBulgesCandidates = 0;
     unsigned long nbBulgesRemoved = 0;
     unsigned long nbSimplePaths = 0;
     unsigned long nbLongSimplePaths = 0;
@@ -793,6 +794,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
       {
          if ((outDegree >= 2 && dir == DIR_OUTCOMING) || (inDegree >= 2 && dir == DIR_INCOMING))
          {
+            __sync_fetch_and_add(&nbBulgesCandidates,1);
+
             TIME(auto start_various_overhead_t=get_wtime());
             DEBUG(cout << endl << "putative bulge node: " << _graph.toString (node) << endl);
 
@@ -962,6 +965,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
         cout << nbBulgesRemoved << " bulges removed. " << endl <<
             nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads, among them " <<
             nbTopologicalBulges << " topological bulges, " << nbFirstNodeDeleted << "+" << nbFirstNodeGraphDeleted << " were first-node duplicates." << endl;
+        cout << nbBulgesCandidates << " bulges candidates passed degree check. " << endl;
         cout << nbNoAltPathBulgesDepth << "+" << nbNoAltPathBulgesLoop << "+" << nbNoAltPathBulgesDeadend << " without alt. path (complex+loop+deadend), " 
             << nbBadCovBulges << " didn't satisfy cov. criterion." << endl;
     }
@@ -1025,6 +1029,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     unsigned long nbShortSimplePaths = 0;
     unsigned long nbTopologicalEC = 0;
     unsigned long nbECRemoved = 0;
+    unsigned long nbECCandidates = 0;
 
     /** We get an iterator over all nodes . */
     char buffer[128];
@@ -1069,6 +1074,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                 if ((outDegree >= 2 && dir == DIR_OUTCOMING) || (inDegree >= 2 && dir == DIR_INCOMING))
                 {  
                     DEBUG(cout << endl << "putative EC node: " << _graph.toString (node) << endl);
+                    __sync_fetch_and_add(&nbECCandidates,1);
 
                     /** We follow the outcoming simple paths (so, if it's outdegree 2, we follow the outcoming simple paths.
                      * to get their length and last neighbor */
@@ -1176,6 +1182,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     if (_verbose)
     {
         cout << nbECRemoved << " erroneous connections removed. " << endl;
+        cout << nbECCandidates << " EC candidates passed degree check. " << endl;
         cout << nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads" << endl;
         double unit = 1000000000;
         cout.setf(ios_base::fixed);

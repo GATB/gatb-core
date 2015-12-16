@@ -297,7 +297,15 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::check ()
         /** We get the current abundance. */
         Abundance_t abundance = (*_abundanceMap)[count.value];
 
-        if (abundance!=count.abundance && abundance<MAX_ABUNDANCE)  {  throw Exception ("ERROR: MPHF isn't injective (abundance population failed)");  }
+        // sanity check (thank god i wrote this, was useful for spruce)
+        if (abundance!=count.abundance && abundance<MAX_ABUNDANCE)  
+        {  
+            std::cout << "debug info: " << abundance << " " << count.abundance << std::endl;
+            typename AbundanceMap::Hash::Code h = _abundanceMap->getCode (count.value);
+            size_t n = _abundanceMap->size();
+            std::cout << "debug info: " << h << " / " << n << std::endl;
+            throw Exception ("ERROR: MPHF isn't injective (abundance population failed)");  
+        }
 
         nb_iterated ++;
     }
