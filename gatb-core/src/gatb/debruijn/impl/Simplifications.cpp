@@ -77,9 +77,9 @@ Simplifications<Node,Edge,GraphDataVariant>::Simplifications(const GraphTemplate
     ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (this->_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), "");
     unsigned long nbNodes = itNode.size();
 
-    interestingNodes.resize(nbNodes); // number of graph nodes // (!) this will alloc 1 bit per kmer.
+    interestingNodes.resize(nbNodes); // number of graph nodes // (! memory !) this will alloc 1 bit per kmer.
     for (unsigned long i = 0; i < nbNodes; i++)
-        interestingNodes[i] = false;
+        interestingNodes[i] = true;
 }
 
 
@@ -344,6 +344,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
     unsigned long nbTipsRemoved = 0;
 
+    // stats
+    unsigned long timeAll = 0, timeSimplePath = 0, timeSimplePathLong = 0, timeSimplePathShortTopo = 0, timeSimplePathShortRCTC = 0;
+    unsigned long nbTipCandidates = 0;
+
     /** We get an iterator over all nodes */
     char buffer[128];
     sprintf(buffer, simplprogressFormat0, ++_nbTipRemovalPasses);
@@ -361,10 +365,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
     dispatcher.iterate (itNode, [&] (Node& node)
     {
-        /* since nodes are always iterated in the same order,
+        /* "since nodes are always iterated in the same order,
          * their rank is a nice proxy to index interestingNodes
-         * rather than doing an expensive MPHF query.
-         * or so I thought. but actually, 
+         * rather than doing an expensive MPHF query."
+         * ..or so I thought! but actually, 
          * a non-interesting node can become interesting;
          * must be some strange dBG motif. so I'm keeping the code as it is right now.
          * upon investigation, here a strange dbg motif:
@@ -377,6 +381,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
          *  -->o    (n1)-->
          *
          *  node n1 is simple, but node (t) is considered a tip so will be deleted.
+         *  thus n1 will become a tip too
          *  question is, should we actually delete (t)?
          *  i'd argue so, it's likely artefactual. (n1) could be artefactual too.
          *  consider those erroneous kmers:
@@ -402,20 +407,26 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
          *
          */
 
+        TIME(auto start_thread_t=get_wtime());
+
+        // skip uninteresting nodes 
         unsigned long index = _graph.nodeMPHFIndex(node);
         //u_int64_t iterationRank = node.iterationRank;
         if (haveInterestingNodesInfo)
             if (interestingNodes[index /*iterationRank didn't work*/] == false)
-                return; // no point in examining non-branching nodes, saves calls to in/out-degree, i.e. accesses to the minia datastructure
+            {
+                TIME(auto end_thread_t=get_wtime()); 
+                TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
+                return;
+            }
 
-
-        if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
-        if (nodesDeleter.get(index)) { return; }  // parallel // actually not sure if really useful
+        // skip deleted nodes
+        if (_graph.isNodeDeleted(node) || (nodesDeleter.get(index)) /* actually not sure if really useful */) {
+                TIME(auto end_thread_t=get_wtime()); 
+                TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t))); 
+            return; }  
 
         unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
-
-        if (!haveInterestingNodesInfo)
-            interestingNodes[index] = interestingNodes[index] || (!(inDegree == 1 && outDegree == 1));
 
         /* tips have out/in degree of 0 on one side, and any non-zero degree on the other */
         if ((inDegree == 0 || outDegree == 0) && (inDegree != 0 || outDegree != 0))
@@ -424,6 +435,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             bool isShortRCTC = true;
 
             //DEBUG(cout << endl << "deadend node: " << _graph.toString (node) << endl);
+            __sync_fetch_and_add(&nbTipCandidates,1);
 
             /** We follow the simple path to get its length */
             typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(node); // so, it has one or more neighbors in a single direction
@@ -436,6 +448,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             unsigned int pathLen = 1;
             vector<Node> nodes;
             nodes.push_back(node);
+
+                
+            TIME(auto start_simplepath_t=get_wtime());
+
             /* get that putative tip length (stop at a max) */
             for (itNodes.first(); !itNodes.isDone(); itNodes.next())
             {
@@ -452,10 +468,26 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
                 pathLen++;
             }
+                
+            TIME(auto end_simplepath_t=get_wtime());
+            TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
 
-            // if it's not short, then no point in computing whether it's connected (this is a little optimization to a save the next neighbors call)
+            if (isShortTopological)
+                TIME(__sync_fetch_and_add(&timeSimplePathShortTopo, diff_wtime(start_simplepath_t,end_simplepath_t)));
+            if (isShortRCTC)
+                TIME(__sync_fetch_and_add(&timeSimplePathShortRCTC, diff_wtime(start_simplepath_t,end_simplepath_t)));
+    
+            // if it's not short, then no point in computing whether it's connected
+            // also, it's pointless to examine it later, as it will never become short again (we only delete nodes)
+            // so mark the origin as non interesting! (big speed up)
             if ( ! (isShortTopological || isShortRCTC) )
+            {   
+                interestingNodes[index] = false; // unflag the original end-of-tip node // FIXME
+                TIME(__sync_fetch_and_add(&timeSimplePathLong, diff_wtime(start_simplepath_t,end_simplepath_t)));
+                TIME(auto end_thread_t=get_wtime()); 
+                TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
                 return;
+            }
             
             // at this point, the last node in "nodes" is the last node of the tip.
             // check if it's connected to something. 
@@ -509,20 +541,40 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                         std::cout  << "previously uninteresting node became interesting: " << inDegree << " " << outDegree << " simplepath length " << pathLen << std::endl;
                     }*/
 
+                    unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
+
                     interestingNodes[index] = true;
                 }
 
                 __sync_fetch_and_add(&nbTipsRemoved, 1);
-            }
-        }
-        // } // sequential
+            } // end if isTip
+        } // end if degree correspond to putative end-of-tip
+
+        TIME(auto end_thread_t=get_wtime()); // TODO capter ce qui prend du temps, algorithmiquement.
+        TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
+
     }); // parallel
 
     // now delete all nodes, in parallel
     nodesDeleter.flush();
-    
+ 
+    // stats
+    double unit = 1000000000;
+    cout.setf(ios_base::fixed);
+    cout.precision(1);
+    if (_verbose)
+    {
+        cout << nbTipsRemoved << " tips removed. " << endl;
+        cout << nbTipCandidates << " tip candidates passed degree check. " << endl;
+        TIME(cout << "Tips timings:   " << timeAll / unit << " CPUsecs total."<< endl);
+        TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal, including:" << endl);
+        TIME(cout << "                    " << timeSimplePathLong  / unit << " CPUsecs long simple paths" << endl);
+        TIME(cout << "                    " << timeSimplePathShortTopo / unit << " CPUsecs short (topological) simple paths" << endl);
+        TIME(cout << "                    " << timeSimplePathShortRCTC / unit << " CPUsecs short (RCTC) simple paths" << endl);
+    }
+
     return nbTipsRemoved;
-#endif
+#endif // WITH_MPHF
 }
 
 enum HMCP_Success { HMCP_DEADEND = 0, HMCP_FOUND_END = 1 , HMCP_MAX_DEPTH = -1, HMCP_LOOP = - 2};
@@ -609,7 +661,6 @@ Path_t<Node> Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered
         }
         
         unsigned int abundance = _graph.queryAbundance(neighbors[i].to);
-        if (abundance == 0) std::cout << " problem: 0 abundance in heuristic_most_covered_path" << std::endl; // FIXME: remove if it doesn't print
         abundance_node.push_back(std::make_pair(abundance, edge));
     }
 
@@ -724,7 +775,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
       TIME(auto start_thread_t=get_wtime());
 
-      if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
+      if (_graph.isNodeDeleted(node)) { return; } 
       if (nodesDeleter.get(node)) { return; }  // parallel // actually not sure if really useful
       unsigned long index = _graph.nodeMPHFIndex(node);
 
