@@ -1081,7 +1081,7 @@ struct Kmer
          * \param[in] kmerSize      : size of the kmers handled by the model.
          * \param[in] minimizerSize : size of the mmers handled by the model.
          * \param[in] cmp : functor that compares two minizers
-         * \param[in] freq_order : tbd
+         * \param[in] freq_order : a 4^m table containing the frequency of each minimizer 
          */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator(), uint32_t *freq_order=NULL)
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
@@ -1357,7 +1357,7 @@ struct Kmer
          * Note: only used for KmerCanonicals */
         void computeNewMinimizer(KmerMinimizer<ModelCanonical, Comparator>& kmer, bool fastMethod = true) const 
         {
-            if (!fastMethod)
+            if (!fastMethod || _freq_order) // fast method doesn't work with frequency order
             {
                 computeNewMinimizerOriginal(kmer);
                 return;
