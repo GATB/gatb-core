@@ -446,7 +446,7 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 		// how many seqs we need to see
 		u_int64_t nbseq_sample = std::max ( u_int64_t (_config._estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
 
-    	cout << nbseq_sample << endl;
+    	//cout << nbseq_sample << endl;
 		/** We create a sequence iterator and give it a progress message */
 		Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
 				cancellable_it,

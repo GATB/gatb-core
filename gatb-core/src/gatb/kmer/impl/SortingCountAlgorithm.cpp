@@ -455,7 +455,7 @@ void SortingCountAlgorithm<span>::configure ()
                 _bank, 
                 storage->getGroup("minimizers"), 
                 _config,
-                props->get(STR_NB_CORES) ? getInput()->getInt(STR_NB_CORES) : 0;
+                getInput()->get(STR_NB_CORES) ? getInput()->getInt(STR_NB_CORES) : 0
                 );
         repart.execute ();
         setRepartitor (new Repartitor(storage->getGroup("minimizers")));
