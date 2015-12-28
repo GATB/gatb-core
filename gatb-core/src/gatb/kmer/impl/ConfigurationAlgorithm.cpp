@@ -321,7 +321,7 @@ void ConfigurationAlgorithm<span>::execute ()
         }
     }
 
-    assert (_max_disk_space > 0);
+    assert (_config._max_disk_space > 0);
 
     _config._nb_passes = ( (_config._volume/3) / _config._max_disk_space ) + 1; //minim, approx volume /3
     //_nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
@@ -368,10 +368,10 @@ void ConfigurationAlgorithm<span>::execute ()
 
     do  {
 
-        assert (_nb_passes > 0);
+        assert (_config._nb_passes > 0);
         volume_per_pass = volume_minim / _config._nb_passes;
 
-        assert (_max_memory > 0);
+        assert (_config._max_memory > 0);
         //printf("volume_per_pass %lli  _nbCores %zu _max_memory %i \n",volume_per_pass, _nbCores,_max_memory);
 
         // _nb_partitions  = ( (volume_per_pass*_nbCores) / _max_memory ) + 1;
@@ -405,7 +405,7 @@ void ConfigurationAlgorithm<span>::execute ()
         _config._nbCores, _config._nb_partitions_in_parallel, _config._nbCores_per_partition, _config._nb_partitions, _config._nb_passes
     ));
 
-    assert(_nbCores_per_partition > 0);
+    assert(_config._nbCores_per_partition > 0);
 
     /* optimize the number of cached items per partition per core */
     /* add more items to partition cache as long as the total memory of cached items 

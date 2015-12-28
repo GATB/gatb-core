@@ -43,14 +43,16 @@
 #include <gatb/tools/math/FastMinimizer.hpp>
 
 #ifndef ASSERTS
-#define NDEBUG // disable asserts; those asserts make sure that with PRECISION == [1 or 2], all is correct
+#define assertLI(x) {} // disable asserts for large int; those asserts make sure that with PRECISION == [1 or 2], all is correct
+#else
+#define assertLI(x) assert(x)
 #endif
 
 #include <assert.h>
 
 // some 64-bit assert macros
 #if defined(_LP64)
-#define assert128(x) assert(precision != 2 || (x));
+#define assert128(x) assertLI(precision != 2 || (x));
 #else
 #define assert128(x) ;
 #endif
@@ -155,7 +157,7 @@ public:
             carry = (result.value[i] < this->value[i]) ? 1 : 0;
         }
 
-        assert    (precision != 1 || (result == other.value[0] + this->value[0]));
+        assertLI(precision != 1 || (result == other.value[0] + this->value[0]));
         assert128 (result.toInt128() == other.toInt128() + toInt128());
         return result;
     }
@@ -172,7 +174,7 @@ public:
             carry = (result.value[i] < this->value[i]) ? 1 : 0;
         }
 
-        assert    (precision != 1 || (result == other.value[0] + this->value[0]));
+        assertLI(precision != 1 || (result == other.value[0] + this->value[0]));
         assert128 (result.toInt128() == other.toInt128() + toInt128());
         return result;
     }
@@ -192,7 +194,7 @@ public:
             carry = (result.value[i] > this->value[i]) ? 1 : 0;
         }
 
-        assert(precision != 1 || (result == this->value[0] - other.value[0]));
+        assertLI(precision != 1 || (result == this->value[0] - other.value[0]));
         assert128(result.toInt128() == toInt128() - other.toInt128());
         return result;
     }
@@ -209,7 +211,7 @@ public:
             carry = (result.value[i] > this->value[i]) ? 1 : 0;
         }
 
-        assert(precision != 1 || (result == this->value[0] - other));
+        assertLI(precision != 1 || (result == this->value[0] - other));
         return result;
     }
 
@@ -244,7 +246,7 @@ public:
             }
         }
 
-        assert(precision != 1 || (result == this->value[0] * coeff));
+        assertLI(precision != 1 || (result == this->value[0] * coeff));
         assert128(result.toInt128() == toInt128() * coeff);
         return result;
     }
@@ -272,7 +274,7 @@ public:
                 r = n % divisor;
             }
         }
-        assert(precision != 1 || (result == this->value[0] / divisor));
+        assertLI(precision != 1 || (result == this->value[0] / divisor));
         assert128(result.toInt128() == toInt128() / divisor);
         return result;
     }
@@ -295,7 +297,7 @@ public:
             }
         }
 
-        assert(precision != 1 || (r == this->value[0] % divisor));
+        assertLI(precision != 1 || (r == this->value[0] % divisor));
         assert128(r == toInt128() % divisor);
         return (uint32_t)r;
     }
@@ -311,7 +313,7 @@ public:
         for (int i=0 ; i < precision ; i++)
             result.value[i] = this->value[i] ^ other.value[i];
 
-        assert(precision != 1 || (result == (this->value[0] ^ other.value[0])));
+        assertLI(precision != 1 || (result == (this->value[0] ^ other.value[0])));
         assert128(result.toInt128() == (toInt128() ^ other.toInt128()));
         return result;
     }
@@ -327,7 +329,7 @@ public:
         for (int i=0 ; i < precision ; i++)
             result.value[i] = this->value[i] | other.value[i];
         
-        assert(precision != 1 || (result == (this->value[0] | other.value[0])));
+        assertLI(precision != 1 || (result == (this->value[0] | other.value[0])));
         assert128(result.toInt128() == (toInt128() | other.toInt128()));
         return result;
     }
@@ -343,7 +345,7 @@ public:
         for (int i=0 ; i < precision ; i++)
             result.value[i] = this->value[i] & other.value[i];
 
-        assert(precision != 1 || (result == (this->value[0] & other.value[0])));
+        assertLI(precision != 1 || (result == (this->value[0] & other.value[0])));
         assert128(result.toInt128() == (toInt128() & other.toInt128()));
         return result;
     }
@@ -371,7 +373,7 @@ public:
         for (int i=0 ; i < precision ; i++)
             result.value[i] = ~this->value[i];
 
-        assert(precision != 1 || (result == ~this->value[0]));
+        assertLI(precision != 1 || (result == ~this->value[0]));
         assert128(result.toInt128() == ~toInt128());
         return result;
     }
@@ -406,7 +408,7 @@ public:
         }
         result.value[precision-1] = result.value[precision-1] | (this->value[precision-1-large_shift] << small_shift);
 
-        assert(precision != 1 || (result == (this->value[0] << coeff)));
+        assertLI(precision != 1 || (result == (this->value[0] << coeff)));
         assert128(result.toInt128() == (toInt128() << coeff));
         return result;
     }
@@ -440,7 +442,7 @@ public:
             }
         }
 
-        assert(precision != 1 || ( small_shift == 0 || (result == this->value[0] >> coeff)));
+        assertLI(precision != 1 || ( small_shift == 0 || (result == this->value[0] >> coeff)));
         assert128(small_shift == 0 || (result.toInt128() == (toInt128() >> coeff)));
         return result;
     }
