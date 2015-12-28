@@ -871,10 +871,10 @@ struct Kmer
             value.updateChoice();
         }
 
-        /* for profiling only, compute kmer hash */
-        void getHash(const Type &k) const
+        /* compute kmer hash */
+        uint64_t getHash(const Type &k) const
         {
-            hash1(k, 1LL);
+            return hash1(k, 0);
         }
 
         /* for profiling only, compute kmer hash using hash2 */
