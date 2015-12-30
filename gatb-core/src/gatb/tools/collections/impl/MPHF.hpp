@@ -94,8 +94,13 @@ public:
     /** Definition of a hash value. */
     typedef u_int64_t Code;
 
+    tools::misc::MPHFKind mphfKind;
+    
     /** Constructor. */
-    MPHF ()  {}
+    MPHF (tools::misc::MPHFKind mphfKind) : mphfKind(mphfKind)   {}
+    
+    /** Constructor. */
+    MPHF () : mphfKind(tools::misc::MPHF_BOOPHF /* boophf is best mphf; so it deserves default*/)   {}
 
     /** Constructor. */
     MPHF (tools::dp::Iterator<Key>* iterator, size_t nbElts)  { }
