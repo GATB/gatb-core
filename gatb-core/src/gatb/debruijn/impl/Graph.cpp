@@ -3508,8 +3508,8 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node node) const
             }
             if (deleted == false)
             {
-                std::cout << "was supposed to delete a node but couldn't find it :(." << std::endl; // TODO: remove if no problem after a while
-                exit(1);
+                std::cout << "[bug detected in adjacency data structure] was supposed to delete node "<< this->toString(node) <<" but couldn't find it :(." << std::end
+                std::cout << "assembly may be inaccurate around this kmer. will continue assembling anyway" << std::endl;
             }
 
         }
