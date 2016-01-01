@@ -432,7 +432,8 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
             	    );
 
         for(size_t i=0; i<_config._nb_banks; i++){
-        	TruncateIterator<Sequence>* it = new TruncateIterator<Sequence> (*(itBanks[i]), nbseq_sample);
+        	u_int64_t nbseq_sample_ = min(nbseq_sample, u_int64_t (100000));
+        	TruncateIterator<Sequence>* it = new TruncateIterator<Sequence> (*(itBanks[i]), nbseq_sample_);
         	LOCAL(it);
     	    serialDispatcher.iterate (it, sampleRepart);
         }
