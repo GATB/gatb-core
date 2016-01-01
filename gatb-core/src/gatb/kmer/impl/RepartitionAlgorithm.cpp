@@ -413,7 +413,7 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
     	SerialDispatcher serialDispatcher;
         BankStats bstatsDummy;
 
-        u_int64_t nbseq_sample = (_config._estimateSeqNb / _config._nb_banks) * 0.02;
+        u_int64_t nbseq_sample = (_config._estimateSeqNb / _config._nb_banks) * 0.01;
 
         std::vector<Iterator<Sequence>*> itBanks =  _bank->iterator()->getComposition();
 
