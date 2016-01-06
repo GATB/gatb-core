@@ -11,75 +11,68 @@ IF (NOT CPACK_USER_NAME)
 ENDIF (NOT CPACK_USER_NAME)
 
 # We get the date
-GetCurrentDateShort (CPACK_DATE) 
-
-# We set the name of the versions file.
-SET (CPACK_VERSIONS_FILENAME  "versions.txt")
+GetCurrentDate (CPACK_DATE) 
 
 # We may have to set (if not defined) the CPACK_GFORGE_PROJECT_NAME
 IF (NOT CPACK_GFORGE_PROJECT_NAME)
     SET (CPACK_GFORGE_PROJECT_NAME  ${PROJECT_NAME})
 ENDIF (NOT CPACK_GFORGE_PROJECT_NAME)
 
-# We set the server URI
-SET (CPACK_SERVER_ADDRESS   "${CPACK_USER_NAME}@scm.gforge.inria.fr")
-SET (CPACK_SERVER_DIR       "/home/groups/${CPACK_GFORGE_PROJECT_NAME}/htdocs/versions/")
-SET (CPACK_SERVER_DIR_BIN   "${CPACK_SERVER_DIR}/bin/")
-SET (CPACK_SERVER_DIR_SRC   "${CPACK_SERVER_DIR}/src/")
-SET (CPACK_SERVER_VERSIONS  "${CPACK_SERVER_DIR}/${CPACK_VERSIONS_FILENAME}")
-
-# We define the name of the bin and src targets
-SET (CPACK_URI_BIN "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}.tar.gz")
-SET (CPACK_URI_SRC "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Source.tar.gz")
-
-# We define the location where the bin and src targets have to be uploaded
-SET (CPACK_UPLOAD_URI_BIN  "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}")
-SET (CPACK_UPLOAD_URI_SRC  "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_SRC}")
-SET (CPACK_UPLOAD_VERSIONS "${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_VERSIONS}")
+# We define the name of the bin archive
+SET (CPACK_URI_BIN "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-bin-${CPACK_SYSTEM_NAME}.tar.gz")
+SET (CPACK_URI_BIN_INFO "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-bin-${CPACK_SYSTEM_NAME}.info.txt")
 
 # We set the text holding all the information about the delivery.
-SET (CPACK_INFO_BIN ${CPACK_GFORGE_PROJECT_NAME} bin ${CMAKE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} ${CPACK_SYSTEM_NAME} ${CPACK_USER_NAME} ${CPACK_URI_BIN})
-SET (CPACK_INFO_SRC ${CPACK_GFORGE_PROJECT_NAME} src ${CMAKE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_DATE} all                  ${CPACK_USER_NAME} ${CPACK_URI_SRC})
+SET (CPACK_INFO_BIN ${CPACK_GFORGE_PROJECT_NAME} bin ${CPACK_PACKAGE_VERSION} on ${CPACK_DATE} for ${CPACK_SYSTEM_NAME} by ${CPACK_USER_NAME})
+
+# We define the Inria Forge place where to place a copy of the bin archive
+SET (CPACK_SERVER_ADDRESS   "${CPACK_USER_NAME}@scm.gforge.inria.fr")
+SET (CPACK_SERVER_DIR_BIN   "/home/groups/${CPACK_GFORGE_PROJECT_NAME}/htdocs/versions/bin/")
 
 
 ################################################################################
-# MAIN TARGET 
-################################################################################
-
-# We add a custom target for delivery
-add_custom_target (delivery     
-
-    DEPENDS delivery_bin  delivery_src 
-    
-    COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo "DELIVERY FOR ${CPACK_GFORGE_PROJECT_NAME}, VERSION ${CPACK_PACKAGE_VERSION}"
-    COMMAND echo "-----------------------------------------------------------"
-
-    # We dump the known versions
-    COMMAND make delivery_dump
-)
-
-################################################################################
-# TARGETS 'bin'
+# MAIN TARGET
 ################################################################################
 
 # We add a custom target for delivery binaries
-add_custom_target (delivery_bin 
+add_custom_target (delivery 
 
-    # We get the versions.txt file from the server
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "BIN" ${CPACK_GFORGE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_BIN}\"  ${CPACK_URI_BIN}   ${CPACK_UPLOAD_URI_BIN}
+    COMMAND echo "================================================================"
+    COMMAND echo ""
+    COMMAND echo " Starting official delivery of GATB-CORE library ${CPACK_PACKAGE_VERSION}"
+    COMMAND echo ""
+    COMMAND echo "================================================================"
+    COMMAND echo "Checking Inria Forge repository..."
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery_check_repo.sh 
+    COMMAND echo "Compiling library..."
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery_compile.sh ${SILENT_MODE}
+    COMMAND echo "Creating release tag on git repository..."
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/git_tag_manager.sh -M ${gatb-core_VERSION_MAJOR} -m ${gatb-core_VERSION_MINOR} -p ${gatb-core_VERSION_PATCH} -t \"'new release: ${CPACK_INFO_BIN}'\" 
+    COMMAND echo "Uploading binary on Inria Forge..."
+    COMMAND scp -q ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN} ${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery_dump_system.sh ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN_INFO} ${CMAKE_VERSION} ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} ${CMAKE_CXX_FLAGS} ${LIBRARY_COMPILE_DEFINITIONS}
+    COMMAND scp -q ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN_INFO} ${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}
+    COMMAND echo "Creating release on github..."
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/github_release_manager.sh -l ${GH_LOGIN} -t ${GH_TOKEN} -o ${GH_OWNER} -r ${GH_REPO} -d "v${CPACK_PACKAGE_VERSION}" -c create -m \"'new release: ${CPACK_INFO_BIN}'\" 
+    COMMAND echo "Uploading binary on github..."
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/github_release_manager.sh -l ${GH_LOGIN} -t ${GH_TOKEN} -o ${GH_OWNER} -r ${GH_REPO} -d "v${CPACK_PACKAGE_VERSION}" -c upload ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/github_release_manager.sh -l ${GH_LOGIN} -t ${GH_TOKEN} -o ${GH_OWNER} -r ${GH_REPO} -d "v${CPACK_PACKAGE_VERSION}" -c upload ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN_INFO}
 )
 
-################################################################################
-# TARGETS 'src'
-################################################################################
+# We add a custom target for delivery binaries
+add_custom_target (upload 
 
-# We add a custom target for delivery sources
-add_custom_target (delivery_src 
-
-    # We get the versions.txt file from the server
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery.sh  "SRC" ${CPACK_GFORGE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION} ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}  \"${CPACK_INFO_SRC}\"  ${CPACK_URI_SRC}   ${CPACK_UPLOAD_URI_SRC}
+    COMMAND echo "Compiling library..."
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery_compile.sh true
+    COMMAND echo "Uploading binary on Inria Forge..."
+    COMMAND scp -q ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN} ${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/delivery_dump_system.sh ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN_INFO} ${CMAKE_VERSION} ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} ${CMAKE_CXX_FLAGS} ${LIBRARY_COMPILE_DEFINITIONS}
+    COMMAND scp -q ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN_INFO} ${CPACK_SERVER_ADDRESS}:${CPACK_SERVER_DIR_BIN}
+    COMMAND echo "Uploading binary on github..."
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/github_release_manager.sh -l ${GH_LOGIN} -t ${GH_TOKEN} -o ${GH_OWNER} -r ${GH_REPO} -d "v${CPACK_PACKAGE_VERSION}" -c upload ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/github_release_manager.sh -l ${GH_LOGIN} -t ${GH_TOKEN} -o ${GH_OWNER} -r ${GH_REPO} -d "v${CPACK_PACKAGE_VERSION}" -c upload ${CMAKE_CURRENT_SOURCE_DIR}/build/${CPACK_URI_BIN_INFO}
 )
+
 
 ################################################################################
 # TARGET 'help'
@@ -90,29 +83,8 @@ add_custom_target (delivery_help
     COMMAND echo "-----------------------------------------------------------"
     COMMAND echo "DELIVERY TARGETS"
     COMMAND echo "-----------------------------------------------------------"
-    COMMAND echo "delivery:      build a targz for binaries and sources and upload them to GForge"
-    COMMAND echo "delivery_bin:  build a targz for binaries and upload it to GForge"
-    COMMAND echo "delivery_src:  build a targz for sources and upload it to GForge"
-    COMMAND echo "delivery_dump: dump existing releases on GForge"
+    COMMAND echo "delivery: build a targz for binaries, tag Inria repository, create a github release and upload to github"
+    COMMAND echo "upload:   only build a targz for binaries and upload to github"
     COMMAND echo ""
 )
 
-################################################################################
-# TARGET 'dump'
-################################################################################
-
-# We add a custom target for dumping existing deliveries
-add_custom_target (delivery_dump
-
-    # We get the versions.txt file from the server
-    COMMAND scp ${CPACK_UPLOAD_VERSIONS} ${CPACK_VERSIONS_FILENAME}
-
-    # We dump the versions file.
-    COMMAND echo ""
-    COMMAND echo "-------------------------------------------------------------------------------------------------"
-    COMMAND echo "LIST OF DELIVERIES FOR " ${CPACK_GFORGE_PROJECT_NAME}
-    COMMAND echo "-------------------------------------------------------------------------------------------------"
-    COMMAND cat ${CPACK_VERSIONS_FILENAME}
-    COMMAND echo "-------------------------------------------------------------------------------------------------"
-    COMMAND echo ""
-)

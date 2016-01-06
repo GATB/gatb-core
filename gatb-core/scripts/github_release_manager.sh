@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 #*****************************************************************************************
 # Github management script.
@@ -39,7 +39,7 @@ function help(){
   printf "   upload: upload file(s) to an existing release.\n"
   printf "   delete: permanently delete remote file(s) from an existing release.\n"
   printf "     info: print out some information about an existing release.\n"
-  printf "    erase: permanently delete an existing release. Use with extreme caution!n"
+  printf "    erase: permanently delete an existing release. Use with extreme caution!\n"
   printf "    rlist: list existing releases for a repository.\n"
   printf "\n"
   printf "   All commands but 'rlist' require the -d <git_tag>.\n"
@@ -133,9 +133,7 @@ case "$COMMAND" in
     checkTag
     release_id=$(getGithubReleaseId $TAG)
     infoMsg "Git tag $TAG refers to github release ID: $release_id"
-    infoMsg "Security message: edit this script to enable the 'erase' command."
-    infoMsg "  command 'erase' aborted."
-    #deleteRelease $release_id
+    deleteRelease $release_id
     ;;
 esac
 

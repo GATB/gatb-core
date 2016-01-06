@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+##  /usr/bin/env bash
 
 #*****************************************************************************************
 # Github management script.
@@ -21,6 +21,11 @@
 # Author: Patrick Durand, Inria
 # Created: December 2015
 #*****************************************************************************************
+
+# ========================================================================================
+# Section: prepare access to JSON script
+s_dir=$( cd -P -- "$(dirname -- "$(command -v -- "$0")")" && pwd -P )
+JSON_SH=$s_dir/json-v2.sh
 
 # ========================================================================================
 # Section: variable declarations
@@ -74,7 +79,7 @@ function throw () {
 #   arg1: file containing json answer
 #   return: error msg to display
 function isError(){
-  local github_error_msg=$(cat "$1" | ./json-v2.sh -b | grep -F -e "[message]" | cut -s -f 2 | sed -e "s/\"//g" | tr [:upper:] [:lower:])
+  local github_error_msg=$(cat "$1" | $JSON_SH -b | grep -F -e "[message]" | cut -s -f 2 | sed -e "s/\"//g" | tr [:upper:] [:lower:])
 
   if [ "$github_error_msg" == "not found" ]; then 
     echo "true"
@@ -98,7 +103,7 @@ function clean(){
 #         a json file has a structured contents. 
 #   return: a string containing the value or an empty string if not found
 function getDataField(){
-  echo $(cat "$1" | ./json-v2.sh -b | grep -F -e "[$2]" | cut -s -f 2 | sed -e "s/\"//g")
+  echo $(cat "$1" | $JSON_SH -b | grep -F -e "[$2]" | cut -s -f 2 | sed -e "s/\"//g")
 }
 
 # ========================================================================================
@@ -192,7 +197,7 @@ function listReleaseSummary(){
   local dRelId="" 
 
   infoMsg "Releases available on github for ${OWNER}/${REPOSITORY}:"
-  local rels=$($(echo getReleasesDescription $1) | ./json-v2.sh -b | cut -s -d "." -f 1 | sed -e "s/\[//g" | uniq)
+  local rels=$($(echo getReleasesDescription $1) | $JSON_SH -b | cut -s -d "." -f 1 | sed -e "s/\[//g" | uniq)
   if [ ! -z "$rels" ]; then
     for key in $rels; 
       do
@@ -216,7 +221,7 @@ function listAssetSummary(){
   local dFileDate="" 
 
   infoMsg "File(s) for release $1:"
-  local files=$($(echo getAssetsDescription $1) | ./json-v2.sh -b | cut -s -d "." -f 1 | sed -e "s/\[//g" | uniq)
+  local files=$($(echo getAssetsDescription $1) | $JSON_SH -b | cut -s -d "." -f 1 | sed -e "s/\[//g" | uniq)
   if [ ! -z "$files" ]; then
     for key in $files; 
       do
@@ -238,7 +243,7 @@ function listAssetSummary(){
 function deleteAssetbyName(){
   local dFileName="" 
   local dFileId="" 
-  for key in $($(echo getAssetsDescription $1) | ./json-v2.sh -b | cut -s -d "." -f 1 | sed -e "s/\[//g" | uniq); 
+  for key in $($(echo getAssetsDescription $1) | $JSON_SH -b | cut -s -d "." -f 1 | sed -e "s/\[//g" | uniq); 
   do
     dFileName=$(getDataField "$github_answer" "${key}.name")
     if [ "$dFileName" == "$2" ]; then
@@ -284,6 +289,7 @@ function uploadAsset(){
   local dField2=""
   local upURL=""
   local upFile=""
+  local upBaseName=""
   
   # Connect github to get upload_url from release description
   release_desc=$(getGithubReleaseDescription $1)
@@ -298,13 +304,14 @@ function uploadAsset(){
   infoMsg "Uploading files on github for release $1"
   infoMsg "Upload URL: ${upURL}"
   infoMsg "  uploading file: ${upFile}"
+  upBaseName=$(basename $upFile)
   curl --user ${LOGIN}:${TOKEN} \
      --request POST \
      --silent \
      --output "$github_answer" \
      --header "Content-Type: application/octet-stream" \
      --data-binary @${upFile} \
-     ${upURL}${upFile} <<END
+     ${upURL}${upBaseName} <<END
 END
 
   dField=$(getDataField "$github_answer" "state")

@@ -16,7 +16,7 @@ INCLUDE(FindPerl)
 MACRO (GetCurrentDate dateString)
     # We execute a command that retrieves the current date.
     EXECUTE_PROCESS (
-        COMMAND "${PERL_EXECUTABLE}" "-le" "@T=localtime; printf (\"%04d-%02d-%02d %02d:%02d:%02d\",$T[5]+1900,$T[4]+1,$T[3],$T[2],$T[1],$T[0])"
+        COMMAND "${PERL_EXECUTABLE}" "-le" "@T=localtime; printf (\"%04d-%02d-%02d/%02d:%02d:%02d\",$T[5]+1900,$T[4]+1,$T[3],$T[2],$T[1],$T[0])"
         OUTPUT_VARIABLE ${dateString}
     )
 ENDMACRO()

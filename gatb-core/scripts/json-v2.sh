@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # from http://stackoverflow.com/questions/1955505/parsing-json-with-unix-tools
 # we found: https://github.com/dominictarr/JSON.sh
