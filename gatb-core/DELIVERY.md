@@ -5,30 +5,14 @@ A delivery is made of two files:
 * binary archive
 * source archive
 
-It is possible to use CMake for building such a delivery. When you invoke 'cmake', 
-you have to specify the version number like this:
+To create a new release, simply use the script 'script/make_official_release.sh.
+
+It is worth noting that this script can only be used by Inria's Genscale team members since it requires an access to the officiel GATB-CORE repository hosted on Inria Forge.
     
-    cmake -DMAJOR=1 -DMINOR=2 -DPATCH=11 ..
-
-For better compatibility, you might want to create a static binary, by replacing 
-the above command line with:
-    
-    cmake -Dstatic=1 -DMAJOR=1 -DMINOR=2 -DPATCH=11 ..
-
-Then, you can use a 'delivery' target with:
-
-    make delivery
-
-This target will both produce the binary and source archives and then upload them on 
-the GForge server.
-
-You can have the list of available targets for delivery with:
-
-    make delivery_help
+More at https://wiki.inria.fr/genscale/Making-gatbcore-release
 
 --------------------------------------------------------------------------------
 # HOW TO KNOW THE EXISTING RELEASES ?
 
-There is a target for this:
-    make delivery_dump
-I
+Go to https://github.com/GATB/gatb-core/releases
+
