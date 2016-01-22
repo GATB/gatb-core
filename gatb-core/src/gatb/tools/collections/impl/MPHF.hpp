@@ -30,6 +30,7 @@
 
 #include <gatb/system/api/Exception.hpp>
 #include <gatb/system/api/types.hpp>
+#include <gatb/tools/misc/api/Enums.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 
