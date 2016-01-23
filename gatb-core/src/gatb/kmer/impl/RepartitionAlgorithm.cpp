@@ -414,6 +414,7 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
         BankStats bstatsDummy;
 
         u_int64_t nbseq_sample = (_config._estimateSeqNb / _config._nb_banks) * 0.01;
+        nbseq_sample = max((u_int64_t)nbseq_sample, (u_int64_t)100000);
 
         std::vector<Iterator<Sequence>*> itBanks =  _bank->iterator()->getComposition();
 
@@ -432,10 +433,42 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
             	    );
 
         for(size_t i=0; i<_config._nb_banks; i++){
-        	u_int64_t nbseq_sample_ = min(nbseq_sample, u_int64_t (500000));
-        	TruncateIterator<Sequence>* it = new TruncateIterator<Sequence> (*(itBanks[i]), nbseq_sample_);
-        	LOCAL(it);
-    	    serialDispatcher.iterate (it, sampleRepart);
+        	//u_int64_t nbseq_sample_ = min(nbseq_sample, u_int64_t (500000));
+        	//TruncateIterator<Sequence>* it = new TruncateIterator<Sequence> (*(itBanks[i]), nbseq_sample_);
+        	//LOCAL(it);
+    	    //serialDispatcher.iterate (it, sampleRepart);
+            CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(itBanks[i]));
+            LOCAL(cancellable_it);
+
+        	//cout << nbseq_sample << endl;
+    		/** We create a sequence iterator and give it a progress message */
+    		Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
+    				cancellable_it,
+    				_bank->getNbItems(),
+    				Stringify::format (progressFormat0, bankShortName.c_str()).c_str()
+    				);
+    		LOCAL (it_all_reads);
+
+
+    		BankStats bstatsDummy;
+
+    		size_t  currentPass = 0;
+
+    		/** We compute a distribution of Superkmers from a part of the bank. */
+    		SerialDispatcher serialDispatcher;
+    		serialDispatcher.iterate (it_all_reads, SampleRepart<span> (
+    			model,
+    			_config,
+    			1, // we don't care about the actual number of passes, we just use 1
+    			0, // we don't care about the actual number of passes, the current one is 0
+    			_config._nb_partitions,
+    			NULL,
+    			&(cancellable_it->_cancel), // will be set to true when iteration needs to be stopped
+    			nbseq_sample, // how many sequences we need to see
+    			bstatsDummy,
+    			sample_info
+    		));
+
         }
     }
     else{
