@@ -1,6 +1,16 @@
 #!/bin/bash
-#set -e
+#--------------------------------------------------------------#
+#         Continuous integration script for Jenkins            #
+#--------------------------------------------------------------#
+#
+# Default mode : 
+# This script will exit with error (exit code 1) if any of its steps fails. 
+# To change this behaviour, launch the script with the DEBUG argument.
+#--------------------------------------------------------------#
+ 
+[ "$1" != "DEBUG" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
 set -xv
+
 date
 hostname
 pwd
