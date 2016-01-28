@@ -22,11 +22,13 @@
  ****************************************************************************************************
  * \section intro What is GATB ?
  *
- *  GATB means "Genome Assembly Tool Box".
+ *  GATB means "Genome Analysis Toolbox with de-Bruijn graph".
  *
  *  It can be seen as software components providing services for assembling and analyzing genomes of various kinds.
  *
- * The current documentation is for release 1.1.0. You can download it <a href="http://gatb.inria.fr/binaries-url">here</a>.
+ *  Read more about GATB at <a href="https://project.inria.fr/gatb/">https://project.inria.fr/gatb</a>.
+ *  
+ *  You can download GATB softwares at <a href="https://project.inria.fr/gatb/software/">https://project.inria.fr/gatb/software</a>.
  *
  ****************************************************************************************************
  ****************************************************************************************************

@@ -22,7 +22,8 @@
  ****************************************************************************************************
  * \section download Download archives
  *
- * You can go to the following links:
- *  - <a href="http://gatb.inria.fr/binaries-url">gatb-core binaries</a>
- *  - <a href="http://gatb.inria.fr/sources-url">gatb-core sources</a>
+ * You can go to the following links to download source code and/or pre-compiled binaries for
+ * Linux and MacOSX of the GATB-Core library: 
+*
+ *  - <a href="https://project.inria.fr/gatb/software/gatb-core/">https://project.inria.fr/gatb/software/gatb-core/</a>
  */
