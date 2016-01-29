@@ -8,7 +8,7 @@
 # To change this behaviour, launch the script with the DEBUG argument.
 #--------------------------------------------------------------#
  
-[ "$1" != "DEBUG" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
+[ "$DEBUG" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
 set -xv
 
 date
