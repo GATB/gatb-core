@@ -15,8 +15,13 @@ date
 hostname
 pwd
 
-# Jenkins Build parameters
-echo "GIT_TAG : $GIT_TAG"
+echo "
+--------------------------
+ Jenkins build parameters
+--------------------------
+GIT_TAG : $GIT_TAG
+DEBUG   : $DEBUG
+"
 
 ################################################################
 #                       COMPILATION                            #
