@@ -1357,7 +1357,8 @@ struct Kmer
          * Note: only used for KmerCanonicals */
         void computeNewMinimizer(KmerMinimizer<ModelCanonical, Comparator>& kmer, bool fastMethod = true) const 
         {
-            if (!fastMethod || _freq_order) // fast method doesn't work with frequency order
+            //if (!fastMethod || _freq_order) // fast method doesn't work with frequency order
+			//temporarily desactivate fastmode, seem to returns wrong minimizer and leads to duplicated kmer output
             {
                 computeNewMinimizerOriginal(kmer);
                 return;
