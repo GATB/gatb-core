@@ -7,21 +7,22 @@
 # This script will exit with error (exit code 1) if any of its steps fails. 
 # To change this behaviour, launch the script with the DEBUG argument.
 #--------------------------------------------------------------#
- 
-[ "$DEBUG" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
-set -xv
-
-date
-hostname
-pwd
-
+set +xv
 echo "
+date      : `date`
+hostname  : `hostname`
+pwd       : `pwd`
+
 --------------------------
  Jenkins build parameters
 --------------------------
-GIT_TAG : $GIT_TAG
-DEBUG   : $DEBUG
+GIT_TAG   : $GIT_TAG
+DEBUG     : $DEBUG
+USER_NAME : $USER_NAME
 "
+
+[ "$DEBUG" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
+set -xv
 
 ################################################################
 #                       COMPILATION                            #
@@ -43,7 +44,22 @@ cd $BUILD_DIR
  
 cmake -Wno-dev $GIT_DIR
 
-make
+make 
+
+if [ $? -eq 0 ]; then
+   echo "Creating a binary archive... "
+   echo "N.B. this is NOT an official binary release"
+
+   binbundle=gatb_binary_${GIT_TAG}_"`uname`"
+   mkdir $binbundle
+
+   cp bin/* $binbundle
+   cp lib/* $binbundle
+   tar -zcf $binbundle.tgz $binbundle
+
+   scp $binbundle.tgz ${USER_NAME}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+fi
+
 
 ################################################################
 #                       UNIT TESTS                             #
