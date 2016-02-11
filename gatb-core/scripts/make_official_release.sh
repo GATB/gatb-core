@@ -17,6 +17,7 @@ GH_OWNER="GATB"
 GH_REPO="gatb-core"
 GH_LOGIN=""
 GH_TOKEN=""
+IF_LOGIN="$USER_NAME"          # $USER_NAME is known inside Jenkins tasks, empty otherwise
 MAJOR_V=""
 MINOR_V=""
 PATCH_V=""
@@ -165,6 +166,6 @@ cd build
 
 cmake -DGH_LOGIN=$GH_LOGIN -DGH_TOKEN=$GH_TOKEN -DGH_OWNER=$GH_OWNER \
   -DGH_REPO=$GH_REPO -DMAJOR=$MAJOR_V -DMINOR=$MINOR_V -DPATCH=$PATCH_V \
-  -DSILENT_MODE=$SILENT ..
+  -DSILENT_MODE=$SILENT -DCPACK_USER_NAME=$IF_LOGIN ..
 
 make -j8 $COMMAND
