@@ -90,54 +90,86 @@
  * \page new_project Quick project creation
  ************************************************************************************
  *
- * It is possible to create a new project based on gatb::core with a script provided in
- * the distribution (see directory 'scripts').
+ * \section project_create Project creation
  *
- * You have to provide a name for the project and the location of the generated directory holding
- * all the needed material. For instance:
+ * You use GATB-CORE by creating a new tool project, with the following script:
+ * 
  * \code
- * sh scripts/NewProject/NewProject.sh MyProject /tmp
+ *     ./[path-to-gatb-core]/scripts/NewProject/NewProject.sh -d directory -n toolName
  * \endcode
+ * 
+ * where 'directory' is the directory where the project will be created and 'toolName' is the name of the project.
+ * The script will automatically creates the full path directory/toolName to deploy a self-contained tool.
+ *  
+ * The directory where the project is created has no link to any external resources. You can therefore
+ * move it anywhere you want.
+ * 
+ * Such a project can be a start point for building applications based on GATB-CORE. 
  *
- * Then you can go in the generated directory and browse its content:
- * \code
- * cd /tmp/MyProject; ls -l
- * \endcode
+ * \section project_organisation Project organisation
+ * 
+ * By default, the following part will be included in the project:
+ *   - a CMakeLists.txt file used for building the project
+ *   - a 'scripts' directory holding a script to automatically package the tool 
+ *   - a 'tools' directory holding a default source code using GATB-Core
+ *   - a 'thirdparty' directory holding the gatb-core resources
+ *   - a 'doc' tool
+ *     
+ * The 'thirdparty' directory is only available for tool created outside the GATB-Tools repository.
+ * Tools located within GATB-Tools rely on a common GATB-Core sub-module already available in this repository.
+ * 
+ * It is advised to use:
+ * 
+ *   - 'scripts' directory to hold any scripts this tool relies on
+ *   - 'doc' directory to hold tool's documentation
+ *   - 'thirdparty' directory to hold any third-party librairies this tool relies on
+ *     
+ * It is worth noting that 'tools' directory is organised using sub-folders; by default, there is
+ * at least one such sub-folder called 'toolName'. It holds the source code of the tool. However, when
+ * considering a more complex software, it could be nice to setup several "sub-tools", each of them
+ * making a particular feature. In that case, you can easily create several "sub-tool" folders inside
+ * "tools", each of them having a "src" folder containing the source code, as well as a "main.cpp", for
+ * each feature. Using this organisation has a big advantage: the provided CMakeLists.txt is aware of 
+ * that, so you do not have to edit the CMake file when you add a new "sub-tool". As a real example, you
+ * can have a look at the DiscoSNP software.
  *
- * By default, the generated project is designed to produce two binaries called
- * MyProject_1 and MyProject_2. For instance, the associated sources for the MyProject_1
- * tool are located in the directory tools/MyProject_1/src. The sources may be used as
- * a skeleton to build an application based on gatb::core.
- *
- * Note that you can keep only one tool, for instance MyProject_1 and rename it as you
- * want. You can also add as many tools as you want in the 'tools' directory.
- *
- * You can set a version number to your project by editing the CMakeLists.txt file located
- * in the archive main directory. This is done by changing the default "1.0.0" value of
- * the CPACK_PACKAGE_VERSION variable.
- *
- * For compiling the project, you have to follow the same process than compiling the
- * distribution (note that you can set a version number with the variable CPACK_PACKAGE_VERSION):
- * \code
- * cd /tmp/MyProject; mkdir build ; cd build ; cmake -DCPACK_PACKAGE_VERSION="3.14.92" .. ; make
- * \endcode
- *
+ * \section project_compilation Project building
+ * 
+ * To build your project, you should do the following
+ *     
+ *     cd [path-to-tool-home]
+ *     mkdir build;  cd build;  cmake ..;  make -j8
+ *     
+ * Then, you should get a binary holding the name of the project within 'build/tools'.
+ * 
+ * The first compilation should take some time since the GATB-CORE library is generated.
+ * 
  * Note that all the needed material is included in the generated project (in particular
  * the gatb::core library and the header files), so you can move it wherever you want.
  * Note also that you won't have to do any tricky configuration to build the binary; you
  * just have to do cmake+make and you will have your binaries in the build/tools directory.
+ * 
+ * \section project_version Project version
+ * 
+ * You can set a version number to your project by editing the beginning of CMakeLists.txt file located
+ * in the tool main directory or by running cmake like this: 
+ * \code
+ * cmake -DMAJOR=1 -DMINOR=1 -DPATCH=0 ..
+ * \endcode
+ * 
+ * \section project_packaging Project packaging
+ * 
+ * You can prepare your tool for distribution using:
+ * \code    
+ *     ./[path-to-tool-home]/scripts/package_tool.sh -M X -m Y -p Z
+ * \endcode
  *
- * Finally, you have two targets to archive the project:
- *      - make package  => package of the binaries
- *      - make package_source => package of the sources
+ *  With X, Y and Z being major, minor and patch release numbers, respectively.
  *
- * The source archive holds all the material needed for compilation.
- *
- * Note that the version number (set with CPACK_PACKAGE_VERSION) will be used for naming the archive files.
- *
- * If you finally want to put the archive files on the GATB server, you can use "make delivery". Note
- * that it is possible only if you have a GForge INRIA account and have been defined as a
- * GATB contributor.
+ * Then, you should get two 'tar.gz' files within 'build', one containing the binary release
+ * and the other the source codes.
+ * 
+ * Note: the script re-built the entire tool from its sources to ensure a clean build process.
  *
  ************************************************************************************
  ************************************************************************************

@@ -3,13 +3,28 @@ project(XXX)
 cmake_minimum_required(VERSION 2.6)
 
 ################################################################################
-# Shortcuts
+# The version number.
 ################################################################################
-SET (GATB_CORE_HOME  ${PROJECT_SOURCE_DIR}/thirdparty/gatb-core)
+SET (gatb-tool_VERSION_MAJOR 1)
+SET (gatb-tool_VERSION_MINOR 0)
+SET (gatb-tool_VERSION_PATCH 0)
+
+IF (DEFINED MAJOR)
+    SET (gatb-tool_VERSION_MAJOR ${MAJOR})
+ENDIF()
+IF (DEFINED MINOR)
+    SET (gatb-tool_VERSION_MINOR ${MINOR})
+ENDIF()
+IF (DEFINED PATCH)
+    SET (gatb-tool_VERSION_PATCH ${PATCH})
+ENDIF()
+
+set (gatb-tool-version ${gatb-tool_VERSION_MAJOR}.${gatb-tool_VERSION_MINOR}.${gatb-tool_VERSION_PATCH})
 
 ################################################################################
 # Define cmake modules directory
 ################################################################################
+SET (GATB_CORE_HOME  ${PROJECT_SOURCE_DIR}GGGGG)
 SET (CMAKE_MODULE_PATH ${GATB_CORE_HOME}/cmake)
 
 ################################################################################
@@ -38,30 +53,31 @@ include (GatbCore)
 ADD_SUBDIRECTORY(tools)
 
 ################################################################################
-# DELIVERY
+# Packaging
 ################################################################################
-
-# If your current login name is different from your GForge login name, you have
-# to overwrite the CPACK_USER_NAME to be the same as your GForge login
-#SET (CPACK_USER_NAME                    "your_gforge_login")
-
 # We set the version number
-#SET (CPACK_PACKAGE_VERSION              "1.0.0")  
-
-# We have to tell what is the server name
-SET (CPACK_GFORGE_PROJECT_NAME          "gatb-tools")
+SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY  "gatb-tool ${PROJECT_NAME}")
+SET (CPACK_PACKAGE_VENDOR               "Genscale team (INRIA)")
+SET (CPACK_PACKAGE_VERSION_MAJOR        "${gatb-tool_VERSION_MAJOR}")
+SET (CPACK_PACKAGE_VERSION_MINOR        "${gatb-tool_VERSION_MINOR}")
+SET (CPACK_PACKAGE_VERSION_PATCH        "${gatb-tool_VERSION_PATCH}")
+SET (CPACK_PACKAGE_VERSION              "${gatb-tool-version}")  
 
 # We set the kind of archive
 SET (CPACK_GENERATOR                    "TGZ")
 SET (CPACK_SOURCE_GENERATOR             "TGZ")
 
-# We ignore unwated files for the source archive
+# Packaging the source ; we ignore unwanted files 
 SET (CPACK_SOURCE_IGNORE_FILES          
     "^${PROJECT_SOURCE_DIR}/build/"  
     "^${GATB_CORE_HOME}/.project"
     "^${GATB_CORE_HOME}/.gitignore"
-    "^${GATB_CORE_HOME}/doc/design"
+    "^${GATB_CORE_HOME}/doc"
     "^${GATB_CORE_HOME}/DELIVERY.md"
 )
 
-include (Delivery)
+# Packaging the binary ; we want to include some additional files
+INSTALL (FILES   ${CMAKE_CURRENT_SOURCE_DIR}/LICENCE                     DESTINATION .)
+INSTALL (FILES   ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/THIRDPARTIES.md  DESTINATION .)
+
+include (CPack)

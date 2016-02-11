@@ -22,20 +22,26 @@
  ****************************************************************************************************
  * \section intro What is GATB ?
  *
- *  GATB means "Genome Analysis Toolbox with de-Bruijn graph".
+ * GATB means "Genome Analysis Toolbox with de-Bruijn graph".
+ * 
+ * The GATB-CORE project provides a set of highly efficient algorithms to analyse NGS data sets. These 
+ * methods enable the analysis of data sets of any size on multi-core desktop computers, including very 
+ * huge amount of reads data coming from any kind of organisms such as bacteria, plants, animals and 
+ * even complex samples (e.g. metagenomes). More: https://project.inria.fr/gatb/.
  *
- *  It can be seen as software components providing services for assembling and analyzing genomes of various kinds.
+ * GATB is made two main parts:
  *
- *  Read more about GATB at <a href="https://project.inria.fr/gatb/">https://project.inria.fr/gatb</a>.
- *  
- *  You can download GATB softwares at <a href="https://project.inria.fr/gatb/software/">https://project.inria.fr/gatb/software</a>.
+ * - the GATB-CORE library: for development purpose, GATB-CORE enables the creation of new software tools
+ * - the GATB-Tools: contains ready-to-use softwares relying on GATB-CORE. More <a href="https://project.inria.fr/gatb/software/">here</a>.
  *
+ * The GATB project has been published in <a href="http://bioinformatics.oxfordjournals.org/content/30/20/2959">BioInformatics in 2014</a>.
+ * There are also several publications about GATB use cases and tools available <a href="https://project.inria.fr/gatb/publications/">here</a>.
+ * 
  ****************************************************************************************************
  ****************************************************************************************************
  * \section purpose Purpose of the GATB core library
  *
- *
- * First, gatb::core holds a C++ library that provides an easy way to create bioinformatics programs.
+ * gatb::core is a high-performance and low memory footprint C++ library.
  *
  * It supports the following operations natively:
  *  - FASTA/FASTQ parsing
@@ -44,22 +50,14 @@
  *  - de Bruijn graph construction
  *  - de Bruijn graph traversal operations (contigs, unitigs)
  *
- *  One structure is central to the GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>.
- *  This sort of data structure is today widely used in NGS software (like assembly software).
+ * One structure is central to the GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>.
+ * This sort of data structure is today widely used in NGS software (like assembly softwares).
  *
- * First, gatb::core holds a C++ library that provides an easy way to handle a central structure in the
- * GATB project: the <a href="http://en.wikipedia.org/wiki/De_Bruijn_graph">De Bruijn graph</a>.
- * This kind of data structure is today widely used in
- * <a href="http://en.wikibooks.org/wiki/Next_Generation_Sequencing_(NGS)">NGS</a>
- * software (like assembly software).
- *
- * More precisely, the library provides means to build and use De Bruijn graphs with a low memory footprint,
- * which comes initially from the <a href="http://minia.genouest.org">minia</a> assembly tool.
+ * So, one can say that GATB-CORE library provides means to build and use De Bruijn graphs with a low memory footprint,
+ * which comes initially from the <a href="https://project.inria.fr/gatb/software/minia/">minia</a> assembly tool.
  *
  * The documentation you are reading is the official documentation of the gatb::core reference API. The
- * audience is therefore developers interested in creating bio-informatics software.
- *
- * The GATB project has been published in <a href="http://bioinformatics.oxfordjournals.org/content/early/2014/06/30/bioinformatics.btu406.abstract?keytype=ref&ijkey=koXTzqbf4Nt1kVO">BioInformatics in 2014</a>.
+ * audience is therefore developers interested in creating bioinformatics softwares.
  *
  ****************************************************************************************************
  ****************************************************************************************************
@@ -77,7 +75,7 @@
  *
  ****************************************************************************************************
  ****************************************************************************************************
- * \section howto How can I use the GATB core library ?
+ * \section howto How can I make a new software using GATB core library ?
  *
  * As a starting point, it is strongly recommended to have a look at \ref snippets_page. You will find
  * there information about the compilation process and how to create a new project based on gatb::core.
@@ -91,8 +89,8 @@
  *
  * You can get support on the BioStars forum <a href="http://www.biostars.org/p/101393">here</a>.
  *
- * You can also have general information about the <a href="http://gatb.inria.fr">GATB project</a>. You will
- * find <a href="http://gatb.inria.fr/tutorials">here</a> high level tutorials about GATB.
+ * You can also have general information about the <a href="https://project.inria.fr/gatb/">GATB project</a>. You will
+ * find <a href="https://project.inria.fr/gatb/tutorials">here</a> high level tutorials about GATB.
  *
  ****************************************************************************************************
  ****************************************************************************************************
