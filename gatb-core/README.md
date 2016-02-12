@@ -129,6 +129,8 @@ move it anywhere you want.
 
 Such a project can be a start for building applications based on GATB-CORE. 
 
+More on creating a new GATB-Core based project: http://gatb-core.gforge.inria.fr/doc/api/new_project.html
+
 ----------------------------------------------------------------------------------
 # Notes for GATB-core developers
 
