@@ -113,7 +113,7 @@
  *   - a 'scripts' directory holding a script to automatically package the tool 
  *   - a 'tools' directory holding a default source code using GATB-Core
  *   - a 'thirdparty' directory holding the gatb-core resources
- *   - a 'doc' tool
+ *   - a 'doc' directory
  *     
  * The 'thirdparty' directory is only available for tool created outside the GATB-Tools repository.
  * Tools located within GATB-Tools rely on a common GATB-Core sub-module already available in this repository.
@@ -124,14 +124,19 @@
  *   - 'doc' directory to hold tool's documentation
  *   - 'thirdparty' directory to hold any third-party librairies this tool relies on
  *     
+ * \section project_source Project source code
+ *
  * It is worth noting that 'tools' directory is organised using sub-folders; by default, there is
- * at least one such sub-folder called 'toolName'. It holds the source code of the tool. However, when
- * considering a more complex software, it could be nice to setup several "sub-tools", each of them
- * making a particular feature. In that case, you can easily create several "sub-tool" folders inside
- * "tools", each of them having a "src" folder containing the source code, as well as a "main.cpp", for
- * each feature. Using this organisation has a big advantage: the provided CMakeLists.txt is aware of 
- * that, so you do not have to edit the CMake file when you add a new "sub-tool". As a real example, you
- * can have a look at the DiscoSNP software.
+ * at least one such sub-folder called 'toolName'. It holds the source code of the tool. 
+ * 
+ * However, when considering a more complex software, it could be nice to setup several "sub-tools", 
+ * each of them making a particular feature. In that case, you can easily create several "sub-tool" 
+ * folders inside "tools", each of them having a "src" folder containing the source code, as well as 
+ * a "main.cpp", for each feature. 
+ * 
+ * Using this organisation has a big advantage: the provided CMakeLists.txt is aware of 
+ * that, so you do not have to edit the CMake file when you add a new "sub-tool". As a real 
+ * example, you can have a look at the DiscoSNP software.
  *
  * \section project_compilation Project building
  * 
