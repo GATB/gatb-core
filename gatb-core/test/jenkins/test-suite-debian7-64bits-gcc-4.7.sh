@@ -3,9 +3,9 @@
 #         Continuous integration script for Jenkins            #
 #--------------------------------------------------------------#
 #
-# Default mode : 
-# This script will exit with error (exit code 1) if any of its steps fails. 
-# To change this behaviour, launch the script with the DEBUG argument.
+# Default mode :
+# This script will exit with error (exit code 1) if any of its steps fails.
+# To change this behaviour, choose DO_NOT_STOP_AT_ERROR in Jenkins (see below).
 #--------------------------------------------------------------#
 set +xv
 echo "
@@ -16,12 +16,14 @@ pwd       : `pwd`
 --------------------------
  Jenkins build parameters
 --------------------------
-GIT_TAG   : $GIT_TAG
-DEBUG     : $DEBUG
-USER_NAME : $USER_NAME
+BRANCH_TO_BUILD      : ${BRANCH_TO_BUILD}
+RELEASE_TO_BUILD     : ${RELEASE_TO_BUILD}
+INRIA_FORGE_LOGIN    : ${INRIA_FORGE_LOGIN}
+TEST_VARIABLE        : ${TEST_VARIABLE}
+DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
 "
 
-[ "$DEBUG" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
+[ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
 set -xv
 
 ################################################################
@@ -50,14 +52,14 @@ if [ $? -eq 0 ]; then
    echo "Creating a binary archive... "
    echo "N.B. this is NOT an official binary release"
 
-   binbundle=gatb_binary_${GIT_TAG}_"`uname`"
+   binbundle=gatb_binary_${BRANCH_TO_BUILD}_"`uname`"
    mkdir $binbundle
 
    cp bin/* $binbundle
    cp lib/* $binbundle
    tar -zcf $binbundle.tgz $binbundle
 
-   scp $binbundle.tgz ${USER_NAME}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+   scp $binbundle.tgz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
 fi
 
 
