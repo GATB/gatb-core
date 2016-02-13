@@ -29,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/system/impl/System.hpp>
+#include <queue>          // std::priority_queue
 
 /********************************************************************************/
 namespace gatb      {
@@ -40,20 +41,19 @@ namespace impl      {
 
 /* Cette class dÈfinit une pool memoire pour allocation rapide de la table de hachage
  * utilisee quand seed >14 */
-template <typename graine_type, typename value_type=int>  class Pool
+	
+//now pass as template the cell type
+	
+//had to move this outside the class (otherwise recursive def of cell template that may contain cell_ptr_t ... )
+typedef u_int32_t  cell_ptr_t;
+
+	
+template <typename cell>  class Pool
+//template <typename graine_type, typename value_type=int>  class Pool
 {
 public:
 
-    typedef u_int32_t  cell_ptr_t;
-
-    struct cell
-    {
-        graine_type graine;
-        cell_ptr_t  suiv;
-        value_type val;
-    };
-
-    /** Default constructor.
+	/** Default constructor.
      * \param[in] tai :  2^22  16 M cells *16 o    blocs de 256 Mo
      * \param[in] N : 2^10  soit 4 G cells max
      * */
@@ -135,6 +135,179 @@ public:
         n_pools=2;
     }
 
+	
+	//sort the pools according to some comparator
+	//warning this will reorder cells and thus  making existing pointers to cells irrelevant
+	//but useful for  e.g. sirted iterator of cells
+	template <typename Comparator>
+	void sortPools(Comparator comparator)
+	{
+		// les pool pleines
+		for(size_t i=1;i<(n_pools-1);i++)
+		{
+			std::sort( tab_pool[i],  tab_pool[i]  + TAI_POOL, comparator);
+		}
+		
+		// la pool en cours de remplissage
+		std::sort( tab_pool[n_pools-1],  tab_pool[n_pools-1]  + n_cells, comparator);
+	}
+	
+	
+	////////simple iterator over all cells
+	template <typename Comparator>
+	dp::Iterator < cell >* iteratorsorted (Comparator comparator)
+	{
+		//first sort each pool with std sort
+		 this->sortPools(comparator);
+
+		//then iterate with a merge sort
+		return new IteratorSorted(*this);
+	}
+	
+	
+	//todo template also this with a comparator
+	class IteratorSorted : public tools::dp::Iterator < cell >
+	{
+	
+	public:
+		typedef std::pair<int, cell *> cellpair_t; //id pointer of pool , cell *
+
+		struct sortcellpair { bool operator() (cellpair_t &l,cellpair_t &r) { return (  (* l.second).val <  (* r.second).val );  }  } ;
+
+		IteratorSorted (Pool<cell>& aRef) : ref(aRef), done(true)  {}
+		
+		/** \copydoc tools::dp::Iterator::first */
+		void first()
+		{
+
+			for(size_t i=1;i< ref.n_pools;i++)
+			{
+				cellpair_t  newwcp= cellpair_t(i,&(ref.tab_pool[i][0])  );
+				pq.push( cellpair_t(i,  (cell *)  &(ref.tab_pool[i][0])  )   );
+			}
+			next();
+		}
+		
+		/** \copydoc tools::dp::Iterator::next */
+		void next()
+		{
+			
+			done =  (pq.size() == 0);
+			
+			if(!done)
+			{
+				cellpair_t current_pair = pq.top() ; pq.pop();
+				*this->_item = * (current_pair.second);
+				
+				//push the next cell of this list  if any
+				int cell_number =  current_pair.second   -  ref.tab_pool[current_pair.first] ;
+				int current_pool = current_pair.first;
+				if( (current_pool < (ref.n_pools -1)) &&  ((cell_number+1)  < ref.TAI_POOL)  ) // inside a full pool, and cells remaining
+				{
+					pq.push( cellpair_t(current_pool, & (ref.tab_pool[current_pool][cell_number+1])  )   );
+				}
+				else if ( (current_pool == (ref.n_pools -1)) && ((cell_number+1) < ref.n_cells) ) // inside last pool, and cells remaining
+				{
+					pq.push( cellpair_t(current_pool, & (ref.tab_pool[current_pool][cell_number+1])  )   );
+				}
+				//otherwise at end of array, dont push anything
+			}
+		}
+		
+		/** \copydoc tools::dp::Iterator::isDone */
+		bool isDone ()   {  return done; }
+		
+		/** \copydoc tools::dp::Iterator::item */
+		cell& item ()     { return *this->_item; }
+		
+	private:
+		std::priority_queue< cellpair_t, std::vector<cellpair_t>,   sortcellpair > pq;
+		Pool<cell>&  ref;
+		bool         done;
+		
+	};
+	
+	//////
+	
+	
+	
+	
+	
+	
+	////////simple iterator over all cells
+	dp::Iterator < cell >* iterator ()
+	{
+		return new Iterator(*this);
+	}
+	
+	
+	/************************************************************/
+	//avec std::pair ? pour avoir Item, value_type
+	class Iterator : public tools::dp::Iterator <  cell  >
+	{
+	public:
+		
+		Iterator (Pool<cell>& aRef) : ref(aRef), done(true)  {}
+		
+		/** \copydoc tools::dp::Iterator::first */
+		void first()
+		{
+			_current_pool = 1; // first pool
+			_current_cell = 0;
+			done        = ref.n_cells < 1;
+			if(!done)
+				*this->_item = ref.tab_pool[_current_pool][_current_cell];
+			
+			_current_cell++; // next cell that should be read
+		}
+		
+		/** \copydoc tools::dp::Iterator::next */
+		void next()
+		{
+
+			if(_current_pool < (ref.n_pools -1) && _current_cell  < ref.TAI_POOL ) // inside a full pool, and cells remaining
+			{
+				*this->_item = ref.tab_pool[_current_pool][_current_cell];
+				_current_cell++;
+				return;
+			}
+			else if (_current_pool < (ref.n_pools -1) && _current_cell == ref.TAI_POOL ) // inside a full pool but no cells remaining
+			{
+				//go to next pool
+				_current_pool++;
+				_current_cell = 0;
+				*this->_item = ref.tab_pool[_current_pool][_current_cell];
+				_current_cell++;
+			}
+			else if (_current_pool == (ref.n_pools -1) && _current_cell < ref.n_cells) // in last pool and cells remaining
+			{
+				*this->_item = ref.tab_pool[_current_pool][_current_cell];
+				_current_cell++;
+			}
+			else // last pools and no cells left, done
+			{
+				done = true;
+			}
+		}
+		
+		/** \copydoc tools::dp::Iterator::isDone */
+		bool isDone ()   {  return done; }
+		
+		/** \copydoc tools::dp::Iterator::item */
+		cell& item ()     { return *this->_item; }
+		
+	private:
+		
+		unsigned int _current_pool;
+		unsigned int _current_cell;
+
+		Pool<cell>&  ref;
+		
+		bool         done;
+	};
+	
+
+	
 private:
 
     /** table de cell, pour usage courant */

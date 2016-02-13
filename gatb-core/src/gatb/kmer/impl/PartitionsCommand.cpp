@@ -19,6 +19,7 @@
 
 #include <gatb/kmer/impl/PartitionsCommand.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
+#include <gatb/tools/collections/impl/Hash16.hpp>
 
 using namespace std;
 
@@ -170,8 +171,10 @@ void PartitionsByHashCommand<span>:: execute ()
 	size_t count=0;
 
 	/** We need a map for storing part of solid kmers. */
-	OAHash<Type> hash (_hashMemory); //or use hash16 to ensure always finishes ?
+	//OAHash<Type> hash (_hashMemory);
 
+	Hash16<Type> hash16 (_hashMemory/MBYTE); // now use hash 16 to ensure always finish
+	
 	/** We directly fill the vector from the current partition file. */
 	Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
 
@@ -215,8 +218,9 @@ void PartitionsByHashCommand<span>:: execute ()
 			mink = std::min (rev_temp, temp);
 			
 			/** We insert the kmer into the hash. */
-			hash.increment (mink);
-							
+			//hash.increment (mink);
+			hash16.insert(mink);
+			
 			if(rem < 2) break;
 			newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
 			
@@ -228,19 +232,31 @@ void PartitionsByHashCommand<span>:: execute ()
 
 	/** We loop over the solid kmers map.
 	 * NOTE !!! we want the items to be sorted by kmer values (see finalize part of debloom). */
-	Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator(true);
+	//Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator(true);
+
+	//shortcut
+	typedef typename tools::collections::impl::Hash16<Type>::cell cell_t;
+	Iterator < cell_t >* itKmerAbundance = hash16.iterator(true);
+
+	
 	LOCAL (itKmerAbundance);
 
 	for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
 	{
 	    /** Shortcut. */
-	    Abundance<Type>& current = itKmerAbundance->item();
-
+	  //  Abundance<Type>& current = itKmerAbundance->item();
+		
 	    /** We update the solid counter. */
-	    solidCounter.set (current.getAbundance());
+	    //solidCounter.set (current.getAbundance());
 
 		/** We may add this kmer to the solid kmers bag. */
-	    this->insert (current.getValue(), solidCounter);
+	    //this->insert (current.getValue(), solidCounter);
+		
+		cell_t & cell = itKmerAbundance->item();
+		solidCounter.set (cell.val);
+		this->insert (cell.graine, solidCounter);
+
+
 	}
 	
 	this->_progress->inc (this->_pInfo.getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
@@ -521,8 +537,9 @@ void PartitionsByVectorCommand<span>::executeRead ()
      *               <------------------------->
      *                current partition content
      */
-    DEBUG (("_offsets.size=%d  OFFSETS: ", _nbItemsPerBankPerPart.size() ));
-    for (size_t j=0; j<_nbItemsPerBankPerPart.size(); j++)  {  DEBUG (("%6d ", _nbItemsPerBankPerPart[j]));  }  DEBUG (("\n"));
+
+	 DEBUG (("_offsets.size=%d  OFFSETS: ", _nbItemsPerBankPerPart.size() ));
+	 for (size_t j=0; j<_nbItemsPerBankPerPart.size(); j++)  {  DEBUG (("%6d ", _nbItemsPerBankPerPart[j]));  }  DEBUG (("\n"));
 
     uint64_t sum_nbxmer =0;
 

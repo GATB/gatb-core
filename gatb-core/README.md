@@ -1,9 +1,35 @@
 --------------------------------------------------------------------------------
-# Introduction
+# What is GATB ?
 
-The GATB-CORE project provides a library providing services for genome assembly.
+GATB means "Genome Analysis Toolbox with de-Bruijn graph".
 
-All the needed material is contained in the current directory in order to 
+The GATB-CORE project provides a set of highly efficient algorithms to analyse NGS data sets. These 
+methods enable the analysis of data sets of any size on multi-core desktop computers, including very 
+huge amount of reads data coming from any kind of organisms such as bacteria, plants, animals and 
+even complex samples (e.g. metagenomes). More: https://project.inria.fr/gatb/.
+
+Read more about GATB at <a href="https://project.inria.fr/gatb/">https://project.inria.fr/gatb</a>.
+ 
+You can download GATB softwares at <a href="https://project.inria.fr/gatb/software/">https://project.inria.fr/gatb/software</a>.
+
+--------------------------------------------------------------------------------
+# What is GATB-CORE ?
+
+GATB-CORE is a high-performance and low memory footprint C++ library.
+
+Among others, it supports the following operations natively:
+* FASTA/FASTQ parsing
+* K-mer counting
+* Minimizer computation of k-mers, partitioning of datasets by minimizers
+* de Bruijn graph construction
+* de Bruijn graph traversal operations (contigs, unitigs)
+
+By itself GATB-CORE is not an NGS data analysis tool. However, it can be 
+used to create such tools; see below section called 'How to quickly create a project based on gatb-core ?'.
+
+They already exist a set of ready-to-use tools relying on GATB-CORE library: see https://project.inria.fr/gatb/software/
+
+All the needed material of GATB-CORE is contained in the current directory in order to 
 generate the wanted artifacts:  
 
 * dynamic and static libraries holding the services component
@@ -12,7 +38,7 @@ generate the wanted artifacts:
 
 * wrappers for the components in other languages like java, python, ... (to be done)
 
-Since the compilation is based on CMake, a common way to build all the artifacts is :
+Since the compilation is based on CMake (release 2.6+), a common way to build all the artifacts is:
 
 	mkdir build ; cd build ; cmake .. ; make
 
@@ -80,21 +106,30 @@ For one atomic package (or sub package), we should have:
 * directory 'impl'      several implementations of the API
 
 --------------------------------------------------------------------------------
-# How to quickly create a project based on gatb-core ?
+# How to quickly create a project based on GATB-CORE ?
 
-If you want to test gatb-core by creating a new project, you can use the following script:
-    sh scripts/NewProject/NewProject.sh  arg1  arg2
-where arg1 is the name of the project and arg2 is the directory where the project will be created.
+You use GATB-CORE by creating a new tool project, with the following script:
 
+    sh scripts/NewProject/NewProject.sh  -d directory -n toolName
+
+where 'directory' is the directory where the project will be created and 'toolName' is the name of the project.
+The script will automatically creates the full path directory/toolName to deploy a self-contained tool.
+ 
 By default, the following part will be included in the project:
-    * a README file explaining how to compile the project
-    * a 'src' directory holding a default main function
-    * a 'thirdparty' holding all the material for building GATB-CORE
+    * a CMakeLists.txt file used for building the project
+    * a 'tools' directory holding a default source code using GATB-Core
+    * a 'scripts' directory holding a script to automatically package the tool
+    * an optional 'thirdparty' directory holding the gatb-core resources
+
+The 'thirdparty' directory is only available for tool created outside the GATB-Tools repository.
+Tools located within GATB-Tools rely on a common GATB-CORE sub-module already available in this repository.
 
 The directory where the project is created has no link to any external resources. You can therefore
 move it anywhere you want.
 
 Such a project can be a start for building applications based on GATB-CORE. 
+
+More on creating a new GATB-Core based project: http://gatb-core.gforge.inria.fr/doc/api/new_project.html
 
 ----------------------------------------------------------------------------------
 # Notes for GATB-core developers
@@ -116,7 +151,6 @@ To run unit tests:
     show up in the verbose output, e.g. 'bin/gatb-core-cppunit TestBank'.
 
 
-To upload the documentation to the http://gatb-core.gforge.inria.fr/ website, type:
+To upload the documentation to the http://gatb-core.gforge.inria.fr/doc/api website, type:
 
-    mkdir build && cd build && cmake .. && make doc
-    scp doc/html/index.html edrezen@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/
+    mkdir build ; cd build ; cmake .. ; make doc ; make deploy-doc

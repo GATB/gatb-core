@@ -49,15 +49,26 @@ namespace impl          {
  */
 template <typename Item, typename value_type=int> class Hash16
 {
+	
+public :
+	
+	//shortcut
+	typedef misc::impl::cell_ptr_t cell_ptr_t;
+	
+	typedef struct
+	{
+		Item graine;
+		cell_ptr_t  suiv;
+		value_type val;
+	} cell;
+	
 protected:
 
-    /** Shortcuts. */
-    typedef typename misc::impl::Pool<Item,value_type>::cell        cell;
-    typedef typename misc::impl::Pool<Item,value_type>::cell_ptr_t  cell_ptr_t;
 
+	
     cell_ptr_t * datah;
 
-    misc::impl::Pool<Item,value_type> storage;
+    misc::impl::Pool<cell> storage;  // was Item,value_type
     u_int64_t mask ;
 
     u_int64_t tai;
@@ -69,8 +80,10 @@ protected:
 
 public:
 
+
+	
     /** Constructor.
-     * \param[in] sizeMB : max memory to be used by the hash table
+     * \param[in] sizeMB : approx max memory to be used by the hash table
      */
     Hash16 (size_t sizeMB) : datah(0), mask(0), tai(0), nb_elem(0), max_nb_elem(0), _memory(system::impl::System::memory())
     {
@@ -91,6 +104,8 @@ public:
  		datah       = (cell_ptr_t *) _memory.calloc( tai , sizeof(cell_ptr_t));  //create hashtable
 
 		//printf("Hash16 size asked in MB %zu  tai_Hash16 %i  nb entries %llu \n",sizeMB,tai_Hash16,tai);
+		cell pcell;
+		//printf("Hash 16 cell %lli   graine %i suiv %i val %i\n",sizeof(cell),sizeof(pcell.graine),sizeof(pcell.suiv),sizeof(pcell.val));
 
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
@@ -210,81 +225,26 @@ public:
     }
 
 	
+	static bool sortByKey(const cell &lhs, const cell &rhs) { return lhs.graine < rhs.graine; }
+	
 	/** Get an iterator for the hash table.
-	 * \param[in] sorted : if true, items are iterated in a sorted way
+	 * \param[in] sorted : if true, items are iterated in a sorted way (warning: reorder in place so cant acces hash after that !)
 	 * \return an iterator over the items of the hash table.
 	 */
-	dp::Iterator < std::pair<Item,value_type> >* iterator ()
+	//dp::Iterator < std::pair<Item,value_type> >* iterator (bool sorted=false)
+	//just get the underlying pool iterator which is simply iteration over multiple arrays, no need to traverse linked list
+	dp::Iterator < cell >* iterator (bool sorted=false)
 	{
-		 return new Iterator(*this);
-	 }
+		if(sorted)
+		{
+			return storage.iteratorsorted(sortByKey);
+		}
+		else
+		{
+			return storage.iterator();
+		}
+	}
 
-	/************************************************************/
-	//avec std::pair ? pour avoir Item, value_type
-	class Iterator : public tools::dp::Iterator <  std::pair<Item,value_type>  >
-	{
-	public:
-		
-		Iterator (Hash16<Item,value_type>& aRef) : ref(aRef), iterator(0), iteratorMax(0), done(true)  {}
-		
-		/** \copydoc tools::dp::Iterator::first */
-		void first()
-		{
-			iterator    = ref.datah - 1;
-			iteratorMax = ref.datah + ref.tai;
-			cell_ptr    = NULL;
-			done        = false;
-			
-			next ();
-		}
-		
-		/** \copydoc tools::dp::Iterator::next */
-		void next()
-		{
-			if(cell_ptr == NULL  || ref.storage.internal_ptr_to_cell_pointer(cell_ptr->suiv)==NULL ) // au bout de liste
-			{
-				
-				//go to next non null entry
-				while (!done)
-				{
-					iterator++;
-					done = (iterator >= iteratorMax);
-					cell_ptr = ref.storage.internal_ptr_to_cell_pointer(*iterator);
-					
-					if(!done && cell_ptr!= NULL)
-					{
-						*this->_item = std::pair<Item,value_type> (cell_ptr->graine,cell_ptr->val);
-						break;
-					}
-				}
-			
-			}
-			else // we are not at end of list, so only advance within  list
-			{
-				cell_ptr = ref.storage.internal_ptr_to_cell_pointer(cell_ptr->suiv);
-				*this->_item = std::pair<Item,value_type> (cell_ptr->graine,cell_ptr->val);
-				done = false;
-			}
-			//should be ok
-		}
-		
-		/** \copydoc tools::dp::Iterator::isDone */
-		bool isDone ()   {  return done; }
-		
-		/** \copydoc tools::dp::Iterator::item */
-		std::pair<Item,value_type>& item ()     { return *this->_item; }
-		
-	private:
-		Hash16<Item,value_type>&  ref;
-		
-		cell_ptr_t *  iterator;
-		cell_ptr_t *  iteratorMax;
-		cell* cell_ptr;
-		bool           done;
-	};
-	
-	
-	
 	
     /** Get the value for a given key
      * \param[in] graine : key
