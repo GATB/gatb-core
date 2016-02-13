@@ -23,7 +23,7 @@ int main (int argc, char* argv[])
 
         // We create a Edge iterator that iterates all the simple edges from the first node
         // Recall that a simple node has indegree==1 and outdegree==1
-        Graph::Iterator<Edge> path = graph.simplePath<Edge> (node, DIR_OUTCOMING);
+        Graph::Iterator<Edge> path = graph.simplePathEdge (node, DIR_OUTCOMING);
 
         // We iterate the simple path.
         for (path.first(); !path.isDone(); path.next())

@@ -1,6 +1,6 @@
-#usage: make -j 4 2> MAKE ; cat MAKE | python parse_gcc_output.py | less -R
-
 #!/usr/bin/env python
+
+#usage: make -j 4 2> MAKE ; cat MAKE | python parse_gcc_output.py | less -R
 import fileinput
 
 class bcolors:

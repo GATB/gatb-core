@@ -38,7 +38,7 @@ int main (int argc, char* argv[])
         Path pathLeft;
 
         // We get one branching node in the graph
-        Graph::Iterator<BranchingNode> itBranching = graph.iterator<BranchingNode> ();
+        Graph::Iterator<BranchingNode> itBranching = graph.iteratorBranching ();
         for (itBranching.first(); !itBranching.isDone(); itBranching.next())
         {
             BranchingNode current = itBranching.item();
@@ -49,7 +49,8 @@ int main (int argc, char* argv[])
             //if (terminator.is_marked_branching (itBranching.item()))  { continue; }
 
             int lenRight = traversal->traverse (current,                DIR_OUTCOMING, pathRight);
-            int lenLeft  = traversal->traverse (graph.reverse(current), DIR_OUTCOMING, pathLeft);
+            Node rev = graph.reverse(current);
+            int lenLeft  = traversal->traverse (rev, DIR_OUTCOMING, pathLeft);
 
             cout << "lenLeft=" << lenLeft << "  lenRight=" << lenRight << endl;
         }

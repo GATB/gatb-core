@@ -34,7 +34,7 @@ int main (int argc, char* argv[])
         Node node = graph.buildNode (sequences[0]);
 
         // We retrieve the branching neighbors for the node.
-        Graph::Vector<BranchingNode> branchingNeighbors = graph.successors<BranchingNode> (node);
+        Graph::Vector<BranchingNode> branchingNeighbors = graph.successorsBranching (node);
 
         std::cout << "We found " << branchingNeighbors.size() << " branching neighbors from node " << graph.toString(node) << std::endl;
 

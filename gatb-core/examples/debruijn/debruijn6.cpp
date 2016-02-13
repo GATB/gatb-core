@@ -21,7 +21,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::load (argv[1]);
 
         // We get an iterator for all nodes of the graph.
-        Graph::Iterator<Node> it = graph.iterator<Node> ();
+        Graph::Iterator<Node> it = graph.iterator ();
 
         // We loop each node. Note the structure of the for loop.
         for (it.first(); !it.isDone(); it.next())

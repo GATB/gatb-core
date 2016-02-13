@@ -83,7 +83,8 @@ public:
                     model.iterate (seq.getData(), [&] (const Kmer<>::ModelCanonical::Kmer& kmer, size_t rank)
                     {
                         // We count the branching nodes.
-                        if (graph.isBranching (Node::Value(kmer.value())))  {  nbBranching++;  }
+                        Node node = Node::Value(kmer.value());
+                        if (graph.isBranching (node))  {  nbBranching++;  }
                     });
 
                     // We increase the (local) distribution for this number of branching nodes per sequence

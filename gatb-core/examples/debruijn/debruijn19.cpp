@@ -16,29 +16,29 @@ using namespace std;
 
 // We define a class that marks nodes in a graph and call tell whether a given node is marked or not.
 // We use a map for the implementation (could be not optimal).
-template<typename T>  class GraphMarker
+class GraphMarker
 {
 public:
 
     GraphMarker (const Graph& graph) : graph(graph)
     {
         // We insert all the nodes into our map.
-        auto iter = [&] (const T& item)  {  this->markMap[item] = false;  };
-        graph.iterator<T>().iterate (iter);
+        auto iter = [&] (const BranchingNode& item)  {  this->markMap[item] = false;  };
+        graph.iteratorBranching().iterate (iter);
     }
 
-    void mark (const T& item)  {  markMap [item] = true;  }
+    void mark (const BranchingNode& item)  {  markMap [item] = true;  }
 
-    void mark (const set<T>& items)
+    void mark (const set<BranchingNode>& items)
     {
-        for (typename set<T>::const_iterator it=items.begin(); it != items.end(); ++it)  {  mark (*it); }
+        for (typename set<BranchingNode>::const_iterator it=items.begin(); it != items.end(); ++it)  {  mark (*it); }
     }
 
-    bool isMarked (const T& item) const  {  return markMap.find(item)->second;  }
+    bool isMarked (const BranchingNode& item) const  {  return markMap.find(item)->second;  }
 
 private:
     const Graph& graph;
-    map<T,bool>  markMap;
+    map<BranchingNode,bool>  markMap;
 };
 
 /********************************************************************************/
@@ -46,7 +46,7 @@ private:
 // We define a class that performs a breadth first search in a graph from a starting node.
 // We need a marker to globally mark the visited nodes from one call to another.
 // The nodes visit is handled by a std::queue object.
-template<typename T>  class BFS
+class BFS
 {
 public:
 
@@ -54,7 +54,7 @@ public:
 
     // Process the BFS started from the provided node. As a result, we get the nodes number in the
     // found connected component.
-    const set<T>& run (const T& node)
+    const set<BranchingNode>& run (const BranchingNode& node)
     {
         // ALGORITHM (recursion on n)
         //    We define as C(n) the set of nodes of the connected component to be computed.
@@ -70,7 +70,7 @@ public:
         //      card(F(n)) = 0
 
         // We set the initial state for F(0)
-        set<T> frontline;
+        set<BranchingNode> frontline;
         frontline.insert (node);
 
         // We set the initial state for C(0)
@@ -81,13 +81,13 @@ public:
         while (!frontline.empty())
         {
             // We get the neighbors for the current front line, ie. we get N(F(n))
-            set<T> neighbors = graph.neighbors<T> (frontline.begin(), frontline.end());
+            set<BranchingNode> neighbors = graph.neighbors (frontline.begin(), frontline.end()); // this is a very special overload of neighbors() from Graph.hpp
 
             // We reset the current front line => we reuse it for computing F(n+1)
             frontline.clear();
 
             // We compute the recursion for F(n+1) and C(n+1)
-            for (typename set<T>::iterator it = neighbors.begin(); it != neighbors.end(); it++)
+            for (typename set<BranchingNode>::iterator it = neighbors.begin(); it != neighbors.end(); it++)
             {
                 if (connectedComponent.find (*it) == connectedComponent.end())
                 {
@@ -105,11 +105,11 @@ public:
     }
 
     // We provide an accessor to the nodes of the found connected component
-    const set<T>& get() const { return connectedComponent; }
+    const set<BranchingNode>& get() const { return connectedComponent; }
 
 private:
     const Graph& graph;
-    set<T>       connectedComponent;
+    set<BranchingNode>       connectedComponent;
 };
 
 /********************************************************************************/
@@ -134,10 +134,10 @@ int main (int argc, char* argv[])
         Graph graph = Graph::load (options->getStr(STR_URI_GRAPH));
 
         // We create a graph marker.
-        GraphMarker<BranchingNode> marker (graph);
+        GraphMarker marker (graph);
 
         // We create an object for Breadth First Search for the de Bruijn graph.
-        BFS<BranchingNode> bfs (graph);
+        BFS bfs (graph);
 
         // We want to compute the distribution of connected components of the branching nodes.
         //    - key is a connected component class (for a given number of branching nodes for this component)
@@ -145,7 +145,7 @@ int main (int argc, char* argv[])
         map<size_t,size_t> distrib;
 
         // We get an iterator for branching nodes of the graph. We use a progress iterator to get some progress feedback
-        ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
+        ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iteratorBranching(), "statistics");
 
         // We want to know the number of connected components
         size_t nbConnectedComponents = 0;

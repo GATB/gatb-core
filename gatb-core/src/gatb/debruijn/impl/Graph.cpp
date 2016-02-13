@@ -2828,7 +2828,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
     std::set<BranchingNode> result;
     for (auto it=first; it!=last; ++it)
     {
-        GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode> neighbors = this->neighborsBranchingNode (it->kmer);
+        GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode> neighbors = this->neighborsBranching(it->kmer);
         for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
     }
     return result;
@@ -2864,7 +2864,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
             {
                 for (typename std::set<BranchingNode_t<Node> >::iterator it=range.first; it!=range.second; ++it)
                 {
-                    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = graph.neighborsBranchingNode (it->kmer);
+                    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = graph.neighborsBranching(it->kmer);
                     for (size_t i=0; i<neighbors.size(); i++)  { result.push_back (neighbors[i]); }
                 }
             }
@@ -2905,7 +2905,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
     {
         for (typename std::set<BranchingNode_t<Node> >::iterator it=first; it!=last; ++it)
         {
-            GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = this->neighborsBranchingNode (it->kmer);
+            GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = this->neighborsBranching(it->kmer);
             for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
         }
     }

@@ -17,7 +17,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance-min 1  -verbose 0");
 
         // We get an iterator for all nodes of the graph.
-        Graph::Iterator<Node> it = graph.iterator<Node> ();
+        Graph::Iterator<Node> it = graph.iterator ();
 
         // We check that we have only two possible nodes
         assert (it.size() == 2);
@@ -37,7 +37,7 @@ int main (int argc, char* argv[])
                 // It could have been retrieved by an previous call to Graph::neighbors<Edge> method
 
                 // Now, we want to get the successor of the current node, only by giving the transition nucleotide.
-                Node neighbor = graph.successor<Node> (current, NUCL_C);
+                Node neighbor = graph.successor (current, NUCL_C);
 
                 // WARNING ! This Graph::successor method doesn't check whether the neighbor actually belongs to the graph.
                 // It is supposed here that the client knows perfectly that its transition nucleotide is valid.
@@ -52,17 +52,17 @@ int main (int argc, char* argv[])
                 bool exists;
                 Node potentialNeighbor;
 
-                potentialNeighbor = graph.successor<Node> (current, NUCL_A, exists);
+                potentialNeighbor = graph.successor (current, NUCL_A, exists);
                 assert (exists == false);
 
-                potentialNeighbor = graph.successor<Node> (current, NUCL_C, exists);
+                potentialNeighbor = graph.successor (current, NUCL_C, exists);
                 assert (exists == true);
                 assert (graph.toString (potentialNeighbor) == "ATGC");
 
-                potentialNeighbor = graph.successor<Node> (current, NUCL_G, exists);
+                potentialNeighbor = graph.successor (current, NUCL_G, exists);
                 assert (exists == false);
 
-                potentialNeighbor = graph.successor<Node> (current, NUCL_T, exists);
+                potentialNeighbor = graph.successor (current, NUCL_T, exists);
                 assert (exists == false);
             }
         }

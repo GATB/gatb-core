@@ -20,7 +20,7 @@ public:
         Graph graph = Graph::create (getParser()->getProperties());
 
         // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
-        ProgressGraphIterator<BranchingNode,ProgressTimer>  it (graph.iterator<BranchingNode>(), "MiniDiscoSNP: finding bubbles          ");
+        ProgressGraphIterator<BranchingNode,ProgressTimer>  it (graph.iteratorBranching(), "MiniDiscoSNP: finding bubbles          ");
 
         int nbsnps = 1 ;
         int ksize  = graph.getKmerSize();
@@ -40,7 +40,7 @@ public:
             if ((indegree ==1 && outdegree==2)  ||  (indegree ==2 && outdegree==1) )
             {
                 //get neighbor branching edges
-                Graph::Vector<BranchingEdge> branchingNeighbors = graph.successors<BranchingEdge> (current);
+                Graph::Vector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (current);
 
                 //clean bubble
                 if(branchingNeighbors.size()==2  && branchingNeighbors[0].distance == ksize && branchingNeighbors[1].distance == ksize)

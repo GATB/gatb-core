@@ -21,7 +21,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::load (argv[1]);
 
         // We get an iterator for branching nodes of the graph.
-        Graph::Iterator<BranchingNode> it = graph.iterator<BranchingNode> ();
+        Graph::Iterator<BranchingNode> it = graph.iteratorBranching ();
 
         // We loop each node. Note the structure of the for loop.
         for (it.first(); !it.isDone(); it.next())

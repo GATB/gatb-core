@@ -17,7 +17,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance-min 1  -verbose 0");
 
         // We get an iterator for all nodes of the graph.
-        Graph::Iterator<Node> it = graph.iterator<Node> ();
+        Graph::Iterator<Node> it = graph.iterator();
 
         // We check that we have only two possible nodes
         assert (it.size() == 2);
@@ -37,7 +37,7 @@ int main (int argc, char* argv[])
             if (s=="AATG")
             {
                 // We get the neighbors of this specific current
-                Graph::Vector<Node> neighbors = graph.successors<Node> (current);
+                Graph::Vector<Node> neighbors = graph.successors(current);
 
                 // We check that we got only one successor
                 assert (neighbors.size() == 1);

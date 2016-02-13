@@ -28,32 +28,20 @@ public:
         _parser->push_front (new OptionOneParam (STR_NODE_TYPE,  "node type (0: all,  1:branching)", false, "1" ));
     }
 
-    template<typename NodeType>
-    void process (const char* name)
+    void processNode(Graph &graph, ofstream &output)
     {
-        string outputFile = getInput()->get(STR_URI_OUTPUT) ?
-            getInput()->getStr(STR_URI_OUTPUT) :
-            (System::file().getBaseName(getInput()->getStr(STR_URI_GRAPH)) + ".dot");
-
-        ofstream output (outputFile.c_str());
-
-        output << "digraph " << name << "{\n";
-
-        // We load the graph
-        Graph graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
-
         map<Node, u_int64_t> mapping;
         u_int64_t count = 0;
-
-        Graph::Iterator<NodeType> itMap = graph.iterator<NodeType> ();
+    
+        Graph::Iterator<Node> itMap = graph.iterator ();
         for (itMap.first(); !itMap.isDone(); itMap.next())  { mapping[itMap.item()] = count++; }
 
-        ProgressGraphIterator<NodeType,ProgressTimer> it = graph.iterator<NodeType> ();
+        ProgressGraphIterator<Node,ProgressTimer> it = graph.iterator ();
         for (it.first(); !it.isDone(); it.next())
         {
-            NodeType current = it.item();
+            Node current = it.item();
 
-            Graph::Vector<NodeType> neighbors = graph.neighbors<NodeType> (current.kmer);
+            Graph::Vector<Node> neighbors = graph.neighbors(current.kmer);
 
             for (size_t i=0; i<neighbors.size(); i++)
             {
@@ -66,13 +54,58 @@ public:
         output.close();
     }
 
+    void processBranchingNode(Graph &graph, ofstream & output)
+    {
+        map<Node, u_int64_t> mapping;
+        u_int64_t count = 0;
+    
+        Graph::Iterator<BranchingNode> itMap = graph.iteratorBranching();
+        for (itMap.first(); !itMap.isDone(); itMap.next())  { mapping[itMap.item()] = count++; }
+
+        ProgressGraphIterator<BranchingNode,ProgressTimer> it = graph.iteratorBranching ();
+        for (it.first(); !it.isDone(); it.next())
+        {
+            BranchingNode current = it.item();
+
+            Graph::Vector<BranchingNode> neighbors = graph.neighborsBranching (current.kmer);
+
+            for (size_t i=0; i<neighbors.size(); i++)
+            {
+                output << mapping[current.kmer] << " -> " <<  mapping[neighbors[i].kmer] << " ;\n";
+            }
+        }
+
+        output << "}\n";
+
+        output.close();
+    }
+
+ 
     // Actual job done by the tool is here
     void execute ()
     {
+
+        string outputFile = getInput()->get(STR_URI_OUTPUT) ?
+            getInput()->getStr(STR_URI_OUTPUT) :
+            (System::file().getBaseName(getInput()->getStr(STR_URI_GRAPH)) + ".dot");
+
+        ofstream output (outputFile.c_str());
+
+        // We load the graph
+        Graph graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
+
+
+
         switch (getInput()->getInt(STR_NODE_TYPE))
         {
-            case 0: process<Node>          ("all");        break;
-            case 1: process<BranchingNode> ("branching");  break;
+            case 0: 
+                output << "digraph " << "all" << "{\n";
+                processNode(graph, output);
+                break;
+            case 1: 
+                output << "digraph " << "branching" << "{\n";
+                processBranchingNode(graph, output);  
+                break;
             default: break;
         }
      }

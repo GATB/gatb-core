@@ -47,7 +47,7 @@ int main (int argc, char* argv[])
         size_t kmerSize = atol (storage->root().getProperty("kmer_size").c_str());
 
         // We get a minimizer model
-        Model model (kmerSize, 8, typename Kmer<>::ComparatorMinimizerFrequency(), repart.getMinimizerFrequencies());
+        Model model (kmerSize, 8, typename Kmer<>::ComparatorMinimizerFrequencyOrLex(), repart.getMinimizerFrequencies());
 
         // We create the output file
         string outputUri = options->get(STR_URI_OUTPUT) ?

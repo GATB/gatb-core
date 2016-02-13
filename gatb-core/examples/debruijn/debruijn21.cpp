@@ -27,10 +27,10 @@ int main (int argc, char* argv[])
         Graph graph = Graph::load (options->getStr(STR_URI_GRAPH));
 
         // We iterate the branching nodes
-        Dispatcher().iterate (graph.iterator<BranchingNode> (), [&] (const BranchingNode& node)
+        Dispatcher().iterate (graph.iteratorBranching (), [&] (const BranchingNode& node)
         {
             // We iterate the successors of the current node
-            graph.successors<BranchingEdge>(node).iterate ([&] (const BranchingEdge& edge)
+            graph.successorsBranchingEdge((Node&)node).iterate ([&] (const BranchingEdge& edge)
             {
                 if (edge.from == edge.to)  {  cout << "CYCLE: " << graph.toString (edge) << endl;  }
             });

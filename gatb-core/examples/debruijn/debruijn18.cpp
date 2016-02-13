@@ -36,7 +36,7 @@ int main (int argc, char* argv[])
 
         // We get an iterator for branching nodes of the graph.
         // We use a progress iterator to get some progress feedback
-        ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iterator<BranchingNode>(), "statistics");
+        ProgressGraphIterator<BranchingNode,ProgressTimer>  itBranching (graph.iteratorBranching(), "statistics");
 
         // We define some kind of unique identifier for a couple (indegree,outdegree)
         typedef pair<size_t,size_t> InOut_t;
@@ -53,8 +53,8 @@ int main (int argc, char* argv[])
             map <InOut_t,size_t>& localTopology = topology();
 
             // We get branching nodes neighbors for the current branching node.
-            Graph::Vector<BranchingEdge> successors   = graph.successors  <BranchingEdge> (node);
-            Graph::Vector<BranchingEdge> predecessors = graph.predecessors<BranchingEdge> (node);
+            Graph::Vector<BranchingEdge> successors   = graph.successorsBranchingEdge ((Node&)node); /* node casting is necessary due to incomplete Graph.hpp api for successorsBranchingEdge */
+            Graph::Vector<BranchingEdge> predecessors = graph.predecessorsBranchingEdge ((Node&)node); 
 
             // We increase the occurrences number for the current couple (in/out) neighbors
             localTopology [make_pair(predecessors.size(), successors.size())] ++;

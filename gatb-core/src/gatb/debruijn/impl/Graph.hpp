@@ -622,10 +622,10 @@ public:
     inline Vector<Edge> neighborsEdge    ( const typename Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
 
 
-    inline Vector<BranchingNode_t<Node> > neighborsBranchingNode (Node& node, Direction direction) const
+    inline Vector<BranchingNode_t<Node> > neighborsBranching(Node& node, Direction direction) const
     { return getBranchingNodeNeighbors (node, direction);  }
 
-    inline Vector<BranchingNode_t<Node> > neighborsBranchingNode (const typename Node::Value& kmer) const
+    inline Vector<BranchingNode_t<Node> > neighborsBranching(const typename Node::Value& kmer) const
     { return getBranchingNodeValues (kmer);  }
 
      inline Vector<BranchingEdge_t<Node,Edge> > neighborsBranchingEdge (Node& node, Direction direction) const
@@ -671,7 +671,7 @@ public:
     /* used to be a template, but I can't specialize it without specializing the whole graph templated class now. so got rid of templates for now*/
     //template <typename T, typename IteratorInput>
     //std::set<T> neighbors (IteratorInput first, IteratorInput last) const;
-    inline std::set<BranchingNode_t<Node> > neighbors (typename std::set<BranchingNode_t<Node> >::iterator first, typename std::set<BranchingNode_t<Node> >::iterator last) const;
+    std::set<BranchingNode_t<Node> > neighbors (typename std::set<BranchingNode_t<Node> >::iterator first, typename std::set<BranchingNode_t<Node> >::iterator last) const;
 
     /** Returns the successors of two nodes, ie with the same transition nucleotide from both nodes.
      * \param[in] node1 : first node
