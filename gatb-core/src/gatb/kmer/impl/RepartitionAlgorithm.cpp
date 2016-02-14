@@ -416,7 +416,8 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
         u_int64_t nbseq_sample = (_config._estimateSeqNb / _config._nb_banks) * 0.01;
         nbseq_sample = max((u_int64_t)nbseq_sample, (u_int64_t)100000);
 
-        std::vector<Iterator<Sequence>*> itBanks =  _bank->iterator()->getComposition();
+        Iterator<Sequence>* it = _bank->iterator();       LOCAL (it);
+        std::vector<Iterator<Sequence>*> itBanks =  it->getComposition(); 
 
         bool dummyBoolean = false;
         SampleRepart<span> sampleRepart (
@@ -473,7 +474,8 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
     }
     else{
 
-        CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(_bank->iterator()));
+        Iterator<Sequence>* it = _bank->iterator();      LOCAL (it);
+        CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(it));
         LOCAL(cancellable_it);
 
 
