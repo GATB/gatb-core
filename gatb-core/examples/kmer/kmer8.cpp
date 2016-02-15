@@ -53,7 +53,7 @@ struct CustomMaximizer
 {
     template<class Model>  void init (const Model& model, Kmer<span>::Type& optimum) const
     {
-        optimum = Kmer<span>::Type(0);
+        optimum.setVal(0);
     }
 
     bool operator() (const Kmer<span>::Type& current, const Kmer<span>::Type& optimum) const
