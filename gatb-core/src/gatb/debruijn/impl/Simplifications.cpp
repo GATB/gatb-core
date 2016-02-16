@@ -25,7 +25,7 @@
 // We include required definitions
 /********************************************************************************/
 
-#define DEBUG(a)   a
+#define DEBUG(a)   //a
 
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
@@ -120,7 +120,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
     do
     {
         nbECRemovedPreviously = nbECRemoved;
-        //nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
+        nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
         if (ECRemoval.size() != 0)
             ECRemoval += " + ";
         ECRemoval += to_string(nbECRemoved);
@@ -128,7 +128,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
     while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || nbECRemoved >= 10) 
             && _nbECRemovalPasses < 20);
 
-    return; // FIXME!!!!!!!
+    return; // FIXME!!!!!!! this is just a temporary modification
 
     nbECRemoved = 0; // reset EC removal counter
     do

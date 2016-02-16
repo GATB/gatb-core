@@ -114,12 +114,18 @@ public:
     void setUp    () {}
     void tearDown () {}
 
+
+        // SMALL VALUE NEEDED because continuous integration servers are not very powerful...
+        static const u_int64_t MAX_MEMORY = 1000;
+        
+       
     /********************************************************************************/
     void DSK_check1_aux (const char* sequences[], size_t nbSequences, size_t kmerSize, size_t nks, size_t checkNbSolids)
     {
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();  LOCAL (params);
         params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
         params->setStr (STR_URI_OUTPUT,         "foo");
 
@@ -250,6 +256,7 @@ public:
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
         params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
         params->setStr (STR_URI_OUTPUT,         "foo");
 
@@ -345,6 +352,7 @@ public:
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();  LOCAL (params);
         params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
         params->setStr (STR_URI_OUTPUT,         "foo");
 
@@ -428,7 +436,6 @@ public:
     template<size_t span>
     void DSK_perBank_aux (IBank* bank, size_t kmerSize, size_t nksMin, size_t nksMax, KmerSolidityKind solidityKind, size_t checkNb)
     {
-        size_t maxMemory    = 0;
         size_t maxDiskSpace = 0;
         size_t nbCores      = 1;
 
@@ -437,7 +444,7 @@ public:
         params->setInt (STR_KMER_SIZE,          kmerSize);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nksMin);
         params->setInt (STR_KMER_ABUNDANCE_MAX, nksMax);
-        params->setInt (STR_MAX_MEMORY,         maxMemory);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_MAX_DISK,           maxDiskSpace);
         params->setStr (STR_SOLIDITY_KIND,      toString(solidityKind));
         params->setStr (STR_URI_OUTPUT,         "output");
@@ -671,6 +678,7 @@ public:
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
         params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
         params->setStr (STR_URI_OUTPUT,         "foo");
 

@@ -83,6 +83,10 @@ public:
     void setUp    () {}
     void tearDown () {}
 
+        // SMALL VALUE NEEDED because continuous integration servers are not very powerful...
+        static const u_int64_t MAX_MEMORY = 1000;
+
+
     /** Shortcuts. */
     typedef Kmer<32>::Count Count;
     typedef Kmer<32>::Type  Type;
@@ -105,6 +109,7 @@ public:
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
         params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
         params->setStr (STR_URI_OUTPUT,         "foo");
 
@@ -183,6 +188,7 @@ public:
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
         params->setInt (STR_KMER_SIZE,          kmerSize);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setStr (STR_URI_OUTPUT,         "foo");
 
         IBank* bank = new BankStrings (seqs, ARRAY_SIZE(seqs));

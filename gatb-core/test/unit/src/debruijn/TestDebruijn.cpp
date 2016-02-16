@@ -224,6 +224,7 @@ public:
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
         params->setInt (STR_KMER_SIZE,          kmerSize);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
         params->setStr (STR_URI_OUTPUT,         "foo");
 

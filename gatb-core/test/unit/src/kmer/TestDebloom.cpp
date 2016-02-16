@@ -77,6 +77,8 @@ public:
     void setUp    () {}
     void tearDown () {}
 
+        // SMALL VALUE NEEDED because continuous integration servers are not very powerful...
+        static const u_int64_t MAX_MEMORY = 1000;
 
     /********************************************************************************/
     void Debloom_check1 ()
@@ -94,6 +96,7 @@ public:
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();  LOCAL (params);
         params->setInt (STR_KMER_SIZE,          kmerSize);
         params->setInt (STR_MINIMIZER_SIZE,     miniSize);
+        params->setInt (STR_MAX_MEMORY,         MAX_MEMORY);
         params->setInt (STR_KMER_ABUNDANCE_MIN, nks);
         params->setStr (STR_URI_OUTPUT,         "foo");
 
