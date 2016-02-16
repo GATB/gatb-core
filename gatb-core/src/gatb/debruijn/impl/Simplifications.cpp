@@ -25,7 +25,7 @@
 // We include required definitions
 /********************************************************************************/
 
-#define DEBUG(a)   //a
+#define DEBUG(a)   a
 
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
@@ -120,7 +120,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
     do
     {
         nbECRemovedPreviously = nbECRemoved;
-        nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
+        //nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
         if (ECRemoval.size() != 0)
             ECRemoval += " + ";
         ECRemoval += to_string(nbECRemoved);
@@ -128,6 +128,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
     while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || nbECRemoved >= 10) 
             && _nbECRemovalPasses < 20);
 
+    return; // FIXME!!!!!!!
 
     nbECRemoved = 0; // reset EC removal counter
     do
@@ -191,7 +192,7 @@ double Simplifications<Node,Edge,GraphDataVariant>::getMeanAbundanceOfNeighbors(
         meanNeighborsCoverage += simplePathCoverage;
         nbNeighbors++;
 
-        DEBUG(cout << endl << "got simple path coverage for neighbor " << nbNeighbors  << " : " << " meancoverage: " <<simplePathCoverage << " over " << pathLen << " kmers" << endl);
+        //DEBUG(cout << endl << "got simple path coverage for neighbor " << nbNeighbors  << " : " << " meancoverage: " <<simplePathCoverage << " over " << pathLen << " kmers" << endl);
     }
     meanNeighborsCoverage /= nbNeighbors;
     return meanNeighborsCoverage;
@@ -482,7 +483,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             // so mark the origin as non interesting! (big speed up)
             if ( ! (isShortTopological || isShortRCTC) )
             {   
-                interestingNodes[index] = false; // unflag the original end-of-tip node // FIXME
+                interestingNodes[index] = false; // unflag the original end-of-tip node. // there was a fixme note here, i've removed it because i don't see why, but let's keep that in mind next time i investigate the algo
                 TIME(__sync_fetch_and_add(&timeSimplePathLong, diff_wtime(start_simplepath_t,end_simplepath_t)));
                 TIME(auto end_thread_t=get_wtime()); 
                 TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
@@ -1076,8 +1077,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                     DEBUG(cout << endl << "putative EC node: " << _graph.toString (node) << endl);
                     __sync_fetch_and_add(&nbECCandidates,1);
 
-                    /** We follow the outcoming simple paths (so, if it's outdegree 2, we follow the outcoming simple paths.
-                     * to get their length and last neighbor */
+                    /** We follow the outcoming simple paths 
+                     * (so, if it's outdegree 2, we follow them to get their length and last neighbor */
                     typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(node, dir);
 
                     // do everying for each possible short simple path that is neighbor of that node
@@ -1161,7 +1162,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                                 DEBUG(cout << endl << "EC of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
                                 for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
                                 {
-                                    //DEBUG(cout << endl << "deleting EC node: " <<  _graph.toString (*itVecNodes) << endl);
+                                    DEBUG(cout << endl << "deleting EC node: " <<  _graph.toString (*itVecNodes) << endl);
                                     nodesDeleter.markToDelete(*itVecNodes); // parallel version
                                 }
 

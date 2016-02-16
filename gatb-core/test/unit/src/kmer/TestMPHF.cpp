@@ -92,7 +92,7 @@ public:
     {
         MPHFKind mphfKind = MPHF_BOOPHF; // TODO: test with emphf also
 
-        if (MPHFAlgorithm<>::AbundanceMap::enabled == false)  { return; }
+        if (MPHFAlgorithm<>::AbundanceMap::enabled == false)  { std::cout << "can't test mphf, it is disabled" << std::endl; return; }
 
         size_t kmerSize = 11;
         size_t nks      = 1;
@@ -114,22 +114,34 @@ public:
         /** We launch DSK. */
         sortingCount.execute();
 
+        if (sortingCount.getSolidCounts()->getNbItems() != (int)(strlen(seqs[0]) - kmerSize + 1))
+            std::cout << "problem with sortingcount nb items: " << sortingCount.getSolidCounts()->getNbItems()  << " != " << (int)(strlen(seqs[0]) - kmerSize + 1) << std::endl;
+
+
         CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (int)(strlen(seqs[0]) - kmerSize + 1) );
 
         /** We get the storage instance. */
         Storage* storage = sortingCount.getStorage();
+
 
         /** We create a mphf instance. */
         MPHFAlgorithm<> mphf (mphfKind, storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), 1, true);
 
         /** We actually execute the mphf construction. */
         mphf.execute();
+            
+
+        if (mphf.getAbundanceMap() == 0)
+            std::cout << "could not get abundance map" << std::endl;
 
         CPPUNIT_ASSERT (mphf.getAbundanceMap() != 0);
 
         MPHFAlgorithm<>::AbundanceMap& theMap = * mphf.getAbundanceMap();
 
         // below are quick tests
+
+        if (theMap.size() != 130)
+            std::cout << "incorrect map size:" << theMap.size() << " != 130" << std::endl;
 
         CPPUNIT_ASSERT (theMap.size() == 130);
 
@@ -141,6 +153,8 @@ public:
 
         theMap[kmer.value()] = 4;
 
+        if (theMap[kmer.value()] != 4)
+            std::cout << "bad map value " << theMap[kmer.value()]  << " != 4"  << std::endl;
         CPPUNIT_ASSERT (theMap[kmer.value()] == 4);
     }
 
