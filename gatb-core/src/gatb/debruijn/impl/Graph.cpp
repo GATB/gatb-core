@@ -212,7 +212,7 @@ struct configure_visitor : public boost::static_visitor<>    {
             data.setBranching (algo.getBranchingCollection());
         }
 
-        if ((graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE) &&  (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
+        if ((graph._mphfKind != MPHF_NONE) && (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE) &&  (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
         {
             typedef typename Kmer<span>::Count Count;
             typedef typename Kmer<span>::Type  Type;
@@ -651,7 +651,7 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (bool includeMandatory, bool enableMphf)
+IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (bool includeMandatory)
 {
 
     /** We build the root options parser. */
@@ -666,7 +666,7 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     if (MPHF<char>::enabled)
     {
         IOptionsParser* parserEmphf  = new OptionsParser ("mphf");
-        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf' or 'BooPHF')", false,  enableMphf ? "BooPHF":"none"));
+        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf' or 'BooPHF')", false,  "BooPHF"));
         parser->push_back  (parserEmphf);
     }
 

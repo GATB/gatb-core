@@ -891,7 +891,6 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 			is.read(reinterpret_cast<char*>(&_lastbitsetrank), sizeof(_lastbitsetrank));
 			is.read(reinterpret_cast<char*>(&_nelem), sizeof(_nelem));
 			
-			
 			_levels = (level **) malloc(_nb_levels * sizeof(level *) );
 
 			for(int ii=0; ii<_nb_levels; ii++)

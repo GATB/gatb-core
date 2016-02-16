@@ -135,9 +135,8 @@ public:
         /** We need an input stream for the given collection given by group/name. */
         tools::storage::impl::Storage::istream is (group, name);
         /** We load the emphf object from the input stream. */
-        //mphf.load (is);
-        std::cout << "BooPHF load not implemented" << std::endl; exit(1);
-        /** We return the number of keys. */
+		bphf = new boophf_t();
+        bphf->load (is);
         return size();
     }
 
@@ -148,8 +147,7 @@ public:
         /** We need an output stream for the given collection given by group/name. */
         tools::storage::impl::Storage::ostream os (group, name);
         /** We save the emphf object to the output stream. */
-        //mphf.save (os);
-        std::cout << "BooPHF save not implemented" << std::endl; 
+        bphf->save (os);
         /** We set the number of keys as an attribute of the group. */
         group.addProperty ("nb_keys", misc::impl::Stringify().format("%d",nbKeys)); // FIXME: maybe overflow here
         return os.tellp();
