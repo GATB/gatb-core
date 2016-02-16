@@ -86,7 +86,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         message ("-------------------------------------------------------------------------------------")
     endif()
 
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.5) 
         set (use_mphf 0)
     else()
         set (use_mphf 1)
@@ -182,7 +182,13 @@ if (use_mphf)
     # for emphf
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         message ("-- EMPHF CLANG FIX ")
-       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+
+        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.8) 
+            # my clang 3.7 doesn't like when i use stdlib=libc++, it refuses to compile because cannot found standard libs like <vector>
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+        endif()
+
     endif ()
 
 endif()
