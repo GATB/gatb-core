@@ -1177,10 +1177,10 @@ struct GraphData
         {
             unsigned long hashIndex = ((_nodestate))->getCode(item);
             unsigned char value = ((_nodestate))->at(hashIndex / 2);
-            if (hashIndex % 2 == 1)
+            if ((hashIndex % 2) == 1)
                 value >>= 4;
             value &= 0xF;
-            if ((value >> 1) & 1 == 1) 
+            if (((value >> 1) & 1) == 1) 
                 return false;
         }
 

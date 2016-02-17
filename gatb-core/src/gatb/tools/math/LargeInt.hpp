@@ -839,7 +839,7 @@ template<int precision> inline void justSweepForAA(const LargeInt<precision>& x,
         int j = 0;
         while (j < it)
         {
-            if (val & 15 == 0) // val starts with AA
+            if ((val & 15) == 0) // val starts with AA
                 dummy++;
 
             val >>= 2;
