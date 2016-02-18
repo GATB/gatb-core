@@ -14,17 +14,17 @@ hostname  : `hostname`
 pwd       : `pwd`
 
 --------------------------
- Jenkins build parameters
- --------------------------
- BRANCH_TO_BUILD      : ${BRANCH_TO_BUILD}
- RELEASE_TO_BUILD     : ${RELEASE_TO_BUILD}
- INRIA_FORGE_LOGIN    : ${INRIA_FORGE_LOGIN}
- TEST_VARIABLE        : ${TEST_VARIABLE}
- DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
- "
+Jenkins build parameters
+--------------------------
+BRANCH_TO_BUILD      : ${BRANCH_TO_BUILD}
+RELEASE_TO_BUILD     : ${RELEASE_TO_BUILD}
+INRIA_FORGE_LOGIN    : ${INRIA_FORGE_LOGIN}
+TEST_VARIABLE        : ${TEST_VARIABLE}
+DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
+"
 
- [ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
- set -xv
+[ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
+set -xv
 
 ################################################################
 #                       COMPILATION                            #
@@ -49,18 +49,18 @@ rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
 
 cd $BUILD_DIR
- 
 
- cmake -Wno-dev $GIT_DIR
+cmake -Wno-dev $GIT_DIR
 
-
- make 
-
+make
 
 ################################################################
 #                       UNIT TESTS                             #
 ################################################################
 export CPPUNIT_VERBOSE=1
+
+# Copy database for unit tests
+#   (not needed here)
 
 # Specify single unit tests
 #$BUILD_DIR/bin/gatb-core-cppunit TestBag

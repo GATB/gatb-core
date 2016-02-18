@@ -43,10 +43,10 @@ rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
 
 cd $BUILD_DIR
- 
+
 cmake -Wno-dev $GIT_DIR
 
-make 
+make
 
 if [ $? -eq 0 ]; then
    echo "Creating a binary archive... "
@@ -67,6 +67,9 @@ fi
 #                       UNIT TESTS                             #
 ################################################################
 export CPPUNIT_VERBOSE=1
+
+# Copy database for unit tests
+cp -r $GIT_DIR/test/db $BUILD_DIR/test/
 
 # Specify single unit tests
 #$BUILD_DIR/bin/gatb-core-cppunit TestBag
