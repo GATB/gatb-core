@@ -67,12 +67,21 @@ export CPPUNIT_VERBOSE=1
 #$BUILD_DIR/bin/gatb-core-cppunit TestMap
 
 # Launch the full test suite
-$BUILD_DIR/bin/gatb-core-cppunit
+cd $BUILD_DIR/bin
+ls ../test/db/           # default directory for test db
+./gatb-core-cppunit
 
 ################################################################
 #    CHECK FUNCTIONS (with precomputed reference results)      #
 ################################################################
 
 # Not ready
+
+################################################################
+#                   VALGRIND CHECK                             #
+################################################################
+
+
+# not ready
 
 [ "$DO_NOT_STOP_AT_ERROR" = "true" ] && { exit 0 ; }
