@@ -75,10 +75,13 @@ public:
     {
         if (mphfKind == tools::misc::MPHF_EMPHF)
             emphf.build(iterable, nbThreads, progress);
-        if (mphfKind == tools::misc::MPHF_BOOPHF)
-            boophf.build(iterable, nbThreads, progress);
-        
-        std::cout << "Error: building MPHF of wrong kind (debug: " << (unsigned int)mphfKind << ")" << std::endl;
+        else
+        {
+            if (mphfKind == tools::misc::MPHF_BOOPHF)
+                boophf.build(iterable, nbThreads, progress);
+            else
+               std::cout << "Error: building MPHF of wrong kind (debug: " << (unsigned int)mphfKind << ")" << std::endl;
+        }
     }
 
     /** Returns the hash code for the given key. WARNING : default implementation here will
