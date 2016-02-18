@@ -26,6 +26,16 @@ DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
 [ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
 set -xv
 
+# quick look at resources
+#-----------------------------------------------
+sw_vers -productVersion
+#-----------------------------------------------
+system_profiler SPSoftwareDataType
+#-----------------------------------------------
+top -l 1|head -15
+#-----------------------------------------------
+
+
 ################################################################
 #                       COMPILATION                            #
 ################################################################
@@ -34,9 +44,6 @@ gcc --version
 g++ --version
 
 [ `gcc -dumpversion` = 4.2.1 ] && { echo "GCC 4.2.1"; } || { echo "GCC version is not 4.2.1, we exit"; exit 1; }
-
-sw_vers -productVersion
-#system_profiler SPSoftwareDataType
 
 cd gatb-core
 
@@ -60,7 +67,7 @@ make
 export CPPUNIT_VERBOSE=1
 
 # Copy database for unit tests
-#   (not needed here)
+cp -r $GIT_DIR/test/db $BUILD_DIR/test/
 
 # Specify single unit tests
 #$BUILD_DIR/bin/gatb-core-cppunit TestBag
