@@ -784,7 +784,9 @@ GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (size_t kmerSize)
 template<typename Node, typename Edge, typename GraphDataVariant_t>
 GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (const std::string& uri)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
-      _variant(new GraphDataVariant_t()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
+      _variant(new GraphDataVariant_t()), _kmerSize(0), _info("graph"), 
+      _name(System::file().getBaseName(uri)), _mphfKind(MPHF_NONE)
+
 {
     /** We create a storage instance. */
     /* (this is actually loading, not creating, the storage at "uri") */
