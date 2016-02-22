@@ -223,7 +223,7 @@ struct configure_visitor : public boost::static_visitor<>    {
             /** We get the iterable for the solid counts and solid kmers. */
             Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
             Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
-
+            
             MPHFAlgorithm<span> mphf_algo (
                 graph._mphfKind,
                 dskGroup,
@@ -956,7 +956,8 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate ()
 template<typename Node, typename Edge, typename GraphDataVariant>
 GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (const GraphTemplate<Node, Edge, GraphDataVariant>& graph)
     : _storageMode(graph._storageMode), _storage(0),
-      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state)
+      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state),
+      _mphfKind(graph._mphfKind)
 {
     setStorage (graph._storage);
 
