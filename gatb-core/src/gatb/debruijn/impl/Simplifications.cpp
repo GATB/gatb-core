@@ -85,7 +85,7 @@ Simplifications<Node,Edge,GraphDataVariant>::Simplifications(const GraphTemplate
     // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
     // (before, the previous system was to do a fixed amount of passes)
 
-    cutoffEvents = (nbNodes / 1000L) * (1.0/100.0); 
+    cutoffEvents = (nbNodes / 1000.0) * (1.0/100.0); 
     // for bacteria it's roughly 30
     // for human it's roughly 3000
     // for spruce it's roughly 20000
@@ -112,7 +112,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
             tipRemoval += " + ";
         tipRemoval += to_string(nbTipsRemoved);
     }
-    while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses > 2 && nbTipsRemoved >= cutoffEvents)) 
+    while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses <= 2 || nbTipsRemoved >= cutoffEvents)) 
             && _nbTipRemovalPasses < 20);
 
     do
@@ -123,8 +123,8 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
             bubbleRemoval += " + ";
         bubbleRemoval += to_string(nbBubblesRemoved);
     }
-    while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || (_nbBubbleRemovalPasses > 2 && nbBubblesRemoved >= cutoffEvents))
-            && _nbBubbleRemovalPasses < 20);
+    while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || (_nbBulgeRemovalPasses <= 2 || nbBubblesRemoved >= cutoffEvents))
+            && _nbBulgeRemovalPasses < 20);
 
     do
     {
@@ -134,10 +134,10 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
             ECRemoval += " + ";
         ECRemoval += to_string(nbECRemoved);
     }
-    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || (_nbECRemovalPasses > 2 && nbECRemoved >= cutoffEvents))
+    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || (_nbECRemovalPasses <= 2 || nbECRemoved >= cutoffEvents))
             && _nbECRemovalPasses < 20);
 
-    return; // FIXME!!!!!!! this is just a temporary modification
+    //return; // FIXME!!!!!!! this is just a temporary modification
 
     nbECRemoved = 0; // reset EC removal counter
     do
