@@ -85,7 +85,7 @@ Simplifications<Node,Edge,GraphDataVariant>::Simplifications(const GraphTemplate
     // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
     // (before, the previous system was to do a fixed amount of passes)
 
-    cutoffEvents = (nbNodes / 1000.0) * (1.0/100.0); 
+    cutoffEvents = std::max((uint64_t)((nbNodes / 1000.0) * (1.0/100.0)), (uint64_t)1); 
     // for bacteria it's roughly 30
     // for human it's roughly 3000
     // for spruce it's roughly 20000
