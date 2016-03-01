@@ -14,17 +14,27 @@ hostname  : `hostname`
 pwd       : `pwd`
 
 --------------------------
- Jenkins build parameters
- --------------------------
- BRANCH_TO_BUILD      : ${BRANCH_TO_BUILD}
- RELEASE_TO_BUILD     : ${RELEASE_TO_BUILD}
- INRIA_FORGE_LOGIN    : ${INRIA_FORGE_LOGIN}
- TEST_VARIABLE        : ${TEST_VARIABLE}
- DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
- "
+Jenkins build parameters
+--------------------------
+BRANCH_TO_BUILD      : ${BRANCH_TO_BUILD}
+RELEASE_TO_BUILD     : ${RELEASE_TO_BUILD}
+INRIA_FORGE_LOGIN    : ${INRIA_FORGE_LOGIN}
+TEST_VARIABLE        : ${TEST_VARIABLE}
+DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
+"
 
- [ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
- set -xv
+[ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
+set -xv
+
+# quick look at resources
+#-----------------------------------------------
+sw_vers -productVersion
+#-----------------------------------------------
+system_profiler SPSoftwareDataType
+#-----------------------------------------------
+top -l 1|head -15
+#-----------------------------------------------
+
 
 ################################################################
 #                       COMPILATION                            #
@@ -34,9 +44,6 @@ gcc --version
 g++ --version
 
 [ `gcc -dumpversion` = 4.2.1 ] && { echo "GCC 4.2.1"; } || { echo "GCC version is not 4.2.1, we exit"; exit 1; }
-
-sw_vers -productVersion
-#system_profiler SPSoftwareDataType
 
 cd gatb-core
 
@@ -49,30 +56,39 @@ rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
 
 cd $BUILD_DIR
- 
 
- cmake -Wno-dev $GIT_DIR
+cmake -Wno-dev $GIT_DIR
 
-
- make 
-
+make
 
 ################################################################
 #                       UNIT TESTS                             #
 ################################################################
 export CPPUNIT_VERBOSE=1
 
+# Copy database for unit tests
+cp -r $GIT_DIR/test/db $BUILD_DIR/test/
+
 # Specify single unit tests
 #$BUILD_DIR/bin/gatb-core-cppunit TestBag
 #$BUILD_DIR/bin/gatb-core-cppunit TestMap
 
 # Launch the full test suite
-$BUILD_DIR/bin/gatb-core-cppunit
+cd $BUILD_DIR/bin
+ls ../test/db/           # default directory for test db
+./gatb-core-cppunit
 
 ################################################################
 #    CHECK FUNCTIONS (with precomputed reference results)      #
 ################################################################
 
 # Not ready
+
+################################################################
+#                   VALGRIND CHECK                             #
+################################################################
+
+
+# not ready
 
 [ "$DO_NOT_STOP_AT_ERROR" = "true" ] && { exit 0 ; }

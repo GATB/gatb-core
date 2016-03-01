@@ -75,8 +75,13 @@ public:
     {
         if (mphfKind == tools::misc::MPHF_EMPHF)
             emphf.build(iterable, nbThreads, progress);
-        if (mphfKind == tools::misc::MPHF_BOOPHF)
-            boophf.build(iterable, nbThreads, progress);
+        else
+        {
+            if (mphfKind == tools::misc::MPHF_BOOPHF)
+                boophf.build(iterable, nbThreads, progress);
+            else
+               std::cout << "Error: building MPHF of wrong kind (debug: " << (unsigned int)mphfKind << ")" << std::endl;
+        }
     }
 
     /** Returns the hash code for the given key. WARNING : default implementation here will
@@ -99,6 +104,8 @@ public:
             return emphf.size(); 
         if (mphfKind == tools::misc::MPHF_BOOPHF)
             return boophf.size(); 
+        
+        std::cout << "Error: size of MPHF of wrong kind (debug: " << (unsigned int)mphfKind << ")" << std::endl;
         return 0;
     }
 
@@ -109,6 +116,8 @@ public:
             return emphf.load(group,name); 
         if (mphfKind == tools::misc::MPHF_BOOPHF)
             return boophf.load(group,name); 
+
+        std::cout << "Error: loading MPHF of wrong kind (debug: " << (unsigned int)mphfKind << ")" << std::endl;
         return 0;
     }
 
@@ -120,6 +129,8 @@ public:
             return emphf.save(group,name); 
         if (mphfKind == tools::misc::MPHF_BOOPHF)
             return boophf.save(group,name); 
+        
+        std::cout << "Error: loading MPHF of wrong kind (debug: " << (unsigned int)mphfKind << ")" << std::endl;
         return 0;
     }
 

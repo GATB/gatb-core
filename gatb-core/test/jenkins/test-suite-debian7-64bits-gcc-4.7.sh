@@ -26,6 +26,9 @@ DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
 [ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
 set -xv
 
+# quick look at resources
+free -h
+
 ################################################################
 #                       COMPILATION                            #
 ################################################################
@@ -43,10 +46,10 @@ rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
 
 cd $BUILD_DIR
- 
+
 cmake -Wno-dev $GIT_DIR
 
-make 
+make
 
 if [ $? -eq 0 ]; then
    echo "Creating a binary archive... "
@@ -62,18 +65,22 @@ if [ $? -eq 0 ]; then
    scp $binbundle.tgz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
 fi
 
-
 ################################################################
 #                       UNIT TESTS                             #
 ################################################################
 export CPPUNIT_VERBOSE=1
+
+# Copy database for unit tests
+cp -r $GIT_DIR/test/db $BUILD_DIR/test/
 
 # Specify single unit tests
 #$BUILD_DIR/bin/gatb-core-cppunit TestBag
 #$BUILD_DIR/bin/gatb-core-cppunit TestMap
 
 # Launch the full test suite
-$BUILD_DIR/bin/gatb-core-cppunit
+cd $BUILD_DIR/bin
+ls ../test/db/           # default directory for test db
+./gatb-core-cppunit
 
 ################################################################
 #    CHECK FUNCTIONS (with precomputed reference results)      #
@@ -86,4 +93,15 @@ $BUILD_DIR/bin/dbgh5 -verbose 0 -in $HOME/reference/fastq/aphid_662451seq.fa    
 $BUILD_DIR/bin/dbgh5 -verbose 0 -in $HOME/reference/fastq/aphid_662451seq.album/album.txt  -check $HOME/reference/check/aphid_662451.props
 
 $BUILD_DIR/bin/dbgh5 -verbose 0 -in $HOME/reference/fastq/SRR959239_clean.fastq.gz         -check $HOME/reference/check/SRR959239_clean.props
+
+################################################################
+#                   VALGRIND CHECK                             #
+################################################################
+
+
+# not ready
+
+[ "$DO_NOT_STOP_AT_ERROR" = "true" ] && { exit 0 ; }
+
+
 

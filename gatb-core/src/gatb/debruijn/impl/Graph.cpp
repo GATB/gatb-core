@@ -223,7 +223,7 @@ struct configure_visitor : public boost::static_visitor<>    {
             /** We get the iterable for the solid counts and solid kmers. */
             Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
             Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
-
+            
             MPHFAlgorithm<span> mphf_algo (
                 graph._mphfKind,
                 dskGroup,
@@ -784,7 +784,9 @@ GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (size_t kmerSize)
 template<typename Node, typename Edge, typename GraphDataVariant_t>
 GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (const std::string& uri)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
-      _variant(new GraphDataVariant_t()), _kmerSize(0), _info("graph"), _name(System::file().getBaseName(uri))
+      _variant(new GraphDataVariant_t()), _kmerSize(0), _info("graph"), 
+      _name(System::file().getBaseName(uri)), _mphfKind(MPHF_NONE)
+
 {
     /** We create a storage instance. */
     /* (this is actually loading, not creating, the storage at "uri") */
@@ -954,7 +956,8 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate ()
 template<typename Node, typename Edge, typename GraphDataVariant>
 GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (const GraphTemplate<Node, Edge, GraphDataVariant>& graph)
     : _storageMode(graph._storageMode), _storage(0),
-      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state)
+      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state),
+      _mphfKind(graph._mphfKind)
 {
     setStorage (graph._storage);
 

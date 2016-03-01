@@ -75,11 +75,20 @@ Simplifications<Node,Edge,GraphDataVariant>::Simplifications(const GraphTemplate
 {
     // just a way to get number of nodes
     ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (this->_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), "");
-    unsigned long nbNodes = itNode.size();
+    nbNodes = itNode.size();
 
     interestingNodes.resize(nbNodes); // number of graph nodes // (! memory !) this will alloc 1 bit per kmer.
     for (unsigned long i = 0; i < nbNodes; i++)
         interestingNodes[i] = true;
+
+
+    // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
+    // (before, the previous system was to do a fixed amount of passes)
+
+    cutoffEvents = std::max((uint64_t)((nbNodes / 1000.0) * (1.0/100.0)), (uint64_t)1); 
+    // for bacteria it's roughly 30
+    // for human it's roughly 3000
+    // for spruce it's roughly 20000
 }
 
 
@@ -94,7 +103,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
     tipRemoval = "";
     bubbleRemoval = "";
     ECRemoval = "";
-
+    
     do
     {
         nbTipsRemovedPreviously = nbTipsRemoved;
@@ -103,7 +112,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
             tipRemoval += " + ";
         tipRemoval += to_string(nbTipsRemoved);
     }
-    while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || nbTipsRemoved >= 10) 
+    while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses <= 2 || nbTipsRemoved >= cutoffEvents)) 
             && _nbTipRemovalPasses < 20);
 
     do
@@ -114,8 +123,8 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
             bubbleRemoval += " + ";
         bubbleRemoval += to_string(nbBubblesRemoved);
     }
-    while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || nbBubblesRemoved >= 20)
-            && _nbBubbleRemovalPasses < 20);
+    while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || (_nbBulgeRemovalPasses <= 2 || nbBubblesRemoved >= cutoffEvents))
+            && _nbBulgeRemovalPasses < 20);
 
     do
     {
@@ -125,10 +134,10 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
             ECRemoval += " + ";
         ECRemoval += to_string(nbECRemoved);
     }
-    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || nbECRemoved >= 10) 
+    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || (_nbECRemovalPasses <= 2 || nbECRemoved >= cutoffEvents))
             && _nbECRemovalPasses < 20);
 
-    return; // FIXME!!!!!!! this is just a temporary modification
+    //return; // FIXME!!!!!!! this is just a temporary modification
 
     nbECRemoved = 0; // reset EC removal counter
     do
@@ -148,7 +157,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
         ECRemoval += " + " + to_string(nbECRemoved);
 
     }
-    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0) || nbECRemoved >= 10)
+    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0) || (nbECRemoved >= cutoffEvents || nbTipsRemoved >= cutoffEvents || nbBubblesRemoved >= cutoffEvents))
             && _nbECRemovalPasses < 25);
 }
 
@@ -358,7 +367,6 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     Dispatcher dispatcher (_nbCores);
 
     // nodes deleter stuff
-    unsigned long nbNodes = itNode.size();
     NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
     
     bool haveInterestingNodesInfo = !_firstNodeIteration;
@@ -767,7 +775,6 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
 
-    unsigned long nbNodes = itNode.size();
     NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
 
     bool haveInterestingNodesInfo = !_firstNodeIteration;
@@ -1041,7 +1048,6 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     Dispatcher dispatcher (_nbCores);
 
     // parallel stuff
-    unsigned long nbNodes = itNode.size();
     NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
 
     unsigned long timeAll = 0, timeSimplePath = 0;

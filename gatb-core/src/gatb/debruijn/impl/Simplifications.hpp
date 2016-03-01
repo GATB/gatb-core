@@ -61,6 +61,8 @@ public:
 protected:
     const GraphTemplate<Node,Edge,GraphDataVariant> &  _graph;
     int _nbCores;
+    uint64_t nbNodes;
+    uint64_t cutoffEvents;
 
     bool _firstNodeIteration;
     bool _verbose;
