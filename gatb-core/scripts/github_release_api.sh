@@ -219,6 +219,7 @@ function listAssetSummary(){
   local dFileName="" 
   local dFileSize="" 
   local dFileDate="" 
+  local dFileDownload=""
 
   infoMsg "File(s) for release $1:"
   local files=$($(echo getAssetsDescription $1) | $JSON_SH -b | cut -s -d "." -f 1 | sed -e "s/\[//g" | uniq)
@@ -228,7 +229,9 @@ function listAssetSummary(){
         dFileName=$(getDataField "$github_answer" "${key}.name")
         dFileSize=$(getDataField "$github_answer" "${key}.size")
         dFileDate=$(getDataField "$github_answer" "${key}.created_at")
-        infoMsg " asset $key: $dFileName ($dFileSize bytes), $dFileDate";
+        dFileDownload=$(getDataField "$github_answer" "${key}.download_count")
+        
+        infoMsg " asset $key: $dFileName ($dFileSize bytes), $dFileDate; $dFileDownload downloads.";
       done
   else
     infoMsg "  none."
