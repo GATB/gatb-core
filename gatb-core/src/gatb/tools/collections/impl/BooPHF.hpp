@@ -110,7 +110,7 @@ public:
         if (progress==0)  { progress = new tools::dp::IteratorListener; }
         LOCAL (progress);
 	
-        bphf = new boophf_t(nbElts, kmers, nbThreads);
+        bphf =  boophf_t(nbElts, kmers, nbThreads);
 
         isBuilt = true;
         nbKeys  = iterable->getNbItems();
@@ -122,12 +122,12 @@ public:
      * \return the hash value. */
     Code operator () (const Key& key)
     {
-        return bphf->lookup (key);
+        return bphf.lookup (key);
     }
 
     /** Returns the number of keys.
      * \return keys number */
-    size_t size() const { return bphf->nbKeys(); }
+    size_t size() const { return bphf.nbKeys(); }
 
     /** Load hash function from a collection*/
     size_t load (tools::storage::impl::Group& group, const std::string& name)
@@ -155,7 +155,7 @@ public:
 
 private:
 
-    boophf_t  *bphf;
+    boophf_t  bphf;
     bool      isBuilt;
     size_t    nbKeys;
 
