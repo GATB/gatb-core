@@ -135,8 +135,8 @@ public:
         /** We need an input stream for the given collection given by group/name. */
         tools::storage::impl::Storage::istream is (group, name);
         /** We load the emphf object from the input stream. */
-		bphf = new boophf_t();
-        bphf->load (is);
+		bphf =  boophf_t();
+        bphf.load (is);
         return size();
     }
 
@@ -147,7 +147,7 @@ public:
         /** We need an output stream for the given collection given by group/name. */
         tools::storage::impl::Storage::ostream os (group, name);
         /** We save the emphf object to the output stream. */
-        bphf->save (os);
+        bphf.save (os);
         /** We set the number of keys as an attribute of the group. */
         group.addProperty ("nb_keys", misc::impl::Stringify().format("%d",nbKeys)); // FIXME: maybe overflow here
         return os.tellp();
