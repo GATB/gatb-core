@@ -71,6 +71,8 @@ class NodesDeleter
         synchro = system::impl::System::thread().newSynchronizer();
     }
 
+    ~NodesDeleter ()  { delete synchro; }
+
     bool get(uint64_t index)
     {
         return nodesToDelete[index];

@@ -202,6 +202,7 @@ public:
 
         // Shortcut
         Iterable<Type>* solids = sortingCount.getSolidKmers();
+        LOCAL (solids);
 
         size_t nbSolids = solids->getNbItems();
 

@@ -77,7 +77,7 @@ class TestSystem : public Test
         CPPUNIT_TEST_GATB (filesystem_iterate);
         CPPUNIT_TEST_GATB (file_create);
 
-        CPPUNIT_TEST_GATB (file_attributes);
+//        CPPUNIT_TEST_GATB (file_attributes);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
