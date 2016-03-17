@@ -208,6 +208,9 @@ public:
     /** \copydoc IFileSystem::iterate */
     void iterate (const Path& path, void (*callback) (const Path& entry, void* data), void* data);
 
+    /** \copydoc IFileSystem::listFilenames */
+    std::vector<std::string> listdir (const Path& path);
+
     /** \copydoc IFileSystem::getAttribute */
     ssize_t getAttribute (const Path& filename, const char* key, std::string& value)  { return -1; }
 

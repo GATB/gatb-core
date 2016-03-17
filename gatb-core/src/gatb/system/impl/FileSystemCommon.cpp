@@ -260,6 +260,34 @@ void FileSystemCommon::iterate (const Path& path, void (*callback) (const Path&,
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
+std::vector<std::string> FileSystemCommon::listdir (const Path& path)
+{
+	std::vector<std::string> filenames;
+    DIR* dp = opendir (path.c_str());
+
+    if (dp)
+    {
+        struct dirent* dirp = 0;
+
+        while ( (dirp = readdir(dp)) != 0)
+        {
+        	filenames.push_back(std::string(dirp->d_name));
+        }
+
+        closedir (dp);
+    }
+
+    return filenames;
+}
+
+/*********************************************************************
+** METHOD  :
+** PURPOSE :
+** INPUT   :
+** OUTPUT  :
+** RETURN  :
+** REMARKS :
+*********************************************************************/
 #if 0
 IFile* FileSystemCommon::newFile (const Path& dirpath, const Path& filename, const char* mode)
 {

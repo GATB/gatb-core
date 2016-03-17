@@ -229,6 +229,10 @@ public:
       * \param[in] data : private data given to the callback. */
      virtual void iterate (const Path& path, void (*callback) (const Path& entry, void* data), void* data) = 0;
 
+     /** Get entries of a directory.
+      * \param[in] path : path of the explored directory */
+     virtual std::vector<Path> listdir(const Path& path) = 0;
+
      /** Creates a new IFile instance (equivalent to 'fopen' function)
       * \param[in] path : uri of the file to be opened.
       * \param[in] mode : mode of the file (like fopen)
