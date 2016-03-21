@@ -387,7 +387,7 @@ void ConfigurationAlgorithm<span>::execute ()
         //printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
 
-    if (_config._nb_partitions < 50 &&  (max_open_files - _config._nb_partitions  > 30) ) _config._nb_partitions += 30; //some more does not hurt
+    //if (_config._nb_partitions < 50 &&  (max_open_files - _config._nb_partitions  > 30) ) _config._nb_partitions += 30; //some more does not hurt
 
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _config._nb_partitions_in_parallel - _config._nb_partitions % _config._nb_partitions_in_parallel;
