@@ -504,7 +504,7 @@ void SortingCountAlgorithm<span>::execute ()
     std::cout << "Non-canonical kmer counting (debug message)" << std::endl;
 #endif
 
-    if (this->_kmersize <= 2)
+    if (_config._kmerSize <= 2)
     {
         std::cout << "k-mer counting with k<=2 is not supported" << std::endl; // it's buggy. try it with https://github.com/GATB/dsk/blob/master/test/shortread.fasta, you will see only 5 kmers returned
         exit(1);
