@@ -500,6 +500,10 @@ void SortingCountAlgorithm<span>::execute ()
     );
     _progress->init ();
 
+#ifdef NONCANONICAL
+    std::cout << "Non-canonical kmer counting (debug message)" << std::endl;
+#endif
+
     /** We create the PartiInfo instance. */
     PartiInfo<5> pInfo (_config._nb_partitions, _config._minim_size);
 
@@ -594,7 +598,6 @@ class FillPartitions : public Sequence2SuperKmer<span>
 public:
     /** Shortcut. */
     typedef typename Sequence2SuperKmer<span>::Type            Type;
-    typedef typename Sequence2SuperKmer<span>::ModelCanonical  ModelCanonical;
     typedef typename Sequence2SuperKmer<span>::Model           Model;
     typedef typename Model::Kmer                          KmerType;
     typedef typename Kmer<span>::SuperKmer                SuperKmer;

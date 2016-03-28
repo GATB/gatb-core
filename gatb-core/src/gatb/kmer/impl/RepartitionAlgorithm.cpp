@@ -160,7 +160,6 @@ public:
 
     /** Shortcut. */
     typedef typename Sequence2SuperKmer<span>::Type             Type;
-    typedef typename Sequence2SuperKmer<span>::ModelCanonical   ModelCanonical;
     typedef typename Sequence2SuperKmer<span>::Model            Model;
     typedef typename Model::Kmer                           KmerType;
     typedef typename Kmer<span>::SuperKmer                 SuperKmer;

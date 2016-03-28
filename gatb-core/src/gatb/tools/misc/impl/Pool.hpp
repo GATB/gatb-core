@@ -200,8 +200,8 @@ public:
 				*this->_item = * (current_pair.second);
 				
 				//push the next cell of this list  if any
-				int cell_number =  current_pair.second   -  ref.tab_pool[current_pair.first] ;
-				int current_pool = current_pair.first;
+				unsigned int cell_number =  current_pair.second   -  ref.tab_pool[current_pair.first] ;
+				unsigned int current_pool = current_pair.first;
 				if( (current_pool < (ref.n_pools -1)) &&  ((cell_number+1)  < ref.TAI_POOL)  ) // inside a full pool, and cells remaining
 				{
 					pq.push( cellpair_t(current_pool, & (ref.tab_pool[current_pool][cell_number+1])  )   );

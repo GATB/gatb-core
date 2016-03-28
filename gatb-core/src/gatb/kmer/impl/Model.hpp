@@ -170,6 +170,20 @@ struct Kmer
          * \return true if valid, false otherwise. */
         bool isValid () const { return _isValid; }
 
+        /* compatibility with KmerCanonical API */
+        bool which () const { return true; }
+
+        /* compatibility with KmerCanonical API */
+        Strand strand() const { return STRAND_FORWARD;  }
+
+        /* compatibility with KmerCanonical API */
+        const Type& forward() const { return value(); }
+
+        /** Returns the reverse complement value of this canonical kmer.
+         * \return the reverse complement value */
+//        const Type& revcomp() const { return  }
+
+
     protected:
         Type _value;
         bool _isValid;
@@ -1406,7 +1420,11 @@ struct Kmer
 
         //typedef Type SType[2];
 
+#ifdef NONCANONICAL
+        typedef ModelMinimizer<ModelDirect> Model;
+#else
         typedef ModelMinimizer<ModelCanonical> Model;
+#endif
         typedef typename Model::Kmer           Kmer;
 
         static const u_int64_t DEFAULT_MINIMIZER = 1000000000 ;
@@ -1469,6 +1487,7 @@ struct Kmer
         }
 
         /** NOT USED YET. */
+#if 0
         void load (tools::dp::Iterator<Type>& iter)
         {
             Type superk = iter.item(); iter.next();
@@ -1507,6 +1526,7 @@ struct Kmer
                 rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
             }
         }
+#endif
 
     private:
         size_t              kmerSize;

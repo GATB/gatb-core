@@ -50,7 +50,11 @@ public:
 
     typedef typename kmer::impl::Kmer<span>::ModelDirect                                ModelDirect;
     typedef typename kmer::impl::Kmer<span>::ModelCanonical                             ModelCanonical;
+#ifdef NONCANONICAL
+    typedef typename kmer::impl::Kmer<span>::template ModelMinimizer <ModelDirect>   Model;
+#else
     typedef typename kmer::impl::Kmer<span>::template ModelMinimizer <ModelCanonical>   Model;
+#endif
 
     /** */
     RepartitorAlgorithm (

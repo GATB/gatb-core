@@ -120,8 +120,14 @@ else()
 endif()
 
 if (INT128_FOUND)
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DINT128_FOUND")
 endif()
+
+if (NONCANONICAL)
+    MESSAGE("--- Compiling with non-canonical (direct strand only) k-mer counting")
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DNONCANONICAL=1")
+endif()
+
+
 
 # We determine what kind of c++ standard we should use according to the compiler
 # According to the CXX version, we have to activate some flags

@@ -215,7 +215,12 @@ void PartitionsByHashCommand<span>:: execute ()
 		/** We loop over each kmer of the current superkmer. */
 		for (int ii=0; ii<nbK; ii++,rem--)
 		{
+
+#ifdef NONCANONICAL
+            mink = temp;
+#else
 			mink = std::min (rev_temp, temp);
+#endif
 			
 			/** We insert the kmer into the hash. */
 			//hash.increment (mink);
@@ -304,7 +309,12 @@ public:
 			Type mink, prev_mink; prev_mink.setVal(0);
 			uint64_t idx;
 			
+#ifdef NONCANONICAL
+            bool prev_which = true;
+#else
 			bool prev_which =  (temp < rev_temp );
+#endif
+            
 			int kx_size = -1; //next loop start at ii=0, first kmer will put it at 0
 			Type radix_kxmer_forward =  (temp & _mask_radix) >> ((_kmerSize - 4)*2);
 			Type  first_revk, kinsert,radix_kxmer;
@@ -316,9 +326,14 @@ public:
 
 			for (int ii=0; ii< nbK; ii++,rem--)
 			{
+#ifdef NONCANONICAL
+                bool which = true;
+                mink = temp;
+#else
 				bool which =  (temp < rev_temp );
 				mink = which ? temp : rev_temp;
-				
+#endif
+
 				if (which != prev_which || kx_size >= _kx) // kxmer_size = 1
 				{
 					//output kxmer size kx_size,radix_kxmer

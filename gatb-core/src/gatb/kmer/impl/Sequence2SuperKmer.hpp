@@ -63,8 +63,13 @@ class Sequence2SuperKmer
 public:
     /** Shortcut. */
     typedef typename Kmer<span>::Type                                       Type;
+    typedef typename Kmer<span>::ModelDirect                                ModelDirect;
     typedef typename Kmer<span>::ModelCanonical                             ModelCanonical;
+#ifdef NONCANONICAL
+    typedef typename Kmer<span>::template ModelMinimizer <ModelDirect>   Model;
+#else
     typedef typename Kmer<span>::template ModelMinimizer <ModelCanonical>   Model;
+#endif
     typedef typename Model::Kmer                                            KmerType;
     typedef typename Kmer<span>::Count                                      Count;
     typedef typename Kmer<span>::SuperKmer                                  SuperKmer;
