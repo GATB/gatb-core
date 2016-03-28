@@ -504,6 +504,12 @@ void SortingCountAlgorithm<span>::execute ()
     std::cout << "Non-canonical kmer counting (debug message)" << std::endl;
 #endif
 
+    if (this->_kmersize <= 2)
+    {
+        std::cout << "k-mer counting with k<=2 is not supported" << std::endl; // it's buggy. try it with https://github.com/GATB/dsk/blob/master/test/shortread.fasta, you will see only 5 kmers returned
+        exit(1);
+    }
+
     /** We create the PartiInfo instance. */
     PartiInfo<5> pInfo (_config._nb_partitions, _config._minim_size);
 
