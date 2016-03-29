@@ -2863,6 +2863,8 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
                 result.reserve (std::distance(range.first,range.second)*8);
             }
 
+            ~Cmd () {}
+
             void execute ()
             {
                 for (typename std::set<BranchingNode_t<Node> >::iterator it=range.first; it!=range.second; ++it)
