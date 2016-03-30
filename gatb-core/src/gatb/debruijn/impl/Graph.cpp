@@ -669,6 +669,12 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
         parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf' or 'BooPHF')", false,  "BooPHF"));
         parser->push_back  (parserEmphf);
     }
+	else 	//we still activate option for command line compatibility
+	{
+		IOptionsParser* parserEmphf  = new OptionsParser ("mphf");
+		parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none')", false,  "none"));
+		parser->push_back  (parserEmphf);
+	}
 
     /** We create a "general options" parser. */
     IOptionsParser* parserGeneral  = new OptionsParser ("general");
@@ -834,9 +840,9 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (bank::IBank* bank, t
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
 
     /** This one is conditional. */
-    if (params->get(STR_MPHF_TYPE)) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
+    if (params->get(STR_MPHF_TYPE) && MPHF<char>::enabled) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
     else                            { _mphfKind = MPHF_NONE; }
-
+	
     /** We configure the data variant according to the provided kmer size. */
     setVariant (_variant, _kmerSize, integerPrecision);
 
@@ -871,7 +877,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
 
     /** This one is conditional. */
-    if (params->get(STR_MPHF_TYPE)) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
+    if (params->get(STR_MPHF_TYPE) && MPHF<char>::enabled) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
     else                            { _mphfKind = MPHF_NONE; }
 
     /** We configure the data variant according to the provided kmer size. */
