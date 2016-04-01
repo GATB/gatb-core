@@ -418,14 +418,6 @@ void SortingCountAlgorithm<span>::configure ()
     /** We check that the bank is ok, otherwise we build one. */
     if (_bank == 0)    {  setBank (Bank::open (getInput()->getStr(STR_URI_INPUT)));  }
 
-    /** We check that the configuration is ok, otherwise we build one. */
-    if (_config._isComputed == false)
-    {
-        ConfigurationAlgorithm<span> configAlgo (_bank, getInput());
-        configAlgo.execute();
-        _config = configAlgo.getConfiguration();
-    }
-
     /** We may have to create a default storage. */
     Storage* storage = 0;
     if (_repartitor==0 || _processors.size() == 0)
@@ -447,6 +439,17 @@ void SortingCountAlgorithm<span>::configure ()
 
     /** In case the storage is created in this method, we need to keep an eye on it. */
     setStorage (storage);
+
+    /** We check that the configuration is ok, otherwise we build one. */
+    if (_config._isComputed == false)
+    {
+        ConfigurationAlgorithm<span> configAlgo (_bank, getInput());
+        configAlgo.execute();
+        _config = configAlgo.getConfiguration();
+ 
+        /* remember configuration details (e.g. number of passes, partitions). useful for bcalm. */
+        storage->getGroup(configAlgo.getName()).setProperty("xml", string("\n") + configAlgo.getInfo()->getXML());
+   }
 
     /** We check that the minimizers hash function is ok, otherwise we build one. */
     if (_repartitor == 0)
