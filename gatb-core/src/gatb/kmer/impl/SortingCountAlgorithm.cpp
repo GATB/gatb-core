@@ -504,7 +504,7 @@ void SortingCountAlgorithm<span>::execute ()
     _progress->init ();
 
 #ifdef NONCANONICAL
-    std::cout << "Non-canonical kmer counting (debug message)" << std::endl;
+    std::cout << std::endl << "Non-canonical kmer counting (debug message)" << std::endl;
 #endif
 
     if (_config._kmerSize <= 2)
