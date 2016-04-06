@@ -355,7 +355,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     unsigned long nbTipsRemoved = 0;
 
     // stats
-    unsigned long timeAll = 0, timeSimplePath = 0, timeSimplePathLong = 0, timeSimplePathShortTopo = 0, timeSimplePathShortRCTC = 0;
+    unsigned long timeAll = 0, timeSimplePath = 0, timeSimplePathLong = 0, timeSimplePathShortTopo = 0, timeSimplePathShortRCTC = 0, timeDel = 0;
     unsigned long nbTipCandidates = 0;
 
     /** We get an iterator over all nodes */
@@ -564,8 +564,13 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
     }); // parallel
 
+    TIME(auto start_nodesdel_t=get_wtime());
+    
     // now delete all nodes, in parallel
     nodesDeleter.flush();
+
+    TIME(auto end_nodesdel_t=get_wtime()); 
+    TIME(__sync_fetch_and_add(&timeDel, diff_wtime(start_nodesdel_t,end_nodesdel_t)));
  
     // stats
     double unit = 1000000000;
@@ -580,6 +585,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
         TIME(cout << "                    " << timeSimplePathLong  / unit << " CPUsecs long simple paths" << endl);
         TIME(cout << "                    " << timeSimplePathShortTopo / unit << " CPUsecs short (topological) simple paths" << endl);
         TIME(cout << "                    " << timeSimplePathShortRCTC / unit << " CPUsecs short (RCTC) simple paths" << endl);
+        TIME(cout << "Nodes deletion:   " << timeDel / unit << " CPUsecs."<< endl);
     }
 
     return nbTipsRemoved;
@@ -763,7 +769,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     unsigned long nbBadCovBulges = 0;
 
     unsigned long timeAll = 0, timePathFinding = 0, timeFailedPathFinding = 0, timeLongestFailure = 0,
-                  timeSimplePath = 0, timeDelete = 0, timePost = 0, timeVarious = 0;
+                  timeSimplePath = 0, timeDelete = 0, timePost = 0, timeVarious = 0, timeNodeIndex = 0;
 
     unsigned long longestFailureDepth = 0;
 
@@ -784,18 +790,29 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
       TIME(auto start_thread_t=get_wtime());
 
-      if (_graph.isNodeDeleted(node)) { return; } 
-      if (nodesDeleter.get(node)) { return; }  // parallel // actually not sure if really useful
-      unsigned long index = _graph.nodeMPHFIndex(node);
+      TIME(auto start_nodeindex_t=get_wtime());
 
+          if (_graph.isNodeDeleted(node)) { return; } 
+          if (nodesDeleter.get(node)) { return; }  // parallel // actually not sure if really useful
+          unsigned long index = _graph.nodeMPHFIndex(node);
+       
+      TIME(auto end_nodeindex_t=get_wtime());
+      TIME(__sync_fetch_and_add(&timeNodeIndex, diff_wtime(start_nodeindex_t,end_nodeindex_t)));
 
       // TODO think about cases where bulge suppression could make a node intresting
     /*  if (haveInterestingNodesInfo)
           if (interestingNodes[index] == false)
             return; // no pont in examining non-branching nodes, saves calls to in/out-degree, i.e. accesses to the minia datastructure
 */
-    
-       unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
+            
+      TIME(auto start_various_overhead_t=get_wtime());
+
+          unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
+
+      TIME(auto end_various_overhead_t=get_wtime());
+      TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
+
+
 
       // need to search in both directions
       for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
@@ -805,10 +822,12 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
             __sync_fetch_and_add(&nbBulgesCandidates,1);
 
             TIME(auto start_various_overhead_t=get_wtime());
-            DEBUG(cout << endl << "putative bulge node: " << _graph.toString (node) << endl);
+    
+                DEBUG(cout << endl << "putative bulge node: " << _graph.toString (node) << endl);
 
-            /** We follow the outgoing simple paths to get their length and last neighbor */
-            typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(node, dir);
+                /** We follow the outgoing simple paths to get their length and last neighbor */
+                typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(node, dir);
+
             TIME(auto end_various_overhead_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
 
@@ -820,33 +839,36 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                 unsigned int pathLen = 0;
             
                 TIME(auto start_various_overhead_t=get_wtime());
-                if (_graph.isNodeDeleted(neighbors[i].to)) { 
-                     __sync_fetch_and_add(&nbFirstNodeGraphDeleted, 1);
-                    continue;}
-                if (nodesDeleter.get(neighbors[i].to)) { 
-                     __sync_fetch_and_add(&nbFirstNodeDeleted, 1);
-                    continue;}
+
+                    if (_graph.isNodeDeleted(neighbors[i].to)) { 
+                         __sync_fetch_and_add(&nbFirstNodeGraphDeleted, 1);
+                        continue;}
+                    if (nodesDeleter.get(neighbors[i].to)) { 
+                         __sync_fetch_and_add(&nbFirstNodeDeleted, 1);
+                            continue;}
 
                 TIME(auto end_various_overhead_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
 
-                /* explore the simple path from that node */
                 TIME(auto start_simplepath_t=get_wtime());
-                typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[i].to, dir);
-                DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
-                bool isShort = true;
-                pathLen = 0;
-                nodes.push_back(neighbors[i].to);
-                for (itNodes.first(); !itNodes.isDone(); itNodes.next())
-                {
-                    nodes.push_back(*itNodes);
-                    if (k + pathLen++ >= maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+
+                    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[i].to, dir);
+                    DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
+                    bool isShort = true;
+                    pathLen = 0;
+                    nodes.push_back(neighbors[i].to);
+                    /* explore the simple path from that node */
+                    for (itNodes.first(); !itNodes.isDone(); itNodes.next())
                     {
-                        __sync_fetch_and_add(&nbLongSimplePaths, 1);
-                        isShort = false;
-                        break;       
+                        nodes.push_back(*itNodes);
+                        if (k + pathLen++ >= maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+                        {
+                            __sync_fetch_and_add(&nbLongSimplePaths, 1);
+                            isShort = false;
+                            break;       
+                        }
                     }
-                }
+
                 TIME(auto end_simplepath_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
 
@@ -858,22 +880,23 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                 __sync_fetch_and_add(&nbShortSimplePaths, 1);
 
                 TIME(start_various_overhead_t=get_wtime());
-                typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> outneighbors = _graph.neighborsEdge(nodes.back(), dir);
-                DEBUG(cout << "last node of simple path: "<< _graph.toString(nodes.back()) << " has indegree/outdegree: " <<_graph.indegree(nodes.back()) << "/" << _graph.outdegree(nodes.back()) << endl);
 
-                if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
-                    continue;
-
-                Node endNode = outneighbors[0].to;
-                DEBUG(cout << "endNode: " << _graph.toString(endNode) << endl);
-
-                // at this point, the last node in "nodes" is the last node of a potential Bulge path, and endNode is hopefully a branching node right after.
-                // check if it's connected to something that has in-branching. 
-                bool isDoublyConnected = (dir==DIR_OUTCOMING && _graph.indegree(endNode) > 1) || (dir==DIR_INCOMING && _graph.outdegree(endNode) > 1);
-
-                bool isTopologicalBulge = isDoublyConnected;
-
-                DEBUG(cout << "pathlen: " << pathLen << " istopobulge: " << isTopologicalBulge << endl);
+                    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> outneighbors = _graph.neighborsEdge(nodes.back(), dir);
+                    DEBUG(cout << "last node of simple path: "<< _graph.toString(nodes.back()) << " has indegree/outdegree: " <<_graph.indegree(nodes.back()) << "/" << _graph.outdegree(nodes.back()) << endl);
+    
+                    if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
+                        continue;
+    
+                    Node endNode = outneighbors[0].to;
+                    DEBUG(cout << "endNode: " << _graph.toString(endNode) << endl);
+    
+                    // at this point, the last node in "nodes" is the last node of a potential Bulge path, and endNode is hopefully a branching node right after.
+                    // check if it's connected to something that has in-branching. 
+                    bool isDoublyConnected = (dir==DIR_OUTCOMING && _graph.indegree(endNode) > 1) || (dir==DIR_INCOMING && _graph.outdegree(endNode) > 1);
+    
+                    bool isTopologicalBulge = isDoublyConnected;
+    
+                    DEBUG(cout << "pathlen: " << pathLen << " istopobulge: " << isTopologicalBulge << endl);
 
                 TIME(end_various_overhead_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
@@ -890,11 +913,11 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
                 TIME(auto start_pathfinding_t=get_wtime());
 
-                Path_t<Node> heuristic_p_most = this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,
-                        true, // most covered
-                        backtrackingLimit, // avoid too much backtracking
-                        &(neighbors[i].to) // avoid that node
-                        );
+                    Path_t<Node> heuristic_p_most = this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,
+                            true, // most covered
+                            backtrackingLimit, // avoid too much backtracking
+                            &(neighbors[i].to) // avoid that node
+                            );
 
                 TIME(auto end_pathfinding_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timePathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
@@ -912,46 +935,49 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                          __sync_fetch_and_add(&nbNoAltPathBulgesDeadend, 1);
                     continue;
                 }
+
                 TIME(auto start_post_t=get_wtime());
 
-                DEBUG(cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl);
+                    DEBUG(cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl);
 
-                bool debug = false;
-                if (debug)
-                {
-                    double mean_abundance_least_covered;
-                    Path_t<Node> heuristic_p_least = this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered,false);
-                    DEBUG(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
-                }
+                    bool debug = false;
+                    if (debug)
+                    {
+                        double mean_abundance_least_covered;
+                        Path_t<Node> heuristic_p_least = this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered,false);
+                        DEBUG(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
+                    }
+    
+                    unsigned int dummyLen;
+                    double simplePathCoverage = this->getSimplePathCoverage(nodes[1], dir, &dummyLen);
+    
+                    DEBUG(cout << "retraced bulge path over length: " << dummyLen << endl);
+    
+                    bool isBulge =  simplePathCoverage * 1.1  <=  mean_abundance_most_covered;
+    
+                    DEBUG(cout << "bulge coverages: " << simplePathCoverage<< "/" <<  mean_abundance_most_covered  << endl);
+    
+                    if (!isBulge)
+                    {
+                        __sync_fetch_and_add(&nbBadCovBulges, 1);
+                        DEBUG(cout << "not a bulge due to coverage criterion" << endl);
 
-                unsigned int dummyLen;
-                double simplePathCoverage = this->getSimplePathCoverage(nodes[1], dir, &dummyLen);
-
-                DEBUG(cout << "retraced bulge path over length: " << dummyLen << endl);
-
-                bool isBulge =  simplePathCoverage * 1.1  <=  mean_abundance_most_covered;
-
-                DEBUG(cout << "bulge coverages: " << simplePathCoverage<< "/" <<  mean_abundance_most_covered  << endl);
-
-                if (!isBulge)
-                {
-                    __sync_fetch_and_add(&nbBadCovBulges, 1);
-                    DEBUG(cout << "not a bulge due to coverage criterion" << endl);
-                    TIME(auto end_post_t=get_wtime());
-                    TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
-                    continue;
-                }
+                        TIME(auto end_post_t=get_wtime());
+                        TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
+                        continue;
+                    }
 
                 // delete it
                 //
 
-                DEBUG(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
-                for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
-                {
-                    nodesDeleter.markToDelete(*itVecNodes);
-                }
+                    DEBUG(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
+                    for (typename vector<Node>::iterator itVecNodes = nodes.begin(); itVecNodes != nodes.end(); itVecNodes++)
+                    {
+                        nodesDeleter.markToDelete(*itVecNodes);
+                    }
 
-                __sync_fetch_and_add(&nbBulgesRemoved, 1);
+                    __sync_fetch_and_add(&nbBulgesRemoved, 1);
+
                 TIME(auto end_post_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
 
@@ -964,7 +990,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     
     // now delete all nodes, in parallel
     TIME(auto start_nodedelete_t=get_wtime());
+
     nodesDeleter.flush();
+
     TIME(auto end_nodedelete_t=get_wtime());
     TIME(__sync_fetch_and_add(&timeDelete, diff_wtime(start_nodedelete_t,end_nodedelete_t)));
 
@@ -987,7 +1015,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
         TIME(cout << "Bulges timings: " << timeAll / unit << " CPUsecs total."<< endl);
         TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal." << endl);
         TIME(cout << "                " << timePathFinding / unit << "(/" << timePathFinding / unit << ") CPUsecs path-finding(/failed). Longest: " << timeLongestFailure / (unit/1000) << " CPUmillisecs (depth " << longestFailureDepth << ")." << endl);
-        TIME(cout << "                " << timePost / unit << " CPUsecs topological bulge processing, " << timeDelete / unit << " CPUsecs nodes deletion." << endl);
+        TIME(cout << "                " << timePost / unit << " CPUsecs topological bulge processing, " << endl);
+        TIME(cout << "                " << timeNodeIndex / unit << " CPUsecs nodes MPHF index retrieval." << endl);
+        TIME(cout << "                " << timeDelete / unit << " CPUsecs nodes deletion." << endl);
         TIME(cout << "                " << timeVarious / unit << " CPUsecs various overhead." << endl);
     }
 
@@ -1038,6 +1068,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     unsigned long nbTopologicalEC = 0;
     unsigned long nbECRemoved = 0;
     unsigned long nbECCandidates = 0;
+    unsigned long timeDelete = 0;
 
     /** We get an iterator over all nodes . */
     char buffer[128];
@@ -1184,7 +1215,12 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
 
             }); // parallel
 
+    TIME(auto start_nodesdel_t=get_wtime());
+
     nodesDeleter.flush();
+
+    TIME(auto end_nodesdel_t=get_wtime()); 
+    TIME(__sync_fetch_and_add(&timeDelete, diff_wtime(start_nodesdel_t,end_nodesdel_t)));
 
     if (_verbose)
     {
@@ -1195,6 +1231,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
         cout.setf(ios_base::fixed);
         cout.precision(1);
         TIME(cout << "EC Timings: " << timeAll / unit << " CPUsecs total."<< endl);
+        TIME(cout << "Nodes deletion: " << timeDelete / unit << " CPUsecs." << endl);
     }
 
     return nbECRemoved;
