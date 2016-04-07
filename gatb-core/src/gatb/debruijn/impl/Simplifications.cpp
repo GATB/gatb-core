@@ -852,7 +852,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
                 TIME(auto start_simplepath_t=get_wtime());
 
-                    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[i].to, dir);
+                    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = 
+                        _graph.template simplePath (neighbors[i].to, dir);
+
                     DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                     bool isShort = true;
                     pathLen = 0;
