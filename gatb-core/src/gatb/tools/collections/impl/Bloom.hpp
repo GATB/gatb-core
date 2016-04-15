@@ -133,6 +133,12 @@ public:
      * \return the number of hash functions. */
     virtual size_t     getNbHash   () const = 0;
 
+    /** Tells whether an item is in the Bloom filter
+     * \param[in] item : item to test.
+     * \return the presence or not of the item
+     */
+	virtual bool contains (const Item& item) = 0;
+
     /** Tells whether the 4 neighbors of the given item are in the Bloom filter.
      * The 4 neighbors are computed from the given item by adding successively
      * nucleotides 'A', 'C', 'T' and 'G'
