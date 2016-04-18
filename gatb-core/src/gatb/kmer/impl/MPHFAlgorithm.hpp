@@ -181,6 +181,9 @@ private:
     /** Progress instance. */
     tools::dp::IteratorListener* _progress;
     void setProgress (tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
+	
+	/**  rememer mphf kind here also*/
+	tools::misc::MPHFKind _mphfKind;
 };
 
 /********************************************************************************/

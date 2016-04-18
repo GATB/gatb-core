@@ -106,11 +106,13 @@ public:
 
         iterator_wrapper kmers (iter); // TODO use EMPHF's to prevent code duplication, or actually, put it in MPHFWrapper.
 
-        // We may have no provided listener => use default one.
-        if (progress==0)  { progress = new tools::dp::IteratorListener; }
-        LOCAL (progress);
-	
-        bphf =  boophf_t(nbElts, kmers, nbThreads);
+		bool withprogress = true;
+
+		if (progress==0)
+			withprogress = false;
+		
+
+        bphf =  boophf_t(nbElts, kmers, nbThreads,1.0, withprogress);
 
         isBuilt = true;
         nbKeys  = iterable->getNbItems();

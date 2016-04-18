@@ -90,7 +90,7 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     IProperties*        options
 )
     :  Algorithm("mphf", nbCores, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
-       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _adjacencyMap(0), _progress(0)
+       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _adjacencyMap(0), _progress(0),_mphfKind(mphfKind)
 {
     /** We keep a reference on the solid kmers. */
     setSolidCounts (solidCounts);
@@ -160,8 +160,14 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::execute ()
         tools::dp::IteratorListener* delegate = createIteratorListener(0,"");  LOCAL (delegate);
         setProgress (new ProgressCustom(delegate));
 
+		
 
-        // get number of threads from dispatcher 
+		//if MPHF_BOOPHF and verbose 0,  give a null progress to the builder, make it understand the internal progress bar of boophf needs to be removed
+		if((_mphfKind == tools::misc::MPHF_BOOPHF)  &&  (typeid(*delegate) == typeid(tools::dp::IteratorListener)))
+			setProgress    (0);
+
+
+        // get number of threads from dispatcher
         unsigned int nbThreads = this->getDispatcher()->getExecutionUnitsNumber();
 
         /** We build the hash. */
