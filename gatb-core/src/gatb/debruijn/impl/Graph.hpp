@@ -922,7 +922,7 @@ public:
 
 
     /** cache adjacency information from the Bloom filter to an array, 8 bits per node, for faster traversal queries*/
-    void precomputeAdjacency(unsigned int nbCores = 1);
+    void precomputeAdjacency(unsigned int nbCores = 1, bool verbose = true);
     unsigned int nt2bit[256]; 
     bool debugCompareNeighborhoods(Node& node, Direction dir, std::string prefix) const; // debug
 
@@ -1073,8 +1073,13 @@ template<class Type, class Listener, typename Node, typename Edge, typename Grap
 class ProgressGraphIteratorTemplate : public tools::dp::impl::SubjectIterator<Type>
 {
 public:
-    ProgressGraphIteratorTemplate (const typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Type>& items, const char* msg = "compute", size_t divide=100)
-        : tools::dp::impl::SubjectIterator<Type> (items.get(), items.size()/divide, new Listener (items.size(), msg)), _size(items.size()) {}
+    ProgressGraphIteratorTemplate (const typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Type>& items, const char* msg = "compute", bool verbose=true, size_t divide=100)
+        : tools::dp::impl::SubjectIterator<Type> (items.get(), items.size()/divide), _size(items.size()) 
+        { 
+            if (verbose)
+                this->addObserver( new Listener(items.size(), msg) );
+        }
+    
 
     u_int64_t size () const  { return _size; }
 

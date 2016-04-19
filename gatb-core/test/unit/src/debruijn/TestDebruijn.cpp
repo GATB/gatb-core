@@ -508,7 +508,7 @@ public:
 
 #ifdef WITH_MPHF
         /* rerun this test with adjacency information instead of bloom */
-        graph.precomputeAdjacency();
+        graph.precomputeAdjacency(1, false);
         
         graph.iterator().iterate (fct);
 #endif
@@ -1155,7 +1155,7 @@ public:
         /* rerun this test with adjacency information instead of bloom */
         
         Graph graph2 = Graph::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
-        graph2.precomputeAdjacency();
+        graph2.precomputeAdjacency(1, false);
         
         debruijn_deletenode_fct (graph2);
     }
@@ -1202,7 +1202,7 @@ public:
         /* rerun this test with adjacency information instead of bloom */
         
         Graph graph2 = Graph::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
-        graph2.precomputeAdjacency();
+        graph2.precomputeAdjacency(1, false);
         
         debruijn_deletenode2_fct (graph2);
     }

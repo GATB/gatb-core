@@ -3381,13 +3381,13 @@ struct allocateAdjacency_visitor : public boost::static_visitor<void>    {
  * also, maybe one day, it will replace it
  */
 template<typename Node, typename Edge, typename GraphDataVariant> 
-void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned int nbCores) 
+void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned int nbCores, bool verbose) 
 {
 #ifndef WITH_MPHF
     std::cout << "Adjacency precomputation isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
 #else
 
-    ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem, Node, Edge, GraphDataVariant> itNode (iterator(), "precomputing adjacency");
+    ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem, Node, Edge, GraphDataVariant> itNode (iterator(), "precomputing adjacency", verbose);
     
     bool hasMPHF = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE;
     if (!hasMPHF)
@@ -3434,7 +3434,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
     bool adjSanityCheck = false;
     if (adjSanityCheck)
     {
-        ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem, Node, Edge, GraphDataVariant> itNode2 (iterator(), "checking adjacency");
+        ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem, Node, Edge, GraphDataVariant> itNode2 (iterator(), "checking adjacency", verbose);
         dispatcher.iterate (itNode2, [&] (Node& node)        {
                 // in both directions
                 for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
