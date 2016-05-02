@@ -8,14 +8,17 @@ class CountProcessorCustom : public CountProcessorAbstract<span>
 public:
 
     // We need the kmer size to dump kmers values as nucl strings
-    CountProcessorCustom (size_t kmerSize) : kmerSize(kmerSize) {}
+    CountProcessorCustom (size_t kmerSize, ISynchronizer* synchro) : kmerSize(kmerSize), synchro(synchro) {}
 
     virtual ~CountProcessorCustom () {}
 
-    CountProcessorAbstract<span>* clone ()  { return new CountProcessorCustom<span>(kmerSize); }
+    CountProcessorAbstract<span>* clone ()  { return new CountProcessorCustom<span>(kmerSize, synchro); }
 
     virtual bool process (size_t partId, const typename Kmer<span>::Type& kmer, const CountVector& count, CountNumber sum)
     {
+        // get a mutex
+        LocalSynchronizer sync (synchro);
+        // output kmer and counts
         cout << kmer.toString(kmerSize) << " ";
         for (size_t i=0; i<count.size(); i++)  {  cout << count[i] << " ";  }
         cout  << endl;
@@ -24,6 +27,7 @@ public:
 
 private:
     size_t kmerSize;
+    ISynchronizer *synchro;
 };
 
 /********************************************************************************/
@@ -35,8 +39,11 @@ template<size_t span>  struct MainLoop  {  void operator () (IProperties* option
     // We create a SortingCountAlgorithm instance.
     SortingCountAlgorithm<span> algo (options);
 
+    // global synchronization
+    ISynchronizer* synchro = System::thread().newSynchronizer();
+
     // We create a custom count processor and give it to the sorting count algorithm
-    algo.addProcessor (new CountProcessorCustom<span> (options->getInt(STR_KMER_SIZE)));
+    algo.addProcessor (new CountProcessorCustom<span> (options->getInt(STR_KMER_SIZE), synchro));
 
     // We launch the algorithm
     algo.execute();
