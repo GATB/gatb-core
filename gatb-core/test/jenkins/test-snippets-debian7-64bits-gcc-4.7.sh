@@ -52,7 +52,7 @@ g++ --version
 
 [ `gcc -dumpversion` = 4.7 ] && { echo "GCC 4.7"; } || { echo "GCC version is not 4.7, we exit"; exit 1; }
 
-JENKINS_TASK=test-valgrind-debian7-64bits-gcc-4.7
+JENKINS_TASK=test-snippets-debian7-64bits-gcc-4.7
 GIT_DIR=/builds/workspace/$JENKINS_TASK/gatb-core
 BUILD_DIR=/scratchdir/$JENKINS_TASK/gatb-core/build
 
