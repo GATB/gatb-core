@@ -79,7 +79,7 @@ make
 #                      RUN SNIPPETS                            #
 ################################################################
 
-cd $BUILD_DIR/bin/Debug
+cd $BUILD_DIR/bin/
 
 ./kmer1
 
