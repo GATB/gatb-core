@@ -361,7 +361,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     /** We get an iterator over all nodes */
     char buffer[128];
     sprintf(buffer, simplprogressFormat0, ++_nbTipRemovalPasses);
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer);
+    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
@@ -776,7 +776,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     /** We get an iterator over all nodes . */
     char buffer[128];
     sprintf(buffer, simplprogressFormat2, ++_nbBulgeRemovalPasses);
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer);
+    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
@@ -1075,7 +1075,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     /** We get an iterator over all nodes . */
     char buffer[128];
     sprintf(buffer, simplprogressFormat3, ++_nbECRemovalPasses);
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer);
+    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
