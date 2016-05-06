@@ -213,7 +213,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute counts of several files (sum, min, max, one, all)",false, "sum"));
     parser->push_back (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                         false, "5000"));
     parser->push_back (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                         false, "0"));
-    parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers",                    false));
+    parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers (only when constructing a graph)", false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                                    false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                               false, "."));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_TMP,    "output directory for temporary files",           false, "."));
