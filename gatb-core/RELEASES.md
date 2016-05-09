@@ -1,56 +1,56 @@
 --------------------------------------------------------------------------------
 # RELEASE 1.2.0
 
-* Assembly-inspired de Bruijn graph simplifications are available using a single command:
+* Assembly-inspired de Bruijn graph simplifications are available using a single command.
 
-      // removes tips, bubbles and erroneous connections, 
-      // similar to SPAdes algorithm
-      graph.simplify(); 
+Here is an example:
 
-* Faster graph traversal using a single command:
+    // removes tips, bubbles and erroneous connections, 
+    // similar to SPAdes algorithm
+    graph.simplify(); 
 
-      // allocates 1 byte/node to precompute adjacency for each nodes 
-      // in the MPHF. 
-      // Faster graph traversal (especially using neighbors()).
-      graph.precomputeAdjacency(); 
+* Faster graph traversal using a single command. 
+
+Here is an example:
+
+    // allocates 1 byte/node to precompute adjacency for each nodes 
+    // in the MPHF. 
+    // Faster graph traversal (especially using neighbors()).
+    graph.precomputeAdjacency(); 
        
-* **Breaking API changes**:
+* **Breaking API changes**
 
-      neighbors<Node>(..) *becomes* neighbors(..)
+Major changes in API are:
 
-      neighbors<Edge>(..) *becomes* neighborsEdge(..)
-
-      iterator<Node>(..) *becomes* iterator(..)
-    
-      iterator<BranchingNode>(..) *becomes* iteratorBranching(..) 
-
-      node.kmer.get<Type>() *becomes* node.template getKmer<Type>()
-
-      successors<Node>(..) *becomes* successors(..)  
-
+      neighbors\<Node>(..) *becomes* neighbors(..)
+      neighbors\<Edge>(..) *becomes* neighborsEdge(..)
+      iterator\<Node>(..) *becomes* iterator(..)
+      iterator\<BranchingNode>(..) *becomes* iteratorBranching(..) 
+      node.kmer.get\<Type>() *becomes* node.template getKmer<Type>()
+      successors\<Node>(..) *becomes* successors(..)  
       const Node& *becomes* Node&
            (as MPHF indices are now cached in Node objects)
 
       etc.. for all fonctions of the type:
-      - xxx<Node>,
-      - xxx<Edge>, 
-      - xxx<BranchingNode>,
-      - xxx<BranchingEdge>.
+      - xxx\<Node>,
+      - xxx\<Edge>, 
+      - xxx\<BranchingNode>,
+      - xxx\<BranchingEdge>.
 
       
-* The basic kmer type (Kmer<>::Type) no longer has a constructor. Use [kmer].setVal(0) to set the value of the variable [kmer] to zero.
+* The basic kmer type (Kmer\<>::Type) no longer has a constructor. Use [kmer].setVal(0) to set the value of the variable [kmer] to zero.
 
-        For instance, the following code:
+For instance, the following code:
 
-             optimum = Kmer<span>::Type(0)
+    optimum = Kmer<span>::Type(0)
 
-        becomes:
+becomes:
 
-             optimum.setVal(0);
+    optimum.setVal(0);
 
-* Graph is now a templated object (GraphTemplate<Node_t, Edge_t, GraphDataVariant_t>) behind the scenes. However this change is transparent to users of previous versions of GATB-core, as compatibility with the Graph class is preserved.
+* Graph is now a templated object (GraphTemplate\<Node\_t, Edge\_t, GraphDataVariant\_t>) behind the scenes. However this change is transparent to users of previous versions of GATB-core, as compatibility with the Graph class is preserved.
     
-* bugfixes in how queries with dir=DIR_INCOMING are handled.
+* bug fixes in how queries with dir=DIR_INCOMING are handled.
 
 
 
