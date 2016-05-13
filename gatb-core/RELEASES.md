@@ -1,15 +1,15 @@
 --------------------------------------------------------------------------------
 # RELEASE 1.2.0
 
-* Assembly-inspired de Bruijn graph simplifications are available using a single command.
+* Assembly-inspired de Bruijn graph simplifications can be performed using a single command.
 
 Here is an example:
 
     // removes tips, bubbles and erroneous connections, 
-    // similar to SPAdes algorithm
+    // similar to some of the algorithms implemented in the SPAdes assembler
     graph.simplify(); 
 
-* Faster graph traversal using a single command. 
+* Faster graph traversal can be activated using a single command. 
 
 Here is an example:
 
@@ -49,9 +49,15 @@ becomes:
     optimum.setVal(0);
 
 * Graph is now a templated object (GraphTemplate\<Node\_t, Edge\_t, GraphDataVariant\_t>) behind the scenes. However this change is transparent to users of previous versions of GATB-core, as compatibility with the Graph class is preserved.
+
+
+* New implementation for the minimal perfect hash function (switched from emphf to BooPHF)
+
+* Non-canonical k-mer counting is supported via "cmake -DNONCANONICAL=1"
     
 * bug fixes in how queries with dir=DIR_INCOMING are handled.
 
+* various minor bug fixes
 
 
 --------------------------------------------------------------------------------
