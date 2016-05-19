@@ -51,14 +51,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         include(CheckCompiler)
     ENDIF()
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.5) 
-        message ("-------------------------------------------------------------------------------------")
-        message ("-- GCC VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
-        message ("-------------------------------------------------------------------------------------")
     else()
         set (use_new_cxx 1)
-        message ("-------------------------------------------------------------------------------------")
-        message ("-- C++ EXTENSIONS WILL BE USED...")
-        message ("-------------------------------------------------------------------------------------")
     endif()
 
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.7) 
@@ -75,33 +69,38 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
-        message ("-------------------------------------------------------------------------------------")
-        message ("-- CLANG VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
-        message ("-------------------------------------------------------------------------------------")
-    else()
-        set (use_new_cxx 1)
-        message ("-------------------------------------------------------------------------------------")
-        message ("-- C++ EXTENSIONS WILL BE USED...")
-        message ("-------------------------------------------------------------------------------------")
-    endif()
+   IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
+        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
+            set (use_mphf 0)
+        else()
+            set (use_mphf 1)
+            set (use_new_cxx 1)
+        endif()
 
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.5) 
-        set (use_mphf 0)
     else()
-        set (use_mphf 1)
-    endif()
+        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
+            set (use_mphf 0)
+        else()
+            set (use_new_cxx 1)
+            set (use_mphf 1)
+        endif()
 
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
-        set (dont_use_tr1 0)
-    else()
-        set (dont_use_tr1 1)
     endif()
-
 else()
         message ("-------------------------------------------------------------------------------------")
         message ("-- WARNING !!! YOU USE AN UNKNOWN COMPILER...")
         message ("-------------------------------------------------------------------------------------")
+endif()
+
+    
+if (use_new_cxx)
+    message ("-------------------------------------------------------------------------------------")
+    message ("-- C++ EXTENSIONS WILL BE USED...")
+    message ("-------------------------------------------------------------------------------------")
+else()
+    message ("-------------------------------------------------------------------------------------")
+    message ("-- COMPILER VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
+    message ("-------------------------------------------------------------------------------------")
 endif()
 
 ################################################################################
@@ -179,30 +178,25 @@ ENDIF()
 
 if (use_mphf)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
-        message ("-------------------------------------------------------------------------------------")
-        message ("-- WILL COMPILE MPHF! (COMPILER VERSION IS HIGH ENOUGH) ")
-        message ("-------------------------------------------------------------------------------------")
+    message ("-------------------------------------------------------------------------------------")
+    message ("-- WILL COMPILE MPHF! (COMPILER VERSION IS HIGH ENOUGH) ")
+    message ("-------------------------------------------------------------------------------------")
     if (SSE4_2_FOUND)
         set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DEMPHF_USE_POPCOUNT=1")
     endif()
 
     # for emphf
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        message ("-- EMPHF CLANG FIX ")
+        message ("-- EMPHF CLANG<3.8 FIX ")
 
-        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.8) 
-            # my clang 3.7 doesn't like when i use stdlib=libc++, it refuses to compile because cannot found standard libs like <vector>
+        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.8)  # TODO perhaps might need to be revisited for Mac
+            # my clang 3.7 (linux) doesn't like when i use stdlib=libc++, it refuses to compile because cannot found standard libs like <vector>
         else()
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
         endif()
 
     endif ()
 
-endif()
-
-# We also set a flag for TR1 management
-if (dont_use_tr1)
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DDONT_USE_TR1 ")
 endif()
 
 # In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
