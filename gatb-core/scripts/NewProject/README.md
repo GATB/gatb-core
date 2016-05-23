@@ -1,5 +1,4 @@
---------------------------------------------------------------------------------
-# About XXX
+#About XXX
 
 This is a software tool relying on GATB-CORE library.
 
@@ -9,13 +8,15 @@ The architecture of the tool is as follows:
     * a 'tools' directory holding a default source code using GATB-Core
     * a 'scripts' directory holding a script to automatically package the tool
     * a 'thirdparty' directory holding the gatb-core resources
-    * a 'doc' tool
+    * a 'doc' directory
+    * a 'tests' directory holding test procedures
     
 The 'thirdparty' directory is only available for tool created outside the GATB-Tools repository.
 Tools located within GATB-Tools rely on a common GATB-Core sub-module already available in this repository.
 
 It is advised to use:
 
+    * 'tests' directory to hold test procedures: scripts and/or small sized data files
     * 'scripts' directory to hold any scripts this tool relies on
     * 'doc' directory to hold tool's documentation
     * 'thirdparty' directory to hold any third-party librairies this tool relies on
@@ -29,20 +30,17 @@ each feature. Using this organisation has a big advantage: the provided CMakeLis
 that, so you do not have to edit the CMake file when you add a new "sub-tool". As a real example, you
 can have a look at the DiscoSNP software.
 
---------------------------------------------------------------------------------
-# License
+#License
 
 Please not that GATB-Core is distributed under Affero-GPL license.
 
---------------------------------------------------------------------------------
-# Dependencies
+#Dependencies
 
 The following third parties should be already installed:
 
-* cmake (mandatory)
+* cmake 2.8+ (mandatory)
 
---------------------------------------------------------------------------------
-# Project build
+#Project build
 
 For building your project, you should do the following
     
@@ -53,8 +51,7 @@ Then, you should get a binary holding the name of the project within 'build/tool
 
 Note: the first compilation should take some time since the GATB-CORE library is generated.
 
---------------------------------------------------------------------------------
-# Project packaging
+#Project packaging
 
 You can prepare your tool for distribution using:
     
@@ -67,8 +64,7 @@ and the other the source codes.
 
 Note: the script re-builds the entire tool from its sources to ensure a clean build process.
 
---------------------------------------------------------------------------------
-# Examples
+#Examples
 
 The project is created with a default 'main' function that dumps some information about the library.
 
@@ -85,8 +81,7 @@ For instance:
 
 WARNING: some examples use on purpose lambda expressions, so you will need a compiler supporting this feature for this examples.
 
---------------------------------------------------------------------------------
-# Binaries from gatb-core
+#Binaries from gatb-core
 
 After the project build, some gatb-core binaries are available here: 'ext/gatb-core/bin'
 

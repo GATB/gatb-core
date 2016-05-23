@@ -124,7 +124,8 @@ function createGatbCoreDirectory(){
       cp -r $GATB_CORE_PATH/tools             $PROJECT_DIR/thirdparty/gatb-core/  || ERR=1
       cp    $GATB_CORE_PATH/CMakeLists.txt    $PROJECT_DIR/thirdparty/gatb-core/  || ERR=1
       cp    $GATB_CORE_PATH/LICENCE           $PROJECT_DIR/thirdparty/gatb-core/  || ERR=1
-      cp    $GATB_CORE_PATH/README.md         $PROJECT_DIR/thirdparty/gatb-core/  || ERR=1
+      cp    $GATB_CORE_PATH/../README.md      $PROJECT_DIR/thirdparty/gatb-core/  || ERR=1
+      cp    $GATB_CORE_PATH/RELEASES.md       $PROJECT_DIR/thirdparty/gatb-core/  || ERR=1
       cp    $GATB_CORE_PATH/THIRDPARTIES.md   $PROJECT_DIR/thirdparty/gatb-core/  || ERR=1
     else
       printf "$1- Preparing GATB-Core link...\n"
@@ -140,6 +141,7 @@ function createOtherFiles(){
   ERR=0
   local MSG1="Place here the documentation of your tool, then remove this file."
   local MSG2="Place here any other third-party librairies this tool relies on."
+  local MSG3="Place here test suites: scripts and/or small/medium sized data files."
   
   printf "$1- Copying other files...\n"
   # We copy the default README
@@ -152,6 +154,8 @@ function createOtherFiles(){
   fi
   echo $MSG2 | tee $PROJECT_DIR/thirdparty/README                                  || ERR=1
   cp $GATB_CORE_PATH/THIRDPARTIES.md                       $PROJECT_DIR/thirdparty || ERR=1
+  mkdir $PROJECT_DIR/tests                                                         || ERR=1
+  echo $MSG3 | tee $PROJECT_DIR/tests/README                                       || ERR=1
   printf "   done\n"
 }
 
