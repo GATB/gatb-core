@@ -62,6 +62,20 @@ cmake -Wno-dev $GIT_DIR
 make
 
 ################################################################
+#                       PACKAGING                              #
+################################################################
+# Upload bin and source bundles to the forge
+if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
+   echo "Creating a binary archive... "
+   echo "N.B. this is NOT an official binary release"
+   make package
+   echo "Creating a source archive... "
+   make package_source
+   scp gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+   scp gatb-core-${BRANCH_TO_BUILD}-Source.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+fi
+
+################################################################
 #                       UNIT TESTS                             #
 ################################################################
 export CPPUNIT_VERBOSE=1

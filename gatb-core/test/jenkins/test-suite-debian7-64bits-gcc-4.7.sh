@@ -75,22 +75,16 @@ cmake -Wno-dev $GIT_DIR
 make -j 2 || error_code
 
 
-#---------------------------------------------------------------
-# Upload bin bundle to the forge
+################################################################
+#                       PACKAGING                              #
+################################################################
+# Upload bin bundle to the forge; source bundle is made by OSX Jenkins task
 if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
    echo "Creating a binary archive... "
    echo "N.B. this is NOT an official binary release"
-
-   binbundle=gatb_binary_${BRANCH_TO_BUILD}_"`uname`"
-   mkdir $binbundle
-
-   cp bin/* $binbundle
-   cp lib/* $binbundle
-   tar -zcf $binbundle.tgz $binbundle
-
-   scp $binbundle.tgz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+   make package
+   scp gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
 fi
-
 
 ################################################################
 #                       UNIT TESTS                             #
