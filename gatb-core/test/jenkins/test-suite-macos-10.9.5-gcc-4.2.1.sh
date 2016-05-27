@@ -23,6 +23,8 @@ TEST_VARIABLE        : ${TEST_VARIABLE}
 DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
 "
 
+error_code () { [ "$DO_NOT_STOP_AT_ERROR" = "true" ] && { return 0 ; } }
+
 [ "$DO_NOT_STOP_AT_ERROR" != "true" ] && { set -e ; } || { echo "DEBUG mode, the script will NOT stop..." ; }
 set -xv
 
@@ -31,6 +33,8 @@ set -xv
 sw_vers -productVersion
 #-----------------------------------------------
 system_profiler SPSoftwareDataType
+#-----------------------------------------------
+lstopo
 #-----------------------------------------------
 top -l 1|head -15
 #-----------------------------------------------
@@ -59,13 +63,12 @@ cd $BUILD_DIR
 
 cmake -Wno-dev -DJENKINS_TAG=${BRANCH_TO_BUILD} $GIT_DIR
 
-make
+make -j 2 || error_code
 
 ################################################################
 #                       PACKAGING                              #
 ################################################################
 # Upload bin and source bundles to the forge
-if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
 if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
    echo "Creating a binary archive... "
    echo "     N.B. this is NOT an official binary release"
@@ -91,7 +94,7 @@ cp -r $GIT_DIR/test/db $BUILD_DIR/test/
 # Launch the full test suite
 cd $BUILD_DIR/bin
 ls ../test/db/           # default directory for test db
-./gatb-core-cppunit
+./gatb-core-cppunit || error_code
 
 ################################################################
 #    CHECK FUNCTIONS (with precomputed reference results)      #
@@ -103,7 +106,4 @@ ls ../test/db/           # default directory for test db
 #                   VALGRIND CHECK                             #
 ################################################################
 
-
 # not ready
-
-[ "$DO_NOT_STOP_AT_ERROR" = "true" ] && { exit 0 ; }
