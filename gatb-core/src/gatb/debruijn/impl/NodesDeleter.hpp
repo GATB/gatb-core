@@ -59,7 +59,7 @@ class NodesDeleter
         /* use explicit set of nodes as long as we don't have more than 10 M nodes ok? 
          * else resort to bit array
          * 10M nodes, assuming 128 bytes per nodes (generous), is 1 gig.
-         * for k=21 it's 24 bytes.
+         * for k=21 it's actually closer to 24 bytes per node.
          * so, WARNING: enabling this feature uses more memory. 
          * todo: someday, introduce a --fast parameter that uses a bit more memory but does optimizations like this
          */

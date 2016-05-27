@@ -240,6 +240,8 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
     // set counts and at the same time, test the mphf
     for (itKmers->first(); !itKmers->isDone(); itKmers->next())
     {
+        //cout << "kmer: " << itKmers->item().value.toString(21) << std::endl;
+        
         /** We get the hash code of the current item. */
         typename AbundanceMap::Hash::Code h = _abundanceMap->getCode (itKmers->item().value);
 

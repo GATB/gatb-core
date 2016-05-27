@@ -374,7 +374,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
     dispatcher.iterate (itNode, [&] (Node& node)
     {
-        /* "since nodes are always iterated in the same order,
+        /* initial thought:
+         * "since nodes are always iterated in the same order,
          * their rank is a nice proxy to index interestingNodes
          * rather than doing an expensive MPHF query."
          * ..or so I thought! but actually, 
@@ -411,7 +412,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
          *      \               v          |
          *       \-> ATG  --> TGT --> GTC -/
          *
-         *  the three leftmost nodes should be removed and the four right nodes are correct.
+         *  the three leftmost nodes should be removed and the four rightmost nodes are correct.
          *  once AAT is removed, ATC and ATG are legit tips; but they were simple nodes initially. QED
          *
          */
@@ -542,15 +543,15 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                     unsigned long index = _graph.nodeMPHFIndex(connectedBranchingNodes[j]);
 
                     // soem debugging
-                    /*if (_graph.isNodeDeleted(connectedBranchingNodes[j])) { continue; } // {continue;} // sequential and also parallel
-                    if (nodesDeleter.get(index)) { continue; }  // parallel // actually not sure if really useful
+                    if (_graph.isNodeDeleted(connectedBranchingNodes[j])) { continue; } // {continue;} // sequential and also parallel
+                    if (nodesDeleter.get(index)) { continue; }  // parallel // skip if node is already deleted; actually not sure if really useful
                     unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
                     if (haveInterestingNodesInfo && ((interestingNodes[index] == false) && ((inDegree == 1 && outDegree == 1))))
                     {
                         std::cout  << "previously uninteresting node became interesting: " << inDegree << " " << outDegree << " simplepath length " << pathLen << std::endl;
-                    }*/
+                    }
 
-                    unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
+                    //unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
 
                     interestingNodes[index] = true;
                 }

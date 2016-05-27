@@ -892,8 +892,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
         string output = input;//.substr(0,input.find_last_of(".h5")) + "_new.h5";
         //cout << "To avoid overwriting the input (" << input << "), output will be saved to: "<< output << std::endl;
 
-        cout << "Input is a h5 file (we assume that it contains at least the solid kmers), we will complete it into a graph if necessary\n"; 
-        cout << "This is an experimental feature, use at your own risk. (Well technically, since you're seeing this message, it's too late to abort :)\n";
+        cout << "Input is a h5 file (we assume that it contains at least the solid kmers), we will complete it into a graph if necessary.\n"; 
         
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */
