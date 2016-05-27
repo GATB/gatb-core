@@ -69,7 +69,7 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 #---------------------------------------------------------------
-cmake -Wno-dev $GIT_DIR
+cmake -Wno-dev -DJENKINS_TAG=${BRANCH_TO_BUILD} $GIT_DIR
 
 #---------------------------------------------------------------
 make -j 2 || error_code

@@ -6,10 +6,12 @@ cmake_minimum_required (VERSION 2.6)
 ################################################################################
 # The version number.
 ################################################################################
+# The default version number is the latest official build
 SET (gatb-core_VERSION_MAJOR 1)
 SET (gatb-core_VERSION_MINOR 2)
 SET (gatb-core_VERSION_PATCH 0)
 
+# But, it is possible to define another release number during a local build
 IF (DEFINED MAJOR)
     SET (gatb-core_VERSION_MAJOR ${MAJOR})
 ENDIF()
@@ -21,6 +23,12 @@ IF (DEFINED PATCH)
 ENDIF()
 
 set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${gatb-core_VERSION_PATCH})
+
+# However, continuous integration has priority over local compilation
+IF (DEFINED JENKINS_TAG)
+    SET (gatb-core-version ${JENKINS_TAG})
+ENDIF()
+
 set (gatb-core-date "xxxx-xx-xx")
 
 ################################################################################

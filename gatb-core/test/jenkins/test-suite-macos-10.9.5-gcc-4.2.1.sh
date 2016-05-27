@@ -57,7 +57,7 @@ mkdir -p $BUILD_DIR
 
 cd $BUILD_DIR
 
-cmake -Wno-dev $GIT_DIR
+cmake -Wno-dev -DJENKINS_TAG=${BRANCH_TO_BUILD} $GIT_DIR
 
 make
 
@@ -66,8 +66,9 @@ make
 ################################################################
 # Upload bin and source bundles to the forge
 if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
+if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
    echo "Creating a binary archive... "
-   echo "N.B. this is NOT an official binary release"
+   echo "     N.B. this is NOT an official binary release"
    make package
    echo "Creating a source archive... "
    make package_source
