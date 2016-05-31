@@ -69,11 +69,11 @@ static string to_string(unsigned long x)
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant>
-Simplifications<Node,Edge,GraphDataVariant>::Simplifications(const GraphTemplate<Node,Edge,GraphDataVariant> & graph, int nbCores, bool verbose)
+Simplifications<Node,Edge,GraphDataVariant>::Simplifications(/*const*/ GraphTemplate<Node,Edge,GraphDataVariant> & graph, int nbCores, bool verbose)
         : _nbTipRemovalPasses(0), _nbBubbleRemovalPasses(0), _nbBulgeRemovalPasses(0), _nbECRemovalPasses(0), _graph(graph), 
         _nbCores(nbCores), _firstNodeIteration(true), _verbose(verbose)
 {
-    // just a way to get number of nodes
+    // the next list is only here to get number of nodes
     ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (this->_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), "");
     nbNodes = itNode.size();
 
@@ -358,10 +358,23 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     unsigned long timeAll = 0, timeSimplePath = 0, timeSimplePathLong = 0, timeSimplePathShortTopo = 0, timeSimplePathShortRCTC = 0, timeDel = 0;
     unsigned long nbTipCandidates = 0;
 
-    /** We get an iterator over all nodes */
+
     char buffer[128];
     sprintf(buffer, simplprogressFormat0, ++_nbTipRemovalPasses);
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
+    /** We get an iterator over all nodes */
+    /* in case of pass > 1, only over cached branching nodes */
+    // because in later iterations, we have cached non-simple nodes, so iterate on them
+    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> *itNode; 
+    if (_firstNodeIteration )
+    {
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant>(_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
+        std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
+    }
+    else
+    {
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant>(_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iteratorCachedNodes(), buffer, _verbose);
+        std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
+    }
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
@@ -370,9 +383,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
     
     bool haveInterestingNodesInfo = !_firstNodeIteration;
-    _firstNodeIteration = false;
 
-    dispatcher.iterate (itNode, [&] (Node& node)
+    dispatcher.iterate (*itNode, [&] (Node& node)
     {
         /* initial thought:
          * "since nodes are always iterated in the same order,
@@ -418,12 +430,15 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
          */
 
         TIME(auto start_thread_t=get_wtime());
+        
+        unsigned long index = _graph.nodeMPHFIndex(node);
 
         // skip uninteresting nodes 
-        unsigned long index = _graph.nodeMPHFIndex(node);
-        //u_int64_t iterationRank = node.iterationRank;
+        // it's a little bit double emploi with cached non-simple nodes, however non-interesting nodes can be those which have been explored by tip remover and deemed not tips.
+        u_int64_t iterationRank = node.iterationRank;
         if (haveInterestingNodesInfo)
-            if (interestingNodes[index /*iterationRank didn't work*/] == false)
+            if (interestingNodes[index] == false)
+            //if (interestingNodes[iterationRank] == false)
             {
                 TIME(auto end_thread_t=get_wtime()); 
                 TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
@@ -493,6 +508,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             if ( ! (isShortTopological || isShortRCTC) )
             {   
                 interestingNodes[index] = false; // unflag the original end-of-tip node. // there was a fixme note here, i've removed it because i don't see why, but let's keep that in mind next time i investigate the algo
+                //interestingNodes[iterationRank] = false;
                 TIME(__sync_fetch_and_add(&timeSimplePathLong, diff_wtime(start_simplepath_t,end_simplepath_t)));
                 TIME(auto end_thread_t=get_wtime()); 
                 TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
@@ -546,21 +562,19 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                     if (_graph.isNodeDeleted(connectedBranchingNodes[j])) { continue; } // {continue;} // sequential and also parallel
                     if (nodesDeleter.get(index)) { continue; }  // parallel // skip if node is already deleted; actually not sure if really useful
                     unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
-                    if (haveInterestingNodesInfo && ((interestingNodes[index] == false) && ((inDegree == 1 && outDegree == 1))))
-                    {
-                        std::cout  << "previously uninteresting node became interesting: " << inDegree << " " << outDegree << " simplepath length " << pathLen << std::endl;
-                    }
+                    if (inDegree == 1 && outDegree == 1)
+                        //std::cout  << "previously uninteresting node (neighbor of deleted node) became interesting: " << inDegree << " " << outDegree << " simplepath length " << pathLen << std::endl;
 
                     //unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
 
-                    interestingNodes[index] = true;
+                    interestingNodes[index] = true; 
                 }
 
                 __sync_fetch_and_add(&nbTipsRemoved, 1);
             } // end if isTip
         } // end if degree correspond to putative end-of-tip
 
-        TIME(auto end_thread_t=get_wtime()); // TODO capter ce qui prend du temps, algorithmiquement.
+        TIME(auto end_thread_t=get_wtime()); 
         TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
 
     }); // parallel
@@ -569,6 +583,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     
     // now delete all nodes, in parallel
     nodesDeleter.flush();
+
+    if (_firstNodeIteration)
+        _graph.cacheNonSimpleNodes(_nbCores, true);
 
     TIME(auto end_nodesdel_t=get_wtime()); 
     TIME(__sync_fetch_and_add(&timeDel, diff_wtime(start_nodesdel_t,end_nodesdel_t)));
@@ -588,6 +605,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
         TIME(cout << "                    " << timeSimplePathShortRCTC / unit << " CPUsecs short (RCTC) simple paths" << endl);
         TIME(cout << "Nodes deletion:   " << timeDel / unit << " CPUsecs."<< endl);
     }
+    
+    _firstNodeIteration = false;
 
     return nbTipsRemoved;
 #endif // WITH_MPHF
@@ -777,7 +796,18 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     /** We get an iterator over all nodes . */
     char buffer[128];
     sprintf(buffer, simplprogressFormat2, ++_nbBulgeRemovalPasses);
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
+    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> *itNode; 
+    if (_firstNodeIteration )
+    {
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant>(_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
+        std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
+    }
+    else
+    {
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant>(_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iteratorCachedNodes(), buffer, _verbose);
+        std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
+    }
+
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
@@ -1076,7 +1106,17 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     /** We get an iterator over all nodes . */
     char buffer[128];
     sprintf(buffer, simplprogressFormat3, ++_nbECRemovalPasses);
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> itNode (_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
+    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant> *itNode; 
+    if (_firstNodeIteration )
+    {
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant>(_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iterator(), buffer, _verbose);
+        std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
+    }
+    else
+    {
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem,Node,Edge,GraphDataVariant>(_graph.GraphTemplate<Node,Edge,GraphDataVariant>::iteratorCachedNodes(), buffer, _verbose);
+        std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
+    }
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);

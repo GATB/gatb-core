@@ -237,6 +237,8 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
     itKmers->addObserver (_progress);
     LOCAL (itKmers);
 
+    // TODO parallize that
+
     // set counts and at the same time, test the mphf
     for (itKmers->first(); !itKmers->isDone(); itKmers->next())
     {
@@ -269,7 +271,7 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
     }
 
 #if 1
-    // you know what? let's test if the MPHF does not have collisions, it won't hurt.
+    // you know what? let's always test if the MPHF does not have collisions, it won't hurt.
     check ();
 #endif
 
@@ -297,6 +299,8 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::check ()
     size_t nb_iterated = 0;
 
     Iterator<Count>* itKmers = _solidCounts->iterator();  LOCAL (itKmers);
+    
+    // TODO parallize that too
 
     for (itKmers->first(); !itKmers->isDone(); itKmers->next())
     {

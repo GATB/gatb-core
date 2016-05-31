@@ -508,4 +508,19 @@ typedef  IntegerTemplateDummy<IntegerList> IntegerDummy;
 }}}};
 /********************************************************************************/
 
+/* would enable an Integer to be hashed in a unordered_map */
+/* well, for some reason this didn't work with unordered_map, i still got the compile error:
+ /usr/include/c++/6.1.1/bits/hashtable_policy.h:85:34: error: no match for call to ‘(const std::hash<const gatb::core::tools::math::IntegerTemplate<boost::mpl::vector1<mpl_::int_<32> > > >) (const gatb::core::tools::math::IntegerTemplate<boost::mpl::vector1<mpl_::int_<32> > >&)’ */
+/*namespace std {
+  template <typename IntegerList>
+  struct hash< gatb::core::tools::math::IntegerTemplate<IntegerList>>
+  {
+    std::size_t operator()(const gatb::core::tools::math::IntegerTemplate<IntegerList>& k) const
+    {
+        return oahash(k);
+    }
+  };
+};
+*/
+
 #endif /* _GATB_CORE_TOOLS_MATH_INTEGER_HPP_ */

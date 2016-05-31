@@ -305,4 +305,3 @@ inline void justSweepForAA(const LargeInt<1>& x, const unsigned int _nbMinimizer
     }
 }
 
-

@@ -150,12 +150,14 @@ struct FunctorNodes
 
     void operator() (Node& node)
     {
-        // We get branching nodes neighbors for the current branching node.
+        // We get branching nodes neighbors for the current node.
         typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> successors   = graph->template successors   (node);
         typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> predecessors = graph->template predecessors (node);
 
         if ( ! (successors.size()==1 && predecessors.size()==1) )
         {
+            // the node is branching
+
         	FunctorData<Count,Type>& data = functorData();
 
         	data.branchingNodes.push_back (Count (node.template getKmer<Type>(), node.abundance));
@@ -213,7 +215,7 @@ void BranchingAlgorithm<span, Node, Edge, GraphDataVariant>::execute ()
     /** We get an iterator over all graph nodes. */
     typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Node> itNodes = _graph->GraphTemplate<Node, Edge, GraphDataVariant>::iterator();
 
-    /** We create a custom listener that refines the finish method in order it does nothing...
+    /** We create a custom listener that makes the finish() method, normally called at end of iteration, do nothing this time.
      * => we define our own 'finishPostponed' method that is called when all the information is ok. */
     CustomListener<Count>* listener = new CustomListener<Count> (
         createIteratorListener (itNodes.size(), progressFormat1),
@@ -237,7 +239,9 @@ void BranchingAlgorithm<span, Node, Edge, GraphDataVariant>::execute ()
     /** We iterate the nodes. */
     tools::dp::IDispatcher::Status status = getDispatcher()->iterate (iter, functorNodes);
 
-    /** Now, we have N vector of branching nodes. (N=nbcores used by the dispatcher)
+    /** Now, because we iterated with N threads, we have N vector of branching nodes. (N=nbcores used by the dispatcher)
+     *  We need to merge them.
+     *  TODO doc: why do they need to be sorted actually?!
      *  The next step are:
      *      1) sort each vector
      *      2) sort/merge the N vectors in the final collection

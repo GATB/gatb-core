@@ -38,7 +38,7 @@ class Simplifications : public system::SmartPointer
 {
 public:
 
-    Simplifications (const GraphTemplate<Node,Edge,GraphDataVariant> & graph, int nbCores, bool verbose = false);
+    Simplifications (/*const, removed because of cacheNonSimpleNodes calling a setStats */ GraphTemplate<Node,Edge,GraphDataVariant> & graph, int nbCores, bool verbose = false);
 
     void simplify(); // perform many rounds of all simplifications, as in Minia
 
@@ -59,7 +59,7 @@ public:
     
 
 protected:
-    const GraphTemplate<Node,Edge,GraphDataVariant> &  _graph;
+    /*const*/ GraphTemplate<Node,Edge,GraphDataVariant> &  _graph;
     int _nbCores;
     uint64_t nbNodes;
     uint64_t cutoffEvents;

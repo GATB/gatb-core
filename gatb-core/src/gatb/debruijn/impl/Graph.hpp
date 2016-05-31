@@ -27,15 +27,20 @@
 #define _GATB_CORE_DEBRUIJN_IMPL_GRAPH_HPP_
 
 /********************************************************************************/
+#include <vector>
+#include <set>
+#include <unordered_map>
+
 
 #include <gatb/system/api/IThread.hpp> // for ISynchronizer 
 #include <gatb/bank/api/IBank.hpp>
 #include <gatb/kmer/impl/Model.hpp>
+#include <gatb/tools/math/Integer.hpp>
+
 #include <gatb/kmer/impl/BloomBuilder.hpp>
 #include <gatb/kmer/impl/DebloomAlgorithm.hpp>
-#include <gatb/kmer/impl/MPHFAlgorithm.hpp>
 
-#include <gatb/tools/math/Integer.hpp>
+#include <gatb/kmer/impl/MPHFAlgorithm.hpp>
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
@@ -45,8 +50,7 @@
 
 #include <gatb/tools/storage/impl/Storage.hpp>
 
-#include <vector>
-#include <set>
+
 
 /********************************************************************************/
 namespace gatb      {
@@ -121,7 +125,7 @@ struct Node_t
     typedef Value_t Value;
 
     /** Default constructor. */
-    Node_t() : strand(kmer::STRAND_FORWARD), abundance(0), mphfIndex(0) /*, iterationRank(0)*/ {}
+    Node_t() : strand(kmer::STRAND_FORWARD), abundance(0), mphfIndex(0) , iterationRank(0) {}
 
     /** Constructor.
      * \param[in] kmer : kmer value. By default, it is the minimum value of the forward and revcomp value.
@@ -129,7 +133,7 @@ struct Node_t
      * \param[in] abundance : abundance of the kmer. Default value is 0 if not set.
      */
     Node_t (const Node_t::Value& kmer, kmer::Strand strand=kmer::STRAND_FORWARD, u_int16_t abundance=0, u_int64_t mphfIndex = 0)
-        : kmer(kmer), strand(strand), abundance(abundance), mphfIndex(mphfIndex) /*, iterationRank(0) */ {}
+        : kmer(kmer), strand(strand), abundance(abundance), mphfIndex(mphfIndex) , iterationRank(0) {}
 
     /** kmer value for the node (min of the forward and revcomp value of the bi-directed DB graph). */
     Node_t::Value  kmer;
@@ -141,7 +145,7 @@ struct Node_t
     u_int16_t    abundance;
 
     u_int64_t mphfIndex;
-    //u_int64_t iterationRank; // maybe one day activate it -- I havn't found the use yet in Simplifications.cpp (see note on tips)
+    u_int64_t iterationRank; // used in Simplifications.cpp (see note on tips)
 
     /** Overload of operator ==  NOTE: by now, it doesn't take care of the strand... */
     bool operator== (const Node_t& other) const  { return kmer == other.kmer; }
@@ -162,7 +166,7 @@ struct Node_t
         this->kmer      = kmer;
         this->strand    = strand;
         this->mphfIndex = 0;
-        //this->iterationRank = 0;
+        this->iterationRank = 0;
     }
 
     template<typename T>
@@ -588,6 +592,7 @@ public:
 
     inline Iterator<Node> iterator () const  {  return getNodes ();           }
     inline Iterator<BranchingNode_t<Node> > iteratorBranching () const  {  return getBranchingNodes ();           }
+    GraphTemplate::Iterator<Node> iteratorCachedNodes () const;
 
 
     /**********************************************************************/
@@ -926,6 +931,12 @@ public:
     unsigned int nt2bit[256]; 
     bool debugCompareNeighborhoods(Node& node, Direction dir, std::string prefix) const; // debug
 
+
+    /* functions to precompute non-simple nodes */
+    void cacheNonSimpleNode(const Node& node) const;
+    void cacheNonSimpleNodeDelete(const Node& node) const;
+    void cacheNonSimpleNodes(unsigned int nbCores, bool verbose) ;
+
     /**********************************************************************/
     /*                         DEBUG METHODS                              */
     /**********************************************************************/
@@ -948,7 +959,8 @@ public:
         STATE_DEBLOOM_DONE        = (1<<4),
         STATE_BRANCHING_DONE      = (1<<5),
         STATE_MPHF_DONE           = (1<<6),
-        STATE_ADJACENCY_DONE      = (1<<7)
+        STATE_ADJACENCY_DONE      = (1<<7),
+        STATE_NONSIMPLE_CACHE     = (1<<8)
     };
     typedef u_int64_t State; /* this is a global graph state, not to be confused of the state of a node (deleted or not) */
     State getState () const { return _state; }
@@ -985,7 +997,7 @@ public: // was private: before, but had many compilation errors during the chang
     /** Defined as a void* for hiding implementation in cpp file. */
     void* _variant;
 
-    /** */
+    /** kmer size of the graph */
     size_t _kmerSize;
 
     /** Creation information. */
@@ -1002,7 +1014,7 @@ public: // was private: before, but had many compilation errors during the chang
     tools::misc::DebloomImpl     _debloomImpl;
     tools::misc::BranchingKind   _branchingKind;
     tools::misc::MPHFKind        _mphfKind;
-
+   
     /** */
     GraphTemplate::Iterator<Node> getNodes () const;
     
@@ -1087,6 +1099,17 @@ private:
     u_int64_t _size;
 };
 
+// I tried to overload std::hash in Integer but it didn't work, despite the fact that it should have!
+template<typename T>
+class NodeHasher
+{
+    public:
+        size_t operator()(const T & k) const 
+        {
+            return hash1(k, 0);
+        }
+};
+
 /********************************************************************************/
 
 /* We define a structure that holds all the necessary stuff for implementing the graph API.
@@ -1105,9 +1128,10 @@ struct GraphData
     typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
     typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::NodeStateMap   NodeStateMap;
     typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AdjacencyMap   AdjacencyMap;
+    typedef typename std::unordered_map<Type, std::pair<char,std::string>, NodeHasher<Type> > NodeCacheMap; // rudimentary for now
 
     /** Constructor. */
-    GraphData () : _model(0), _solid(0), _container(0), _branching(0), _abundance(0), _nodestate(0), _adjacency(0) {}
+    GraphData () : _model(0), _solid(0), _container(0), _branching(0), _abundance(0), _nodestate(0), _adjacency(0), _nodecache(0) {}
 
     /** Destructor. */
     ~GraphData ()
@@ -1119,10 +1143,11 @@ struct GraphData
         setAbundance (0);
         setNodeState (0);
         setAdjacency (0);
+        setNodeCache (0);
     }
 
     /** Constructor (copy). */
-    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0), _abundance(0), _nodestate(0), _adjacency(0)
+    GraphData (const GraphData& d) : _model(0), _solid(0), _container(0), _branching(0), _abundance(0), _nodestate(0), _adjacency(0), _nodecache(0)
     {
         setModel     (d._model);
         setSolid     (d._solid);
@@ -1131,6 +1156,7 @@ struct GraphData
         setAbundance (d._abundance);
         setNodeState (d._nodestate);
         setAdjacency (d._adjacency);
+        setNodeCache (d._nodecache);
     }
 
     /** Assignment operator. */
@@ -1145,6 +1171,7 @@ struct GraphData
             setAbundance (d._abundance);
             setNodeState (d._nodestate);
             setAdjacency (d._adjacency);
+            setNodeCache (d._nodecache);
         }
         return *this;
     }
@@ -1157,6 +1184,7 @@ struct GraphData
     AbundanceMap*         _abundance;
     NodeStateMap*         _nodestate;
     AdjacencyMap*         _adjacency;
+    NodeCacheMap*         _nodecache; // so, nodecache also records branching node, but also more stuff. i'm keeping _branching for historical reasons.
 
     /** Setters. */
     void setModel       (Model*                                       model)      { SP_SETATTR (model);     }
@@ -1166,6 +1194,7 @@ struct GraphData
     void setAbundance   (AbundanceMap*          abundance)  { SP_SETATTR (abundance); }
     void setNodeState   (NodeStateMap*          nodestate)  { SP_SETATTR (nodestate); }
     void setAdjacency   (AdjacencyMap*          adjacency)  { SP_SETATTR (adjacency); }
+    void setNodeCache   (NodeCacheMap*          nodecache)  { _nodecache = nodecache; /* would like to do "SP_SETATTR (nodecache)" but nodecache is an unordered_map, not some type that derives from a smartpointer. so one day, FIXME, address this. I'm not sure if it's important though. Any developper is welcome to chime in. */; }
 
     /** Shortcut. */
     bool contains (const Type& item)  const  {  
@@ -1223,12 +1252,13 @@ using EdgeFast = Edge_t<NodeFast<span> >;
 template <size_t span>
 using GraphDataVariantFast = boost::variant<GraphData<span>>; 
 #else
-// TODO: untested code
+// untested code
 /*template <size_t span>
 class NodeFast : public Node_t< tools::math::LargeInt<span> > {};
 template <size_t span>
 class EdgeFast : public Edge_t<Node_t< tools::math::LargeInt<span> >> {};*/
-// TODO: don't know how to do GraphDataVariantFast ?!
+// TODO: GraphDataVariantFast
+// so, I don't know how to do GraphDataVariantFast without C++11, let's jsut skip it.
 #endif
 
 

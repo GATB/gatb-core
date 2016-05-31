@@ -83,7 +83,8 @@ template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPoin
     ~CollectionDataHDF5Patch ()
     {
         herr_t status = H5Tclose (_typeId);
-        if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Tclose), status %d", status);  }
+        if (status < 0)  { 
+            std::cout << "HDF5 error (H5Tclose), status " <<  status << std::endl; exit(1); /* used to be an exception, but recent gcc's complain when in destructor*/  }
 
         if (_datasetId != 0) {  H5Dclose (_datasetId);   _datasetId=0; }
     }

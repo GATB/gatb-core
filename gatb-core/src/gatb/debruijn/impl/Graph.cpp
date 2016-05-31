@@ -1036,7 +1036,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::remove ()
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : it's a bit of a misnomer, but in GATB language, Branching means "anything not simple". I.e. simple means outdegree=indegree=1 and branching is every other degree combination, including 0's
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
 bool GraphTemplate<Node, Edge, GraphDataVariant>::isBranching (Node& node) const
@@ -2284,8 +2284,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
         /** Shortcuts. */
         typedef typename Kmer<span>::Count Count;
 
-        // TODO document that.
-        // what i could understand is.. soo.. we're defining a class inside a function inside a struct (which is a visitor)? -r
+        // soo.. we're defining a iterator class inside a visitor. that's just what it is.
         class NodeIterator : public tools::dp::ISmartIterator<NodeType>
         {
         public:
@@ -2313,7 +2312,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
                     this->_item->kmer      = _ref->item().value;
                     this->_item->abundance = _ref->item().abundance;
                     this->_item->mphfIndex = 0;
-                    //this->_item->iterationRank = this->_rank;
+                    this->_item->iterationRank = this->_rank;
                 }
             }
 
@@ -2329,7 +2328,7 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
                     this->_item->kmer      = _ref->item().value;
                     this->_item->abundance = _ref->item().abundance;
                     this->_item->mphfIndex = 0;
-                    //this->_item->iterationRank = this->_rank;
+                    this->_item->iterationRank = this->_rank;
                 }
             }
 
@@ -3422,6 +3421,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
                     //std::cout << "setting bit " << (int)bit << " shifted " << ((int)bit << (dir == DIR_INCOMING ? 4 : 0)) << " for nt " << (int)(neighbors[i].nt) << std::endl;
                 }
 
+
                 //std::cout << "node " << this->toString(node) << " has " << neighbors.size() << " neighbors in direction " << (dir == DIR_INCOMING ? "incoming" : "outcoming") << " value is now " << (int)value <<  std::endl;
             }
             
@@ -3525,7 +3525,6 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node node) const
         }
     }
 
-
     // a little sanitycheck
 #if 0
     Vector<Edge> neighbs = this->neighborsEdge(node);
@@ -3534,6 +3533,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node node) const
     if (checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE))
         setNodeState(node, 2);
 
+    // another test
 #if 0
     for (size_t i = 0; i < neighbs.size(); i++)
     {
@@ -3542,6 +3542,20 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node node) const
             if (debugCompareNeighborhoods(neighbor,dir,"post delete node")) exit(1);
     }
 #endif
+
+    // update cached branching nodes information now
+    bool _cacheNonSimpleNodes = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_NONSIMPLE_CACHE;
+    if (_cacheNonSimpleNodes)
+    {
+        cacheNonSimpleNodeDelete(node); // so in case of a tip, will delete the tip and add the next kmer as non-branching, which will be in turn deleted. not that efficient, but will do for now.
+        Vector<Edge> neighbs = this->neighborsEdge(node);
+        for (size_t i = 0; i < neighbs.size(); i++)
+        {
+            Node neighbor = neighbs[i].to;
+            if (isBranching(neighbor))
+                cacheNonSimpleNode(neighbor);
+        }
+    }
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant>
@@ -3619,6 +3633,178 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::simplify(unsigned int nbCores,
         Simplifications<Node,Edge,GraphDataVariant> graphSimplifications(*this, nbCores, verbose);
         graphSimplifications.simplify();
 }
+
+
+
+template<typename Node, typename Edge, typename GraphDataVariant> 
+struct cacheNonSimpleNode_visitor : public boost::static_visitor<void>    {
+
+    const Node& node;
+
+    cacheNonSimpleNode_visitor (const Node& node) : node(node) {}
+
+    template<size_t span> void operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type Type;
+        Type value = node.template getKmer<Type>();
+        if (data._nodecache->find(value) != data._nodecache->end())
+            return; // don't overwrite existing cached node
+        // add dummy cached sequence info
+        std::pair<char,string> dummy (-1,"");
+        (*(data._nodecache))[value] = dummy;
+    }
+};
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNode(const Node& node) const 
+{
+    bool _cacheNonSimpleNodes = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_NONSIMPLE_CACHE;
+    if (!_cacheNonSimpleNodes)
+        return; // don't do anything if we don't cache nodes
+    boost::apply_visitor (cacheNonSimpleNode_visitor<Node, Edge, GraphDataVariant>(node),  *(GraphDataVariant*)_variant);
+}
+
+template<typename Node, typename Edge, typename GraphDataVariant> 
+struct cacheNonSimpleNodeDelete_visitor : public boost::static_visitor<void>    {
+
+    const Node& node;
+
+    cacheNonSimpleNodeDelete_visitor (const Node& node) : node(node) {}
+
+    template<size_t span> void operator() (const GraphData<span>& data) const
+    {
+        typedef typename Kmer<span>::Type Type;
+        Type value = node.template getKmer<Type>();
+        typename GraphData<span>::NodeCacheMap::iterator pos = data._nodecache->find(value);
+        if (pos != data._nodecache->end())
+            data._nodecache->erase(pos);
+      //  else
+      //      std::cout << "Warning: attempting to delete a node from the cache, but it wasn't present." << std::endl;
+      /* not printing that warning because will call the deleter on any node that's deleted, not just branching ones */
+    }
+};
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodeDelete(const Node& node) const 
+{
+    bool _cacheNonSimpleNodes = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_NONSIMPLE_CACHE;
+    if (!_cacheNonSimpleNodes)
+        return; // don't do anything if we don't cache nodes
+    boost::apply_visitor (cacheNonSimpleNodeDelete_visitor<Node, Edge, GraphDataVariant>(node),  *(GraphDataVariant*)_variant);
+}
+
+template<typename Node, typename Edge, typename GraphDataVariant> 
+struct allocateNonSimpleNodeCache_visitor : public boost::static_visitor<void>    {
+
+    template<size_t span> void operator() (GraphData<span>& data) const 
+    {
+        data.setNodeCache(new typename GraphData<span>::NodeCacheMap);
+    }
+};
+
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned int nbCores, bool verbose) 
+{
+    boost::apply_visitor (allocateNonSimpleNodeCache_visitor<Node, Edge, GraphDataVariant>(),  *(GraphDataVariant*)_variant);
+    setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_NONSIMPLE_CACHE);
+    GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> itNode = this->iterator();
+    Dispatcher dispatcher (nbCores); 
+    system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer();
+    unsigned long nbCachedNodes = 0;
+    dispatcher.iterate (itNode, [&] (Node& node)        {
+        if (isNodeDeleted(node)) return;
+        if (isBranching(node))
+        {
+            synchro->lock();
+            cacheNonSimpleNode(node);
+            nbCachedNodes++;
+            synchro->unlock();
+        }
+    }); // end of parallel node iteration
+    std::cout << "Cached " << nbCachedNodes << " non-simple nodes" << std::endl;
+}
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+struct cached_nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<Node>*>
+{
+    const GraphTemplate<Node, Edge, GraphDataVariant>& graph;
+    cached_nodes_visitor (const GraphTemplate<Node, Edge, GraphDataVariant>& graph) : graph(graph) {}
+
+    // we should really use STL iterators in the next rewrite.
+    template<size_t span>  tools::dp::ISmartIterator<Node>* operator() (const GraphData<span>& data) const
+    {
+        class CachedNodeIterator : public tools::dp::ISmartIterator<Node>
+        {
+        public:
+            CachedNodeIterator (typename GraphData<span>::NodeCacheMap *nodecache)
+                : _nodecache(nodecache), _rank(0), _isDone(true) {  
+                    this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
+                }
+
+            u_int64_t rank () const { return _rank; }
+
+            /** \copydoc  Iterator::first */
+            void first()
+            {
+                _it = _nodecache->begin();
+                _rank   = 0;
+                _isDone = _it == _nodecache->end();
+
+                if (!_isDone)
+                {
+                    this->_rank ++;
+                    this->_item->kmer      = _it->first;
+                    this->_item->abundance = 0; // not recorded
+                    this->_item->mphfIndex = 0;
+                    this->_item->iterationRank = this->_rank;
+                }
+            }
+
+            /** \copydoc  Iterator::next */
+            void next()
+            {
+                _it++;
+                _isDone = _it == _nodecache->end();
+                if (!_isDone)
+                {
+                    // NOTE: doesn't check if node is deleted (as it would be expensive to compute MPHF index)
+                    this->_rank ++;
+                    this->_item->kmer      = _it->first;
+                    this->_item->abundance = 0; // not recorded
+                    this->_item->mphfIndex = 0;
+                    this->_item->iterationRank = this->_rank;
+                }
+            }
+
+            /** \copydoc  Iterator::isDone */
+            bool isDone() { return _isDone;  }
+
+            /** \copydoc  Iterator::item */
+            Node& item ()  {  return *(this->_item);  }
+
+            /** */
+            u_int64_t size () const { return _nodecache->size(); }
+
+        private:
+            typename GraphData<span>::NodeCacheMap *_nodecache;
+            typename GraphData<span>::NodeCacheMap::iterator _it;
+
+            u_int64_t _rank;
+            bool      _isDone;
+            u_int64_t _nbItems;
+        };
+
+        return new CachedNodeIterator (data._nodecache);
+    }
+};
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> GraphTemplate<Node, Edge, GraphDataVariant>::iteratorCachedNodes() const
+{
+    return typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Node> (boost::apply_visitor (cached_nodes_visitor<Node,Edge, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
+}
+
 
 // instantiation
 // uses Node and Edge as defined in Graph.hpp (legacy GATB compatibility, when Graph was not templated)
