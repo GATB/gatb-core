@@ -69,12 +69,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set (use_mphf 1)
     endif()
 
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.7) 
-        set (dont_use_tr1 0)
-    else()
-        set (dont_use_tr1 1)
-    endif()
-
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
    IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
