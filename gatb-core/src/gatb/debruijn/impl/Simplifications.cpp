@@ -137,8 +137,6 @@ void Simplifications<Node,Edge,GraphDataVariant>::simplify()
     while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || (_nbECRemovalPasses <= 2 || nbECRemoved >= cutoffEvents))
             && _nbECRemovalPasses < 20);
 
-    //return; // FIXME!!!!!!! this is just a temporary modification
-
     nbECRemoved = 0; // reset EC removal counter
     do
     {
@@ -355,7 +353,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     unsigned long nbTipsRemoved = 0;
 
     // stats
-    unsigned long timeAll = 0, timeSimplePath = 0, timeSimplePathLong = 0, timeSimplePathShortTopo = 0, timeSimplePathShortRCTC = 0, timeDel = 0;
+    unsigned long timeAll = 0, timeDecision = 0, timeProcessing = 0, timeSimplePath = 0, timeSimplePathLong = 0, timeSimplePathShortTopo = 0, timeSimplePathShortRCTC = 0, timeDel = 0, timeCache = 0;
     unsigned long nbTipCandidates = 0;
 
 
@@ -474,7 +472,6 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             vector<Node> nodes;
             nodes.push_back(node);
 
-                
             TIME(auto start_simplepath_t=get_wtime());
 
             /* get that putative tip length (stop at a max) */
@@ -515,6 +512,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                 return;
             }
             
+            TIME(auto start_tip_decision_t=get_wtime());
+
             // at this point, the last node in "nodes" is the last node of the tip.
             // check if it's connected to something. 
             // condition: degree > 1, because connected to the tip and to that "something"
@@ -537,7 +536,11 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             }
 
             bool isTip = isTopologicalShortTip || isRCTCTip; 
+            
+            TIME(auto end_tip_decision_t=get_wtime());
+            TIME(__sync_fetch_and_add(&timeDecision, diff_wtime(start_tip_decision_t,end_tip_decision_t)));
 
+            TIME(auto start_tip_processing_t=get_wtime());
 
             if (isTip)
             {
@@ -559,11 +562,13 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
                     unsigned long index = _graph.nodeMPHFIndex(connectedBranchingNodes[j]);
 
                     // soem debugging
+                    /*
                     if (_graph.isNodeDeleted(connectedBranchingNodes[j])) { continue; } // {continue;} // sequential and also parallel
                     if (nodesDeleter.get(index)) { continue; }  // parallel // skip if node is already deleted; actually not sure if really useful
                     unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
                     if (inDegree == 1 && outDegree == 1)
-                        //std::cout  << "previously uninteresting node (neighbor of deleted node) became interesting: " << inDegree << " " << outDegree << " simplepath length " << pathLen << std::endl;
+                        std::cout  << "previously uninteresting node (neighbor of deleted node) became interesting: " << inDegree << " " << outDegree << " simplepath length " << pathLen << std::endl;
+                    */
 
                     //unsigned inDegree = _graph.indegree(connectedBranchingNodes[j]), outDegree = _graph.outdegree(connectedBranchingNodes[j]);
 
@@ -572,6 +577,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 
                 __sync_fetch_and_add(&nbTipsRemoved, 1);
             } // end if isTip
+
+            TIME(auto end_tip_processing_t=get_wtime());
+            TIME(__sync_fetch_and_add(&timeProcessing, diff_wtime(start_tip_processing_t,end_tip_processing_t)));
+
         } // end if degree correspond to putative end-of-tip
 
         TIME(auto end_thread_t=get_wtime()); 
@@ -584,11 +593,17 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
     // now delete all nodes, in parallel
     nodesDeleter.flush();
 
+    TIME(auto end_nodesdel_t=get_wtime()); 
+    TIME(__sync_fetch_and_add(&timeDel, diff_wtime(start_nodesdel_t,end_nodesdel_t)));
+
+
+    TIME(auto start_nodescache_t=get_wtime());
+
     if (_firstNodeIteration)
         _graph.cacheNonSimpleNodes(_nbCores, true);
 
-    TIME(auto end_nodesdel_t=get_wtime()); 
-    TIME(__sync_fetch_and_add(&timeDel, diff_wtime(start_nodesdel_t,end_nodesdel_t)));
+    TIME(auto end_nodescache_t=get_wtime()); 
+    TIME(__sync_fetch_and_add(&timeCache, diff_wtime(start_nodescache_t,end_nodescache_t)));
  
     // stats
     double unit = 1000000000;
@@ -603,7 +618,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
         TIME(cout << "                    " << timeSimplePathLong  / unit << " CPUsecs long simple paths" << endl);
         TIME(cout << "                    " << timeSimplePathShortTopo / unit << " CPUsecs short (topological) simple paths" << endl);
         TIME(cout << "                    " << timeSimplePathShortRCTC / unit << " CPUsecs short (RCTC) simple paths" << endl);
+        TIME(cout << "                " << timeDecision   / unit << " CPUsecs tip decision" << endl);
+        TIME(cout << "                " << timeProcessing / unit << " CPUsecs tip processing" << endl);
         TIME(cout << "Nodes deletion:   " << timeDel / unit << " CPUsecs."<< endl);
+        TIME(cout << "Nodes caching :   " << timeCache / unit << " CPUsecs."<< endl);
     }
     
     _firstNodeIteration = false;
@@ -1101,7 +1119,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
     unsigned long nbTopologicalEC = 0;
     unsigned long nbECRemoved = 0;
     unsigned long nbECCandidates = 0;
-    unsigned long timeDelete = 0;
+    unsigned long timeDelete = 0, timeProcessing = 0, timeCoverage = 0;
+    unsigned long timeAll = 0, timeSimplePath = 0;
 
     /** We get an iterator over all nodes . */
     char buffer[128];
@@ -1123,8 +1142,6 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
 
     // parallel stuff
     NodesDeleter<Node,Edge,GraphDataVariant> nodesDeleter(_graph, nbNodes, _nbCores);
-
-    unsigned long timeAll = 0, timeSimplePath = 0;
 
     dispatcher.iterate (itNode, [&] (Node& node)
             {
@@ -1222,17 +1239,24 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
 
                         DEBUG(cout << "direction: " << DIR2STR(dir) << ", pathlen: " << pathLen << " last node neighbors size: " << _graph.neighborsEdge(nodes.back()).size() << " indegree outdegree: " <<_graph.indegree(node) << " " << _graph.outdegree(node) << " isDoublyConnected: " << isDoublyConnected << " isTopoEC: " << isTopologicalEC << endl);
 
+            
+
                         if (isTopologicalEC)
                         {
+                            TIME(auto start_ec_coverage_t=get_wtime());
 
                             bool isRCTC = this->satisfyRCTC(nodes, RCTCcutoff);
 
                             std::reverse(nodes.begin(), nodes.end());
                             isRCTC |= this->satisfyRCTC(nodes, RCTCcutoff); // also check in the other direction
                             std::reverse(nodes.begin(), nodes.end());
+                            
+                            TIME(auto end_ec_coverage_t=get_wtime());
+                            TIME(__sync_fetch_and_add(&timeCoverage, diff_wtime(start_ec_coverage_t,end_ec_coverage_t)));
 
                             bool isEC = isRCTC;
-
+                        
+                            TIME(auto start_ec_processing_t=get_wtime());
 
                             if (isEC)
                             {
@@ -1249,6 +1273,8 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
                                 __sync_fetch_and_add(&nbECRemoved, 1);
 
                             }
+                            TIME(auto end_ec_processing_t=get_wtime());
+                            TIME(__sync_fetch_and_add(&timeProcessing, diff_wtime(start_ec_processing_t,end_ec_processing_t)));
                         }
                     }
                 }
@@ -1273,7 +1299,10 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeErroneousConnec
         double unit = 1000000000;
         cout.setf(ios_base::fixed);
         cout.precision(1);
-        TIME(cout << "EC Timings: " << timeAll / unit << " CPUsecs total."<< endl);
+        TIME(cout << "EC Timings: " << timeAll / unit << " CPUsecs total, including"<< endl);
+        TIME(cout << "                " << timeSimplePath / unit << " CPUsecs EC simple paths" << endl);
+        TIME(cout << "                " << timeCoverage / unit << " CPUsecs EC coverage test" << endl);
+        TIME(cout << "                " << timeProcessing / unit << " CPUsecs EC processing" << endl);
         TIME(cout << "Nodes deletion: " << timeDelete / unit << " CPUsecs." << endl);
     }
 
