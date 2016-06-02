@@ -178,6 +178,10 @@ IF(SSE4_2_FOUND AND (NOT NO_SSE))
     message ("-- SSE 4.2 detected")
 ENDIF()
 
+if (use_new_cxx)
+    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DUSE_NEW_CXX ")
+endif()
+ 
 if (use_mphf)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
     message ("-------------------------------------------------------------------------------------")
