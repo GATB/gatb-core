@@ -65,8 +65,14 @@ class NodesDeleter
          */
         //std::cout << "sizeof node: " << sizeof(Node) << std::endl;
         useList = true;
-        explicitLimit = 10000000; 
-            
+          
+        // compute a fair amount of nodes that can be kept of memory
+        // (before, was only 10M)
+        explicitLimit = std::max((uint64_t)(nbNodes / 100), (uint64_t)10000000); 
+        // for bacteria it's 10M
+        // for human it's roughly 20M
+        // for spruce it's roughly 300M
+  
         // set insertions aren't thread safe, so let's use a synchronizer
         synchro = system::impl::System::thread().newSynchronizer();
     }
@@ -107,7 +113,7 @@ class NodesDeleter
             useList = false;
 
     }
-    
+   // TODO speed: tell graph whenever all the neighbors of a node will be deleted too, that way, don't need to update their adjacency! 
     void flush()
     {
         if (useList)
