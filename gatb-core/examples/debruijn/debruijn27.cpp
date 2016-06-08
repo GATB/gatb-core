@@ -15,6 +15,15 @@ using namespace std;
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
+
+    cout << "This snippet shows how to retrieve the abundance of a node in the graph." << endl;
+
+    if (argc < 3)
+    {
+        cout << "Arguments: [graphFile] [sequence]" << endl;
+        exit(1);
+    }
+
     char* graphFile = argv[1];
     char* seq       = argv[2];
 
