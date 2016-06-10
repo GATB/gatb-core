@@ -1,11 +1,12 @@
 **GATB** - The **G**enome **A**nalysis **T**oolbox with de-**B**ruijn graph
 
 
+| **Linux gcc 4.7** | **Linux gcc 4.8** | **MacOS clang-600** |
+|-------------------|-------------------|---------------------|
+| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/)|
 
 
-| **Linux gcc 4.7 **     |    ** Linux gcc 4.8 **   |  ** MacOS clang-600 ** | ** License ** |
-| ------------- |: -------------: | ---------: |  ---------: |
-| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/)      | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/)|  [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/) | [![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html) |
+[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)
 
 --------------------------------------------------------------------------------
 # What is GATB ?
