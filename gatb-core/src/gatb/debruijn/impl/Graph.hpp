@@ -1210,6 +1210,7 @@ struct GraphData
         if (_nodestate != NULL)
         {
             unsigned long hashIndex = ((_nodestate))->getCode(item);
+			if(hashIndex == ULLONG_MAX) return false;
             unsigned char value = ((_nodestate))->at(hashIndex / 2);
             if ((hashIndex % 2) == 1)
                 value >>= 4;
