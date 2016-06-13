@@ -1226,6 +1226,7 @@ struct getItems_visitor : public boost::static_visitor<typename GraphTemplate<No
         if (hasAdjacency)
         {
             unsigned long hashIndex = getNodeIndex<span>(data, source);
+			if(hashIndex == ULLONG_MAX) return itemsAdj;
 
             unsigned char &value = (*(data._adjacency)).at(hashIndex);
 
@@ -1477,6 +1478,7 @@ struct countNeighbors_visitor : public boost::static_visitor<void>    {
         if (hasAdjacency)
         {
             unsigned long hashIndex = getNodeIndex<span>(data, source);
+			if(hashIndex == ULLONG_MAX) return; // node was not found in the mphf 
 
             unsigned char &value = (*(data._adjacency)).at(hashIndex);
 
@@ -1941,6 +1943,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
         if (hasAdjacency)
         {
             unsigned long hashIndex = getNodeIndex<span>(data, source);
+			if(hashIndex == ULLONG_MAX) {exists = false; return itemAdj;} // node was not found in the mphf 
 
             unsigned char &value = (*(data._adjacency)).at(hashIndex);
 
@@ -3148,6 +3151,7 @@ struct queryAbundance_visitor : public boost::static_visitor<int>    {
     template<size_t span>  int operator() (const GraphData<span>& data) const
     {
         unsigned long hashIndex = getNodeIndex<span>(data, node);
+    	if(hashIndex == ULLONG_MAX) return 0; // node was not found in the mphf 
 
         unsigned char value = (*(data._abundance)).at(hashIndex);
 
@@ -3180,6 +3184,7 @@ struct queryNodeState_visitor : public boost::static_visitor<int>    {
     template<size_t span>  int operator() (const GraphData<span>& data)  const
     {
         unsigned long hashIndex = getNodeIndex<span>(data, node);
+    	if(hashIndex == ULLONG_MAX) return 0; // node was not found in the mphf 
 
         unsigned char value = (*(data._nodestate)).at(hashIndex / 2);
 
@@ -3213,6 +3218,7 @@ struct setNodeState_visitor : public boost::static_visitor<int>    {
     template<size_t span> int operator() (const GraphData<span>& data)  const
     {
         unsigned long hashIndex = getNodeIndex<span>(data, node);
+    	if(hashIndex == ULLONG_MAX) return 0; // node was not found in the mphf 
 
         unsigned char &value = (*(data._nodestate)).at(hashIndex / 2);
 
@@ -3356,6 +3362,12 @@ struct getAdjacency_visitor : public boost::static_visitor<unsigned char&>    {
     template<size_t span> unsigned char& operator() (const GraphData<span>& data) const
     {
         unsigned long hashIndex= getNodeIndex<span>(data, node);
+    	if(hashIndex == ULLONG_MAX) 
+        { // node was not found in the mphf: complain a return a dummy value
+            std::cout << "getAdjacency called for node not in MPHF" << std::endl; 
+            return (*(data._adjacency)).at(0);
+        }
+
         unsigned char &value = (*(data._adjacency)).at(hashIndex);
         //std::cout << "hashIndex " << hashIndex << " value " << (int)value << std::endl;;
 
