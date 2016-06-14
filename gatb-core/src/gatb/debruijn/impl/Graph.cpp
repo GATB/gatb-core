@@ -3292,7 +3292,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::disableNodeState() const
 template<typename Node, typename Edge, typename GraphDataVariant> 
 bool GraphTemplate<Node, Edge, GraphDataVariant>::isNodeDeleted(Node& node) const
 {
-    return ((!checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)) || (queryNodeState(node) >> 1) & 1 == 1);
+    return (!checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)) || (((queryNodeState(node) >> 1) & 1) == 1);
 }
 
 
@@ -3725,7 +3725,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned i
     system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer();
     unsigned long nbCachedNodes = 0;
     dispatcher.iterate (itNode, [&] (Node& node)        {
-        if (isNodeDeleted(node)) return;
+        //if (isNodeDeleted(node)) return; // test
         if (isBranching(node))
         {
             synchro->lock();
