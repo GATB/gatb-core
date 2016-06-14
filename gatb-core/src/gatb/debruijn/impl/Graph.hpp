@@ -867,15 +867,15 @@ public:
     /** Return the state of a node by querying the perfect hash function. A node state is either normal, marked, or deleted.
      * \param[in] node : the node or a node index (unsigned long) from the MPHF
      * \return the abundance */
-    int queryNodeState (Node node) const;
-    void setNodeState (Node node, int state) const;
+    int queryNodeState (Node& node) const;
+    void setNodeState (Node& node, int state) const;
     void resetNodeState () const ;
     void disableNodeState () const ; // see Graph.cpp for explanation
 
     // deleted nodes, related to NodeState above
-    void deleteNode (Node node) const;
+    void deleteNode (Node& node) const;
     void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
-    bool isNodeDeleted(Node node) const;
+    bool isNodeDeleted(Node& node) const;
 
     // a direct query to the MPHF
     unsigned long nodeMPHFIndex(Node& node) const;

@@ -3199,7 +3199,7 @@ struct queryNodeState_visitor : public boost::static_visitor<int>    {
 
 /** */
 template<typename Node, typename Edge, typename GraphDataVariant>
-int GraphTemplate<Node, Edge, GraphDataVariant>::queryNodeState (Node node) const 
+int GraphTemplate<Node, Edge, GraphDataVariant>::queryNodeState (Node& node) const 
 {
     return boost::apply_visitor (queryNodeState_visitor<Node, Edge, GraphDataVariant>(node),  *(GraphDataVariant*)_variant);
 }
@@ -3241,7 +3241,7 @@ struct setNodeState_visitor : public boost::static_visitor<int>    {
 
 /** */
 template<typename Node, typename Edge, typename GraphDataVariant>
-void GraphTemplate<Node, Edge, GraphDataVariant>::setNodeState (Node node, int state) const 
+void GraphTemplate<Node, Edge, GraphDataVariant>::setNodeState (Node& node, int state) const 
 {
     boost::apply_visitor (setNodeState_visitor<Node, Edge, GraphDataVariant>(node, state),  *(GraphDataVariant*)_variant);
 }
@@ -3290,7 +3290,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::disableNodeState() const
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant> 
-bool GraphTemplate<Node, Edge, GraphDataVariant>::isNodeDeleted(Node node) const
+bool GraphTemplate<Node, Edge, GraphDataVariant>::isNodeDeleted(Node& node) const
 {
     return ((!checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)) || (queryNodeState(node) >> 1) & 1 == 1);
 }
@@ -3463,7 +3463,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
 
 // now deleteNode depends on getNodeAdjacency
 template<typename Node, typename Edge, typename GraphDataVariant>
-void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node node) const
+void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node& node) const
 {
     bool hasAdjacency = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_ADJACENCY_DONE;
     if (hasAdjacency)

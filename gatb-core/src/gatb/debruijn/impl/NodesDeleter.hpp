@@ -120,7 +120,10 @@ class NodesDeleter
         {
             // sequential nodes deletion (no need for parallel here, as deleteNode() needs to be atomic anyway
             for (typename std::set<Node>::iterator it = setNodesToDelete.begin(); it != setNodesToDelete.end(); it++)
-                _graph.deleteNode(*it);
+            {
+                Node node = *it; // FIXME remove this line when deleteNode is const Node&
+                _graph.deleteNode(node);
+            }
         }
         else
         {
