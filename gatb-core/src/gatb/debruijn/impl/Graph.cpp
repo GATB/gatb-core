@@ -3725,7 +3725,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned i
     system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer();
     unsigned long nbCachedNodes = 0;
     dispatcher.iterate (itNode, [&] (Node& node)        {
-        if (this->isNodeDeleted(node)) return; // test
+        if (isNodeDeleted(node)) return; // test
         if (this->isBranching(node))
         {
             synchro->lock();
