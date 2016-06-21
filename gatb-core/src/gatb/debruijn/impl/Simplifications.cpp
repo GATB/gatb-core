@@ -878,7 +878,6 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_ca
         extended_kmers.insert (edge.to.kmer);
 
         // traverse simple path from that node
-
         typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = 
             _graph.template simplePath (neighbors[i].to, dir);
 

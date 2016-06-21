@@ -3458,6 +3458,9 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
                 }
         }); // end of parallel node iterate
     }
+
+
+    // TODO delete _container here
 #endif
 }
 
