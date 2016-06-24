@@ -29,6 +29,13 @@ IF (DEFINED JENKINS_TAG)
     SET (gatb-core-version ${JENKINS_TAG})
 ENDIF()
 
+# User login to upload doc-api; Jenkins has priority over local user
+IF (DEFINED JENKINS_GFORGE_USER)
+    SET (gatb-doc-user-login ${JENKINS_GFORGE_USER})
+ELSE()
+    SET (gatb-doc-user-login $ENV{USER})
+ENDIF()
+
 set (gatb-core-date "xxxx-xx-xx")
 
 ################################################################################
