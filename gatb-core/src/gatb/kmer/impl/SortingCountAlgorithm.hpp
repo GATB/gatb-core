@@ -243,7 +243,7 @@ private:
 
     /** Get the memory size (in bytes) to be used by each item.
      * IMPORTANT : we may have to count both the size of Type and the size for the bank id. */
-    int getSizeofPerItem () const { return Type::getSize()/8 + (_nbKmersPerPartitionPerBank.size()>1 ? sizeof(bank::BankIdType) : 0); }
+    int getSizeofPerItem () const { return Type::getSize()/8 + ((_nbKmersPerPartitionPerBank.size()>1 && _config._solidityKind != tools::misc::KMER_SOLIDITY_SUM) ? sizeof(bank::BankIdType) : 0); }
 
     tools::misc::impl::TimeInfo _fillTimeInfo;
 
