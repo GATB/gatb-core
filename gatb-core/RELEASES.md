@@ -1,4 +1,15 @@
 --------------------------------------------------------------------------------
+# RELEASE 1.2.1
+
+* bug fixes when MPHF is queried on a false positive node.
+
+* bug fixes that caused "Pool allocation failed" on some large instances.
+
+* fixed some compilation issues regarding clang version (version number incoherence between mac/linux).
+
+* fixed include problem in binary distribution that caused undue dependency on boost.
+
+--------------------------------------------------------------------------------
 # RELEASE 1.2.0
 
 * Assembly-inspired de Bruijn graph simplifications can be performed using a single command.
