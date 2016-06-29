@@ -824,6 +824,9 @@ public:
      * \param[in] item : the node
      * \return true if the node belongs to the graph, false otherwise. */
     bool contains (const Node& item) const;
+                                  
+    template<size_t span> 
+    bool contains (const typename gatb::core::kmer::impl::Kmer<span>::Type& item) const;
 
     /** Get the ascii string for the node, according to its strand.
      * \param[in] node: the node to get the string from
