@@ -73,7 +73,7 @@ protected:
     void heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endingNode, 
                                     int traversal_depth, int& success, double& mean_abundance,
                                     Path_t<Node> &res_path,
-                                    unsigned int backtrackingLimit = 0, Node *avoidFirstNode = nullptr,
+                                    unsigned int backtrackingLimit = 0, Node *avoidFirstNode = NULL /*nullptr but want old gcc compatibility at least for headers*/,
                                     bool most_covered = true, bool cached = false);
     void heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endingNode, 
                                     int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& abundances,

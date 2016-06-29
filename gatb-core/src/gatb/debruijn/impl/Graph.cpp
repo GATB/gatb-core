@@ -2261,6 +2261,12 @@ bool GraphTemplate<Node, Edge, GraphDataVariant>::contains (const Node& item) co
     return boost::apply_visitor (contains_visitor<Node, Edge, GraphDataVariant>(item),  *(GraphDataVariant*)_variant);
 }
 
+template<typename Node, typename Edge, typename GraphDataVariant>
+bool GraphTemplate<Node, Edge, GraphDataVariant>::contains (const Kmer<span>::Type& item) const
+{
+    return boost::apply_visitor (contains_visitor<Node, Edge, GraphDataVariant>(item),  *(GraphDataVariant*)_variant);
+}
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
