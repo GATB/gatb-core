@@ -1008,7 +1008,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     unsigned int additive_coeff = 100;
     unsigned int maxBulgeLength = std::max((unsigned int)((double)k * coeff), (unsigned int)(k + additive_coeff)); // SPAdes, exactly
 
-    unsigned int backtrackingLimit = 10;//maxBulgeLength; // arbitrary, but if too high it will take much time;
+    unsigned int backtrackingLimit = 100;//maxBulgeLength; // arbitrary, but if too high it will take much time;
 
     // stats
     //
