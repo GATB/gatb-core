@@ -74,13 +74,13 @@ protected:
                                     int traversal_depth, int& success, double& mean_abundance,
                                     Path_t<Node> &res_path,
                                     unsigned int backtrackingLimit = 0, Node *avoidFirstNode = nullptr,
-                                    bool most_covered = true, bool cached = false);
-    void heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endingNode, 
+                                    bool most_covered = true, bool kmer_version = false);
+    void heuristic_most_covered_path_old(Direction dir, Node& startingNode, Node& endingNode, 
                                     int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& abundances,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, Path_t<Node> &res_path,
                                     unsigned long &nbCalls);
-    void heuristic_most_covered_path_cached(Direction dir, Node& startingNode, Node& endNode, 
+    void heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endNode, 
                                     int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, double& mean_abundance,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, Path_t<Node> &res_path,

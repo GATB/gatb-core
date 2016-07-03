@@ -25,7 +25,7 @@
 // We include required definitions
 /********************************************************************************/
 
-#define DEBUG(a)   //a
+#define DEBUG(a)    //a
 
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
@@ -178,6 +178,8 @@ double Simplifications<Node,Edge,GraphDataVariant>::getSimplePathCoverage(Node n
 }
 
 // gets the mean abundance of neighboring paths around a branching node (excluding the path that starts with nodeToExclude, e.g. the tip itself)
+// only considers the first 100 kmers of neighboring paths
+//
 template<typename Node, typename Edge, typename GraphDataVariant>
 double Simplifications<Node,Edge,GraphDataVariant>::getMeanAbundanceOfNeighbors(Node branchingNode, Node nodeToExclude)
 {
@@ -229,28 +231,30 @@ string Simplifications<Node,Edge,GraphDataVariant>::path2string(Direction dir, P
     return p_str;
 }
 
+// in the case of the new heuristic_most_covered, we only record the nucleotide at branching nodes
+// this function will only be used for debugging the paths
+template<typename Node>
+string unitig2string(Direction dir, Path_t<Node> p, Node endNode)
+{
+    return "";
+}
+ 
+
 // this needs to be in Graph.cpp of gatb-core
 template<typename Node, typename Edge, typename GraphDataVariant>
 double Simplifications<Node,Edge,GraphDataVariant>::path2abundance(Direction dir, Path_t<Node> p, Node endNode)
 {
-    // naive conversion from path to string
+    string s = path2string(dir,p,endNode);
 
-    string p_str;
-    if (dir == DIR_INCOMING)
-    {
-        // TODO: remove this code once gatb-core is fixed w.r.t DIR_INCOMING bug
-        Node revstart = endNode;
-        p_str = _graph.toString(revstart);
-        for (size_t i = 0; i < p.size(); i++)
-            p_str.push_back(p.ascii(p.size()-1-i));
-    }
-    else
-    {
-        p_str = _graph.toString(p.start);
-        for (size_t i = 0; i < p.size(); i++)
-            p_str.push_back(p.ascii(i));
-    }
-    return 0;
+    unsigned long mean_abundance = 0;                                                                                                                               
+    for (size_t i = 0; i < p.size(); i++)                                                                                                                           
+    {                                                                                                                                                               
+        Node node = _graph.buildNode((char *)(s.c_str()), i);                                                                                              
+        unsigned char abundance = _graph.queryAbundance(node);                                                                                                 
+        mean_abundance += abundance;                                                                                                                                
+    }                                                                                                                                                                       mean_abundance /= p.size();   
+
+    return mean_abundance;
 }
 
 inline string maybe_print(long value, string str)
@@ -327,7 +331,7 @@ bool Simplifications<Node,Edge,GraphDataVariant>::satisfyRCTC(vector<Node>& node
 
     bool isRCTC = (meanNeighborsCoverage > RCTCcutoff * meanTipAbundance);
 
-    DEBUG(cout << endl << "RCTC test, over " << nbBranchingNodes << " connected nodes. Global mean neighbors coverage: " << meanNeighborsCoverage <<  " compared to mean tip abundance over "<< nodes.size() << " values : " << meanTipAbundance << (debugstdev? " stddev: " : "") << (debugstdev? to_string(stdevTipAbundance): "") << ", is RCTC satisfied? " << isRCTC << endl);
+    //DEBUG(cout << endl << "RCTC test, over " << nbBranchingNodes << " connected nodes. Global mean neighbors coverage: " << meanNeighborsCoverage <<  " compared to mean tip abundance over "<< nodes.size() << " values : " << meanTipAbundance << (debugstdev? " stddev: " : "") << (debugstdev? to_string(stdevTipAbundance): "") << ", is RCTC satisfied? " << isRCTC << endl);
 
     return isRCTC;
 }
@@ -490,7 +494,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
             /* it may appear that we're only going to follow its first neighbor, but in fact, neighbors[0].from is node.kmer */
             /* so, follow the simple path from this start tip node to the further node that has out-branching (out is w.r.t to the direction) */
             typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = _graph.template simplePath (neighbors[0].from, neighbors[0].direction); //
-            DEBUG(cout << endl << "node:" <<  _graph.toString (node) << "neighbors from: " << _graph.toString (neighbors[0].from) << " direction: " << neighbors[0].direction << endl);
+            //DEBUG(cout << endl << "node:" <<  _graph.toString (node) << "neighbors from: " << _graph.toString (neighbors[0].from) << " direction: " << neighbors[0].direction << endl);
             
             unsigned int pathLen = 1;
             vector<Node> nodes;
@@ -657,13 +661,14 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeTips()
 enum HMCP_Success { HMCP_DEADEND = 0, HMCP_FOUND_END = 1 , HMCP_MAX_DEPTH = -1, HMCP_LOOP = - 2};
 
 /* note: the returned mean abundance does not include start and end nodes */
+// endNode is a node just after the bulge path. it's branching.
 template<typename Node, typename Edge, typename GraphDataVariant>
 void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
         Direction dir, Node& startNode, Node& endNode, 
         int traversal_depth, int& success, double &mean_abundance, 
         Path_t<Node> &res_path,
         unsigned int backtrackingLimit, Node *avoidFirstNode,
-        bool most_covered, bool cached)
+        bool most_covered, bool kmer_version /* was the original version, where nodes were traversed kmer-by-kmer, now it's one simple path at a time */)
 {
     set<typename Node::Value> usedNode;
     usedNode.insert(startNode.kmer);
@@ -673,9 +678,9 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
     vector<int> abundances; 
     unsigned long nbCalls = 0;
 
-    if (!cached)
+    if (kmer_version)
     {
-        heuristic_most_covered_path(dir, startNode, endNode, traversal_depth, current_path, usedNode, success, abundances,
+        heuristic_most_covered_path_old(dir, startNode, endNode, traversal_depth, current_path, usedNode, success, abundances,
                 backtrackingLimit, avoidFirstNode, 
                 most_covered, 
                 res_path,
@@ -691,7 +696,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
     }
     else
     {
-        heuristic_most_covered_path_cached(dir, startNode, endNode, traversal_depth, current_path, usedNode, success, mean_abundance,
+        heuristic_most_covered_path(dir, startNode, endNode, traversal_depth, current_path, usedNode, success, mean_abundance,
                 backtrackingLimit, avoidFirstNode, 
                 most_covered, 
                 res_path,
@@ -715,7 +720,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
 }
         
 template<typename Node, typename Edge, typename GraphDataVariant>
-void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
+void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_old(
         Direction dir, Node& startNode, Node& endNode,
         int traversal_depth, Path_t<Node>& current_path, set<typename Node::Value>& usedNode, int& success, vector<int>& abundances,
         unsigned int backtrackingLimit, Node *avoidFirstNode, 
@@ -786,7 +791,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
             extended_abundances.push_back(abundance_node[i].first);
 
         // recursive call to all_consensuses_between
-        heuristic_most_covered_path (
+        heuristic_most_covered_path_old (
             dir,
             edge.to,
             endNode,
@@ -802,7 +807,13 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
             nbCalls
         );
 
-        if ((success == HMCP_FOUND_END)|| (backtrackingLimit > 0 && nbCalls >= backtrackingLimit)) // on success or if no more backtracking, return immediately
+        if (backtrackingLimit > 0 && nbCalls >= backtrackingLimit)
+        {
+            success = HMCP_MAX_DEPTH;
+            return;
+        }
+
+        if (success == HMCP_FOUND_END)
         {
             abundances = extended_abundances;
             return; 
@@ -813,7 +824,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
 
 /* faster variant of the algo above, with cached simple paths instead of traversing node-by-node */
 template<typename Node, typename Edge, typename GraphDataVariant>
-void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_cached(
+void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
         Direction dir, Node& startNode, Node& endNode, 
         int traversal_depth, Path_t<Node>& current_path, set<typename Node::Value>& usedNode, int& success, double &mean_abundance,
         unsigned int backtrackingLimit, Node *avoidFirstNode, 
@@ -828,16 +839,77 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_ca
         return;
     }
 
-    if (startNode.kmer == endNode.kmer)
+    Node current_node = startNode;
+ 
+    set<typename Node::Value>& traversedNodes (usedNode);
+    traversedNodes.insert(current_node.kmer); 
+
+    Path_t<Node> current_extended_path(current_path);
+    int extra_depth = 1;
+
+    // traverse simple path from that node
+    // we end up at a branching node. 
+    // if the node has no out-branching, keep going, we don't care about in-branching here.
+    do
+    {
+        if (current_node.kmer == endNode.kmer)
+        {
+            success = 1;
+            res_path = current_path;
+            return;
+        }
+
+        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Edge> itEdges
+            = _graph.template simplePathEdge (current_node, dir);
+        
+        for (itEdges.first(); !itEdges.isDone(); itEdges.next())
+        {
+            current_node = (*itEdges).to;
+            current_extended_path.push_back( (*itEdges).nt );
+            extra_depth++;
+    nbCalls++;
+        }
+
+        traversedNodes.insert(current_node.kmer); 
+
+        if (_graph.degree(current_node, dir) == 1)
+        {
+            // get the node after in-branching
+            typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(current_node, dir);
+            
+            if (traversedNodes.find(neighbors[0].to.kmer) != traversedNodes.end() )  // loop
+            {
+                success = -2;
+                return;
+            }
+            current_node = neighbors[0].to;
+            current_extended_path.push_back( neighbors[0].nt );
+            traversedNodes.insert(current_node.kmer); 
+            extra_depth++;
+    nbCalls++;
+        }
+        else
+            break; // we're either at a deadend or at a branching node
+    }
+    while (true);
+            
+    // at this point, we've traversed simple paths from startNode and we ended up at a branching node or a deadend
+    if (current_node.kmer == endNode.kmer)
     {
         success = 1;
         res_path = current_path;
         return;
     }
 
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge (startNode, dir);
+    // get neighbors of branching node
+    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge (current_node, dir);
 
-    /** We loop these neighbors. */
+    if (neighbors.size() == 1)
+    {
+        std::cout << "HMP: ended up at a node with exactly 1 neighbor here, it's not possible." << std::endl; std::exit(1);
+    }
+
+    /** We loop over the neighbors of that branching node, to order them by abundance */
     vector<std::pair<int, Edge> > abundance_node;
     for (size_t i=0; i<neighbors.size(); i++)
     {
@@ -870,23 +942,19 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_ca
         Edge edge = abundance_node[i].second;
 
         // generate extended consensus sequence
-        Path_t<Node> extended_path(current_path);
+        Path_t<Node> extended_path(current_extended_path);
         extended_path.push_back (edge.nt);
 
         // generate list of used kmers (to prevent loops)
-        set<typename Node::Value> extended_kmers (usedNode);
+        set<typename Node::Value> extended_kmers (traversedNodes);
         extended_kmers.insert (edge.to.kmer);
 
-        // traverse simple path from that node
-        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Node> itNodes = 
-            _graph.template simplePath (neighbors[i].to, dir);
-
         // recursive call to all_consensuses_between
-        heuristic_most_covered_path_cached (
+        heuristic_most_covered_path (
             dir,
             edge.to,
             endNode,
-            traversal_depth - 1,
+            traversal_depth - extra_depth,
             extended_path,
             extended_kmers,
             success,
@@ -902,6 +970,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_ca
         {
             // compute abundances now
             mean_abundance = path2abundance(dir, res_path, endNode);
+            // to get the path, use unitig2string()
             return; 
         }
                 
@@ -912,8 +981,6 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_ca
     }
 
     return;
-
-
 }
 
 
@@ -1036,6 +1103,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                 vector<Node> nodes;
                 bool foundShortPath = false;
                 unsigned int pathLen = 0;
+                
+                if (node == (neighbors[i].to)) // node being it's own neighbors, is rare, but let's avoid it
+                    continue;
             
                 TIME(auto start_various_overhead_t=get_wtime());
 
@@ -1087,7 +1157,9 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
     
                     if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                         continue;
-    
+   
+                    // FIXME: so here is a hidden assumption: maybe outneighbors is of size more than 1, why do we care about just one of the nodes after. it doesn't matter much, in the sense that just some bulges might remain
+
                     Node endNode = outneighbors[0].to;
                     DEBUG(cout << "endNode: " << _graph.toString(endNode) << endl);
     
@@ -1118,12 +1190,13 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
 
                 Path_t<Node>  heuristic_p_most; // actually won't be used.. (it's just for debug) so would be nice to get rid of it someday, but i don't want to deal with pointers.
 
+                /* startNode is branching, because we want to find alternative paths, to the one that go through (neighbors[i].to)*/
                 this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,
                             heuristic_p_most,
                             backtrackingLimit, // avoid too much backtracking
                             &(neighbors[i].to), // avoid that node
                             true, // most covered path
-                            false // cached
+                            true // kmer version (true), unitigs version (false) 
                             );
 
                 TIME(auto end_pathfinding_t=get_wtime());
@@ -1149,12 +1222,12 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                     bool debug = false;
                     if (debug)
                     {
-                        cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl;
 
                         double mean_abundance_least_covered;
                         Path_t<Node> heuristic_p_least, heuristic_p_most;
-                        this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,  heuristic_p_most,  backtrackingLimit, &(neighbors[i].to),  true);
-                        this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered, heuristic_p_least, backtrackingLimit, &(neighbors[i].to), false);
+                        this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,  heuristic_p_most,  backtrackingLimit, &(neighbors[i].to),  true, true /* old version */);
+                        this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered, heuristic_p_least, backtrackingLimit, &(neighbors[i].to), false,  true /* old version */);
+                        cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl;
                         DEBUG(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
                     }
     
