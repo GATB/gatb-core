@@ -9,7 +9,7 @@ cmake_minimum_required (VERSION 2.6)
 # The default version number is the latest official build
 SET (gatb-core_VERSION_MAJOR 1)
 SET (gatb-core_VERSION_MINOR 2)
-SET (gatb-core_VERSION_PATCH 0)
+SET (gatb-core_VERSION_PATCH 1)
 
 # But, it is possible to define another release number during a local build
 IF (DEFINED MAJOR)
@@ -27,6 +27,13 @@ set (gatb-core-version ${gatb-core_VERSION_MAJOR}.${gatb-core_VERSION_MINOR}.${g
 # However, continuous integration has priority over local compilation
 IF (DEFINED JENKINS_TAG)
     SET (gatb-core-version ${JENKINS_TAG})
+ENDIF()
+
+# User login to upload doc-api; Jenkins has priority over local user
+IF (DEFINED JENKINS_GFORGE_USER)
+    SET (gatb-doc-user-login ${JENKINS_GFORGE_USER})
+ELSE()
+    SET (gatb-doc-user-login $ENV{USER})
 ENDIF()
 
 set (gatb-core-date "xxxx-xx-xx")
@@ -333,6 +340,7 @@ ENDIF()
 
 IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     INSTALL (FILES ${PROJECT_SOURCE_DIR}/doc/misc/README.txt  DESTINATION . OPTIONAL)
+    INSTALL (DIRECTORY ${PROJECT_SOURCE_DIR}/thirdparty/boost DESTINATION ./include)
 ENDIF()
 
 IF (NOT DEFINED GATB_CORE_EXCLUDE_EXAMPLES)
@@ -358,6 +366,8 @@ SET (CPACK_SOURCE_IGNORE_FILES
     "^${PROJECT_SOURCE_DIR}/doc/design"
     "^${PROJECT_SOURCE_DIR}/DELIVERY.md"
 )
+
+
 
 IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     # We include the module and get all the delivery targets

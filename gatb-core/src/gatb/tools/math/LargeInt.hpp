@@ -863,7 +863,7 @@ template<int precision> inline void justSweepForAA(const LargeInt<precision>& x,
 } } } } /* end of namespaces. */
 /********************************************************************************/
 
-
+#ifdef USE_NEW_CXX
 /* enables a largeint<> to be hashed in a unordered_map */
 namespace std {
   template <int precision>
@@ -875,5 +875,6 @@ namespace std {
     }
   };
 }
+#endif
 
 #endif /* _GATB_CORE_TOOLS_MATH_LARGEINT_HPP_ */

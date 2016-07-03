@@ -2261,6 +2261,13 @@ bool GraphTemplate<Node, Edge, GraphDataVariant>::contains (const Node& item) co
     return boost::apply_visitor (contains_visitor<Node, Edge, GraphDataVariant>(item),  *(GraphDataVariant*)_variant);
 }
 
+template<typename Node, typename Edge, typename GraphDataVariant>
+template<size_t span>
+bool GraphTemplate<Node, Edge, GraphDataVariant>::contains (const typename Kmer<span>::Type& item) const
+{
+    return boost::apply_visitor (contains_visitor<Node, Edge, GraphDataVariant>(item),  *(GraphDataVariant*)_variant);
+}
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -3653,7 +3660,6 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::simplify(unsigned int nbCores,
 
 template<typename Node, typename Edge, typename GraphDataVariant> 
 struct cacheNonSimpleNode_visitor : public boost::static_visitor<void>    {
-
     const Node& node;
 
     cacheNonSimpleNode_visitor (const Node& node) : node(node) {}
@@ -3721,6 +3727,9 @@ struct allocateNonSimpleNodeCache_visitor : public boost::static_visitor<void>  
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned int nbCores, bool verbose) 
 {
+#ifndef WITH_MPHF
+    std::cout << "cacheNonSimpleNode isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
+#else
     boost::apply_visitor (allocateNonSimpleNodeCache_visitor<Node, Edge, GraphDataVariant>(),  *(GraphDataVariant*)_variant);
     setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_NONSIMPLE_CACHE);
     GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> itNode = this->iterator();
@@ -3738,6 +3747,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned i
         }
     }); // end of parallel node iteration
     std::cout << "Cached " << nbCachedNodes << " non-simple nodes" << std::endl;
+#endif
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant>

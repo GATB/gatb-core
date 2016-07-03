@@ -952,7 +952,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
             ICommand* cmd = 0;
 
             //still use hash if by vector would be too large even with single part at a time
-            if ( (memoryPartition > mem && currentNbCores==1)  && !forceVector)
+			//I thought it was not possible to have memoryPartition > _max_memory  && currentNbCores>1 , but inf fact it is possible when
+			// some partitions are of size 0 (see getNbCoresList)
+			if ( ((memoryPartition > mem && currentNbCores==1) || ( memoryPartition > (_config._max_memory*MBYTE) ) )  && !forceVector)
             {
                 if (pool.getCapacity() != 0)  {  pool.reserve(0);  }
 
