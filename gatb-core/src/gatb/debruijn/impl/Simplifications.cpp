@@ -212,15 +212,13 @@ template<typename Node, typename Edge, typename GraphDataVariant>
 string Simplifications<Node,Edge,GraphDataVariant>::path2string(Direction dir, Path_t<Node> p, Node endNode)
 {
     // naive conversion from path to string
-
     string p_str;
     if (dir == DIR_INCOMING)
     {
-        // TODO: remove this code once gatb-core is fixed w.r.t DIR_INCOMING bug
-        Node revstart = endNode;
-        p_str = _graph.toString(revstart);
+        p_str = "";
         for (size_t i = 0; i < p.size(); i++)
             p_str.push_back(p.ascii(p.size()-1-i));
+        p_str += _graph.toString(p.start);
     }
     else
     {
@@ -228,6 +226,7 @@ string Simplifications<Node,Edge,GraphDataVariant>::path2string(Direction dir, P
         for (size_t i = 0; i < p.size(); i++)
             p_str.push_back(p.ascii(i));
     }
+    //std::cout << "path2string " << to_string(dir) << " " << p_str <<endl;
     return p_str;
 }
 
@@ -241,19 +240,30 @@ string unitig2string(Direction dir, Path_t<Node> p, Node endNode)
  
 
 // this needs to be in Graph.cpp of gatb-core
+// computes mean abundance of path
+// optional params!
+// skip_first: skip N nucleotides at beginning of path
+// skip_last: skip N nucleotides at end of path
+// e.g. skip_first=skip_last=1 will skip the first and last kmer of path
 template<typename Node, typename Edge, typename GraphDataVariant>
-double Simplifications<Node,Edge,GraphDataVariant>::path2abundance(Direction dir, Path_t<Node> p, Node endNode)
+double Simplifications<Node,Edge,GraphDataVariant>::path2abundance(Direction dir, Path_t<Node> p, Node endNode, unsigned int skip_first, unsigned int skip_last)
 {
     string s = path2string(dir,p,endNode);
+    if (p.size() == 0) return 0;
+    if (p.size() <= skip_first + skip_last) return 0;
 
-    unsigned long mean_abundance = 0;                                                                                                                               
-    for (size_t i = 0; i < p.size(); i++)                                                                                                                           
-    {                                                                                                                                                               
-        Node node = _graph.buildNode((char *)(s.c_str()), i);                                                                                              
-        unsigned char abundance = _graph.queryAbundance(node);                                                                                                 
-        mean_abundance += abundance;                                                                                                                                
-    }                                                                                                                                                                       mean_abundance /= p.size();   
-
+    unsigned long mean_abundance = 0;
+    //std::cout << " abundance: " ;
+    for (size_t i = skip_first; i < p.size() - skip_last; i++)
+    {
+        Node node = _graph.buildNode((char *)(s.c_str()), i);
+        unsigned char abundance = _graph.queryAbundance(node);
+        mean_abundance += abundance;
+        //std::cout << " " << to_string(abundance);
+        //cout << endl << "node: " << _graph.toString (node) << " abundance: "  << to_string(abundance) << endl;
+    }                              
+    //std::cout << std::endl;
+    mean_abundance /= (p.size() - skip_first - skip_last);
     return mean_abundance;
 }
 
@@ -677,6 +687,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
     success = HMCP_DEADEND;
     vector<int> abundances; 
     unsigned long nbCalls = 0;
+    mean_abundance = 0;
 
     if (kmer_version)
     {
@@ -686,11 +697,14 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
                 res_path,
                 nbCalls);
 
-        mean_abundance = 0;
-        if (success)
+        if (success == HMCP_FOUND_END)
         { // no need to average abundances in failed cases
+    //std::cout << " abundance orig: " ;
             for (unsigned int i = 0; i < abundances.size(); i++){
-                mean_abundance += abundances[i];}
+                mean_abundance += abundances[i];
+    //std::cout << " " << to_string(abundances[i]);
+            }
+    //std::cout << std::endl;
             mean_abundance /= abundances.size();
         }
     }
@@ -766,6 +780,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_ol
         
         unsigned int abundance = _graph.queryAbundance(neighbors[i].to);
         abundance_node.push_back(std::make_pair(abundance, edge));
+        //cout << endl << "node: " << _graph.toString (neighbors[i].to) << " abundance: "  << to_string(abundance) << endl;
     }
 
     std::sort(abundance_node.begin(), abundance_node.end()); // sort nodes by abundance
@@ -823,6 +838,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path_ol
 }
 
 /* faster variant of the algo above, with cached simple paths instead of traversing node-by-node */
+// TODO: not totally equivalent to the kmer version, some bubbles are found in the kmer version but not in this one
 template<typename Node, typename Edge, typename GraphDataVariant>
 void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
         Direction dir, Node& startNode, Node& endNode, 
@@ -841,52 +857,69 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
 
     Node current_node = startNode;
  
+    if (current_node.kmer == endNode.kmer)
+    {
+        success = HMCP_FOUND_END;
+        res_path = current_path;
+        mean_abundance = path2abundance(dir, res_path, endNode, 1, 1);
+        // to get the path, use unitig2string()
+        return;
+    }
+
     set<typename Node::Value>& traversedNodes (usedNode);
-    traversedNodes.insert(current_node.kmer); 
 
     Path_t<Node> current_extended_path(current_path);
     int extra_depth = 1;
+
+    auto extend_and_check = [&](Edge &edge)
+    {
+        current_node = edge.to;
+        current_extended_path.push_back( edge.nt );
+        extra_depth++;
+        nbCalls++;
+
+        if (traversedNodes.find(current_node.kmer) != traversedNodes.end() )  // loop
+        {
+            success = -2;
+            return true;
+        }
+ 
+        traversedNodes.insert(current_node.kmer); 
+
+        if (current_node.kmer == endNode.kmer)
+        {
+            success = HMCP_FOUND_END;
+            res_path = current_extended_path;
+            mean_abundance = path2abundance(dir, res_path, endNode, 1, 1);
+            return true;
+        }
+
+        return false;
+    };
+
 
     // traverse simple path from that node
     // we end up at a branching node. 
     // if the node has no out-branching, keep going, we don't care about in-branching here.
     do
     {
-        if (current_node.kmer == endNode.kmer)
-        {
-            success = 1;
-            res_path = current_path;
-            return;
-        }
-
         typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator <Edge> itEdges
             = _graph.template simplePathEdge (current_node, dir);
         
         for (itEdges.first(); !itEdges.isDone(); itEdges.next())
         {
-            current_node = (*itEdges).to;
-            current_extended_path.push_back( (*itEdges).nt );
-            extra_depth++;
-    nbCalls++;
+            if (extend_and_check(*itEdges)) // updates current_node and current_extended_path, as well as nbCalls and extra_depth
+                return;
         }
 
-        traversedNodes.insert(current_node.kmer); 
-
+        // end of simple path, yet no out-branching? means there is in-branching
         if (_graph.degree(current_node, dir) == 1)
         {
             // get the node after in-branching
             typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge(current_node, dir);
-            
-            if (traversedNodes.find(neighbors[0].to.kmer) != traversedNodes.end() )  // loop
-            {
-                success = -2;
+        
+            if (extend_and_check(neighbors[0])) // updates current_node and current_extended_path, as well as nbCalls and extra_depth
                 return;
-            }
-            current_node = neighbors[0].to;
-            current_extended_path.push_back( neighbors[0].nt );
-            traversedNodes.insert(current_node.kmer); 
-            extra_depth++;
-    nbCalls++;
         }
         else
             break; // we're either at a deadend or at a branching node
@@ -894,20 +927,9 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
     while (true);
             
     // at this point, we've traversed simple paths from startNode and we ended up at a branching node or a deadend
-    if (current_node.kmer == endNode.kmer)
-    {
-        success = 1;
-        res_path = current_path;
-        return;
-    }
 
     // get neighbors of branching node
     typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = _graph.neighborsEdge (current_node, dir);
-
-    if (neighbors.size() == 1)
-    {
-        std::cout << "HMP: ended up at a node with exactly 1 neighbor here, it's not possible." << std::endl; std::exit(1);
-    }
 
     /** We loop over the neighbors of that branching node, to order them by abundance */
     vector<std::pair<int, Edge> > abundance_node;
@@ -922,7 +944,7 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
         // don't resolve bubbles containing loops
         // (tandem repeats make things more complicated)
         // that's a job for a gapfiller
-        if (usedNode.find(edge.to.kmer) != usedNode.end())
+        if (traversedNodes.find(edge.to.kmer) != traversedNodes.end())
         {
             success = -2;
             return;
@@ -965,19 +987,18 @@ void Simplifications<Node,Edge,GraphDataVariant>::heuristic_most_covered_path(
             res_path,
             nbCalls
         );
-
-        if (success == 1)
-        {
-            // compute abundances now
-            mean_abundance = path2abundance(dir, res_path, endNode);
-            // to get the path, use unitig2string()
-            return; 
-        }
-                
+              
         if (backtrackingLimit > 0 && nbCalls >= backtrackingLimit)// if no more backtracking, return immediately
         {
+            success = HMCP_MAX_DEPTH;
             return;
         }
+
+        if (success == HMCP_FOUND_END)
+        {
+            return; 
+        }
+ 
     }
 
     return;
@@ -1196,7 +1217,7 @@ unsigned long Simplifications<Node,Edge,GraphDataVariant>::removeBulges()
                             backtrackingLimit, // avoid too much backtracking
                             &(neighbors[i].to), // avoid that node
                             true, // most covered path
-                            true // kmer version (true), unitigs version (false) 
+                            false // kmer version (true), unitigs version (false) 
                             );
 
                 TIME(auto end_pathfinding_t=get_wtime());

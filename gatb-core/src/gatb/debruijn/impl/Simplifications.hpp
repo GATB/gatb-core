@@ -68,7 +68,7 @@ protected:
     bool _verbose;
 
     std::string path2string(Direction dir, Path_t<Node> p, Node endNode);
-    double path2abundance(Direction dir, Path_t<Node> p, Node endNode);
+    double path2abundance(Direction dir, Path_t<Node> p, Node endNode, unsigned int skip_first = 0, unsigned int skip_last = 0);
 
     void heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endingNode, 
                                     int traversal_depth, int& success, double& mean_abundance,
