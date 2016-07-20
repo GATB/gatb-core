@@ -136,7 +136,7 @@ public:
     Item& operator*  ()  { return item();  }
 
     /** Another way to iterate: push model, ie a functor is called for each item. */
-    template <typename Functor> void iterate (/* R: removed const for convenience */ /*const*/ Functor& f)   {  for (first(); !isDone(); next())  { f (item()); }  }
+    template <typename Functor> void iterate (const Functor& f)   {  for (first(); !isDone(); next())  { f (item()); }  }
 
     /** Get a reference on the object to be configured as the currently iterated item.
      * \param[in] i : object to be referred. */
