@@ -1,4 +1,10 @@
 --------------------------------------------------------------------------------
+# RELEASE 1.2.2
+
+* fixed a compilation issue with old version of clang compilers (prior to clang 4.3 on mac). This gatb-core release is the last one to officially support clang version older than 4.3 on mac and 3.2 on linux.
+
+
+--------------------------------------------------------------------------------
 # RELEASE 1.2.1
 
 * bug fixes when MPHF is queried on a false positive node.
