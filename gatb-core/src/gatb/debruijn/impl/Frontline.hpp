@@ -54,7 +54,7 @@ struct NodeNt
 /********************************************************************************/
 
 // auxiliary class that is used by MonumentTraversal and deblooming
-template <typename Node, typename Edge, typename GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
 class FrontlineTemplate
 {
 public:
@@ -62,8 +62,8 @@ public:
     /** Constructor. */
     FrontlineTemplate (
         Direction         direction,
-        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        const Graph&      graph,
+        TerminatorTemplate<Node,Edge,Graph>&       terminator,
         Node&       startingNode,
         Node&       previousNode,
         std::set<Node>*   all_involved_extensions = 0
@@ -72,8 +72,8 @@ public:
     /** Constructor. */
     FrontlineTemplate (
         Direction         direction,
-        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        const Graph&      graph,
+        TerminatorTemplate<Node,Edge,Graph>&       terminator,
         Node&       startingNode
     );
 
@@ -105,9 +105,9 @@ protected:
 
     Direction _direction;
 
-    const GraphTemplate<Node,Edge,GraphDataVariant>& _graph;
+    const Graph& _graph;
 
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&  _terminator;
+    TerminatorTemplate<Node,Edge,Graph>&  _terminator;
 
     typedef std::queue<NodeNt<Node> > queue_nodes;
     queue_nodes _frontline;
@@ -122,16 +122,16 @@ protected:
 /********************************************************************************/
 
 // auxiliary class that is used by MonumentTraversal and deblooming
-template <typename Node, typename Edge, typename GraphDataVariant>
-class FrontlineBranchingTemplate : public FrontlineTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class FrontlineBranchingTemplate : public FrontlineTemplate<Node,Edge,Graph>
 {
 public:
 
     /** Constructor. */
     FrontlineBranchingTemplate (
         Direction         direction,
-        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        const Graph&      graph,
+        TerminatorTemplate<Node,Edge,Graph>&       terminator,
         Node&       startingNode,
         Node&       previousNode,
         std::set<Node>*   all_involved_extensions
@@ -140,8 +140,8 @@ public:
     /** Constructor. */
     FrontlineBranchingTemplate (
         Direction         direction,
-        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        const Graph&      graph,
+        TerminatorTemplate<Node,Edge,Graph>&       terminator,
         Node&       startingNode
     );
 
@@ -152,16 +152,16 @@ private:
 
 // a middle ground between Frontline and FrontlineBranching:
 // check whether all nodes inside the frontline must be reachable from startingNode
-template <typename Node, typename Edge, typename GraphDataVariant>
-class FrontlineReachableTemplate : public FrontlineTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class FrontlineReachableTemplate : public FrontlineTemplate<Node,Edge,Graph>
 {
 public:
 
     /** Constructor. */
     FrontlineReachableTemplate(
         Direction         direction,
-        const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+        const Graph&      graph,
+        TerminatorTemplate<Node,Edge,Graph>&       terminator,
         Node&       startingNode,
         Node&       previousNode,
         std::set<Node>*   all_involved_extensions
@@ -175,9 +175,9 @@ private:
     std::set<Node> checkLater;
 };
 
-typedef FrontlineTemplate<Node, Edge, GraphDataVariant> Frontline; 
-typedef FrontlineReachableTemplate<Node, Edge, GraphDataVariant> FrontlineReachable; 
-typedef FrontlineBranchingTemplate<Node, Edge, GraphDataVariant> FrontlineBranching; 
+typedef FrontlineTemplate<Node, Edge, Graph> Frontline; 
+typedef FrontlineReachableTemplate<Node, Edge, Graph> FrontlineReachable; 
+typedef FrontlineBranchingTemplate<Node, Edge, Graph> FrontlineBranching; 
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

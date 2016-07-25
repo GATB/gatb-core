@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #usage: make -j 4 2> MAKE ; cat MAKE | python parse_gcc_output.py | less -R
-import fileinput
+import sys,fileinput
 
 class bcolors:
     HEADER = '\033[95m'
@@ -34,11 +34,12 @@ for line in fileinput.input():
 
     line = line.replace("gatb::core::tools::math::LargeInt<1>", bcolors.OKBLUE + "LargeInt<1>" + bcolors.ENDC)
     line = line.replace("gatb::core::debruijn::impl::GraphTemplate", bcolors.OKBLUE + "GraphTemplate" + bcolors.ENDC)
+    line = line.replace("gatb::core::debruijn::impl::GraphUnitigsTemplate", bcolors.OKBLUE + "GraphUnitigsTemplate" + bcolors.ENDC)
 
     line = line.replace("undefined reference to ", bcolors.FAIL + "undefined reference to " + bcolors.ENDC)
     line = line.replace("In function", bcolors.WARNING + "In function" + bcolors.ENDC)
     line = line.replace("gatb::core::tools::math::IntegerTemplate<boost::mpl::vector4<mpl_::int_<32>, mpl_::int_<64>, mpl_::int_<96>, mpl_::int_<128> > > ", bcolors.OKBLUE + "Integer" + bcolors.ENDC)
     line = re.sub(r"([^\:]*):\(.text.[^\)]*\)",  bcolors.OKGREEN + r"\1:(..)" + bcolors.ENDC,line)
 
-    print line,
+    sys.stdout.write(line)
 

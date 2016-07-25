@@ -16,7 +16,7 @@ template struct Node_t<Kmer<${KSIZE}>::Type >;
 template struct Edge_t<Node_t<Kmer<${KSIZE}>::Type > >; 
 template class GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphDataVariantT>; 
 
-template class Simplifications <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphDataVariantT>; 
+template class Simplifications <GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphDataVariantT>, Node_t<Kmer<${KSIZE}>::Type>, Edge_t<Node_t<Kmer<${KSIZE}>::Type > >>; 
 
 // special instantiation (or specialization, i never know what's the difference)
 // actually not sure if it's ever used

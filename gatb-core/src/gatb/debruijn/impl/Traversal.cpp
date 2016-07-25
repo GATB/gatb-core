@@ -42,22 +42,22 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-TraversalTemplate<Node,Edge,GraphDataVariant>* TraversalTemplate<Node,Edge,GraphDataVariant>::create (
+template <typename Node, typename Edge, typename Graph>
+TraversalTemplate<Node,Edge,Graph>* TraversalTemplate<Node,Edge,Graph>::create (
     TraversalKind   type,
-    const GraphTemplate<Node,Edge,GraphDataVariant>&    graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&     terminator,
+    const Graph&    graph,
+    TerminatorTemplate<Node,Edge,Graph>&     terminator,
     int             max_len,
     int             max_depth,
     int             max_breadth
 )
 {
-    TraversalTemplate<Node,Edge,GraphDataVariant>* result = 0;
+    TraversalTemplate<Node,Edge,Graph>* result = 0;
 
-         if (type == TRAVERSAL_UNITIG)  { result = new SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant> (graph, terminator, max_len, max_depth, max_breadth); }
-    else if (type == TRAVERSAL_CONTIG)  { result = new MonumentTraversalTemplate<Node,Edge,GraphDataVariant>    (graph, terminator, max_len, max_depth, max_breadth); }
-    else if (type == TRAVERSAL_NONE)    { result = new NullTraversalTemplate<Node,Edge,GraphDataVariant>        (graph, terminator, max_len, max_depth, max_breadth); }
-    else                                { result = new MonumentTraversalTemplate<Node,Edge,GraphDataVariant>    (graph, terminator, max_len, max_depth, max_breadth); }
+         if (type == TRAVERSAL_UNITIG)  { result = new SimplePathsTraversalTemplate<Node,Edge,Graph> (graph, terminator, max_len, max_depth, max_breadth); }
+    else if (type == TRAVERSAL_CONTIG)  { result = new MonumentTraversalTemplate<Node,Edge,Graph>    (graph, terminator, max_len, max_depth, max_breadth); }
+    else if (type == TRAVERSAL_NONE)    { result = new NullTraversalTemplate<Node,Edge,Graph>        (graph, terminator, max_len, max_depth, max_breadth); }
+    else                                { result = new MonumentTraversalTemplate<Node,Edge,Graph>    (graph, terminator, max_len, max_depth, max_breadth); }
 
     return result;
 }
@@ -70,11 +70,11 @@ TraversalTemplate<Node,Edge,GraphDataVariant>* TraversalTemplate<Node,Edge,Graph
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-TraversalTemplate<Node,Edge,GraphDataVariant>* TraversalTemplate<Node,Edge,GraphDataVariant>::create (
+template <typename Node, typename Edge, typename Graph>
+TraversalTemplate<Node,Edge,Graph>* TraversalTemplate<Node,Edge,Graph>::create (
     const std::string&  type,
-    const GraphTemplate<Node,Edge,GraphDataVariant>&        graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&         terminator,
+    const Graph&        graph,
+    TerminatorTemplate<Node,Edge,Graph>&         terminator,
     int                 max_len,
     int                 max_depth,
     int                 max_breadth
@@ -93,19 +93,19 @@ TraversalTemplate<Node,Edge,GraphDataVariant>* TraversalTemplate<Node,Edge,Graph
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-TraversalTemplate<Node,Edge,GraphDataVariant>::TraversalTemplate (
-    const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
+template <typename Node, typename Edge, typename Graph>
+TraversalTemplate<Node,Edge,Graph>::TraversalTemplate (
+    const Graph& graph,
+    TerminatorTemplate<Node,Edge,Graph>& terminator,
     int max_len,
     int max_depth,
     int max_breadth
 )
     : final_stats(TraversalStats()), stats(TraversalStats()),
       graph(graph), terminator(terminator),
-      maxlen      (max_len     == 0 ? TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxLen     : max_len),
-      max_depth   (max_depth   == 0 ? TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxDepth   : max_depth),
-      max_breadth (max_breadth == 0 ? TraversalTemplate<Node,Edge,GraphDataVariant>::defaultMaxBreadth : max_breadth)
+      maxlen      (max_len     == 0 ? TraversalTemplate<Node,Edge,Graph>::defaultMaxLen     : max_len),
+      max_depth   (max_depth   == 0 ? TraversalTemplate<Node,Edge,Graph>::defaultMaxDepth   : max_depth),
+      max_breadth (max_breadth == 0 ? TraversalTemplate<Node,Edge,Graph>::defaultMaxBreadth : max_breadth)
 {
 }
 
@@ -117,8 +117,8 @@ TraversalTemplate<Node,Edge,GraphDataVariant>::TraversalTemplate (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-int TraversalTemplate<Node,Edge,GraphDataVariant>::traverse (Node& startingNode, Node& currentNode, Direction dir, Path_t<Node>& consensus)
+template <typename Node, typename Edge, typename Graph>
+int TraversalTemplate<Node,Edge,Graph>::traverse (Node& startingNode, Node& currentNode, Direction dir, Path_t<Node>& consensus)
 {
     currentNode = startingNode;
     Node previousNode;
@@ -187,8 +187,8 @@ int TraversalTemplate<Node,Edge,GraphDataVariant>::traverse (Node& startingNode,
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-float TraversalTemplate<Node,Edge,GraphDataVariant>::needleman_wunch (const Path_t<Node>& a, const Path_t<Node>& b)
+template <typename Node, typename Edge, typename Graph>
+float TraversalTemplate<Node,Edge,Graph>::needleman_wunch (const Path_t<Node>& a, const Path_t<Node>& b)
 {
     float gap_score = -5;
     float mismatch_score = -5;
@@ -272,15 +272,15 @@ float TraversalTemplate<Node,Edge,GraphDataVariant>::needleman_wunch (const Path
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant>::SimplePathsTraversalTemplate (
-    const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
+template <typename Node, typename Edge, typename Graph>
+SimplePathsTraversalTemplate<Node,Edge,Graph>::SimplePathsTraversalTemplate (
+    const Graph& graph,
+    TerminatorTemplate<Node,Edge,Graph>& terminator,
     int maxlen,
     int max_depth,
     int max_breadth
 )
-    : TraversalTemplate<Node,Edge,GraphDataVariant>(graph, terminator, maxlen, max_depth, max_breadth)
+    : TraversalTemplate<Node,Edge,Graph>(graph, terminator, maxlen, max_depth, max_breadth)
 {
 }
 
@@ -292,8 +292,8 @@ SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant>::SimplePathsTraversalTe
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-char SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant>::avance (
+template <typename Node, typename Edge, typename Graph>
+char SimplePathsTraversalTemplate<Node,Edge,Graph>::avance (
     Node& node,
     Direction dir,
     bool first_extension,
@@ -335,15 +335,15 @@ char SimplePathsTraversalTemplate<Node,Edge,GraphDataVariant>::avance (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::MonumentTraversalTemplate (
-    const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
+template <typename Node, typename Edge, typename Graph>
+MonumentTraversalTemplate<Node,Edge,Graph>::MonumentTraversalTemplate (
+    const Graph& graph,
+    TerminatorTemplate<Node,Edge,Graph>& terminator,
     int maxlen,
     int max_depth,
     int max_breadth
 )
-    : TraversalTemplate<Node,Edge,GraphDataVariant>(graph, terminator, maxlen, max_depth, max_breadth)
+    : TraversalTemplate<Node,Edge,Graph>(graph, terminator, maxlen, max_depth, max_breadth)
 {
 }
 
@@ -355,8 +355,8 @@ MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::MonumentTraversalTemplate
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-char MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::avance (
+template <typename Node, typename Edge, typename Graph>
+char MonumentTraversalTemplate<Node,Edge,Graph>::avance (
     Node& node,
     Direction dir,
     bool first_extension,
@@ -394,8 +394,8 @@ char MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::avance (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::explore_branching (
+template <typename Node, typename Edge, typename Graph>
+bool MonumentTraversalTemplate<Node,Edge,Graph>::explore_branching (
     Node& node,
     Direction dir,
     Path_t<Node>& consensus,
@@ -415,8 +415,8 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::explore_branching (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::explore_branching (
+template <typename Node, typename Edge, typename Graph>
+bool MonumentTraversalTemplate<Node,Edge,Graph>::explore_branching (
     Node& startNode,
     Direction dir,
     Path_t<Node>& consensus,
@@ -467,8 +467,8 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::explore_branching (
 ** REMARKS :
 *********************************************************************/
 //template <typename Frontline=FrontlineBranching> // TODO: someday do something along this line to refactor GraphSimplification in minia
-template <typename Node, typename Edge, typename GraphDataVariant>
-int MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::find_end_of_branching (
+template <typename Node, typename Edge, typename Graph>
+int MonumentTraversalTemplate<Node,Edge,Graph>::find_end_of_branching (
     Direction    dir,
     Node&  startingNode,
     Node&        endNode,
@@ -477,19 +477,19 @@ int MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::find_end_of_branching
 )
 {
     /** We need a branching frontline. */
-    FrontlineBranchingTemplate<Node,Edge,GraphDataVariant> frontline (dir, this->graph, this->terminator, startingNode, previousNode, &all_involved_extensions);
+    FrontlineBranchingTemplate<Node,Edge,Graph> frontline (dir, this->graph, this->terminator, startingNode, previousNode, &all_involved_extensions);
 
     do  {
         bool should_continue = frontline.go_next_depth();
         if (!should_continue) 
         {
-            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::MARKED)
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,Graph>::MARKED)
                 this->stats.couldnt_because_marked_kmer++;
-            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_DEPTH)
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,Graph>::IN_BRANCHING_DEPTH)
                 this->stats.couldnt_inbranching_depth++;
-            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_BREADTH)
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,Graph>::IN_BRANCHING_BREADTH)
                 this->stats.couldnt_inbranching_breadth++;
-            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_OTHER)
+            if (frontline.stopped_reason == FrontlineTemplate<Node,Edge,Graph>::IN_BRANCHING_OTHER)
                 this->stats.couldnt_inbranching_other++;
             return 0;
         }
@@ -541,8 +541,8 @@ int MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::find_end_of_branching
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-void MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::mark_extensions (std::set<Node>& extensions_to_mark)
+template <typename Node, typename Edge, typename Graph>
+void MonumentTraversalTemplate<Node,Edge,Graph>::mark_extensions (std::set<Node>& extensions_to_mark)
 {
     if (this->terminator.isEnabled())
     {
@@ -562,8 +562,8 @@ void MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::mark_extensions (std
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
+template <typename Node, typename Edge, typename Graph>
+set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,Graph>::all_consensuses_between (
     Direction    dir,
     Node& startNode,
     Node& endNode,
@@ -592,7 +592,7 @@ set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_co
     }
 
     /** We retrieve the neighbors of the provided node. */
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = this->graph.neighborsEdge (startNode, dir);
+    GraphVector<Edge> neighbors = this->graph.neighborsEdge (startNode, dir);
 
     /** We loop these neighbors. */
     for (size_t i=0; i<neighbors.size(); i++)
@@ -652,8 +652,8 @@ set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_co
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_between (
+template <typename Node, typename Edge, typename Graph>
+set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,Graph>::all_consensuses_between (
     Direction    dir,
     Node& startNode,
     Node& endNode,
@@ -678,8 +678,8 @@ set<Path_t<Node> > MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_co
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses (set<Path_t<Node> >& consensuses, Path_t<Node>& result)
+template <typename Node, typename Edge, typename Graph>
+bool MonumentTraversalTemplate<Node,Edge,Graph>::validate_consensuses (set<Path_t<Node> >& consensuses, Path_t<Node>& result)
 {
     bool debug = false;
     // compute mean and stdev of consensuses
@@ -731,7 +731,7 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses
     }
 
     // if all good, an arbitrary consensus is chosen (if no MPHF) or the most abundance one is chosen (if MPHF available)
-    bool has_mphf = this->graph.checkState(GraphTemplate<Node,Edge,GraphDataVariant>::STATE_MPHF_DONE);
+    bool has_mphf = this->graph.checkState(Graph::STATE_MPHF_DONE);
 
     Path_t<Node> chosen_consensus;
     if (has_mphf)
@@ -759,8 +759,8 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::validate_consensuses
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almost_identical (set<Path_t<Node> >& consensuses)
+template <typename Node, typename Edge, typename Graph>
+bool MonumentTraversalTemplate<Node,Edge,Graph>::all_consensuses_almost_identical (set<Path_t<Node> >& consensuses)
 {
     for (typename set<Path_t<Node> >::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
     {
@@ -789,8 +789,8 @@ bool MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::all_consensuses_almo
 ** RETURN  :
 ** REMARKS : might have a bug, see remark in there. need investigation.
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-Path_t<Node> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::most_abundant_consensus(set<Path_t<Node> >& consensuses)
+template <typename Node, typename Edge, typename Graph>
+Path_t<Node> MonumentTraversalTemplate<Node,Edge,Graph>::most_abundant_consensus(set<Path_t<Node> >& consensuses)
 {
     Path_t<Node> res;
     bool debug = false;
@@ -851,10 +851,10 @@ Path_t<Node> MonumentTraversalTemplate<Node,Edge,GraphDataVariant>::most_abundan
 }
 
 // legacy GATB compatibility
-template class TraversalTemplate<Node, Edge, GraphDataVariant>; 
-template class MonumentTraversalTemplate<Node, Edge, GraphDataVariant>; 
-template class SimplePathsTraversalTemplate<Node, Edge, GraphDataVariant>; 
-template class NullTraversalTemplate<Node, Edge, GraphDataVariant>; 
+template class TraversalTemplate<Node, Edge, Graph>; 
+template class MonumentTraversalTemplate<Node, Edge, Graph>; 
+template class SimplePathsTraversalTemplate<Node, Edge, Graph>; 
+template class NullTraversalTemplate<Node, Edge, Graph>; 
 
 
 /********************************************************************************/

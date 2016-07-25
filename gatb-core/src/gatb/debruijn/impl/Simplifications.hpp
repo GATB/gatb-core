@@ -33,12 +33,12 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
 
 /** */
-template<typename Node, typename Edge, typename GraphDataVariant>
+template<typename GraphType, typename Node, typename Edge>
 class Simplifications : public system::SmartPointer
 {
 public:
 
-    Simplifications (/*const, removed because of cacheNonSimpleNodes calling a setStats */ GraphTemplate<Node,Edge,GraphDataVariant> & graph, int nbCores, bool verbose = false);
+    Simplifications (/*const, removed because of cacheNonSimpleNodes calling a setStats */ GraphType & graph, int nbCores, bool verbose = false);
 
     void simplify(); // perform many rounds of all simplifications, as in Minia
 
@@ -47,8 +47,8 @@ public:
     unsigned long removeErroneousConnections();
 
     double getSimplePathCoverage(Node node, Direction dir, unsigned int* pathLen = NULL, unsigned int maxLength = 0);
-    double getMeanAbundanceOfNeighbors(Node branchingNode, Node nodeToExclude);
-    bool satisfyRCTC(std::vector<Node>& nodes, double RCTCcutoff);
+    double getMeanAbundanceOfNeighbors(Node& branchingNode, Node nodeToExclude);
+    bool satisfyRCTC(double pathAbundance, Node& lastTipNode, double RCTCcutoff, Direction dir);
 
     int _nbTipRemovalPasses;
     int _nbBubbleRemovalPasses;
@@ -57,9 +57,8 @@ public:
     
     std::string tipRemoval, bubbleRemoval, ECRemoval;
     
-
 protected:
-    /*const*/ GraphTemplate<Node,Edge,GraphDataVariant> &  _graph;
+    /*const*/ GraphType &  _graph;
     int _nbCores;
     uint64_t nbNodes;
     uint64_t cutoffEvents;
@@ -75,16 +74,24 @@ protected:
                                     Path_t<Node> &res_path,
                                     unsigned int backtrackingLimit = 0, Node *avoidFirstNode = NULL /*nullptr ideally, but want old gcc compatibility at least for headers*/,
                                     bool most_covered = true, bool kmer_version = false);
+    // kmer version
     void heuristic_most_covered_path_old(Direction dir, Node& startingNode, Node& endingNode, 
                                     int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& abundances,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, Path_t<Node> &res_path,
                                     unsigned long &nbCalls);
+    // in-between version, towards unitigs
     void heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endNode, 
                                     int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, double& mean_abundance,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, Path_t<Node> &res_path,
                                     unsigned long &nbCalls);
+    // true unitigs version
+    void heuristic_most_covered_path_unitigs(Direction dir, Node& startingNode, Node& endNode, 
+                                    int traversal_depth, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& unitigs_lengths, std::vector<int>& unitigs_abundances,
+                                    unsigned int backtrackingLimit, Node *avoidFirstNode, 
+                                    bool most_covered, unsigned long &nbCalls);
+
 
 
     std::vector<bool> interestingNodes;

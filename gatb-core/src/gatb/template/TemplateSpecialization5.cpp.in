@@ -4,17 +4,22 @@
 
 #include <gatb/debruijn/impl/BranchingAlgorithm.cpp>
 #include <gatb/debruijn/impl/IterativeExtensions.cpp>
+#include <gatb/debruijn/impl/Graph.cpp>
+#include <gatb/debruijn/impl/GraphUnitigs.hpp>
 
 /********************************************************************************/
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 /********************************************************************************/
 
-template class BranchingAlgorithm   <${KSIZE}, Node, Edge, GraphDataVariant>;
+template class BranchingAlgorithm   <${KSIZE}, Node, Edge, Graph>;
 
-typedef boost::variant<GraphData<${KSIZE}> > GraphDataVariantT;
-template class BranchingAlgorithm <${KSIZE},Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphDataVariantT>;
+typedef boost::variant<GraphData<${KSIZE}> > GraphDataVariantT; // same as GraphDataVariantFast in Graph.hpp
 
-template class IterativeExtensions  <${KSIZE}>;
+template class BranchingAlgorithm <${KSIZE},Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >,GraphDataVariantT>>;
+template class BranchingAlgorithm <${KSIZE},Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphUnitigsTemplate<${KSIZE}>>;
+
+template class IterativeExtensions  <${KSIZE}, Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >,GraphDataVariantT>>;
+template class IterativeExtensions  <${KSIZE}, Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphUnitigsTemplate<${KSIZE}>>;
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

@@ -36,7 +36,7 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 /********************************************************************************/
 
 
-template <typename Node, typename Edge, typename GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
 class NodesDeleter
 {
 
@@ -44,13 +44,13 @@ class NodesDeleter
         uint64_t nbNodes;
         std::vector<bool> nodesToDelete; // don't delete while parallel traversal, do it afterwards
         std::set<Node> setNodesToDelete; 
-        const GraphTemplate<Node,Edge,GraphDataVariant> &  _graph;
+        const Graph &  _graph;
         int _nbCores;
         bool useList;
         unsigned long explicitLimit;
         system::ISynchronizer* synchro;
 
-    NodesDeleter(const GraphTemplate<Node,Edge,GraphDataVariant> &  graph, uint64_t nbNodes, int nbCores) : nbNodes(nbNodes), _graph(graph), _nbCores(nbCores)
+    NodesDeleter(const Graph&  graph, uint64_t nbNodes, int nbCores) : nbNodes(nbNodes), _graph(graph), _nbCores(nbCores)
     {
         nodesToDelete.resize(nbNodes); // number of graph nodes // (!) this will alloc 1 bit per kmer.
         for (unsigned long i = 0; i < nbNodes; i++)
@@ -113,6 +113,7 @@ class NodesDeleter
             useList = false;
 
     }
+
    // TODO speed: tell graph whenever all the neighbors of a node will be deleted too, that way, don't need to update their adjacency! 
     void flush()
     {
@@ -121,7 +122,7 @@ class NodesDeleter
             // sequential nodes deletion (no need for parallel here, as deleteNode() needs to be atomic anyway
             for (typename std::set<Node>::iterator it = setNodesToDelete.begin(); it != setNodesToDelete.end(); it++)
             {
-                Node node = *it; // FIXME remove this line when deleteNode is const Node&
+                Node node = *it; // remove this line when deleteNode is const Node&
                 _graph.deleteNode(node);
             }
         }

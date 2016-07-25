@@ -41,12 +41,12 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::BranchingTerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph)
-    : TerminatorTemplate<Node,Edge,GraphDataVariant> (graph)
+template <typename Node, typename Edge, typename Graph>
+BranchingTerminatorTemplate<Node,Edge,Graph>::BranchingTerminatorTemplate (const Graph& graph)
+    : TerminatorTemplate<Node,Edge,Graph> (graph)
 {
     /** We loop over the branching nodes. */
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Iterator<BranchingNode_t<Node> > itBranching = this->_graph.GraphTemplate<Node,Edge,GraphDataVariant>::template iteratorBranching();
+    GraphIterator<BranchingNode_t<Node> > itBranching = this->_graph.Graph::template iteratorBranching();
     for (itBranching.first(); !itBranching.isDone(); itBranching.next())
     {
         /** We add the current branching node into the map. */
@@ -65,9 +65,9 @@ BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::BranchingTerminatorTemp
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::BranchingTerminatorTemplate (const BranchingTerminatorTemplate& terminator)
-	: TerminatorTemplate<Node,Edge,GraphDataVariant>(terminator._graph), branching_kmers (terminator.branching_kmers)
+template <typename Node, typename Edge, typename Graph>
+BranchingTerminatorTemplate<Node,Edge,Graph>::BranchingTerminatorTemplate (const BranchingTerminatorTemplate& terminator)
+	: TerminatorTemplate<Node,Edge,Graph>(terminator._graph), branching_kmers (terminator.branching_kmers)
 {
 }
 
@@ -79,8 +79,8 @@ BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::BranchingTerminatorTemp
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::~BranchingTerminatorTemplate()
+template <typename Node, typename Edge, typename Graph>
+BranchingTerminatorTemplate<Node,Edge,Graph>::~BranchingTerminatorTemplate()
 {
 }
 
@@ -92,8 +92,8 @@ BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::~BranchingTerminatorTem
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_branching (Node& node) const
+template <typename Node, typename Edge, typename Graph>
+bool BranchingTerminatorTemplate<Node,Edge,Graph>::is_branching (Node& node) const
 {
     return this->_graph.isBranching (node);
 }
@@ -106,8 +106,8 @@ bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_branching (Node
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-int BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::getDelta (Edge& edge) const
+template <typename Node, typename Edge, typename Graph>
+int BranchingTerminatorTemplate<Node,Edge,Graph>::getDelta (Edge& edge) const
 {
          if (edge.direction == DIR_OUTCOMING && edge.from.strand == kmer::STRAND_FORWARD)  { return 0; }
     else if (edge.direction == DIR_OUTCOMING && edge.from.strand == kmer::STRAND_REVCOMP)  { return 4; }
@@ -124,8 +124,8 @@ int BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::getDelta (Edge& edg
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::mark (Edge& edge)
+template <typename Node, typename Edge, typename Graph>
+void BranchingTerminatorTemplate<Node,Edge,Graph>::mark (Edge& edge)
 {
     // BranchingTerminator ignores non-branching kmers
     if (!is_indexed (edge.from))  {   return;  }
@@ -153,8 +153,8 @@ void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::mark (Edge& edge)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_marked (Edge& edge)  const
+template <typename Node, typename Edge, typename Graph>
+bool BranchingTerminatorTemplate<Node,Edge,Graph>::is_marked (Edge& edge)  const
 {
     Value val = 0;
     int is_present = branching_kmers.get (edge.from.kmer, val);
@@ -181,8 +181,8 @@ bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_marked (Edge& e
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::mark (Node& node)
+template <typename Node, typename Edge, typename Graph>
+void BranchingTerminatorTemplate<Node,Edge,Graph>::mark (Node& node)
 {
     bool could_mark = false;
 
@@ -196,7 +196,7 @@ void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::mark (Node& node)
     }
 
     /** We loop the neighbors edges of the current node. */
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = this->_graph.template neighborsEdge(node.kmer);
+    GraphVector<Edge> neighbors = this->_graph.template neighborsEdge(node.kmer);
 
     /** We loop the branching neighbors. */
     for (size_t i=0; i<neighbors.size(); i++)
@@ -224,14 +224,14 @@ void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::mark (Node& node)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_marked (Node& node) const
+template <typename Node, typename Edge, typename Graph>
+bool BranchingTerminatorTemplate<Node,Edge,Graph>::is_marked (Node& node) const
 {
     // if it is a branching kmer, read marking directly (it may have no branching neighbor)
     if (is_indexed(node))  {   return is_marked_branching(node);  }
 
     /** We loop the neighbors edges of the current node. */
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> neighbors = this->_graph.neighborsEdge (node.kmer);
+    GraphVector<Edge> neighbors = this->_graph.neighborsEdge (node.kmer);
 
     for (size_t i=0; i<neighbors.size(); i++)
     {
@@ -255,8 +255,8 @@ bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_marked (Node& n
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_marked_branching (Node& node) const
+template <typename Node, typename Edge, typename Graph>
+bool BranchingTerminatorTemplate<Node,Edge,Graph>::is_marked_branching (Node& node) const
 {
     Value val = 0;
     branching_kmers.get (node.kmer, val);
@@ -271,8 +271,8 @@ bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_marked_branchin
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::reset()
+template <typename Node, typename Edge, typename Graph>
+void BranchingTerminatorTemplate<Node,Edge,Graph>::reset()
 {
     branching_kmers.clear();
 }
@@ -285,8 +285,8 @@ void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::reset()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_indexed (Node& node) const
+template <typename Node, typename Edge, typename Graph>
+bool BranchingTerminatorTemplate<Node,Edge,Graph>::is_indexed (Node& node) const
 {
     return branching_kmers.contains (node.kmer);
 }
@@ -299,39 +299,39 @@ bool BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::is_indexed (Node& 
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-void BranchingTerminatorTemplate<Node,Edge,GraphDataVariant>::dump ()
+template <typename Node, typename Edge, typename Graph>
+void BranchingTerminatorTemplate<Node,Edge,Graph>::dump ()
 {
 }
 
 
 /***********************/
 
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool MPHFTerminatorTemplate<Node,Edge,GraphDataVariant>::is_marked (Node& node) const
+template <typename Node, typename Edge, typename Graph>
+bool MPHFTerminatorTemplate<Node,Edge,Graph>::is_marked (Node& node) const
 {
     int status = this->_graph.queryNodeState(node);
     return status & 1 == 1;
 }
 
-template <typename Node, typename Edge, typename GraphDataVariant>
-void MPHFTerminatorTemplate<Node,Edge,GraphDataVariant>::mark (Node& node) 
+template <typename Node, typename Edge, typename Graph>
+void MPHFTerminatorTemplate<Node,Edge,Graph>::mark (Node& node) 
 {
     int state = this->_graph.queryNodeState(node);
     state |= 1;
     this->_graph.setNodeState(node, state);
 }
 
-template <typename Node, typename Edge, typename GraphDataVariant>
-void MPHFTerminatorTemplate<Node,Edge,GraphDataVariant>::reset() 
+template <typename Node, typename Edge, typename Graph>
+void MPHFTerminatorTemplate<Node,Edge,Graph>::reset() 
 {
     this->_graph.resetNodeState();
 }
 
 // instantiation of GATB legacy compatibility 
-template class MPHFTerminatorTemplate<Node, Edge, GraphDataVariant>; 
-template class BranchingTerminatorTemplate<Node, Edge, GraphDataVariant>; 
-template class TerminatorTemplate<Node, Edge, GraphDataVariant>; 
+template class MPHFTerminatorTemplate<Node, Edge, Graph>; 
+template class BranchingTerminatorTemplate<Node, Edge, Graph>; 
+template class TerminatorTemplate<Node, Edge, Graph>; 
 
 
 /********************************************************************************/

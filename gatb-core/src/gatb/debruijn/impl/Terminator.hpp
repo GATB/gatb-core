@@ -44,21 +44,21 @@ namespace impl      {
  * by the \ref Traversal class during its traversing process.
  */
 
-template <typename Node, typename Edge, typename GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
 class TerminatorTemplate : public system::SmartPointer
 {
 public:
 
     /** Constructor
      * \param[in] graph : the graph */
-    TerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph) : _graph(graph)  {}
+    TerminatorTemplate (const Graph& graph) : _graph(graph)  {}
 
     /** Destructor. */
     virtual ~TerminatorTemplate ()  {}
 
     /** Get the graph.
      * \return the graph. */
-    const GraphTemplate<Node,Edge,GraphDataVariant>& getGraph() const { return _graph; }
+    const Graph& getGraph() const { return _graph; }
 
     /** Tells whether marking nodes is allowed or not
      * \return true if marking nodes is allowed, false otherwise. */
@@ -104,7 +104,7 @@ public:
 
 protected:
 
-    const GraphTemplate<Node,Edge,GraphDataVariant>& _graph;
+    const Graph& _graph;
 };
 
 /********************************************************************************/
@@ -113,17 +113,17 @@ protected:
  *
  * This class provides a null implementation, which means that no marks are done.
  */
-template <typename Node, typename Edge, typename GraphDataVariant>
-class NullTerminatorTemplate :  public TerminatorTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class NullTerminatorTemplate :  public TerminatorTemplate<Node,Edge,Graph>
 {
 public:
 
     /** Singleton method.
      * \return a singleton instance.
      */
-    static TerminatorTemplate<Node,Edge,GraphDataVariant>& singleton()
+    static TerminatorTemplate<Node,Edge,Graph>& singleton()
     {
-        static GraphTemplate<Node,Edge,GraphDataVariant> dummy;
+        static Graph dummy;
         static NullTerminatorTemplate instance(dummy); return instance;
     }
 
@@ -156,15 +156,15 @@ public:
 
 //private:
 
-    NullTerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph) : TerminatorTemplate<Node,Edge,GraphDataVariant>(graph)  {}
+    NullTerminatorTemplate (const Graph& graph) : TerminatorTemplate<Node,Edge,Graph>(graph)  {}
 };
 
 /********************************************************************************/
 
 /** \brief Implementation of Terminator that marks branching nodes.
  */
-template <typename Node, typename Edge, typename GraphDataVariant>
-class BranchingTerminatorTemplate :  public TerminatorTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class BranchingTerminatorTemplate :  public TerminatorTemplate<Node,Edge,Graph>
 {
 public:
 
@@ -172,7 +172,7 @@ public:
 
     /** Constructor
      * \param[in] graph : the graph */
-    BranchingTerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph);
+    BranchingTerminatorTemplate (const Graph& graph);
 
     /** Copy constructor
      * \param[in] terminator: the graph */
@@ -275,8 +275,8 @@ private:
 /** \brief MPHF implementation of Terminator.
  *
  */
-template <typename Node, typename Edge, typename GraphDataVariant>
-class MPHFTerminatorTemplate :  public TerminatorTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class MPHFTerminatorTemplate :  public TerminatorTemplate<Node,Edge,Graph>
 {
 public:
 
@@ -304,12 +304,12 @@ public:
     /** \copydoc Terminator::dump */
     virtual void dump () { printf("not expecting a call to MPHFTermiantor.dump\n"); exit(1); };
 
-    MPHFTerminatorTemplate (const GraphTemplate<Node,Edge,GraphDataVariant>& graph) : TerminatorTemplate<Node,Edge,GraphDataVariant>(graph)  {}
+    MPHFTerminatorTemplate (const Graph& graph) : TerminatorTemplate<Node,Edge,Graph>(graph)  {}
 };
 
-typedef TerminatorTemplate<Node, Edge, GraphDataVariant> Terminator; 
-typedef MPHFTerminatorTemplate<Node, Edge, GraphDataVariant> MPHFTerminator; 
-typedef BranchingTerminatorTemplate<Node, Edge, GraphDataVariant> BranchingTerminator; 
+typedef TerminatorTemplate<Node, Edge, Graph> Terminator; 
+typedef MPHFTerminatorTemplate<Node, Edge, Graph> MPHFTerminator; 
+typedef BranchingTerminatorTemplate<Node, Edge, Graph> BranchingTerminator; 
 
 
 /********************************************************************************/

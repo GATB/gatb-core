@@ -148,83 +148,77 @@ struct Count2TypeAdaptor  {  typename Kmer<span>::Type& operator() (typename Kme
  * therefore configure the variant with the items coming from this storage.
  */
 template<typename Node, typename Edge, typename GraphDataVariant>
-struct configure_visitor : public boost::static_visitor<>    {
+template <size_t span>  
+void configure_visitor<Node,Edge,GraphDataVariant>::operator() (GraphData<span>& data) const 
+{
+    size_t   kmerSize = graph.getKmerSize();
+    
+    /** We create the kmer model. */
+    data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
-    const GraphTemplate<Node, Edge, GraphDataVariant>& graph;
-    Storage&     storage;
-
-    configure_visitor (const GraphTemplate<Node, Edge, GraphDataVariant>& graph, Storage& storage)  : graph(graph), storage(storage) {}
-
-    template<size_t span>  void operator() (GraphData<span>& data) const
+    if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_CONFIGURATION_DONE)
     {
-        size_t   kmerSize = graph.getKmerSize();
+        /** We get the configuration group in the storage. */
+        Group& configGroup = storage.getGroup("configuration");
 
-        /** We create the kmer model. */
-        data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
+        /** We read the XML file and update the global info. */
+        stringstream ss; ss << configGroup.getProperty ("xml");
 
-        if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_CONFIGURATION_DONE)
-        {
-            /** We get the configuration group in the storage. */
-            Group& configGroup = storage.getGroup("configuration");
+        Properties props; props.readXML (ss);
+        graph.getInfo().add (1, props);
+    }
 
-            /** We read the XML file and update the global info. */
-            stringstream ss; ss << configGroup.getProperty ("xml");
+    if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE)
+    {
+        /** We get the dsk group in the storage. */
+        Group& dskGroup = storage.getGroup("dsk");
 
-            Properties props; props.readXML (ss);
-            graph.getInfo().add (1, props);
-        }
+        /** We set the iterable for the solid kmers. */
+        data.setSolid (& dskGroup.getPartition<typename Kmer<span>::Count> ("solid"));
 
-        if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE)
-        {
-            /** We get the dsk group in the storage. */
-            Group& dskGroup = storage.getGroup("dsk");
+        /** We read the XML file and update the global info. */
+        stringstream ss; ss << dskGroup.getProperty ("xml");
 
-            /** We set the iterable for the solid kmers. */
-            data.setSolid (& dskGroup.getPartition<typename Kmer<span>::Count> ("solid"));
+        Properties props; props.readXML (ss);
+        graph.getInfo().add (1, props);
+    }
 
-            /** We read the XML file and update the global info. */
-            stringstream ss; ss << dskGroup.getProperty ("xml");
+    if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE)
+    {
+        /** We set the container. */
+        BloomAlgorithm<span> algo (storage);
+        graph.getInfo().add (1, algo.getInfo());
+    }
 
-            Properties props; props.readXML (ss);
-            graph.getInfo().add (1, props);
-       }
+    if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE)
+    {
+        /** We set the container. */
+        DebloomAlgorithm<span> algo (storage);
+        graph.getInfo().add (1, algo.getInfo());
+        data.setContainer (algo.getContainerNode());
+    }
 
-        if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE)
-        {
-            /** We set the container. */
-            BloomAlgorithm<span> algo (storage);
-            graph.getInfo().add (1, algo.getInfo());
-        }
+    if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BRANCHING_DONE)
+    {
+        /** We set the branching container. */
+        BranchingAlgorithm<span, Node, Edge, GraphTemplate<Node, Edge, GraphDataVariant>> algo (storage);
+        graph.getInfo().add (1, algo.getInfo());
+        data.setBranching (algo.getBranchingCollection());
+    }
 
-        if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE)
-        {
-            /** We set the container. */
-            DebloomAlgorithm<span> algo (storage);
-            graph.getInfo().add (1, algo.getInfo());
-            data.setContainer (algo.getContainerNode());
-        }
+    if ((graph._mphfKind != MPHF_NONE) && (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE) &&  (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
+    {
+        typedef typename Kmer<span>::Count Count;
+        typedef typename Kmer<span>::Type  Type;
 
-        if (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BRANCHING_DONE)
-        {
-            /** We set the branching container. */
-            BranchingAlgorithm<span, Node, Edge, GraphDataVariant> algo (storage);
-            graph.getInfo().add (1, algo.getInfo());
-            data.setBranching (algo.getBranchingCollection());
-        }
+        /** We get the dsk group in the storage. */
+        Group& dskGroup = storage.getGroup("dsk");
 
-        if ((graph._mphfKind != MPHF_NONE) && (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE) &&  (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
-        {
-            typedef typename Kmer<span>::Count Count;
-            typedef typename Kmer<span>::Type  Type;
+        /** We get the iterable for the solid counts and solid kmers. */
+        Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
+        Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 
-            /** We get the dsk group in the storage. */
-            Group& dskGroup = storage.getGroup("dsk");
-
-            /** We get the iterable for the solid counts and solid kmers. */
-            Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
-            Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
-            
-            MPHFAlgorithm<span> mphf_algo (
+        MPHFAlgorithm<span> mphf_algo (
                 graph._mphfKind,
                 dskGroup,
                 "mphf",
@@ -232,14 +226,13 @@ struct configure_visitor : public boost::static_visitor<>    {
                 solidKmers,
                 1,  // loading using 1 thread
                 false  /* build=true, load=false */
-            );
+                );
 
-            data.setAbundance (mphf_algo.getAbundanceMap());
-            data.setNodeState (mphf_algo.getNodeStateMap());
-            data.setAdjacency (mphf_algo.getAdjacencyMap());
-        }
+        data.setAbundance (mphf_algo.getAbundanceMap());
+        data.setNodeState (mphf_algo.getNodeStateMap());
+        data.setAdjacency (mphf_algo.getAdjacencyMap());
     }
-};
+}
 
 
 /* used in build_visitor and build_visitor_postsolid */
@@ -285,219 +278,209 @@ inline void executeAlgorithm (Algorithm& algorithm, Storage* storage, IPropertie
  *  is based on the Graph API methods, and is therefore executed after the data variant configuration.
 
  */
+
 template<typename Node, typename Edge, typename GraphDataVariant>
-struct build_visitor_solid : public boost::static_visitor<>    {
+template <size_t span>  
+void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span>& data) const 
+{
+    /** Shortcuts. */
+    typedef typename Kmer<span>::Count Count;
 
-    GraphTemplate<Node, Edge, GraphDataVariant>& graph; bank::IBank* bank; tools::misc::IProperties* props;
+    LOCAL (bank);
 
-    build_visitor_solid (GraphTemplate<Node, Edge, GraphDataVariant>& aGraph, bank::IBank* aBank, tools::misc::IProperties* aProps)  : graph(aGraph), bank(aBank), props(aProps) {}
+    // TODO Erwan: do we even use those variables? if not, why put them here? I feel that it's weak to parse cmdline arguments in build_visitor
+    // because graph._kmerSize is already defined at this point; and config._minim_size has minimizer size info. The rest we don't use.
+    size_t kmerSize      = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
+    size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
+    size_t nksMin        = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
+    size_t nksMax        = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
+    size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
+    size_t repartitionType = props->get(STR_REPARTITION_TYPE) ? props->getInt(STR_REPARTITION_TYPE)    : 0;
+    size_t compressLevel   = props->get(STR_COMPRESS_LEVEL)   ? props->getInt(STR_COMPRESS_LEVEL)      : 0;
+    bool   configOnly      = props->get(STR_CONFIG_ONLY) != 0;
 
-    template<size_t span>  void operator() (GraphData<span>& data) const
+    string output = props->get(STR_URI_OUTPUT) ?
+        props->getStr(STR_URI_OUTPUT)   :
+        (props->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (bank->getId()));
+
+    /* create output dir if it doesn't exist */
+    if(!System::file().doesExist(props->getStr(STR_URI_OUTPUT_DIR))){
+        int ok = System::file().mkdir(props->getStr(STR_URI_OUTPUT_DIR), 0755);
+        if(ok != 0){
+            throw system::Exception ("Error: can't create output directory");
+        }
+    }
+
+    DEBUG ((cout << "builGraph for bank '" << bank->getId() << "'"
+                << " kmerSize=" << kmerSize
+                << " nksMin=" << nksMin
+                << " output='" << output << "'"
+                << endl
+           ));
+
+    /** We create the kmer model. */
+    data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
+
+    /** We add library and host information. */
+    graph.getInfo().add (1, & LibraryInfo::getInfo());
+    graph.getInfo().add (1, & HostInfo::getInfo());
+
+    /************************************************************/
+    /*                       Storage creation                   */
+    /************************************************************/
+
+    Storage* mainStorage = StorageFactory(graph._storageMode).create (output, true, false); /* second arg true = delete if exists; we're recreating this hdf5 file */
+
+    /** We create the storage object for the graph. */
+    graph.setStorage (mainStorage);
+
+    /** We may need a specific storage instance if we want to save the solid kmers in a separate file. */
+    Storage* solidStorage = 0;
+    if (props->get(STR_URI_SOLID_KMERS) != 0)
     {
-        /** Shortcuts. */
-        typedef typename Kmer<span>::Count Count;
+        string solidsName = props->getStr(STR_URI_SOLID_KMERS);
+        /** Historically (by convention), the file was deleted if its name is "none".
+         * Now, since debloom may use the minimizer repartition function (stored in the solid file),
+         * we must not delete the solid file. */
+        bool autoDelete = false; // (solidsName == "none") || (solidsName == "null");
+        solidStorage = StorageFactory(graph._storageMode).create (solidsName, true, autoDelete);
+    }
+    else
+    {
+        solidStorage = graph._storage;
+    }
+    LOCAL (solidStorage);
 
-        LOCAL (bank);
+    /** We change the compression level for the storage.  Note that we need to do this before accessing the groups. */
+    mainStorage->root(). setCompressLevel (compressLevel);
+    solidStorage->root().setCompressLevel (compressLevel);
 
-        // TODO Erwan: do we even use those variables? if not, why put them here? I feel that it's weak to parse cmdline arguments in build_visitor
-        // because graph._kmerSize is already defined at this point; and config._minim_size has minimizer size info. The rest we don't use.
-        size_t kmerSize      = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
-        size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
-        size_t nksMin        = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
-        size_t nksMax        = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
-        size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
-        size_t repartitionType = props->get(STR_REPARTITION_TYPE) ? props->getInt(STR_REPARTITION_TYPE)    : 0;
-        size_t compressLevel   = props->get(STR_COMPRESS_LEVEL)   ? props->getInt(STR_COMPRESS_LEVEL)      : 0;
-        bool   configOnly      = props->get(STR_CONFIG_ONLY) != 0;
+    /** We get the minimizers hash group in the storage object. */
+    Group& minimizersGroup = (*mainStorage)("minimizers");
 
-        string output = props->get(STR_URI_OUTPUT) ?
-            props->getStr(STR_URI_OUTPUT)   :
-            (props->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (bank->getId()));
+    /** We get the 'dsk' group in the storage object. */
+    Group& dskGroup = (*solidStorage)("dsk");
 
-        /* create output dir if it doesn't exist */
-        if(!System::file().doesExist(props->getStr(STR_URI_OUTPUT_DIR))){
-            int ok = System::file().mkdir(props->getStr(STR_URI_OUTPUT_DIR), 0755);
-            if(ok != 0){
-                throw system::Exception ("Error: can't create output directory");
-            }
-        }
+    /************************************************************/
+    /*                       Configuration                      */
+    /************************************************************/
+    DEBUG ((cout << "build_visitor : ConfigurationAlgorithm BEGIN\n"));
 
-        DEBUG ((cout << "builGraph for bank '" << bank->getId() << "'"
-            << " kmerSize=" << kmerSize
-            << " nksMin=" << nksMin
-            << " output='" << output << "'"
-            << endl
-        ));
+    ConfigurationAlgorithm<span> configAlgo (bank, props);
+    executeAlgorithm (configAlgo, & graph.getStorage(), props, graph._info);
+    Configuration config = configAlgo.getConfiguration();
+    graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_CONFIGURATION_DONE);
 
-        /** We create the kmer model. */
-        data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
+    DEBUG ((cout << "build_visitor : ConfigurationAlgorithm END\n"));
 
-        /** We add library and host information. */
-        graph.getInfo().add (1, & LibraryInfo::getInfo());
-        graph.getInfo().add (1, & HostInfo::getInfo());
+    /** We may have to stop just after configuration. */
+    if (configOnly)  { return; }
 
-        /************************************************************/
-        /*                       Storage creation                   */
-        /************************************************************/
+    /************************************************************/
+    /*                  Minimizers repartition                  */
+    /************************************************************/
+    DEBUG ((cout << "build_visitor : RepartitorAlgorithm BEGIN\n"));
 
-        Storage* mainStorage = StorageFactory(graph._storageMode).create (output, true, false); /* second arg true = delete if exists; we're recreating this hdf5 file */
+    RepartitorAlgorithm<span> repart (bank, 
+            minimizersGroup, 
+            config,
+            props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
+            );
+    executeAlgorithm (repart, 0, props, graph._info);
 
-        /** We create the storage object for the graph. */
-        graph.setStorage (mainStorage);
+    DEBUG ((cout << "build_visitor : RepartitorAlgorithm END\n"));
 
-        /** We may need a specific storage instance if we want to save the solid kmers in a separate file. */
-        Storage* solidStorage = 0;
-        if (props->get(STR_URI_SOLID_KMERS) != 0)
-        {
-            string solidsName = props->getStr(STR_URI_SOLID_KMERS);
-            /** Historically (by convention), the file was deleted if its name is "none".
-             * Now, since debloom may use the minimizer repartition function (stored in the solid file),
-             * we must not delete the solid file. */
-            bool autoDelete = false; // (solidsName == "none") || (solidsName == "null");
-            solidStorage = StorageFactory(graph._storageMode).create (solidsName, true, autoDelete);
-        }
-        else
-        {
-            solidStorage = graph._storage;
-        }
-        LOCAL (solidStorage);
+    /************************************************************/
+    /*                         Sorting count                    */
+    /************************************************************/
+    DEBUG ((cout << "build_visitor : SortingCountAlgorithm BEGIN\n"));
 
-        /** We change the compression level for the storage.  Note that we need to do this before accessing the groups. */
-        mainStorage->root(). setCompressLevel (compressLevel);
-        solidStorage->root().setCompressLevel (compressLevel);
-
-        /** We get the minimizers hash group in the storage object. */
-        Group& minimizersGroup = (*mainStorage)("minimizers");
-
-        /** We get the 'dsk' group in the storage object. */
-        Group& dskGroup = (*solidStorage)("dsk");
-
-        /************************************************************/
-        /*                       Configuration                      */
-        /************************************************************/
-        DEBUG ((cout << "build_visitor : ConfigurationAlgorithm BEGIN\n"));
-
-        ConfigurationAlgorithm<span> configAlgo (bank, props);
-        executeAlgorithm (configAlgo, & graph.getStorage(), props, graph._info);
-        Configuration config = configAlgo.getConfiguration();
-        graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_CONFIGURATION_DONE);
-
-        DEBUG ((cout << "build_visitor : ConfigurationAlgorithm END\n"));
-
-        /** We may have to stop just after configuration. */
-        if (configOnly)  { return; }
-
-        /************************************************************/
-        /*                  Minimizers repartition                  */
-        /************************************************************/
-        DEBUG ((cout << "build_visitor : RepartitorAlgorithm BEGIN\n"));
-
-        RepartitorAlgorithm<span> repart (bank, 
-                 minimizersGroup, 
-                 config,
-                 props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
-                 );
-        executeAlgorithm (repart, 0, props, graph._info);
-
-        DEBUG ((cout << "build_visitor : RepartitorAlgorithm END\n"));
-
-        /************************************************************/
-        /*                         Sorting count                    */
-        /************************************************************/
-        DEBUG ((cout << "build_visitor : SortingCountAlgorithm BEGIN\n"));
-
-        /** We create a DSK instance and execute it. */
-        SortingCountAlgorithm<span> sortingCount (
+    /** We create a DSK instance and execute it. */
+    SortingCountAlgorithm<span> sortingCount (
             bank,
             config,
             new Repartitor(minimizersGroup),
             SortingCountAlgorithm<span>::getDefaultProcessorVector (config, props, solidStorage, mainStorage),
-			props
-        );
+            props
+            );
 
-        executeAlgorithm (sortingCount, solidStorage, props, graph._info);
-        graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE);
+    executeAlgorithm (sortingCount, solidStorage, props, graph._info);
+    graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE);
 
-        Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
+    Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
 
-        /** We configure the variant. */
-        data.setSolid (solidCounts);
+    /** We configure the variant. */
+    data.setSolid (solidCounts);
 
-        /** We check that we got solid kmers. */
-        if (solidCounts->getNbItems() == 0)  {  throw system::Exception ("This dataset has no solid kmers"); }
+    /** We check that we got solid kmers. */
+    if (solidCounts->getNbItems() == 0)  {  throw system::Exception ("This dataset has no solid kmers"); }
 
-        DEBUG ((cout << "build_visitor : SortingCountAlgorithm END\n"));
+    DEBUG ((cout << "build_visitor : SortingCountAlgorithm END\n"));
 
-        /** We save the state and kmer size at storage root level. */
-        graph.getGroup().setProperty ("state",     Stringify::format("%d", graph._state));
-        graph.getGroup().setProperty ("kmer_size", Stringify::format("%d", graph._kmerSize));
-    }
+    /** We save the state and kmer size at storage root level. */
+    graph.getGroup().setProperty ("state",     Stringify::format("%d", graph._state));
+    graph.getGroup().setProperty ("kmer_size", Stringify::format("%d", graph._kmerSize));
+}
 
-};
 
 /* now build the rest of the graph */
 template<typename Node, typename Edge, typename GraphDataVariant>
-struct build_visitor_postsolid : public boost::static_visitor<>    {
+template <size_t span>  
+void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<span>& data) const 
+{
+    typedef typename Kmer<span>::Count Count;
+    typedef typename Kmer<span>::Type  Type;
 
-    GraphTemplate<Node, Edge, GraphDataVariant>& graph; tools::misc::IProperties* props; 
+    /** We may have to stop just after configuration. */
+    if (props->get(STR_CONFIG_ONLY))  { return; }
 
-    build_visitor_postsolid (GraphTemplate<Node, Edge, GraphDataVariant>& aGraph, tools::misc::IProperties* aProps)  : graph(aGraph), props(aProps) {}
-
-    template<size_t span>  void operator() (GraphData<span>& data) const
+    if (!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
     {
-        typedef typename Kmer<span>::Count Count;
-        typedef typename Kmer<span>::Type  Type;
+        throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers");
+    }
 
-        /** We may have to stop just after configuration. */
-        if (props->get(STR_CONFIG_ONLY))  { return; }
+    size_t   kmerSize = graph.getKmerSize();
 
-        if (!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
-        {
-            throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers");
-        }
+    // todo: see remark in build_visitor_solid, we should be able to get that info from elsewhere
+    size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
 
-        size_t   kmerSize = graph.getKmerSize();
+    /** We create the kmer model. */
+    data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
 
-        // todo: see remark in build_visitor_solid, we should be able to get that info from elsewhere
-        size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
-       
-        /** We create the kmer model. */
-        data.setModel (new typename Kmer<span>::ModelCanonical (kmerSize));
+    /** We may need a specific storage instance if we want to save the solid kmers in a separate file. */
+    Storage* solidStorage = 0;
+    if (props->get(STR_URI_SOLID_KMERS) != 0)
+    {
+        string solidsName = props->getStr(STR_URI_SOLID_KMERS);
+        /** Historically (by convention), the file was deleted if its name is "none".
+         * Now, since debloom may use the minimizer repartition function (stored in the solid file),
+         * we must not delete the solid file. */
+        bool autoDelete = false; // (solidsName == "none") || (solidsName == "null");
+        solidStorage = StorageFactory(graph._storageMode).create (solidsName, false, autoDelete);
+    }
+    else
+    {
+        solidStorage = graph._storage;
+    }
+    LOCAL (solidStorage);
 
-        /** We may need a specific storage instance if we want to save the solid kmers in a separate file. */
-        Storage* solidStorage = 0;
-        if (props->get(STR_URI_SOLID_KMERS) != 0)
-        {
-            string solidsName = props->getStr(STR_URI_SOLID_KMERS);
-            /** Historically (by convention), the file was deleted if its name is "none".
-             * Now, since debloom may use the minimizer repartition function (stored in the solid file),
-             * we must not delete the solid file. */
-            bool autoDelete = false; // (solidsName == "none") || (solidsName == "null");
-            solidStorage = StorageFactory(graph._storageMode).create (solidsName, false, autoDelete);
-        }
-        else
-        {
-            solidStorage = graph._storage;
-        }
-        LOCAL (solidStorage);
+    /************************************************************/
+    /*                         MPHF                             */
+    /* note: theoretically could be done in parallel to debloom, but both tasks may or may not be IO intensive */
+    /************************************************************/
 
-        /************************************************************/
-        /*                         MPHF                             */
-        /* note: theoretically could be done in parallel to debloom, but both tasks may or may not be IO intensive */
-        /************************************************************/
-       
-        Group& dskGroup = (*solidStorage)("dsk"); 
-        Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
+    Group& dskGroup = (*solidStorage)("dsk"); 
+    Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
 
-        /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
-        if (graph._mphfKind != MPHF_NONE && (!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)))
-        {
-            DEBUG ((cout << "build_visitor : MPHFAlgorithm BEGIN\n"));
+    /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
+    if (graph._mphfKind != MPHF_NONE && (!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)))
+    {
+        DEBUG ((cout << "build_visitor : MPHFAlgorithm BEGIN\n"));
 
-            /** We get the iterable for the solid counts and solid kmers. */
-            Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
+        /** We get the iterable for the solid counts and solid kmers. */
+        Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 
-            MPHFAlgorithm<span> mphf_algo (
+        MPHFAlgorithm<span> mphf_algo (
                 graph._mphfKind,
                 dskGroup,
                 "mphf",
@@ -507,51 +490,51 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
                 // TODO enhancement: also pass the MAX_MEMORY parameter to enable or disable fast mode depending on it
                 true  /* build=true, load=false */
 
-            );
-            executeAlgorithm (mphf_algo, & graph.getStorage(), props, graph._info);
-            data.setAbundance(mphf_algo.getAbundanceMap());
-            data.setNodeState(mphf_algo.getNodeStateMap());
-            data.setAdjacency(mphf_algo.getAdjacencyMap());
-            graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE);
+                );
+        executeAlgorithm (mphf_algo, & graph.getStorage(), props, graph._info);
+        data.setAbundance(mphf_algo.getAbundanceMap());
+        data.setNodeState(mphf_algo.getNodeStateMap());
+        data.setAdjacency(mphf_algo.getAdjacencyMap());
+        graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE);
 
-            DEBUG ((cout << "build_visitor : MPHFAlgorithm END\n"));
-        }
+        DEBUG ((cout << "build_visitor : MPHFAlgorithm END\n"));
+    }
 
-        /************************************************************/
-        /*                         Bloom                            */
-        /************************************************************/
-        if (graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE) && !(graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE)))
+    /************************************************************/
+    /*                         Bloom                            */
+    /************************************************************/
+    if (graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE) && !(graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE)))
+    {
+        DEBUG ((cout << "build_visitor : BloomAlgorithm BEGIN\n"));
+
+        if (graph._bloomKind != BLOOM_NONE)
         {
-            DEBUG ((cout << "build_visitor : BloomAlgorithm BEGIN\n"));
-
-            if (graph._bloomKind != BLOOM_NONE)
-            {
-                BloomAlgorithm<span> bloomAlgo (
+            BloomAlgorithm<span> bloomAlgo (
                     graph.getStorage(),
                     data._solid,
                     kmerSize,
                     DebloomAlgorithm<span>::getNbBitsPerKmer (kmerSize, graph._debloomKind),
                     props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
                     graph._bloomKind
-                );
-                executeAlgorithm (bloomAlgo, & graph.getStorage(), props, graph._info);
-                graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE);
-            }
-
-            DEBUG ((cout << "build_visitor : BloomAlgorithm END\n"));
+                    );
+            executeAlgorithm (bloomAlgo, & graph.getStorage(), props, graph._info);
+            graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE);
         }
 
-        /************************************************************/
-        /*                         Debloom                          */
-        /************************************************************/
-        if (graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE) && !(graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE)))
-        {
-            DEBUG ((cout << "build_visitor : DebloomAlgorithm BEGIN\n"));
-        
-            Group& minimizersGroup = (graph.getStorage())("minimizers");
+        DEBUG ((cout << "build_visitor : BloomAlgorithm END\n"));
+    }
 
-            /** We create a debloom instance and execute it. */
-            DebloomAlgorithm<span>* debloom = DebloomAlgorithmFactory<span>::create (
+    /************************************************************/
+    /*                         Debloom                          */
+    /************************************************************/
+    if (graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE) && !(graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE)))
+    {
+        DEBUG ((cout << "build_visitor : DebloomAlgorithm BEGIN\n"));
+
+        Group& minimizersGroup = (graph.getStorage())("minimizers");
+
+        /** We create a debloom instance and execute it. */
+        DebloomAlgorithm<span>* debloom = DebloomAlgorithmFactory<span>::create (
                 graph._debloomImpl,
                 (graph.getStorage())("bloom"),
                 (graph.getStorage())("debloom"),
@@ -563,72 +546,71 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
                 graph._debloomKind,
                 "", 0,
                 &minimizersGroup
-            );
-            LOCAL (debloom);
+                );
+        LOCAL (debloom);
 
-            executeAlgorithm (*debloom, & graph.getStorage(), props, graph._info);
+        executeAlgorithm (*debloom, & graph.getStorage(), props, graph._info);
 
-            graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE);
+        graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE);
 
-            /** We configure the variant. */
-            data.setContainer (debloom->getContainerNode());
+        /** We configure the variant. */
+        data.setContainer (debloom->getContainerNode());
 
-            DEBUG ((cout << "build_visitor : DebloomAlgorithm END\n"));
-        }
+        DEBUG ((cout << "build_visitor : DebloomAlgorithm END\n"));
+    }
 
-        /************************************************************/
-        /*                         Branching                        */
-        /************************************************************/
-        if (graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE) && !(graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BRANCHING_DONE)))
+    /************************************************************/
+    /*                         Branching                        */
+    /************************************************************/
+    if (graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE) && !(graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BRANCHING_DONE)))
+    {
+        DEBUG ((cout << "build_visitor : BranchingAlgorithm BEGIN\n"));
+
+        if (graph._branchingKind != BRANCHING_NONE)
         {
-            DEBUG ((cout << "build_visitor : BranchingAlgorithm BEGIN\n"));
-
-            if (graph._branchingKind != BRANCHING_NONE)
-            {
-                BranchingAlgorithm<span, Node, Edge, GraphDataVariant> branchingAlgo (
+            BranchingAlgorithm<span, Node, Edge, GraphTemplate<Node,Edge,GraphDataVariant> > branchingAlgo (
                     graph,
                     graph.getStorage(),
                     graph._branchingKind,
                     props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
                     props
-                );
-                executeAlgorithm (branchingAlgo, & graph.getStorage(), props, graph._info);
+                    );
+            executeAlgorithm (branchingAlgo, & graph.getStorage(), props, graph._info);
 
-                graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BRANCHING_DONE);
+            graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BRANCHING_DONE);
 
-                /** We configure the variant. */
-                data.setBranching (branchingAlgo.getBranchingCollection());
-            }
-
-            DEBUG ((cout << "build_visitor : BranchingAlgorithm END\n"));
-
-        }
-        
-
-        /************************************************************/
-        /*                    Post processing                       */
-        /************************************************************/
-
-        /** In case we choose another storage for the solid kmers, we have to update the graph state. */
-        if (props->get(STR_URI_SOLID_KMERS) != 0)
-        {
-            data.setSolid (0);
-            graph.unsetState (GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE);
+            /** We configure the variant. */
+            data.setBranching (branchingAlgo.getBranchingCollection());
         }
 
-        /** We save library information in the root of the storage. */
-        graph.getGroup().setProperty ("xml", string("\n") + LibraryInfo::getInfo().getXML());
-        
+        DEBUG ((cout << "build_visitor : BranchingAlgorithm END\n"));
 
-        /** We save the state and kmer size at storage root level. */
-        graph.getGroup().setProperty ("state",     Stringify::format("%d", graph._state));
-        graph.getGroup().setProperty ("kmer_size", Stringify::format("%d", graph._kmerSize));
-
-        /************************************************************/
-        /*                        Clean up                          */
-        /************************************************************/
     }
-};
+
+
+    /************************************************************/
+    /*                    Post processing                       */
+    /************************************************************/
+
+    /** In case we choose another storage for the solid kmers, we have to update the graph state. */
+    if (props->get(STR_URI_SOLID_KMERS) != 0)
+    {
+        data.setSolid (0);
+        graph.unsetState (GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE);
+    }
+
+    /** We save library information in the root of the storage. */
+    graph.getGroup().setProperty ("xml", string("\n") + LibraryInfo::getInfo().getXML());
+
+
+    /** We save the state and kmer size at storage root level. */
+    graph.getGroup().setProperty ("state",     Stringify::format("%d", graph._state));
+    graph.getGroup().setProperty ("kmer_size", Stringify::format("%d", graph._kmerSize));
+
+    /************************************************************/
+    /*                        Clean up                          */
+    /************************************************************/
+}
 
 
 
@@ -948,6 +930,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate ()
       _bloomKind(BLOOM_DEFAULT),
       _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
+    std::cout << "empty graphtemplate constructor" << std::endl;
 }
 
 /*********************************************************************
@@ -1011,6 +994,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>& GraphTemplate<Node, Edge, GraphData
 template<typename Node, typename Edge, typename GraphDataVariant>
 GraphTemplate<Node, Edge, GraphDataVariant>::~GraphTemplate<Node, Edge, GraphDataVariant> ()
 {
+    std::cout <<"normal graph destructor called" << std::endl;
     /** We release resources. */
     setStorage (0);
     if (_variant)  {  delete (GraphDataVariant*)_variant;  }
@@ -1058,22 +1042,6 @@ template<typename Node, typename Edge, typename GraphDataVariant>
 bool GraphTemplate<Node, Edge, GraphDataVariant>::isSimple (Edge& edge) const
 {
     return this->outdegree(edge.from)==1  &&  this->indegree(edge.to)==1;
-}
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-template<typename Node, typename Edge, typename GraphDataVariant>
-bool GraphTemplate<Node, Edge, GraphDataVariant>::isEdge (Node& u, Node& v) const
-{
-    bool result = false;
-
-    return result;
 }
 
 /*********************************************************************
@@ -1191,21 +1159,21 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::degree (Node& node, size_t &in
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename Item, typename Functor, typename GraphDataVariant>
-struct getItems_visitor : public boost::static_visitor<typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Item> >    {
+struct getItems_visitor : public boost::static_visitor<GraphVector<Item> >    {
 
     Node& source;  Direction direction;  Functor fct; 
     bool hasAdjacency;
 
     getItems_visitor (Node& aSource, Direction aDirection, bool hasAdjacency, Functor aFct) : source(aSource), direction(aDirection), fct(aFct), hasAdjacency(hasAdjacency) {}
 
-    template<size_t span>  typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Item> operator() (const GraphData<span>& data) const
+    template<size_t span>  GraphVector<Item> operator() (const GraphData<span>& data) const
     {
 
         /** Shortcut. */
         typedef typename Kmer<span>::Type Type;
 
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Item> items;
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Item> itemsAdj;
+        GraphVector<Item> items;
+        GraphVector<Item> itemsAdj;
 
         size_t idx = 0;
         size_t idxAdj = 0;
@@ -1402,7 +1370,7 @@ struct getItems_visitor : public boost::static_visitor<typename GraphTemplate<No
 /********************************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
 struct Functor_getEdges {   void operator() (
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge>& items,
+    GraphVector<Edge>& items,
     size_t               idx,
     const typename Node::Value&   kmer_from,
     kmer::Strand         strand_from,
@@ -1419,7 +1387,7 @@ struct Functor_getEdges {   void operator() (
  * operator directly, without apply_visitor (which seems to be expensive in the minia profiling using valgrind) 
  * but this seems tricky to code, so I gave up quickly */
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> GraphTemplate<Node, Edge, GraphDataVariant>::getEdges (Node source, Direction direction)  const
+GraphVector<Edge> GraphTemplate<Node, Edge, GraphDataVariant>::getEdges (Node source, Direction direction)  const
 {
     bool hasAdjacency = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_ADJACENCY_DONE;
     return boost::apply_visitor (getItems_visitor<Node, Edge, Edge, Functor_getEdges<Node, Edge, GraphDataVariant>, GraphDataVariant>(source, direction, hasAdjacency, Functor_getEdges<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
@@ -1428,7 +1396,7 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> Grap
 /********************************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
 struct Functor_getNodes {  void operator() (
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node>&   items,
+    GraphVector<Node>&   items,
     size_t               idx,
     const typename Node::Value&   kmer_from,
     kmer::Strand         strand_from,
@@ -1442,7 +1410,7 @@ struct Functor_getNodes {  void operator() (
 }};
 
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getNodes (Node &source, Direction direction)  const
+GraphVector<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getNodes (Node &source, Direction direction)  const
 {
     bool hasAdjacency = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_ADJACENCY_DONE;
     return boost::apply_visitor (getItems_visitor<Node, Edge, Node, Functor_getNodes<Node, Edge, GraphDataVariant>, GraphDataVariant >(source, direction, hasAdjacency, Functor_getNodes<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
@@ -1601,19 +1569,19 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::countNeighbors (Node &source, 
 ** REMARKS : Why is'nt this code using getItems? ah, I guess, because there's a common functor called for both nodes neighbors at the same time. strange.
 *********************************************************************/
 template<typename Node, typename Edge, typename Item, typename Functor, typename GraphDataVariant>
-struct getItemsCouple_visitor : public boost::static_visitor<typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<pair<Item,Item> > >    {
+struct getItemsCouple_visitor : public boost::static_visitor<GraphVector<pair<Item,Item> > >    {
 
     const Node& node1; const Node& node2;  Direction direction; Functor functor;
 
     getItemsCouple_visitor (const Node& node1, const Node& node2, Direction aDirection, Functor aFct)
         : node1(node1), node2(node2),  direction(aDirection), functor(aFct) {}
 
-    template<size_t span>  typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<pair<Item,Item> > operator() (const GraphData<span>& data) const
+    template<size_t span>  GraphVector<pair<Item,Item> > operator() (const GraphData<span>& data) const
     {
         typedef typename Kmer<span>::Type  Type;
 
         size_t idx = 0;
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector < pair<Item,Item> > items;
+        GraphVector < pair<Item,Item> > items;
 
         /** Shortcuts. */
         size_t      kmerSize = data._model->getKmerSize();
@@ -1731,7 +1699,7 @@ struct Functor_getNodesCouple {  void operator() (
 }};
 
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<std::pair<Node,Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getNodesCouple (const Node& node1, const Node& node2, Direction direction) const
+GraphVector<std::pair<Node,Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getNodesCouple (const Node& node1, const Node& node2, Direction direction) const
 {
     return boost::apply_visitor (getItemsCouple_visitor<Node, Edge, Node, Functor_getNodesCouple<Node, Edge, GraphDataVariant>, GraphDataVariant>(node1, node2, direction, Functor_getNodesCouple<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
 }
@@ -1759,7 +1727,7 @@ struct Functor_getEdgesCouple {  void operator() (
 }};
 
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<std::pair<Edge,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getEdgesCouple (const Node& node1, const Node& node2, Direction direction) const
+GraphVector<std::pair<Edge,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getEdgesCouple (const Node& node1, const Node& node2, Direction direction) const
 {
     return boost::apply_visitor (getItemsCouple_visitor<Node, Edge, Edge, Functor_getEdgesCouple<Node, Edge, GraphDataVariant>, GraphDataVariant >(node1, node2, direction, Functor_getEdgesCouple<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
 }
@@ -1831,12 +1799,12 @@ Node GraphTemplate<Node, Edge, GraphDataVariant>::buildNode (const char* sequenc
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeNeighbors (Node& source, Direction direction) const
+GraphVector<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeNeighbors (Node& source, Direction direction) const
 {
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> >  result;
+    GraphVector<BranchingNode_t<Node> >  result;
 
     /** We get the neighbors of the source node. */
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> neighbors = this->neighborsEdge (source, direction);
+    GraphVector<Edge> neighbors = this->neighborsEdge (source, direction);
 
     /** We resize the result vector. */
     result.resize (neighbors.size());
@@ -1845,7 +1813,7 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingN
     for (size_t i=0; i<neighbors.size(); i++)
     {
         /** We get a simple path iterator from the current neighbor. */
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Edge> path = this->simplePathEdge (neighbors[i].to, direction);
+        GraphIterator<Edge> path = this->simplePathEdge (neighbors[i].to, direction);
 
         /** We iterate this simple path from the current neighbor. */
         for (path.first(); !path.isDone(); path.next())  {}
@@ -1869,12 +1837,12 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingN
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeNeighbors (Node& source, Direction direction) const
+GraphVector<BranchingEdge_t<Node,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeNeighbors (Node& source, Direction direction) const
 {
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> >  result;
+    GraphVector<BranchingEdge_t<Node,Edge> >  result;
 
     /** We get the neighbors of the source node. */
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> neighbors = this->neighborsEdge (source, direction);
+    GraphVector<Edge> neighbors = this->neighborsEdge (source, direction);
 
     /** We resize the result vector. */
     result.resize (neighbors.size());
@@ -1885,7 +1853,7 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingE
         DEBUG ((cout << "neighbor[" << i << "] " << this->toString(neighbors[i]) << endl));
 
         /** We get a simple path iterator from the current neighbor. */
-        GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Edge> path = this->simplePathEdge (neighbors[i].to, direction);
+        GraphIterator<Edge> path = this->simplePathEdge (neighbors[i].to, direction);
 
         /** We iterate this simple path from the current neighbor. */
         for (path.first(); !path.isDone(); path.next())
@@ -2144,12 +2112,12 @@ Node GraphTemplate<Node, Edge, GraphDataVariant>::getNode (Node& source, Directi
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> GraphTemplate<Node, Edge, GraphDataVariant>::getEdgeValues (const typename Node::Value& kmer) const
+GraphVector<Edge> GraphTemplate<Node, Edge, GraphDataVariant>::getEdgeValues (const typename Node::Value& kmer) const
 {
     Node source (kmer);
 
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> v1 = getEdges(source,          DIR_OUTCOMING);
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> v2 = getEdges(reverse(source), DIR_OUTCOMING);
+    GraphVector<Edge> v1 = getEdges(source,          DIR_OUTCOMING);
+    GraphVector<Edge> v2 = getEdges(reverse(source), DIR_OUTCOMING);
 #if 0
     v1.insert (v1.end(), v2.begin(), v2.end());
 #else
@@ -2163,13 +2131,13 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Edge> Grap
 
 /********************************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getNodeValues (const typename Node::Value& kmer) const
+GraphVector<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getNodeValues (const typename Node::Value& kmer) const
 {
     Node source (kmer);
     Node rev_source (reverse(source));
 
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> v1 = getNodes(source,          DIR_OUTCOMING);
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> v2 = getNodes(rev_source, DIR_OUTCOMING);
+    GraphVector<Node> v1 = getNodes(source,          DIR_OUTCOMING);
+    GraphVector<Node> v2 = getNodes(rev_source, DIR_OUTCOMING);
 
 #if 0
     v1.insert (v1.end(), v2.begin(), v2.end());
@@ -2191,13 +2159,13 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> Grap
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeValues (const typename Node::Value& kmer) const
+GraphVector<BranchingEdge_t<Node,Edge> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingEdgeValues (const typename Node::Value& kmer) const
 {
     Node source (kmer);
     Node rev_source (reverse(source));
 
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > v1 = getBranchingEdgeNeighbors (source,          DIR_OUTCOMING);
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingEdge_t<Node,Edge> > v2 = getBranchingEdgeNeighbors (rev_source, DIR_OUTCOMING);
+    GraphVector<BranchingEdge_t<Node,Edge> > v1 = getBranchingEdgeNeighbors (source,          DIR_OUTCOMING);
+    GraphVector<BranchingEdge_t<Node,Edge> > v2 = getBranchingEdgeNeighbors (rev_source, DIR_OUTCOMING);
 #if 0
     v1.insert (v1.end(), v2.begin(), v2.end());
 #else
@@ -2211,13 +2179,13 @@ typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingE
 
 /********************************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeValues (const typename Node::Value& kmer) const
+GraphVector<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodeValues (const typename Node::Value& kmer) const
 {
     Node source (kmer);
     Node rev_source (reverse(source));
 
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > v1 = getBranchingNodeNeighbors (source,          DIR_OUTCOMING);
-    typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<BranchingNode_t<Node> > v2 = getBranchingNodeNeighbors (rev_source, DIR_OUTCOMING);
+    GraphVector<BranchingNode_t<Node> > v1 = getBranchingNodeNeighbors (source,          DIR_OUTCOMING);
+    GraphVector<BranchingNode_t<Node> > v2 = getBranchingNodeNeighbors (rev_source, DIR_OUTCOMING);
 
 
 #if 0
@@ -2419,9 +2387,9 @@ struct nodes_visitor : public boost::static_visitor<tools::dp::ISmartIterator<No
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getNodes () const
+GraphIterator<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getNodes () const
 {
-    return typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Node> (boost::apply_visitor (nodes_visitor<Node,Edge, Node, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
+    return GraphIterator<Node> (boost::apply_visitor (nodes_visitor<Node,Edge, Node, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
 }
 
 /*********************************************************************
@@ -2433,9 +2401,9 @@ GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> GraphTemplate<Node, 
 ** REMARKS :
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodes () const
+GraphIterator<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::getBranchingNodes () const
 {
-    return typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<BranchingNode_t<Node> > (boost::apply_visitor (nodes_visitor<Node, Edge, BranchingNode_t<Node>, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
+    return GraphIterator<BranchingNode_t<Node> > (boost::apply_visitor (nodes_visitor<Node, Edge, BranchingNode_t<Node>, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
 }
 
 /*********************************************************************
@@ -2664,7 +2632,7 @@ int GraphTemplate<Node, Edge, GraphDataVariant>::simplePathAvance (Node& node, D
 template<typename Node, typename Edge, typename GraphDataVariant>
 int GraphTemplate<Node, Edge, GraphDataVariant>::simplePathAvance (Node& node, Direction dir, Edge& output) const
 {
-    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<Edge> neighbors = this->neighborsEdge (node, dir);
+    GraphVector<Edge> neighbors = this->neighborsEdge (node, dir);
 
     /** We check we have no outbranching. */
     if (neighbors.size() == 1)
@@ -2684,6 +2652,80 @@ int GraphTemplate<Node, Edge, GraphDataVariant>::simplePathAvance (Node& node, D
 
     return 0;
 }
+template<typename Node, typename Edge, typename GraphDataVariant>
+double GraphTemplate<Node, Edge, GraphDataVariant>::
+simplePathMeanAbundance     (Node& node, Direction dir) const
+{
+    GraphIterator <Node> itNodes = simplePath (node, dir);
+
+    unsigned long mean_abundance = 0;
+    int length = 0;
+    for (itNodes.first(); !itNodes.isDone(); itNodes.next())
+    {
+        unsigned int abundance = queryAbundance(*itNodes);
+        mean_abundance += abundance;
+    }
+    double meanAbundance = (double)mean_abundance / ((double)length);
+    double stdevAbundance = 0;
+
+    // get std dev, for debug only
+    bool debugstdev = false;
+    if (debugstdev)
+    {
+        for (itNodes.first(); !itNodes.isDone(); itNodes.next())
+        {
+            unsigned int abundance = queryAbundance((*itNodes));
+            stdevAbundance += pow(fabs(abundance-meanAbundance),2);
+        }
+        stdevAbundance = sqrt(stdevAbundance/(double)length);
+    }
+
+    return meanAbundance;
+}
+template<typename Node, typename Edge, typename GraphDataVariant>
+Node  GraphTemplate<Node, Edge, GraphDataVariant>::
+simplePathLastNode  (Node& node, Direction dir) const
+{
+    GraphIterator <Node> itNodes = simplePath (node, dir);
+    itNodes.first();
+    Node cur;
+    for (; !itNodes.isDone(); itNodes.next())
+        cur = *itNodes; // is there an easier way?
+    return cur;
+}
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+unsigned int GraphTemplate<Node, Edge, GraphDataVariant>::
+simplePathLength (Node& node, Direction dir) const
+{
+    GraphIterator <Node> itNodes = simplePath (node, dir);
+    unsigned int length = 0;
+    for (itNodes.first(); !itNodes.isDone(); itNodes.next())
+        length++;
+    return length;
+}
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+void GraphTemplate<Node, Edge, GraphDataVariant>::
+simplePathDelete (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>> &nodesDeleter) const
+{
+    GraphIterator <Node> itNodes = simplePath (node, dir);
+    for (itNodes.first(); !itNodes.isDone(); itNodes.next())
+        nodesDeleter.markToDelete(*itNodes);
+}
+
+
+
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+std::string GraphTemplate<Node, Edge, GraphDataVariant>::
+simplePathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const
+{
+    std::cout << "Graph simplePathSequence not implemented (only in GraphUnitigs yet)" << std::endl;// would be easy to implement, just see Minia's legacy code for example
+    return "";
+}
+
+
 
 /*********************************************************************
 ** METHOD  :
@@ -2790,9 +2832,9 @@ struct Functor_getSimpleNodeIterator {  void operator() (
 }};
 
 template<typename Node, typename Edge, typename GraphDataVariant> 
-GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getSimpleNodeIterator (Node& node, Direction dir) const
+GraphIterator<Node> GraphTemplate<Node, Edge, GraphDataVariant>::getSimpleNodeIterator (Node& node, Direction dir) const
 {
-    return typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Node> (new NodeSimplePathIterator <Node, Edge, Functor_getSimpleNodeIterator<Node, Edge, GraphDataVariant>, GraphDataVariant> (*this, node, dir, Functor_getSimpleNodeIterator<Node, Edge, GraphDataVariant>()));
+    return GraphIterator<Node> (new NodeSimplePathIterator <Node, Edge, Functor_getSimpleNodeIterator<Node, Edge, GraphDataVariant>, GraphDataVariant> (*this, node, dir, Functor_getSimpleNodeIterator<Node, Edge, GraphDataVariant>()));
 }
 
 /*********************************************************************
@@ -2825,9 +2867,9 @@ struct Functor_getSimpleEdgeIterator {  void operator() (
 }};
 
 template<typename Node, typename Edge, typename GraphDataVariant> 
-typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Edge> GraphTemplate<Node, Edge, GraphDataVariant>::getSimpleEdgeIterator (Node& node, Direction dir) const
+GraphIterator<Edge> GraphTemplate<Node, Edge, GraphDataVariant>::getSimpleEdgeIterator (Node& node, Direction dir) const
 {
-    return GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Edge> (new EdgeSimplePathIterator<Node, Edge, Functor_getSimpleEdgeIterator<Node, Edge, GraphDataVariant>, GraphDataVariant>(*this, node, dir, Functor_getSimpleEdgeIterator<Node, Edge, GraphDataVariant>()));
+    return GraphIterator<Edge> (new EdgeSimplePathIterator<Node, Edge, Functor_getSimpleEdgeIterator<Node, Edge, GraphDataVariant>, GraphDataVariant>(*this, node, dir, Functor_getSimpleEdgeIterator<Node, Edge, GraphDataVariant>()));
 }
 
 /*********************************************************************
@@ -2845,7 +2887,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
     std::set<BranchingNode> result;
     for (auto it=first; it!=last; ++it)
     {
-        GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode> neighbors = this->neighborsBranching(it->kmer);
+        GraphVector<BranchingNode> neighbors = this->neighborsBranching(it->kmer);
         for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
     }
     return result;
@@ -2883,7 +2925,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
             {
                 for (typename std::set<BranchingNode_t<Node> >::iterator it=range.first; it!=range.second; ++it)
                 {
-                    GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = graph.neighborsBranching(it->kmer);
+                    GraphVector<BranchingNode_t<Node> > neighbors = graph.neighborsBranching(it->kmer);
                     for (size_t i=0; i<neighbors.size(); i++)  { result.push_back (neighbors[i]); }
                 }
             }
@@ -2924,7 +2966,7 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
     {
         for (typename std::set<BranchingNode_t<Node> >::iterator it=first; it!=last; ++it)
         {
-            GraphTemplate<Node, Edge, GraphDataVariant>::Vector<BranchingNode_t<Node> > neighbors = this->neighborsBranching(it->kmer);
+            GraphVector<BranchingNode_t<Node> > neighbors = this->neighborsBranching(it->kmer);
             for (size_t i=0; i<neighbors.size(); i++)  { result.insert (neighbors[i]); }
         }
     }
@@ -2943,19 +2985,19 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
 *********************************************************************/
 #if 0 // FIXME: this code crashes clang, so i disable it for now; actually, i still dont know whether this code is used anywhere
 template<typename Node, typename Edge, typename GraphDataVariant> 
-struct mutate_visitor : public boost::static_visitor<typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> >    {
+struct mutate_visitor : public boost::static_visitor<GraphVector<Node> >    {
 
     const Node& node;  size_t idx;  int mode;
 
     mutate_visitor (const Node& node, size_t idx, int mode) : node(node), idx(idx), mode(mode){}
 
-    template<size_t span>  GraphTemplate<Node, Edge, GraphDataVariant>::Vector<Node> operator() (const GraphData<span>& data) const
+    template<size_t span>  GraphVector<Node> operator() (const GraphData<span>& data) const
     {
         /** Shortcuts. */
         typedef typename Kmer<span>::Type           Type;
         typedef typename Kmer<span>::ModelCanonical Model;
 
-        typename GraphTemplate<Node, Edge, GraphDataVariant>::template Vector<Node> result;
+        GraphVector<Node> result;
         size_t nbMutations = 0;
 
         size_t kmerSize = data._model->getKmerSize();
@@ -3061,7 +3103,7 @@ struct mutate_visitor : public boost::static_visitor<typename GraphTemplate<Node
 
 /** */
 template<typename Node, typename Edge, typename GraphDataVariant> 
-GraphTemplate<Node, Edge, GraphDataVariant>::Vector<Node> GraphTemplate<Node, Edge, GraphDataVariant>::mutate (const Node& node, size_t idx, int mode) const
+GraphVector<Node> GraphTemplate<Node, Edge, GraphDataVariant>::mutate (const Node& node, size_t idx, int mode) const
 {
     return boost::apply_visitor (mutate_visitor<Node, Edge, GraphDataVariant>(node,idx,mode),  *(GraphDataVariant*)_variant);
 }
@@ -3404,7 +3446,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
     std::cout << "Adjacency precomputation isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
 #else
 
-    ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem, Node, Edge, GraphDataVariant> itNode (iterator(), "precomputing adjacency", verbose);
+    ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem> itNode (iterator(), "precomputing adjacency", verbose);
     
     bool hasMPHF = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE;
     if (!hasMPHF)
@@ -3432,7 +3474,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
             // in both directions
             for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
             {
-                GraphTemplate<Node, Edge, GraphDataVariant>::Vector<Edge> neighbors = this->neighborsEdge(node, dir);
+                GraphVector<Edge> neighbors = this->neighborsEdge(node, dir);
                 for (unsigned int i = 0; i < neighbors.size(); i++)
                 {
                     u_int8_t bit = nt2bit[neighbors[i].nt];
@@ -3452,7 +3494,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
     bool adjSanityCheck = false;
     if (adjSanityCheck)
     {
-        ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem, Node, Edge, GraphDataVariant> itNode2 (iterator(), "checking adjacency", verbose);
+        ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem> itNode2 (iterator(), "checking adjacency", verbose);
         dispatcher.iterate (itNode2, [&] (Node& node)        {
                 // in both directions
                 for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
@@ -3480,7 +3522,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node& node) const
     {
         /* absolutely need to update adjacency information of neighboring nodes */
         // todo: this can be made more efficient, but I wanted quick bug-free code
-        Vector<Edge> neighbs = this->neighborsEdge(node);
+        GraphVector<Edge> neighbs = this->neighborsEdge(node);
 
         // sanity checks regarding adjacency information
         //if (debugCompareNeighborhoods(node, DIR_INCOMING, "node deletion, incoming neighbors")) exit(1);
@@ -3496,7 +3538,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node& node) const
             // (gatb seems to ahve different edge creation behavior when neighbors(node) and neighbors(node,DIR_INCOMING) is used)
             for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
             {
-                Vector<Edge> neighbs_of_neighbs = this->neighborsEdge(neighbor, dir);
+                GraphVector<Edge> neighbs_of_neighbs = this->neighborsEdge(neighbor, dir);
                 
                 // sanity check 
                 //if (debugCompareNeighborhoods(neighbor,  dir, "node deletion, neighbs_of_neighbs"))
@@ -3570,7 +3612,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNode (Node& node) const
     if (_cacheNonSimpleNodes)
     {
         cacheNonSimpleNodeDelete(node); // so in case of a tip, will delete the tip and add the next kmer as non-branching, which will be in turn deleted. not that efficient, but will do for now.
-        Vector<Edge> neighbs = this->neighborsEdge(node);
+        GraphVector<Edge> neighbs = this->neighborsEdge(node);
         for (size_t i = 0; i < neighbs.size(); i++)
         {
             Node neighbor = neighbs[i].to;
@@ -3586,8 +3628,8 @@ bool GraphTemplate<Node, Edge, GraphDataVariant>::debugCompareNeighborhoods(Node
     bool hasAdjacency = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_ADJACENCY_DONE;
     if (!hasAdjacency) return false;
 
-    Vector<Edge> neighborsAdj = boost::apply_visitor (getItems_visitor<Node, Edge, Edge, Functor_getEdges<Node, Edge, GraphDataVariant>, GraphDataVariant>(node, dir, true , Functor_getEdges<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
-    Vector<Edge> neighborsBloom = boost::apply_visitor (getItems_visitor<Node, Edge, Edge, Functor_getEdges<Node, Edge, GraphDataVariant>, GraphDataVariant>(node, dir, false, Functor_getEdges<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant); // without adjacency (copied neighborsEdge code because hasAdjacency parameter isn't exposed)
+    GraphVector<Edge> neighborsAdj = boost::apply_visitor (getItems_visitor<Node, Edge, Edge, Functor_getEdges<Node, Edge, GraphDataVariant>, GraphDataVariant>(node, dir, true , Functor_getEdges<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant);
+    GraphVector<Edge> neighborsBloom = boost::apply_visitor (getItems_visitor<Node, Edge, Edge, Functor_getEdges<Node, Edge, GraphDataVariant>, GraphDataVariant>(node, dir, false, Functor_getEdges<Node, Edge, GraphDataVariant>()),  *(GraphDataVariant*)_variant); // without adjacency (copied neighborsEdge code because hasAdjacency parameter isn't exposed)
 
     if (neighborsAdj.size() != neighborsBloom.size())
     {
@@ -3627,7 +3669,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool
     std::cout << "Node deletion isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
 #else
 
-    GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> itNode = this->iterator();
+    GraphIterator<Node> itNode = this->iterator();
     Dispatcher dispatcher (nbCores); 
 
     dispatcher.iterate (itNode, [&] (Node& node)        {
@@ -3652,7 +3694,8 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::simplify(unsigned int nbCores, bool verbose)
 {
-        Simplifications<Node,Edge,GraphDataVariant> graphSimplifications(*this, nbCores, verbose);
+        Simplifications<GraphTemplate<Node, Edge, GraphDataVariant>,Node,Edge> 
+            graphSimplifications(*this, nbCores, verbose);
         graphSimplifications.simplify();
 }
 
@@ -3732,7 +3775,7 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned i
 #else
     boost::apply_visitor (allocateNonSimpleNodeCache_visitor<Node, Edge, GraphDataVariant>(),  *(GraphDataVariant*)_variant);
     setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_NONSIMPLE_CACHE);
-    GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> itNode = this->iterator();
+    GraphIterator<Node> itNode = this->iterator();
     Dispatcher dispatcher (nbCores); 
     system::ISynchronizer* synchro = system::impl::System::thread().newSynchronizer();
     unsigned long nbCachedNodes = 0;
@@ -3825,9 +3868,9 @@ struct cached_nodes_visitor : public boost::static_visitor<tools::dp::ISmartIter
 };
 
 template<typename Node, typename Edge, typename GraphDataVariant>
-GraphTemplate<Node, Edge, GraphDataVariant>::Iterator<Node> GraphTemplate<Node, Edge, GraphDataVariant>::iteratorCachedNodes() const
+GraphIterator<Node> GraphTemplate<Node, Edge, GraphDataVariant>::iteratorCachedNodes() const
 {
-    return typename GraphTemplate<Node, Edge, GraphDataVariant>::template Iterator<Node> (boost::apply_visitor (cached_nodes_visitor<Node,Edge, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
+    return GraphIterator<Node> (boost::apply_visitor (cached_nodes_visitor<Node,Edge, GraphDataVariant>(*this),  *(GraphDataVariant*)_variant));
 }
 
 

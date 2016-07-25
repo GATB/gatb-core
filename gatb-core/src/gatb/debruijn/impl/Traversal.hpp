@@ -65,7 +65,7 @@ struct TraversalStats
 
 /********************************************************************************/
 
-/** \brief Class that traverse nodes of a GraphTemplate<Node,Edge,GraphDataVariant>
+/** \brief Class that traverse nodes of a Graph
  *
  * The Traversal class looks for path in a graph according to several criteria. This
  * is done through the 'traverse' method. As a result, one gets a Path object that
@@ -85,7 +85,7 @@ struct TraversalStats
  * \snippet traversal2.cpp  snippet1_traversal
  *
  */
-template <typename Node, typename Edge, typename GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
 class TraversalTemplate: public system::SmartPointer
 {
 public:
@@ -98,10 +98,10 @@ public:
      * \param[in] max_depth : maximum depth of the traversal
      * \param[in] max_breadth : maximum depth of the traversal
      */
-    static TraversalTemplate<Node,Edge,GraphDataVariant>* create (
+    static TraversalTemplate<Node,Edge,Graph>* create (
         tools::misc::TraversalKind  type,
-        const GraphTemplate<Node,Edge,GraphDataVariant>&                graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&                         terminator,
+        const Graph&                graph,
+        TerminatorTemplate<Node,Edge,Graph>&                         terminator,
         int                         max_len     = defaultMaxLen,
         int                         max_depth   = defaultMaxDepth,
         int                         max_breadth = defaultMaxBreadth
@@ -115,10 +115,10 @@ public:
      * \param[in] max_depth : maximum depth of the traversal
      * \param[in] max_breadth : maximum depth of the traversal
      */
-    static TraversalTemplate<Node,Edge,GraphDataVariant>* create (
+    static TraversalTemplate<Node,Edge,Graph>* create (
         const std::string&  type,
-        const GraphTemplate<Node,Edge,GraphDataVariant>&        graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&                 terminator,
+        const Graph&        graph,
+        TerminatorTemplate<Node,Edge,Graph>&                 terminator,
         int                 max_len     = defaultMaxLen,
         int                 max_depth   = defaultMaxDepth,
         int                 max_breadth = defaultMaxBreadth
@@ -178,15 +178,15 @@ protected:
 
     /** */
     TraversalTemplate (
-        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>         & terminator,
+        const Graph& graph,
+        TerminatorTemplate<Node,Edge,Graph>         & terminator,
         int maxlen,
         int max_depth,
         int max_breadth
     );
 
-    const GraphTemplate<Node,Edge,GraphDataVariant>& graph;
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&          terminator;
+    const Graph& graph;
+    TerminatorTemplate<Node,Edge,Graph>&          terminator;
 
     int maxlen;
     int max_depth;
@@ -206,8 +206,8 @@ protected:
  *
  * This class returns empty Path as a result of traverse.
  */
-template <typename Node, typename Edge, typename GraphDataVariant>
-class NullTraversalTemplate: public TraversalTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class NullTraversalTemplate: public TraversalTemplate<Node,Edge,Graph>
 {
 public:
 
@@ -219,12 +219,12 @@ public:
      * \param[in] max_breadth : maximum depth of the traversal
      */
     NullTraversalTemplate (
-        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
+        const Graph& graph,
+        TerminatorTemplate<Node,Edge,Graph>& terminator,
         int maxlen      = NullTraversalTemplate::defaultMaxLen,
         int max_depth   = NullTraversalTemplate::defaultMaxDepth,
         int max_breadth = NullTraversalTemplate::defaultMaxBreadth
-    ) : TraversalTemplate<Node,Edge,GraphDataVariant> (graph, terminator, maxlen, max_depth, max_breadth) {}
+    ) : TraversalTemplate<Node,Edge,Graph> (graph, terminator, maxlen, max_depth, max_breadth) {}
 
     /** Get the name of the traversal
      * \return the name */
@@ -239,8 +239,8 @@ private:
 
 /** \brief Implementation of Traversal that produces unitigs.
  */
-template <typename Node, typename Edge, typename GraphDataVariant>
-class SimplePathsTraversalTemplate: public TraversalTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class SimplePathsTraversalTemplate: public TraversalTemplate<Node,Edge,Graph>
 {
 public:
 
@@ -252,8 +252,8 @@ public:
      * \param[in] max_breadth : maximum depth of the traversal
      */
     SimplePathsTraversalTemplate (
-        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>& terminator,
+        const Graph& graph,
+        TerminatorTemplate<Node,Edge,Graph>& terminator,
         int maxlen      = SimplePathsTraversalTemplate::defaultMaxLen,
         int max_depth   = SimplePathsTraversalTemplate::defaultMaxDepth,
         int max_breadth = SimplePathsTraversalTemplate::defaultMaxBreadth
@@ -273,8 +273,8 @@ private:
 
 /** \brief Implementation of Traversal that produces contigs.
  */
-template <typename Node, typename Edge, typename GraphDataVariant>
-class MonumentTraversalTemplate: public TraversalTemplate<Node,Edge,GraphDataVariant>
+template <typename Node, typename Edge, typename Graph>
+class MonumentTraversalTemplate: public TraversalTemplate<Node,Edge,Graph>
 {
 public:
 
@@ -286,8 +286,8 @@ public:
      * \param[in] max_breadth : maximum depth of the traversal
      */
     MonumentTraversalTemplate (
-        const GraphTemplate<Node,Edge,GraphDataVariant>& graph,
-        TerminatorTemplate<Node,Edge,GraphDataVariant>&          terminator,
+        const Graph& graph,
+        TerminatorTemplate<Node,Edge,Graph>&          terminator,
         int maxlen      = MonumentTraversalTemplate::defaultMaxLen,
         int max_depth   = MonumentTraversalTemplate::defaultMaxDepth,
         int max_breadth = MonumentTraversalTemplate::defaultMaxBreadth
@@ -360,10 +360,10 @@ private:
 
 /* typedef for compatibility with all existing GATB tools */
 
-typedef TraversalTemplate<Node, Edge, GraphDataVariant> Traversal; 
-typedef MonumentTraversalTemplate<Node, Edge, GraphDataVariant> MonumentTraversal; 
-typedef NullTraversalTemplate<Node, Edge, GraphDataVariant> NullTraversal; 
-typedef SimplePathsTraversalTemplate<Node, Edge, GraphDataVariant> SimplePathsTraversal;
+typedef TraversalTemplate<Node, Edge, Graph> Traversal; 
+typedef MonumentTraversalTemplate<Node, Edge, Graph> MonumentTraversal; 
+typedef NullTraversalTemplate<Node, Edge, Graph> NullTraversal; 
+typedef SimplePathsTraversalTemplate<Node, Edge, Graph> SimplePathsTraversal;
 
 
 

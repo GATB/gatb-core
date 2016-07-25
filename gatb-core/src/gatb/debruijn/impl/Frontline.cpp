@@ -40,11 +40,11 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 ** REMARKS :
 *********************************************************************/
 // a frontline is a set of nodes having equal depth in the BFS
-template <typename Node, typename Edge, typename GraphDataVariant>
-FrontlineTemplate<Node,Edge,GraphDataVariant>::FrontlineTemplate (
+template <typename Node, typename Edge, typename Graph>
+FrontlineTemplate<Node,Edge,Graph>::FrontlineTemplate (
     Direction         direction,
-    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    const Graph&      graph,
+    TerminatorTemplate<Node,Edge,Graph>&       terminator,
     Node&       startingNode
 ) :
     _direction(direction), _graph(graph), _terminator(terminator), _depth(0),
@@ -64,11 +64,11 @@ FrontlineTemplate<Node,Edge,GraphDataVariant>::FrontlineTemplate (
 ** REMARKS :
 *********************************************************************/
 // a frontline is a set of nodes having equal depth in the BFS
-template <typename Node, typename Edge, typename GraphDataVariant>
-FrontlineTemplate<Node,Edge,GraphDataVariant>::FrontlineTemplate (
+template <typename Node, typename Edge, typename Graph>
+FrontlineTemplate<Node,Edge,Graph>::FrontlineTemplate (
     Direction         direction,
-    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    const Graph&      graph,
+    TerminatorTemplate<Node,Edge,Graph>&       terminator,
     Node&       startingNode,
     Node&       previousNode,
     std::set<Node>*   all_involved_extensions
@@ -90,8 +90,8 @@ FrontlineTemplate<Node,Edge,GraphDataVariant>::FrontlineTemplate (
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool FrontlineTemplate<Node,Edge,GraphDataVariant>::go_next_depth()
+template <typename Node, typename Edge, typename Graph>
+bool FrontlineTemplate<Node,Edge,Graph>::go_next_depth()
 {
     // extend all nodes in this frontline simultaneously, creating a new frontline
     stopped_reason=NONE;
@@ -107,7 +107,7 @@ bool FrontlineTemplate<Node,Edge,GraphDataVariant>::go_next_depth()
         if (_depth > 0 && check(current_node.node) == false)  { return false; }
 
         /** We loop the neighbors edges of the current node. */
-        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Edge> edges = _graph.neighborsEdge (current_node.node, _direction);
+        GraphVector<Edge> edges = _graph.neighborsEdge (current_node.node, _direction);
 
         for (size_t i=0; i<edges.size(); i++)
         {
@@ -122,7 +122,7 @@ bool FrontlineTemplate<Node,Edge,GraphDataVariant>::go_next_depth()
             //if (_terminator.isEnabled() && _terminator.is_branching (neighbor) &&  _terminator.is_marked_branching(neighbor))   // legacy, before MPHFTerminator
             if (_terminator.isEnabled() && _terminator.is_marked(neighbor))   // to accomodate MPHFTerminator
             {  
-                stopped_reason=FrontlineTemplate<Node,Edge,GraphDataVariant>::MARKED;
+                stopped_reason=FrontlineTemplate<Node,Edge,Graph>::MARKED;
                 return false;  
             }
 
@@ -154,15 +154,15 @@ bool FrontlineTemplate<Node,Edge,GraphDataVariant>::go_next_depth()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::FrontlineBranchingTemplate (
+template <typename Node, typename Edge, typename Graph>
+FrontlineBranchingTemplate<Node,Edge,Graph>::FrontlineBranchingTemplate (
     Direction         direction,
-    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    const Graph&      graph,
+    TerminatorTemplate<Node,Edge,Graph>&       terminator,
     Node&       startingNode,
     Node&       previousNode,
     std::set<Node>*   all_involved_extensions
-)  : FrontlineTemplate<Node,Edge,GraphDataVariant>(direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
+)  : FrontlineTemplate<Node,Edge,Graph>(direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
 {
 }
 
@@ -174,13 +174,13 @@ FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::FrontlineBranchingTempla
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::FrontlineBranchingTemplate (
+template <typename Node, typename Edge, typename Graph>
+FrontlineBranchingTemplate<Node,Edge,Graph>::FrontlineBranchingTemplate (
     Direction         direction,
-    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    const Graph&      graph,
+    TerminatorTemplate<Node,Edge,Graph>&       terminator,
     Node&       startingNode
-) : FrontlineTemplate<Node,Edge,GraphDataVariant>(direction,graph,terminator,startingNode)
+) : FrontlineTemplate<Node,Edge,Graph>(direction,graph,terminator,startingNode)
 {
 }
 
@@ -193,14 +193,14 @@ FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::FrontlineBranchingTempla
 ** REMARKS :
 *********************************************************************/
 // new code, not in monument, to detect any in-branching longer than 3k
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::check (Node& node)
+template <typename Node, typename Edge, typename Graph>
+bool FrontlineBranchingTemplate<Node,Edge,Graph>::check (Node& node)
 {
 	/** We reverse the node for the inbranching path. */
     Node actual = this->_graph.reverse(node);
 
     /** We loop the neighbors nodes of the current node. */
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> neighbors = this->_graph.neighbors(actual, (this->_direction));
+    GraphVector<Node> neighbors = this->_graph.neighbors(actual, (this->_direction));
 
     for (size_t i=0; i<neighbors.size(); i++)
     {
@@ -213,28 +213,28 @@ bool FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::check (Node& node)
         if (this->_already_frontlined.find (neighbor.kmer) != this->_already_frontlined.end())  {   continue;  }
 
         // create a new frontline inside this frontline to check for large in-branching (i know, we need to go deeper, etc..)
-        FrontlineTemplate<Node,Edge,GraphDataVariant> frontline (this->_direction, this->_graph, this->_terminator, neighbor, actual, this->_all_involved_extensions);
+        FrontlineTemplate<Node,Edge,Graph> frontline (this->_direction, this->_graph, this->_terminator, neighbor, actual, this->_all_involved_extensions);
 
         do  {
             bool should_continue = frontline.go_next_depth();
 
             if (!should_continue)  
             {  
-                this->stopped_reason = FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_OTHER;
+                this->stopped_reason = FrontlineTemplate<Node,Edge,Graph>::IN_BRANCHING_OTHER;
                 break;
             }
 
             // don't allow a depth > 3k
             if (frontline.depth() > 3 * this->_graph.getKmerSize())  
             {  
-                this->stopped_reason = FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_DEPTH;
+                this->stopped_reason = FrontlineTemplate<Node,Edge,Graph>::IN_BRANCHING_DEPTH;
                 break;
             }
 
             // don't allow a breadth too large
             if (frontline.size() > 10)  
             {  
-                this->stopped_reason = FrontlineTemplate<Node,Edge,GraphDataVariant>::IN_BRANCHING_BREADTH;
+                this->stopped_reason = FrontlineTemplate<Node,Edge,Graph>::IN_BRANCHING_BREADTH;
                 break;
             }
 
@@ -259,28 +259,28 @@ bool FrontlineBranchingTemplate<Node,Edge,GraphDataVariant>::check (Node& node)
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template <typename Node, typename Edge, typename GraphDataVariant>
-FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::FrontlineReachableTemplate(
+template <typename Node, typename Edge, typename Graph>
+FrontlineReachableTemplate<Node,Edge,Graph>::FrontlineReachableTemplate(
     Direction         direction,
-    const GraphTemplate<Node,Edge,GraphDataVariant>&      graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&       terminator,
+    const Graph&      graph,
+    TerminatorTemplate<Node,Edge,Graph>&       terminator,
     Node&       startingNode,
     Node&       previousNode,
     std::set<Node>*   all_involved_extensions
-)  : FrontlineTemplate<Node,Edge,GraphDataVariant> (direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
+)  : FrontlineTemplate<Node,Edge,Graph> (direction,graph,terminator,startingNode,previousNode,all_involved_extensions)
 {
 }
 
 
 
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::check (Node& node)
+template <typename Node, typename Edge, typename Graph>
+bool FrontlineReachableTemplate<Node,Edge,Graph>::check (Node& node)
 {
 	/** We reverse the node for the inbranching path. */
     Node actual = this->_graph.reverse(node);
 
     /** neighbors nodes of the current node. */
-    typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> neighbors = this->_graph.neighbors(actual, (this->_direction));
+    GraphVector<Node> neighbors = this->_graph.neighbors(actual, (this->_direction));
 
     for (size_t i=0; i<neighbors.size(); i++)
     {
@@ -294,8 +294,8 @@ bool FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::check (Node& node)
     return true;
 }
 
-template <typename Node, typename Edge, typename GraphDataVariant>
-bool FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::isReachable()
+template <typename Node, typename Edge, typename Graph>
+bool FrontlineReachableTemplate<Node,Edge,Graph>::isReachable()
 {
    for (typename std::set<Node>::iterator itNode = checkLater.begin(); itNode != checkLater.end(); itNode++)
    {
@@ -307,9 +307,9 @@ bool FrontlineReachableTemplate<Node,Edge,GraphDataVariant>::isReachable()
 }
 
 // legacy GATB compatbility
-template class FrontlineTemplate<Node, Edge, GraphDataVariant>; 
-template class FrontlineBranchingTemplate<Node, Edge, GraphDataVariant>; 
-template class FrontlineReachableTemplate<Node, Edge, GraphDataVariant>; 
+template class FrontlineTemplate<Node, Edge, Graph>; 
+template class FrontlineBranchingTemplate<Node, Edge, Graph>; 
+template class FrontlineReachableTemplate<Node, Edge, Graph>; 
 
 
 /********************************************************************************/

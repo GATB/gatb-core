@@ -30,6 +30,7 @@
 
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/debruijn/impl/Graph.hpp>
+#include <gatb/debruijn/impl/GraphUnitigs.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
 
 /********************************************************************************/
@@ -50,7 +51,7 @@ namespace impl      {
  * Actually, this class is mainly used in the debruijn::impl::Graph class as a fourth step for
  * the de Bruijn graph creation.
  */
-template <size_t span=KMER_DEFAULT_SPAN, typename Node=Node_t<>, typename Edge=Edge_t<Node_t<> >, typename GraphDataVariant_t=GraphDataVariant>
+template <size_t span=KMER_DEFAULT_SPAN, typename Node=Node_t<>, typename Edge=Edge_t<Node_t<> >, typename Graph_t=Graph>
 class BranchingAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
@@ -68,7 +69,7 @@ public:
      * \param[in] options : extra options
      */
     BranchingAlgorithm (
-        const GraphTemplate<Node, Edge, GraphDataVariant_t>& graph,
+        const Graph_t& graph,
         tools::storage::impl::Storage& storage,
         tools::misc::BranchingKind  kind,
         size_t                      nb_cores = 0,
@@ -98,7 +99,7 @@ public:
 
 private:
 
-    const GraphTemplate<Node, Edge, GraphDataVariant_t>* _graph;
+    const Graph_t* _graph;
 
     tools::storage::impl::Storage& _storage;
 

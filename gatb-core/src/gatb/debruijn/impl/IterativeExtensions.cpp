@@ -77,8 +77,8 @@ struct NodeDepth
  * our assembly graph is connected by (k-1)-overlaps,
  * so this function is used to make sure we see each (k-1)-overlap in at most one right extremity
  */
-template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
-bool IterativeExtensions<span, Node, Edge, GraphDataVariant>::compare_and_mark_last_k_minus_one_mer (const string& node, set<kmer_type>& kmers_set)
+template<size_t span, typename Node, typename Edge, typename Graph>
+bool IterativeExtensions<span, Node, Edge, Graph>::compare_and_mark_last_k_minus_one_mer (const string& node, set<kmer_type>& kmers_set)
 {
     kmer_type kmer_fw, kmer_rc;
 
@@ -100,10 +100,10 @@ bool IterativeExtensions<span, Node, Edge, GraphDataVariant>::compare_and_mark_l
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
-IterativeExtensions<span, Node, Edge, GraphDataVariant>::IterativeExtensions (
-    const GraphTemplate<Node,Edge,GraphDataVariant>&        graph,
-    TerminatorTemplate<Node,Edge,GraphDataVariant>&         terminator,
+template<size_t span, typename Node, typename Edge, typename Graph>
+IterativeExtensions<span, Node, Edge, Graph>::IterativeExtensions (
+    const Graph&        graph,
+    TerminatorTemplate<Node,Edge,Graph>&         terminator,
     TraversalKind       traversalKind,
     ExtendStopMode_e    whenToStop,
     SearchMode_e        searchMode,
@@ -128,8 +128,8 @@ IterativeExtensions<span, Node, Edge, GraphDataVariant>::IterativeExtensions (
  ** RETURN  :
  ** REMARKS :
  *********************************************************************/
-template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
-void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_seqs (
+template<size_t span, typename Node, typename Edge, typename Graph>
+void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
     const string& L,
     const string& R,
     IBank*        outputBank,
@@ -150,7 +150,7 @@ void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_s
     LOCAL (outputBank);
 
     /** We create a Traversal instance. */
-    TraversalTemplate<Node,Edge,GraphDataVariant>* traversal = TraversalTemplate<Node,Edge,GraphDataVariant>::create (traversalKind, graph, terminator, max_depth, 500, 20);
+    TraversalTemplate<Node,Edge,Graph>* traversal = TraversalTemplate<Node,Edge,Graph>::create (traversalKind, graph, terminator, max_depth, 500, 20);
     LOCAL (traversal);
 
     long long nbNodes = 0;
@@ -264,7 +264,7 @@ void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_s
         // there may be just one 1 possibility (there was in-branching)
 
         /** We get the successors of the node. */
-        typename GraphTemplate<Node,Edge,GraphDataVariant>::template Vector<Node> successors = graph.successors (endNode);
+        GraphVector<Node> successors = graph.successors (endNode);
 
         /** We iterate the successors. */
         for (size_t i=0; i<successors.size(); i++)
@@ -289,8 +289,8 @@ void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_s
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
-void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_seqs (
+template<size_t span, typename Node, typename Edge, typename Graph>
+void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
     const std::string& L,
     const std::string& R,
     const std::string& output_file,
@@ -311,8 +311,8 @@ void IterativeExtensions<span, Node, Edge, GraphDataVariant>::construct_linear_s
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-template<size_t span, typename Node, typename Edge, typename GraphDataVariant>
-void IterativeExtensions<span, Node, Edge, GraphDataVariant>::buildSequence (
+template<size_t span, typename Node, typename Edge, typename Graph>
+void IterativeExtensions<span, Node, Edge, Graph>::buildSequence (
     const Node&     node,
     const Path_t<Node>&     consensusRight,
     size_t          nbNodes,
