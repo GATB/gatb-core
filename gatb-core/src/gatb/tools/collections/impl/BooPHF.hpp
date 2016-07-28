@@ -112,7 +112,7 @@ public:
 			withprogress = false;
 		
 
-        bphf =  boophf_t(nbElts, kmers, nbThreads,1.0, withprogress);
+        bphf =  boophf_t(nbElts, kmers, nbThreads, 3.0 /*much faster construction than gamma=1*/, withprogress);
 
         isBuilt = true;
         nbKeys  = iterable->getNbItems();
