@@ -405,6 +405,8 @@ void bcalm2(Storage *storage,
                 &maxBucket, &lambda_timings, &repart, &modelK1, &out_to_glue, &nb_seqs_in_glue, kmerSize, minSize](int thread_id) {
                 auto start_nodes_t=get_wtime();
 
+                bool debug = false;
+
                 // (make sure to change other places labelled "// graph3" and "// graph4" as well)
                 //graph4 g(kmerSize-1,actualMinimizer,minSize); // graph4
                 uint number_elements(bucket_queues[actualMinimizer].size_approx());
@@ -428,7 +430,10 @@ void bcalm2(Storage *storage,
                     // g.addleftmin(std::get<1>(bucket_elt));
                     // g.addrightmin(std::get<2>(bucket_elt));
                     // g.addvertex(FROM_BUCKET_STR(std::get<0>(bucket_elt)));
+                    if (debug) 
+                        std::cout << " (debug) adding to graph: " << std::get<0>(bucket_elt) << std::endl;
                     graphCompactor.addtuple(bucket_elt);
+                   
                 }
                 // cout<<"endaddtuple"<<endl;
                 auto end_nodes_t=get_wtime();
@@ -453,6 +458,8 @@ void bcalm2(Storage *storage,
                         //std::vector<unsigned int> abundances ; // graph3 
                         std::vector<unsigned int>& abundances = graphCompactor.unitigs_abundances[i]; // graph3 // graph3<span> switch 
                         #endif
+                        if (debug)
+                        std::cout << " (debug) got from compacted graph: " << seq << std::endl;
 
                         typename Model::Kmer kmmerBegin = modelK1.codeSeed(seq.substr(0, kmerSize - 1).c_str(), Data::ASCII);
                         uint leftMin(modelK1.getMinimizerValue(kmmerBegin.value()));
@@ -633,6 +640,9 @@ void bcalm2(Storage *storage,
         cout<<"                       Sum of best scheduling for each sb : "<< global_wtime_best_sched / unit << " secs"<<endl;
     }
 
+    // to stop after bcalm, before bglue:
+    //delete storage;
+    //exit(1);
 }
 
 }}}}

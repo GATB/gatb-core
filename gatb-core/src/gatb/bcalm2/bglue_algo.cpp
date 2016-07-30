@@ -183,7 +183,7 @@ uint32_t no_rev_index(uint32_t index)
 
 vector<vector<uint32_t> > determine_order_sequences(vector<markedSeq> &sequences, int kmerSize)
 {
-    bool debug = false ;
+    bool debug = false;
     unordered_map<string, set<uint32_t> > kmerIndex;
     set<uint32_t> usedSeq;
     vector<vector<uint32_t>> res;
@@ -196,24 +196,8 @@ vector<vector<uint32_t> > determine_order_sequences(vector<markedSeq> &sequences
         kmerIndex[sequences[i].ke].insert(i);
     }
 
-    for (unsigned int i = 0; i < sequences.size(); i++)
+    auto glue_from_extremity = [&](markedSeq& current, uint32_t chain_index, int i)
     {
-        markedSeq current = sequences[i];
-        if (usedSeq.find(i) != usedSeq.end())
-                continue; // this sequence has already been glued
-
-        if (current.lmark & current.rmark)
-            continue; // not the extremity of a chain
-
-        uint32_t chain_index = i;
-        if (current.lmark)
-        {
-            current.revcomp(); // reverse so that lmark is false
-            chain_index = rev_index(i);
-        }
-
-        assert(current.lmark == false);
-
         vector<uint32_t> chain;
         chain.push_back(chain_index);
 
@@ -281,8 +265,64 @@ vector<vector<uint32_t> > determine_order_sequences(vector<markedSeq> &sequences
 
         res.push_back(chain);
         nb_chained += chain.size();
+
+    };
+
+    for (unsigned int i = 0; i < sequences.size(); i++)
+    {
+        if (debug)
+            std::cout << "sequence in glue partition: " << sequences[i].seq << std::endl;
+        markedSeq current = sequences[i];
+        if (usedSeq.find(i) != usedSeq.end())
+        {
+            if (debug)
+                std::cout << "sequence has already been glued" << std::endl;
+            continue; 
+        }
+
+        if (current.lmark & current.rmark)
+        {
+            if (debug)
+                std::cout << "not the extremity of a chain" << std::endl;
+            continue;  
+        }
+    
+        /* normalize sequence so that lmark is false */
+        uint32_t chain_index = i;
+        if (current.lmark)
+        {
+            current.revcomp(); 
+            chain_index = rev_index(i);
+        }
+
+        assert(current.lmark == false);    
+
+        glue_from_extremity(current, chain_index, i);
+
     }
-    assert(sequences.size() == nb_chained); // make sure we've scheduled to glue all sequences in this partition
+
+    /* // attempt to fix circular contigs, but I was in a hurry, so not finished
+    while (nb_chained < sequences.size())
+    {
+        // there might be a special case: a circular unitig, to be glued with multiple sequences all containing doubled kmers at extremities
+        // my fix plan: we pick an extremity at random, and chop the last nucleotide and mark it to not be glued. also find the corresponding kmer in other extremity, and mark it as not to be glued
+
+        vector<int> remaining_indices;
+        for (uint32_t i = 0; i < sequences.size(); i++)
+        {
+            if (usedSeq.find(i) != usedSeq.end())
+                remaining_indices.push_back(i);
+        }
+        uint32_t chain_index = remaining_indices[0];
+        string kmer = sequences[chain_index].substr(0,kmerSize);
+       // sequences[chain_index] = // TODO continue
+    }
+    */
+    if (nb_chained < sequences.size())
+    {
+        std::cout << " WARNING: " << sequences.size() - nb_chained << " sequence chunks not returned in output unitigs (likely small circular contigs)" << std::endl;
+    }
+    // assert(sequences.size() == nb_chained); // make sure we've scheduled to glue all sequences in this partition
     return res;
 }
 

@@ -609,18 +609,22 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
 
     if (debug)
-        std::cout << "[out-of-unitig getEdges] for " << BaseGraph::toString(source) << " dir " << direction << " e:"  << e.toString() << std::endl;
+        std::cout << "[out-of-unitig getEdges] for " << BaseGraph::toString(source) << " dir " << direction << " e: ["  << e.toString() << "]" << std::endl;
     
-    bool incoming= false;
+    bool incoming = false;
 
-    auto functor = [&](const Type &neighbor){ 
-        Type norm_neighbor = modelKdirect->reverse(neighbor);
+    auto functor = [&](const Type &neighbor){
+        Type true_neighbor = neighbor;
+        if (incoming) // iterateIncoming actually reverses to get inneighbors, so we reverse back.
+             true_neighbor = modelKdirect->reverse(neighbor);
+
+        Type norm_neighbor = modelKdirect->reverse(true_neighbor);
         kmer::Strand strand = kmer::STRAND_REVCOMP;
         bool rc = true;
-        if (neighbor < norm_neighbor) 
+        if (true_neighbor < norm_neighbor) 
         {   
             rc = false;
-            norm_neighbor = neighbor;
+            norm_neighbor = true_neighbor;
             strand = kmer::STRAND_FORWARD;
         }
         if (utigs_map.find(norm_neighbor) != utigs_map.end()) 
@@ -629,7 +633,7 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
             if (e.deleted) return;
 
             res.resize(res.size()+1);
-            NodeFast<span> dest (neighbor, strand);
+            NodeFast<span> dest (norm_neighbor, strand);
             kmer::Nucleotide nt;
             if (!incoming)
                 nt = BaseGraph::getNT(dest, 0); 
@@ -639,7 +643,7 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
                 nt = reverse(nt);
             
             if (debug)
-            std::cout << "found kmer " << modelKdirect->toString(dest.kmer) << " strand " << dest.strand << " dir " << (incoming?DIR_INCOMING:DIR_OUTCOMING) << " nt " << ascii(nt)  << std::endl;
+            std::cout << "found kmer " << BaseGraph::toString(dest) << " (kmer: " << modelKdirect->toString(norm_neighbor) << " strand: " << dest.strand << ") dir " << toString(incoming?DIR_INCOMING:DIR_OUTCOMING) << " nt " << ascii(nt)  << std::endl;
             res[res.size()-1].set ( source.kmer, source.strand, dest.kmer, dest.strand, nt, (incoming?DIR_INCOMING:DIR_OUTCOMING));
         }
     }; 
@@ -649,7 +653,9 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
         oriented_kmer = modelKdirect->reverse(source.kmer);
 
     if (direction & DIR_OUTCOMING && ((same_orientation && (e.pos & UNITIG_END)) || ( !same_orientation && (e.pos & UNITIG_BEGIN)) ))
+    {
         modelKdirect->iterateOutgoingNeighbors(oriented_kmer, functor);
+    }
     if (direction & DIR_INCOMING && ((same_orientation && (e.pos & UNITIG_BEGIN)) || ( !same_orientation && (e.pos & UNITIG_END)) ))
     {
         incoming = true;
@@ -667,7 +673,7 @@ GraphVector<NodeFast<span>> GraphUnitigsTemplate<span>::getNodes (NodeFast<span>
     GraphVector<NodeFast<span>> nodes;
     GraphVector<EdgeFast<span>> edges = getEdges (source, direction);
     nodes.resize(edges.size());
-    for (int i = 0; i < edges.size(); i++)
+    for (unsigned int i = 0; i < edges.size(); i++)
     {
         nodes[i] = edges[i].to;
     }
