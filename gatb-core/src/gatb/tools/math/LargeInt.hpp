@@ -581,6 +581,16 @@ public:
         *(this) = (*this) >> coeff;  return *this;
     }
 
+    // operator=
+    LargeInt& operator=  (const uint64_t& c)
+    {
+        setVal(c);
+        return *this;
+    }
+
+
+
+
     /********************************************************************************/
     /** Synchronized atomic operation
      * \param[in] other : operand

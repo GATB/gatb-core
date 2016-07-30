@@ -98,14 +98,7 @@ unsigned long getNodeIndex (const GraphData<span>& data, Node_in& node);
                  #####   #     #  #     #  #        #     #
 ********************************************************************************/
 
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
+// TODO: maybe change a few things in here or else delete and use Graph::getOptionsParser
 template<size_t span>
 IOptionsParser* GraphUnitigsTemplate<span>::getOptionsParser (bool includeMandatory)
 {
@@ -115,20 +108,6 @@ IOptionsParser* GraphUnitigsTemplate<span>::getOptionsParser (bool includeMandat
 
     /** We add children parser to it (kmer count, bloom/debloom, branching). */
     parser->push_back (SortingCountAlgorithm<>::getOptionsParser(includeMandatory));
-
-    /** We activate MPHF option only if available. */
-    if (MPHF<char>::enabled)
-    {
-        IOptionsParser* parserEmphf  = new OptionsParser ("mphf");
-        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf' or 'BooPHF')", false,  "BooPHF"));
-        parser->push_back  (parserEmphf);
-    }
-	else 	//we still activate option for command line compatibility
-	{
-		IOptionsParser* parserEmphf  = new OptionsParser ("mphf");
-		parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none')", false,  "none"));
-		parser->push_back  (parserEmphf);
-	}
 
     /** We create a "general options" parser. */
     IOptionsParser* parserGeneral  = new OptionsParser ("general");
@@ -223,7 +202,7 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (size_t kmerSize)
     : GraphTemplate<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span> >(kmerSize)
 {
     // will call Graph's constructor for (kmerSize), no big deal
-    std::cout << "kmersize graphUtemplate constructor" << std::endl;
+    //std::cout << "kmersize graphUtemplate constructor" << std::endl;
 }
 
 /*********************************************************************
@@ -251,7 +230,29 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (const std::string& uri)
 template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate (bank::IBank* bank, tools::misc::IProperties* params)
 {
-    std::cout << "unitigs graph constructor(bank, params) not supported" << std::endl; exit(1);
+    // quick hack,  not supposed to be used outside o tests
+    
+    /** We get the kmer size from the user parameters. */
+    BaseGraph::_kmerSize = params->getInt (STR_KMER_SIZE);
+    modelK = new Model(BaseGraph::_kmerSize);
+    modelKdirect= new ModelDirect(BaseGraph::_kmerSize);
+    size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
+    /** We configure the data variant according to the provided kmer size. */
+    BaseGraph::setVariant (BaseGraph::_variant, BaseGraph::_kmerSize, integerPrecision);
+    string unitigs_filename = "dummy.unitigs.fa"; // because there's already a bank, we don't know its name maybe?
+        /*(params->get(STR_URI_OUTPUT) ?
+            params->getStr(STR_URI_OUTPUT) :                                                                                                                                                                 System::file().getBaseName (input)
+            )+ ".unitigs.fa";   */       
+
+    params->setInt(STR_REPARTITION_TYPE, 1);
+    params->setInt(STR_MINIMIZER_TYPE, 1);
+
+    /** We build the graph according to the wanted precision. */
+    boost::apply_visitor ( build_visitor_solid<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(*this, bank,params),  *(GraphDataVariantFast<span>*)BaseGraph::_variant);
+
+    build_unitigs_postsolid(unitigs_filename, params);
+
+    load_unitigs(unitigs_filename);
 }
 
 static /* important that it's static! else TemplateSpecialization8 will complain*/
@@ -274,18 +275,51 @@ static string revcomp (string &s) {
 }
 
 template<size_t span>
+void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_filename, tools::misc::IProperties* props)
+{
+    /** We may have to stop just after configuration. I don't know if that happens in GraphU though. */
+    if (props->get(STR_CONFIG_ONLY))  { std::cout << "GraphU Config_only! does that happen?" << std::endl; return; }
+
+    //if (!BaseGraph::checkState(BaseGraph::STATE_SORTING_COUNT_DONE))
+    if (!checkState(STATE_SORTING_COUNT_DONE))
+    {
+        //throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers.\nIf this is an old .h5 file, created with GATB-Core's Graph instead of GraphUnitigs, please re-create it.");
+        // let's try with shared state.
+        throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers.");
+    }
+    
+
+    if (!checkState(STATE_BCALM2_DONE))
+    {
+        int nb_threads =
+            props->getInt(STR_NB_CORES);
+
+        UnitigsConstructionAlgorithm<span> unitigs_algo(BaseGraph::getStorage(), unitigs_filename, nb_threads, props);
+
+        BaseGraph::executeAlgorithm(unitigs_algo, &BaseGraph::getStorage(), props, BaseGraph::_info);
+        
+        setState(STATE_BCALM2_DONE);
+    }
+}
+
+
+template<size_t span>
 void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 {
-    bank::IBank* inputBank = Bank::open (unitigs_filename);
-    LOCAL (inputBank);
-    ProgressIterator<bank::Sequence> itSeq (*inputBank, "loading unitigs");
+    BankFasta inputBank (unitigs_filename);
+    //bank::IBank* inputBank = Bank::open (unitigs_filename);
+    //LOCAL (inputBank);
+    //ProgressIterator<bank::Sequence> itSeq (*inputBank, "loading unitigs");
+    BankFasta::Iterator itSeq (inputBank);
 
     unsigned int kmerSize = BaseGraph::_kmerSize;
 
     uint32_t utig_counter = 0;
-    for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+    for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel (TODO opt)
     {
         string seq = itSeq->toString();
+        string comment = itSeq->getComment();
+        float mean_abundance = atof(comment.substr(comment.find("MA=")+3).c_str());
     
         typename Model::Kmer kmerBegin = modelK->codeSeed(seq.substr(0, kmerSize).c_str(), Data::ASCII);
         typename Model::Kmer kmerEnd = modelK->codeSeed(seq.substr(seq.size() - kmerSize, kmerSize).c_str(), Data::ASCII);
@@ -303,9 +337,10 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
             utigs_map[kmerBegin.value()] = eBegin;
         }
         unitigs.push_back(seq);
+        unitigs_mean_abundance.push_back(mean_abundance);
         utig_counter++;
     }
-                    std::cout << "after load_unitigs utigs map size " << utigs_map.size() << std::endl;
+    //std::cout << "after load_unitigs utigs map size " << utigs_map.size() << std::endl;
 }
 
 /*********************************************************************
@@ -332,6 +367,10 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     
     string input = params->getStr(STR_URI_INPUT);
 
+    string unitigs_filename = (params->get(STR_URI_OUTPUT) ?
+            params->getStr(STR_URI_OUTPUT) :                                                                                                                                                                 System::file().getBaseName (input)
+            )+ ".unitigs.fa";          
+
     if (system::impl::System::file().getExtension(input) == "h5")
     {
         /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
@@ -346,7 +385,7 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         BaseGraph::setStorage (StorageFactory(BaseGraph::_storageMode).create (output , false, false));
     
         /** We get some properties. */
-        _state     = (typename GraphUnitigsTemplate<span>::StateMask) atol (BaseGraph::getGroup().getProperty ("state").c_str());
+        BaseGraph::_state     = (typename GraphUnitigsTemplate<span>::StateMask) atol (BaseGraph::getGroup().getProperty ("state").c_str());
         
         BaseGraph::_kmerSize  = atol (BaseGraph::getGroup().getProperty ("kmer_size").c_str());
 
@@ -367,10 +406,10 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
 
         /* call the configure visitor to load everything (e.g. solid kmers, MPHF, etc..) that's been done so far */
         boost::apply_visitor ( configure_visitor<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(*this, BaseGraph::getStorage()),  *(GraphDataVariantFast<span>*)BaseGraph::_variant);
-        
+
         // TODO build the unitigs here.
+        build_unitigs_postsolid(unitigs_filename, params);
         
-        string unitigs_filename = "unitigs.fasta"; // CHANGEME
         load_unitigs(unitigs_filename);
 
 
@@ -380,10 +419,28 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         /** We build a Bank instance for the provided reads uri. */
         bank::IBank* bank = Bank::open (params->getStr(STR_URI_INPUT));
 
+        // build_visitor_solid has the following defaults:
+        // minimizer size of 8. that one is okay
+        // the rest needs to be set!
+        // accoring to original BCALM2 graph::create string:
+        // -in %s -kmer-size %d -minimizer-size %d -mphf none -bloom none -out %s.h5  -abundance-min %d -verbose 1 -minimizer-type %d -repartition-type 1 -max-memory %d %s
+
+        //if ((!params->get(STR_REPARTITION_TYPE)))  // actually this doesn't seem to work, even when repartition-type isn't specified, it's (!params->get()) doesn't return true. so i'm going to force repartition type to 1, as it was in bcalm2
+        {
+            params->setInt(STR_REPARTITION_TYPE, 1);
+            //std::cout << "setting repartition type to 1" << std::endl;;
+        }
+        //if (!params->get(STR_MINIMIZER_TYPE))
+        {
+            params->setInt(STR_MINIMIZER_TYPE, 1);
+            //std::cout << "setting repartition type to 1" << std::endl;;
+        }
+
         /** We build the graph according to the wanted precision. */
         boost::apply_visitor ( build_visitor_solid<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(*this, bank,params),  *(GraphDataVariantFast<span>*)BaseGraph::_variant);
 
-        string unitigs_filename = "unitigs.fasta"; // CHANGEME
+        build_unitigs_postsolid(unitigs_filename, params);
+
         load_unitigs(unitigs_filename);
     }
 }
@@ -430,6 +487,7 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (const GraphUn
         // I garantee that bugs will occur if i add a GraphUnitigs member variable and forget to copy it here
         utigs_map = graph.utigs_map;
         unitigs = graph.unitigs;
+        unitigs_mean_abundance = graph.unitigs_mean_abundance;
         modelK = graph.modelK;
         modelKdirect = graph.modelKdirect;
     }
@@ -448,7 +506,7 @@ template<size_t span>
 GraphUnitigsTemplate<span>::~GraphUnitigsTemplate<span> ()
 {
     // base deleter already called
-    std::cout <<"unitigs graph destructor called" << std::endl;
+    //std::cout <<"unitigs graph destructor called" << std::endl;
 }
 
 /*********************************************************************
@@ -551,19 +609,19 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
 
     if (debug)
-        std::cout << "[out-of-unitig getEdges] for " << BaseGraph::toString(source) << " dir " << direction <<  " : " << std::endl << "unitig: " << seq << std::endl << e.toString() << std::endl;
+        std::cout << "[out-of-unitig getEdges] for " << BaseGraph::toString(source) << " dir " << direction << " e:"  << e.toString() << std::endl;
     
     bool incoming= false;
 
     auto functor = [&](const Type &neighbor){ 
         Type norm_neighbor = modelKdirect->reverse(neighbor);
-        kmer::Strand strand = kmer::STRAND_FORWARD;
-        bool rc = false;
-        if (norm_neighbor.value > neighbor.value) 
+        kmer::Strand strand = kmer::STRAND_REVCOMP;
+        bool rc = true;
+        if (neighbor < norm_neighbor) 
         {   
-            rc = true;
+            rc = false;
             norm_neighbor = neighbor;
-            strand = kmer::STRAND_REVCOMP;
+            strand = kmer::STRAND_FORWARD;
         }
         if (utigs_map.find(norm_neighbor) != utigs_map.end()) 
         {
@@ -586,23 +644,34 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
         }
     }; 
 
+    Type oriented_kmer = source.kmer;
+    if (source.strand == kmer::STRAND_REVCOMP)
+        oriented_kmer = modelKdirect->reverse(source.kmer);
+
     if (direction & DIR_OUTCOMING && ((same_orientation && (e.pos & UNITIG_END)) || ( !same_orientation && (e.pos & UNITIG_BEGIN)) ))
-        modelKdirect->iterateOutgoingNeighbors(source.kmer, functor);
+        modelKdirect->iterateOutgoingNeighbors(oriented_kmer, functor);
     if (direction & DIR_INCOMING && ((same_orientation && (e.pos & UNITIG_BEGIN)) || ( !same_orientation && (e.pos & UNITIG_END)) ))
     {
         incoming = true;
-        modelKdirect->iterateIncomingNeighbors(source.kmer, functor);
+        modelKdirect->iterateIncomingNeighbors(oriented_kmer, functor);
     }
 
    
     return res;
 }
 
+/* this function isn't the most efficient, but then again, Minia doesn't use it */
 template<size_t span>
 GraphVector<NodeFast<span>> GraphUnitigsTemplate<span>::getNodes (NodeFast<span> &source, Direction direction)  const
 {
-    std::cout << "graphU getNodes(source, dest) called, not supported" << std::endl; exit(1);
-    return GraphVector<NodeFast<span>>();
+    GraphVector<NodeFast<span>> nodes;
+    GraphVector<EdgeFast<span>> edges = getEdges (source, direction);
+    nodes.resize(edges.size());
+    for (int i = 0; i < edges.size(); i++)
+    {
+        nodes[i] = edges[i].to;
+    }
+    return nodes;
 }
 
 // can be optimized surely
@@ -876,9 +945,8 @@ template<size_t span>
 double GraphUnitigsTemplate<span>::
 simplePathMeanAbundance     (const NodeFast<span>& node, Direction dir) const
 {
-    // FIXME TODO
-    if (simplePathLength(node,dir) <= BaseGraph::_kmerSize *2 + 2) return 2;
-    return 100;
+    const ExtremityInfo& e = utigs_map.at(node.kmer);
+    return unitigs_mean_abundance[e.unitig];
 }
 
 template<size_t span>
@@ -894,9 +962,9 @@ simplePathLength            (const NodeFast<span>& node, Direction dir) const
         (same_orientation    && (e.pos & UNITIG_BEGIN) && dir == DIR_INCOMING) ||
         ((!same_orientation) && (e.pos & UNITIG_END) && dir == DIR_INCOMING) ||
         ((!same_orientation) && (e.pos & UNITIG_BEGIN) && dir == DIR_OUTCOMING))
-        return 0;
+        return 1;
 
-    return unitigs[utigs_map.at(node.kmer).unitig].size();
+    return unitigs[utigs_map.at(node.kmer).unitig].size() - BaseGraph::_kmerSize + 1;
 }
 
 template<size_t span>

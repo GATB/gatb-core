@@ -237,7 +237,9 @@ void configure_visitor<Node,Edge,GraphDataVariant>::operator() (GraphData<span>&
 
 /* used in build_visitor and build_visitor_postsolid */
 /** Algorithm configuration. */
-inline void executeAlgorithm (Algorithm& algorithm, Storage* storage, IProperties* props, IProperties& info) 
+template<typename Node, typename Edge, typename GraphDataVariant_t>
+void GraphTemplate<Node, Edge, GraphDataVariant_t>::
+executeAlgorithm (Algorithm& algorithm, Storage* storage, IProperties* props, IProperties& info) 
 {
     algorithm.getInput()->add (0, STR_VERBOSE, props->getStr(STR_VERBOSE));
 
@@ -367,7 +369,7 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
     DEBUG ((cout << "build_visitor : ConfigurationAlgorithm BEGIN\n"));
 
     ConfigurationAlgorithm<span> configAlgo (bank, props);
-    executeAlgorithm (configAlgo, & graph.getStorage(), props, graph._info);
+    graph.executeAlgorithm (configAlgo, & graph.getStorage(), props, graph._info);
     Configuration config = configAlgo.getConfiguration();
     graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_CONFIGURATION_DONE);
 
@@ -386,7 +388,7 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
             config,
             props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0
             );
-    executeAlgorithm (repart, 0, props, graph._info);
+    graph.executeAlgorithm (repart, 0, props, graph._info);
 
     DEBUG ((cout << "build_visitor : RepartitorAlgorithm END\n"));
 
@@ -404,7 +406,7 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
             props
             );
 
-    executeAlgorithm (sortingCount, solidStorage, props, graph._info);
+    graph.executeAlgorithm (sortingCount, solidStorage, props, graph._info);
     graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE);
 
     Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
@@ -491,7 +493,7 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
                 true  /* build=true, load=false */
 
                 );
-        executeAlgorithm (mphf_algo, & graph.getStorage(), props, graph._info);
+        graph.executeAlgorithm (mphf_algo, & graph.getStorage(), props, graph._info);
         data.setAbundance(mphf_algo.getAbundanceMap());
         data.setNodeState(mphf_algo.getNodeStateMap());
         data.setAdjacency(mphf_algo.getAdjacencyMap());
@@ -517,7 +519,7 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
                     props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
                     graph._bloomKind
                     );
-            executeAlgorithm (bloomAlgo, & graph.getStorage(), props, graph._info);
+            graph.executeAlgorithm (bloomAlgo, & graph.getStorage(), props, graph._info);
             graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BLOOM_DONE);
         }
 
@@ -549,7 +551,7 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
                 );
         LOCAL (debloom);
 
-        executeAlgorithm (*debloom, & graph.getStorage(), props, graph._info);
+        graph.executeAlgorithm (*debloom, & graph.getStorage(), props, graph._info);
 
         graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_DEBLOOM_DONE);
 
@@ -575,7 +577,7 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
                     props->get(STR_NB_CORES)   ? props->getInt(STR_NB_CORES)   : 0,
                     props
                     );
-            executeAlgorithm (branchingAlgo, & graph.getStorage(), props, graph._info);
+            graph.executeAlgorithm (branchingAlgo, & graph.getStorage(), props, graph._info);
 
             graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_BRANCHING_DONE);
 
@@ -930,7 +932,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate ()
       _bloomKind(BLOOM_DEFAULT),
       _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
 {
-    std::cout << "empty graphtemplate constructor" << std::endl;
+    //std::cout << "empty graphtemplate constructor" << std::endl;
 }
 
 /*********************************************************************
@@ -994,7 +996,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>& GraphTemplate<Node, Edge, GraphData
 template<typename Node, typename Edge, typename GraphDataVariant>
 GraphTemplate<Node, Edge, GraphDataVariant>::~GraphTemplate<Node, Edge, GraphDataVariant> ()
 {
-    std::cout <<"normal graph destructor called" << std::endl;
+    //std::cout <<"normal graph destructor called" << std::endl;
     /** We release resources. */
     setStorage (0);
     if (_variant)  {  delete (GraphDataVariant*)_variant;  }
@@ -2664,6 +2666,7 @@ simplePathMeanAbundance     (Node& node, Direction dir) const
     {
         unsigned int abundance = queryAbundance(*itNodes);
         mean_abundance += abundance;
+        length++;
     }
     double meanAbundance = (double)mean_abundance / ((double)length);
     double stdevAbundance = 0;
@@ -2688,7 +2691,7 @@ simplePathLastNode  (Node& node, Direction dir) const
 {
     GraphIterator <Node> itNodes = simplePath (node, dir);
     itNodes.first();
-    Node cur;
+    Node cur = *itNodes;
     for (; !itNodes.isDone(); itNodes.next())
         cur = *itNodes; // is there an easier way?
     return cur;
@@ -2699,7 +2702,7 @@ unsigned int GraphTemplate<Node, Edge, GraphDataVariant>::
 simplePathLength (Node& node, Direction dir) const
 {
     GraphIterator <Node> itNodes = simplePath (node, dir);
-    unsigned int length = 0;
+    unsigned int length = 1;
     for (itNodes.first(); !itNodes.isDone(); itNodes.next())
         length++;
     return length;
@@ -2712,6 +2715,7 @@ simplePathDelete (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTempla
     GraphIterator <Node> itNodes = simplePath (node, dir);
     for (itNodes.first(); !itNodes.isDone(); itNodes.next())
         nodesDeleter.markToDelete(*itNodes);
+    nodesDeleter.markToDelete(node); // don't forget the start node
 }
 
 
@@ -2981,9 +2985,9 @@ std::set<BranchingNode_t<Node> > GraphTemplate<Node, Edge, GraphDataVariant>::ne
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS : what's this? is it used? TODO documentation
+** REMARKS : what's this? is it used? no documentation
 *********************************************************************/
-#if 0 // FIXME: this code crashes clang, so i disable it for now; actually, i still dont know whether this code is used anywhere
+#if 0 // this code crashes clang, so i disable it for now; actually, i still dont know whether this code is used anywhere
 template<typename Node, typename Edge, typename GraphDataVariant> 
 struct mutate_visitor : public boost::static_visitor<GraphVector<Node> >    {
 

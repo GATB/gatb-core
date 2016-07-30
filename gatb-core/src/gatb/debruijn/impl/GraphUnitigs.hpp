@@ -33,6 +33,7 @@
 #endif
 
 #include <gatb/debruijn/impl/Graph.hpp>
+#include <gatb/debruijn/impl/UnitigsConstructionAlgorithm.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -334,15 +335,15 @@ public:
         STATE_INIT_DONE           = (1<<0),
         STATE_CONFIGURATION_DONE  = (1<<1),
         STATE_SORTING_COUNT_DONE  = (1<<2),
-        STATE_BCALM2_DONE         = (1<<3),
-        STATE_MPHF_DONE           = (1<<6) // to keep compatibility with Traversal and others who check for MPHF, since we support _some_ of the MPHF-like queries (but not on all nodes)
+        STATE_MPHF_DONE           = (1<<6), // to keep compatibility with Traversal and others who check for MPHF, since we support _some_ of the MPHF-like queries (but not on all nodes)
+        STATE_BCALM2_DONE         = (1<<20)
     };
     typedef u_int64_t State; /* this is a global graph state, not to be confused of the state of a node (deleted or not) */
-    State _state; // one of the few variables not shared between Graph and GraphUnitigs
-    State getState () const { return _state; }
-    bool  checkState (StateMask mask) const { return (_state & (State)mask)==(State)mask; }
-    State setState   (StateMask mask) { _state |=  mask; return _state; }
-    State unsetState (StateMask mask) { _state &= ~mask; return _state; }
+    typedef GraphTemplate<NodeFast<span>, EdgeFast<span>, GraphDataVariantFast<span>> BaseGraphForState;
+    State getState () const { return BaseGraphForState::_state; }
+    bool  checkState (StateMask mask) const { return (BaseGraphForState::_state & (State)mask)==(State)mask; }
+    State setState   (StateMask mask) { BaseGraphForState::_state |=  mask; return BaseGraphForState::_state; }
+    State unsetState (StateMask mask) { BaseGraphForState::_state &= ~mask; return BaseGraphForState::_state; }
 
     /** Constructor for empty graph.*/
     GraphUnitigsTemplate (size_t kmerSize);
@@ -405,6 +406,7 @@ public: // was private: before, but had many compilation errors during the chang
     typedef typename NS_TR1_PREFIX::unordered_map<Type, ExtremityInfo> NodeMap;
 
 
+    void build_unitigs_postsolid(std::string unitigs_filename, tools::misc::IProperties* props);
     void load_unitigs(std::string unitigs_filename);
 
     bool node_in_same_orientation_as_in_unitig(const Node& node, const ExtremityInfo& e) const;
@@ -417,6 +419,7 @@ public: // was private: before, but had many compilation errors during the chang
     ModelDirect *modelKdirect;
     NodeMap utigs_map;
     std::vector<std::string> unitigs;
+    std::vector<float> unitigs_mean_abundance;
 };
   
 

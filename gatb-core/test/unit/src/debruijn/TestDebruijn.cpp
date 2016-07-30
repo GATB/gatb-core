@@ -145,9 +145,9 @@ public:
     void debruijn_test2_aux (Graph& graph)
     {
         /** We get an iterator over all the nodes of the graph. */
-        Graph::Iterator<Node> itNodes = graph.iterator();
+        GraphIterator<Node> itNodes = graph.iterator();
 
-        Graph::Vector<Edge> successors;
+        GraphVector<Edge> successors;
         Info    info;
 
         TimeInfo ti;
@@ -173,15 +173,15 @@ public:
     /********************************************************************************/
     void getNearestBranchingRange (const Graph& graph, Node& node, Node& begin, Node& end) const
     {
-        begin = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.predecessors (begin)).size() == 1;  begin = nodes[0])  {}
-        end   = node;    for (Graph::Vector<Node> nodes ; (nodes = graph.successors  (end  )).size() == 1;  end   = nodes[0])  {}
+        begin = node;    for (GraphVector<Node> nodes ; (nodes = graph.predecessors (begin)).size() == 1;  begin = nodes[0])  {}
+        end   = node;    for (GraphVector<Node> nodes ; (nodes = graph.successors  (end  )).size() == 1;  end   = nodes[0])  {}
     }
 
     void debruijn_check_sequence (const Graph& graph, size_t kmerSize, const char* seq)
     {
         size_t seqLen = strlen (seq);
 
-        Graph::Iterator<Node> nodes = graph.iterator();
+        GraphIterator<Node> nodes = graph.iterator();
         nodes.first ();
 
         /** We get the first node. */
@@ -313,7 +313,7 @@ public:
         /** We create the graph. */
         Graph graph = Graph::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
-        Graph::Iterator<Node> it = graph.iterator();  it.first();
+        GraphIterator<Node> it = graph.iterator();  it.first();
 
         Node n1 = it.item();
         CPPUNIT_ASSERT (n1.strand == STRAND_FORWARD);
@@ -392,7 +392,7 @@ public:
             //CPPUNIT_ASSERT (currentStr==graph.toString(n1) || currentStr==graph.toString(n2) ); // restore once dummy node to address MPHF bug is resolved (see below)
 
             /** We get all possible edges from the current node */
-            Graph::Vector<Edge> neighbors = graph.neighborsEdge(current);
+            GraphVector<Edge> neighbors = graph.neighborsEdge(current);
             
             CPPUNIT_ASSERT (neighbors.size()>=1);
 
@@ -455,7 +455,7 @@ public:
             }
 
 
-            Graph::Vector<Edge> neighborsIncoming = graph.neighborsEdge(current, DIR_INCOMING);
+            GraphVector<Edge> neighborsIncoming = graph.neighborsEdge(current, DIR_INCOMING);
 
             if (currentStr==graph.toString(n1))  // 0 incoming neighbor
             {
@@ -524,7 +524,7 @@ public:
         // We get the first node.
         Node node = graph.buildNode (seq);
 
-        Graph::Iterator<Edge> path = graph.simplePathEdge (node, DIR_OUTCOMING);
+        GraphIterator<Edge> path = graph.simplePathEdge (node, DIR_OUTCOMING);
 
         for (path.first(); !path.isDone(); path.next())
         {
@@ -565,7 +565,7 @@ public:
         Node node = graph.buildNode (seq1);
 
         /** We get a simple path iterator starting from the beginning of the seq1. */
-        Graph::Iterator<Edge> path = graph.simplePathEdge (node, DIR_OUTCOMING);
+        GraphIterator<Edge> path = graph.simplePathEdge (node, DIR_OUTCOMING);
 
         for (path.first(); !path.isDone(); path.next())
         {
@@ -594,7 +594,7 @@ public:
         CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
 
         /** We retrieve the branching neighbors for the node. */
-        Graph::Vector<BranchingNode> branchingNeighbors = graph.successorsBranching (node);
+        GraphVector<BranchingNode> branchingNeighbors = graph.successorsBranching (node);
 
         /** In our example, we should have only one branching neighbor. */
         CPPUNIT_ASSERT (branchingNeighbors.size() == 1);
@@ -632,7 +632,7 @@ public:
         CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
 
         /** We retrieve the branching neighbors for the node. */
-        Graph::Vector<BranchingNode> branchingNeighbors = graph.successorsBranching (node);
+        GraphVector<BranchingNode> branchingNeighbors = graph.successorsBranching (node);
 
         /** In our example, we should have 3 branching neighbors. */
         CPPUNIT_ASSERT (branchingNeighbors.size() == 3);
@@ -670,7 +670,7 @@ public:
         CPPUNIT_ASSERT (graph.toString(node) == "AGGCGCT");
 
         /** We retrieve the branching neighbors for the node. */
-        Graph::Vector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (node);
+        GraphVector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (node);
 
         /** In our example, we should have 3 branching neighbors. */
         CPPUNIT_ASSERT (branchingNeighbors.size() == 3);
@@ -687,7 +687,7 @@ public:
              *  We need first to retrieve the first (simple) neighbor from the origin. */
             Node simpleNeighbor = graph.successor (branchingNeighbors[i].from, branchingNeighbors[i].nt);
 
-            Graph::Iterator<Edge> path = graph.simplePathEdge (simpleNeighbor, branchingNeighbors[i].direction);
+            GraphIterator<Edge> path = graph.simplePathEdge (simpleNeighbor, branchingNeighbors[i].direction);
             for (path.first(); !path.isDone(); path.next())
             {
                 CPPUNIT_ASSERT (graph.toString(path->from) == string (sequences[i], path.rank()+1, kmerSize));
@@ -751,7 +751,7 @@ public:
 
         if (reverse)  { node = graph.reverse(node); }
 
-        Graph::Vector<Node> mutations = graph.mutate (node, kmerSize-1, 1);
+        GraphVector<Node> mutations = graph.mutate (node, kmerSize-1, 1);
         CPPUNIT_ASSERT (mutations.size() == 3);
 
         // We check we got the correct mutations
@@ -797,7 +797,7 @@ public:
         // We create the graph.
         Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0 -mphf emphf  -max-memory %d", kmerSize, MAX_MEMORY);
 
-        Graph::Iterator<Node> it = graph.iterator();
+        GraphIterator<Node> it = graph.iterator();
 
         // debugging
         for (it.first(); !it.isDone(); it.next())
@@ -857,14 +857,14 @@ public:
 
         if (checkNodes)
         {
-            Graph::Iterator<Node> iterNodes = graph.iterator();
+            GraphIterator<Node> iterNodes = graph.iterator();
             for (iterNodes.first(); !iterNodes.isDone(); iterNodes.next())
             { result.nbNodes++; result.checksumNodes += iterNodes.item().kmer; }
         }
 
         if (checkBranching)
         {
-            Graph::Iterator<BranchingNode> iterBranchingNodes = graph.iteratorBranching();
+            GraphIterator<BranchingNode> iterBranchingNodes = graph.iteratorBranching();
             for (iterBranchingNodes.first(); !iterBranchingNodes.isDone(); iterBranchingNodes.next())
             { result.nbBranchingNodes++; result.checksumBranchingNodes += iterBranchingNodes.item().kmer; }
         }
@@ -1049,7 +1049,7 @@ public:
         size_t i=0;
 
         /** We iterate the branching nodes. */
-        Graph::Iterator<BranchingNode> it = graph.iteratorBranching ();
+        GraphIterator<BranchingNode> it = graph.iteratorBranching ();
         for (it.first(); !it.isDone(); it.next(), i++)
         {
             if (i > 0) {  CPPUNIT_ASSERT (previous < it->kmer);  }
@@ -1139,7 +1139,7 @@ public:
         graph.deleteNode(n3);
 
         /** We get all possible edges from the current kmer (note: not from the current node). */
-        Graph::Vector<Edge> neighbors = graph.neighborsEdge(n1.kmer);
+        GraphVector<Edge> neighbors = graph.neighborsEdge(n1.kmer);
 
         CPPUNIT_ASSERT (neighbors.size()==0);
     }
@@ -1168,7 +1168,7 @@ public:
         graph.deleteNode(n2);
 
         /** We get all possible edges from the current kmer (note: not from the current node). */
-        Graph::Vector<Edge> neighbors = graph.neighborsEdge(n1.kmer);
+        GraphVector<Edge> neighbors = graph.neighborsEdge(n1.kmer);
 
         std::cout<<"unfinished test" << std::endl;
     return; // TODO: finish it;

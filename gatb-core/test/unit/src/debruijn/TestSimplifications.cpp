@@ -126,7 +126,7 @@ public:
 
         if (checkNodes)
         {
-            Graph::Iterator<Node> iterNodes = graph.iterator();
+            GraphIterator<Node> iterNodes = graph.iterator();
             for (iterNodes.first(); !iterNodes.isDone(); iterNodes.next())
             { result.nbNodes++; result.checksumNodes += iterNodes.item().kmer; 
             
@@ -140,7 +140,7 @@ public:
 
         if (checkBranching)
         {
-            Graph::Iterator<BranchingNode> iterBranchingNodes = graph.iteratorBranching();
+            GraphIterator<BranchingNode> iterBranchingNodes = graph.iteratorBranching();
             for (iterBranchingNodes.first(); !iterBranchingNodes.isDone(); iterBranchingNodes.next())
             { result.nbBranchingNodes++; result.checksumBranchingNodes += iterBranchingNodes.item().kmer; }
         }

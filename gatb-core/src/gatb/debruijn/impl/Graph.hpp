@@ -1093,6 +1093,9 @@ public: // was private: before, but had many compilation errors during the chang
     template<typename, typename, typename> friend struct build_visitor_solid ; // i don't know why this template<typename, typename> trick works, but it does
     template<typename, typename, typename> friend struct build_visitor_postsolid ;
     template<typename, typename, typename> friend struct configure_visitor;
+
+    // a late addition, because GraphUnitig wants to call it too
+    static void executeAlgorithm (gatb::core::tools::misc::impl::Algorithm& algorithm, gatb::core::tools::storage::impl::Storage* storage, gatb::core::tools::misc::IProperties* props, gatb::core::tools::misc::IProperties& info);
 };
 
 
@@ -1219,7 +1222,7 @@ struct GraphData
     void setAbundance   (AbundanceMap*          abundance)  { SP_SETATTR (abundance); }
     void setNodeState   (NodeStateMap*          nodestate)  { SP_SETATTR (nodestate); }
     void setAdjacency   (AdjacencyMap*          adjacency)  { SP_SETATTR (adjacency); }
-    void setNodeCache   (NodeCacheMap*          nodecache)  { _nodecache = nodecache; /* would like to do "SP_SETATTR (nodecache)" but nodecache is an unordered_map, not some type that derives from a smartpointer. so one day, FIXME, address this. I'm not sure if it's important though. Any developper is welcome to chime in. */; }
+    void setNodeCache   (NodeCacheMap*          nodecache)  { _nodecache = nodecache; /* would like to do "SP_SETATTR (nodecache)" but nodecache is an unordered_map, not some type that derives from a smartpointer. so one day, address this. I'm not sure if it's important though. Anyway I'm phasing out NodeCache in favor of GraphUnitigs. */; }
 
     /** Shortcut. */
     bool contains (const Type& item)  const  {  
@@ -1330,6 +1333,7 @@ struct build_visitor_postsolid : public boost::static_visitor<>    {
 
     template<size_t span>  void operator() (GraphData<span>& data) const;
 };
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

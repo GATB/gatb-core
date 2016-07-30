@@ -1,0 +1,27 @@
+#include <gatb/debruijn/impl/Simplifications.cpp>
+#include <gatb/debruijn/impl/UnitigsConstructionAlgorithm.cpp>
+#include <gatb/debruijn/impl/GraphUnitigs.cpp>
+
+using namespace gatb::core::kmer;
+using namespace gatb::core::kmer::impl;
+
+/********************************************************************************/
+namespace gatb { namespace core { namespace debruijn { namespace impl  {
+/********************************************************************************/
+
+typedef boost::variant<GraphData<${KSIZE}> > GraphDataVariantT;
+
+template struct Node_t<Kmer<${KSIZE}>::Type >; 
+template struct Edge_t<Node_t<Kmer<${KSIZE}>::Type > >; 
+template class GraphUnitigsTemplate<${KSIZE}>; 
+template class UnitigsConstructionAlgorithm<${KSIZE}>; 
+
+
+template class Simplifications <GraphUnitigsTemplate<${KSIZE}>, Node_t<Kmer<${KSIZE}>::Type>, Edge_t<Node_t<Kmer<${KSIZE}>::Type > >>; 
+
+
+
+
+/********************************************************************************/
+} } } } /* end of namespaces. */
+/********************************************************************************/

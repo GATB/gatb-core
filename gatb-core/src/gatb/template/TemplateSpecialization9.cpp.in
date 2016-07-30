@@ -1,0 +1,32 @@
+
+#include <gatb/debruijn/impl/Traversal.cpp>
+#include <gatb/debruijn/impl/Terminator.cpp>
+#include <gatb/debruijn/impl/Frontline.cpp>
+#include <gatb/tools/math/Integer.hpp>
+#include <gatb/debruijn/impl/GraphUnitigs.hpp>
+
+using namespace gatb::core::kmer;
+using namespace gatb::core::kmer::impl;
+
+/********************************************************************************/
+namespace gatb { namespace core { namespace debruijn { namespace impl  {
+/********************************************************************************/
+
+template class TraversalTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+         GraphUnitigsTemplate<${KSIZE}>>; 
+template class MonumentTraversalTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+         GraphUnitigsTemplate<${KSIZE}>>; 
+template class TerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+         GraphUnitigsTemplate<${KSIZE}>>; 
+template class MPHFTerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+         GraphUnitigsTemplate<${KSIZE}>>; 
+template class BranchingTerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+         GraphUnitigsTemplate<${KSIZE}>>; 
+template class FrontlineTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+         GraphUnitigsTemplate<${KSIZE}>>; 
+template class FrontlineBranchingTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+         GraphUnitigsTemplate<${KSIZE}>>; 
+
+/********************************************************************************/
+} } } } /* end of namespaces. */
+/********************************************************************************/

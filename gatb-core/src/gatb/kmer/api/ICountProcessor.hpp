@@ -94,7 +94,7 @@ class ICountProcessor : public system::SmartPointer
 public:
 
     /** Shortcuts. */
-    typedef typename impl::Kmer<span>::Type Type;
+    typedef typename kmer::impl::Kmer<span>::Type Type;
 
     /********************************************************************/
     /*   METHODS CALLED ON THE PROTOTYPE INSTANCE (in the main thread). */
@@ -102,7 +102,7 @@ public:
 
     /** Called just before the mainloop of SortingCountAlgorithm.
      * \param[in] config : configuration of the SortingCountAlgorithm. */
-    virtual void begin (const impl::Configuration& config) = 0;
+    virtual void begin (const kmer::impl::Configuration& config) = 0;
 
     /** Called just after the mainloop of SortingCountAlgorithm. */
     virtual void end   () = 0;

@@ -57,6 +57,7 @@ public:
     LargeInt<1> operator~  ()                           const   {   LargeInt<1> res; res.value = ~value;              return res; }
     LargeInt<1> operator<< (const int& coeff)           const   {   LargeInt<1> res; res.value = value << coeff;      return res; }
     LargeInt<1> operator>> (const int& coeff)           const   {   LargeInt<1> res; res.value = value >> coeff;      return res; }
+    LargeInt<1> operator=  (const uint64_t& c)          const   {   LargeInt<1> res; res.value = c;  return res; }
     bool        operator!= (const LargeInt<1>& c)       const   {   return value != c.value; }
     bool        operator!= (const u_int64_t& c)         const   {   return value != c; }
     bool        operator== (const LargeInt<1>& c)       const   {   return value == c.value; }

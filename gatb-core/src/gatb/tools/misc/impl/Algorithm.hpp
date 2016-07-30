@@ -114,7 +114,8 @@ public:
      * \param[in] listener : listener to be used; if null, a new one is created
      * \return the created iterator.
      */
-    template<typename Item> dp::Iterator<Item>* createIterator (
+    template<typename Item> 
+    dp::Iterator<Item>* createIterator (
         dp::Iterator<Item>* iter,
         size_t nbIterations=0,
         const char* message=0,

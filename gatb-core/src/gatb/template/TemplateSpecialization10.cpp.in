@@ -1,0 +1,36 @@
+#include <gatb/bcalm2/bcalm_algo.cpp>
+#include <gatb/bcalm2/bglue_algo.cpp>
+#include <gatb/bcalm2/ograph.cpp>
+
+using namespace gatb::core::kmer;
+using namespace gatb::core::kmer::impl;
+
+/********************************************************************************/
+namespace gatb { namespace core { namespace debruijn { namespace impl  {
+/********************************************************************************/
+
+
+template void bcalm2<${KSIZE}>(Storage* storage, 
+        std::string prefix,
+        int kmerSize, 
+        int abundance, 
+        int minSize, 
+        int nb_threads, 
+        int minimizer_type, 
+        bool verbose
+        );
+template void bglue<${KSIZE}>(Storage* storage, 
+        std::string prefix,
+        int kmerSize, 
+        int minSize, 
+        int nb_threads, 
+        int minimizer_type, 
+        bool verbose
+        );
+
+template class graph3<${KSIZE}>; // graph3<span> switch  
+
+
+/********************************************************************************/
+} } } } /* end of namespaces. */
+/********************************************************************************/

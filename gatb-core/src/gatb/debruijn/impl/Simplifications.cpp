@@ -25,7 +25,7 @@
 // We include required definitions
 /********************************************************************************/
 
-#define DEBUG(a)    //a
+#define DEBUG(a)    a
 
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
@@ -62,11 +62,6 @@ static const char* simplprogressFormat1 = "removing bubbles, pass %2d ";
 static const char* simplprogressFormat2 = "removing bulges,  pass %2d ";
 static const char* simplprogressFormat3 = "removing ec,      pass %2d ";
 
-
-static string to_string(unsigned long x)
-{
-    string r;    stringstream s;    s << x;    r = s.str();    return r;
-}
 
 template<typename GraphType, typename Node, typename Edge>
 Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nbCores, bool verbose)
@@ -469,7 +464,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             TIME(auto start_simplepath_t=get_wtime());
             Node&     simplePathStart = neighbors[0].from;
             Direction simplePathDir   = neighbors[0].direction;
-            unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir) - k + 1;
+            unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
             TIME(auto end_simplepath_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
             
@@ -588,17 +583,36 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 #endif // WITH_MPHF
 }
 
-enum HMCP_Success { HMCP_DEADEND = 0, HMCP_FOUND_END = 1 , HMCP_MAX_DEPTH = -1, HMCP_LOOP = -2};
+enum HMCP_Success { HMCP_DIDNT_FIND_END = 0, HMCP_FOUND_END = 1 , HMCP_MAX_DEPTH = -1, HMCP_LOOP = -2};
+
+static string hmcpstatus2ascii(int h){
+    switch (h)
+    {
+        case HMCP_DIDNT_FIND_END:
+            return "didn't find end";
+        case HMCP_FOUND_END:
+            return "success, found end";
+        case HMCP_MAX_DEPTH:
+            return "max depth reached";
+        case HMCP_LOOP:
+            return "loop found, aborted";
+    }
+    return "unknown";
+}
+
 
 static double unitigs_chain2abundance(vector<int> &unitigs_lengths, vector<int> &unitigs_abundances)
 {
     assert(unitigs_lengths.size() == unitigs_abundances.size());
+    //std::cout << "unitigs lengths " << unitigs_lengths.size() << std::endl;
     double mean_abundance = 0;
     int sum_lengths = 0;
     for (unsigned int i = 0; i < unitigs_lengths.size(); i++)
     {
         mean_abundance += unitigs_lengths[i] * unitigs_abundances[i];
         sum_lengths += unitigs_lengths[i];
+        //std::cout << "mean abundance now: "  << to_string(mean_abundance) << std::endl;
+        //std::cout << "sum lengths now: "  << to_string(sum_lengths) << std::endl;
     }
     return mean_abundance / sum_lengths;
 }
@@ -618,7 +632,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
     usedNode.insert(startNode.kmer);
     Path_t<Node> current_path;
     current_path.start = startNode;
-    success = HMCP_DEADEND;
+    success = HMCP_DIDNT_FIND_END;
     vector<int> abundances; 
     vector<int> unitigs_lengths, unitigs_abundances; 
     unsigned long nbCalls = 0;
@@ -643,21 +657,20 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
     else
     {
         // intermediate version, before GraphUnitigs
-        /*heuristic_most_covered_path(dir, startNode, endNode, traversal_depth, current_path, usedNode, success, mean_abundance,
+/*        heuristic_most_covered_path(dir, startNode, endNode, traversal_depth, current_path, usedNode, success, mean_abundance,
                 backtrackingLimit, avoidFirstNode, 
                 most_covered, 
                 res_path,
                 nbCalls);
-            */
-
+  */          
+        
+        // WARNING:this is slow if ran on Graph. but fast on GraphUnitigs.
+        
         heuristic_most_covered_path_unitigs(dir, startNode, endNode, 
-                traversal_depth, usedNode, success, unitigs_lengths, unitigs_abundances,
+                traversal_depth, usedNode, success, unitigs_lengths, unitigs_abundances, mean_abundance,
                 backtrackingLimit, avoidFirstNode, 
                 most_covered, nbCalls);
-        
-        if (success == HMCP_FOUND_END)
-            mean_abundance = unitigs_chain2abundance(unitigs_lengths, unitigs_abundances);
-            
+                   
     }
 
     /* below this point: debug stuff*/
@@ -689,7 +702,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_old(
     
     if (traversal_depth < -1)
     {
-        success = HMCP_MAX_DEPTH;
+        success = HMCP_DIDNT_FIND_END;
         return;
     }
 
@@ -781,7 +794,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_old(
 }
 
 /* faster variant of the algo above, with cached simple paths instead of traversing node-by-node */
-// TODO: not totally equivalent to the kmer version, some bubbles are found in the kmer version but not in this one
+// Note: not totally equivalent to the kmer version, some bubbles are found in the kmer version but not in this one
 template<typename GraphType, typename Node, typename Edge>
 void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
         Direction dir, Node& startNode, Node& endNode, 
@@ -794,7 +807,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
     
     if (traversal_depth < -1)
     {
-        success = HMCP_MAX_DEPTH;
+        success = HMCP_DIDNT_FIND_END;
         return;
     }
 
@@ -952,7 +965,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
 template<typename GraphType, typename Node, typename Edge>
 void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         Direction dir, Node& startNode, Node& endNode, 
-        int traversal_depth, set<typename Node::Value>& usedNode, int& success, vector<int>& unitigs_lengths, vector<int>& unitigs_abundances,
+        int traversal_depth, set<typename Node::Value>& usedNode, int& success, vector<int>& unitigs_lengths, vector<int>& unitigs_abundances, double& mean_abundance,
         unsigned int backtrackingLimit, Node *avoidFirstNode, 
         bool most_covered, unsigned long &nbCalls)
 {
@@ -960,7 +973,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
     
     if (traversal_depth < -1)
     {
-        success = HMCP_MAX_DEPTH;
+        success = HMCP_DIDNT_FIND_END;
         return;
     }
 
@@ -970,6 +983,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
     if (current_node.kmer == endNode.kmer)
     {
         success = HMCP_FOUND_END;
+        mean_abundance = unitigs_chain2abundance(unitigs_lengths, unitigs_abundances);
         return;
     }
 
@@ -982,6 +996,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         if (current_node.kmer == endNode.kmer)
         {
             success = HMCP_FOUND_END;
+            mean_abundance = unitigs_chain2abundance(unitigs_lengths, unitigs_abundances);
             return true;
         }
         if (traversedNodes.find(current_node.kmer) != traversedNodes.end() )  // loop
@@ -1001,6 +1016,8 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
     do
     {
         //std::cout << "HMCP now at : " << _graph.toString(current_node) << std::endl;;
+        
+        //if (processNode(current_node)) // don't check whether we're done here, because first kmer is already inserted in traversedKmers by loop invariant
 
         Node&     simplePathStart = current_node;
         Direction simplePathDir   = dir;
@@ -1009,7 +1026,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
             break; //nothing to traverse
         
         unsigned int k = _graph.getKmerSize();
-        unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir) - k + 1;
+        unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
         double pathMeanAbundance = _graph.simplePathMeanAbundance(simplePathStart,simplePathDir);
             
         unitigs_lengths.push_back(pathLen);
@@ -1017,23 +1034,24 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
 
         nbCalls += pathLen;
         extra_depth += pathLen; 
-
-        current_node = lastNode;
         //std::cout << "HMCP now at last node : " << _graph.toString(current_node) << std::endl;;
 
-        if (processNode(current_node)) // verify whether we're done
-           return;
+        if (processNode(lastNode)) // verify whether we're done
+            return;
 
         // end of simple path, yet no out-branching? means there is in-branching
         if (_graph.degree(current_node, dir) == 1)
         {
+
             // get the node after in-branching
             GraphVector<Edge> neighbors = _graph.neighborsEdge(current_node, dir);
-       
+
             current_node = neighbors[0].to;
             nbCalls ++;
             extra_depth++; 
-
+        
+            if (processNode(current_node)) // verify whether we're done
+                return;
         }
         else
             break; // we're either at a deadend or at a branching node
@@ -1086,7 +1104,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         vector<int> new_unitigs_abundances(unitigs_abundances);
 
         // recursive call to all_consensuses_between
-        heuristic_most_covered_path_unitigs (
+        heuristic_most_covered_path_unitigs(
             dir,
             edge.to,
             endNode,
@@ -1095,6 +1113,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
             success,
             new_unitigs_lengths,
             new_unitigs_abundances,
+            mean_abundance,
             backtrackingLimit,
             NULL, // no longer avoid nodes
             most_covered,
@@ -1216,7 +1235,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
             TIME(auto start_various_overhead_t=get_wtime());
     
-                DEBUG(cout << endl << "putative bulge node: " << _graph.toString (node) << endl);
+                DEBUG(cout << "putative bulge node: " << _graph.toString (node) << endl);
 
                 /** We follow the outgoing simple paths to get their length and last neighbor */
                 GraphVector<Edge> neighbors = _graph.neighborsEdge(node, dir);
@@ -1249,22 +1268,21 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 TIME(auto start_simplepath_t=get_wtime());
                 Node&     simplePathStart = neighbors[0].to;
                 Direction simplePathDir   = dir;
-                unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir) - k + 1;
+                unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
                 TIME(auto end_simplepath_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
                 __sync_fetch_and_add(&nbSimplePaths, 1);
 
-                DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
+                DEBUG(cout <<  "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                 bool isShort = true;
-                pathLen = 0;
 
-                if (k + pathLen++ >= maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+                if (k + pathLen >= maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
                 {
                     __sync_fetch_and_add(&nbLongSimplePaths, 1);
                     isShort = false;
                 }
 
-                if (!isShort || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
+                if (!isShort || pathLen == 1) // can't do much if it's pathLen=1, we don't support edge removal, only node removal
                     continue;
                 
                 __sync_fetch_and_add(&nbShortSimplePaths, 1);
@@ -1274,7 +1292,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 
                     Node lastNode = _graph.simplePathLastNode(simplePathStart,simplePathDir);
                     GraphVector<Edge> outneighbors = _graph.neighborsEdge(lastNode, dir);
-                    DEBUG(cout << "last node of simple path: "<< _graph.toString(lastNode) << " has indegree/outdegree: " <<_graph.indegree(lastNode) << "/" << _graph.outdegree(lastNode) << endl);
+                    DEBUG(cout << "last node of simple path: "<< _graph.toString(lastNode) << " has indegree/outdegree: " <<_graph.indegree(lastNode) << "/" << _graph.outdegree(lastNode) << " and " << outneighbors.size() << " neighbors in bubble direction" << endl);
     
                     if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                         continue;
@@ -1302,7 +1320,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 __sync_fetch_and_add(&nbTopologicalBulges, 1);
 
-                unsigned int depth = std::max((unsigned int)(pathLen * 1.1),(unsigned int) 3); // following SPAdes
+                unsigned int depth = k /* added k because of pathLen change */ + std::max((unsigned int)(pathLen * 1.1),(unsigned int) 3); // following SPAdes
                 double mean_abundance_most_covered;
                 int success;
                 Node startNode = node;
@@ -1325,15 +1343,16 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 if (success != 1)
                 {
+                    DEBUG(cout << "HMCP failed: " << hmcpstatus2ascii(success) << endl);
                     TIME(__sync_fetch_and_add(&timeFailedPathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
                     TIME(if (diff_wtime(start_pathfinding_t,end_pathfinding_t) > timeLongestFailure) { timeLongestFailure = diff_wtime(start_pathfinding_t,end_pathfinding_t); });
                     longestFailureDepth = depth;
 
                     if (success == HMCP_LOOP)
                         __sync_fetch_and_add(&nbNoAltPathBulgesLoop, 1);
-                    if (success == -1)
+                    if (success == HMCP_MAX_DEPTH)
                          __sync_fetch_and_add(&nbNoAltPathBulgesDepth, 1);
-                    if (success == 0)
+                    if (success == HMCP_DIDNT_FIND_END )
                          __sync_fetch_and_add(&nbNoAltPathBulgesDeadend, 1);
                     continue;
                 }
@@ -1354,8 +1373,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     
                     unsigned int dummyLen;
                     double simplePathCoverage = _graph.simplePathMeanAbundance(simplePathStart, simplePathDir);
-    
-                    DEBUG(cout << "retraced bulge path over length: " << dummyLen << endl);
     
                     bool isBulge =  simplePathCoverage * 1.1  <=  mean_abundance_most_covered;
     
@@ -1402,7 +1419,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
             nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads, among them " <<
             nbTopologicalBulges << " topological bulges, " << nbFirstNodeDeleted << "+" << nbFirstNodeGraphDeleted << " were first-node duplicates." << endl;
         cout << nbBulgesCandidates << " bulges candidates passed degree check. " << endl;
-        cout << nbNoAltPathBulgesDepth << "+" << nbNoAltPathBulgesLoop << "+" << nbNoAltPathBulgesDeadend << " without alt. path (complex+loop+deadend), " 
+        cout << nbNoAltPathBulgesDepth << "+" << nbNoAltPathBulgesLoop << "+" << nbNoAltPathBulgesDeadend << " without alt. path (complex+loop+noend), " 
             << nbBadCovBulges << " didn't satisfy cov. criterion." << endl;
     }
 
@@ -1529,7 +1546,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                             continue;}
 
                         /* explore the simple path from that node */
-                        vector<Node> nodes;
                         bool foundShortPath = false;
 
                         TIME(auto start_simplepath_t=get_wtime());
@@ -1578,7 +1594,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                         bool isTopologicalEC = isDoublyConnected;
 
-                        DEBUG(cout << "direction: " << DIR2STR(dir) << ", pathlen: " << pathLen << " last node neighbors size: " << _graph.neighborsEdge(nodes.back()).size() << " indegree outdegree: " <<_graph.indegree(node) << " " << _graph.outdegree(node) << " isDoublyConnected: " << isDoublyConnected << " isTopoEC: " << isTopologicalEC << endl);
+                        DEBUG(cout << "direction: " << DIR2STR(dir) << ", pathlen: " << pathLen << " last node neighbors size: " << _graph.neighborsEdge(lastNode).size() << " indegree outdegree: " <<_graph.indegree(node) << " " << _graph.outdegree(node) << " isDoublyConnected: " << isDoublyConnected << " isTopoEC: " << isTopologicalEC << endl);
 
             
 

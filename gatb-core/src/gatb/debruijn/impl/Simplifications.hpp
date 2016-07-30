@@ -88,7 +88,7 @@ protected:
                                     unsigned long &nbCalls);
     // true unitigs version
     void heuristic_most_covered_path_unitigs(Direction dir, Node& startingNode, Node& endNode, 
-                                    int traversal_depth, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& unitigs_lengths, std::vector<int>& unitigs_abundances,
+                                    int traversal_depth, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& unitigs_lengths, std::vector<int>& unitigs_abundances, double& mean_abundance,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, unsigned long &nbCalls);
 
