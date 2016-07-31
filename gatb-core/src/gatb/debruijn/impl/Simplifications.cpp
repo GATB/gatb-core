@@ -76,6 +76,7 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nb
     // (before, the previous system was to do a fixed amount of passes)
 
     cutoffEvents = std::max((uint64_t)(nbNodes / 10000), (uint64_t)1); 
+
     // TODO: estimate better and illustrate on sample genomes
 }
 
@@ -435,7 +436,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
         unsigned long index = _graph.nodeMPHFIndex(node);
 
         // skip deleted nodes
-        if (_graph.isNodeDeleted(node) || (nodesDeleter.get(index)) /* actually not sure if really useful */) {
+        if (_graph.isNodeDeleted(node)) {
                 TIME(auto end_thread_t=get_wtime()); 
                 TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t))); 
             return; }  
@@ -1158,7 +1159,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     unsigned int additive_coeff = 100;
     unsigned int maxBulgeLength = std::max((unsigned int)((double)k * coeff), (unsigned int)(k + additive_coeff)); // SPAdes, exactly
 
-    unsigned int backtrackingLimit = 10;//maxBulgeLength; // arbitrary, but if too high it will take much time;
+    unsigned int backtrackingLimit = k+20;//maxBulgeLength; // arbitrary, but if too high it will take much time;
 
     // stats
     //
@@ -1209,7 +1210,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
       TIME(auto start_nodeindex_t=get_wtime());
 
           if (_graph.isNodeDeleted(node)) { return; } 
-          if (nodesDeleter.get(node)) { return; }  // parallel // actually not sure if really useful
           unsigned long index = _graph.nodeMPHFIndex(node);
        
       TIME(auto end_nodeindex_t=get_wtime());
@@ -1255,9 +1255,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     if (_graph.isNodeDeleted(neighbors[i].to)) { 
                          __sync_fetch_and_add(&nbFirstNodeGraphDeleted, 1);
                         continue;}
-                    if (nodesDeleter.get(neighbors[i].to)) { 
-                         __sync_fetch_and_add(&nbFirstNodeDeleted, 1);
-                            continue;}
 
                 TIME(auto end_various_overhead_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
@@ -1512,7 +1509,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
             TIME(auto start_thread_t=get_wtime());
 
             if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
-            if (nodesDeleter.get(node)) { return; }  // parallel // actually not sure if really useful
 
             unsigned long index = _graph.nodeMPHFIndex(node);
 
@@ -1539,8 +1535,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                     {
 
                         if (_graph.isNodeDeleted(neighbors[i].to)) { 
-                            continue;}
-                        if (nodesDeleter.get(neighbors[i].to)) { 
                             continue;}
 
                         /* explore the simple path from that node */

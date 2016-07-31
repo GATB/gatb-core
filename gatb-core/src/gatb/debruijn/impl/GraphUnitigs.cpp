@@ -992,7 +992,7 @@ template<size_t span>
 void GraphUnitigsTemplate<span>::
 simplePathDelete (NodeFast<span>& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
-    nodesDeleter.allowListMethod = false; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
+    nodesDeleter.onlyListMethod = true; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
 
     nodesDeleter.markToDelete(node);
 }

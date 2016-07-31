@@ -46,7 +46,7 @@ class NodesDeleter
         std::set<Node> setNodesToDelete; 
         Graph &  _graph;
         int _nbCores;
-        bool useList, allowListMethod;
+        bool useList, onlyListMethod;
         unsigned long explicitLimit;
         system::ISynchronizer* synchro;
 
@@ -65,7 +65,7 @@ class NodesDeleter
          */
         //std::cout << "sizeof node: " << sizeof(Node) << std::endl;
         useList = true;
-        allowListMethod = true;
+        onlyListMethod = false;
           
         // compute a fair amount of nodes that can be kept of memory
         // (before, was only 10M)
@@ -100,8 +100,11 @@ class NodesDeleter
 
     void markToDelete(Node &node)
     {
-        unsigned long index =_graph.nodeMPHFIndex(node);
-        nodesToDelete[index] = true;
+        if (!onlyListMethod)
+        {
+            unsigned long index =_graph.nodeMPHFIndex(node);
+            nodesToDelete[index] = true;
+        }
 
         if (useList)
         {
@@ -110,7 +113,7 @@ class NodesDeleter
             synchro->unlock();
         }
 
-        if (setNodesToDelete.size() > explicitLimit && allowListMethod)
+        if ((!onlyListMethod) && (setNodesToDelete.size() > explicitLimit))
             useList = false;
 
     }
