@@ -38,7 +38,7 @@ void free_memory_vector(std::vector<T> &vec)
 
 
 static bool logging_bglue_verbose = true;
-unsigned long logging(string message="")
+static unsigned long logging(string message="")
 {
     time_t t = time(0);   // get time now
     struct tm * now = localtime( & t );
@@ -88,7 +88,7 @@ static string rc(string &s) {
 
 // manipulation of abundance vectors encoded as strings. recent addition (post-publication)
 
-float get_mean_abundance(const string& list)
+static float get_mean_abundance(const string& list)
 {
     float mean_abundance=0;
     int n=0;
@@ -104,7 +104,7 @@ float get_mean_abundance(const string& list)
     return mean_abundance / (float)n;
 }
 
-string reverse_abundances(const string& list)
+static string reverse_abundances(const string& list)
 {
     string rev="";
     std::stringstream stream(list);
@@ -118,7 +118,7 @@ string reverse_abundances(const string& list)
     return rev;
 }
 
-string skip_first_abundance(const string& list)
+static string skip_first_abundance(const string& list)
 {
     string res="";
     std::stringstream stream(list);
@@ -161,27 +161,27 @@ struct markedSeq
 
 // hack to refer to a sequences in msInPart as reverse complemented
 
-uint32_t is_rev_index(uint32_t index)
+static uint32_t is_rev_index(uint32_t index)
 {
     return ((index >> 31 & 1) == 1);
 }
 
 
-uint32_t rev_index(uint32_t index)
+static uint32_t rev_index(uint32_t index)
 {
     if (is_rev_index(index))
     { std::cout << "Error: glue sequence index too large " << index << std::endl; exit(1);}
     return index | (1<<31);
 }
 
-uint32_t no_rev_index(uint32_t index)
+static uint32_t no_rev_index(uint32_t index)
 {
     return index & ((1LL<<31) - 1LL);
 }
 
 
 
-vector<vector<uint32_t> > determine_order_sequences(vector<markedSeq> &sequences, int kmerSize)
+static vector<vector<uint32_t> > determine_order_sequences(vector<markedSeq> &sequences, int kmerSize)
 {
     bool debug = false;
     unordered_map<string, set<uint32_t> > kmerIndex;
@@ -330,7 +330,7 @@ vector<vector<uint32_t> > determine_order_sequences(vector<markedSeq> &sequences
  * sequences should be ordered and in the right orientation
  * so, it' just a matter of chopping of the first kmer
  */
-void glue_sequences(vector<uint32_t> &chain, vector<markedSeq> &sequences, int kmerSize, string &res_seq, string &res_abundances)
+static void glue_sequences(vector<uint32_t> &chain, vector<markedSeq> &sequences, int kmerSize, string &res_seq, string &res_abundances)
 {
     string res;
     string abundances;
@@ -432,7 +432,7 @@ class BufferedFasta
         }
 };
 
-void output(string &seq, BufferedFasta &out, string comment = "")
+static void output(string &seq, BufferedFasta &out, string comment = "")
 {
     out.insert(seq, comment);
     // BufferedFasta takes care of the flush

@@ -8,20 +8,20 @@
 using namespace std;
 
 #ifdef THREAD_SAFE_TIMING
-void atomic_double_add(std::atomic<double> &d1, double d2) {
+static void atomic_double_add(std::atomic<double> &d1, double d2) {
       double current = d1.load();
         while (!d1.compare_exchange_weak(current, current + d2))
                 ;
 }
 #endif
 
-atomic_double global_wtime_compactions (0), global_wtime_cdistribution (0), global_wtime_add_nodes (0), global_wtime_create_buckets (0), global_wtime_foreach_bucket (0), global_wtime_lambda (0), global_wtime_parallel (0), global_wtime_longest_lambda (0), global_wtime_best_sched(0);
+static atomic_double global_wtime_compactions (0), global_wtime_cdistribution (0), global_wtime_add_nodes (0), global_wtime_create_buckets (0), global_wtime_foreach_bucket (0), global_wtime_lambda (0), global_wtime_parallel (0), global_wtime_longest_lambda (0), global_wtime_best_sched(0);
 
-bool time_lambdas = true;
-std::mutex lambda_timing_mutex, active_minimizers_mutex, write_to_glue_mutex;
-size_t nb_threads_simulate=1; // this is somewhat a legacy parameter, i should get rid of (and replace by nb_threads)
+static bool time_lambdas = true;
+static std::mutex lambda_timing_mutex, active_minimizers_mutex, write_to_glue_mutex;
+static size_t nb_threads_simulate=1; // this is somewhat a legacy parameter, i should get rid of (and replace by nb_threads)
 
-unsigned long memory_usage(string message="", bool verbose=true)
+static unsigned long memory_usage(string message="", bool verbose=true)
 {
     // using Progress.cpp of gatb-core
     u_int64_t mem = System::info().getMemorySelfUsed() / 1024;

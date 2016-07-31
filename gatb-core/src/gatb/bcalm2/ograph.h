@@ -77,11 +77,6 @@ class graph3{
 		}
 };
 
-uint chartoint(char c);
-std::string reverseinplace(std::string& str);
-void reverseinplace2(std::string& str);
-bool isNumber(char c);
-
 }}}}
 
 #endif

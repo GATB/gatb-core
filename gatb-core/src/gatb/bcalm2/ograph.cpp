@@ -15,7 +15,7 @@ using namespace std;
 
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
-string reverseinplace(string& str){
+static string reverseinplace(string& str){
 	uint i(str.size()-1),j(0);
 	for(; j<str.size()/2; --i, ++j){
 		str[i] ^= 4;
@@ -32,7 +32,7 @@ string reverseinplace(string& str){
 }
 
 
-void reverseinplace2(string& str){
+static void reverseinplace2(string& str){
 	uint i(str.size()-1),j(0);
 	for(; j<str.size()/2; --i, ++j){
 		str[i] ^= 4;
@@ -48,7 +48,7 @@ void reverseinplace2(string& str){
 }
 
 
-uint chartoint(char c){
+static uint chartoint(char c){
 	char d = (c >> 1) & 3;
 	if (d > 1)
 		d ^= 1;
@@ -56,7 +56,7 @@ uint chartoint(char c){
 }
 
 
-bool isNumber(char c){return (c<64);}
+static inline bool isNumber(char c){return (c<64);}
 
 
 template<size_t span>

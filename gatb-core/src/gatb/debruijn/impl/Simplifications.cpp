@@ -104,7 +104,7 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     }
     while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses <= 2 || nbTipsRemoved >= cutoffEvents)) 
             && _nbTipRemovalPasses < 20);
-
+    
     do
     {
         nbBubblesRemovedPreviously = nbBubblesRemoved;
@@ -115,7 +115,7 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     }
     while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || (_nbBulgeRemovalPasses <= 2 || nbBubblesRemoved >= cutoffEvents))
             && _nbBulgeRemovalPasses < 20);
-
+    
     do
     {
         nbECRemovedPreviously = nbECRemoved;
@@ -1266,7 +1266,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
 
                 TIME(auto start_simplepath_t=get_wtime());
-                Node&     simplePathStart = neighbors[0].to;
+                Node&     simplePathStart = neighbors[i].to;
                 Direction simplePathDir   = dir;
                 unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
                 TIME(auto end_simplepath_t=get_wtime());
@@ -1329,7 +1329,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 Path_t<Node>  heuristic_p_most; // actually won't be used.. (it's just for debug) so would be nice to get rid of it someday, but i don't want to deal with pointers.
 
-                /* startNode is branching, because we want to find alternative paths, to the one that go through (neighbors[i].to)*/
+                /* startNode is branching, because we want to find alternative paths, except the one that go through (neighbors[i].to)*/
                 this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,
                             heuristic_p_most,
                             backtrackingLimit, // avoid too much backtracking
@@ -1474,7 +1474,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     std::cout << "Graph simplifications aren't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
     return 0;
 #else
-
+    
     unsigned int k = _graph.getKmerSize();
     unsigned int maxECLength = (unsigned int)((float)k * (10 - 1.0)) ;  // SPAdes mode 
     double RCTCcutoff = 4.0;
@@ -1549,7 +1549,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                         bool foundShortPath = false;
 
                         TIME(auto start_simplepath_t=get_wtime());
-                        Node&     simplePathStart = neighbors[0].to;
+                        Node&     simplePathStart = neighbors[i].to;
                         Direction simplePathDir   = dir;
                         unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir) - k + 1;
                         TIME(auto end_simplepath_t=get_wtime());

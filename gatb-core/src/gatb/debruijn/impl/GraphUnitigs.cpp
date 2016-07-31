@@ -294,6 +294,10 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         int nb_threads =
             props->getInt(STR_NB_CORES);
 
+        size_t  kmerSize = BaseGraph::getKmerSize();
+        if (kmerSize != (unsigned int)props->getInt(STR_KMER_SIZE))
+            std::cout << "kmer discrepancy: should i take " << kmerSize << " or " << props->getInt(STR_KMER_SIZE) << std::endl;
+
         UnitigsConstructionAlgorithm<span> unitigs_algo(BaseGraph::getStorage(), unitigs_filename, nb_threads, props);
 
         BaseGraph::executeAlgorithm(unitigs_algo, &BaseGraph::getStorage(), props, BaseGraph::_info);
@@ -355,16 +359,7 @@ template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params) 
 //    : BaseGraph() // call base () constructor // seems to do nothing, maybe it's always called by default
 {
-    /** We get the kmer size from the user parameters. */
-    BaseGraph::_kmerSize = params->getInt (STR_KMER_SIZE);
-    modelK = new Model(BaseGraph::_kmerSize);
-    modelKdirect= new ModelDirect(BaseGraph::_kmerSize);
-
-    size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
-
-    /** We configure the data variant according to the provided kmer size. */
-    BaseGraph::setVariant (BaseGraph::_variant, BaseGraph::_kmerSize, integerPrecision);
-    
+   
     string input = params->getStr(STR_URI_INPUT);
 
     string unitigs_filename = (params->get(STR_URI_OUTPUT) ?
@@ -388,6 +383,8 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         BaseGraph::_state     = (typename GraphUnitigsTemplate<span>::StateMask) atol (BaseGraph::getGroup().getProperty ("state").c_str());
         
         BaseGraph::_kmerSize  = atol (BaseGraph::getGroup().getProperty ("kmer_size").c_str());
+        modelK = new Model(BaseGraph::_kmerSize);
+        modelKdirect= new ModelDirect(BaseGraph::_kmerSize);
 
         // TODO: code a check that the dsk group exists and put those three lines in, else print an exception
         if (BaseGraph::_kmerSize == 0) /* try the dsk group; this assumes kmer counting is done */
@@ -416,6 +413,15 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     }
     else
     {
+        /** We get the kmer size from the user parameters. */
+        BaseGraph::_kmerSize = params->getInt (STR_KMER_SIZE);
+        modelK = new Model(BaseGraph::_kmerSize);
+        modelKdirect= new ModelDirect(BaseGraph::_kmerSize);
+        size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
+
+        /** We configure the data variant according to the provided kmer size. */
+        BaseGraph::setVariant (BaseGraph::_variant, BaseGraph::_kmerSize, integerPrecision);
+
         /** We build a Bank instance for the provided reads uri. */
         bank::IBank* bank = Bank::open (params->getStr(STR_URI_INPUT));
 
@@ -544,7 +550,11 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
  
     GraphVector<EdgeFast<span>> res;
 
-    const ExtremityInfo& e = utigs_map.at(source.kmer);
+    auto it = utigs_map.find(source.kmer);
+    if (it == utigs_map.end())
+    {std::cout << std::endl << " source not found in utigs_map: " <<  BaseGraph::toString(source) << std::endl; exit(1);}
+
+    const ExtremityInfo& e = it->second;
 
     bool same_orientation = node_in_same_orientation_as_in_unitig(source, e);
     res.resize(0);
