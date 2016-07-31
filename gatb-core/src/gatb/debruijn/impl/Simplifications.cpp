@@ -1549,14 +1549,14 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                         TIME(auto start_simplepath_t=get_wtime());
                         Node&     simplePathStart = neighbors[i].to;
                         Direction simplePathDir   = dir;
-                        unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir) - k + 1;
+                        unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
                         TIME(auto end_simplepath_t=get_wtime());
                         TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
 
                         DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                         bool isShort = true;
                         
-                        if (k + pathLen++ >= maxECLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+                        if (k + pathLen >= maxECLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
                         {
                             __sync_fetch_and_add(&nbLongSimplePaths, 1);
                             isShort = false;
@@ -1564,7 +1564,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                         __sync_fetch_and_add(&nbSimplePaths, 1);
 
-                        if (!isShort || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
+                        if ((!isShort) || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
                         {
                             DEBUG(cout << "direction: " << DIR2STR(dir) << ", not an EC: foundShortPath: " << foundShortPath << " pathLen: " << pathLen << endl);
                             continue;
