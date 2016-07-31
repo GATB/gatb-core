@@ -75,10 +75,8 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nb
     // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
     // (before, the previous system was to do a fixed amount of passes)
 
-    cutoffEvents = std::max((uint64_t)((nbNodes / 100.0) * (1.0/100.0)), (uint64_t)1); 
-    // for bacteria it's roughly 30
-    // for human it's roughly 3000
-    // for spruce it's roughly 20000
+    cutoffEvents = std::max((uint64_t)(nbNodes / 10000), (uint64_t)1); 
+    // TODO: estimate better and illustrate on sample genomes
 }
 
 
@@ -1160,7 +1158,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     unsigned int additive_coeff = 100;
     unsigned int maxBulgeLength = std::max((unsigned int)((double)k * coeff), (unsigned int)(k + additive_coeff)); // SPAdes, exactly
 
-    unsigned int backtrackingLimit = 100;//maxBulgeLength; // arbitrary, but if too high it will take much time;
+    unsigned int backtrackingLimit = 10;//maxBulgeLength; // arbitrary, but if too high it will take much time;
 
     // stats
     //
