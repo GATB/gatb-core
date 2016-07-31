@@ -1037,7 +1037,7 @@ simplePathLongest_avance(const NodeFast<span>& node, string& seq, int& endDegree
         /** We check we have no outbranching. */
         if (neighbors.size() != 1)
         {
-            std:: cout << "stopped because of out-branching " << neighbors.size() << std::endl;
+            //std:: cout << "stopped because of out-branching " << neighbors.size() << std::endl;
             endDegree = neighbors.size();
             return;
         }
@@ -1051,7 +1051,7 @@ simplePathLongest_avance(const NodeFast<span>& node, string& seq, int& endDegree
             new_seq = revcomp(new_seq);
 
         
-        std::cout << " cur node " << BaseGraph::toString(cur_node) << " strand " << cur_node.strand << " neighbor.to " << BaseGraph::toString(neighbors[0].to) << " strand " << neighbors[0].to.strand  << " new seq: " << new_seq << std::endl;
+        //std::cout << " cur node " << BaseGraph::toString(cur_node) << " strand " << cur_node.strand << " neighbor.to " << BaseGraph::toString(neighbors[0].to) << " strand " << neighbors[0].to.strand  << " new seq: " << new_seq << std::endl;
         NodeFast<span> first_node = BaseGraph::buildNode(new_seq.substr(0, kmerSize).c_str());
         //GraphVector<EdgeFast<span>> in_neighbors_vec = this->neighborsEdge (neighbors[0].to, DIR_INCOMING);
         GraphVector<EdgeFast<span>> in_neighbors_vec = this->neighborsEdge (first_node, DIR_INCOMING);
@@ -1059,7 +1059,7 @@ simplePathLongest_avance(const NodeFast<span>& node, string& seq, int& endDegree
         /** We check we have no in-branching. */
         if (in_neighbors > 0) // used to be > 1, but I deleted the previous in-neighbor.
         {
-            std:: cout << "stopped because of in-branching " << in_neighbors << std::endl;
+            //std:: cout << "stopped because of in-branching " << in_neighbors << std::endl;
             return;
        } 
         cur_node = BaseGraph::buildNode(new_seq.substr(new_seq.size() - kmerSize, kmerSize).c_str());
@@ -1077,7 +1077,7 @@ simplePathLongest(const NodeFast<span>& node, bool& isolatedLeft, bool& isolated
 {
     string seq = unitigs[utigs_map.at(node.kmer).unitig];
 
-    std::cout << "starting seq " << seq << "(from node " << BaseGraph::toString(node) << ")" << std::endl;
+    //std::cout << "starting seq " << seq << "(from node " << BaseGraph::toString(node) << ")" << std::endl;
     int kmerSize = BaseGraph::_kmerSize;
     Node left = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
     Node right = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
