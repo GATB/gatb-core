@@ -90,7 +90,9 @@ class TestDebruijnUnitigs : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestDebruijnUnitigs);
 
-        CPPUNIT_TEST_GATB (debruijn_unitigs_test1);
+        CPPUNIT_TEST_GATB (debruijn_unitigs_test10); // a unitig of length k with 2 in-branching and 2 out-branching. useful to test an edge case bug
+        CPPUNIT_TEST_GATB (debruijn_unitigs_test11); // same as test10, except 1 out-branching instead of 2, provides asymetry
+        //CPPUNIT_TEST_GATB (debruijn_unitigs_test1); // an X-shaped unitig layout
         /*CPPUNIT_TEST_GATB (debruijn_unitigs_test7_nocircular);
          //CPPUNIT_TEST_GATB (debruijn_unitigs_deletenode); // probably not appropriate, it's a weird case of a self-revcomp kmer inside a unitig and also at an extremity.
         CPPUNIT_TEST_GATB (debruijn_unitigs_test2);
@@ -482,6 +484,156 @@ public:
         }
 
     };
+
+
+    void debruijn_unitigs_test10()
+    {
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", "CGATT",0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
+
+        NodeFast<32> n1 = graph.buildNode ((char*)"GCGAT");
+
+        GraphVector<EdgeFast<32>> neighbors = graph.neighborsEdge(n1, DIR_OUTCOMING);// GCGAT
+        CPPUNIT_ASSERT (neighbors.size() == 2);
+        for (size_t i=0; i<neighbors.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors[i];
+
+            if (graph.toString(edge.to) != "CGATA" && graph.toString(edge.to) != "CGATT" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="GCGAT");
+            CPPUNIT_ASSERT (graph.toString(edge.to)  == "CGATA" ||  graph.toString(edge.to) == "CGATT" );
+        }
+
+
+        GraphVector<EdgeFast<32>> neighbors2 = graph.neighborsEdge(n1, DIR_INCOMING); //GCGAT
+        CPPUNIT_ASSERT (neighbors2.size() == 2);
+        for (size_t i=0; i<neighbors2.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors2[i];
+
+            if (graph.toString(edge.to) != "GGCGA" && graph.toString(edge.to) != "TGCGA" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="GCGAT");
+             CPPUNIT_ASSERT (graph.toString(edge.to)  =="GGCGA" ||  graph.toString(edge.to) == "TGCGA" );
+        }
+
+
+        // same as before, except on revcomp of that node
+        //
+        
+        NodeFast<32> n1rev = graph.buildNode ((char*)"ATCGC");
+
+         neighbors = graph.neighborsEdge(n1rev, DIR_OUTCOMING);
+        CPPUNIT_ASSERT (neighbors.size() == 2);
+        for (size_t i=0; i<neighbors.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors[i];
+
+            if (graph.toString(edge.to) != "TCGCC" && graph.toString(edge.to) != "TCGCA" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="ATCGC");
+            CPPUNIT_ASSERT (graph.toString(edge.to)  == "TCGCC" ||  graph.toString(edge.to) == "TCGCA" );
+        }
+
+
+        neighbors2 = graph.neighborsEdge(n1rev, DIR_INCOMING);
+        CPPUNIT_ASSERT (neighbors2.size() == 2);
+        for (size_t i=0; i<neighbors2.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors2[i];
+
+            if (graph.toString(edge.to) != "TATCG" && graph.toString(edge.to) != "AATCG" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="ATCGC");
+             CPPUNIT_ASSERT (graph.toString(edge.to)  =="TATCG" ||  graph.toString(edge.to) == "AATCG" );
+        }
+
+
+
+    };
+
+    void debruijn_unitigs_test11()
+    {
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", 0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
+
+        NodeFast<32> n1 = graph.buildNode ((char*)"GCGAT");
+
+        GraphVector<EdgeFast<32>> neighbors = graph.neighborsEdge(n1, DIR_OUTCOMING);// GCGAT
+        CPPUNIT_ASSERT (neighbors.size() == 1);
+        for (size_t i=0; i<neighbors.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors[i];
+
+            if (graph.toString(edge.to) != "CGATA" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="GCGAT");
+            CPPUNIT_ASSERT (graph.toString(edge.to)  == "CGATA" );
+        }
+
+
+        GraphVector<EdgeFast<32>> neighbors2 = graph.neighborsEdge(n1, DIR_INCOMING); //GCGAT
+        CPPUNIT_ASSERT (neighbors2.size() == 2);
+        for (size_t i=0; i<neighbors2.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors2[i];
+
+            if (graph.toString(edge.to) != "GGCGA" && graph.toString(edge.to) != "TGCGA" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="GCGAT");
+             CPPUNIT_ASSERT (graph.toString(edge.to)  =="GGCGA" ||  graph.toString(edge.to) == "TGCGA" );
+        }
+
+
+        // same as before, except on revcomp of that node
+        //
+        
+        NodeFast<32> n1rev = graph.buildNode ((char*)"ATCGC");
+
+         neighbors = graph.neighborsEdge(n1rev, DIR_OUTCOMING);
+        CPPUNIT_ASSERT (neighbors.size() == 2);
+        for (size_t i=0; i<neighbors.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors[i];
+
+            if (graph.toString(edge.to) != "TCGCC" && graph.toString(edge.to) != "TCGCA" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_OUTCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="ATCGC");
+            CPPUNIT_ASSERT (graph.toString(edge.to)  == "TCGCC" ||  graph.toString(edge.to) == "TCGCA" );
+        }
+
+
+        neighbors2 = graph.neighborsEdge(n1rev, DIR_INCOMING);
+        CPPUNIT_ASSERT (neighbors2.size() == 1);
+        for (size_t i=0; i<neighbors2.size(); i++)
+        {
+            EdgeFast<32>& edge = neighbors2[i];
+
+            if (graph.toString(edge.to) != "TATCG" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="ATCGC");
+             CPPUNIT_ASSERT (graph.toString(edge.to)  =="TATCG" );
+        }
+
+
+
+    };
+
 
 
     /********************************************************************************/

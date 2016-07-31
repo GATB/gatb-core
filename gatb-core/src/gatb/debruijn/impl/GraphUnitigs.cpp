@@ -1047,7 +1047,7 @@ simplePathLongest_avance(const NodeFast<span>& node, string& seq, int& endDegree
         string new_seq = unitigs[e.unitig];
         if (e.pos == UNITIG_END) 
             new_seq = revcomp(new_seq);
-        if (e.pos == UNITIG_BOTH && (!node_in_same_orientation_as_in_unitig(neighbors[0].to.kmer, e)))
+        if (e.pos == UNITIG_BOTH && (!node_in_same_orientation_as_in_unitig(neighbors[0].to, e)))
             new_seq = revcomp(new_seq);
 
         
@@ -1082,6 +1082,10 @@ simplePathLongest(const NodeFast<span>& node, bool& isolatedLeft, bool& isolated
     Node left = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
     Node right = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
 
+    // invariant during traversal: the node we're traversing from has been deleted. next nodes shouldn't have any in-neighbor. it made things easier.
+    if (deleteAfterTraversal)
+        simplePathDelete(node);
+
     string seqRight, seqLeft;
     int endDegreeLeft, endDegreeRight;
     simplePathLongest_avance (right, seqRight, endDegreeRight, deleteAfterTraversal);
@@ -1090,9 +1094,6 @@ simplePathLongest(const NodeFast<span>& node, bool& isolatedLeft, bool& isolated
 
     isolatedLeft  = (endDegreeLeft == 0);
     isolatedRight = (endDegreeRight == 0);
-
-    if (deleteAfterTraversal)
-        simplePathDelete(node );
 
     // glue everything together
     seq = revcomp(seqLeft) + seq + seqRight;
