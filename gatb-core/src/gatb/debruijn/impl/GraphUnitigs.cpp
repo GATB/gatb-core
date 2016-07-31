@@ -745,7 +745,7 @@ GraphIterator<NodeFast<span>> GraphUnitigsTemplate<span>::getNodes () const
             NodeIterator (const NodeMap& utigs_map) 
                 :  utigs_map(utigs_map), _rank(0), _isDone(true)   {  
                     this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
-                    _nbItems = utigs_map.size() * 2;
+                    _nbItems = utigs_map.size();
                 }
 
             ~NodeIterator ()  {  }
