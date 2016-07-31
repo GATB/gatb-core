@@ -891,11 +891,11 @@ unsigned long GraphUnitigsTemplate<span>::nodeMPHFIndex(NodeFast<span>& node) co
     return (((e.pos & UNITIG_END)) ? 1 : 0)* utigs_map.size() + e.unitig; 
 }
 
+/* warning: will delete the whole simple path */
 template<size_t span>
-void GraphUnitigsTemplate<span>::deleteNode (NodeFast<span>& node) const
+void GraphUnitigsTemplate<span>::deleteNode (NodeFast<span>& node) 
 {
-    std::cout << "GraphUnitigs::deleteNode() not implemented" << std::endl;
-    exit(1);
+    simplePathDelete (node);
 }
 
 template<size_t span>
@@ -970,7 +970,7 @@ simplePathLastNode          (const NodeFast<span>& node, Direction dir) const
 
 template<size_t span>
 void GraphUnitigsTemplate<span>::
-simplePathDelete (const NodeFast<span>& node) 
+simplePathDelete (NodeFast<span>& node) 
 {
     ExtremityInfo& e = utigs_map.at(node.kmer);
     e.deleted = true;
@@ -990,21 +990,11 @@ simplePathDelete (const NodeFast<span>& node)
 
 template<size_t span>
 void GraphUnitigsTemplate<span>::
-simplePathDelete (const NodeFast<span>& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter) 
+simplePathDelete (NodeFast<span>& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
-    ExtremityInfo& e = utigs_map.at(node.kmer);
-    e.deleted = true;
-    
-    // make sure to delete other part also
-    const std::string seq = unitigs[e.unitig];
-    int kmerSize = BaseGraph::_kmerSize;
-    NodeFast<span> second;
-    if ((e.pos & UNITIG_BEGIN)) // TODO might make sense to replace all this by get_other_end(Node,dir) with a check that we're not in the wrong direction
-        second = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
-    else
-        second = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
-    ExtremityInfo& e2 = utigs_map.at(second.kmer);
-    e2.deleted = true;
+    nodesDeleter.allowListMethod = false; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
+
+    nodesDeleter.markToDelete(node);
 }
 
 template<size_t span>
@@ -1026,7 +1016,7 @@ simplePathSequence (const NodeFast<span>& node, bool& isolatedLeft, bool& isolat
 // keep traversing unitigs as far as we can.
 template<size_t span>
 void GraphUnitigsTemplate<span>::
-simplePathLongest_avance(const NodeFast<span>& node, string& seq, int& endDegree, bool deleteAfterTraversal) 
+simplePathLongest_avance(NodeFast<span>& node, string& seq, int& endDegree, bool deleteAfterTraversal) 
 {
     int kmerSize = BaseGraph::_kmerSize;
     NodeFast<span> cur_node = node;
@@ -1073,7 +1063,7 @@ simplePathLongest_avance(const NodeFast<span>& node, string& seq, int& endDegree
 /* returns the longest simple path; may have to traverse multiple unitigs, due to some branches being deleted */
 template<size_t span>
 std::string GraphUnitigsTemplate<span>::
-simplePathLongest(const NodeFast<span>& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) 
+simplePathLongest(NodeFast<span>& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) 
 {
     string seq = unitigs[utigs_map.at(node.kmer).unitig];
 
@@ -1089,7 +1079,7 @@ simplePathLongest(const NodeFast<span>& node, bool& isolatedLeft, bool& isolated
     string seqRight, seqLeft;
     int endDegreeLeft, endDegreeRight;
     simplePathLongest_avance (right, seqRight, endDegreeRight, deleteAfterTraversal);
-    const NodeFast<span> rev_left = BaseGraph::reverse(left);
+    NodeFast<span> rev_left = BaseGraph::reverse(left);
     simplePathLongest_avance (rev_left, seqLeft, endDegreeLeft, deleteAfterTraversal);
 
     isolatedLeft  = (endDegreeLeft == 0);

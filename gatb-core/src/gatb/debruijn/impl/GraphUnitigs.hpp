@@ -267,13 +267,13 @@ public:
     double       simplePathMeanAbundance     (const Node& node, Direction dir) const;
     unsigned int simplePathLength            (const Node& node, Direction dir) const;
     Node         simplePathLastNode          (const Node& node, Direction dir) const;
-    void         simplePathDelete            (const Node& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
-    void         simplePathDelete            (const Node& node) ;
+    void         simplePathDelete            (Node& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    void         simplePathDelete            (Node& node) ;
 
     std::string simplePathSequence (const Node& node, bool& isolatedLeft, bool& isolatedRight) const;
 
-    std::string simplePathLongest(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) ;
-    void simplePathLongest_avance(const Node& node, std::string& seq, int& endDegree, bool deleteAfterTraversal) ; // aux function, not meant to be called from outside, but maybe it could.
+    std::string simplePathLongest(Node& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) ;
+    void simplePathLongest_avance(Node& node, std::string& seq, int& endDegree, bool deleteAfterTraversal) ; // aux function, not meant to be called from outside, but maybe it could.
 
 
     /**********************************************************************/
@@ -306,7 +306,7 @@ public:
     void disableNodeState () const ; // see Graph.cpp for explanation
 
     // deleted nodes, related to NodeState above
-    void deleteNode (Node& node) const;
+    void deleteNode (Node& node) ;
     void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
     bool isNodeDeleted(Node& node) const;
 

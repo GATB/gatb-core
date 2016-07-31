@@ -44,13 +44,13 @@ class NodesDeleter
         uint64_t nbNodes;
         std::vector<bool> nodesToDelete; // don't delete while parallel traversal, do it afterwards
         std::set<Node> setNodesToDelete; 
-        const Graph &  _graph;
+        Graph &  _graph;
         int _nbCores;
-        bool useList;
+        bool useList, allowListMethod;
         unsigned long explicitLimit;
         system::ISynchronizer* synchro;
 
-    NodesDeleter(const Graph&  graph, uint64_t nbNodes, int nbCores) : nbNodes(nbNodes), _graph(graph), _nbCores(nbCores)
+    NodesDeleter(Graph&  graph, uint64_t nbNodes, int nbCores) : nbNodes(nbNodes), _graph(graph), _nbCores(nbCores)
     {
         nodesToDelete.resize(nbNodes); // number of graph nodes // (!) this will alloc 1 bit per kmer.
         for (unsigned long i = 0; i < nbNodes; i++)
@@ -65,6 +65,7 @@ class NodesDeleter
          */
         //std::cout << "sizeof node: " << sizeof(Node) << std::endl;
         useList = true;
+        allowListMethod = true;
           
         // compute a fair amount of nodes that can be kept of memory
         // (before, was only 10M)
@@ -109,7 +110,7 @@ class NodesDeleter
             synchro->unlock();
         }
 
-        if (setNodesToDelete.size() > explicitLimit)
+        if (setNodesToDelete.size() > explicitLimit && allowListMethod)
             useList = false;
 
     }
@@ -122,7 +123,7 @@ class NodesDeleter
             // sequential nodes deletion (no need for parallel here, as deleteNode() needs to be atomic anyway
             for (typename std::set<Node>::iterator it = setNodesToDelete.begin(); it != setNodesToDelete.end(); it++)
             {
-                Node node = *it; // remove this line when deleteNode is const Node&
+                Node node = *it; // remove this line when (if ever?) deleteNode is const Node&
                 _graph.deleteNode(node);
             }
         }
