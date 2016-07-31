@@ -826,9 +826,12 @@ public:
     double       simplePathMeanAbundance     (Node& node, Direction dir) const;
     unsigned int simplePathLength            (Node& node, Direction dir) const;
     Node        simplePathLastNode          (Node& node, Direction dir) const;
-    void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) const;
+    void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) ;
+    void         simplePathDelete          (Node& node) ;
     std::string simplePathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
-
+    
+    std::string simplePathLongest(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) ;
+    void simplePathLongest_avance(const Node& node, std::string& seq, int& endDegree, bool deleteAfterTraversal) ; // aux function, not meant to be called from outside, but maybe it could.
 
     /**********************************************************************/
     /*                         NODE METHODS                               */

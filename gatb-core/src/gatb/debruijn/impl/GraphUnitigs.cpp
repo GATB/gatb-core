@@ -268,7 +268,7 @@ char revcomp (char s) {
 	return 'X';
 }
 
-static string revcomp (string &s) {
+static string revcomp (const string &s) {
 	string rc;
 	for (signed int i = s.length() - 1; i >= 0; i--) {rc += revcomp(s[i]);}
 	return rc;
@@ -533,7 +533,7 @@ void GraphUnitigsTemplate<span>::remove ()
 template<size_t span>
 GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span> source, Direction direction)  const
 {
-    bool debug=false;
+    bool debug = false;
 
     if (debug)
     std::cout << "graphU getEdges called" << std::endl;
@@ -625,8 +625,6 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
 
     auto functor = [&](const Type &neighbor){
         Type true_neighbor = neighbor;
-        if (incoming) // iterateIncoming actually reverses to get inneighbors, so we reverse back.
-             true_neighbor = modelKdirect->reverse(neighbor);
 
         Type norm_neighbor = modelKdirect->reverse(true_neighbor);
         kmer::Strand strand = kmer::STRAND_REVCOMP;
@@ -664,12 +662,24 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
 
     if (direction & DIR_OUTCOMING && ((same_orientation && (e.pos & UNITIG_END)) || ( !same_orientation && (e.pos & UNITIG_BEGIN)) ))
     {
-        modelKdirect->iterateOutgoingNeighbors(oriented_kmer, functor);
+        //modelKdirect->iterateOutgoingNeighbors(oriented_kmer, functor); // that's what i wanted to do, but it doesn't work, that function converts to canonical kmer anyhow
+        /** We compute the 4 possible neighbors. */
+        for (size_t nt=0; nt<4; nt++)
+        {
+            Type next1 = (((oriented_kmer) * 4 )  + nt) & modelKdirect->getKmerMax();
+            functor(next1);
+        }
     }
     if (direction & DIR_INCOMING && ((same_orientation && (e.pos & UNITIG_BEGIN)) || ( !same_orientation && (e.pos & UNITIG_END)) ))
     {
         incoming = true;
-        modelKdirect->iterateIncomingNeighbors(oriented_kmer, functor);
+
+        Type rev = modelKdirect->reverse(oriented_kmer);
+        for (size_t nt=0; nt<4; nt++)
+        {
+            Type next1 = (((rev) * 4 )  + nt) & modelKdirect->getKmerMax();
+            functor(modelKdirect->reverse(next1));
+        }
     }
 
    
@@ -690,7 +700,7 @@ GraphVector<NodeFast<span>> GraphUnitigsTemplate<span>::getNodes (NodeFast<span>
     return nodes;
 }
 
-// can be optimized surely
+// can be optimized surely, TODO opt
 template<size_t span>
 bool GraphUnitigsTemplate<span>::node_in_same_orientation_as_in_unitig(const Node& node, const ExtremityInfo& e) const
 {
@@ -704,78 +714,24 @@ bool GraphUnitigsTemplate<span>::node_in_same_orientation_as_in_unitig(const Nod
 template<size_t span>
 unsigned char GraphUnitigsTemplate<span>::countNeighbors (NodeFast<span> &source, Direction direction)  const
 {
-    //std::cout << "graphU countneighbors called" << std::endl;
-    
-    const ExtremityInfo& e = utigs_map.at(source.kmer);
-    //std::cout << "neighbors " << e.toString() << std::endl;
-
-    bool same_orientation = node_in_same_orientation_as_in_unitig(source, e);
-    int nb_neighbors = 0;
-    
-    unsigned int kmerSize = BaseGraph::_kmerSize;
-    if (unitigs[e.unitig].size() > kmerSize)
-    {
-        // unitig: [kmer]-------
-        if (same_orientation && (direction & DIR_OUTCOMING) && (e.pos & UNITIG_BEGIN)) 
-            nb_neighbors++;
-
-        // unitig: [kmer rc]-------
-        if ((!same_orientation) && (direction & DIR_INCOMING) && (e.pos & UNITIG_BEGIN)) 
-            nb_neighbors++;
-
-        // unitig: ----------[kmer]
-        if ((same_orientation) && (direction & DIR_INCOMING) && (e.pos & UNITIG_END)) 
-            nb_neighbors++;
-
-        // unitig: ----------[kmer rc]
-        if ((!same_orientation) && (direction & DIR_OUTCOMING) && (e.pos & UNITIG_END)) 
-            nb_neighbors++;
-    }
-
-    // otherwise mutate to get all 4 outneighrs, and test for their existence in the utigs_map
-
-    auto functor = [&](const Type &neighbor){ 
-        if (utigs_map.find(neighbor) != utigs_map.end()) 
-        {
-            const ExtremityInfo &e = utigs_map.at(neighbor);
-            if (e.deleted) return;
-
-            nb_neighbors++;
-        }
-    }; 
-
-    if (direction & DIR_OUTCOMING && ((same_orientation && (e.pos & UNITIG_END)) || ( !same_orientation && (e.pos & UNITIG_BEGIN)) ))
-        modelK->iterateOutgoingNeighbors(source.kmer, functor);
-    if (direction & DIR_INCOMING && ((same_orientation && (e.pos & UNITIG_BEGIN)) || ( !same_orientation && (e.pos & UNITIG_END)) ))
-        modelK->iterateIncomingNeighbors(source.kmer, functor);
-
-    //std::cout << "kmer neighbors: " << nb_neighbors << std::endl;
-    return nb_neighbors;
+    // for the sake of no duplication and removing bugs, i'm de-optimizing this function for now.
+    GraphVector<EdgeFast<span>> edges = getEdges(source, direction);
+    return edges.size();
 }
 
 template<size_t span>
 void GraphUnitigsTemplate<span>::countNeighbors (NodeFast<span> &source, size_t &in, size_t &out)  const
 {
-    bool hasAdjacency = getState() & GraphUnitigsTemplate<span>::STATE_ADJACENCY_DONE;
-    //boost::apply_visitor (countNeighbors_visitor<span >(source, DIR_END, hasAdjacency, in, out),  *(span*)BaseGraph::_variant);
+    std::cout << "GraphU countNeighbors source,in,out not implememented" << std::endl;exit(1);
 }
 
 template<size_t span>
 NodeFast<span> GraphUnitigsTemplate<span>::getNode (NodeFast<span>& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
 {
-    bool hasAdjacency = getState() & GraphUnitigsTemplate<span>::STATE_ADJACENCY_DONE;
-    /* code to change anyway for unitigs *///return boost::apply_visitor (getItem_visitor<Node, Functor_getNode<span> >(source, dir, nt, hasAdjacency, exists, Functor_getNode<span>()),  *(span*)BaseGraph::_variant);
+    std::cout << "GraphU getNode source,dir,nt,exists  not implememented" << std::endl;exit(1);
     return Node();
 }
 
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
 template<size_t span>
 GraphIterator<NodeFast<span>> GraphUnitigsTemplate<span>::getNodes () const
 {
@@ -1011,6 +967,27 @@ simplePathLastNode          (const NodeFast<span>& node, Direction dir) const
     return res;
 }
 
+
+template<size_t span>
+void GraphUnitigsTemplate<span>::
+simplePathDelete (const NodeFast<span>& node) 
+{
+    ExtremityInfo& e = utigs_map.at(node.kmer);
+    e.deleted = true;
+    
+    // make sure to delete other part also
+    const std::string seq = unitigs[e.unitig];
+    int kmerSize = BaseGraph::_kmerSize;
+    NodeFast<span> second;
+    if ((e.pos & UNITIG_BEGIN)) // TODO might make sense to replace all this by get_other_end(Node,dir) with a check that we're not in the wrong direction
+        second = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
+    else
+        second = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
+    ExtremityInfo& e2 = utigs_map.at(second.kmer);
+    e2.deleted = true;
+}
+
+
 template<size_t span>
 void GraphUnitigsTemplate<span>::
 simplePathDelete (const NodeFast<span>& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter) 
@@ -1038,14 +1015,89 @@ simplePathSequence (const NodeFast<span>& node, bool& isolatedLeft, bool& isolat
 
     //std::cout << " seq " << seq << " node " << BaseGraph::toString(node) << std::endl;
     int kmerSize = BaseGraph::_kmerSize;
-    Node left = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
-    Node right = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
+    Node right = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
+    Node left = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
 
     isolatedLeft  = (indegree(left)   == 0);
     isolatedRight = (outdegree(right) == 0);
     return seq;
 }
 
+// keep traversing unitigs as far as we can.
+template<size_t span>
+void GraphUnitigsTemplate<span>::
+simplePathLongest_avance(const NodeFast<span>& node, string& seq, int& endDegree, bool deleteAfterTraversal) 
+{
+    int kmerSize = BaseGraph::_kmerSize;
+    NodeFast<span> cur_node = node;
+    while (true)
+    { // invariant: node is the last node at an extremity of the unitig. we're interested in the sequence of what comes next.
+
+        GraphVector<EdgeFast<span>> neighbors = this->neighborsEdge (cur_node, DIR_OUTCOMING);
+        /** We check we have no outbranching. */
+        if (neighbors.size() != 1)
+        {
+            std:: cout << "stopped because of out-branching " << neighbors.size() << std::endl;
+            endDegree = neighbors.size();
+            return;
+        }
+      
+        // get unitig such that the beginning matches neighbors[0]
+        const ExtremityInfo& e = utigs_map.at(neighbors[0].to.kmer);
+        string new_seq = unitigs[e.unitig];
+        if (e.pos == UNITIG_END) 
+            new_seq = revcomp(new_seq);
+        if (e.pos == UNITIG_BOTH && (!node_in_same_orientation_as_in_unitig(neighbors[0].to.kmer, e)))
+            new_seq = revcomp(new_seq);
+
+        
+        std::cout << " cur node " << BaseGraph::toString(cur_node) << " strand " << cur_node.strand << " neighbor.to " << BaseGraph::toString(neighbors[0].to) << " strand " << neighbors[0].to.strand  << " new seq: " << new_seq << std::endl;
+        NodeFast<span> first_node = BaseGraph::buildNode(new_seq.substr(0, kmerSize).c_str());
+        //GraphVector<EdgeFast<span>> in_neighbors_vec = this->neighborsEdge (neighbors[0].to, DIR_INCOMING);
+        GraphVector<EdgeFast<span>> in_neighbors_vec = this->neighborsEdge (first_node, DIR_INCOMING);
+        int in_neighbors = in_neighbors_vec.size();
+        /** We check we have no in-branching. */
+        if (in_neighbors > 0) // used to be > 1, but I deleted the previous in-neighbor.
+        {
+            std:: cout << "stopped because of in-branching " << in_neighbors << std::endl;
+            return;
+       } 
+        cur_node = BaseGraph::buildNode(new_seq.substr(new_seq.size() - kmerSize, kmerSize).c_str());
+        seq += new_seq.substr(kmerSize-1);
+
+        if (deleteAfterTraversal)
+            simplePathDelete(cur_node);
+    }
+}
+
+/* returns the longest simple path; may have to traverse multiple unitigs, due to some branches being deleted */
+template<size_t span>
+std::string GraphUnitigsTemplate<span>::
+simplePathLongest(const NodeFast<span>& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) 
+{
+    string seq = unitigs[utigs_map.at(node.kmer).unitig];
+
+    std::cout << "starting seq " << seq << "(from node " << BaseGraph::toString(node) << ")" << std::endl;
+    int kmerSize = BaseGraph::_kmerSize;
+    Node left = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
+    Node right = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
+
+    string seqRight, seqLeft;
+    int endDegreeLeft, endDegreeRight;
+    simplePathLongest_avance (right, seqRight, endDegreeRight, deleteAfterTraversal);
+    const NodeFast<span> rev_left = BaseGraph::reverse(left);
+    simplePathLongest_avance (rev_left, seqLeft, endDegreeLeft, deleteAfterTraversal);
+
+    isolatedLeft  = (endDegreeLeft == 0);
+    isolatedRight = (endDegreeRight == 0);
+
+    if (deleteAfterTraversal)
+        simplePathDelete(node );
+
+    // glue everything together
+    seq = revcomp(seqLeft) + seq + seqRight;
+    return seq;
+}
 
 
 /*
@@ -1106,7 +1158,7 @@ int GraphUnitigsTemplate<span>::simplePathAvance (NodeFast<span>& node, Directio
 template<size_t span>
 int GraphUnitigsTemplate<span>::simplePathAvance (NodeFast<span>& node, Direction dir, Edge& output) const
 {
-    std::cout << "GraphU simplePathAvance called" << std::endl;
+    std::cout << "GraphU simplePathAvance called, not allowed in GraphUnitigs. call simplePathSequence instead." << std::endl; exit(1);
     // shouldn't be called!
     // instead, do a more high level function
 

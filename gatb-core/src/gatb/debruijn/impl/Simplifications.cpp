@@ -25,7 +25,7 @@
 // We include required definitions
 /********************************************************************************/
 
-#define DEBUG(a)    a
+#define DEBUG(a)    //a
 
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a

@@ -268,8 +268,12 @@ public:
     unsigned int simplePathLength            (const Node& node, Direction dir) const;
     Node         simplePathLastNode          (const Node& node, Direction dir) const;
     void         simplePathDelete            (const Node& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    void         simplePathDelete            (const Node& node) ;
 
     std::string simplePathSequence (const Node& node, bool& isolatedLeft, bool& isolatedRight) const;
+
+    std::string simplePathLongest(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) ;
+    void simplePathLongest_avance(const Node& node, std::string& seq, int& endDegree, bool deleteAfterTraversal) ; // aux function, not meant to be called from outside, but maybe it could.
 
 
     /**********************************************************************/
