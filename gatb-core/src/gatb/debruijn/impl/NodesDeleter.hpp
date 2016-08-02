@@ -123,6 +123,7 @@ class NodesDeleter
     {
         if (useList)
         {
+            std::cout << "NodesDeleter mem usage: " << (setNodesToDelete.size() * sizeof(Node)) / 1024 / 1024 << " MB" << std::endl;
             // sequential nodes deletion (no need for parallel here, as deleteNode() needs to be atomic anyway
             for (typename std::set<Node>::iterator it = setNodesToDelete.begin(); it != setNodesToDelete.end(); it++)
             {

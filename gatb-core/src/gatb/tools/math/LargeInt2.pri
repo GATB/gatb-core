@@ -39,6 +39,7 @@ public:
 
      u_int64_t getVal () const  { return value; }
      inline void setVal (const u_int64_t &c) { value = c; }
+     inline void setVal (const LargeInt<2>& c) { value = c.value; }
 
     static const char* getName ()  { return "LargeInt<2>"; }
 
@@ -58,6 +59,8 @@ public:
     LargeInt<2> operator~  ()                           const   {   LargeInt<2> res; res.value = ~value;              return res; }
     LargeInt<2> operator<< (const int& coeff)           const   {   LargeInt<2> res; res.value = value << coeff;      return res; }
     LargeInt<2> operator>> (const int& coeff)           const   {   LargeInt<2> res; res.value = value >> coeff;      return res; }
+    /*    LargeInt<2> operator=  (const u_int64_t& other)     const   {   LargeInt<2> res; res.value = other; return res; }
+    LargeInt<2> operator=  (const LargeInt<2>& other)   const   {   LargeInt<2> res; res.value = other.value; return res; }*/ // that code is wrong. see LargeInt1.pri for a fix for operator=(const LargeInt&), haven't figured out for operator=(uint64), decided to use setVal instead
 
     bool         operator!= (const LargeInt<2>& c)         const   {  return value != c.value;     }
     bool         operator!= (const u_int64_t  & c)         const   {  return value != c;           }

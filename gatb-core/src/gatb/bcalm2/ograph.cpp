@@ -62,7 +62,7 @@ static inline bool isNumber(char c){return (c<64);}
 template<size_t span>
 typename graph3<span>::kmerType graph3<span>::beg2int128(const string& str){
 	typename graph3<span>::kmerType resBeg;
-    resBeg = 0;
+    resBeg.setVal(0);
 	for(uint i(0);i<k;++i){
 		resBeg= resBeg << 2;
 		resBeg= resBeg + chartoint(str[i]);
@@ -74,7 +74,7 @@ typename graph3<span>::kmerType graph3<span>::beg2int128(const string& str){
 template<size_t span>
 typename graph3<span>::kmerType graph3<span>::beg2int128rc(const string& str){
 	typename graph3<span>::kmerType res;
-    res = 0;
+    res.setVal(0);
 	for(int i(k-1);i>=0;i--){
 		res=res<<2;
 		res=res+3-chartoint(str[i]);
@@ -86,7 +86,7 @@ typename graph3<span>::kmerType graph3<span>::beg2int128rc(const string& str){
 template<size_t span>
 typename graph3<span>::kmerType graph3<span>::end2int128rc(const string& str){
 	typename graph3<span>::kmerType res;
-    res = 0;
+    res.setVal(0);
 	for(int i(k-1);i>=0;i--){
 		res = res << 2;
 		res = res + (3-chartoint(str[str.size()-k+i]));
@@ -98,7 +98,7 @@ typename graph3<span>::kmerType graph3<span>::end2int128rc(const string& str){
 template<size_t span>
 typename graph3<span>::kmerType graph3<span>::end2int128(const string& str){
 	typename graph3<span>::kmerType resEnd;
-    resEnd = 0;
+    resEnd.setVal(0);
 	for(uint i(0);i<k;++i){
 		resEnd= resEnd << 2;
 		resEnd= resEnd + chartoint(str[str.size()-k+i]);
@@ -111,9 +111,11 @@ template<size_t span>
 // is that revcomp? if so, should use gatb's
 typename graph3<span>::kmerType graph3<span>::rcb(typename graph3<span>::kmerType min){
 	typename graph3<span>::kmerType resrcb;
-    resrcb = 0;
+	typename graph3<span>::kmerType three;
+    three.setVal(3);
+    resrcb.setVal(0);
 	for(uint i(0); i<k;++i){
-		resrcb= resrcb + ((3-(min%4))<<(2*(k-1-i)));
+		resrcb= resrcb + ((three-(min%4))<<(2*(k-1-i)));
 		min= min >> 2;
 	}
 	return resrcb;
@@ -129,8 +131,11 @@ void graph3<span>::compaction(uint iL,  uint iR){
 		if(b1){return compaction(stoi(unitigs[iL]),iR);}
 		if(b2){return compaction(iL,stoi(unitigs[iR]));}
 
-		typename graph3<span>::kmerType beg1(beg2int128(unitigs[iL]));
-		typename graph3<span>::kmerType end2(end2int128(unitigs[iR]));
+		typename graph3<span>::kmerType beg1;//(beg2int128(unitigs[iL])); // that kind of initialization isn't supported in LargeInt.
+        beg1.setVal(beg2int128(unitigs[iL])); 
+		typename graph3<span>::kmerType end2;//(end2int128(unitigs[iR]));
+        end2.setVal(end2int128(unitigs[iR])); 
+
 		if(beg1==end2){
 			unitigs[iR]+=(unitigs[iL].substr(k));
 			unitigs[iL]=to_string(iR);
@@ -139,7 +144,8 @@ void graph3<span>::compaction(uint iL,  uint iR){
 			return;
 		}
 
-		typename graph3<span>::kmerType endrc2(beg2int128rc(unitigs[iR]));
+		typename graph3<span>::kmerType endrc2;//(beg2int128rc(unitigs[iR]));
+        endrc2.setVal(beg2int128rc(unitigs[iR])); 
 		if(beg1==endrc2){
 			reverseinplace2(unitigs[iR]);
 			unitigs[iR]+=(unitigs[iL].substr(k));
@@ -149,8 +155,10 @@ void graph3<span>::compaction(uint iL,  uint iR){
 			return;
 		}
 
-		typename graph3<span>::kmerType beg2(rcb(endrc2));
-		typename graph3<span>::kmerType end1(end2int128(unitigs[iL]));
+		typename graph3<span>::kmerType beg2;//(rcb(endrc2));
+        beg2.setVal(rcb(endrc2)); 
+		typename graph3<span>::kmerType end1;//(end2int128(unitigs[iL]));
+        end1.setVal(end2int128(unitigs[iL]));
 		if(end1==beg2){
 			unitigs[iL]+=(unitigs[iR].substr(k));
 			unitigs[iR]=to_string(iL);
@@ -159,7 +167,11 @@ void graph3<span>::compaction(uint iL,  uint iR){
 			return;
 		}
 
-		typename graph3<span>::kmerType begrc2(rcb(end2));
+		typename graph3<span>::kmerType begrc2;//(rcb(end2));
+        begrc2.setVal(rcb(end2));
+/*            std::cout << "a : " << rcb(end2).toString(31) << std::endl;
+            std::cout << "a=b: " << begrc2.toString(31) << std::endl;*/ // manifestation of a bug when LargeInt constructors are removed
+
 		if(end1==begrc2){
 			unitigs[iL]+=(reverseinplace(unitigs[iR]).substr(k));
 			unitigs[iR]=to_string(iL);
@@ -191,9 +203,10 @@ void graph3<span>::debruijn(){
 	sort(right.begin(),right.end(),comparator<span>());
 	uint iL(0),iR(0),sizeLeft(left.size()),sizeRight(right.size());
     typename graph3<span>::kmerType minusone;
-    minusone = -1;
+    minusone.setVal(-1);
 	left.push_back({0,minusone});
 	right.push_back({0,minusone});
+
 	kmerIndiceT<span> kL,kR;
 	while(iL!=sizeLeft and iR!=sizeRight){
 		kL=left[iL];
@@ -249,6 +262,7 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
 	if(minimizer==get<2>(tuple)){
 		typename graph3<span>::kmerType kmer1(end2int128(unitigs[indiceUnitigs]));
 		typename graph3<span>::kmerType kmer2(rcb(kmer1));
+
 		if(kmer1<kmer2){
 			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1});
 		}else{

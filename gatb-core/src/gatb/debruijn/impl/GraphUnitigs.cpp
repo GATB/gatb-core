@@ -304,6 +304,9 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         
         setState(STATE_BCALM2_DONE);
     }
+
+    /** We save the state at storage root level. */
+    BaseGraph::getGroup().setProperty ("state",     Stringify::format("%d", BaseGraph::_state));
 }
 
 
@@ -319,6 +322,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     unsigned int kmerSize = BaseGraph::_kmerSize;
 
     uint32_t utig_counter = 0;
+    uint64_t nb_utigs_nucl = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel (TODO opt)
     {
         string seq = itSeq->toString();
@@ -343,8 +347,30 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         unitigs.push_back(seq);
         unitigs_mean_abundance.push_back(mean_abundance);
         utig_counter++;
+        nb_utigs_nucl += seq.size();
     }
     //std::cout << "after load_unitigs utigs map size " << utigs_map.size() << std::endl;
+    
+    // an estimation of memory usage
+    uint64_t nb_kmers = utigs_map.size();
+    std::cout << "Memory usage:" << std::endl;
+    std::cout <<  "   " << (sizeof(Type) * nb_kmers) / 1024 / 1024 << " MB keys in unitigs dict" << std::endl;
+    std::cout <<  "   " << (sizeof(ExtremityInfo) * nb_kmers) / 1024 / 1024 << " MB values in unitigs dict" << std::endl;
+    std::cout <<  "   " <<  nb_utigs_nucl / 1024 / 1024 << " MB unitigs nucleotides" << std::endl;
+    std::cout <<  "   " <<  (nb_kmers*4) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
+    std::cout <<  "Estimated total: " <<  (nb_kmers*(4  + sizeof(Type)  + sizeof(ExtremityInfo)) + nb_utigs_nucl ) / 1024 / 1024 << " MB" << std::endl;
+
+    size_t count = 0;
+    for (unsigned i = 0; i < utigs_map.bucket_count(); ++i) {
+        size_t bucket_size = utigs_map.bucket_size(i);
+        if (bucket_size == 0) {
+            count++;
+        }
+        else {
+            count += bucket_size;
+        }
+    }
+    std::cout << "count " << count << " vs size " << utigs_map.size() << std::endl;
 }
 
 /*********************************************************************
@@ -365,6 +391,26 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     string unitigs_filename = (params->get(STR_URI_OUTPUT) ?
             params->getStr(STR_URI_OUTPUT) :                                                                                                                                                                 System::file().getBaseName (input)
             )+ ".unitigs.fa";          
+
+    // build_visitor_solid has the following defaults:
+    // minimizer size of 8. that one is okay
+    // the rest needs to be set!
+    // accoring to original BCALM2 graph::create string:
+    // -in %s -kmer-size %d -minimizer-size %d -mphf none -bloom none -out %s.h5  -abundance-min %d -verbose 1 -minimizer-type %d -repartition-type 1 -max-memory %d %s
+
+    //if ((!params->get(STR_REPARTITION_TYPE)))  // actually this doesn't seem to work, even when repartition-type isn't specified, it's (!params->get()) doesn't return true. so i'm going to force repartition type to 1, as it was in bcalm2
+    {
+        params->setInt(STR_REPARTITION_TYPE, 1);
+        //std::cout << "setting repartition type to 1" << std::endl;;
+    }
+    //if (!params->get(STR_MINIMIZER_TYPE))
+    {
+        params->setInt(STR_MINIMIZER_TYPE, 1);
+        //std::cout << "setting repartition type to 1" << std::endl;;
+    }
+
+
+
 
     if (system::impl::System::file().getExtension(input) == "h5")
     {
@@ -425,23 +471,6 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         /** We build a Bank instance for the provided reads uri. */
         bank::IBank* bank = Bank::open (params->getStr(STR_URI_INPUT));
 
-        // build_visitor_solid has the following defaults:
-        // minimizer size of 8. that one is okay
-        // the rest needs to be set!
-        // accoring to original BCALM2 graph::create string:
-        // -in %s -kmer-size %d -minimizer-size %d -mphf none -bloom none -out %s.h5  -abundance-min %d -verbose 1 -minimizer-type %d -repartition-type 1 -max-memory %d %s
-
-        //if ((!params->get(STR_REPARTITION_TYPE)))  // actually this doesn't seem to work, even when repartition-type isn't specified, it's (!params->get()) doesn't return true. so i'm going to force repartition type to 1, as it was in bcalm2
-        {
-            params->setInt(STR_REPARTITION_TYPE, 1);
-            //std::cout << "setting repartition type to 1" << std::endl;;
-        }
-        //if (!params->get(STR_MINIMIZER_TYPE))
-        {
-            params->setInt(STR_MINIMIZER_TYPE, 1);
-            //std::cout << "setting repartition type to 1" << std::endl;;
-        }
-
         /** We build the graph according to the wanted precision. */
         boost::apply_visitor ( build_visitor_solid<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(*this, bank,params),  *(GraphDataVariantFast<span>*)BaseGraph::_variant);
 
@@ -491,11 +520,11 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (const GraphUn
 
         // don't forget those!
         // I garantee that bugs will occur if i add a GraphUnitigs member variable and forget to copy it here
-        utigs_map = graph.utigs_map;
-        unitigs = graph.unitigs;
-        unitigs_mean_abundance = graph.unitigs_mean_abundance;
-        modelK = graph.modelK;
-        modelKdirect = graph.modelKdirect;
+        utigs_map = std::move(graph.utigs_map);
+        unitigs = std::move(graph.unitigs);
+        unitigs_mean_abundance = std::move(graph.unitigs_mean_abundance);
+        modelK = std::move(graph.modelK);
+        modelKdirect = std::move(graph.modelKdirect);
     }
     return *this;
 }
@@ -1024,11 +1053,11 @@ simplePathLongest_avance(NodeFast<span>& node, string& seq, int& endDegree, bool
     { // invariant: node is the last node at an extremity of the unitig. we're interested in the sequence of what comes next.
 
         GraphVector<EdgeFast<span>> neighbors = this->neighborsEdge (cur_node, DIR_OUTCOMING);
+        endDegree = neighbors.size();
         /** We check we have no outbranching. */
         if (neighbors.size() != 1)
         {
             //std:: cout << "stopped because of out-branching " << neighbors.size() << std::endl;
-            endDegree = neighbors.size();
             return;
         }
       
@@ -1051,7 +1080,8 @@ simplePathLongest_avance(NodeFast<span>& node, string& seq, int& endDegree, bool
         {
             //std:: cout << "stopped because of in-branching " << in_neighbors << std::endl;
             return;
-       } 
+        } 
+
         cur_node = BaseGraph::buildNode(new_seq.substr(new_seq.size() - kmerSize, kmerSize).c_str());
         seq += new_seq.substr(kmerSize-1);
 

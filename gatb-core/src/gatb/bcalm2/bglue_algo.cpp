@@ -644,9 +644,15 @@ typedef uint64_t partition_t;
     unsigned long nb_uf_keys = uf_hashes.size();
     if (nb_uf_keys != tmp_nb_uf_keys) { std::cout << "Error during UF preparation, bad number of keys in merge: " << tmp_nb_uf_keys << " " << nb_uf_keys << std::endl; exit(1); }
 
+    if (uf_hashes.size() == 0) // prevent an edge case when there's nothing to glue, boophf doesn't like it
+    {
+        uf_hashes.push_back(0);
+    }
+
 	auto data_iterator = boomphf::range(uf_hashes.begin(), uf_hashes.end());
 
     int gamma = 3; // make it even faster.
+
     boomphf::mphf<partition_t , hasher_t< partition_t> > uf_mphf(nb_uf_keys, data_iterator, nb_threads, gamma, verbose);
 
     free_memory_vector(uf_hashes);
@@ -816,7 +822,10 @@ typedef uint64_t partition_t;
 
     for (int i = 0; i < nbGluePartitions; i++)
     {
-        gluePartitions[i] = new BufferedFasta(gluePartition_prefix + std::to_string(i), max_buffer);
+        string filename = gluePartition_prefix + std::to_string(i);
+        if (System::file().doesExist(filename))
+           System::file().remove (filename);
+        gluePartitions[i] = new BufferedFasta(filename, max_buffer);
         nb_seqs_in_partition[i] = 0;
     }
 
@@ -859,7 +868,7 @@ typedef uint64_t partition_t;
         }
 
         int index = partition % nbGluePartitions;
-        //stringstream ss1; // to save partition later in the comment
+        //stringstream ss1; // to save partition later in the comment. (later: why? probably to avoid recomputing it)
         //ss1 << blabla;
 
         output(seq, *gluePartitions[index], comment);

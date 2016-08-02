@@ -22,8 +22,8 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
 template<size_t span>
 struct kmerIndiceT{
-    //typedef typename Kmer<span>::Type  Type;
-    typedef __uint128_t  Type;
+    typedef typename Kmer<span>::Type  Type;
+    //typedef __uint128_t  Type;
 	uint32_t indice;
 	Type kmmer;
 };
@@ -37,8 +37,8 @@ struct comparator{bool operator()(const kmerIndiceT<span>& a , const kmerIndiceT
 template<size_t span>
 class graph3{
 	public:
-        //typedef typename Kmer<span>::Type  kmerType;
-        typedef __uint128_t  kmerType;
+        typedef typename Kmer<span>::Type  kmerType;
+        //typedef __uint128_t  kmerType;
         typedef kmerIndiceT<span>  kmerIndice;
 		uint k,indiceUnitigs,nbElement,minimizer,minsize;
 		std::string*       unitigs;

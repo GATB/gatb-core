@@ -33,8 +33,16 @@ public:
     LargeInt<1> (const u_int64_t& c=0)  {  value = c;  }
 #endif
 
+// due to a bug in ograph, reintroducing constructors provided a quick fix. here they are. I think the problem was caused because i added the operator=()'s 
+#if 0
+    LargeInt<1> ()  {  value = 0; }
+    LargeInt<1> (const u_int64_t& c)  {  value = c;  }
+    LargeInt<1> (const LargeInt<1>& other)  {  value = other.value;  }
+#endif
+
      u_int64_t getVal () const   { return value; }
      inline void setVal (u_int64_t val) { value = val; }
+     inline void setVal (const LargeInt<1>& other) { value = other.value; }
 
     static const char* getName ()  { return "LargeInt<1>"; }
 
@@ -57,7 +65,10 @@ public:
     LargeInt<1> operator~  ()                           const   {   LargeInt<1> res; res.value = ~value;              return res; }
     LargeInt<1> operator<< (const int& coeff)           const   {   LargeInt<1> res; res.value = value << coeff;      return res; }
     LargeInt<1> operator>> (const int& coeff)           const   {   LargeInt<1> res; res.value = value >> coeff;      return res; }
-    LargeInt<1> operator=  (const uint64_t& c)          const   {   LargeInt<1> res; res.value = c;  return res; }
+#if 0  // last time i defined those copy operators, i ran into troubles, so let's not do that and let's use setVal instead!
+    LargeInt<1> operator=  (const uint64_t& c)          const   {   res.value = c;  return res; }
+    LargeInt<1> operator=  (const LargeInt<1>& other)   const   {   if (this == &other) return *this; res.value = other.value;  return *this; }
+#endif
     bool        operator!= (const LargeInt<1>& c)       const   {   return value != c.value; }
     bool        operator!= (const u_int64_t& c)         const   {   return value != c; }
     bool        operator== (const LargeInt<1>& c)       const   {   return value == c.value; }

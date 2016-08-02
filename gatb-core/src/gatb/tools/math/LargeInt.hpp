@@ -132,6 +132,7 @@ public:
      */
     u_int64_t getVal() const  { return this->value[0]; }
     inline void      setVal(u_int64_t val) { this->value[0] = val; for (int i = 1; i < precision; i++)  {  this->value[i] = 0;}  }
+    inline void      setVal(const LargeInt& other) { for (int i = 0; i < precision; i++)  {  this->value[i] = other.value[i];}  }
 
     /** Get the size of an instance of the class
      * \return the size of an object (in bits).
@@ -581,12 +582,21 @@ public:
         *(this) = (*this) >> coeff;  return *this;
     }
 
+#if 0
     // operator=
     LargeInt& operator=  (const uint64_t& c)
     {
         setVal(c);
         return *this;
     }
+
+    // operator=
+    LargeInt& operator=  (const LargeInt& other)
+    {
+        for (int i =       0; i < precision; i++)  {  this->value[i] = other.value[i];}  
+        return *this;
+    }
+#endif
 
 
 

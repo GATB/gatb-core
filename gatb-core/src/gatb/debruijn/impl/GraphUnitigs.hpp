@@ -390,7 +390,7 @@ public: // was private: before, but had many compilation errors during the chang
     // core unitigs graph part
     // btw
     // hack so dirty i'd need to call O2 to get it cleaned up
-    class ExtremityInfo 
+    struct ExtremityInfo 
     {
         public:
         uint32_t unitig;
@@ -401,7 +401,7 @@ public: // was private: before, but had many compilation errors during the chang
         ExtremityInfo(uint32_t u, bool d, bool r, Unitig_pos p) : unitig(u),deleted(d),rc(r), pos(p) {}
         std::string toString() const
         { return " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"left":"") + ((pos&UNITIG_END)?"right":"") + " " + " d:" + std::to_string(deleted); }
-    };
+    } ;
     
     typedef typename gatb::core::kmer::impl::Kmer<span>::Type           Type;
 
