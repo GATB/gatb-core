@@ -865,7 +865,7 @@ public:
 
 
     /********************************************************************************/
-    void debruijn_unitigs_deletenode_fct (const GraphUnitigs& graph) 
+    void debruijn_unitigs_deletenode_fct (GraphUnitigs& graph) 
     {
         NodeFast<32> n1 = graph.buildNode ((char*)"AGGCG");
         //NodeFast<32> n2 = graph.buildNode ((char*)"GGCGC"); // hum it's the same as n3..
@@ -888,7 +888,7 @@ public:
         debruijn_unitigs_deletenode_fct (graph);
     }
 
-    void debruijn_unitigs_deletenode2_fct (const GraphUnitigs& graph) 
+    void debruijn_unitigs_deletenode2_fct (GraphUnitigs& graph) 
     {
         NodeFast<32> n1 = graph.buildNode ((char*)"AGGCG");
         NodeFast<32> n2 = graph.buildNode ((char*)"GGCGA");
