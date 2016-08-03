@@ -126,7 +126,8 @@ public:
     ~GraphUnitigsTemplate ();
 
     /** Affectation overload. */
-    GraphUnitigsTemplate& operator= (const GraphUnitigsTemplate& graph);
+    GraphUnitigsTemplate& operator= (GraphUnitigsTemplate const& graph);
+    GraphUnitigsTemplate& operator= (GraphUnitigsTemplate&& graph);
 
     /**********************************************************************/
     /*                     GLOBAL ITERATOR METHODS                        */

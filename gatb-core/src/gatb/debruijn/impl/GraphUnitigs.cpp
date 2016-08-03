@@ -350,6 +350,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         nb_utigs_nucl += seq.size();
     }
     //std::cout << "after load_unitigs utigs map size " << utigs_map.size() << std::endl;
+//    utigs_map.rehash(0); // doesn't seem to help
     
     // an estimation of memory usage
     uint64_t nb_kmers = utigs_map.size();
@@ -416,6 +417,9 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     {
         /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
         
+        if (!System::file().doesExist(input))
+            throw system::Exception ("Input file does not exist");
+
         string output = input;//.substr(0,input.find_last_of(".h5")) + "_new.h5";
         //cout << "To avoid overwriting the input (" << input << "), output will be saved to: "<< output << std::endl;
 
@@ -491,18 +495,15 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (const GraphUnitigsTemplate<spa
     : GraphTemplate<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(graph)
 {
     // will call Graph's constructor
+    std::cout << "GraphU copy-constructor called" << std::endl;
+
 }
 
 /*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
+** PURPOSE : copy assignment operator
 *********************************************************************/
 template<size_t span>
-GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (const GraphUnitigsTemplate<span>& graph)
+GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsTemplate<span> const& graph)
 {
     std::cout <<"assignment constructor called" << std::endl;
     if (this != &graph)
@@ -520,14 +521,53 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (const GraphUn
 
         // don't forget those!
         // I garantee that bugs will occur if i add a GraphUnitigs member variable and forget to copy it here
+        // DO ALSO THE MOVE FUNCTION BELOW
+    
+        utigs_map = graph.utigs_map;
+        unitigs = graph.unitigs;
+        unitigs_mean_abundance = graph.unitigs_mean_abundance;
+        modelK = graph.modelK;
+        modelKdirect = graph.modelKdirect;
+        
+    }
+    return *this;
+}
+
+/*********************************************************************
+** PURPOSE : move assignment operator
+** this seems important, if it was not there, in Minia, the line "graph = create (..)" would incur a copy of the graph :/ didn't investigate further, implementing that move operator was enough to prevent the copy.
+// also the copy-and-swap idiom didn't seem to help, i got infinite loop because of effect described here http://stackoverflow.com/questions/25942131/should-copy-assignment-operator-leverage-stdswap-as-a-general-rule
+*********************************************************************/
+template<size_t span>
+GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsTemplate<span> && graph)
+{
+    std::cout <<"move constructor called" << std::endl;
+    if (this != &graph)
+    {
+        BaseGraph::_kmerSize        = graph._kmerSize;
+        BaseGraph::_storageMode     = graph._storageMode;
+        BaseGraph::_name            = graph._name;
+        BaseGraph::_info            = graph._info;
+        BaseGraph::_mphfKind        = graph._mphfKind;
+        BaseGraph::_state           = graph._state;
+
+        BaseGraph::setStorage (graph._storage);
+
+        if (graph._variant)  {  *((GraphDataVariantFast<span>*)BaseGraph::_variant) = *((GraphDataVariantFast<span>*)graph._variant);  }
+
+        // don't forget those!
+        // I garantee that bugs will occur if i add a GraphUnitigs member variable and forget to copy it here
+    
         utigs_map = std::move(graph.utigs_map);
         unitigs = std::move(graph.unitigs);
         unitigs_mean_abundance = std::move(graph.unitigs_mean_abundance);
         modelK = std::move(graph.modelK);
         modelKdirect = std::move(graph.modelKdirect);
+        
     }
     return *this;
 }
+
 
 /*********************************************************************
 ** METHOD  :
@@ -541,7 +581,7 @@ template<size_t span>
 GraphUnitigsTemplate<span>::~GraphUnitigsTemplate<span> ()
 {
     // base deleter already called
-    //std::cout <<"unitigs graph destructor called" << std::endl;
+    std::cout <<"unitigs graph destructor called" << std::endl;
 }
 
 /*********************************************************************
