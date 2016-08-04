@@ -75,10 +75,13 @@ namespace gatb  {  namespace tests  {
 
 /** Backward compatibility. */
 static const int KSIZE_1 = KMER_SPAN(0);
+#define KSIZE_32 (KSIZE_LIST == 32)
+#if KSIZE_32
+#else
 static const int KSIZE_2 = KMER_SPAN(1);
 static const int KSIZE_3 = KMER_SPAN(2);
 static const int KSIZE_4 = KMER_SPAN(3);
-
+#endif
 struct Functor_getValue : public boost::static_visitor<Integer>    {
     template<typename T>  Integer operator() (const T& a) const  { return Integer(a.getValue());  }};
 
@@ -333,8 +336,11 @@ public:
     void DSK_check2 ()
     {
         DSK_check2_aux<KSIZE_1> ();
+#if KSIZE_32
+#else
         DSK_check2_aux<KSIZE_2> ();
         DSK_check2_aux<KSIZE_3> ();
+#endif
     }
 
     /********************************************************************************/
@@ -428,8 +434,11 @@ public:
         LOCAL (bank);
 
         DSK_check3_aux<KSIZE_1> (bank, kmerSize, nks);
+#if KSIZE_32
+#else
         DSK_check3_aux<KSIZE_2> (bank, kmerSize, nks);
         DSK_check3_aux<KSIZE_3> (bank, kmerSize, nks);
+#endif
     }
 
     /********************************************************************************/

@@ -2702,7 +2702,7 @@ unsigned int GraphTemplate<Node, Edge, GraphDataVariant>::
 simplePathLength (Node& node, Direction dir) const
 {
     GraphIterator <Node> itNodes = simplePath (node, dir);
-    unsigned int length = 1;
+    unsigned int length = 0;
     for (itNodes.first(); !itNodes.isDone(); itNodes.next())
         length++;
     return length;

@@ -288,8 +288,9 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers.");
     }
     
+    bool force_loading_unitigs = false;
 
-    if (!checkState(STATE_BCALM2_DONE))
+    if (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/))
     {
         int nb_threads =
             props->getInt(STR_NB_CORES);
@@ -323,6 +324,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 
     uint32_t utig_counter = 0;
     uint64_t nb_utigs_nucl = 0;
+    uint64_t nb_utigs_nucl_mem = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel (TODO opt)
     {
         string seq = itSeq->toString();
@@ -336,31 +338,23 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         {
             ExtremityInfo eBegin(utig_counter, false, false, UNITIG_BEGIN);
             ExtremityInfo eEnd(utig_counter, false, false, UNITIG_END);
-            utigs_map[kmerBegin.value()] = eBegin;
-            utigs_map[kmerEnd.value()] = eEnd;
+            utigs_map[kmerBegin.value()] = eBegin.pack();
+            utigs_map[kmerEnd.value()] = eEnd.pack();
         }
         else // special case: single-kmer unitigs
         {
             ExtremityInfo eBegin(utig_counter, false, false, UNITIG_BOTH);
-            utigs_map[kmerBegin.value()] = eBegin;
+            utigs_map[kmerBegin.value()] = eBegin.pack();
         }
         unitigs.push_back(seq);
         unitigs_mean_abundance.push_back(mean_abundance);
         utig_counter++;
         nb_utigs_nucl += seq.size();
+        nb_utigs_nucl_mem += seq.capacity();
     }
     //std::cout << "after load_unitigs utigs map size " << utigs_map.size() << std::endl;
 //    utigs_map.rehash(0); // doesn't seem to help
     
-    // an estimation of memory usage
-    uint64_t nb_kmers = utigs_map.size();
-    std::cout << "Memory usage:" << std::endl;
-    std::cout <<  "   " << (sizeof(Type) * nb_kmers) / 1024 / 1024 << " MB keys in unitigs dict" << std::endl;
-    std::cout <<  "   " << (sizeof(ExtremityInfo) * nb_kmers) / 1024 / 1024 << " MB values in unitigs dict" << std::endl;
-    std::cout <<  "   " <<  nb_utigs_nucl / 1024 / 1024 << " MB unitigs nucleotides" << std::endl;
-    std::cout <<  "   " <<  (nb_kmers*4) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
-    std::cout <<  "Estimated total: " <<  (nb_kmers*(4  + sizeof(Type)  + sizeof(ExtremityInfo)) + nb_utigs_nucl ) / 1024 / 1024 << " MB" << std::endl;
-
     size_t count = 0;
     for (unsigned i = 0; i < utigs_map.bucket_count(); ++i) {
         size_t bucket_size = utigs_map.bucket_size(i);
@@ -371,7 +365,22 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
             count += bucket_size;
         }
     }
-    std::cout << "count " << count << " vs size " << utigs_map.size() << std::endl;
+    uint64_t utigs_map_capacity = count; // am not sure if that's really it. do values get allocated in an empty bucket?
+    // anyway my tests show that i still underestimate the memory taken by the unordered_map
+
+    // an estimation of memory usage
+    uint64_t nb_kmers = utigs_map.size();
+    uint64_t mem_vec = (unitigs.capacity() * sizeof(string) + nb_utigs_nucl_mem);
+    std::cout << "Memory usage:" << std::endl;
+    std::cout <<  "   " << (sizeof(Type) * utigs_map_capacity) / 1024 / 1024 << " MB keys in unitigs dict (Type = " << to_string(sizeof(Type)) << " bytes)" << std::endl;
+    std::cout <<  "   " << (sizeof(uint32_t) * utigs_map_capacity) / 1024 / 1024 << " MB values in unitigs dict (values = " << to_string(sizeof(uint32_t)) << " bytes)" << std::endl;
+    std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
+    std::cout <<  "   " <<  (nb_kmers*4) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
+    std::cout <<  "Estimated total: " <<  (nb_kmers*4 + utigs_map_capacity * ( sizeof(Type)  + sizeof(uint32_t)) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+
+    std::cout << "utigs_map size calculated from buckets " << count << " vs size() " << utigs_map.size() << std::endl;
+    if (nb_utigs_nucl != nb_utigs_nucl_mem)
+        std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
 }
 
 /*********************************************************************
@@ -623,7 +632,7 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
     if (it == utigs_map.end())
     {std::cout << std::endl << " source not found in utigs_map: " <<  BaseGraph::toString(source) << std::endl; exit(1);}
 
-    const ExtremityInfo& e = it->second;
+    const ExtremityInfo e(it->second);
 
     bool same_orientation = node_in_same_orientation_as_in_unitig(source, e);
     res.resize(0);
@@ -706,7 +715,7 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
         }
         if (utigs_map.find(norm_neighbor) != utigs_map.end()) 
         {
-            const ExtremityInfo &e = utigs_map.at(norm_neighbor);
+            const ExtremityInfo e(utigs_map.at(norm_neighbor));
             if (e.deleted) return;
 
             res.resize(res.size()+1);
@@ -826,7 +835,8 @@ GraphIterator<NodeFast<span>> GraphUnitigsTemplate<span>::getNodes () const
                 this->_rank ++;
                 this->_item->kmer      = it->first;
                 this->_item->abundance = 0; // returning per-node abundance in GraphUnitigs isn't supported
-                this->_item->mphfIndex = it->second.unitig; // rank of a node is GraphUnitigs is just its unitig index, _by convention_.
+                const ExtremityInfo e(it->second);
+                this->_item->mphfIndex = e.unitig; // rank of a node is GraphUnitigs is just its unitig index, _by convention_.
                 this->_item->iterationRank = this->_rank;
             }
 
@@ -946,7 +956,7 @@ void GraphUnitigsTemplate<span>::disableNodeState() const
 template<size_t span> 
 bool GraphUnitigsTemplate<span>::isNodeDeleted(NodeFast<span>& node) const
 {
-    const ExtremityInfo& e = utigs_map.at(node.kmer);
+    const ExtremityInfo e(utigs_map.at(node.kmer));
     return e.deleted;
 }
 
@@ -956,7 +966,7 @@ bool GraphUnitigsTemplate<span>::isNodeDeleted(NodeFast<span>& node) const
 template<size_t span> 
 unsigned long GraphUnitigsTemplate<span>::nodeMPHFIndex(NodeFast<span>& node) const 
 {
-    const ExtremityInfo& e = utigs_map.at(node.kmer);
+    const ExtremityInfo e(utigs_map.at(node.kmer));
     return (((e.pos & UNITIG_END)) ? 1 : 0)* utigs_map.size() + e.unitig; 
 }
 
@@ -986,7 +996,7 @@ template<size_t span>
 double GraphUnitigsTemplate<span>::
 simplePathMeanAbundance     (const NodeFast<span>& node, Direction dir) const
 {
-    const ExtremityInfo& e = utigs_map.at(node.kmer);
+    const ExtremityInfo e(utigs_map.at(node.kmer));
     return unitigs_mean_abundance[e.unitig];
 }
 
@@ -994,7 +1004,7 @@ template<size_t span>
 unsigned int GraphUnitigsTemplate<span>::
 simplePathLength            (const NodeFast<span>& node, Direction dir) const
 {
-    const ExtremityInfo& e = utigs_map.at(node.kmer);
+    const ExtremityInfo e(utigs_map.at(node.kmer));
     const std::string seq = unitigs[e.unitig];
     bool same_orientation = node_in_same_orientation_as_in_unitig(node, e);
 
@@ -1003,16 +1013,16 @@ simplePathLength            (const NodeFast<span>& node, Direction dir) const
         (same_orientation    && (e.pos & UNITIG_BEGIN) && dir == DIR_INCOMING) ||
         ((!same_orientation) && (e.pos & UNITIG_END) && dir == DIR_INCOMING) ||
         ((!same_orientation) && (e.pos & UNITIG_BEGIN) && dir == DIR_OUTCOMING))
-        return 1;
+        return 0;
 
-    return unitigs[utigs_map.at(node.kmer).unitig].size() - BaseGraph::_kmerSize + 1;
+    return unitigs[e.unitig].size() - BaseGraph::_kmerSize;
 }
 
 template<size_t span>
 NodeFast<span> GraphUnitigsTemplate<span>::
 simplePathLastNode          (const NodeFast<span>& node, Direction dir) const
 {
-    const ExtremityInfo& e = utigs_map.at(node.kmer);
+    const ExtremityInfo e(utigs_map.at(node.kmer));
     const std::string seq = unitigs[e.unitig];
     bool same_orientation = node_in_same_orientation_as_in_unitig(node, e);
 
@@ -1041,8 +1051,10 @@ template<size_t span>
 void GraphUnitigsTemplate<span>::
 simplePathDelete (NodeFast<span>& node) 
 {
-    ExtremityInfo& e = utigs_map.at(node.kmer);
+    ExtremityInfo e(utigs_map[node.kmer]);
     e.deleted = true;
+    utigs_map[node.kmer] = e.pack();
+    
     
     // make sure to delete other part also
     const std::string seq = unitigs[e.unitig];
@@ -1052,8 +1064,11 @@ simplePathDelete (NodeFast<span>& node)
         second = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize, kmerSize).c_str());
     else
         second = BaseGraph::buildNode(seq.substr(0, kmerSize).c_str());
-    ExtremityInfo& e2 = utigs_map.at(second.kmer);
+
+    ExtremityInfo e2(utigs_map[second.kmer]);
     e2.deleted = true;
+    utigs_map[second.kmer] = e2.pack();
+ 
 }
 
 
@@ -1070,7 +1085,8 @@ template<size_t span>
 std::string GraphUnitigsTemplate<span>::
 simplePathSequence (const NodeFast<span>& node, bool& isolatedLeft, bool& isolatedRight) const
 {
-    string seq = unitigs[utigs_map.at(node.kmer).unitig];
+    const ExtremityInfo e(utigs_map.at(node.kmer));
+    string seq = unitigs[e.unitig];
 
     //std::cout << " seq " << seq << " node " << BaseGraph::toString(node) << std::endl;
     int kmerSize = BaseGraph::_kmerSize;
@@ -1102,7 +1118,7 @@ simplePathLongest_avance(NodeFast<span>& node, string& seq, int& endDegree, bool
         }
       
         // get unitig such that the beginning matches neighbors[0]
-        const ExtremityInfo& e = utigs_map.at(neighbors[0].to.kmer);
+        const ExtremityInfo e(utigs_map[neighbors[0].to.kmer]);
         string new_seq = unitigs[e.unitig];
         if (e.pos == UNITIG_END) 
             new_seq = revcomp(new_seq);
@@ -1135,7 +1151,8 @@ template<size_t span>
 std::string GraphUnitigsTemplate<span>::
 simplePathLongest(NodeFast<span>& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) 
 {
-    string seq = unitigs[utigs_map.at(node.kmer).unitig];
+    const ExtremityInfo e(utigs_map.at(node.kmer));
+    string seq = unitigs[e.unitig];
 
     //std::cout << "starting seq " << seq << "(from node " << BaseGraph::toString(node) << ")" << std::endl;
     int kmerSize = BaseGraph::_kmerSize;

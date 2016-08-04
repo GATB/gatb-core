@@ -398,17 +398,37 @@ public: // was private: before, but had many compilation errors during the chang
         bool deleted;
         bool rc; // whether the kmer in canonical form appears as rc in the unitig
         Unitig_pos pos; // whether the kmer is at left extremity of unitig or right extremity
-        ExtremityInfo() {} // needed so that the type can be used as values in a hash table
         ExtremityInfo(uint32_t u, bool d, bool r, Unitig_pos p) : unitig(u),deleted(d),rc(r), pos(p) {}
+        ExtremityInfo() {} // because i defined another constructor
+        ExtremityInfo(const uint32_t val) { unpack(val); } 
         std::string toString() const
         { return " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"left":"") + ((pos&UNITIG_END)?"right":"") + " " + " d:" + std::to_string(deleted); }
+        uint32_t pack()
+        {
+            if ((unitig >> 27) != 0) { std::cout << "cannot pack ExtremityInfo, too many unitigs" << std::endl; exit(1); }
+            return pos + (rc << 2) + (deleted << 3) + (unitig << 4);
+        }
+        void unpack(uint32_t val)
+        {
+            switch (val&3) // probably could be replaced by just an appropriate typecast. but this check has saved me from a bug once so i'm grateful for it.
+            {
+                case 1: pos = UNITIG_BEGIN; break;
+                case 2: pos = UNITIG_END; break;
+                case 3: pos = UNITIG_BOTH; break;
+                default: std::cout << "problem in ExtremityInfo::unpack(): " << std::to_string(val) << std::endl; exit(1); 
+            }                      
+                                   val >>= 2;
+            rc = val&1;            val >>= 1;
+            deleted = val&1;       val >>= 1;
+            unitig = val;
+        }
     } ;
     
     typedef typename gatb::core::kmer::impl::Kmer<span>::Type           Type;
 
     // structure that links each kmer to an unitig
     // also used to enumerate kmers
-    typedef typename NS_TR1_PREFIX::unordered_map<Type, ExtremityInfo> NodeMap;
+    typedef typename NS_TR1_PREFIX::unordered_map<Type, uint32_t> NodeMap;
 
 
     void build_unitigs_postsolid(std::string unitigs_filename, tools::misc::IProperties* props);

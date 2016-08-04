@@ -149,23 +149,6 @@ void Simplifications<GraphType,Node,Edge>::simplify()
 }
 
 
-template<typename GraphType, typename Node, typename Edge>
-double Simplifications<GraphType,Node,Edge>::getSimplePathCoverage(Node node, Direction dir, unsigned int *pathLenOut, unsigned int maxLength)
-{
-    GraphIterator <Node> itNodes = _graph.template simplePath (node, dir);
-    unsigned long total_abundance = _graph.queryAbundance(node);
-    unsigned int pathLen = 1;
-    for (itNodes.first(); !itNodes.isDone(); itNodes.next())
-    {
-        total_abundance += _graph.queryAbundance((*itNodes));
-        pathLen++;
-        if (maxLength > 0 && pathLen >= maxLength)
-            break;
-    }
-    *pathLenOut = pathLen;
-    return ((double)total_abundance) / ((double)pathLen);
-}
-
 // gets the mean abundance of neighboring paths around a branching node (excluding the path that starts with nodeToExclude, e.g. the tip itself)
 // only considers the first 100 kmers of neighboring paths
 //
@@ -270,14 +253,28 @@ inline string maybe_print(long value, string str)
 }
 
 
-/* coverage of the simple path (stored in "nodes" vector)
-      then compares it to coverage of other paths connected to the last node of it. */
+/* gets coverage of the simple path,
+   then compares it to coverage of other paths connected to the last node of it. */
 template<typename GraphType, typename Node, typename Edge>
 bool Simplifications<GraphType,Node,Edge>::satisfyRCTC(double pathAbundance, Node& node, double RCTCcutoff, Direction dir)
 {
     // explore the other two or more simple paths connected to that path, to get an abundance estimate
     // but first, get the branching node(s) the tip is connected to 
-    /* (it's weird when it's more than one branching node though, it's a situation like:
+    //
+    // invariant: node is the last node of a path. 
+
+    GraphVector<Edge> connectedBranchingNodes = _graph.neighborsEdge(node, dir);
+    unsigned int nbBranchingNodes = 0;
+    double meanNeighborsCoverage = 0;
+    if (_graph.simplePathLength(node , dir) > 0) 
+    {
+        std::cout << "satisfyRCTC; unexpected: node isn't a last node?" << std::endl;
+        std::cout << _graph.toString(node) << " dir " << dir << " simple path length: " << _graph.simplePathLength(node , dir)<< " connectedBranchingNodes[0].to: " << _graph.toString(connectedBranchingNodes[0].to) << " connectedBranchingNodes.size(): " << connectedBranchingNodes.size() << std::endl;
+        exit(1);
+    }
+
+    /* there may be more than one connectedBranchNode
+     * it's weird when it's more than one branching node though, it's a situation like:
      * 
      *                ..o--o--o--o..
      *                    /
@@ -291,22 +288,10 @@ bool Simplifications<GraphType,Node,Edge>::satisfyRCTC(double pathAbundance, Nod
      *                    \
      *                ..o--o--o--o..)*/
 
-    GraphVector<Edge> connectedBranchingNodes = _graph.neighborsEdge(node, dir);
-    unsigned int nbBranchingNodes = 0;
-    double meanNeighborsCoverage = 0;
-    if (_graph.simplePathLength(node , dir) > 0) // special case, we're on a unitig, don't bother querying a middle unitig kmer 
+    for (size_t j = 0; j < connectedBranchingNodes.size(); j++)
     {
-        //std::cout << _graph.toString(node) << " dir " << dir << " " << _graph.toString(connectedBranchingNodes[0].to) << " " << connectedBranchingNodes.size() << std::endl;
-        meanNeighborsCoverage = _graph.simplePathMeanAbundance(connectedBranchingNodes[0].from, dir);
+        meanNeighborsCoverage += this->getMeanAbundanceOfNeighbors(connectedBranchingNodes[j].to, node);
         nbBranchingNodes++;
-    }
-    else
-    {
-        for (size_t j = 0; j < connectedBranchingNodes.size(); j++)
-        {
-            meanNeighborsCoverage += this->getMeanAbundanceOfNeighbors(connectedBranchingNodes[j].to, node);
-            nbBranchingNodes++;
-        }
     }
     if (nbBranchingNodes > 0)
         meanNeighborsCoverage /= nbBranchingNodes;
@@ -376,19 +361,21 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     if (_firstNodeIteration )
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, _verbose);
-        std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
+        if (_verbose)
+            std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
     }
     else
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, _verbose);
-        std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
+        if (_verbose)
+            std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
 
     // nodes deleter stuff
-    NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores);
+    NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores, _verbose);
     
     bool haveInterestingNodesInfo = !_firstNodeIteration;
 
@@ -495,7 +482,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             // condition: degree > 1, because connected to the tip and to that "something"
             Node lastNode           = _graph.simplePathLastNode(simplePathStart,simplePathDir);
             bool isConnected = (_graph.neighborsEdge(lastNode).size() > 1);
-            if (pathLen == 1)
+            if (pathLen == 0)
             {
                 // special case: only a single tip node, check if it's not isolated
                 isConnected |=  (_graph.indegree(node) != 0 || _graph.outdegree(node) != 0); 
@@ -1031,8 +1018,8 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         unitigs_lengths.push_back(pathLen);
         unitigs_abundances.push_back(pathMeanAbundance);
 
-        nbCalls += pathLen;
-        extra_depth += pathLen; 
+        nbCalls += pathLen + 1;
+        extra_depth += pathLen + 1; 
         //std::cout << "HMCP now at last node : " << _graph.toString(current_node) << std::endl;;
 
         if (processNode(lastNode)) // verify whether we're done
@@ -1186,19 +1173,21 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     if (_firstNodeIteration )
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, _verbose);
-        std::cout << "iterating on " << itNode->size() << " nodes" << std::endl;
+        if (_verbose)
+            std::cout << "iterating on " << itNode->size() << " nodes" << std::endl;
     }
     else
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, _verbose);
-        std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
+        if (_verbose)
+            std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
 
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
 
-    NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores);
+    NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores, _verbose);
 
     bool haveInterestingNodesInfo = !_firstNodeIteration;
 
@@ -1277,7 +1266,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     isShort = false;
                 }
 
-                if (!isShort || pathLen == 1) // can't do much if it's pathLen=1, we don't support edge removal, only node removal
+                if (!isShort || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
                     continue;
                 
                 __sync_fetch_and_add(&nbShortSimplePaths, 1);
@@ -1490,19 +1479,21 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     if (_firstNodeIteration )
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, _verbose);
-        std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
+        if (_verbose)
+            std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
     }
     else
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, _verbose);
-        std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
+        if (_verbose)
+            std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
 
     // parallel stuff: create a dispatcher ; support atomic operations
     Dispatcher dispatcher (_nbCores);
 
     // parallel stuff
-    NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores);
+    NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores, _verbose);
 
     dispatcher.iterate (itNode, [&] (Node& node)
             {
@@ -1518,6 +1509,14 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
             if (!((inDegree >= 1 && outDegree > 1 ) || (inDegree > 1 && outDegree >=1 )))
                 return;
 
+                /* at this point, "node" is a node such that:
+                 *
+                 *            /                  \
+                 *           /                    \
+                 *---- [node] -----     or  -------[node]-----
+                 * so it's the potential node right before an EC. 
+                 */
+
             // need to search in both directions
             for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
             {
@@ -1530,13 +1529,16 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                      * (so, if it's outdegree 2, we follow them to get their length and last neighbor */
                     GraphVector<Edge> neighbors = _graph.neighborsEdge(node, dir);
 
+                    assert(neighbors.size() > 1);
+
                     // do everying for each possible short simple path that is neighbor of that node
                     for (unsigned int i = 0; i < neighbors.size(); i++)
                     {
-
                         if (_graph.isNodeDeleted(neighbors[i].to)) { 
                             continue;}
 
+                        /* at this point, neighbors[i].to is the first node of an EC, maybe. */
+                         
                         /* explore the simple path from that node */
                         bool foundShortPath = false;
 
@@ -1588,15 +1590,14 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                         DEBUG(cout << "direction: " << DIR2STR(dir) << ", pathlen: " << pathLen << " last node neighbors size: " << _graph.neighborsEdge(lastNode).size() << " indegree outdegree: " <<_graph.indegree(node) << " " << _graph.outdegree(node) << " isDoublyConnected: " << isDoublyConnected << " isTopoEC: " << isTopologicalEC << endl);
 
-            
 
                         if (isTopologicalEC)
                         {
+                            __sync_fetch_and_add(&nbTopologicalEC,1);
                             TIME(auto start_ec_coverage_t=get_wtime());
-
                             bool isRCTC = this->satisfyRCTC(pathMeanAbundance, lastNode, RCTCcutoff, dir);
 
-                            isRCTC |= this->satisfyRCTC(pathMeanAbundance, neighbors[i].to, RCTCcutoff, dir); // also check in the other direction
+                            isRCTC |= this->satisfyRCTC(pathMeanAbundance, neighbors[i].to, RCTCcutoff, reverse(dir)); // also check in the other direction
                             // TODO think hard, is it a |= or a &=? FIXME for potential misassemblies
                             
                             TIME(auto end_ec_coverage_t=get_wtime());
@@ -1639,6 +1640,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
         cout << nbECRemoved << " erroneous connections removed. " << endl;
         cout << nbECCandidates << " EC candidates passed degree check. " << endl;
         cout << nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads" << endl;
+        cout << nbTopologicalEC << " topological ECs. " << endl;
         double unit = 1000000000;
         cout.setf(ios_base::fixed);
         cout.precision(1);

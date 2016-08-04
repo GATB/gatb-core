@@ -46,11 +46,12 @@ class NodesDeleter
         std::set<Node> setNodesToDelete; 
         Graph &  _graph;
         int _nbCores;
+        bool _verbose;
         bool useList, onlyListMethod;
         unsigned long explicitLimit;
         system::ISynchronizer* synchro;
 
-    NodesDeleter(Graph&  graph, uint64_t nbNodes, int nbCores) : nbNodes(nbNodes), _graph(graph), _nbCores(nbCores)
+    NodesDeleter(Graph&  graph, uint64_t nbNodes, int nbCores, bool verbose=true) : nbNodes(nbNodes), _graph(graph), _nbCores(nbCores), _verbose(verbose)
     {
         nodesToDelete.resize(nbNodes); // number of graph nodes // (!) this will alloc 1 bit per kmer.
         for (unsigned long i = 0; i < nbNodes; i++)
@@ -123,7 +124,8 @@ class NodesDeleter
     {
         if (useList)
         {
-            std::cout << "NodesDeleter mem usage: " << (setNodesToDelete.size() * sizeof(Node)) / 1024 / 1024 << " MB" << std::endl;
+            if (_verbose)
+                std::cout << "NodesDeleter mem usage: " << (setNodesToDelete.size() * sizeof(Node)) / 1024 / 1024 << " MB" << std::endl;
             // sequential nodes deletion (no need for parallel here, as deleteNode() needs to be atomic anyway
             for (typename std::set<Node>::iterator it = setNodesToDelete.begin(); it != setNodesToDelete.end(); it++)
             {

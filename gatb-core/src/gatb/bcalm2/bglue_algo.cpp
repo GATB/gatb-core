@@ -511,15 +511,15 @@ void bglue(Storage *storage,
     IBank *in = Bank::open (prefix + ".glue");
 
 
-typedef typename Kmer<SPAN>::Count Count;
 typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
 // unused
+//typedef typename Kmer<SPAN>::Count Count;
 //typedef typename Kmer<SPAN>::template ModelMinimizer <ModelCanon> Model;
 //typedef typename Kmer<SPAN>::Type  Type;
 
 typedef uint64_t partition_t;
 
-
+#if 0
     /** We get the dsk and minimizers hash group in the storage object. */
     Group& dskGroup = storage->getGroup("dsk");
     Group& minimizersGroup = storage->getGroup("minimizers");
@@ -534,10 +534,8 @@ typedef uint64_t partition_t;
     Repartitor repart;
     repart.load (minimizersGroup);
 
+    /* Retrieve frequency of minimizers; */
     u_int64_t rg = ((u_int64_t)1 << (2*minSize));
-
-    /* Retrieve frequency of minimizers;
-     * actually only used in minimizerMin and minimizerMax */
     uint32_t *freq_order = NULL;
 
     if (minimizer_type == 1)
@@ -547,7 +545,7 @@ typedef uint64_t partition_t;
         is.read ((char*)freq_order, sizeof(uint32_t) * rg);
     }
 
-#if 0  // all those models are for creating UF with k-1 mers or minimizers, we don't do that anymore. legacy/debugging code, that can be removed later.
+    // all those models are for creating UF with k-1 mers or minimizers, we don't do that anymore. legacy/debugging code, that can be removed later.
     Model model(kmerSize, minSize, Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
     Model modelK1(kmerSize-1, minSize,  Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
     Model modelK2(kmerSize-2, minSize,  Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);

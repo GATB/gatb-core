@@ -339,9 +339,13 @@ public:
         size_t   miniSizes[] = {  5,  8, 10 };
 
         static const size_t KSIZE_1 = KMER_SPAN(0);
+#define KSIZE_32 (KSIZE_LIST == 32)
+#if KSIZE_32
+        // don't run those tests when compiled with just k=32
+#else
         static const size_t KSIZE_2 = KMER_SPAN(1);
         static const size_t KSIZE_3 = KMER_SPAN(2);
-
+#endif
         try
         {
             for (size_t b=0; b<banks.size(); b++)
@@ -355,8 +359,11 @@ public:
                     for (size_t j=0; j<ARRAY_SIZE(miniSizes); j++)
                     {
                              if (kmerSize < KSIZE_1)  {  kmer_minimizer_aux2<KSIZE_1, Kmer<KSIZE_1>::ModelDirect> (*bank, kmerSize, miniSizes[j]);  }
+#if KSIZE_32
+#else
                         else if (kmerSize < KSIZE_2)  {  kmer_minimizer_aux2<KSIZE_2, Kmer<KSIZE_2>::ModelDirect> (*bank, kmerSize, miniSizes[j]);  }
                         else if (kmerSize < KSIZE_3)  {  kmer_minimizer_aux2<KSIZE_3, Kmer<KSIZE_3>::ModelDirect> (*bank, kmerSize, miniSizes[j]);  }
+#endif
                     }
                 }
             }
@@ -566,6 +573,8 @@ public:
 
     void kmer_tostring (void)
     {
+#if KSIZE_32
+#else
         size_t kmerSize = 121;
         static const size_t KSIZE_3 = KMER_SPAN(3);
         typedef typename Kmer<KSIZE_3>::ModelCanonical Model;
@@ -578,6 +587,7 @@ public:
         if (model.toString(kmer.value()) != kmer_str)
              std::cout << "in anticipation of failed assert, model.toString(kmer) = " << model.toString(kmer.value()) << ", kmer = " << kmer_str << std::endl;       
         CPPUNIT_ASSERT (model.toString(kmer.value()) == kmer_str);
+#endif
     }
 };
 
