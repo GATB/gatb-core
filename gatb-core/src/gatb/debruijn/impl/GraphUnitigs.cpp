@@ -1184,10 +1184,11 @@ simplePathDelete (NodeFast<span>& node, Direction dir, NodesDeleter<NodeFast<spa
     std::vector<NodeFast<span>> nodesList;
     int seqLength = 0, endDegree;
     float coverage = 0;
+    unitigDelete(node, dir, nodesDeleter);
     simplePathLongest_avance(node, dir, seqLength, endDegree, false /*markDuringTraversal*/, coverage, nullptr, &nodesList);
-    for (auto node : nodesList)
+    for (auto cur_node : nodesList)
     {
-        unitigDelete(node, dir, nodesDeleter);
+        unitigDelete(cur_node, dir, nodesDeleter);
     }
 }
 
