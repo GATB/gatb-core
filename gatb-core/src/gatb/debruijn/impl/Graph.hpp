@@ -823,15 +823,28 @@ public:
     GraphIterator<Edge> simplePathEdge (Node& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
     
     // high-level functions that used to be in Simplifications.cpp
-    double       simplePathMeanAbundance     (Node& node, Direction dir) const;
+    // convention: unitigXXX works on the unitigs as computed as bcalm. never leaves that unitig
+    //             simplepathXXX may traverse multiple unitigs
+    Node             unitigLastNode          (Node& node, Direction dir) const;
+    Node         simplePathLastNode          (Node& node, Direction dir) const;
+    unsigned int     unitigLength            (Node& node, Direction dir) const;
     unsigned int simplePathLength            (Node& node, Direction dir) const;
-    Node        simplePathLastNode          (Node& node, Direction dir) const;
+    double           unitigMeanAbundance     (Node& node) const;
+    double           unitigMeanAbundance     (Node& node, Direction dir) const;
+    double       simplePathMeanAbundance     (Node& node, Direction dir) const;
+    void             unitigDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) ;
+    void             unitigDelete          (Node& node) ;
     void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) ;
-    void         simplePathDelete          (Node& node) ;
-    std::string simplePathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
+    std::string  unitigSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
+    std::string  unitigPathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
+    void         unitigMark            (Node& node) ; // used to flag simple path as traversed, in minia
+    bool         unitigIsMarked        (Node& node) ;
     
-    std::string simplePathLongest(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) ;
-    void simplePathLongest_avance(const Node& node, std::string& seq, int& endDegree, bool deleteAfterTraversal) ; // aux function, not meant to be called from outside, but maybe it could.
+    std::string simplePathBothDirections(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool dummy, float& coverage);
+    // aux function, not meant to be called from outside, but maybe it could.
+    void simplePathLongest_avance(const Node& node, Direction dir, int& seqLength, int& endDegree, bool markDuringTraversal, float& coverage, std::string* seq = nullptr, std::vector<Node> *unitigNodes = nullptr); 
+    
+    void debugPrintAllUnitigs() const;
 
     /**********************************************************************/
     /*                         NODE METHODS                               */

@@ -2654,6 +2654,7 @@ int GraphTemplate<Node, Edge, GraphDataVariant>::simplePathAvance (Node& node, D
 
     return 0;
 }
+
 template<typename Node, typename Edge, typename GraphDataVariant>
 double GraphTemplate<Node, Edge, GraphDataVariant>::
 simplePathMeanAbundance     (Node& node, Direction dir) const
@@ -2668,6 +2669,8 @@ simplePathMeanAbundance     (Node& node, Direction dir) const
         mean_abundance += abundance;
         length++;
     }
+    if (length == 0)
+        return 0;
     double meanAbundance = (double)mean_abundance / ((double)length);
     double stdevAbundance = 0;
 
@@ -2685,6 +2688,7 @@ simplePathMeanAbundance     (Node& node, Direction dir) const
 
     return meanAbundance;
 }
+
 template<typename Node, typename Edge, typename GraphDataVariant>
 Node  GraphTemplate<Node, Edge, GraphDataVariant>::
 simplePathLastNode  (Node& node, Direction dir) const
@@ -2710,7 +2714,22 @@ simplePathLength (Node& node, Direction dir) const
 
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::
-simplePathDelete (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>> &nodesDeleter) 
+unitigDelete (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>> &nodesDeleter) 
+{
+    std::cout << "Graph::unitigDelete not implemented" << std::endl; exit(1);
+}
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+void GraphTemplate<Node, Edge, GraphDataVariant>::
+unitigDelete (Node& node) 
+{
+    std::cout << "Graph::simplePathDelete not implemented" << std::endl; exit(1);
+}
+
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+void GraphTemplate<Node, Edge, GraphDataVariant>::
+simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) 
 {
     GraphIterator <Node> itNodes = simplePath (node, dir);
     for (itNodes.first(); !itNodes.isDone(); itNodes.next())
@@ -2720,9 +2739,16 @@ simplePathDelete (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTempla
 
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::
-simplePathDelete (Node& node) 
+unitigMark            (Node& node)  // used to flag simple path as traversed, in minia
 {
-    std::cout << "Graph::simplePathDelete not implemented" << std::endl; exit(1);
+    std::cout << "Graph::simplePathMark not implemented. Only in GraphUnitigs it is." << std::endl; exit(1);
+}
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+bool GraphTemplate<Node, Edge, GraphDataVariant>::
+unitigIsMarked        (Node& node)
+{
+    std::cout << "Graph::simplePathIsMarked not implemented" << std::endl; exit(1);
 }
 
 
@@ -2731,7 +2757,7 @@ simplePathDelete (Node& node)
 
 template<typename Node, typename Edge, typename GraphDataVariant>
 std::string GraphTemplate<Node, Edge, GraphDataVariant>::
-simplePathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const
+unitigSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const
 {
     std::cout << "Graph::simplePathSequence not implemented (only in GraphUnitigs yet)" << std::endl;// would be easy to implement, just see Minia's legacy code for example
     return "";
@@ -2739,7 +2765,7 @@ simplePathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const
 
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::
-simplePathLongest_avance(const Node& node, string& seq, int& endDegree, bool deleteAfterTraversal) 
+simplePathLongest_avance(const Node& node, Direction dir, int& seqLength, int& endDegree, bool dummy, float& coverage, std::string* seq, std::vector<Node> *unitigNodes) 
 {
     std::cout << "Graph::simplePathLongest_avance not implemented (only in GraphUnitigs yet)" << std::endl;// would be easy to implement, just see Minia's legacy code for example
     return ;
@@ -2747,12 +2773,19 @@ simplePathLongest_avance(const Node& node, string& seq, int& endDegree, bool del
 
 template<typename Node, typename Edge, typename GraphDataVariant>
 std::string GraphTemplate<Node, Edge, GraphDataVariant>::
-simplePathLongest(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) 
+simplePathBothDirections(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool dummy, float& coverage) 
 {
-    std::cout << "Graph::simplePathLongest not implemented (only in GraphUnitigs yet)" << std::endl;// would be easy to implement, just see Minia's legacy code for example
+    std::cout << "Graph::simplePathLongest not implemented (only in GraphUnitigs yet)" << std::endl;// if wanted to implement, just see Minia's legacy code for example
     return "";
 }
 
+
+template<typename Node, typename Edge, typename GraphDataVariant>
+void GraphTemplate<Node, Edge, GraphDataVariant>::
+debugPrintAllUnitigs() const
+{
+    std::cout << "Graph::debugPritnAllUnitigs implemented (only in GraphUnitigs yet)" << std::endl;
+}
 
 
 

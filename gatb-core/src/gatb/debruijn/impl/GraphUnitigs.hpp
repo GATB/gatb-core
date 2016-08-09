@@ -264,17 +264,30 @@ public:
     GraphIterator<Edge> simplePathEdge (Node& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
 
 
-    // high-level functions that used to be in Simplifications.cpp
-    double       simplePathMeanAbundance     (const Node& node, Direction dir) const;
-    unsigned int simplePathLength            (const Node& node, Direction dir) const;
-    Node         simplePathLastNode          (const Node& node, Direction dir) const;
-    void         simplePathDelete            (Node& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
-    void         simplePathDelete            (Node& node) ;
+    // high-level functions that are now used in Simplifications.cpp
+    // convention: unitigXXX works on the unitigs as computed as bcalm. never leaves that unitig
+    //             simplepathXXX may traverse multiple unitigs
+    bool isLastNode                          (const Node& node, Direction dir) const;
+    bool isFirstNode                         (const Node& node, Direction dir) const;
+    Node             unitigLastNode          (const Node& node, Direction dir) const;
+    Node         simplePathLastNode          (const Node& node, Direction dir) ; /* cannot be const becuse it called Longuest_avance that is sometimes not const.. grr. */
+    unsigned int     unitigLength            (const Node& node, Direction dir) const;
+    unsigned int simplePathLength            (const Node& node, Direction dir) ; /* same reason as above*/;
+    double           unitigMeanAbundance     (const Node& node) const;
+    double           unitigMeanAbundance     (const Node& node, Direction dir) const;
+    double       simplePathMeanAbundance     (const Node& node, Direction dir) ;
+    void             unitigDelete          (NodeFast<span>& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    void             unitigDelete          (Node& node) ;
+    void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    std::string  unitigSequence            (const Node& node, bool& isolatedLeft, bool& isolatedRight) const;
+    void         unitigMark                (const Node& node); // used to flag simple path as traversed, in minia
+    bool         unitigIsMarked        (Node& node) const;
+    
+    std::string simplePathBothDirections(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool dummy, float& coverage);
+    // aux function, not meant to be called from outside, but maybe it could.
+    void simplePathLongest_avance(const Node& node, Direction dir, int& seqLength, int& endDegree, bool markDuringTraversal, float& coverage, std::string* seq = nullptr, std::vector<Node> *unitigNodes = nullptr) ; 
 
-    std::string simplePathSequence (const Node& node, bool& isolatedLeft, bool& isolatedRight) const;
-
-    std::string simplePathLongest(Node& node, bool& isolatedLeft, bool& isolatedRight, bool deleteAfterTraversal) ;
-    void simplePathLongest_avance(Node& node, std::string& seq, int& endDegree, bool deleteAfterTraversal) ; // aux function, not meant to be called from outside, but maybe it could.
+    void debugPrintAllUnitigs() const;
 
 
     /**********************************************************************/
@@ -410,7 +423,7 @@ public: // was private: before, but had many compilation errors during the chang
         }
         void unpack(uint32_t val)
         {
-            switch (val&3) // probably could be replaced by just an appropriate typecast. but this check has saved me from a bug once so i'm grateful for it.
+            switch (val&3) // probably could be replaced by just an appropriate typecast. but this check has saved me from a bug TWICE so i'm grateful for it.
             {
                 case 1: pos = UNITIG_BEGIN; break;
                 case 2: pos = UNITIG_END; break;
@@ -439,12 +452,13 @@ public: // was private: before, but had many compilation errors during the chang
     typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
     typedef typename kmer::impl::Kmer<span>::ModelDirect ModelDirect;
 
-    // don't forget to copy those variable sin operator= !!
+    // don't forget to copy those variables in operator= (and the move operator) !!
     Model       *modelK;
     ModelDirect *modelKdirect;
     NodeMap utigs_map;
     std::vector<std::string> unitigs;
     std::vector<float> unitigs_mean_abundance;
+    std::vector<bool> unitigs_traversed;
 };
   
 

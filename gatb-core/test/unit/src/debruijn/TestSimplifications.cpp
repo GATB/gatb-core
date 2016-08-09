@@ -152,7 +152,7 @@ public:
     void debruijn_build (const char* sequences[], size_t nbSequences, int k, Graph& graph, debruijn_build_entry& r)
     {
         // We build the bank
-        graph = Graph::create (new BankStrings (sequences, nbSequences),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", k , MAX_MEMORY);
+        graph = Graph::create (new BankStrings (sequences, nbSequences),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", k , MAX_MEMORY);
 
         r = debruijn_stats (graph, true,  true);
     }

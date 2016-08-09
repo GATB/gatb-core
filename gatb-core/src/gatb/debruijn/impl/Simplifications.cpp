@@ -26,6 +26,9 @@
 /********************************************************************************/
 
 #define DEBUG(a)    //a
+#define DEBUG_TIPS(a)    //a
+#define DEBUG_BULGES(a)    //a
+#define DEBUG_EC(a)    //a
 
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
@@ -145,7 +148,7 @@ void Simplifications<GraphType,Node,Edge>::simplify()
 
     }
     while (((nbECRemovedPreviously == 0 && nbECRemoved > 0) || (nbECRemoved >= cutoffEvents || nbTipsRemoved >= cutoffEvents || nbBubblesRemoved >= cutoffEvents))
-            && _nbECRemovalPasses < 25);
+            && _nbTipRemovalPasses < 30);
 }
 
 
@@ -436,7 +439,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             bool isShortTopological = true;
             bool isShortRCTC = true;
 
-            //DEBUG(cout << endl << "deadend node: " << _graph.toString (node) << endl);
+            DEBUG_TIPS(cout << endl << "deadend node: " << _graph.toString (node) << endl);
             __sync_fetch_and_add(&nbTipCandidates,1);
 
             // this call is only to get the direction. a bit hacky.
@@ -481,7 +484,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             // check if it's connected to something. 
             // condition: degree > 1, because connected to the tip and to that "something"
             Node lastNode           = _graph.simplePathLastNode(simplePathStart,simplePathDir);
-            bool isConnected = (_graph.neighborsEdge(lastNode).size() > 1);
+            bool isConnected = (_graph.neighborsEdge(lastNode, simplePathDir).size() >= 1);
             if (pathLen == 0)
             {
                 // special case: only a single tip node, check if it's not isolated
@@ -491,7 +494,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             bool isTopologicalShortTip = isShortTopological && isConnected; 
             bool isMaybeRCTCTip = isShortRCTC && isConnected;
 
-            //DEBUG(cout << endl << "pathlen: " << pathLen << " last node " << _graph.toString(nodes.back()) << " neighbors in/out: " <<_graph.indegree(nodes.back()) << " " << _graph.outdegree(nodes.back()) << " istoposhorttip: " << isTopologicalShortTip << endl);
+            DEBUG_TIPS(cout << endl << "pathlen: " << pathLen << " last node " << _graph.toString(lastNode) << " neighbors in/out: " <<_graph.indegree(lastNode) << " " << _graph.outdegree(lastNode) << " istoposhorttip: " << isTopologicalShortTip << endl);
             
             double pathMeanAbundance = _graph.simplePathMeanAbundance(simplePathStart,simplePathDir);
 
@@ -513,8 +516,9 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             {
                 // delete it
                 _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
-             
+
                 __sync_fetch_and_add(&nbTipsRemoved, 1);
+                DEBUG_TIPS(cout << endl << "TIP FOUND, deleting node : " << _graph.toString(simplePathStart) << endl);
             } // end if isTip
 
             TIME(auto end_tip_processing_t=get_wtime());
@@ -528,6 +532,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     }); // parallel
 
     TIME(auto start_nodesdel_t=get_wtime());
+    DEBUG_TIPS(std::cout << "end of tip removal pass" << std::endl;);
     
     // now delete all nodes, in parallel
     nodesDeleter.flush();
@@ -1222,7 +1227,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
             TIME(auto start_various_overhead_t=get_wtime());
     
-                DEBUG(cout << "putative bulge node: " << _graph.toString (node) << endl);
+                DEBUG_BULGES(cout << "putative bulge node: " << _graph.toString (node) << endl);
 
                 /** We follow the outgoing simple paths to get their length and last neighbor */
                 GraphVector<Edge> neighbors = _graph.neighborsEdge(node, dir);
@@ -1257,7 +1262,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
                 __sync_fetch_and_add(&nbSimplePaths, 1);
 
-                DEBUG(cout <<  "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
+                DEBUG_BULGES(cout <<  "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                 bool isShort = true;
 
                 if (k + pathLen >= maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
@@ -1276,7 +1281,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 
                     Node lastNode = _graph.simplePathLastNode(simplePathStart,simplePathDir);
                     GraphVector<Edge> outneighbors = _graph.neighborsEdge(lastNode, dir);
-                    DEBUG(cout << "last node of simple path: "<< _graph.toString(lastNode) << " has indegree/outdegree: " <<_graph.indegree(lastNode) << "/" << _graph.outdegree(lastNode) << " and " << outneighbors.size() << " neighbors in bubble direction" << endl);
+                    DEBUG_BULGES(cout << "last node of simple path: "<< _graph.toString(lastNode) << " has indegree/outdegree: " <<_graph.indegree(lastNode) << "/" << _graph.outdegree(lastNode) << " and " << outneighbors.size() << " neighbors in bubble direction" << endl);
     
                     if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                         continue;
@@ -1284,7 +1289,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     // FIXME: so here is a hidden assumption: maybe outneighbors is of size more than 1, why do we care about just one of the nodes after. it doesn't matter much, in the sense that just some bulges might remain
 
                     Node endNode = outneighbors[0].to;
-                    DEBUG(cout << "endNode: " << _graph.toString(endNode) << endl);
+                    DEBUG_BULGES(cout << "endNode: " << _graph.toString(endNode) << endl);
     
                     // at this point, the last node in "nodes" is the last node of a potential Bulge path, and endNode is hopefully a branching node right after.
                     // check if it's connected to something that has in-branching. 
@@ -1292,7 +1297,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     
                     bool isTopologicalBulge = isDoublyConnected;
     
-                    DEBUG(cout << "pathlen: " << pathLen << " istopobulge: " << isTopologicalBulge << endl);
+                    DEBUG_BULGES(cout << "pathlen: " << pathLen << " istopobulge: " << isTopologicalBulge << endl);
 
                 TIME(end_various_overhead_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
@@ -1327,7 +1332,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 if (success != 1)
                 {
-                    DEBUG(cout << "HMCP failed: " << hmcpstatus2ascii(success) << endl);
+                    DEBUG_BULGES(cout << "HMCP failed: " << hmcpstatus2ascii(success) << endl);
                     TIME(__sync_fetch_and_add(&timeFailedPathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
                     TIME(if (diff_wtime(start_pathfinding_t,end_pathfinding_t) > timeLongestFailure) { timeLongestFailure = diff_wtime(start_pathfinding_t,end_pathfinding_t); });
                     longestFailureDepth = depth;
@@ -1352,7 +1357,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                         this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,  heuristic_p_most,  backtrackingLimit, &(neighbors[i].to),  true, true /* old version */);
                         this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered, heuristic_p_least, backtrackingLimit, &(neighbors[i].to), false,  true /* old version */);
                         cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl;
-                        DEBUG(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
+                        DEBUG_BULGES(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
                     }
     
                     unsigned int dummyLen;
@@ -1360,12 +1365,12 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     
                     bool isBulge =  simplePathCoverage * 1.1  <=  mean_abundance_most_covered;
     
-                    DEBUG(cout << "bulge coverages: " << simplePathCoverage<< "/" <<  mean_abundance_most_covered  << endl);
+                    DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage<< "/" <<  mean_abundance_most_covered  << endl);
     
                     if (!isBulge)
                     {
                         __sync_fetch_and_add(&nbBadCovBulges, 1);
-                        DEBUG(cout << "not a bulge due to coverage criterion" << endl);
+                        DEBUG_BULGES(cout << "not a bulge due to coverage criterion" << endl);
 
                         TIME(auto end_post_t=get_wtime());
                         TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
@@ -1374,7 +1379,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                     // delete the bulge
                     //
-                    DEBUG(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
+                    DEBUG_BULGES(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
                     _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
 
                     __sync_fetch_and_add(&nbBulgesRemoved, 1);
@@ -1522,7 +1527,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
             {
                 if ((outDegree >= 2 && dir == DIR_OUTCOMING) || (inDegree >= 2 && dir == DIR_INCOMING))
                 {  
-                    DEBUG(cout << endl << "putative EC node: " << _graph.toString (node) << endl);
+                    DEBUG_EC(cout << endl << "putative EC node: " << _graph.toString (node) << endl);
                     __sync_fetch_and_add(&nbECCandidates,1);
 
                     /** We follow the outcoming simple paths 
@@ -1540,8 +1545,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                         /* at this point, neighbors[i].to is the first node of an EC, maybe. */
                          
                         /* explore the simple path from that node */
-                        bool foundShortPath = false;
-
                         TIME(auto start_simplepath_t=get_wtime());
                         Node&     simplePathStart = neighbors[i].to;
                         Direction simplePathDir   = dir;
@@ -1549,7 +1552,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                         TIME(auto end_simplepath_t=get_wtime());
                         TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
 
-                        DEBUG(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
+                        DEBUG_EC(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                         bool isShort = true;
                         
                         if (k + pathLen >= maxECLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
@@ -1562,7 +1565,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                         if ((!isShort) || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
                         {
-                            DEBUG(cout << "direction: " << DIR2STR(dir) << ", not an EC: foundShortPath: " << foundShortPath << " pathLen: " << pathLen << endl);
+                            DEBUG_EC(cout << "direction: " << DIR2STR(dir) << ", not an EC: isShort: " << isShort << " pathLen: " << pathLen << endl);
                             continue;
                         }
 
@@ -1572,13 +1575,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                         double pathMeanAbundance = _graph.simplePathMeanAbundance(simplePathStart,simplePathDir);
 
                         GraphVector<Edge> outneighbors = _graph.neighborsEdge(lastNode, dir);
-                        DEBUG(cout << "last simple path node: "<< _graph.toString(lastNode) << " has " << outneighbors.size() << " outneighbors" << endl);
+                        DEBUG_EC(cout << "last simple path node: "<< _graph.toString(lastNode) << " has " << outneighbors.size() << " outneighbors" << endl);
 
                         if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                             continue;
 
                         Node endNode = outneighbors[0].to;
-                        DEBUG(cout << "endNode: " << _graph.toString(endNode) << endl);
+                        DEBUG_EC(cout << "endNode: " << _graph.toString(endNode) << endl);
 
                         // at this point, the last node in "nodes" is the last node of a potential EC, and endNode is hopefully a branching node right after.
                         // check if it's connected to something that has in-branching and also an out neighbor. 
@@ -1588,7 +1591,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                         bool isTopologicalEC = isDoublyConnected;
 
-                        DEBUG(cout << "direction: " << DIR2STR(dir) << ", pathlen: " << pathLen << " last node neighbors size: " << _graph.neighborsEdge(lastNode).size() << " indegree outdegree: " <<_graph.indegree(node) << " " << _graph.outdegree(node) << " isDoublyConnected: " << isDoublyConnected << " isTopoEC: " << isTopologicalEC << endl);
+                        DEBUG_EC(cout << "direction: " << DIR2STR(dir) << ", pathlen: " << pathLen << " last node neighbors size: " << _graph.neighborsEdge(lastNode).size() << " indegree outdegree: " <<_graph.indegree(node) << " " << _graph.outdegree(node) << " isDoublyConnected: " << isDoublyConnected << " isTopoEC: " << isTopologicalEC << endl);
 
 
                         if (isTopologicalEC)
@@ -1612,7 +1615,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                                 // delete it
                                 //
                                 _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
-                                DEBUG(cout << endl << "EC of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
+                                DEBUG_EC(cout << endl << "EC of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
 
                                 __sync_fetch_and_add(&nbECRemoved, 1);
 
