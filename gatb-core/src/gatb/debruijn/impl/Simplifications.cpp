@@ -33,7 +33,7 @@
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
 
-#include <stack>
+#include <cassert>
 #include <gatb/debruijn/impl/Simplifications.hpp>
 #include <gatb/debruijn/impl/NodesDeleter.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp> // for ProgressTimerAndSystem
@@ -960,6 +960,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         unsigned int backtrackingLimit, Node *avoidFirstNode, 
         bool most_covered, unsigned long &nbCalls)
 {
+    bool debug = false;
     nbCalls++;
     
     if (traversal_depth < -1)
@@ -969,7 +970,8 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
     }
 
     Node current_node = startNode;
-    //std::cout << "HMCP rec, now at : " << _graph.toString(current_node) << " dir " << dir<< std::endl;;
+    if (debug)
+        std::cout << "HMCP rec, now at : " << _graph.toString(current_node) << " dir " << dir<< std::endl;;
  
     if (current_node.kmer == endNode.kmer)
     {
@@ -1000,44 +1002,63 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         return false;
     };
 
+    unsigned int k = _graph.getKmerSize();
 
     // traverse simple path from that node
     // we end up at a branching node. 
     // if the node has no out-branching, keep going, we don't care about in-branching here.
     do
     {
-        //std::cout << "HMCP now at : " << _graph.toString(current_node) << std::endl;;
+        if (debug)
+            std::cout << "HMCP traversing simple path from node: " << _graph.toString(current_node) << std::endl;;
         
         //if (processNode(current_node)) // don't check whether we're done here, because first kmer is already inserted in traversedKmers by loop invariant
 
         Node&     simplePathStart = current_node;
         Direction simplePathDir   = dir;
         Node lastNode           = _graph.simplePathLastNode     (simplePathStart,simplePathDir);
-        if (lastNode == current_node)
-            break; //nothing to traverse
-        
-        unsigned int k = _graph.getKmerSize();
         unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
-        double pathMeanAbundance = _graph.simplePathMeanAbundance(simplePathStart,simplePathDir);
+        if (pathLen > 0)
+        { 
+            double pathMeanAbundance = _graph.simplePathMeanAbundance(simplePathStart,simplePathDir);
             
-        unitigs_lengths.push_back(pathLen);
-        unitigs_abundances.push_back(pathMeanAbundance);
+            unitigs_lengths.push_back(pathLen);
+            unitigs_abundances.push_back(pathMeanAbundance);
 
-        nbCalls += pathLen + 1;
-        extra_depth += pathLen + 1; 
-        //std::cout << "HMCP now at last node : " << _graph.toString(current_node) << std::endl;;
+            nbCalls += pathLen + 1;
+            extra_depth += pathLen + 1; 
 
-        if (processNode(lastNode)) // verify whether we're done
-            return;
+            if (processNode(lastNode)) // verify whether we're done
+                return;
+
+            if (debug)
+                std::cout << "HMCP now at last node : " << _graph.toString(current_node) << std::endl;;
+
+
+        }
+        else
+        {
+            if (debug)
+                std::cout << "HMCP last node was equal to first node: " << _graph.toString(lastNode) << " " << _graph.toString(current_node) << std::endl;;
+        }
 
         // end of simple path, yet no out-branching? means there is in-branching
         if (_graph.degree(current_node, dir) == 1)
         {
-
             // get the node after in-branching
             GraphVector<Edge> neighbors = _graph.neighborsEdge(current_node, dir);
 
             current_node = neighbors[0].to;
+            if (_graph.degree(current_node, reverse(dir)) <= 1)
+            {
+                std::cout << "Weird, there was supposed to be an in-neighbor. Maybe there's a loop. Remove this print if it never happens" << std::endl;
+                return;
+            }
+
+             if (debug)
+                std::cout << "end of simple path, at node, there is in-branching: " << _graph.toString(current_node) << " degrees " << _graph.degree(current_node, reverse(dir)) << "/" << _graph.degree(current_node, dir) << std::endl;;
+
+
             nbCalls ++;
             extra_depth++; 
         
@@ -1053,7 +1074,9 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
 
     // get neighbors of branching node
     GraphVector<Edge> neighbors = _graph.neighborsEdge (current_node, dir);
-
+    
+    assert(neighbors.size() != 1);
+    
     /** We loop over the neighbors of that branching node, to order them by abundance 
      * there's a variant here from other flavors of HMP: we take the most abundance path. */
     vector<std::pair<int, Edge> > abundance_node;
@@ -1286,7 +1309,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                         continue;
    
-                    // FIXME: so here is a hidden assumption: maybe outneighbors is of size more than 1, why do we care about just one of the nodes after. it doesn't matter much, in the sense that just some bulges might remain
+                    // TODO: so here is a hidden assumption: maybe outneighbors is of size more than 1, why do we care about just one of the nodes after. it doesn't matter much, in the sense that just some bulges might remain
 
                     Node endNode = outneighbors[0].to;
                     DEBUG_BULGES(cout << "endNode: " << _graph.toString(endNode) << endl);
@@ -1348,8 +1371,8 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 TIME(auto start_post_t=get_wtime());
 
-                    bool debug = false;
-                    if (debug)
+                    bool debug_hmcp = false;
+                    if (debug_hmcp)
                     {
 
                         double mean_abundance_least_covered;

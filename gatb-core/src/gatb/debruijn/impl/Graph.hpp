@@ -830,7 +830,6 @@ public:
     unsigned int     unitigLength            (Node& node, Direction dir) const;
     unsigned int simplePathLength            (Node& node, Direction dir) const;
     double           unitigMeanAbundance     (Node& node) const;
-    double           unitigMeanAbundance     (Node& node, Direction dir) const;
     double       simplePathMeanAbundance     (Node& node, Direction dir) const;
     void             unitigDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) ;
     void             unitigDelete          (Node& node) ;
