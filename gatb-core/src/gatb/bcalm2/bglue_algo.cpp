@@ -1,3 +1,6 @@
+/* remaining issue:
+- no more than 2^32 sequences to glue together (should be ok for spruce)
+*/
 #include "bglue_algo.hpp"
 #include <sstream>
 #include <iomanip>

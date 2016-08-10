@@ -98,11 +98,9 @@ public:
      */
     static GraphUnitigsTemplate  create (const char* fmt, ...);
 
-    /** Build a graph from scratch.
-     * \param[in] options : user parameters for building the graph.
-     * \return the created graph.
+    /** so, hm, what's the point of a create() function that just calls a constructor? I really don't get the factory pattern yet
      */
-    static GraphUnitigsTemplate  create (tools::misc::IProperties* options)  {  return  GraphUnitigsTemplate (options);  }
+    static GraphUnitigsTemplate  create (tools::misc::IProperties* options, bool load_unitigs_after = true /* will be set to false by BCALM 2*/)  {  return  GraphUnitigsTemplate (options, load_unitigs_after);  }
 
     /** Load a graph from some URI.
      * \param[in] uri : the uri to get the graph from
@@ -366,11 +364,9 @@ public:
     /** Constructor for empty graph.*/
     GraphUnitigsTemplate (size_t kmerSize);
 
-    /** Constructor. Use for GraphUnitigsTemplate creation (ie. DSK + debloom) and filesystem save. */
     GraphUnitigsTemplate (bank::IBank* bank, tools::misc::IProperties* params);
 
-    /** Constructor. Use for GraphUnitigsTemplate creation (ie. DSK + debloom) and filesystem save. */
-    GraphUnitigsTemplate (tools::misc::IProperties* params);
+    GraphUnitigsTemplate (tools::misc::IProperties* params, bool load_unitigs_after);
 
     /** Constructor. Use for reading from filesystem. */
     GraphUnitigsTemplate (const std::string& uri);

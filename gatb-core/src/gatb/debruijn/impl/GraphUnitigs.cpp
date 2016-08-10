@@ -180,7 +180,7 @@ GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (const char* fmt,
 
     try
     {
-        return  GraphUnitigsTemplate (parser->parseString(commandLine)); /* will call the GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params) constructor */
+        return  GraphUnitigsTemplate (parser->parseString(commandLine), true); /* will call the GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params, bool load_unitigs_after) constructor */
     }
     catch (OptionFailure& e)
     {
@@ -325,7 +325,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     uint32_t utig_counter = 0;
     uint64_t nb_utigs_nucl = 0;
     uint64_t nb_utigs_nucl_mem = 0;
-    for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel (TODO opt)
+    for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel, maybe, if we used many unordered_map's with a hash on the query kmer (TODO opt)
     {
         const string& seq = itSeq->toString();
         const string& comment = itSeq->getComment();
@@ -396,7 +396,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 ** INPUT   : a bank or a h5 file 
 *********************************************************************/
 template<size_t span>
-GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params) 
+GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params, bool load_unitigs_after) 
 //    : BaseGraph() // call base () constructor // seems to do nothing, maybe it's always called by default
 {
    
@@ -467,8 +467,9 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         boost::apply_visitor ( configure_visitor<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(*this, BaseGraph::getStorage()),  *(GraphDataVariantFast<span>*)BaseGraph::_variant);
 
         build_unitigs_postsolid(unitigs_filename, params);
-        
-        load_unitigs(unitigs_filename);
+       
+        if (load_unitigs_after) 
+            load_unitigs(unitigs_filename);
 
 
     }
@@ -491,7 +492,8 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
 
         build_unitigs_postsolid(unitigs_filename, params);
 
-        load_unitigs(unitigs_filename);
+        if (load_unitigs_after)
+            load_unitigs(unitigs_filename);
     }
 }
 
