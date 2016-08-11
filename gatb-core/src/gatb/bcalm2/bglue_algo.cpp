@@ -107,6 +107,22 @@ static float get_mean_abundance(const string& list)
     return mean_abundance / (float)n;
 }
 
+static uint64_t get_sum_abundance(const string& list)
+{
+    uint64_t sum_abundances=0;
+    std::stringstream stream(list);
+    while(1) {
+        int a;
+        stream >> a;
+        if(!stream)
+            break;
+        sum_abundances +=a;
+    }
+    if (sum_abundances > 2000000000LL) std::cout << "warning, large abundance reached, may have printing problems" << std::endl; // maybe will disrupt optimizing the code of that function, but it's not that critical
+    return sum_abundances;
+}
+
+
 static string reverse_abundances(const string& list)
 {
     string rev="";
@@ -981,7 +997,8 @@ typedef uint64_t partition_t;
                     glue_sequences(*itO, it->second, kmerSize, seq, abundances); // takes as input the indices of ordered sequences, and the markedSeq's themselves
 
                     float mean_abundance = get_mean_abundance(abundances);
-                    output(seq, out, std::to_string(out_id++) + " MA=" + to_string_with_precision(mean_abundance)); 
+                    uint32_t sum_abundances = get_sum_abundance(abundances);
+                    output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " KM:f:" + to_string_with_precision(mean_abundance)); 
                 }
 
                 free_memory_vector(it->second);

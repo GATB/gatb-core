@@ -329,7 +329,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     {
         const string& seq = itSeq->toString();
         const string& comment = itSeq->getComment();
-        float mean_abundance = atof(comment.substr(comment.find("MA=")+3).c_str());
+        float mean_abundance = atof(comment.substr(comment.find("KM:f:")+5).c_str()); // strong assumption that bcalm's output will remain that KM is last field 
     
         typename Model::Kmer kmerBegin = modelK->codeSeed(seq.substr(0, kmerSize).c_str(), Data::ASCII);
         typename Model::Kmer kmerEnd = modelK->codeSeed(seq.substr(seq.size() - kmerSize, kmerSize).c_str(), Data::ASCII);
