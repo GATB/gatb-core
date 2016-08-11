@@ -30,6 +30,9 @@
 #define DEBUG_BULGES(a)    //a
 #define DEBUG_EC(a)    //a
 
+// the only time when you don't want to define this, is when debugging with gdb, because can't debug lambda's
+//#define SIMPLIFICATION_LAMBDAS 
+
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
 
@@ -95,7 +98,7 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     tipRemoval = "";
     bubbleRemoval = "";
     ECRemoval = "";
-    
+    /*
     do
     {
         nbTipsRemovedPreviously = nbTipsRemoved;
@@ -106,7 +109,7 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     }
     while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses <= 2 || nbTipsRemoved >= cutoffEvents)) 
             && _nbTipRemovalPasses < 20);
-    
+    */
     do
     {
         nbBubblesRemovedPreviously = nbBubblesRemoved;
@@ -1219,15 +1222,26 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
     bool haveInterestingNodesInfo = !_firstNodeIteration;
 
-    dispatcher.iterate (itNode, [&] (Node& node)
+#ifdef SIMPLIFICATION_LAMBAS 
+    dispatcher.iterate (itNode, [&] (Node& node) {
+#else
+    for (itNode->first(); !itNode->isDone(); itNode->next())
     {
+        Node& node = itNode->item();
+#endif
+        TIME(auto start_thread_t=get_wtime());
 
-      TIME(auto start_thread_t=get_wtime());
-
+        if (_graph.isNodeDeleted(node)) { 
+#ifdef SIMPLIFICATION_LAMBDAS
+            return; 
+#else
+            continue;
+#endif
+        }
+      
       TIME(auto start_nodeindex_t=get_wtime());
-
-          if (_graph.isNodeDeleted(node)) { return; } 
-          unsigned long index = _graph.nodeMPHFIndex(node);
+      
+      unsigned long index = _graph.nodeMPHFIndex(node);
        
       TIME(auto end_nodeindex_t=get_wtime());
       TIME(__sync_fetch_and_add(&timeNodeIndex, diff_wtime(start_nodeindex_t,end_nodeindex_t)));
@@ -1332,7 +1346,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 __sync_fetch_and_add(&nbTopologicalBulges, 1);
 
-                unsigned int depth = k /* added k because of pathLen change */ + std::max((unsigned int)(pathLen * 1.1),(unsigned int) 3); // following SPAdes
+                unsigned int depth = std::max((unsigned int)(pathLen * 1.1),(unsigned int) 3); // following SPAdes
                 double mean_abundance_most_covered;
                 int success;
                 Node startNode = node;
@@ -1415,8 +1429,14 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
       } // for direction
         TIME(auto end_thread_t=get_wtime());
         TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
-    }); // parallel
     
+#ifdef SIMPLIFICATION_LAMBDAS
+            }); // parallel
+#else
+}
+#endif
+
+
     // now delete all nodes, in parallel
     TIME(auto start_nodedelete_t=get_wtime());
 
@@ -1523,11 +1543,22 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     // parallel stuff
     NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores, _verbose);
 
-    dispatcher.iterate (itNode, [&] (Node& node)
-            {
+#ifdef SIMPLIFICATION_LAMBAS 
+    dispatcher.iterate (itNode, [&] (Node& node) {
+#else
+    for (itNode->first(); !itNode->isDone(); itNode->next())
+    {
+        Node& node = itNode->item();
+#endif
             TIME(auto start_thread_t=get_wtime());
 
-            if (_graph.isNodeDeleted(node)) { return; } // {continue;} // sequential and also parallel
+            if (_graph.isNodeDeleted(node)) { 
+#ifdef SIMPLIFICATION_LAMBDAS
+            return; 
+#else
+            continue;
+#endif
+            }
 
             unsigned long index = _graph.nodeMPHFIndex(node);
 
@@ -1535,7 +1566,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
             /* ec nodes have out/in degree of 1 or more on one side, and of 2 or more on the other */
             if (!((inDegree >= 1 && outDegree > 1 ) || (inDegree > 1 && outDegree >=1 )))
-                return;
+            {
+#ifdef SIMPLIFICATION_LAMBDAS
+            return; 
+#else
+            continue;
+#endif
+            }
 
                 /* at this point, "node" is a node such that:
                  *
@@ -1652,7 +1689,11 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
             TIME(auto end_thread_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
 
+#ifdef SIMPLIFICATION_LAMBDAS
             }); // parallel
+#else
+}
+#endif
 
     TIME(auto start_nodesdel_t=get_wtime());
 

@@ -1233,14 +1233,17 @@ simplePathLongest_avance(const NodeFast<span>& node, Direction dir, int& seqLeng
 
         // first node in unitig may have in-branching, it's fine for a simple path traversal. we'll just go to last node and record the sequence of that unitig
         const ExtremityInfo e(utigs_map[node.kmer]);
-        string new_seq = unitigs[e.unitig];
+        int unitigLength = unitigs[e.unitig].size();
 
         bool same_orientation = node_in_same_orientation_as_in_unitig(node, e);
-        if (!same_orientation)
-            new_seq = revcomp(new_seq);
 
         if (seq != nullptr)
         {
+            string new_seq = unitigs[e.unitig];
+
+            if (!same_orientation)
+                new_seq = revcomp(new_seq);
+
             if (dir == DIR_OUTCOMING)
                 *seq += new_seq.substr(kmerSize-1);
             else
@@ -1248,12 +1251,12 @@ simplePathLongest_avance(const NodeFast<span>& node, Direction dir, int& seqLeng
         }
 
         // length is all the kmers of that unitig, except first one
-        seqLength += new_seq.size() - kmerSize;
+        seqLength += unitigLength - kmerSize;
         // for coverage: it includes the abundance of the first kmer, because there's no way to exclude it, hence the +1
-        coverage += unitigMeanAbundance(cur_node) * (new_seq.size() - kmerSize + 1);
+        coverage += unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1);
        
         if (debug)
-            std::cout << "simplePathLongest_avance was at a first node = " << BaseGraph::toString(cur_node) << " strand " << cur_node.strand << " so traversed unitig of length " << new_seq.size() << std::endl;
+            std::cout << "simplePathLongest_avance was at a first node = " << BaseGraph::toString(cur_node) << " strand " << cur_node.strand << " so traversed unitig of length " << unitigLength << std::endl;
 
         cur_node = unitigLastNode(node,dir);       
         
@@ -1267,6 +1270,8 @@ simplePathLongest_avance(const NodeFast<span>& node, Direction dir, int& seqLeng
     if (markDuringTraversal) // no need to mark, that unitig should already be marked by minia, but doing it anyway just to be safe
         unitigMark(cur_node);
 
+    set<uint64_t> traversed_unitigs;
+    
     while (true)
     { // invariant here: cur_node is the last node of a unitig
 
@@ -1284,16 +1289,20 @@ simplePathLongest_avance(const NodeFast<span>& node, Direction dir, int& seqLeng
         }
       
         const ExtremityInfo e(utigs_map[neighbors[0].to.kmer]);
-        string new_seq = unitigs[e.unitig];
+        if (traversed_unitigs.find(e.unitig) != traversed_unitigs.end())
+        {
+            //std::cout << "simplePathLongest_avance loop" << std::endl;
+            break;
+        }
+        traversed_unitigs.insert(e.unitig);
 
         bool same_orientation = node_in_same_orientation_as_in_unitig(neighbors[0].to, e);
+            
+        int unitigLength = unitigs[e.unitig].size();
+        
 
         if (debug)
-            std::cout << "simplePathLongest_avance continues now at a last node = " << BaseGraph::toString(cur_node) << " strand " << cur_node.strand << " neighbor.to " << BaseGraph::toString(neighbors[0].to) << " strand " << neighbors[0].to.strand  << " new seq length: " << new_seq.size() << std::endl;
-
-
-        if (!same_orientation)
-            new_seq = revcomp(new_seq);
+            std::cout << "simplePathLongest_avance continues now at a last node = " << BaseGraph::toString(cur_node) << " strand " << cur_node.strand << " neighbor.to " << BaseGraph::toString(neighbors[0].to) << " strand " << neighbors[0].to.strand  << " new seq length: " << unitigLength << std::endl;
 
         // some sanity checks      
         if (e.pos != UNITIG_BOTH) 
@@ -1346,14 +1355,18 @@ simplePathLongest_avance(const NodeFast<span>& node, Direction dir, int& seqLeng
         // append the sequence (except the overlap part, of length k-1.
         if (seq != nullptr)
         {
+            string new_seq = unitigs[e.unitig];
+            if (!same_orientation)
+                new_seq = revcomp(new_seq);
+
             if (dir == DIR_OUTCOMING)
                 *seq += new_seq.substr(kmerSize-1);
             else
                 *seq = new_seq.substr(0,new_seq.size()-(kmerSize-1)) + *seq;
         }
 
-        seqLength += new_seq.size() - (kmerSize-1);
-        coverage += unitigMeanAbundance(cur_node) * (new_seq.size() - kmerSize + 1); // here too, coverage is computed according to whole unitig
+        seqLength += unitigLength - (kmerSize-1);
+        coverage += unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1); // here too, coverage is computed according to whole unitig
 
         if (markDuringTraversal&& unitigIsMarked(cur_node)) // just a debug, can be removed
         {
