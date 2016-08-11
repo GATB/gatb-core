@@ -98,7 +98,7 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     tipRemoval = "";
     bubbleRemoval = "";
     ECRemoval = "";
-    /*
+    
     do
     {
         nbTipsRemovedPreviously = nbTipsRemoved;
@@ -109,7 +109,7 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     }
     while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses <= 2 || nbTipsRemoved >= cutoffEvents)) 
             && _nbTipRemovalPasses < 20);
-    */
+    
     do
     {
         nbBubblesRemovedPreviously = nbBubblesRemoved;
