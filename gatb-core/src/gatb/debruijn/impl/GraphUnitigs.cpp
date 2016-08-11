@@ -379,11 +379,11 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     uint64_t mem_vec = (unitigs.capacity() * sizeof(string) + nb_utigs_nucl_mem);
     std::cout << "Memory usage:" << std::endl;
     std::cout <<  "   " << (sizeof(Type) * utigs_map_capacity) / 1024 / 1024 << " MB keys in unitigs dict (Type = " << to_string(sizeof(Type)) << " bytes)" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * utigs_map_capacity) / 1024 / 1024 << " MB values in unitigs dict (values = " << to_string(sizeof(uint32_t)) << " bytes)" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * utigs_map_capacity) / 1024 / 1024 << " MB values in unitigs dict (values = " << to_string(sizeof(uint64_t)) << " bytes)" << std::endl;
     std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
     std::cout <<  "   " <<  (nb_kmers*4) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
     std::cout <<  "   " <<  (utigs_map.size()/8) / 1024 / 1024 << " MB visited bitvector (hopefully 1 bit/elt)" << std::endl;
-    std::cout <<  "Estimated total: " <<  (nb_kmers*(4*1.0/8.0) + utigs_map_capacity * ( sizeof(Type)  + sizeof(uint32_t)) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+    std::cout <<  "Estimated total: " <<  (nb_kmers*(4*1.0/8.0) + utigs_map_capacity * ( sizeof(Type)  + sizeof(uint64_t)) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
 
     std::cout << "utigs_map size calculated from buckets " << count << " vs size() " << utigs_map.size() << std::endl;
     if (nb_utigs_nucl != nb_utigs_nucl_mem)
@@ -1463,7 +1463,7 @@ debugPrintAllUnitigs() const
                     break; // in that direction there's nothing
                 }
 
-                const uint32_t packed = utigs_map.at(neighbors[i].to.kmer);
+                const uint64_t packed = utigs_map.at(neighbors[i].to.kmer);
                 const ExtremityInfo en(packed);
 #if 0
                 string nodeStr;

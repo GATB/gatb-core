@@ -402,21 +402,20 @@ public: // was private: before, but had many compilation errors during the chang
     struct ExtremityInfo 
     {
         public:
-        uint32_t unitig;
+        uint64_t unitig;
         bool deleted;
         bool rc; // whether the kmer in canonical form appears as rc in the unitig
         Unitig_pos pos; // whether the kmer is at left extremity of unitig or right extremity
-        ExtremityInfo(uint32_t u, bool d, bool r, Unitig_pos p) : unitig(u),deleted(d),rc(r), pos(p) {}
+        ExtremityInfo(uint64_t u, bool d, bool r, Unitig_pos p) : unitig(u),deleted(d),rc(r), pos(p) {}
         ExtremityInfo() {} // because i defined another constructor
-        ExtremityInfo(const uint32_t val) { unpack(val); } 
+        ExtremityInfo(const uint64_t val) { unpack(val); } 
         std::string toString() const
         { return " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"left":"") + ((pos&UNITIG_END)?"right":"") + " " + " d:" + std::to_string(deleted); }
-        uint32_t pack()
+        uint64_t pack()
         {
-            if ((unitig >> 27) != 0) { std::cout << "cannot pack ExtremityInfo, too many unitigs" << std::endl; exit(1); }
             return pos + (rc << 2) + (deleted << 3) + (unitig << 4);
         }
-        void unpack(uint32_t val)
+        void unpack(uint64_t val)
         {
             switch (val&3) // probably could be replaced by just an appropriate typecast. but this check has saved me from a bug TWICE so i'm grateful for it.
             {
