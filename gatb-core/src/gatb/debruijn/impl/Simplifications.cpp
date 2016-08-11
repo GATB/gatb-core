@@ -31,7 +31,7 @@
 #define DEBUG_EC(a)    //a
 
 // the only time when you don't want to define this, is when debugging with gdb, because can't debug lambda's
-//#define SIMPLIFICATION_LAMBDAS 
+#define SIMPLIFICATION_LAMBDAS 
 
 // this is to control whether we instrument code for timing or not (shouldn't affect performance, in principle)
 #define TIME(a)   a
@@ -1222,7 +1222,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
     bool haveInterestingNodesInfo = !_firstNodeIteration;
 
-#ifdef SIMPLIFICATION_LAMBAS 
+#ifdef SIMPLIFICATION_LAMBDAS 
     dispatcher.iterate (itNode, [&] (Node& node) {
 #else
     for (itNode->first(); !itNode->isDone(); itNode->next())
@@ -1543,7 +1543,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     // parallel stuff
     NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores, _verbose);
 
-#ifdef SIMPLIFICATION_LAMBAS 
+#ifdef SIMPLIFICATION_LAMBDAS 
     dispatcher.iterate (itNode, [&] (Node& node) {
 #else
     for (itNode->first(); !itNode->isDone(); itNode->next())
