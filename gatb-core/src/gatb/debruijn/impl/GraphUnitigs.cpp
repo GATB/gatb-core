@@ -239,7 +239,8 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (bank::IBank* bank, tools::misc
     size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
     /** We configure the data variant according to the provided kmer size. */
     BaseGraph::setVariant (BaseGraph::_variant, BaseGraph::_kmerSize, integerPrecision);
-    string unitigs_filename = "dummy.unitigs.fa"; // because there's already a bank, we don't know its name maybe?
+    string unitigs_filename = "dummy.unitigs.fa"; // because there's already a bank, but we don't know its name maybe? so just to be safe, i'm setting a dummy unitigs file. anyway, this constructor is only called in tests i think, not by minia for sure.
+
         /*(params->get(STR_URI_OUTPUT) ?
             params->getStr(STR_URI_OUTPUT) :                                                                                                                                                                 System::file().getBaseName (input)
             )+ ".unitigs.fa";   */       
@@ -302,12 +303,58 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         UnitigsConstructionAlgorithm<span> unitigs_algo(BaseGraph::getStorage(), unitigs_filename, nb_threads, props);
 
         BaseGraph::executeAlgorithm(unitigs_algo, &BaseGraph::getStorage(), props, BaseGraph::_info);
+    
+        nb_unitigs = unitigs_algo.nb_unitigs;
         
         setState(STATE_BCALM2_DONE);
     }
 
     /** We save the state at storage root level. */
-    BaseGraph::getGroup().setProperty ("state",     Stringify::format("%d", BaseGraph::_state));
+    BaseGraph::getGroup().setProperty ("state",          Stringify::format("%d", BaseGraph::_state));
+    BaseGraph::getGroup().setProperty ("nb_unitigs",     Stringify::format("%d", nb_unitigs));
+}
+
+static void
+parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc, vector<uint32_t>& outc)
+{
+    std::stringstream stream(header);
+    while(1) {
+        string tok;
+        stream >> tok;
+        if(!stream)
+            break;
+
+        string field = tok.substr(2);
+        if (field == "L:")
+        {
+            bool in = tok.substr(2,1) == "-";
+            int pos_rc = tok.find_last_of(':');
+            bool rc = tok.substr(pos_rc+1) == "-";
+            tok = tok.substr(0,pos_rc); // chop last field
+            uint32_t unitig = atoi(tok.substr(tok.find_last_of(':')+1));
+            /* situation is: 
+             * L:+:next_unitig:+    unitig[end] -> [begin]next_unitig 
+             * L:+:next_unitig:-    unitig[end] -> [begin]next_unitig_rc
+             * L:-:next_unitig:+    unitig_rc[end] -> [begin]next_unitig     or alternatively, next_unitig_rc[end] -> [begin]unitig
+             * L:-:next_unitig:-    unitig_rc[end] -> [begin]next_unitig_rc                         unitig_rc[end] -> [begin]unitig
+             * */
+            ExtremityInfo li(unitig, /*deleted:*/ false, rc, /* thus pos is actually also given by rc here */rc);
+            if (in)
+                inc.push_back(li.pack());
+            else
+                outc.push_back(li.pack());
+        }
+        else
+        {
+            if (field == "KM")
+            {
+                mean_abundance = atof(tok.substr(tok.find_last_of(':')+1));
+            }
+            // we don't care about other fields
+        }
+    }
+}
+
 }
 
 
@@ -322,36 +369,30 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 
     unsigned int kmerSize = BaseGraph::_kmerSize;
 
-    uint32_t utig_counter = 0;
+    uint64_t utig_counter = 0;
     uint64_t nb_utigs_nucl = 0;
     uint64_t nb_utigs_nucl_mem = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel, maybe, if we used many unordered_map's with a hash on the query kmer (TODO opt)
     {
         const string& seq = itSeq->toString();
         const string& comment = itSeq->getComment();
-        float mean_abundance = atof(comment.substr(comment.find("KM:f:")+5).c_str()); // strong assumption that bcalm's output will remain that KM is last field 
-    
-        typename Model::Kmer kmerBegin = modelK->codeSeed(seq.substr(0, kmerSize).c_str(), Data::ASCII);
-        typename Model::Kmer kmerEnd = modelK->codeSeed(seq.substr(seq.size() - kmerSize, kmerSize).c_str(), Data::ASCII);
 
-        if (seq.size() > kmerSize)
-        {
-            ExtremityInfo eBegin(utig_counter, false, false, UNITIG_BEGIN);
-            ExtremityInfo eEnd(utig_counter, false, false, UNITIG_END);
-            utigs_map[kmerBegin.value()] = eBegin.pack();
-            utigs_map[kmerEnd.value()] = eEnd.pack();
-        }
-        else // special case: single-kmer unitigs
-        {
-            ExtremityInfo eBegin(utig_counter, false, false, UNITIG_BOTH);
-            utigs_map[kmerBegin.value()] = eBegin.pack();
-        }
+        float mean_abundance,
+        vector<uint32_t> inc, outc; // incoming and outcoming unitigs
+        parse_unitig_header(mean_abundance, inc, outc);
+
+        incoming[utig_counter]  = inc;
+        outcoming[utig_counter] = outc;
+
         unitigs.push_back(seq);
         unitigs_mean_abundance.push_back(mean_abundance);
+
         utig_counter++;
         nb_utigs_nucl += seq.size();
         nb_utigs_nucl_mem += seq.capacity();
     }
+
+    if (utig_counter > 1000000000LL) { std::cout << "Error: more than 1B unitigs, GATB-core isn't ready for that yet. Try to better error-correct your data." << std::endl; exit(1);} // just need to change some uint32's in uint64's but would 2x the mem
 
     unitigs_traversed.resize(0);
     unitigs_traversed.resize(utigs_map.size(), false); // resize "traversed" bitvector, setting it to zero as well
@@ -381,9 +422,9 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     std::cout <<  "   " << (sizeof(Type) * utigs_map_capacity) / 1024 / 1024 << " MB keys in unitigs dict (Type = " << to_string(sizeof(Type)) << " bytes)" << std::endl;
     std::cout <<  "   " << (sizeof(uint64_t) * utigs_map_capacity) / 1024 / 1024 << " MB values in unitigs dict (values = " << to_string(sizeof(uint64_t)) << " bytes)" << std::endl;
     std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
-    std::cout <<  "   " <<  (nb_kmers*4) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
-    std::cout <<  "   " <<  (utigs_map.size()/8) / 1024 / 1024 << " MB visited bitvector (hopefully 1 bit/elt)" << std::endl;
-    std::cout <<  "Estimated total: " <<  (nb_kmers*(4*1.0/8.0) + utigs_map_capacity * ( sizeof(Type)  + sizeof(uint64_t)) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+    std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
+    std::cout <<  "   " <<  (nb_kmers/8) / 1024 / 1024 << " MB visited bitvector (hopefully 1 bit/elt)" << std::endl;
+    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 1.0/8.0) + utigs_map_capacity * ( sizeof(Type)  + sizeof(uint64_t)) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
 
     std::cout << "utigs_map size calculated from buckets " << count << " vs size() " << utigs_map.size() << std::endl;
     if (nb_utigs_nucl != nb_utigs_nucl_mem)
@@ -468,7 +509,7 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         boost::apply_visitor ( configure_visitor<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(*this, BaseGraph::getStorage()),  *(GraphDataVariantFast<span>*)BaseGraph::_variant);
 
         build_unitigs_postsolid(unitigs_filename, params);
-       
+      
         if (load_unitigs_after) 
             load_unitigs(unitigs_filename);
 
@@ -537,12 +578,14 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         // I garantee that bugs will occur if i add a GraphUnitigs member variable and forget to copy it here
         // DO ALSO THE MOVE FUNCTION BELOW
     
-        utigs_map = graph.utigs_map;
+        incoming  = graph.incoming;
+        outcoming = graph.outcoming;
         unitigs = graph.unitigs;
         unitigs_mean_abundance = graph.unitigs_mean_abundance;
         unitigs_traversed = graph.unitigs_traversed;
         modelK = graph.modelK;
         modelKdirect = graph.modelKdirect;
+        nb_unitigs = graph.nb_unitigs;
         
     }
     return *this;
@@ -573,12 +616,14 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         // don't forget those!
         // I garantee that bugs will occur if i add a GraphUnitigs member variable and forget to copy it here
     
-        utigs_map = std::move(graph.utigs_map);
+        incoming  = std::move(graph.incoming);
+        outcoming = std::move(graph.outcoming);
         unitigs = std::move(graph.unitigs);
         unitigs_mean_abundance = std::move(graph.unitigs_mean_abundance);
         unitigs_traversed = std::move(graph.unitigs_traversed);
         modelK = std::move(graph.modelK);
         modelKdirect = std::move(graph.modelKdirect);
+        nb_unitigs = std::move(graph.nb_unitigs);
         
     }
     return *this;
@@ -615,15 +660,8 @@ void GraphUnitigsTemplate<span>::remove ()
     BaseGraph::getStorage().remove();
 }
 
-template<size_t span>
-GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span> source, Direction direction)  const
-{
-    bool debug = false;
 
-    if (debug)
-    std::cout << "graphU getEdges called" << std::endl;
-
-    /* actually, nothing weird with having 1-in, 1-out nodes in GraphUnitigs: consider that example:
+    /* just a note: nothing weird with having 1-in, 1-out nodes in GraphUnitigs: consider that example:
      *        --------
      *                 \
      *                  v
@@ -631,75 +669,66 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
      *
      * [node] is 1-in and 1-out yet compactions were fine, it's just that there is in-branching in the following node.
      */
-    //if (indegree(source) == 1 && outdegree(source) == 1)
+
+template<size_t span>
+GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeGU source, Direction direction)  const
+{
+    bool debug = false;
+
+    if (debug)
+    {
+        std::cout << "graphU getEdges called, on source: " << toString(source) << "unitig: " << source.unitig << " strand: " << source.strand << std::endl;
+    }
  
     GraphVector<EdgeFast<span>> res;
 
-    /*
-    auto it = utigs_map.find(source.kmer);
-    if (it == utigs_map.end())
-    {   std::cout << std::endl << " source not found in utigs_map: " <<  BaseGraph::toString(source) << std::endl;
-        throw system::Exception ("getEdges failure (see printed error above)");
-    }*/
-
-    const ExtremityInfo e(utigs_map.at(source.kmer)); // I used to have it->second here but for debugging, it's actually good that at() throws an exception
-
-    bool same_orientation = node_in_same_orientation_as_in_unitig(source, e);
     res.resize(0);
-            if (debug)
-    std::cout << "source: " << BaseGraph::toString(source) << std::endl << "unitig: " << unitigs[e.unitig] << std::endl << "e: " << e.toString() << " same orientation " << same_orientation << std::endl;
-
-
+    
     unsigned int kmerSize = BaseGraph::_kmerSize;
-    const std::string& seq = unitigs[e.unitig];
-    if (seq.size() > kmerSize)
+    int seqSize = unitigs[source.unitig].size();
+    
+    bool same_orientation = !source.rc;
+    bool pos_begin = source.pos == 0;
+    bool pos_end = source.pos == (seqSize-kmerSize);
+
+    if ((!pos_begin) && (!pos_end))
+    {
+        std::cout << "weird node position: " << source.pos << " unitig length: " << seq.size();
+        exit(1);
+    }
+
+    if (seqSize > kmerSize)
     {
         // unitig: [kmer]-------
-        if (same_orientation && (direction & DIR_OUTCOMING) && (e.pos & UNITIG_BEGIN)) 
+        if (same_orientation && (direction & DIR_OUTCOMING) && pos_begin) 
         {
-            Node dest = BaseGraph::buildNode(seq.substr(1, kmerSize).c_str());
-            kmer::Nucleotide nt = BaseGraph::getNT(dest, kmerSize-1); 
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.kmer, source.strand, dest.kmer, dest.strand, nt, DIR_OUTCOMING);
-            if (debug)
-            std::cout << "found success of [kmer]---" << std::endl;
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, 1, source.strand, DIR_OUTCOMING);
+            if (debug) std::cout << "found success of [kmer]---" << std::endl;
         }
 
         // unitig: [kmer rc]-------
-        if ((!same_orientation) && (direction & DIR_INCOMING) && (e.pos & UNITIG_BEGIN)) 
+        if ((!same_orientation) && (direction & DIR_INCOMING) && pos_begin) 
         {
-            Node dest = BaseGraph::buildNode(seq.substr(1, kmerSize).c_str());
-            kmer::Nucleotide nt = BaseGraph::getNT(dest, kmerSize-1); 
-            nt = reverse(nt); // TODO check it. i'm not sure about setting that nt. Minia doesn't use nt's so it might be wrong and i wouldn't know it
-            dest = BaseGraph::reverse(dest);
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.kmer, source.strand, dest.kmer, dest.strand, nt, DIR_INCOMING);
-            if (debug)
-            std::cout << "found success of [kmer rc]---" << std::endl;
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, 1, source.strand, DIR_INCOMING); // TODO not sure about the dest.strand in those cases, so i'm setting to source.strand, we'll see. (applies to all 3 other cases)
+            if (debug) std::cout << "found success of [kmer rc]---" << std::endl;
         }
 
         // unitig: ----------[kmer]
-        if ((same_orientation) && (direction & DIR_INCOMING) && (e.pos & UNITIG_END))
+        if ((same_orientation) && (direction & DIR_INCOMING) && pos_end)
         {
-            Node dest = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize - 1, kmerSize).c_str());
-            kmer::Nucleotide nt = BaseGraph::getNT(dest, 0); 
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.kmer, source.strand, dest.kmer, dest.strand, nt, DIR_INCOMING);
-            if (debug)
-            std::cout << "found predec of --------[kmer]" << std::endl;
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, seq.size() - kmerSize - 1, source.strand, DIR_INCOMING);
+            if (debug) std::cout << "found predec of --------[kmer]" << std::endl;
         }
 
         // unitig: ----------[kmer rc]
-        if ((!same_orientation) && (direction & DIR_OUTCOMING) && (e.pos & UNITIG_END))
+        if ((!same_orientation) && (direction & DIR_OUTCOMING) && pos_end)
         {
-            Node dest = BaseGraph::buildNode(seq.substr(seq.size() - kmerSize - 1, kmerSize).c_str());
-            kmer::Nucleotide nt = BaseGraph::getNT(dest, 0); 
-            nt = reverse(nt); 
             res.resize(res.size()+1);
-            dest = BaseGraph::reverse(dest);
-            res[0].set ( source.kmer, source.strand, dest.kmer, dest.strand, nt, DIR_OUTCOMING);
-            if (debug)
-            std::cout << "found predec of --------[kmer rc]" << std::endl;
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, seq.size() - kmerSize - 1, source.strand, DIR_OUTCOMING);
+            if (debug) std::cout << "found predec of --------[kmer rc]" << std::endl;
         }
     }
     
@@ -707,71 +736,41 @@ GraphVector<EdgeFast<span>> GraphUnitigsTemplate<span>::getEdges (NodeFast<span>
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
 
     if (debug)
-        std::cout << "[out-of-unitig getEdges] for " << BaseGraph::toString(source) << " dir " << direction << " e: ["  << e.toString() << "]" << std::endl;
+        std::cout << "[out-of-unitig getEdges] for " << toString(source) << " dir " << direction << std::endl;
     
-    bool incoming = false;
-
-    auto functor = [&](const Type &neighbor){
-        Type true_neighbor = neighbor;
-
-        Type norm_neighbor = modelKdirect->reverse(true_neighbor);
-        kmer::Strand strand = kmer::STRAND_REVCOMP;
-        bool rc = true;
-        if (true_neighbor < norm_neighbor) 
-        {   
-            rc = false;
-            norm_neighbor = true_neighbor;
-            strand = kmer::STRAND_FORWARD;
-        }
-        if (utigs_map.find(norm_neighbor) != utigs_map.end()) 
+    auto functor = [&](const std::vector<uint32_t>& edges)
+    {
+        for (auto edge_packed : edges)
         {
-            const ExtremityInfo e(utigs_map.at(norm_neighbor));
-            if (e.deleted) 
+            ExtremityInfo li(edge_packed);
+
+            if (li.deleted) 
             {
                 if (debug)
-                    std::cout << "found deleted neighbor unitig (kmer: " << modelKdirect->toString(norm_neighbor) << ")" << std::endl;
+                    std::cout << "found deleted neighbor unitig (kmer: " << toString(li.unitig, 0) << ")" << std::endl;
                 return;
             }
 
+            NodeGU node(
+
+            if (debug) std::cout << "found neighbor " << BaseGraph::toString() << " dir " << toString(dir) << std::endl;
+    
             res.resize(res.size()+1);
-            NodeFast<span> dest (norm_neighbor, strand);
-            kmer::Nucleotide nt;
-            if (!incoming)
-                nt = BaseGraph::getNT(dest, 0); 
-            else
-                nt = BaseGraph::getNT(dest, kmerSize-1); 
-            if (rc)
-                nt = reverse(nt);
-            
-            if (debug)
-            std::cout << "found kmer " << BaseGraph::toString(dest) << " (kmer: " << modelKdirect->toString(norm_neighbor) << " strand: " << dest.strand << ") dir " << toString(incoming?DIR_INCOMING:DIR_OUTCOMING) << " nt " << ascii(nt)  << std::endl;
-            res[res.size()-1].set ( source.kmer, source.strand, dest.kmer, dest.strand, nt, (incoming?DIR_INCOMING:DIR_OUTCOMING));
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, seq.size() - kmerSize - 1, source.strand, dir));
         }
     }; 
 
-    Type oriented_kmer = source.kmer;
-    if (source.strand == kmer::STRAND_REVCOMP)
-        oriented_kmer = modelKdirect->reverse(source.kmer);
-
-    if (direction & DIR_OUTCOMING && ((same_orientation && (e.pos & UNITIG_END)) || ( !same_orientation && (e.pos & UNITIG_BEGIN)) ))
+    if (pos_end && ((direction & DIR_OUTCOMING) && same_orientation) || ( direction & DIR_INCOMING && (!same_orientation) ) )
     {
-        //modelKdirect->iterateOutgoingNeighbors(oriented_kmer, functor); // that's what i wanted to do, but it doesn't work, that function converts to canonical kmer anyhow
-        /** We compute the 4 possible neighbors. */
-        for (size_t nt=0; nt<4; nt++)
-        {
-            Type next1 = (((oriented_kmer) * 4 )  + nt) & modelKdirect->getKmerMax();
-            functor(next1);
-        }
+        // nodes to the right of a unitig (outcoming)
+        functor(outcoming[unitig]);
     }
-    if (direction & DIR_INCOMING && ((same_orientation && (e.pos & UNITIG_BEGIN)) || ( !same_orientation && (e.pos & UNITIG_END)) ))
+    else
     {
-        incoming = true;
-
-        Type rev = modelKdirect->reverse(oriented_kmer);
-        for (size_t nt=0; nt<4; nt++)
+        if (pos_begin && ((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) )
         {
-            Type next1 = (((rev) * 4 )  + nt) & modelKdirect->getKmerMax();
-            functor(modelKdirect->reverse(next1));
+            // nodes to the left of a unitig (incoming)
+            functor(incoming[unitig]);
         }
     }
 
@@ -836,7 +835,7 @@ GraphIterator<NodeFast<span>> GraphUnitigsTemplate<span>::getNodes () const
     class NodeIterator : public tools::dp::ISmartIterator<NodeFast<span>>
     {
         public:
-            NodeIterator (const NodeMap& utigs_map) 
+            NodeIterator () 
                 :  utigs_map(utigs_map), _rank(0), _isDone(true)   {  
                     this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
                     _nbItems = utigs_map.size();

@@ -53,6 +53,82 @@ namespace impl      {
     };
 
 
+/* Nodes. 
+ * Big difference with Graph.hpp: in GraphUnitig, we don't store kmers in nodes. Kmers are inferred from unitigs
+ */
+struct NodeGU
+{
+    /** Default constructor. */
+    NodeGU() : strand(kmer::STRAND_FORWARD), unitig(0), pos(0)  {}
+
+    /** Constructor.
+     */
+    NodeGU (const uint32_t unitig, uint32_t pos, kmer::Strand strand)
+        : unitig(unitig), pos(pos), strand(strand) {}
+
+    uint32_t unitig;
+    uint32_t pos;
+
+    /** Strand telling how to interpret the node in the bi-directed DB graph. */
+    kmer::Strand strand;
+
+    /** Overload of operator ==  NOTE: it doesn't care about the strand!!! */
+    bool operator== (const Node_t& other) const  { return unitig == other.unitig && pos == other.pos; }
+
+    bool operator!= (const Node_t& other) const  { return unitig != other.unitig || pos != other.pos; }
+
+    // does this need to be implemented?
+    //bool operator< (const Node_t& other) const  { return (unitig < other.unitig); }
+
+    void set (uint32_t unitig, unit32_t pos, kmer::Strand strand)
+    {
+        this->unitig = unitig;
+        this->strand = strand;
+        this->pos    = pos;
+    }
+
+    void reverse()
+    {
+        strand = reverse(strand);
+    }
+
+};
+
+struct EdgeGU 
+{
+    /** The source node of the edge. */
+    NodeGU from;
+    /** The target node of the edge. */
+    NodeGU to;
+    /** The direction of the transition. */
+    Direction        direction;
+    
+    /** Overload of operator <.  May not really mean much to compare edges, but is used in Minia's graph simplifications */ // really needed?
+    //bool operator< (const EdgeGU& other) const  { return ((from < other.from) || (from == other.from && to < other.to)); } 
+
+    /** Setter for some attributes of the Edge object.
+     * \param[in] unitig_from
+     * \param[in] pos_from
+     * \param[in] strand_from : strand of the 'from' Node
+     * \param[in] unitig_to 
+     * \param[in] pos_to
+     * \param[in] strand_to : strand of the 'from' Node
+     * \param[in] dir : direction of the transition.
+     */
+    void set (
+        uint32_t unitig_from, int pos_from, kmer::Strand strand_from
+        uint32_t unitig_to,   int pos_to,   kmer::Strand strand_to
+        Direction dir
+    )
+    {
+        from.set (unitig_from, pos_from, strand_from);
+        to.set   (unitig_to,   pos_to,   strand_to);
+        direction = dir;
+    }
+};
+
+
+
 /********************************************************************************
                  #####   ######      #     ######   #     #
                 #     #  #     #    # #    #     #  #     #
@@ -291,6 +367,9 @@ public:
     /*                         NODE METHODS                               */
     /**********************************************************************/
 
+    
+    string toString(const Node& node) const;
+
     /** Tells whether or not a node belongs to the graph.
      * \param[in] item : the node
      * \return true if the node belongs to the graph, false otherwise. */
@@ -395,48 +474,28 @@ public: // was private: before, but had many compilation errors during the chang
     
     GraphVector<Edge> getEdgeValues (const typename Node::Value& kmer) const;
 
-
-    // core unitigs graph part
-    // btw
-    // hack so dirty i'd need to call O2 to get it cleaned up
-    struct ExtremityInfo 
+    struct LinkInfo
     {
         public:
-        uint64_t unitig;
+        uint32_t unitig;
+        bool rc; // whether, when we follow that link, we should reverse the next sequence
         bool deleted;
-        bool rc; // whether the kmer in canonical form appears as rc in the unitig
-        Unitig_pos pos; // whether the kmer is at left extremity of unitig or right extremity
-        ExtremityInfo(uint64_t u, bool d, bool r, Unitig_pos p) : unitig(u),deleted(d),rc(r), pos(p) {}
-        ExtremityInfo() {} // because i defined another constructor
-        ExtremityInfo(const uint64_t val) { unpack(val); } 
+        LinkInfo(uint32_t u, bool r, bool deleted=false) : unitig(u),rc(r), deleted(d) {}
+        LinkInfo() {} // because i defined another constructor
+        LinkInfo(const uint32_t val) { unpack(val); } 
         std::string toString() const
-        { return " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"left":"") + ((pos&UNITIG_END)?"right":"") + " " + " d:" + std::to_string(deleted); }
-        uint64_t pack()
+        { return " unitig: " + to_string(u) + " rc:" + std::to_string(rc)  + " deleted: " + to_string(deleted)  }
+        uint32_t pack()
         {
-            return pos + (rc << 2) + (deleted << 3) + (unitig << 4);
+            return rc + (deleted << 1) + (unitig << 2);
         }
-        void unpack(uint64_t val)
+        void unpack(uint32_t val)
         {
-            switch (val&3) // probably could be replaced by just an appropriate typecast. but this check has saved me from a bug TWICE so i'm grateful for it.
-            {
-                case 1: pos = UNITIG_BEGIN; break;
-                case 2: pos = UNITIG_END; break;
-                case 3: pos = UNITIG_BOTH; break;
-                default: std::cout << "problem in ExtremityInfo::unpack(): " << std::to_string(val) << std::endl; exit(1); 
-            }                      
-                                   val >>= 2;
             rc = val&1;            val >>= 1;
             deleted = val&1;       val >>= 1;
             unitig = val;
         }
     } ;
-    
-    typedef typename gatb::core::kmer::impl::Kmer<span>::Type           Type;
-
-    // structure that links each kmer to an unitig
-    // also used to enumerate kmers
-    typedef typename NS_TR1_PREFIX::unordered_map<Type, uint32_t> NodeMap;
-
 
     void build_unitigs_postsolid(std::string unitigs_filename, tools::misc::IProperties* props);
     void load_unitigs(std::string unitigs_filename);
@@ -449,10 +508,12 @@ public: // was private: before, but had many compilation errors during the chang
     // don't forget to copy those variables in operator= (and the move operator) !!
     Model       *modelK;
     ModelDirect *modelKdirect;
-    NodeMap utigs_map;
+    std::vector<std::vector<uint32_t>> incoming; 
+    std::vector<std::vector<uint32_t>> outcoming; 
     std::vector<std::string> unitigs;
     std::vector<float> unitigs_mean_abundance;
     std::vector<bool> unitigs_traversed;
+    uint64_t nb_unitigs;
 };
   
 

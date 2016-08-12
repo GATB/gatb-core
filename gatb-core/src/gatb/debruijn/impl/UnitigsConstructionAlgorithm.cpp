@@ -23,7 +23,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/bcalm2/bcalm_algo.hpp>
-#include <gatb/bcalm2/bglue_algo.hpp>
+#include <gatb/debruijn/imple/ExtremityInfo.hpp>
 
 #include <queue>
 
@@ -110,6 +110,8 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type, verbose); 
     bglue<span> (&_storage, unitigs_filename, kmerSize,            minimizerSize, nbThreads, minimizer_type, verbose);
 
+    index_unitigs(unitigs_filename, kmerSize, verbose);
+
     /** We gather some statistics. */
     //getInfo()->add (1, "stats");
     //getInfo()->add (2, "nb_unitigs", "%ld", /* */);
@@ -117,6 +119,119 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     //getInfo()->add (1, "time");
     //getInfo()->add (2, "build", "%.3f", /* */);
 }
+
+/* this procedure finds the overlaps between unitigs, using a hash table of all extremity (k-1)-mers
+ *
+ * I guess it's like AdjList in ABySS. It's also like contigs_to_fastg in MEGAHIT.
+ * 
+ * could be replaced by keeping edges during BCALM2, but it's not the case for now */
+template<size_t span>
+void UnitigsConstructionAlgorithm<span>::
+link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
+{
+    BankFasta inputBank (unitigs_filename);
+    BankFasta::Iterator itSeq (inputBank);
+    uint32_t utig_counter = 0;
+    
+    Model modelKminusOne(kmerSize - 1);
+
+    if (verbose)
+        std::cout << "Finding links between unitigs, pass 1" << std::endl;
+
+    for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
+    {
+        const string& seq = itSeq->toString();
+        const string& comment = itSeq->getComment();
+ 
+        typename Model::Kmer kmerBegin = modelKminusOne->codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
+        typename Model::Kmer kmerEnd = modelKminusOne->codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
+
+        bool beginInSameOrientation = Model::toString(kmerBegin.value()) == seq.substr(0,kmerSize-1);
+        bool endInSameOrientation = Model::toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
+        
+        ExtremityInfo eBegin(utig_counter, false, beginInSameOrientation, UNITIG_BEGIN);
+        ExtremityInfo eEnd(  utig_counter, false, endInSameOrientation,   UNITIG_END);
+
+        utigs_links_map[kmerBegin.value()].push_back(eBegin.pack());
+        utigs_links_map[kmerEnd.value()].push_back(eEnd.pack());
+    }
+
+    BankFasta bank = new BankFasta(unitigs_filename+".indexed");
+    
+    if (verbose)
+        std::cout << "Finding links between unitigs, pass 2" << std::endl;
+
+    uint64_t utigs_number = 0;
+    for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
+    {
+        const string& seq = itSeq->toString();
+        const string& comment = itSeq->getComment();
+ 
+        typename Model::Kmer kmerBegin = modelKminusOne->codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
+        typename Model::Kmer kmerEnd = modelKminusOne->codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
+        bool beginInSameOrientation = Model::toString(kmerBegin.value()) == seq.substr(0,kmerSize-1); // that could be optimized, revcomp was already computed during codeSeed
+        bool endInSameOrientation = Model::toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
+
+        string links;
+
+        // in-neighbors
+        for (in_packed : utigs_links_map[kmerBegin.value()])
+        {
+            ExtremityInfo e_in(in_packed);
+
+            // what we want are these four cases:
+            //  ------[end same orientation] -> [begin same orientation]----
+            //  [begin diff orientation]---- -> [begin same orientation]----
+            //  ------[end diff orientation] -> [begin diff orientation]----
+            //  [begin same orientation]---- -> [begin diff orientation]----
+            if ((beginInSameOrientation &&  (e_in.pos == UNITIG_END  ) && (e_in.rc == false)) ||
+                (beginInSameOrientation &&  (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
+              ((!beginInSameOrientation) && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
+              ((!beginInSameOrientation) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)))
+            {
+                //LinkInfo li(e_in.unitig, e_in.rc ^ beginInSameOrientation);
+                //incoming[utig_number].push_back(li.pack());
+                bool rc = e_in.rc ^ beginInSameOrientation;
+                links += "L:-:" + to_string(e_in.unitig) + ":" + rc?"+":"-"; /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
+            }
+        }
+
+        // out-neighbors
+        for (out_packed : utigs_links_map[kmerEnd.value()])
+        {
+            ExtremityInfo e_out(out_packed);
+
+            // what we want are these four cases:
+            //  ------[end same orientation] -> [begin same orientation]----
+            //  ------[end same orientation] -> ------[end diff orientation]
+            //  ------[end diff orientation] -> [begin diff orientation]----
+            //  ------[end diff orientation] -> ------[end same orientation]
+            if ((endInSameOrientation && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)) ||
+                (endInSameOrientation && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
+             ((!endInSameOrientation) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
+             ((!endInSameOrientation) && (e_in.pos == UNITIG_END  ) && (e_in.rc == false)))
+            {
+                //LinkInfo li(e_out.unitig, e_out.rc ^ endInSameOrientation);
+                //outcoming[utig_number].push_back(li.pack());
+                bool rc = e_out.rc ^ endInSameOrientation;
+                links += "L:+:" + to_string(e_in.unitig) + ":" + rc?"-":"+"; /* logically this is going to be opposite of the line above */
+            }
+        }
+
+        Sequence s (Data::ASCII);
+        s.getData().setRef ((char*)seq.c_str(), seq.size());
+        s._comment = comment + " " + links;
+        out->insert(seq, comment);
+        utig_number++;
+    }   
+
+    delete out;
+    system::impl::System::file().remove (unitigs_filename);
+    system::impl::System::file().rename (unitigs_filename+".indexed", unitigs_filename);
+}
+
+
+
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

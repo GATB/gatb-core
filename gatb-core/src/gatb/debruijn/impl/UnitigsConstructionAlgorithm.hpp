@@ -29,6 +29,7 @@
 #include <gatb/kmer/impl/PartiInfo.hpp>                                                                                                                                                                           
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/bcalm2/bcalm_algo.hpp>
+#include <gatb/debruijn/impl/ExtremityInfo.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -73,6 +74,8 @@ public:
     /** \copydoc tools::misc::impl::Algorithm::execute */
     void execute ();
 
+    void link_unitigs(string unitigs_filename, int kmerSize, bool verbose);
+    
 
 private:
 
