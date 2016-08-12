@@ -34,6 +34,7 @@
 
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/UnitigsConstructionAlgorithm.hpp>
+#include <gatb/debruijn/imple/ExtremityInfo.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -44,14 +45,6 @@ namespace debruijn  {
 namespace impl      {
 
 /********************************************************************************/
-
-    enum Unitig_pos 
-    {
-        UNITIG_BEGIN = 1,
-        UNITIG_END = 2,
-        UNITIG_BOTH = 3 /* making sure it's BEGIN | END */
-    };
-
 
 /********************************************************************************
                  #####   ######      #     ######   #     #
@@ -71,8 +64,10 @@ namespace impl      {
 template <size_t span>
 class GraphUnitigsTemplate : public GraphTemplate<NodeFast<span>, EdgeFast<span>, GraphDataVariantFast<span>>
 {
-typedef NodeFast<span> Node;
-typedef EdgeFast<span> Edge;
+    // but actually.. we almost don't use those nodes now! we use NodeGU.
+        typedef NodeFast<span> Node;
+        typedef EdgeFast<span> Edge;
+        
 public:
 
     /********************************************************************************/
@@ -134,8 +129,8 @@ public:
     /** Creates an iterator over nodes of the graph.
      * \return the nodes iterator. */
 
-    inline GraphIterator<Node> iterator () const  {  return getNodes ();           }
-    inline GraphIterator<Node> iteratorCachedNodes () const { return getNodes(); } /* cached nodes are just nodes in this case*/
+    inline GraphIterator<NodeGU> iterator () const  {  return getNodes ();           }
+    inline GraphIterator<NodeGU> iteratorCachedNodes () const { return getNodes(); } /* cached nodes are just nodes in this case*/
 
     /**********************************************************************/
     /*                     ALL NEIGHBORS METHODS                          */
@@ -147,32 +142,28 @@ public:
      * \return a vector of the node neighbors (may be empty). 
      * Warning: be sure to check if edge.from (or node.from) is actually your input node, or its reverse complement.
      */
-    inline GraphVector<Node> neighbors    ( Node& node, Direction dir=DIR_END) const  {  return getNodes(node, dir);           }
+    inline GraphVector<NodeGU> neighbors    ( NodeGU& node, Direction dir=DIR_END) const  {  return getNodes(node, dir);           }
     
-    inline Node* neighborsDummy      ( Node& node, Direction dir=DIR_END) const  {   return NULL;           }
+    inline Node* neighborsDummy      ( NodeGU& node, Direction dir=DIR_END) const  {   return NULL;           }
 
 
     /* neighbors used to be templated.. not anymore, trying to avoid nested template specialization; 
      * so call neighbors for getting nodes, or neighborsEdge for getting edges */
-    inline GraphVector<Edge> neighborsEdge    ( Node& node, Direction dir=DIR_END) const  {   return getEdges(node, dir);           }
-    inline Edge* neighborsDummyEdge      ( Node& node, Direction dir=DIR_END) const  {   return NULL;           }
-    inline GraphVector<Edge> neighborsEdge    ( const typename Node::Value& kmer) const          {  return getEdgeValues (kmer);           }
+    inline GraphVector<Edge> neighborsEdge    ( NodeGU& node, Direction dir=DIR_END) const  {   return getEdges(node, dir);           }
+    inline EdgeGU* neighborsDummyEdge      ( NodeGU& node, Direction dir=DIR_END) const  {   return NULL;           }
 
-    /** Shortcut for 'neighbors' method with direction==DIR_OUTCOMING.
+    /** Shortcut for 'neighbors' method
      * \param[in] node : the node whose neighbors are wanted
      * \return a vector of the node neighbors (may be empty).
      */
-    inline GraphVector<Node> successors   ( Node& node) const                 {  return getNodes(node, DIR_OUTCOMING); }
+    inline GraphVector<NodeGU> successors   ( NodeGU& node) const                 {  return getNodes(node, DIR_OUTCOMING); }
+    inline GraphVector<NodeGU> predecessors ( NodeGU& node) const                 {  return getNodes(node, DIR_INCOMING);  }
+    inline GraphVector<EdgeGU> successorsEdge   ( NodeGU& node) const                 {  return getEdges(node, DIR_OUTCOMING); }
+    inline GraphVector<EdgeGU> predecessorsEdge ( NodeGU& node) const                 {  return getEdges(node, DIR_INCOMING);  }
 
-    /** Shortcut for 'neighbors' method with direction==DIR_INCOMING.
-     * \param[in] node : the node whose neighbors are wanted
-     * \return a vector of the node neighbors (may be empty).
-     */
-    inline GraphVector<Node> predecessors ( Node& node) const                 {  return getNodes(node, DIR_INCOMING);  }
-    
-    inline GraphVector<Edge> successorsEdge   ( Node& node) const                 {  return getEdges(node, DIR_OUTCOMING); }
-    inline GraphVector<Edge> predecessorsEdge ( Node& node) const                 {  return getEdges(node, DIR_INCOMING);  }
 
+    // TODO delete those, i don't want to implement those, unless unit tests really want them. but even. i'd rather modify the unit tests
+#if 0
 
     /**********************************************************************/
     /*                     ONE NEIGHBOR METHODS                           */
@@ -188,7 +179,7 @@ public:
      * \param[in] nt : the nucleotide of the transition
      * \return the neighbor object.
      */
-    inline Node neighbor ( Node& source, Direction dir, kmer::Nucleotide nt) const
+    inline NodeGU neighbor ( NodeGU& source, Direction dir, kmer::Nucleotide nt) const
     {  bool exists=true; return getNode (source, dir, nt, exists);  }
 
     /** Return a specific neighbor from a given node. The neighbor is defined by a direction and the transition
@@ -201,17 +192,17 @@ public:
      * \param[out] exists : yes means that the neighbor is in the graph, false otherwise
      * \return the neighbor object.
      */
-    inline Node neighbor ( Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
+    inline NodeGU neighbor ( NodeGU& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
     {  return getNode (source, dir, nt, exists);  }
 
     /** Shortcut for neighbor with dir==DIR_OUTCOMING. */
-    inline Node successor ( Node& source, kmer::Nucleotide nt) const
+    inline NodeGU successor ( Node& source, kmer::Nucleotide nt) const
     {  bool exists=true; return getNode (source, DIR_OUTCOMING, nt, exists);  }
 
     inline Node successor ( Node& source, kmer::Nucleotide nt, bool& exists) const
     {  return getNode (source, DIR_OUTCOMING, nt, exists);  }
 
-   
+ 
     /** Shortcut for neighbor with dir==DIR_INCOMING. */
     inline Node predecessor ( Node& source, kmer::Nucleotide nt) const
     {  bool exists=true; return getNode (source, DIR_INCOMING, nt, exists);  }
@@ -219,16 +210,17 @@ public:
     inline Node predecessor ( Node& source, kmer::Nucleotide nt, bool& exists) const
     {  return getNode (source, DIR_INCOMING, nt, exists);  }
 
+#endif
 
     /**********************************************************************/
     /*                      MISC NEIGHBORS METHODS                        */
     /**********************************************************************/
 
     // would be good to factorize with Graph.hpp but i think it'd require having a GraphAbstract and I'm not ready for that kind of design pattern yet.
-    size_t indegree  (Node& node) const;
-    size_t outdegree (Node& node) const;
-    size_t degree    (Node& node, Direction dir) const;
-    void degree    (Node& node, size_t& in, size_t &out) const;
+    size_t indegree  (NodeGU& node) const;
+    size_t outdegree (NodeGU& node) const;
+    size_t degree    (NodeGU& node, Direction dir) const;
+    void degree      (NodeGU& node, size_t& in, size_t &out) const;
    
     /**********************************************************************/
     /*                      SIMPLIFICATION METHODS                        */
@@ -249,40 +241,37 @@ public:
      *      -1 if out-branching was detected
      *      -2 if no out-branching but next kmer has in-branching
      */
-    int simplePathAvance (Node& node, Direction dir, Edge& output) const;
+    int simplePathAvance (NodeGU& node, Direction dir, EdgeGU& output) const;
 
     /** */
-    int simplePathAvance (Node& node, Direction dir) const;
+    int simplePathAvance (NodeGU& node, Direction dir) const;
 
     /** */
-    int simplePathAvance (Node& node, Direction dir, kmer::Nucleotide& nt) const;
-
-    /** */
-    GraphIterator<Node> simplePath     (Node& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }
-    GraphIterator<Edge> simplePathEdge (Node& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
+    GraphIterator<NodeGU> simplePath     (NodeGU& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }
+    GraphIterator<EdgeGU> simplePathEdge (NodeGU& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
 
 
     // high-level functions that are now used in Simplifications.cpp
     // convention: unitigXXX works on the unitigs as computed as bcalm. never leaves that unitig
     //             simplepathXXX may traverse multiple unitigs
-    bool isLastNode                          (const Node& node, Direction dir) const;
-    bool isFirstNode                         (const Node& node, Direction dir) const;
-    Node             unitigLastNode          (const Node& node, Direction dir) const;
-    Node         simplePathLastNode          (const Node& node, Direction dir) ; /* cannot be const becuse it called Longuest_avance that is sometimes not const.. grr. */
-    unsigned int     unitigLength            (const Node& node, Direction dir) const;
-    unsigned int simplePathLength            (const Node& node, Direction dir) ; /* same reason as above*/;
-    double           unitigMeanAbundance     (const Node& node) const;
-    double       simplePathMeanAbundance     (const Node& node, Direction dir) ;
-    void             unitigDelete          (NodeFast<span>& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
-    void             unitigDelete          (Node& node) ;
-    void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
-    std::string  unitigSequence            (const Node& node, bool& isolatedLeft, bool& isolatedRight) const;
-    void         unitigMark                (const Node& node); // used to flag simple path as traversed, in minia
-    bool         unitigIsMarked        (Node& node) const;
+    bool isLastNode                          (const NodeGU& node, Direction dir) const;
+    bool isFirstNode                         (const NodeGU& node, Direction dir) const;
+    NodeGU             unitigLastNode          (const NodeGU& node, Direction dir) const;
+    NodeGU         simplePathLastNode          (const NodeGU& node, Direction dir) ; /* cannot be const becuse it called Longuest_avance that is sometimes not const.. grr. */
+    unsigned int     unitigLength            (const NodeGU& node, Direction dir) const;
+    unsigned int simplePathLength            (const NodeGU& node, Direction dir) ; /* same reason as above*/;
+    double           unitigMeanAbundance     (const NodeGU& node) const;
+    double       simplePathMeanAbundance     (const NodeGU& node, Direction dir) ;
+    void             unitigDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    void             unitigDelete          (NodeGU& node) ;
+    void         simplePathDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    std::string  unitigSequence            (const NodeGU& node, bool& isolatedLeft, bool& isolatedRight) const;
+    void         unitigMark                (const NodeGU& node); // used to flag simple path as traversed, in minia
+    bool         unitigIsMarked        (NodeGU& node) const;
     
-    std::string simplePathBothDirections(const Node& node, bool& isolatedLeft, bool& isolatedRight, bool dummy, float& coverage);
+    std::string simplePathBothDirections(const NodeGU& node, bool& isolatedLeft, bool& isolatedRight, bool dummy, float& coverage);
     // aux function, not meant to be called from outside, but maybe it could.
-    void simplePathLongest_avance(const Node& node, Direction dir, int& seqLength, int& endDegree, bool markDuringTraversal, float& coverage, std::string* seq = nullptr, std::vector<Node> *unitigNodes = nullptr) ; 
+    void simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int& endDegree, bool markDuringTraversal, float& coverage, std::string* seq = nullptr, std::vector<NodeGU> *unitigNodes = nullptr) ; 
 
     void debugPrintAllUnitigs() const;
 
@@ -294,35 +283,33 @@ public:
     /** Tells whether or not a node belongs to the graph.
      * \param[in] item : the node
      * \return true if the node belongs to the graph, false otherwise. */
-    bool contains (const Node& item) const;
-                                  
-    bool contains (const typename gatb::core::kmer::impl::Kmer<span>::Type& item) const;
+    bool contains (const NodeGU& item) const;
 
     /** Tells whether the provided node is branching or not.
      * \param[in] node : the node to be asked
      * \return true if the node is branching, false otherwise. */
-    bool isBranching (Node& node) const;
+    bool isBranching (NodeGU& node) const;
 
     /** Return the abundance of a node by querying the perfect hash function 
      * \param[in] node : the node
      * \return the abundance */
-    int queryAbundance (Node& node) const;
+    int queryAbundance (NodeGU& node) const;
 
     /** Return the state of a node by querying the perfect hash function. A node state is either normal, marked, or deleted.
      * \param[in] node : the node or a node index (unsigned long) from the MPHF
      * \return the abundance */
-    int queryNodeState (Node& node) const;
-    void setNodeState (Node& node, int state) const;
+    int queryNodeState (NodeGU& node) const;
+    void setNodeState (NodeGU& node, int state) const;
     void resetNodeState () const ;
     void disableNodeState () const ; // see Graph.cpp for explanation
 
     // deleted nodes, related to NodeState above
-    void deleteNode (Node& node) ;
+    void deleteNode (NodeGU& node) ;
     void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
-    bool isNodeDeleted(Node& node) const;
+    bool isNodeDeleted(NodeGU& node) const;
 
     // a direct query to the MPHF
-    unsigned long nodeMPHFIndex(Node& node) const;
+    unsigned long nodeMPHFIndex(NodeGU& node) const;
 
     void cacheNonSimpleNodes(unsigned int nbCores, bool verbose) ; // dummy for unitigs
 
@@ -333,7 +320,7 @@ public:
     /** Tells whether the provided edge is simple: outdegree(from)==1 and indegree(to)==1
      * \param[in] edge : the edge to be asked
      * \return true if the edge is simple, false otherwise. */
-    bool isSimple (Edge& edge) const;
+    bool isSimple (EdgeGU& edge) const;
 
     /**********************************************************************/
     /*                         MISC METHODS                               */
@@ -373,83 +360,42 @@ public:
 public: // was private: before, but had many compilation errors during the change from Graph to GraphTemplate. took the easy route, set it to "public:", it solved everything.
    
     /** */
-    GraphIterator<Node> getNodes () const;
+    GraphIterator<NodeGU> getNodes () const;
     
-    unsigned char countNeighbors (Node&, Direction) const; // simple and much faster version of getNodes, for degree(), outdegree(), indegree() queries
-    void countNeighbors (Node&, size_t&, size_t&) const;  // compute in and out degree at the same time
+    unsigned char countNeighbors (NodeGU&, Direction) const; // simple and much faster version of getNodes, for degree(), outdegree(), indegree() queries
+    void countNeighbors (NodeGU&, size_t&, size_t&) const;  // compute in and out degree at the same time
 
     /** */
-    GraphIterator<Node> getSimpleNodeIterator (Node& node, Direction dir) const;
+    GraphIterator<NodeGU> getSimpleNodeIterator (NodeGU& node, Direction dir) const;
 
     /** */
-    GraphIterator<Edge> getSimpleEdgeIterator (Node& node, Direction dir) const;
+    GraphIterator<EdgeGU> getSimpleEdgeIterator (NodeGU& node, Direction dir) const;
 
     /** */
-    GraphVector<Edge> getEdges (Node source, Direction direction) const;
+    GraphVector<EdgeGU> getEdges (NodeGU source, Direction direction) const;
 
     /** */
-    GraphVector<Node> getNodes (Node &source, Direction direction)  const;
+    GraphVector<NodeGU> getNodes (NodeGU &source, Direction direction)  const;
 
     /** */
-    Node getNode (Node& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
-    
-    GraphVector<Edge> getEdgeValues (const typename Node::Value& kmer) const;
-
-
-    // core unitigs graph part
-    // btw
-    // hack so dirty i'd need to call O2 to get it cleaned up
-    struct ExtremityInfo 
-    {
-        public:
-        uint64_t unitig;
-        bool deleted;
-        bool rc; // whether the kmer in canonical form appears as rc in the unitig
-        Unitig_pos pos; // whether the kmer is at left extremity of unitig or right extremity
-        ExtremityInfo(uint64_t u, bool d, bool r, Unitig_pos p) : unitig(u),deleted(d),rc(r), pos(p) {}
-        ExtremityInfo() {} // because i defined another constructor
-        ExtremityInfo(const uint64_t val) { unpack(val); } 
-        std::string toString() const
-        { return " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"left":"") + ((pos&UNITIG_END)?"right":"") + " " + " d:" + std::to_string(deleted); }
-        uint64_t pack()
-        {
-            return pos + (rc << 2) + (deleted << 3) + (unitig << 4);
-        }
-        void unpack(uint64_t val)
-        {
-            switch (val&3) // probably could be replaced by just an appropriate typecast. but this check has saved me from a bug TWICE so i'm grateful for it.
-            {
-                case 1: pos = UNITIG_BEGIN; break;
-                case 2: pos = UNITIG_END; break;
-                case 3: pos = UNITIG_BOTH; break;
-                default: std::cout << "problem in ExtremityInfo::unpack(): " << std::to_string(val) << std::endl; exit(1); 
-            }                      
-                                   val >>= 2;
-            rc = val&1;            val >>= 1;
-            deleted = val&1;       val >>= 1;
-            unitig = val;
-        }
-    } ;
+    NodeGU getNode (NodeGU& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
     
     typedef typename gatb::core::kmer::impl::Kmer<span>::Type           Type;
-
-    // structure that links each kmer to an unitig
-    // also used to enumerate kmers
-    typedef typename NS_TR1_PREFIX::unordered_map<Type, uint32_t> NodeMap;
-
 
     void build_unitigs_postsolid(std::string unitigs_filename, tools::misc::IProperties* props);
     void load_unitigs(std::string unitigs_filename);
 
-    bool node_in_same_orientation_as_in_unitig(const Node& node, const ExtremityInfo& e) const;
+    bool node_in_same_orientation_as_in_unitig(const NodeGU& node, const ExtremityInfo& e) const;
     
     typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
     typedef typename kmer::impl::Kmer<span>::ModelDirect ModelDirect;
+    
 
     // don't forget to copy those variables in operator= (and the move operator) !!
     Model       *modelK;
     ModelDirect *modelKdirect;
-    NodeMap utigs_map;
+    std::vector<std::vector<uint32_t>> incoming;
+    std::vector<std::vector<uint32_t>> outcoming;
     std::vector<std::string> unitigs;
     std::vector<float> unitigs_mean_abundance;
     std::vector<bool> unitigs_traversed;

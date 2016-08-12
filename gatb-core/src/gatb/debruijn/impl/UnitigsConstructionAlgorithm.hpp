@@ -72,7 +72,15 @@ public:
 
     /** \copydoc tools::misc::impl::Algorithm::execute */
     void execute ();
+    
+    // structure that links each kmer to an unitig
+    // also used to enumerate kmers
+    typedef typename gatb::core::kmer::impl::Kmer<span>::Type           Type;
+    typedef typename std::unordered_map<Type, std::vector<uint32_t>> NodeLinksMap;
 
+    NodeLinksMap utigs_links_map;
+
+    uint64_t nb_unitigs;
 
 private:
 
