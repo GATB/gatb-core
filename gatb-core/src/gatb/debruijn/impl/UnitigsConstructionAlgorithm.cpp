@@ -222,8 +222,9 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         s.getData().setRef ((char*)seq.c_str(), seq.size());
         s._comment = comment + " " + links;
         out->insert(seq, comment);
-        utig_number++;
-    }   
+        utigs_number++;
+    }
+    nb_unitigs = utigs_number; 
 
     delete out;
     system::impl::System::file().remove (unitigs_filename);
