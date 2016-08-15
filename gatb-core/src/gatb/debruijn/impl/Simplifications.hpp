@@ -76,19 +76,19 @@ protected:
                                     bool most_covered = true, bool kmer_version = false);
     // kmer version
     void heuristic_most_covered_path_old(Direction dir, Node& startingNode, Node& endingNode, 
-                                    int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& abundances,
+                                    int traversal_depth, Path_t<Node>& current_path, std::set<Node>& usedNode, int& success, std::vector<int>& abundances,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, Path_t<Node> &res_path,
                                     unsigned long &nbCalls);
     // in-between version, towards unitigs
     void heuristic_most_covered_path(Direction dir, Node& startingNode, Node& endNode, 
-                                    int traversal_depth, Path_t<Node>& current_path, std::set<typename Node::Value>& usedNode, int& success, double& mean_abundance,
+                                    int traversal_depth, Path_t<Node>& current_path, std::set<Node>& usedNode, int& success, double& mean_abundance,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, Path_t<Node> &res_path,
                                     unsigned long &nbCalls);
     // true unitigs version
     void heuristic_most_covered_path_unitigs(Direction dir, Node& startingNode, Node& endNode, 
-                                    int traversal_depth, std::set<typename Node::Value>& usedNode, int& success, std::vector<int>& unitigs_lengths, std::vector<int>& unitigs_abundances, double& mean_abundance,
+                                    int traversal_depth, std::set<Node>& usedNode, int& success, std::vector<int>& unitigs_lengths, std::vector<int>& unitigs_abundances, double& mean_abundance,
                                     unsigned int backtrackingLimit, Node *avoidFirstNode, 
                                     bool most_covered, unsigned long &nbCalls);
 

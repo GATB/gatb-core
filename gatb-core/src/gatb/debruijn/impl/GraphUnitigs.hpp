@@ -34,7 +34,7 @@
 
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/UnitigsConstructionAlgorithm.hpp>
-#include <gatb/debruijn/imple/ExtremityInfo.hpp>
+#include <gatb/debruijn/impl/ExtremityInfo.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -52,28 +52,32 @@ namespace impl      {
 struct NodeGU
 {
     /** Default constructor. */
-    NodeGU() : strand(kmer::STRAND_FORWARD), unitig(0), pos(0)  {}
+    NodeGU() : unitig(0), pos(UNITIG_BEGIN), strand(kmer::STRAND_FORWARD)  {}
 
     /** Constructor.
      */
-    NodeGU (const uint32_t unitig, uint32_t pos, kmer::Strand strand)
+    NodeGU (const uint32_t unitig, Unitig_pos pos, kmer::Strand strand)
         : unitig(unitig), pos(pos), strand(strand) {}
 
+    NodeGU (const uint32_t unitig, Unitig_pos pos)
+        : unitig(unitig), pos(pos), strand(kmer::STRAND_FORWARD) {}
+
+
     uint32_t unitig;
-    uint32_t pos;
+    Unitig_pos pos;
 
     /** Strand telling how to interpret the node in the bi-directed DB graph. */
     kmer::Strand strand;
 
     /** Overload of operator ==  NOTE: it doesn't care about the strand!!! */
-    bool operator== (const Node_t& other) const  { return unitig == other.unitig && pos == other.pos; }
+    bool operator== (const NodeGU& other) const  { return unitig == other.unitig && pos == other.pos; }
 
-    bool operator!= (const Node_t& other) const  { return unitig != other.unitig || pos != other.pos; }
+    bool operator!= (const NodeGU& other) const  { return unitig != other.unitig || pos != other.pos; }
 
-    // does this need to be implemented?
-    //bool operator< (const Node_t& other) const  { return (unitig < other.unitig); }
+    // this need to be implemented, for traversedNodes.find() in Simplifications
+    bool operator< (const NodeGU& other) const  { return (unitig < other.unitig || (unitig == other.unitig && pos < other.pos)); }
 
-    void set (uint32_t unitig, unit32_t pos, kmer::Strand strand)
+    void set (uint32_t unitig, Unitig_pos pos, kmer::Strand strand)
     {
         this->unitig = unitig;
         this->strand = strand;
@@ -82,7 +86,7 @@ struct NodeGU
 
     void reverse()
     {
-        strand = reverse(strand);
+        strand = StrandReverse(strand);
     }
 
 };
@@ -96,8 +100,8 @@ struct EdgeGU
     /** The direction of the transition. */
     Direction        direction;
     
-    /** Overload of operator <.  May not really mean much to compare edges, but is used in Minia's graph simplifications */ // really needed?
-    //bool operator< (const EdgeGU& other) const  { return ((from < other.from) || (from == other.from && to < other.to)); } 
+    // this need to be implemented, for something in in Simplifications
+    bool operator< (const EdgeGU& other) const  { return ((from < other.from) || (from == other.from && to < other.to)); } 
 
     /** Setter for some attributes of the Edge object.
      * \param[in] unitig_from
@@ -109,8 +113,8 @@ struct EdgeGU
      * \param[in] dir : direction of the transition.
      */
     void set (
-        uint32_t unitig_from, int pos_from, kmer::Strand strand_from
-        uint32_t unitig_to,   int pos_to,   kmer::Strand strand_to
+        uint32_t unitig_from, Unitig_pos pos_from, kmer::Strand strand_from,
+        uint32_t unitig_to,   Unitig_pos pos_to,   kmer::Strand strand_to,
         Direction dir
     )
     {
@@ -218,12 +222,12 @@ public:
      */
     inline GraphVector<NodeGU> neighbors    ( NodeGU& node, Direction dir=DIR_END) const  {  return getNodes(node, dir);           }
     
-    inline Node* neighborsDummy      ( NodeGU& node, Direction dir=DIR_END) const  {   return NULL;           }
+    inline NodeGU* neighborsDummy      ( NodeGU& node, Direction dir=DIR_END) const  {   return NULL;           }
 
 
     /* neighbors used to be templated.. not anymore, trying to avoid nested template specialization; 
      * so call neighbors for getting nodes, or neighborsEdge for getting edges */
-    inline GraphVector<Edge> neighborsEdge    ( NodeGU& node, Direction dir=DIR_END) const  {   return getEdges(node, dir);           }
+    inline GraphVector<EdgeGU> neighborsEdge    ( NodeGU& node, Direction dir=DIR_END) const  {   return getEdges(node, dir);           }
     inline EdgeGU* neighborsDummyEdge      ( NodeGU& node, Direction dir=DIR_END) const  {   return NULL;           }
 
     /** Shortcut for 'neighbors' method
@@ -291,10 +295,10 @@ public:
     /**********************************************************************/
 
     // would be good to factorize with Graph.hpp but i think it'd require having a GraphAbstract and I'm not ready for that kind of design pattern yet.
-    size_t indegree  (NodeGU& node) const;
-    size_t outdegree (NodeGU& node) const;
-    size_t degree    (NodeGU& node, Direction dir) const;
-    void degree      (NodeGU& node, size_t& in, size_t &out) const;
+    size_t indegree  (const NodeGU& node) const;
+    size_t outdegree (const NodeGU& node) const;
+    size_t degree    (const NodeGU& node, Direction dir) const;
+    void degree      (const NodeGU& node, size_t& in, size_t &out) const;
    
     /**********************************************************************/
     /*                      SIMPLIFICATION METHODS                        */
@@ -315,14 +319,14 @@ public:
      *      -1 if out-branching was detected
      *      -2 if no out-branching but next kmer has in-branching
      */
-    int simplePathAvance (NodeGU& node, Direction dir, EdgeGU& output) const;
+    int simplePathAvance (const NodeGU& node, Direction dir, EdgeGU& output) const;
 
     /** */
-    int simplePathAvance (NodeGU& node, Direction dir) const;
+    int simplePathAvance (const NodeGU& node, Direction dir) const;
 
     /** */
-    GraphIterator<NodeGU> simplePath     (NodeGU& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }
-    GraphIterator<EdgeGU> simplePathEdge (NodeGU& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
+    GraphIterator<NodeGU> simplePath     (const NodeGU& node, Direction dir) const  { return getSimpleNodeIterator(node, dir); }
+    GraphIterator<EdgeGU> simplePathEdge (const NodeGU& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
 
 
     // high-level functions that are now used in Simplifications.cpp
@@ -336,12 +340,12 @@ public:
     unsigned int simplePathLength            (const NodeGU& node, Direction dir) ; /* same reason as above*/;
     double           unitigMeanAbundance     (const NodeGU& node) const;
     double       simplePathMeanAbundance     (const NodeGU& node, Direction dir) ;
-    void             unitigDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    void             unitigDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter);
     void             unitigDelete          (NodeGU& node) ;
-    void         simplePathDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeFast<span>, EdgeFast<span>, GraphUnitigsTemplate<span>>& nodesDeleter);
+    void         simplePathDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter);
     std::string  unitigSequence            (const NodeGU& node, bool& isolatedLeft, bool& isolatedRight) const;
     void         unitigMark                (const NodeGU& node); // used to flag simple path as traversed, in minia
-    bool         unitigIsMarked        (NodeGU& node) const;
+    bool         unitigIsMarked        (const NodeGU& node) const;
     
     std::string simplePathBothDirections(const NodeGU& node, bool& isolatedLeft, bool& isolatedRight, bool dummy, float& coverage);
     // aux function, not meant to be called from outside, but maybe it could.
@@ -354,8 +358,7 @@ public:
     /*                         NODE METHODS                               */
     /**********************************************************************/
 
-    
-    string toString(const Node& node) const;
+    std::string toString(const NodeGU& node) const;
 
     /** Tells whether or not a node belongs to the graph.
      * \param[in] item : the node
@@ -365,28 +368,28 @@ public:
     /** Tells whether the provided node is branching or not.
      * \param[in] node : the node to be asked
      * \return true if the node is branching, false otherwise. */
-    bool isBranching (NodeGU& node) const;
+    bool isBranching (const NodeGU& node) const;
 
     /** Return the abundance of a node by querying the perfect hash function 
      * \param[in] node : the node
      * \return the abundance */
-    int queryAbundance (NodeGU& node) const;
+    int queryAbundance (const NodeGU& node) const;
 
     /** Return the state of a node by querying the perfect hash function. A node state is either normal, marked, or deleted.
      * \param[in] node : the node or a node index (unsigned long) from the MPHF
      * \return the abundance */
-    int queryNodeState (NodeGU& node) const;
-    void setNodeState (NodeGU& node, int state) const;
+    int queryNodeState (const NodeGU& node) const;
+    void setNodeState (const NodeGU& node, int state) const;
     void resetNodeState () const ;
     void disableNodeState () const ; // see Graph.cpp for explanation
 
     // deleted nodes, related to NodeState above
-    void deleteNode (NodeGU& node) ;
+    void deleteNode (/* cannot be const because nodeDeleter isn't */ NodeGU& node) ;
     void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
-    bool isNodeDeleted(NodeGU& node) const;
+    bool isNodeDeleted(const NodeGU& node) const;
 
     // a direct query to the MPHF
-    unsigned long nodeMPHFIndex(NodeGU& node) const;
+    unsigned long nodeMPHFIndex(const NodeGU& node) const;
 
     void cacheNonSimpleNodes(unsigned int nbCores, bool verbose) ; // dummy for unitigs
 
@@ -439,30 +442,30 @@ public: // was private: before, but had many compilation errors during the chang
     /** */
     GraphIterator<NodeGU> getNodes () const;
     
-    unsigned char countNeighbors (NodeGU&, Direction) const; // simple and much faster version of getNodes, for degree(), outdegree(), indegree() queries
-    void countNeighbors (NodeGU&, size_t&, size_t&) const;  // compute in and out degree at the same time
+    unsigned char countNeighbors (const NodeGU&, Direction) const; // simple and much faster version of getNodes, for degree(), outdegree(), indegree() queries
+    void countNeighbors (const NodeGU&, size_t&, size_t&) const;  // compute in and out degree at the same time
 
     /** */
-    GraphIterator<NodeGU> getSimpleNodeIterator (NodeGU& node, Direction dir) const;
+    GraphIterator<NodeGU> getSimpleNodeIterator (const NodeGU& node, Direction dir) const;
 
     /** */
-    GraphIterator<EdgeGU> getSimpleEdgeIterator (NodeGU& node, Direction dir) const;
+    GraphIterator<EdgeGU> getSimpleEdgeIterator (const NodeGU& node, Direction dir) const;
 
     /** */
-    GraphVector<EdgeGU> getEdges (NodeGU source, Direction direction) const;
+    GraphVector<EdgeGU> getEdges (const NodeGU& source, Direction direction) const;
 
     /** */
-    GraphVector<NodeGU> getNodes (NodeGU &source, Direction direction)  const;
+    GraphVector<NodeGU> getNodes (const NodeGU &source, Direction direction)  const;
 
     /** */
-    NodeGU getNode (NodeGU& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
+    NodeGU getNode (const NodeGU& source, Direction dir, kmer::Nucleotide nt, bool& exists) const;
     
     typedef typename gatb::core::kmer::impl::Kmer<span>::Type           Type;
 
     void build_unitigs_postsolid(std::string unitigs_filename, tools::misc::IProperties* props);
     void load_unitigs(std::string unitigs_filename);
 
-    bool node_in_same_orientation_as_in_unitig(const NodeGU& node, const ExtremityInfo& e) const;
+    bool node_in_same_orientation_as_in_unitig(const NodeGU& node) const;
     
     typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
     typedef typename kmer::impl::Kmer<span>::ModelDirect ModelDirect;
@@ -471,10 +474,10 @@ public: // was private: before, but had many compilation errors during the chang
     // don't forget to copy those variables in operator= (and the move operator) !!
     Model       *modelK;
     ModelDirect *modelKdirect;
-    std::vector<std::vector<uint32_t>> incoming;
-    std::vector<std::vector<uint32_t>> outcoming;
+    std::vector<uint32_t> incoming, outcoming, incoming_map, outcoming_map;
     std::vector<std::string> unitigs;
     std::vector<float> unitigs_mean_abundance;
+    std::vector<bool> unitigs_deleted; // could also be replaced by setting incoming and outcoming to all deleted.
     std::vector<bool> unitigs_traversed;
     uint64_t nb_unitigs;
 };

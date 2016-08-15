@@ -175,7 +175,7 @@ double Simplifications<GraphType,Node,Edge>::getMeanAbundanceOfNeighbors(Node& b
         else
         {
             Node neighbor = neighbors[i].to;
-            if (neighbor == nodeToExclude) // (in gatb-core, Node == Node means Node.kmer == Node.kmer)
+            if (neighbor == nodeToExclude) 
             {
                 //DEBUG(cout << endl << "good, seen the node to exclude" << endl);
                 continue; 
@@ -232,6 +232,8 @@ string unitig2string(Direction dir, Path_t<Node> p, Node endNode)
 template<typename GraphType, typename Node, typename Edge>
 double Simplifications<GraphType,Node,Edge>::path2abundance(Direction dir, Path_t<Node> p, Node endNode, unsigned int skip_first, unsigned int skip_last)
 {
+    // the buildnode call here needs to be adapted for NodeGU
+#if 0
     string s = path2string(dir,p,endNode);
     if (p.size() == 0) return 0;
     if (p.size() <= skip_first + skip_last) return 0;
@@ -249,6 +251,8 @@ double Simplifications<GraphType,Node,Edge>::path2abundance(Direction dir, Path_
     //std::cout << std::endl;
     mean_abundance /= (p.size() - skip_first - skip_last);
     return mean_abundance;
+#endif
+    return 0;
 }
 
 inline string maybe_print(long value, string str)
@@ -451,7 +455,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
            
             if (neighbors.size() == 0) { std::cout << "unexpected problem during removeTips, no neighbor; " << inDegree << " " << outDegree << " " << _graph.toString(node) << " " << neighbors[0].direction << std::endl; exit(1);}
 
-            /* it may appear that we're only going to follow its first neighbor, but in fact, neighbors[0].from is node.kmer */
+            /* it may appear that we're only going to follow its first neighbor, but in fact, neighbors[0].from is node */
             /* so, follow the simple path from this start tip node to the further node that has out-branching (out is w.r.t to the direction) */
             TIME(auto start_simplepath_t=get_wtime());
             Node&     simplePathStart = neighbors[0].from;
@@ -622,8 +626,8 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
         unsigned int backtrackingLimit, Node *avoidFirstNode,
         bool most_covered, bool kmer_version /* was the original version, where nodes were traversed kmer-by-kmer, now it's one simple path at a time */)
 {
-    set<typename Node::Value> usedNode;
-    usedNode.insert(startNode.kmer);
+    set<Node> usedNode;
+    usedNode.insert(startNode);
     Path_t<Node> current_path;
     current_path.start = startNode;
     success = HMCP_DIDNT_FIND_END;
@@ -632,6 +636,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
     unsigned long nbCalls = 0;
     mean_abundance = 0;
 
+#if 0
     if (kmer_version)
     {
         heuristic_most_covered_path_old(dir, startNode, endNode, traversal_depth, current_path, usedNode, success, abundances,
@@ -659,13 +664,14 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
   */          
         
         // WARNING:this is slow if ran on Graph. but fast on GraphUnitigs.
-        
+#endif    
         heuristic_most_covered_path_unitigs(dir, startNode, endNode, 
                 traversal_depth, usedNode, success, unitigs_lengths, unitigs_abundances, mean_abundance,
                 backtrackingLimit, avoidFirstNode, 
                 most_covered, nbCalls);
-                   
+#if 0
     }
+#endif
 
     /* below this point: debug stuff*/
 
@@ -682,11 +688,13 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
     if (debug_nbcalls)
         cout << "number of path-finding calls: " << nbCalls << endl;
 }
-        
+
+#if 0 //the nt stuff is not supported in EdgeGU anymore, so i'm disabling this code
+
 template<typename GraphType, typename Node, typename Edge>
 void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_old(
         Direction dir, Node& startNode, Node& endNode,
-        int traversal_depth, Path_t<Node>& current_path, set<typename Node::Value>& usedNode, int& success, vector<int>& abundances,
+        int traversal_depth, Path_t<Node>& current_path, set<Node>& usedNode, int& success, vector<int>& abundances,
         unsigned int backtrackingLimit, Node *avoidFirstNode, 
         bool most_covered, Path_t<Node> &res_path,
         unsigned long &nbCalls)
@@ -700,7 +708,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_old(
         return;
     }
 
-    if (startNode.kmer == endNode.kmer)
+    if (startNode == endNode)
     {
         success = HMCP_FOUND_END;
         res_path = current_path;
@@ -716,13 +724,13 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_old(
         /** Shortcut. */
         Edge& edge = neighbors[i];
 
-        if (avoidFirstNode != NULL && edge.to.kmer == avoidFirstNode->kmer)
+        if (avoidFirstNode != NULL && edge.to == *avoidFirstNode)
             continue;
 
         // don't resolve bubbles containing loops
         // (tandem repeats make things more complicated)
         // that's a job for a gapfiller
-        if (usedNode.find(edge.to.kmer) != usedNode.end())
+        if (usedNode.find(edge.to) != usedNode.end())
         {
             success = HMCP_LOOP;
             return;
@@ -747,12 +755,12 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_old(
         extended_path.push_back (edge.nt);
 
         // generate list of used kmers (to prevent loops)
-        set<typename Node::Value> extended_kmers (usedNode);
-        extended_kmers.insert (edge.to.kmer);
+        set<Node> extended_kmers (usedNode);
+        extended_kmers.insert (edge.to);
 
         // extend abundances
         vector<int> extended_abundances (abundances);
-        if (edge.to.kmer != endNode.kmer) // skip abundance of last node
+        if (edge.to != endNode) // skip abundance of last node
             extended_abundances.push_back(abundance_node[i].first);
 
         // recursive call to all_consensuses_between
@@ -792,7 +800,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_old(
 template<typename GraphType, typename Node, typename Edge>
 void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
         Direction dir, Node& startNode, Node& endNode, 
-        int traversal_depth, Path_t<Node>& current_path, set<typename Node::Value>& usedNode, int& success, double &mean_abundance,
+        int traversal_depth, Path_t<Node>& current_path, set<Node>& usedNode, int& success, double &mean_abundance,
         unsigned int backtrackingLimit, Node *avoidFirstNode, 
         bool most_covered, Path_t<Node> &res_path,
         unsigned long &nbCalls)
@@ -807,7 +815,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
 
     Node current_node = startNode;
  
-    if (current_node.kmer == endNode.kmer)
+    if (current_node == endNode)
     {
         success = HMCP_FOUND_END;
         res_path = current_path;
@@ -816,7 +824,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
         return;
     }
 
-    set<typename Node::Value>& traversedNodes (usedNode);
+    set<Node>& traversedNodes (usedNode);
 
     Path_t<Node> current_extended_path(current_path);
     int extra_depth = 1;
@@ -828,15 +836,15 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
         extra_depth++;
         nbCalls++;
 
-        if (traversedNodes.find(current_node.kmer) != traversedNodes.end() )  // loop
+        if (traversedNodes.find(current_node) != traversedNodes.end() )  // loop
         {
             success = HMCP_LOOP;
             return true;
         }
  
-        traversedNodes.insert(current_node.kmer); 
+        traversedNodes.insert(current_node); 
 
-        if (current_node.kmer == endNode.kmer)
+        if (current_node == endNode)
         {
             success = HMCP_FOUND_END;
             res_path = current_extended_path;
@@ -888,13 +896,13 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
         /** Shortcut. */
         Edge& edge = neighbors[i];
 
-        if (avoidFirstNode != NULL && edge.to.kmer == avoidFirstNode->kmer)
+        if (avoidFirstNode != NULL && edge.to== *avoidFirstNode)
             continue;
 
         // don't resolve bubbles containing loops
         // (tandem repeats make things more complicated)
         // that's a job for a gapfiller
-        if (traversedNodes.find(edge.to.kmer) != traversedNodes.end())
+        if (traversedNodes.find(edge.to) != traversedNodes.end())
         {
             success = HMCP_LOOP;
             return;
@@ -918,8 +926,8 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
         extended_path.push_back (edge.nt);
 
         // generate list of used kmers (to prevent loops)
-        set<typename Node::Value> extended_kmers (traversedNodes);
-        extended_kmers.insert (edge.to.kmer);
+        set<Node> extended_kmers (traversedNodes);
+        extended_kmers.insert (edge.to);
 
         // recursive call to all_consensuses_between
         heuristic_most_covered_path (
@@ -953,13 +961,14 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
 
     return;
 }
+#endif
 
 /* GraphUnitigs version of the algo above. 
  * doesn't construct a Path anymore, and handles abundances differently, so i preferred to make another function rather than re-using the one above */
 template<typename GraphType, typename Node, typename Edge>
 void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         Direction dir, Node& startNode, Node& endNode, 
-        int traversal_depth, set<typename Node::Value>& usedNode, int& success, vector<int>& unitigs_lengths, vector<int>& unitigs_abundances, double& mean_abundance,
+        int traversal_depth, set<Node>& usedNode, int& success, vector<int>& unitigs_lengths, vector<int>& unitigs_abundances, double& mean_abundance,
         unsigned int backtrackingLimit, Node *avoidFirstNode, 
         bool most_covered, unsigned long &nbCalls)
 {
@@ -976,32 +985,32 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
     if (debug)
         std::cout << "HMCP rec, now at : " << _graph.toString(current_node) << " dir " << dir<< std::endl;;
  
-    if (current_node.kmer == endNode.kmer)
+    if (current_node == endNode)
     {
         success = HMCP_FOUND_END;
         mean_abundance = unitigs_chain2abundance(unitigs_lengths, unitigs_abundances);
         return;
     }
 
-    set<typename Node::Value>& traversedNodes (usedNode);
+    set<Node>& traversedNodes (usedNode);
     int extra_depth = 1;
 
     auto processNode = [&](Node &node)
     {
         current_node = node;
-        if (current_node.kmer == endNode.kmer)
+        if (current_node == endNode)
         {
             success = HMCP_FOUND_END;
             mean_abundance = unitigs_chain2abundance(unitigs_lengths, unitigs_abundances);
             return true;
         }
-        if (traversedNodes.find(current_node.kmer) != traversedNodes.end() )  // loop
+        if (traversedNodes.find(current_node) != traversedNodes.end() )  // loop
         {
             //std::cout << "loop : " << _graph.toString(current_node) << std::endl;;
             success = HMCP_LOOP;
             return true;
         }
-        traversedNodes.insert(current_node.kmer); 
+        traversedNodes.insert(current_node); 
         return false;
     };
 
@@ -1088,13 +1097,13 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         /** Shortcut. */
         Edge& edge = neighbors[i];
 
-        if (avoidFirstNode != NULL && edge.to.kmer == avoidFirstNode->kmer)
+        if (avoidFirstNode != NULL && edge.to == *avoidFirstNode)
             continue;
 
         // don't resolve bubbles containing loops
         // (tandem repeats make things more complicated)
         // that's a job for a gapfiller
-        if (traversedNodes.find(edge.to.kmer) != traversedNodes.end())
+        if (traversedNodes.find(edge.to) != traversedNodes.end())
         {
             success = HMCP_LOOP;
             return;
@@ -1114,8 +1123,8 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         Edge edge = abundance_node[i].second;
 
         // generate list of used kmers (to prevent loops)
-        set<typename Node::Value> extended_kmers (traversedNodes);
-        extended_kmers.insert (edge.to.kmer);
+        set<Node> extended_kmers (traversedNodes);
+        extended_kmers.insert (edge.to);
 
         vector<int> new_unitigs_lengths(unitigs_lengths);
         vector<int> new_unitigs_abundances(unitigs_abundances);

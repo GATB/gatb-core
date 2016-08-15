@@ -31,6 +31,9 @@
 #include <gatb/bcalm2/bcalm_algo.hpp>
 #include <gatb/debruijn/impl/ExtremityInfo.hpp>
 
+#include <unordered_map>
+
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -76,12 +79,11 @@ public:
     
     // structure that links each kmer to an unitig
     // also used to enumerate kmers
-    typedef typename gatb::core::kmer::impl::Kmer<span>::Type           Type;
     typedef typename std::unordered_map<Type, std::vector<uint32_t>> NodeLinksMap;
 
     NodeLinksMap utigs_links_map;
 
-    void link_unitigs(string unitigs_filename, int kmerSize, bool verbose);
+    void link_unitigs(std::string unitigs_filename, int kmerSize, bool verbose);
     
     uint64_t nb_unitigs;
 

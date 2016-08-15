@@ -1,3 +1,5 @@
+// has Node::Value all over, plus minia doesn't need them anymore.
+#if 0
 
 #include <gatb/debruijn/impl/Traversal.cpp>
 #include <gatb/debruijn/impl/Terminator.cpp>
@@ -12,21 +14,22 @@ using namespace gatb::core::kmer::impl;
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 /********************************************************************************/
 
-template class TraversalTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+template class TraversalTemplate <NodeGU,EdgeGU, 
          GraphUnitigsTemplate<${KSIZE}>>; 
-template class MonumentTraversalTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+template class MonumentTraversalTemplate <NodeGU,EdgeGU, 
          GraphUnitigsTemplate<${KSIZE}>>; 
-template class TerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+template class TerminatorTemplate <NodeGU,EdgeGU,  
          GraphUnitigsTemplate<${KSIZE}>>; 
-template class MPHFTerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+template class MPHFTerminatorTemplate <NodeGU,EdgeGU, 
          GraphUnitigsTemplate<${KSIZE}>>; 
-template class BranchingTerminatorTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+template class BranchingTerminatorTemplate <NodeGU,EdgeGU, 
          GraphUnitigsTemplate<${KSIZE}>>; 
-template class FrontlineTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+template class FrontlineTemplate <NodeGU,EdgeGU, 
          GraphUnitigsTemplate<${KSIZE}>>; 
-template class FrontlineBranchingTemplate <Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, 
+template class FrontlineBranchingTemplate <NodeGU,EdgeGU, 
          GraphUnitigsTemplate<${KSIZE}>>; 
 
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/
+#endif

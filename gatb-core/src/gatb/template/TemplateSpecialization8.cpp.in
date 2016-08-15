@@ -17,7 +17,7 @@ template class GraphUnitigsTemplate<${KSIZE}>;
 template class UnitigsConstructionAlgorithm<${KSIZE}>; 
 
 
-template class Simplifications <GraphUnitigsTemplate<${KSIZE}>, Node_t<Kmer<${KSIZE}>::Type>, Edge_t<Node_t<Kmer<${KSIZE}>::Type > >>; 
+template class Simplifications <GraphUnitigsTemplate<${KSIZE}>, NodeGU, EdgeGU >; 
 
 
 

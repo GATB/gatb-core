@@ -23,7 +23,7 @@
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/bcalm2/bcalm_algo.hpp>
-#include <gatb/debruijn/imple/ExtremityInfo.hpp>
+#include <gatb/bcalm2/bglue_algo.hpp>
 
 #include <queue>
 
@@ -110,7 +110,7 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type, verbose); 
     bglue<span> (&_storage, unitigs_filename, kmerSize,            minimizerSize, nbThreads, minimizer_type, verbose);
 
-    index_unitigs(unitigs_filename, kmerSize, verbose);
+    link_unitigs(unitigs_filename, kmerSize, verbose);
 
     /** We gather some statistics. */
     //getInfo()->add (1, "stats");
@@ -143,11 +143,11 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         const string& seq = itSeq->toString();
         const string& comment = itSeq->getComment();
  
-        typename Model::Kmer kmerBegin = modelKminusOne->codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
-        typename Model::Kmer kmerEnd = modelKminusOne->codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
+        typename Model::Kmer kmerBegin = modelKminusOne.codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
+        typename Model::Kmer kmerEnd = modelKminusOne.codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
 
-        bool beginInSameOrientation = Model::toString(kmerBegin.value()) == seq.substr(0,kmerSize-1);
-        bool endInSameOrientation = Model::toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
+        bool beginInSameOrientation = modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1);
+        bool endInSameOrientation = modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
         
         ExtremityInfo eBegin(utig_counter, false, beginInSameOrientation, UNITIG_BEGIN);
         ExtremityInfo eEnd(  utig_counter, false, endInSameOrientation,   UNITIG_END);
@@ -156,7 +156,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         utigs_links_map[kmerEnd.value()].push_back(eEnd.pack());
     }
 
-    BankFasta bank = new BankFasta(unitigs_filename+".indexed");
+    BankFasta* out = new BankFasta(unitigs_filename+".indexed");
     
     if (verbose)
         std::cout << "Finding links between unitigs, pass 2" << std::endl;
@@ -167,15 +167,15 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         const string& seq = itSeq->toString();
         const string& comment = itSeq->getComment();
  
-        typename Model::Kmer kmerBegin = modelKminusOne->codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
-        typename Model::Kmer kmerEnd = modelKminusOne->codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
-        bool beginInSameOrientation = Model::toString(kmerBegin.value()) == seq.substr(0,kmerSize-1); // that could be optimized, revcomp was already computed during codeSeed
-        bool endInSameOrientation = Model::toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
+        typename Model::Kmer kmerBegin = modelKminusOne.codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
+        typename Model::Kmer kmerEnd = modelKminusOne.codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
+        bool beginInSameOrientation =  modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1); // that could be optimized, revcomp was already computed during codeSeed
+        bool endInSameOrientation =  modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
 
         string links;
 
         // in-neighbors
-        for (in_packed : utigs_links_map[kmerBegin.value()])
+        for (auto in_packed : utigs_links_map[kmerBegin.value()])
         {
             ExtremityInfo e_in(in_packed);
 
@@ -192,12 +192,12 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
                 //LinkInfo li(e_in.unitig, e_in.rc ^ beginInSameOrientation);
                 //incoming[utig_number].push_back(li.pack());
                 bool rc = e_in.rc ^ beginInSameOrientation;
-                links += "L:-:" + to_string(e_in.unitig) + ":" + rc?"+":"-"; /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
+                links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"+":"-"); /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
             }
         }
 
         // out-neighbors
-        for (out_packed : utigs_links_map[kmerEnd.value()])
+        for (auto out_packed : utigs_links_map[kmerEnd.value()])
         {
             ExtremityInfo e_out(out_packed);
 
@@ -206,22 +206,22 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
             //  ------[end same orientation] -> ------[end diff orientation]
             //  ------[end diff orientation] -> [begin diff orientation]----
             //  ------[end diff orientation] -> ------[end same orientation]
-            if ((endInSameOrientation && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)) ||
-                (endInSameOrientation && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
-             ((!endInSameOrientation) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
-             ((!endInSameOrientation) && (e_in.pos == UNITIG_END  ) && (e_in.rc == false)))
+            if ((endInSameOrientation && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == false)) ||
+                (endInSameOrientation && (e_out.pos == UNITIG_END  ) && (e_out.rc == true)) ||
+             ((!endInSameOrientation) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == true)) ||
+             ((!endInSameOrientation) && (e_out.pos == UNITIG_END  ) && (e_out.rc == false)))
             {
                 //LinkInfo li(e_out.unitig, e_out.rc ^ endInSameOrientation);
                 //outcoming[utig_number].push_back(li.pack());
                 bool rc = e_out.rc ^ endInSameOrientation;
-                links += "L:+:" + to_string(e_in.unitig) + ":" + rc?"-":"+"; /* logically this is going to be opposite of the line above */
+                links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+"); /* logically this is going to be opposite of the line above */
             }
         }
 
         Sequence s (Data::ASCII);
         s.getData().setRef ((char*)seq.c_str(), seq.size());
         s._comment = comment + " " + links;
-        out->insert(seq, comment);
+        out->insert(s);
         utigs_number++;
     }
     nb_unitigs = utigs_number; 
