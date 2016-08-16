@@ -129,11 +129,13 @@ template<size_t span>
 void UnitigsConstructionAlgorithm<span>::
 link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
 {
+    bool debug = true;
+
     BankFasta inputBank (unitigs_filename);
     BankFasta::Iterator itSeq (inputBank);
     uint32_t utig_counter = 0;
     
-    Model modelKminusOne(kmerSize - 1);
+    Model modelKminusOne(kmerSize - 1); // it's canonical (defined in the .hpp file)
 
     if (verbose)
         std::cout << "Finding links between unitigs, pass 1" << std::endl;
@@ -148,12 +150,14 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
 
         bool beginInSameOrientation = modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1);
         bool endInSameOrientation = modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
-        
-        ExtremityInfo eBegin(utig_counter, false, beginInSameOrientation, UNITIG_BEGIN);
-        ExtremityInfo eEnd(  utig_counter, false, endInSameOrientation,   UNITIG_END);
+
+        ExtremityInfo eBegin(utig_counter, false, !beginInSameOrientation /* because we record rc*/, UNITIG_BEGIN);
+        ExtremityInfo eEnd(  utig_counter, false, !endInSameOrientation,                             UNITIG_END);
+        // there is no UNITIG_BOTH here because we're taking (k-1)-mers.
 
         utigs_links_map[kmerBegin.value()].push_back(eBegin.pack());
         utigs_links_map[kmerEnd.value()].push_back(eEnd.pack());
+        utig_counter++;
     }
 
     BankFasta* out = new BankFasta(unitigs_filename+".indexed");
@@ -172,6 +176,17 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         bool beginInSameOrientation =  modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1); // that could be optimized, revcomp was already computed during codeSeed
         bool endInSameOrientation =  modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
 
+        // treat special palindromic kmer cases
+        bool nevermindInOrientation = false;
+        bool nevermindOutOrientation = false;
+        if (((kmerSize - 1) % 2) == 0) 
+        {
+            if (kmerBegin.isPalindrome()) nevermindInOrientation = true;
+            if (kmerEnd.isPalindrome())   nevermindOutOrientation = true;
+        }
+        
+        if (debug) std::cout << "unitig: " << seq << std::endl;
+
         string links;
 
         // in-neighbors
@@ -179,21 +194,26 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             ExtremityInfo e_in(in_packed);
 
+            if (debug) std::cout << "potential in-neighbor: " << e_in.toString();
+
             // what we want are these four cases:
             //  ------[end same orientation] -> [begin same orientation]----
             //  [begin diff orientation]---- -> [begin same orientation]----
             //  ------[end diff orientation] -> [begin diff orientation]----
             //  [begin same orientation]---- -> [begin diff orientation]----
-            if ((beginInSameOrientation &&  (e_in.pos == UNITIG_END  ) && (e_in.rc == false)) ||
-                (beginInSameOrientation &&  (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
-              ((!beginInSameOrientation) && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
-              ((!beginInSameOrientation) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)))
+            if (((beginInSameOrientation || nevermindInOrientation)  &&  (e_in.pos == UNITIG_END  ) && (e_in.rc == false)) ||
+                ((beginInSameOrientation  || nevermindInOrientation) &&  (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
+              (((!beginInSameOrientation) || nevermindInOrientation) && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
+              (((!beginInSameOrientation) || nevermindInOrientation) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)))
             {
                 //LinkInfo li(e_in.unitig, e_in.rc ^ beginInSameOrientation);
                 //incoming[utig_number].push_back(li.pack());
                 bool rc = e_in.rc ^ beginInSameOrientation;
-                links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"+":"-"); /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
+                links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"+":"-") + " "; /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
+                if (debug) std::cout << " [valid] ";
             }
+                
+            if (debug) std::cout << std::endl;
         }
 
         // out-neighbors
@@ -201,21 +221,25 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             ExtremityInfo e_out(out_packed);
 
+            if (debug) std::cout << "potential out-neighbor: " << e_out.toString();
+
             // what we want are these four cases:
             //  ------[end same orientation] -> [begin same orientation]----
             //  ------[end same orientation] -> ------[end diff orientation]
             //  ------[end diff orientation] -> [begin diff orientation]----
             //  ------[end diff orientation] -> ------[end same orientation]
-            if ((endInSameOrientation && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == false)) ||
-                (endInSameOrientation && (e_out.pos == UNITIG_END  ) && (e_out.rc == true)) ||
-             ((!endInSameOrientation) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == true)) ||
-             ((!endInSameOrientation) && (e_out.pos == UNITIG_END  ) && (e_out.rc == false)))
+            if (((endInSameOrientation || nevermindOutOrientation) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == false)) ||
+                ((endInSameOrientation || nevermindOutOrientation) && (e_out.pos == UNITIG_END  ) && (e_out.rc == true)) ||
+             (((!endInSameOrientation) || nevermindOutOrientation) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == true)) ||
+             (((!endInSameOrientation) || nevermindOutOrientation) && (e_out.pos == UNITIG_END  ) && (e_out.rc == false)))
             {
                 //LinkInfo li(e_out.unitig, e_out.rc ^ endInSameOrientation);
                 //outcoming[utig_number].push_back(li.pack());
                 bool rc = e_out.rc ^ endInSameOrientation;
-                links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+"); /* logically this is going to be opposite of the line above */
+                links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+") + " "; /* logically this is going to be opposite of the line above */
+                if (debug) std::cout << " [valid] ";
             }
+            if (debug) std::cout << std::endl;
         }
 
         Sequence s (Data::ASCII);

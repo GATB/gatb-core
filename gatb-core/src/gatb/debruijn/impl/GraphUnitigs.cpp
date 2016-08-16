@@ -314,6 +314,8 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
 static void
 parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc, vector<uint32_t>& outc)
 {
+    bool debug = true;
+    if (debug) std::cout << "parsing unitig links for " << header << std::endl;
     std::stringstream stream(header);
     while(1) {
         string tok;
@@ -321,7 +323,11 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
         if(!stream)
             break;
 
-        string field = tok.substr(2);
+        if (tok.size() < 3)
+            // that's the id, skip it
+            continue;
+
+        string field = tok.substr(0,2);
         if (field == "L:")
         {
             bool in = tok.substr(2,1) == "-";
@@ -336,13 +342,16 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
              * L:-:next_unitig:-    unitig_rc[end] -> [begin]next_unitig_rc                         unitig_rc[end] -> [begin]unitig
              * */
 
-            /* encoding for pos: 0 for first kmer,
-             * 1 for last kmer
-             * in case of single-kmer unitig, it doesn't matter, so let's put either 1 or 0.
-             * thus, pos is actually also given by rc here */
-            Unitig_pos pos = rc?UNITIG_END:UNITIG_BEGIN;
+
+            /* setting pos:
+             * in case of single-kmer unitig, pos will be wrong (should be UNITIG_BOTH, but i'm not storing this info in just 1 bit). Instead, getEdges as well as simplePath_avance are inferring that it's UNITIG_BOTH in cases where the unitig is just of length k
+             * thus, pos is actually also given by the following formula, if you think hard about it and look at the situations above*/
+            if (!in)
+                rc = !rc;
+            Unitig_pos pos = (rc)?UNITIG_END:UNITIG_BEGIN;
 
             ExtremityInfo li(unitig, /*deleted:*/ false, rc, pos);
+            std::cout << "inserting "<< (in?"incoming":"outcoming") <<  " extremity " << li.toString() << std::endl;
             if (in)
                 inc.push_back(li.pack());
             else
@@ -363,11 +372,8 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
 static void
 insert_navigational_vector(std::vector<uint32_t> &v, std::vector<uint32_t>& to_insert, uint32_t utig_counter, std::vector<uint32_t> &v_map)
 {
+    v_map[utig_counter] = v.size();
     v.insert(v.end(), to_insert.begin(), to_insert.end());
-    if (utig_counter == 0)
-        v_map[0] = 0;
-    else
-        v_map[utig_counter] = v_map[utig_counter-1] + to_insert.size();
 }
 
 //http://stackoverflow.com/questions/30540101/iterator-for-a-subset-of-a-vector
@@ -392,10 +398,16 @@ static
 range<std::vector<uint32_t>::const_iterator >
 get_from_navigational_vector(const std::vector<uint32_t> &v, uint32_t utig, const std::vector<uint32_t> &v_map) 
 {
-    if (utig == v.size() - 1)
-        return make_range(v,v_map[utig],v.size()-v_map[utig]);
+    if (utig == v_map.size() /*total number of unitigs*/ - 1)
+    {
+        std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v.size()) << std::endl;
+        return make_range(v,v_map[utig],v.size());
+    }
     else
-        return make_range(v,v_map[utig],v_map[utig+1] - v_map[utig]);
+    {
+        std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v_map[utig+1]) << " (utig " << utig << "/" << v_map.size() << ")" << std::endl;
+        return make_range(v,v_map[utig],v_map[utig+1]);
+    }
 }
 
 
@@ -409,8 +421,13 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     //ProgressIterator<bank::Sequence> itSeq (*inputBank, "loading unitigs");
     BankFasta::Iterator itSeq (inputBank);
 
-    unsigned int kmerSize = BaseGraph::_kmerSize;
+ 
+    incoming_map.resize(nb_unitigs);
+    outcoming_map.resize(nb_unitigs);
 
+   unsigned int kmerSize = BaseGraph::_kmerSize;
+
+    nb_unitigs_extremities = 0; // will be used by NodeIterator (getNodes)
     uint64_t utig_counter = 0;
     uint64_t nb_utigs_nucl = 0;
     uint64_t nb_utigs_nucl_mem = 0;
@@ -432,9 +449,14 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         utig_counter++;
         nb_utigs_nucl += seq.size();
         nb_utigs_nucl_mem += seq.capacity();
+
+        if (seq.size() == kmerSize)
+            nb_unitigs_extremities++;
+        else
+            nb_unitigs_extremities+=2;
     }
 
-    if (utig_counter > 1000000000LL) { std::cout << "Error: more than 1B unitigs, GATB-core isn't ready for that yet. Try to better error-correct your data." << std::endl; exit(1);} // just need to change some uint32's in uint64's but would 2x the mem
+    if (utig_counter > 500000000LL) { std::cout << "Error: more than 0.5B unitigs, GATB-core isn't ready for that yet. Try to better error-correct the data." << std::endl; exit(1);} // just need to change some uint32's in uint64's but would 2x the mem (incoming and outcoming vectors, i think that's it)
 
     unitigs_traversed.resize(0);
     unitigs_traversed.resize(unitigs.size(), false); // resize "traversed" bitvector, setting it to zero as well
@@ -608,14 +630,16 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
     
         incoming  = graph.incoming;
         outcoming = graph.outcoming;
-        incoming  = graph.incoming_map;
-        outcoming = graph.outcoming_map;
+        incoming_map  = graph.incoming_map;
+        outcoming_map = graph.outcoming_map;
         unitigs = graph.unitigs;
         unitigs_mean_abundance = graph.unitigs_mean_abundance;
         unitigs_traversed = graph.unitigs_traversed;
+        unitigs_deleted = graph.unitigs_deleted;
         modelK = graph.modelK;
         modelKdirect = graph.modelKdirect;
         nb_unitigs = graph.nb_unitigs;
+        nb_unitigs_extremities = graph.nb_unitigs_extremities;
         
     }
     return *this;
@@ -653,9 +677,11 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         unitigs = std::move(graph.unitigs);
         unitigs_mean_abundance = std::move(graph.unitigs_mean_abundance);
         unitigs_traversed = std::move(graph.unitigs_traversed);
+        unitigs_deleted = std::move(graph.unitigs_deleted);
         modelK = std::move(graph.modelK);
         modelKdirect = std::move(graph.modelKdirect);
         nb_unitigs = std::move(graph.nb_unitigs);
+        nb_unitigs_extremities = std::move(graph.nb_unitigs_extremities);
         
     }
     return *this;
@@ -705,11 +731,11 @@ void GraphUnitigsTemplate<span>::remove ()
 template<size_t span>
 GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, Direction direction)  const
 {
-    bool debug = false;
+    bool debug = true;
 
     if (debug)
     {
-        std::cout << "graphU getEdges called, on source: " << toString(source) << "unitig: " << source.unitig << " strand: " << source.strand << std::endl;
+        std::cout << "graphU getEdges called, on source: " << toString(source) << " unitig: " << source.unitig << " strand: " << source.strand << " dir " << direction << std::endl;
     }
 
     if (source.pos == UNITIG_INSIDE)
@@ -722,11 +748,11 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     res.resize(0);
     
     unsigned int kmerSize = BaseGraph::_kmerSize;
-    int seqSize = unitigs[source.unitig].size();
+    unsigned int seqSize = unitigs[source.unitig].size();
     
     bool same_orientation = node_in_same_orientation_as_in_unitig(source);
-    bool pos_begin = source.pos == 0;
-    bool pos_end = source.pos == (seqSize-kmerSize);
+    bool pos_begin = source.pos & UNITIG_BEGIN;
+    bool pos_end = source.pos & UNITIG_END;
 
     if ((!pos_begin) && (!pos_end))
     {
@@ -739,45 +765,55 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
         // unitig: [kmer]-------
         if (same_orientation && (direction & DIR_OUTCOMING) && pos_begin) 
         {
+            Unitig_pos pos = UNITIG_INSIDE;
+            if (seqSize == kmerSize + 1) pos = UNITIG_END;
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, UNITIG_INSIDE, source.strand, DIR_OUTCOMING);
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_OUTCOMING);
             if (debug) std::cout << "found success of [kmer]---" << std::endl;
         }
 
         // unitig: [kmer rc]-------
         if ((!same_orientation) && (direction & DIR_INCOMING) && pos_begin) 
         {
+            Unitig_pos pos = UNITIG_INSIDE;
+            if (seqSize == kmerSize + 1) pos = UNITIG_END;
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, UNITIG_INSIDE, source.strand, DIR_INCOMING); // TODO not sure about the dest.strand in those cases, so i'm setting to source.strand, we'll see. (applies to all 3 other cases)
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_INCOMING); // TODO not sure about the dest.strand in those cases, so i'm setting to source.strand, we'll see. (applies to all 3 other cases)
             if (debug) std::cout << "found success of [kmer rc]---" << std::endl;
         }
 
         // unitig: ----------[kmer]
         if ((same_orientation) && (direction & DIR_INCOMING) && pos_end)
         {
+            Unitig_pos pos = UNITIG_INSIDE;
+            if (seqSize == kmerSize + 1) pos = UNITIG_BEGIN;
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, UNITIG_INSIDE, source.strand, DIR_INCOMING);
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_INCOMING);
             if (debug) std::cout << "found predec of --------[kmer]" << std::endl;
         }
 
         // unitig: ----------[kmer rc]
         if ((!same_orientation) && (direction & DIR_OUTCOMING) && pos_end)
         {
+            Unitig_pos pos = UNITIG_INSIDE;
+            if (seqSize == kmerSize + 1) pos = UNITIG_BEGIN;
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, UNITIG_INSIDE, source.strand, DIR_OUTCOMING);
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_OUTCOMING);
             if (debug) std::cout << "found predec of --------[kmer rc]" << std::endl;
         }
+    }
+    else
+    {
+        pos_begin = pos_end = true; // necessary fix that sohuld have happened in parse_unitig_header
     }
     
     // otherwise, that extremity kmer has neighbors at are also extremities.
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
-
-    if (debug)
-        std::cout << "[out-of-unitig getEdges] for " << toString(source) << " dir " << direction << std::endl;
-    
+   
     auto functor = [&](range<std::vector<uint32_t>::const_iterator >&& edges, Direction dir)
     {
         auto it = edges.begin();
+        if (it == edges.end()) return;
         for (; it != edges.end(); it++)
         {
             auto edge_packed = *it;
@@ -802,7 +838,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
             if (debug) 
             {
                 NodeGU node(unitig, pos, strand);
-                std::cout << "found neighbor " << toString(node) << " dir " << dir << std::endl;
+                std::cout << "[out-of-unitig getEdges], found neighbor " << toString(node) << " dir " << dir << std::endl;
             }
     
             res.resize(res.size()+1);
@@ -872,8 +908,8 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
     class NodeIterator : public tools::dp::ISmartIterator<NodeGU>
     {
         public:
-            NodeIterator (uint64_t nb_unitigs) 
-                :  _nbItems(nb_unitigs), _rank(0), _isDone(true)   {  
+            NodeIterator (const std::vector<std::string>& unitigs /* just to get lengths*/, unsigned int k, unsigned int nb_unitigs_extremities) 
+                :  _nbItems(nb_unitigs_extremities), _rank(0), _isDone(true), unitigs(unitigs), k(k), nb_unitigs(unitigs.size()) {  
                     this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
                 }
 
@@ -893,7 +929,7 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
             {
                 it = 0;
                 _rank   = 0;
-                _isDone = it == (2*_nbItems+1);
+                _isDone = it == (2*nb_unitigs);
 
                 if (!_isDone)
                     update_item();
@@ -903,7 +939,9 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
             void next()
             {
                 it++;
-                _isDone = it == (2*_nbItems+1);
+                if (unitigs[it/2].size() == k) // takes care of the case where the unitig is just a kmer
+                    it++;
+                _isDone = it == (2*nb_unitigs);
                 if (!_isDone)
                     update_item();
             }
@@ -926,13 +964,15 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
 
         private:
             uint64_t it;
-
             u_int64_t _nbItems;
             u_int64_t _rank;
             bool      _isDone;
+            const std::vector<std::string>& unitigs;
+            unsigned int k;
+            unsigned int nb_unitigs;
     };
 
-    return new NodeIterator(nb_unitigs);
+    return new NodeIterator(unitigs, BaseGraph::_kmerSize, nb_unitigs_extremities);
 }
 
 template<size_t span> 
@@ -1081,7 +1121,7 @@ template<size_t span>
 NodeGU GraphUnitigsTemplate<span>::
 unitigLastNode          (const NodeGU& node, Direction dir) const
 {
-    const std::string& seq = unitigs[node.unitig];
+    //const std::string& seq = unitigs[node.unitig];
 
     //std::cout << "lastnode" << toString(node) << " dir " << dir  << std::endl;
     
@@ -1184,7 +1224,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         std::cout << "simplePathLongest_avance called, node " << toString(node) << " dir " << dir << std::endl;
 
     seqLength = 0;
-    int kmerSize = BaseGraph::_kmerSize;
+    unsigned int kmerSize = BaseGraph::_kmerSize;
     NodeGU cur_node = node;
     if (isFirstNode(cur_node, dir))
     {
@@ -1258,6 +1298,10 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
 
         if (debug)
             std::cout << "simplePathLongest_avance continues now at a last node = " << toString(cur_node) << " strand " << cur_node.strand << " neighbor.to " << toString(neighbors[0].to) << " strand " << neighbors[0].to.strand  << " new seq length: " << unitigLength << std::endl;
+
+        // fix for 1-bit encoded unitig position. That fix could have happened in unitig_parse_header but i didn't want to encode pos in 2 bits. Also, could have happened in NodeGU constructor, but didn't want to waste time checking unitig size there
+        if (unitigs[neighbors[0].to.unitig].size() == kmerSize)
+            neighbors[0].to.pos = UNITIG_BOTH;
 
         int npos = neighbors[0].to.pos;
 
@@ -1437,6 +1481,32 @@ debugPrintAllUnitigs() const
             std::cout << std::endl;
     }
     std::cout << "Done printing graph unitigs" << std::endl;
+}
+
+/* slow, O(|unitigs|) construction of a node given its kmer. for debug only */
+template<size_t span>
+NodeGU GraphUnitigsTemplate<span>::
+debugBuildNode(string startKmer) const
+{
+    for (unsigned int i = 0; i < unitigs.size(); i++)
+    {
+        string unitig = unitigs[i];
+        for (int rc = 0; rc < 2; rc++)
+        {
+            if (rc == 1) 
+                unitig = revcomp(unitig);
+            if (unitig.substr(0, BaseGraph::_kmerSize) == startKmer)
+            {
+                return NodeGU(i,rc?UNITIG_END:UNITIG_BEGIN, rc?STRAND_REVCOMP:STRAND_FORWARD);
+            }
+            if (unitig.substr(unitig.size() - BaseGraph::_kmerSize) == startKmer)
+            {
+                return NodeGU(i,rc?UNITIG_BEGIN:UNITIG_END, rc?STRAND_REVCOMP:STRAND_FORWARD);
+            }
+        }
+    }
+    std::cout << "could not build node correspoding to kmer" << startKmer << ", it's not an unitig end." << std::endl;
+    exit(1);
 }
 
 

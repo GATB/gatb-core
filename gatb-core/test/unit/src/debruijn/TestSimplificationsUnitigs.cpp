@@ -77,7 +77,7 @@ using namespace gatb::core::tools::storage::impl;
 
 extern std::string DBPATH (const string& a);
 
-#define DEBUGprint(a) //a
+#define DEBUGprint(a) a
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
@@ -93,10 +93,10 @@ class TestSimplificationsUnitigs : public Test
     CPPUNIT_TEST_SUITE_GATB (TestSimplificationsUnitigs);
 // they all need the mphf
 #ifdef WITH_MPHF
-        CPPUNIT_TEST_GATB (debruijn_simplunitigs_X);
+    //    CPPUNIT_TEST_GATB (debruijn_simplunitigs_X);
         CPPUNIT_TEST_GATB (debruijn_simplunitigs_tip);
-        CPPUNIT_TEST_GATB (debruijn_simplunitigs_bubble);
-        CPPUNIT_TEST_GATB (debruijn_simplunitigs_ec);
+   /*     CPPUNIT_TEST_GATB (debruijn_simplunitigs_bubble);
+        CPPUNIT_TEST_GATB (debruijn_simplunitigs_ec);*/
 #endif
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -128,7 +128,7 @@ public:
 
         if (checkNodes)
         {
-            GraphIterator<NodeFast<32>> iterNodes = graph.iterator();
+            GraphIterator<NodeGU> iterNodes = graph.iterator();
             for (iterNodes.first(); !iterNodes.isDone(); iterNodes.next())
             { result.nbNodes++; /*result.checksumNodes += iterNodes.item().kmer; */
             
@@ -147,7 +147,7 @@ public:
     void debruijn_build (const char* sequences[], size_t nbSequences, int k, GraphUnitigs& graph, debruijn_build_entry& r)
     {
         // We build the bank
-        graph = GraphUnitigs::create (new BankStrings (sequences, nbSequences),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d -minimizer-size 3" /*because some of kmer sizes are 5*/, k , MAX_MEMORY);
+        graph = GraphUnitigs::create (new BankStrings (sequences, nbSequences),  "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d -nb-cores 1 -minimizer-size 3" /*because some of kmer sizes are 5*/, k , MAX_MEMORY);
 
         r = debruijn_stats (graph, true,  true);
     }
@@ -171,13 +171,12 @@ public:
         return rc;
     }
 
-
     void debruijn_traversal (GraphUnitigs& graph, string startSeq ,const char* checkStr, bool reverse_seq=false)
     {
         TraversalKind traversalKind=TRAVERSAL_UNITIG; /* setting traversal=CONTIG doesn't make sense anymore, it was for miniav1 */
 
         string startKmer = startSeq.substr(0, graph._kmerSize);
-		NodeFast<32> node = graph.buildNode (startKmer.c_str());
+		NodeGU node = graph.debugBuildNode(startKmer);
 
         bool isolatedLeft, isolatedRight;
         float coverage = 0;

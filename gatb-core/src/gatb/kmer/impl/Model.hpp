@@ -290,6 +290,9 @@ struct Kmer
          * \return the used strand. */
         Strand strand() const { return which() ? STRAND_FORWARD : STRAND_REVCOMP; }
 
+        /* tells whether a kmer and its revcomp are identical */
+        bool isPalindrome () const { return table[0] == table[1]; }
+
     protected:
         Type table[2];  char choice;
 		
@@ -322,6 +325,7 @@ struct Kmer
             table[0] = table[0] >> 2;   table[1] = table[1] << 2;  updateChoice();
             return output;
         }
+       
      };
 
     /** \brief Kmer type for the ModelMinimizer class.

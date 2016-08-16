@@ -10,10 +10,11 @@ namespace impl      {
 
     enum Unitig_pos 
     {
-        UNITIG_BEGIN = 0,
-        UNITIG_END = 1,
-        UNITIG_BOTH = 2, /* not encoded in ExtremityInfo, but encoded in NodeGU */
-        UNITIG_INSIDE = 3 /* not encoded in ExtremityInfo, but encoded in NodeGU */
+        // cannot start at 0 because i'm using (pos & UNITIG_BEGIN) as a test in many places.
+        UNITIG_BEGIN = 1,
+        UNITIG_END = 2,
+        UNITIG_BOTH = 3, /* not encoded in ExtremityInfo, but encoded in NodeGU */
+        UNITIG_INSIDE = 4 /* not encoded in ExtremityInfo, but encoded in NodeGU */
     };
 
 
@@ -36,15 +37,16 @@ namespace impl      {
         ExtremityInfo() {} // because i defined another constructor
         ExtremityInfo(const uint64_t val) { unpack(val); } 
         std::string toString() const
-        { return " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"left":"") + ((pos&UNITIG_END)?"right":"") + " " + " d:" + std::to_string(deleted); }
+        { return " unitig: " + std::to_string(unitig) + " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"UNITIG_BEGIN":"") + ((pos&UNITIG_END)?"UNITIG_END":"") + " " + " d:" + std::to_string(deleted); }
         uint64_t pack()
         {
-            return pos + (rc << 2) + (deleted << 3) + (unitig << 4);
+            if ((int)pos > 2) { std::cout << "incorrect encoding for pos in packed ExtremityInfo: " << (int)pos << std::endl; exit(1); }
+            return (pos-1) + (rc << 1) + (deleted << 2) + (unitig << 3);
         }
         void unpack(uint64_t val)
         {
             
-            pos = val?UNITIG_END:UNITIG_BEGIN;
+            pos = (val&1)?UNITIG_END:UNITIG_BEGIN;
                                    val >>= 1;
             rc = val&1;            val >>= 1;
             deleted = val&1;       val >>= 1;

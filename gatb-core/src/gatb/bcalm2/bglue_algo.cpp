@@ -879,8 +879,11 @@ typedef uint64_t partition_t;
 
         if (!found_partition) // this one doesn't need to be glued
         {
-            float mean_abundance = get_mean_abundance(comment.substr(3));
-            output(seq, out, std::to_string(out_id++) + " MA=" + to_string_with_precision(mean_abundance)); // maybe could optimize writing by using queues
+            string abundances = comment.substr(3);
+            float mean_abundance = get_mean_abundance(abundances);
+            uint32_t sum_abundances = get_sum_abundance(abundances);
+            output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " KM:f:" + to_string_with_precision(mean_abundance)); 
+            // maybe could optimize by writing to disk using queues, if that's ever a bottleneck
             return;
         }
 

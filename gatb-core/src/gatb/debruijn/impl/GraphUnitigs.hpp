@@ -353,6 +353,7 @@ public:
 
     void debugPrintAllUnitigs() const;
 
+    NodeGU debugBuildNode(std::string startKmer) const;
 
     /**********************************************************************/
     /*                         NODE METHODS                               */
@@ -479,7 +480,7 @@ public: // was private: before, but had many compilation errors during the chang
     std::vector<float> unitigs_mean_abundance;
     std::vector<bool> unitigs_deleted; // could also be replaced by setting incoming and outcoming to all deleted.
     std::vector<bool> unitigs_traversed;
-    uint64_t nb_unitigs;
+    uint64_t nb_unitigs, nb_unitigs_extremities;
 };
   
 
