@@ -342,11 +342,10 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
              * L:-:next_unitig:-    unitig_rc[end] -> [begin]next_unitig_rc                         unitig_rc[end] -> [begin]unitig
              * */
 
-
             /* setting pos:
              * in case of single-kmer unitig, pos will be wrong (should be UNITIG_BOTH, but i'm not storing this info in just 1 bit). Instead, getEdges as well as simplePath_avance are inferring that it's UNITIG_BOTH in cases where the unitig is just of length k
              * thus, pos is actually also given by the following formula, if you think hard about it and look at the situations above*/
-            if (!in)
+            if (in)
                 rc = !rc;
             Unitig_pos pos = (rc)?UNITIG_END:UNITIG_BEGIN;
 

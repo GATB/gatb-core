@@ -183,6 +183,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             if (kmerBegin.isPalindrome()) nevermindInOrientation = true;
             if (kmerEnd.isPalindrome())   nevermindOutOrientation = true;
+
         }
         
         if (debug) std::cout << "unitig: " << seq << std::endl;
@@ -208,7 +209,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
             {
                 //LinkInfo li(e_in.unitig, e_in.rc ^ beginInSameOrientation);
                 //incoming[utig_number].push_back(li.pack());
-                bool rc = e_in.rc ^ beginInSameOrientation;
+                bool rc = e_in.rc ^ (!beginInSameOrientation);
                 links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"+":"-") + " "; /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
                 if (debug) std::cout << " [valid] ";
             }
@@ -235,7 +236,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
             {
                 //LinkInfo li(e_out.unitig, e_out.rc ^ endInSameOrientation);
                 //outcoming[utig_number].push_back(li.pack());
-                bool rc = e_out.rc ^ endInSameOrientation;
+                bool rc = e_out.rc ^ (!endInSameOrientation);
                 links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+") + " "; /* logically this is going to be opposite of the line above */
                 if (debug) std::cout << " [valid] ";
             }

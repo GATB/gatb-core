@@ -90,11 +90,12 @@ class TestDebruijnUnitigs : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestDebruijnUnitigs);
 
+        //CPPUNIT_TEST_GATB (debruijn_unitigs_test12); // same dataset as tip simplification, just a minor check with large kmer size
+        
         CPPUNIT_TEST_GATB (debruijn_unitigs_test7_nocircular);
         CPPUNIT_TEST_GATB (debruijn_unitigs_test10); // a unitig of length k with 2 in-branching and 2 out-branching. useful to test an edge case bug
         CPPUNIT_TEST_GATB (debruijn_unitigs_test11); // same as test10, except 1 out-branching instead of 2, provides asymetry
         CPPUNIT_TEST_GATB (debruijn_unitigs_test1); // an X-shaped unitig layout
-        CPPUNIT_TEST_GATB (debruijn_unitigs_test12); // same dataset as tip simplification, just a minor check with larger kmer size as above
          //CPPUNIT_TEST_GATB (debruijn_unitigs_deletenode); // probably not appropriate, it's a weird case of a self-revcomp kmer inside a unitig and also at an extremity.
         CPPUNIT_TEST_GATB (debruijn_unitigs_test2);
         CPPUNIT_TEST_GATB (debruijn_unitigs_test4);
@@ -646,7 +647,7 @@ public:
 
         NodeGU n1 = graph.debugBuildNode ((char*)"TGTCATCTAGTTCAACAACCA"); // part of the tip
 
-        GraphVector<EdgeGU> neighbors = graph.neighborsEdge(n1, DIR_INCOMING);// GCGAT
+        GraphVector<EdgeGU> neighbors = graph.neighborsEdge(n1, DIR_INCOMING);
         CPPUNIT_ASSERT (neighbors.size() == 1);
         for (size_t i=0; i<neighbors.size(); i++)
         {
@@ -660,6 +661,21 @@ public:
             CPPUNIT_ASSERT (graph.toString(edge.to)  == "GTGTCATCTAGTTCAACAACC" );
         }
 
+        NodeGU n2 = graph.debugBuildNode ((char*)"TGGTTGTTGAACTAGATGACA"); // part of the tip
+
+        neighbors = graph.neighborsEdge(n2, DIR_INCOMING);
+        CPPUNIT_ASSERT (neighbors.size() == 1);
+        for (size_t i=0; i<neighbors.size(); i++)
+        {
+            EdgeGU& edge = neighbors[i];
+
+            if (graph.toString(edge.to) != "GTGTCATCTAGTTCAACAACC" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="TGTCATCTAGTTCAACAACCA");
+            CPPUNIT_ASSERT (graph.toString(edge.to)  == "GTGTCATCTAGTTCAACAACC" );
+        }
     }
 
     /********************************************************************************/
