@@ -71,8 +71,8 @@ namespace impl      {
 enum Direction
 {
     DIR_OUTCOMING = 1,
-    DIR_INCOMING,
-    DIR_END
+    DIR_INCOMING = 2,
+    DIR_END = 3
 };
 
 inline std::string toString (Direction d)

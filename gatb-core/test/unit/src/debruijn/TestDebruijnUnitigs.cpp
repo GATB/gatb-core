@@ -96,6 +96,7 @@ class TestDebruijnUnitigs : public Test
         CPPUNIT_TEST_GATB (debruijn_unitigs_test10); // a unitig of length k with 2 in-branching and 2 out-branching. useful to test an edge case bug
         CPPUNIT_TEST_GATB (debruijn_unitigs_test11); // same as test10, except 1 out-branching instead of 2, provides asymetry
         CPPUNIT_TEST_GATB (debruijn_unitigs_test1); // an X-shaped unitig layout
+        CPPUNIT_TEST_GATB (debruijn_unitigs_test14); // a neighborsEdge() without dir
         // the rest of those tests don't really test the getEdge function
          //CPPUNIT_TEST_GATB (debruijn_unitigs_deletenode); // probably not appropriate, it's a weird case of a self-revcomp kmer inside a unitig and also at an extremity.
         CPPUNIT_TEST_GATB (debruijn_unitigs_test2);
@@ -707,6 +708,33 @@ public:
             CPPUNIT_ASSERT (graph.toString(edge.to)  == "GTGTCATCTAGTTCAACAACC" );
         }
     }
+
+    void debruijn_unitigs_test14() // that neighbors without a direction may return correct degree but not correct number of nodes ?! false alert, but still, i'm keeping that test.
+    {
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (
+        "AAGAGCCCGCTTATCCGGTGGTGATACCTAC",
+        "AGAGCCCGCTTATCCGGTGGTGATACCTACC"
+            ,0),
+                "-kmer-size 31  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -nb-cores 1", MAX_MEMORY);
+
+        NodeGU n1 = graph.debugBuildNode ((char*)"AGAGCCCGCTTATCCGGTGGTGATACCTACC"); // 
+        GraphVector<EdgeGU> neighbors = graph.neighborsEdge(n1);
+        CPPUNIT_ASSERT (neighbors.size() == 1);
+        for (size_t i=0; i<neighbors.size(); i++)
+        {
+            EdgeGU& edge = neighbors[i];
+
+            if (graph.toString(edge.to) != "AAGAGCCCGCTTATCCGGTGGTGATACCTAC" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="AGAGCCCGCTTATCCGGTGGTGATACCTACC");
+            CPPUNIT_ASSERT (graph.toString(edge.to)  == "AAGAGCCCGCTTATCCGGTGGTGATACCTAC" );
+        }
+    }
+
+
+
 
 
     /********************************************************************************/

@@ -25,10 +25,10 @@
 // We include required definitions
 /********************************************************************************/
 
-#define DEBUG(a)    //a
-#define DEBUG_TIPS(a)    //a
-#define DEBUG_BULGES(a)    //a
-#define DEBUG_EC(a)    //a
+#define DEBUG(a)    a
+#define DEBUG_TIPS(a)    a
+#define DEBUG_BULGES(a)    a
+#define DEBUG_EC(a)    a
 
 // the only time when you don't want to define this, is when debugging with gdb, because can't debug lambda's
 #define SIMPLIFICATION_LAMBDAS 
@@ -453,7 +453,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             GraphVector<Edge> neighbors = _graph.neighborsEdge(node); 
             // but in fact, node may have one or more neighbors in that direction
            
-            if (neighbors.size() == 0) { std::cout << "unexpected problem during removeTips, no neighbor; " << inDegree << " " << outDegree << " " << _graph.toString(node) << " " << neighbors[0].direction << std::endl; exit(1);}
+            if (neighbors.size() == 0) { std::cout << "unexpected problem during removeTips, no neighbor; " << inDegree << " " << outDegree << " " << _graph.toString(node) << std::endl; exit(1);}
 
             /* it may appear that we're only going to follow its first neighbor, but in fact, neighbors[0].from is node */
             /* so, follow the simple path from this start tip node to the further node that has out-branching (out is w.r.t to the direction) */
@@ -1411,7 +1411,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     
                     bool isBulge =  simplePathCoverage * 1.1  <=  mean_abundance_most_covered;
     
-                    DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage<< "/" <<  mean_abundance_most_covered  << endl);
+                    DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage << " (path: " << _graph.toString(simplePathStart) << " vs most covered:" <<  mean_abundance_most_covered  << endl);
     
                     if (!isBulge)
                     {
@@ -1425,7 +1425,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                     // delete the bulge
                     //
-                    DEBUG_BULGES(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
+                    DEBUG_BULGES(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (simplePathStart) << endl);
                     _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
 
                     __sync_fetch_and_add(&nbBulgesRemoved, 1);

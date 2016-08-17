@@ -305,6 +305,8 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         
         setState(STATE_BCALM2_DONE);
     }
+    else
+        nb_unitigs = atol (BaseGraph::getGroup().getProperty ("nb_unitigs").c_str());
 
     /** We save the state at storage root level. */
     BaseGraph::getGroup().setProperty ("state",          Stringify::format("%d", BaseGraph::_state));
@@ -314,7 +316,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
 static void
 parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc, vector<uint32_t>& outc)
 {
-    bool debug = true;
+    bool debug = false;
     if (debug) std::cout << "parsing unitig links for " << header << std::endl;
     std::stringstream stream(header);
     while(1) {
@@ -350,7 +352,8 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
                 rc = !rc;
 
             ExtremityInfo li(unitig, rc, pos);
-            std::cout << "inserting "<< (in?"incoming":"outcoming") <<  " extremity " << li.toString() << std::endl;
+            if (debug)
+                std::cout << "inserting "<< (in?"incoming":"outcoming") <<  " extremity " << li.toString() << std::endl;
             if (in)
                 inc.push_back(li.pack());
             else
@@ -361,6 +364,7 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
             if (field == "KM")
             {
                 mean_abundance = atof(tok.substr(tok.find_last_of(':')+1).c_str());
+                //std::cout << "unitig " << header << " mean abundance " << mean_abundance << std::endl;
             }
             // we don't care about other fields
         }
@@ -399,7 +403,7 @@ get_from_navigational_vector(const std::vector<uint32_t> &v, uint32_t utig, cons
 {
     if (utig == v_map.size() /*total number of unitigs*/ - 1)
     {
-        //std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v.size()) << std::endl;
+        //std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v.size()) << " last unitig" << std::endl;
         return make_range(v,v_map[utig],v.size());
     }
     else
@@ -845,20 +849,17 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
         }
     }; 
 
-    if (pos_end && ((direction & DIR_OUTCOMING) && same_orientation) || ( direction & DIR_INCOMING && (!same_orientation) ) )
+    if (pos_end && ((direction & DIR_OUTCOMING) && same_orientation) || ( (direction & DIR_INCOMING) && (!same_orientation) ) )
     {
         // nodes to the right of a unitig (outcoming)
         Direction dir = same_orientation?DIR_OUTCOMING:DIR_INCOMING;
         functor(get_from_navigational_vector(outcoming, source.unitig, outcoming_map), dir);
     }
-    else
+    if (pos_begin && ((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) )
     {
-        if (pos_begin && ((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) )
-        {
-            // nodes to the left of a unitig (incoming)
-            Direction dir = same_orientation?DIR_INCOMING:DIR_OUTCOMING;
-            functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), dir);
-        }
+        // nodes to the left of a unitig (incoming)
+        Direction dir = same_orientation?DIR_INCOMING:DIR_OUTCOMING;
+        functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), dir);
     }
 
     return res;
@@ -1057,11 +1058,11 @@ template<size_t span>
 bool GraphUnitigsTemplate<span>::
 isLastNode(const NodeGU& node, Direction dir) const
 {
+    if (unitigs[node.unitig].size() == BaseGraph::_kmerSize) // special case.
+        return true;
+
     bool same_orientation = node_in_same_orientation_as_in_unitig(node);
     Unitig_pos pos = node.pos;
-
-    if (unitigs[node.unitig].size() == BaseGraph::_kmerSize)
-        pos = UNITIG_BOTH; // needed because currently, nodes don't have UNITIG_BOTH encoded.
 
     // cases where, following that unitig direction, we're already at the last node
     if ((same_orientation    && (pos & UNITIG_END) && dir == DIR_OUTCOMING) ||
@@ -1076,6 +1077,12 @@ template<size_t span>
 bool GraphUnitigsTemplate<span>::
 isFirstNode(const NodeGU& node, Direction dir) const
 {
+    // special case
+    if (unitigs[node.unitig].size() == BaseGraph::_kmerSize)
+    {
+        return true;
+    }
+
     return !isLastNode(node,dir);
 }
 
@@ -1084,7 +1091,12 @@ double GraphUnitigsTemplate<span>::
 simplePathMeanAbundance     (const NodeGU& node, Direction dir) 
 {
     if (isLastNode(node,dir))
-        return 0;
+    {
+        if (!isFirstNode(node,dir))
+            return 0;
+        else // single-k-mer unitig
+            return unitigMeanAbundance(node);
+        }
 
     float coverage = 0;
     int endDegree;
@@ -1169,7 +1181,7 @@ void GraphUnitigsTemplate<span>::
 unitigDelete (NodeGU& node) 
 {
     unitigs_deleted[node.unitig] = true;
-    //std::cout << "GraphU deleted simple path " << seq << std::endl; 
+    //std::cout << "GraphU deleted unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << std::endl; 
 }
 
 
@@ -1179,6 +1191,7 @@ void GraphUnitigsTemplate<span>::
 unitigDelete (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
     nodesDeleter.onlyListMethod = true; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
+    std::cout << "GraphU queuing to delete unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << " mean abundance " << unitigMeanAbundance(node) << std::endl; 
     nodesDeleter.markToDelete(node);
 }
 
@@ -1228,14 +1241,14 @@ template<size_t span>
 void GraphUnitigsTemplate<span>::
 simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int& endDegree, bool markDuringTraversal, float& coverage, string* seq, std::vector<NodeGU> *nodesList) 
 {
-    bool debug = false;
+    bool debug = true;
     if (debug)
         std::cout << "simplePathLongest_avance called, node " << toString(node) << " dir " << dir << std::endl;
 
     seqLength = 0;
     unsigned int kmerSize = BaseGraph::_kmerSize;
     NodeGU cur_node = node;
-    if (isFirstNode(cur_node, dir))
+    if (!isLastNode(cur_node,dir))
     {
         // first node in unitig may have in-branching, it's fine for a simple path traversal. we'll just go to last node and record the sequence of that unitig
         int unitigLength = unitigs[node.unitig].size();
@@ -1409,7 +1422,7 @@ simplePathBothDirections(const NodeGU& node, bool& isolatedLeft, bool& isolatedR
     if (markDuringTraversal)
         unitigMark(left);
 
-    string seqRight, seqLeft;
+    string seqRight = "", seqLeft = "";
     int endDegreeLeft, endDegreeRight;
     float rightTotalCoverage = 0, leftTotalCoverage = 0;
     int lenSeqRight = 0, lenSeqLeft = 0;
@@ -1450,7 +1463,7 @@ debugPrintAllUnitigs() const
     std::cout << "Debug: printing all graph unitigs and status" << std::endl;
     for (unsigned int i = 0; i < nb_unitigs; i++)
     {
-        std::cout << "unitig " << i << " (length: " << unitigs[i].size() << ")" << " links: ";
+        std::cout << "unitig " << i << " (length: " << unitigs[i].size() << ") " << (unitigs_deleted[i]?"[deleted]":"") << " links: ";
 
 
         for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
