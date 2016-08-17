@@ -195,6 +195,9 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             ExtremityInfo e_in(in_packed);
 
+            if (nevermindInOrientation && (e_in.pos == UNITIG_BEGIN) && (e_in.unitig == utigs_number)) continue; // don't self-link
+
+            if (debug) std::cout << "extremity " << modelKminusOne.toString(kmerBegin.value()) << " ";
             if (debug) std::cout << "potential in-neighbor: " << e_in.toString() << " beginSameOrientation " << beginInSameOrientation;
 
             // what we want are these four cases:
@@ -222,6 +225,9 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             ExtremityInfo e_out(out_packed);
 
+            if (nevermindOutOrientation && (e_out.pos == UNITIG_END) && (e_out.unitig == utigs_number)) continue; // don't self-link
+
+            if (debug) std::cout << "extremity " << modelKminusOne.toString(kmerEnd.value()) << " ";
             if (debug) std::cout << "potential out-neighbor: " << e_out.toString();
 
             // what we want are these four cases:

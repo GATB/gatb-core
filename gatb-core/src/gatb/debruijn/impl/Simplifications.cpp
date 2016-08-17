@@ -25,10 +25,10 @@
 // We include required definitions
 /********************************************************************************/
 
-#define DEBUG(a)    a
-#define DEBUG_TIPS(a)    a
-#define DEBUG_BULGES(a)    a
-#define DEBUG_EC(a)    a
+#define DEBUG(a)    //a
+#define DEBUG_TIPS(a)    //a
+#define DEBUG_BULGES(a)    //a
+#define DEBUG_EC(a)    //a
 
 // the only time when you don't want to define this, is when debugging with gdb, because can't debug lambda's
 #define SIMPLIFICATION_LAMBDAS 
