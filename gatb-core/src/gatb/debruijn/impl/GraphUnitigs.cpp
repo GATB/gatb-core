@@ -339,17 +339,17 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
              * L:+:next_unitig:+    unitig[end] -> [begin]next_unitig 
              * L:+:next_unitig:-    unitig[end] -> [begin]next_unitig_rc
              * L:-:next_unitig:+    unitig_rc[end] -> [begin]next_unitig     or alternatively, next_unitig_rc[end] -> [begin]unitig
-             * L:-:next_unitig:-    unitig_rc[end] -> [begin]next_unitig_rc                         unitig_rc[end] -> [begin]unitig
+             * L:-:next_unitig:-    unitig_rc[end] -> [begin]next_unitig_rc                       next_unitig[end] -> [begin]unitig
              * */
 
             /* setting pos:
-             * in case of single-kmer unitig, pos will be wrong (should be UNITIG_BOTH, but i'm not storing this info in just 1 bit). Instead, getEdges as well as simplePath_avance are inferring that it's UNITIG_BOTH in cases where the unitig is just of length k
-             * thus, pos is actually also given by the following formula, if you think hard about it and look at the situations above*/
+             * in case of single-kmer unitig, pos will be wrong (should be UNITIG_BOTH, but i'm not storing this info in just 1 bit). Instead of encoding it here (would add 1 bit), getEdges as well as simplePath_avance will be inferring that it's UNITIG_BOTH in cases where the unitig is just of length k
+             * thus, pos is actually also given by the following formula, if you think hard about it and look at the situations above (actually i got super confused and changed this code so many times until all unit tests passed)*/
+            Unitig_pos pos = (rc)?UNITIG_END:UNITIG_BEGIN;
             if (in)
                 rc = !rc;
-            Unitig_pos pos = (rc)?UNITIG_END:UNITIG_BEGIN;
 
-            ExtremityInfo li(unitig, /*deleted:*/ false, rc, pos);
+            ExtremityInfo li(unitig, rc, pos);
             std::cout << "inserting "<< (in?"incoming":"outcoming") <<  " extremity " << li.toString() << std::endl;
             if (in)
                 inc.push_back(li.pack());
@@ -399,12 +399,12 @@ get_from_navigational_vector(const std::vector<uint32_t> &v, uint32_t utig, cons
 {
     if (utig == v_map.size() /*total number of unitigs*/ - 1)
     {
-        std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v.size()) << std::endl;
+        //std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v.size()) << std::endl;
         return make_range(v,v_map[utig],v.size());
     }
     else
     {
-        std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v_map[utig+1]) << " (utig " << utig << "/" << v_map.size() << ")" << std::endl;
+        //std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v_map[utig+1]) << " (utig " << utig << "/" << v_map.size() << ")" << std::endl;
         return make_range(v,v_map[utig],v_map[utig+1]);
     }
 }
@@ -455,7 +455,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
             nb_unitigs_extremities+=2;
     }
 
-    if (utig_counter > 500000000LL) { std::cout << "Error: more than 0.5B unitigs, GATB-core isn't ready for that yet. Try to better error-correct the data." << std::endl; exit(1);} // just need to change some uint32's in uint64's but would 2x the mem (incoming and outcoming vectors, i think that's it)
+    if (utig_counter > 1000000000LL) { std::cout << "Error: more than 1B unitigs, GATB-core isn't ready for that yet. Try to better error-correct the data." << std::endl; exit(1);} // just need to change some uint32's in uint64's but would 2x the mem (incoming and outcoming vectors, i think that's it)
 
     unitigs_traversed.resize(0);
     unitigs_traversed.resize(unitigs.size(), false); // resize "traversed" bitvector, setting it to zero as well
@@ -730,11 +730,11 @@ void GraphUnitigsTemplate<span>::remove ()
 template<size_t span>
 GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, Direction direction)  const
 {
-    bool debug = true;
+    bool debug = false;
 
     if (debug)
     {
-        std::cout << "graphU getEdges called, on source: " << toString(source) << " unitig: " << source.unitig << " strand: " << source.strand << " dir " << direction << std::endl;
+        std::cout << "graphU getEdges called, on source: " << toString(source) << " unitig: " << source.unitig << " pos: " << (source.pos==UNITIG_BEGIN?"beg":"end") << " strand: " << source.strand << " dir " << direction << std::endl;
     }
 
     if (source.pos == UNITIG_INSIDE)
@@ -818,11 +818,11 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
             auto edge_packed = *it;
             ExtremityInfo li(edge_packed);
 
-            if (li.deleted) 
+            if (unitigs_deleted[li.unitig]) 
             {
                 if (debug)
-                    std::cout << "found deleted neighbor unitig (kmer: " << toString(NodeGU(li.unitig, li.pos)) << ")" << std::endl;
-                return;
+                    std::cout << "found deleted neighbor unitig "<<  li.unitig <<" (kmer: " << toString(NodeGU(li.unitig, li.pos)) << ")" << std::endl;
+                continue;
             }
 
             uint32_t unitig = li.unitig;
@@ -848,14 +848,16 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     if (pos_end && ((direction & DIR_OUTCOMING) && same_orientation) || ( direction & DIR_INCOMING && (!same_orientation) ) )
     {
         // nodes to the right of a unitig (outcoming)
-        functor(get_from_navigational_vector(outcoming, source.unitig, outcoming_map), direction);
+        Direction dir = same_orientation?DIR_OUTCOMING:DIR_INCOMING;
+        functor(get_from_navigational_vector(outcoming, source.unitig, outcoming_map), dir);
     }
     else
     {
         if (pos_begin && ((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) )
         {
             // nodes to the left of a unitig (incoming)
-            functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), direction);
+            Direction dir = same_orientation?DIR_INCOMING:DIR_OUTCOMING;
+            functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), dir);
         }
     }
 
@@ -907,8 +909,8 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
     class NodeIterator : public tools::dp::ISmartIterator<NodeGU>
     {
         public:
-            NodeIterator (const std::vector<std::string>& unitigs /* just to get lengths*/, unsigned int k, unsigned int nb_unitigs_extremities) 
-                :  _nbItems(nb_unitigs_extremities), _rank(0), _isDone(true), unitigs(unitigs), k(k), nb_unitigs(unitigs.size()) {  
+            NodeIterator (const std::vector<std::string>& unitigs /* just to get lengths*/, const std::vector<bool>& unitigs_deleted, unsigned int k, unsigned int nb_unitigs_extremities) 
+                :  _nbItems(nb_unitigs_extremities), _rank(0), _isDone(true), unitigs(unitigs), unitigs_deleted(unitigs_deleted), k(k), nb_unitigs(unitigs.size()) {  
                     this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
                 }
 
@@ -927,8 +929,9 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
             void first()
             {
                 it = 0;
+                while (unitigs_deleted[it/2] && it < 2*nb_unitigs) it++;
                 _rank   = 0;
-                _isDone = it == (2*nb_unitigs);
+                _isDone = it >= (2*nb_unitigs);
 
                 if (!_isDone)
                     update_item();
@@ -937,10 +940,13 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
             /** \copydoc  Iterator::next */
             void next()
             {
-                it++;
-                if (unitigs[it/2].size() == k) // takes care of the case where the unitig is just a kmer
+                do
+                {
                     it++;
-                _isDone = it == (2*nb_unitigs);
+                    if ((it < 2*nb_unitigs) && unitigs[it/2].size() == k) // takes care of the case where the unitig is just a kmer
+                        it++;
+                } while ((it < 2*nb_unitigs) && unitigs_deleted[it/2]);
+                _isDone = it >= (2*nb_unitigs);
                 if (!_isDone)
                     update_item();
             }
@@ -967,11 +973,12 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
             u_int64_t _rank;
             bool      _isDone;
             const std::vector<std::string>& unitigs;
+            const std::vector<bool>& unitigs_deleted;
             unsigned int k;
             unsigned int nb_unitigs;
     };
 
-    return new NodeIterator(unitigs, BaseGraph::_kmerSize, nb_unitigs_extremities);
+    return new NodeIterator(unitigs, unitigs_deleted, BaseGraph::_kmerSize, nb_unitigs_extremities);
 }
 
 template<size_t span> 
@@ -1030,6 +1037,9 @@ std::string GraphUnitigsTemplate<span>::toString (const NodeGU& node) const
     const std::string& seq = unitigs[node.unitig];
     int kmerSize = BaseGraph::_kmerSize;
 
+    if (node.pos == UNITIG_INSIDE)
+    {    return "[GraphUnitigs.toString cannot print an UNITIG_INSIDE]"; }
+    
     string node_str;
     if (node.pos & UNITIG_BEGIN)
         node_str = seq.substr(0,kmerSize);
@@ -1286,7 +1296,8 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         uint64_t neighbor_unitig = neighbors[0].to.unitig;
         if (traversed_unitigs.find(neighbor_unitig) != traversed_unitigs.end())
         {
-            //std::cout << "simplePathLongest_avance loop" << std::endl;
+            if (debug)
+                std::cout << "simplePathLongest_avance loop" << std::endl;
             break;
         }
         traversed_unitigs.insert(neighbor_unitig);
@@ -1296,7 +1307,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         int unitigLength = unitigs[neighbor_unitig].size();
 
         if (debug)
-            std::cout << "simplePathLongest_avance continues now at a last node = " << toString(cur_node) << " strand " << cur_node.strand << " neighbor.to " << toString(neighbors[0].to) << " strand " << neighbors[0].to.strand  << " new seq length: " << unitigLength << std::endl;
+            std::cout << "simplePathLongest_avance continues now at a last node = " << toString(cur_node) << " strand " << cur_node.strand << " of unitig " << cur_node.unitig << " length " << unitigs[cur_node.unitig].size() << ", neighbor.to " << toString(neighbors[0].to) << " strand " << neighbors[0].to.strand << " of unitig " << neighbors[0].to.unitig << " new seq length: " << unitigLength << std::endl;
 
         // fix for 1-bit encoded unitig position. That fix could have happened in unitig_parse_header but i didn't want to encode pos in 2 bits. Also, could have happened in NodeGU constructor, but didn't want to waste time checking unitig size there
         if (unitigs[neighbors[0].to.unitig].size() == kmerSize)
@@ -1441,43 +1452,30 @@ debugPrintAllUnitigs() const
     {
         std::cout << "unitig " << i << " (length: " << unitigs[i].size() << ")" << " links: ";
 
-        // TODO update that code
-        /*
-        // printing neighbors
-        string nodeStr = modelKdirect->toString(utig.first);
-        Node cur_node = BaseGraph::buildNode(nodeStr.c_str());
 
         for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
         { 
+            GraphVector<EdgeGU> neighbors;
             if (dir == DIR_OUTCOMING)
+            {
+                NodeGU cur_node(i, UNITIG_END);
+                neighbors = this->neighborsEdge (cur_node, dir);
                 std::cout << "out: ";
+            }
             else
+            {
+                NodeGU cur_node(i, UNITIG_BEGIN);
+                neighbors = this->neighborsEdge (cur_node, dir);
                 std::cout << "in: ";
-            GraphVector<EdgeGU> neighbors = this->neighborsEdge (cur_node, dir);
+            }
             for (size_t i = 0; i < neighbors.size(); i++)
             {
-                if ( utigs_map.find(neighbors[i].to.kmer) == utigs_map.end())
-                {
-                    std::cout << "[in-unitig]";
-                    break; // in that direction there's nothing
-                }
-
-                const uint64_t packed = utigs_map.at(neighbors[i].to.kmer);
-                const ExtremityInfo en(packed);
-#if 0
-                string nodeStr;
-                if (en.pos == UNITIG_BEGIN)
-                nodeStr =  unitigs[en.unitig].substr(0,kmerSize);
-                else
-                nodeStr = unitigs[en.unitig].substr(unitigs[en.unitig].size() - kmerSize, kmerSize);
-#endif
-                string pos = (en.pos == UNITIG_BEGIN)?"beg":((en.pos == UNITIG_BOTH)?"kmer":"end");
-                std::cout << en.unitig << "(" << pos << ") ";
+                string pos = (neighbors[i].to.pos == UNITIG_BEGIN)?"beg":((neighbors[i].to.pos == UNITIG_END)?"end":"other");
+                std::cout << neighbors[i].to.unitig << "(" << pos << ") ";
             }
             std::cout <<  "    ";
         }
-            */
-            std::cout << std::endl;
+        std::cout << std::endl;
     }
     std::cout << "Done printing graph unitigs" << std::endl;
 }

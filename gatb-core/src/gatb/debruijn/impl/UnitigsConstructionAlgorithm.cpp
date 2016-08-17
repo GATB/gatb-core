@@ -151,8 +151,8 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         bool beginInSameOrientation = modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1);
         bool endInSameOrientation = modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
 
-        ExtremityInfo eBegin(utig_counter, false, !beginInSameOrientation /* because we record rc*/, UNITIG_BEGIN);
-        ExtremityInfo eEnd(  utig_counter, false, !endInSameOrientation,                             UNITIG_END);
+        ExtremityInfo eBegin(utig_counter, !beginInSameOrientation /* because we record rc*/, UNITIG_BEGIN);
+        ExtremityInfo eEnd(  utig_counter, !endInSameOrientation,                             UNITIG_END);
         // there is no UNITIG_BOTH here because we're taking (k-1)-mers.
 
         utigs_links_map[kmerBegin.value()].push_back(eBegin.pack());
@@ -195,7 +195,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             ExtremityInfo e_in(in_packed);
 
-            if (debug) std::cout << "potential in-neighbor: " << e_in.toString();
+            if (debug) std::cout << "potential in-neighbor: " << e_in.toString() << " beginSameOrientation " << beginInSameOrientation;
 
             // what we want are these four cases:
             //  ------[end same orientation] -> [begin same orientation]----

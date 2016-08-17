@@ -90,12 +90,13 @@ class TestDebruijnUnitigs : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestDebruijnUnitigs);
 
-        //CPPUNIT_TEST_GATB (debruijn_unitigs_test12); // same dataset as tip simplification, just a minor check with large kmer size
-        
+        CPPUNIT_TEST_GATB (debruijn_unitigs_test12); // same dataset as tip simplification, just a minor check with large kmer size
+        CPPUNIT_TEST_GATB (debruijn_unitigs_test12_normal_min); // same as above, alternate minimizer size
         CPPUNIT_TEST_GATB (debruijn_unitigs_test7_nocircular);
         CPPUNIT_TEST_GATB (debruijn_unitigs_test10); // a unitig of length k with 2 in-branching and 2 out-branching. useful to test an edge case bug
         CPPUNIT_TEST_GATB (debruijn_unitigs_test11); // same as test10, except 1 out-branching instead of 2, provides asymetry
         CPPUNIT_TEST_GATB (debruijn_unitigs_test1); // an X-shaped unitig layout
+        // the rest of those tests don't really test the getEdge function
          //CPPUNIT_TEST_GATB (debruijn_unitigs_deletenode); // probably not appropriate, it's a weird case of a self-revcomp kmer inside a unitig and also at an extremity.
         CPPUNIT_TEST_GATB (debruijn_unitigs_test2);
         CPPUNIT_TEST_GATB (debruijn_unitigs_test4);
@@ -643,7 +644,7 @@ public:
             "TGTCATCTAGTTCAACAACCAAAAAAA", //>that's the tip
             "TGTCATCTAGTTCAACAACCGTTATGCCGTCCGACTCTTGCGCTCGGATGTCCGCAATGGGTTATCCCTATGTTCCGGTAATCTCTCATCTACTAAGCGCCCTAAAGGTCGTATGGTTGGAGGGCGGTTACACACCCTTAAGTACCGAACGATAGAGCACCCGTCTAGGAGGGCGTGCAGGGTCTCCCGCTAGCTAATGGTCACGGCCTCTCTGGGAAAGCTGAACAACGGATGATACCCATACTGCCACTCCAGTACCTGGGCCGCGTGTTGTACGCTGTGTATCTTGAGAGCGTTTCCAGCAGATAGAACAGGATCACATGTACATG" //>remaining part
             ,0),
-                "-kmer-size 21  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -nb-cores 1", MAX_MEMORY);
+                "-kmer-size 21  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -nb-cores 1 -minimizer-size 3" /* minimizer size 3 is important to reproduce the problem found in Simplifications*/, MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"TGTCATCTAGTTCAACAACCA"); // part of the tip
 
@@ -665,6 +666,35 @@ public:
 
         neighbors = graph.neighborsEdge(n2, DIR_INCOMING);
         CPPUNIT_ASSERT (neighbors.size() == 1);
+            // disabled because GraphU cannot print an unitig inside
+            /* 
+        for (size_t i=0; i<neighbors.size(); i++)
+        {
+            EdgeGU& edge = neighbors[i];
+
+            if (graph.toString(edge.to) != "TTGGTTGTTGAACTAGATGAC" ) 
+                std::cout << std::endl << "anticipation of assert fail, from: " <<  graph.toString(edge.from) << " to: " << graph.toString(edge.to) << std::endl;
+
+            CPPUNIT_ASSERT (edge.direction==DIR_INCOMING);
+            CPPUNIT_ASSERT (graph.toString(edge.from)=="TGGTTGTTGAACTAGATGACA");
+            CPPUNIT_ASSERT (graph.toString(edge.to)  == "TTGGTTGTTGAACTAGATGAC" );
+        }
+        */    
+    }
+
+    void debruijn_unitigs_test12_normal_min() // shouldn't have a problem here, but just to ensure, same as test12 but with normal minimizer size
+    {
+        //>works well for k=21; part of genome10K.fasta
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (
+            "CATCGATGCGAGACGCCTGTCGCGGGGAATTGTGGGGCGGACCACGCTCTGGCTAACGAGCTACCGTTTCCTTTAACCTGCCAGACGGTGACCAGGGCCGTTCGGCGTTGCATCGAGCGGTGTCGCTAGCGCAATGCGCAAGATTTTGACATTTACAAGGCAACATTGCAGCGTCCGATGGTCCGGTGGCCTCCAGATAGTGTCCAGTCGCTCTAACTGTATGGAGACCATAGGCATTTACCTTATTCTCATCGCCACGCCCCAAGATCTTTAGGACCCAGCATTCCTTTAACCACTAACATAACGCGTGTCATCTAGTTCAACAACC",
+            "TGTCATCTAGTTCAACAACCAAAAAAA", //>that's the tip
+            "TGTCATCTAGTTCAACAACCGTTATGCCGTCCGACTCTTGCGCTCGGATGTCCGCAATGGGTTATCCCTATGTTCCGGTAATCTCTCATCTACTAAGCGCCCTAAAGGTCGTATGGTTGGAGGGCGGTTACACACCCTTAAGTACCGAACGATAGAGCACCCGTCTAGGAGGGCGTGCAGGGTCTCCCGCTAGCTAATGGTCACGGCCTCTCTGGGAAAGCTGAACAACGGATGATACCCATACTGCCACTCCAGTACCTGGGCCGCGTGTTGTACGCTGTGTATCTTGAGAGCGTTTCCAGCAGATAGAACAGGATCACATGTACATG" //>remaining part
+            ,0),
+                "-kmer-size 21  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -nb-cores 1", MAX_MEMORY);
+
+        NodeGU n1 = graph.debugBuildNode ((char*)"TGTCATCTAGTTCAACAACCA"); // part of the tip
+        GraphVector<EdgeGU> neighbors = graph.neighborsEdge(n1, DIR_INCOMING);
+        CPPUNIT_ASSERT (neighbors.size() == 1);
         for (size_t i=0; i<neighbors.size(); i++)
         {
             EdgeGU& edge = neighbors[i];
@@ -677,6 +707,7 @@ public:
             CPPUNIT_ASSERT (graph.toString(edge.to)  == "GTGTCATCTAGTTCAACAACC" );
         }
     }
+
 
     /********************************************************************************/
     void debruijn_unitigs_test13 ()

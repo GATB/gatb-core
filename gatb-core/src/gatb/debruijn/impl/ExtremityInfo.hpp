@@ -26,22 +26,21 @@ namespace impl      {
     {
         public:
         uint64_t unitig;
-        bool deleted;
         bool rc; /* when encoding an extremity:
                      whether the kmer in canonical form appears as rc in the unitig
                     when encoding a link:
                      whether you need to reverse the next unitig in the link
                  */
         Unitig_pos pos; // whether the kmer is at left extremity of unitig or right extremity
-        ExtremityInfo(uint64_t u, bool d, bool r, Unitig_pos p) : unitig(u),deleted(d),rc(r), pos(p) {}
+        ExtremityInfo(uint64_t u, bool r, Unitig_pos p) : unitig(u),rc(r), pos(p) {}
         ExtremityInfo() {} // because i defined another constructor
         ExtremityInfo(const uint64_t val) { unpack(val); } 
         std::string toString() const
-        { return " unitig: " + std::to_string(unitig) + " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"UNITIG_BEGIN":"") + ((pos&UNITIG_END)?"UNITIG_END":"") + " " + " d:" + std::to_string(deleted); }
+        { return " unitig: " + std::to_string(unitig) + " rc:" + std::to_string(rc) + " p:" + ((pos&UNITIG_BEGIN)?"UNITIG_BEGIN":"") + ((pos&UNITIG_END)?"UNITIG_END":"") ; }
         uint64_t pack()
         {
             if ((int)pos > 2) { std::cout << "incorrect encoding for pos in packed ExtremityInfo: " << (int)pos << std::endl; exit(1); }
-            return (pos-1) + (rc << 1) + (deleted << 2) + (unitig << 3);
+            return (pos-1) + (rc << 1) + (unitig << 2);
         }
         void unpack(uint64_t val)
         {
@@ -49,7 +48,6 @@ namespace impl      {
             pos = (val&1)?UNITIG_END:UNITIG_BEGIN;
                                    val >>= 1;
             rc = val&1;            val >>= 1;
-            deleted = val&1;       val >>= 1;
             unitig = val;
         }
     } ;
