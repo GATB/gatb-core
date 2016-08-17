@@ -781,7 +781,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
             Unitig_pos pos = UNITIG_INSIDE;
             if (seqSize == kmerSize + 1) pos = UNITIG_END;
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_INCOMING); // TODO not sure about the dest.strand in those cases, so i'm setting to source.strand, we'll see. (applies to all 3 other cases)
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_INCOMING); // not sure about the dest.strand in those cases, so i'm setting to source.strand, we'll see. (applies to all 3 other cases) It doesn't matter in Minia anyway, we don't use nodes inside unitigs
             if (debug) std::cout << "found success of [kmer rc]---" << std::endl;
         }
 
@@ -1191,7 +1191,7 @@ void GraphUnitigsTemplate<span>::
 unitigDelete (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
     nodesDeleter.onlyListMethod = true; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
-    std::cout << "GraphU queuing to delete unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << " mean abundance " << unitigMeanAbundance(node) << std::endl; 
+    //std::cout << "GraphU queuing to delete unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << " mean abundance " << unitigMeanAbundance(node) << std::endl; 
     nodesDeleter.markToDelete(node);
 }
 
@@ -1332,8 +1332,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         if (neighbors[0].to.pos != UNITIG_BOTH) 
         {
             // FIXME: there is a bcalm bug. see strange_seq.fa. i'll send it to antoine, but meanwhile, i'm coding a workaround
-            // DOUBLE FIXME: still, enabling this for now. (debugging on small genomes)
-            if (1)
+            if (0)
             {
             if (dir==DIR_INCOMING )
                 assert( (npos == UNITIG_END   && same_orientation) || (npos == UNITIG_BEGIN && (!same_orientation)));
