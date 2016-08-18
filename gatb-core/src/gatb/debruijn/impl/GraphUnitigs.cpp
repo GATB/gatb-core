@@ -286,7 +286,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers.");
     }
     
-    bool force_loading_unitigs = false;
+    bool force_loading_unitigs = false; // debug option
 
     if (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/))
     {
@@ -470,7 +470,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     // an estimation of memory usage
     uint64_t nb_kmers = unitigs.size();
     uint64_t mem_vec = (unitigs.capacity() * sizeof(string) + nb_utigs_nucl_mem);
-    std::cout << "Memory usage:" << std::endl;
+    std::cout <<  "Memory usage:" << std::endl;
     std::cout <<  "   " << (sizeof(uint32_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
     std::cout <<  "   " << (sizeof(uint32_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
     std::cout <<  "   " << (sizeof(uint32_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
@@ -478,7 +478,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
     std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
     std::cout <<  "   " <<  (nb_kmers/8) / 1024 / 1024 << " MB visited bitvector (hopefully 1 bit/elt)" << std::endl;
-    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 1.0/8.0) + unitigs.size() * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 1.0/8.0) + ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
 
     if (nb_utigs_nucl != nb_utigs_nucl_mem)
         std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
@@ -849,19 +849,28 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
         }
     }; 
 
-    if (pos_end && ((direction & DIR_OUTCOMING) && same_orientation) || ( (direction & DIR_INCOMING) && (!same_orientation) ) )
+    // TODO: write an unit test for the bug where not putting paranthesis there: pos_end && (...) was still working, but causes more edges to be returned than necessary. (only in DIR_END i think)
+    if (pos_end && (((direction & DIR_OUTCOMING) && same_orientation) || ( (direction & DIR_INCOMING) && (!same_orientation) ) ))
     {
         // nodes to the right of a unitig (outcoming)
         Direction dir = same_orientation?DIR_OUTCOMING:DIR_INCOMING;
         functor(get_from_navigational_vector(outcoming, source.unitig, outcoming_map), dir);
     }
-    if (pos_begin && ((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) )
+    if (pos_begin && (((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) ))
     {
         // nodes to the left of a unitig (incoming)
         Direction dir = same_orientation?DIR_INCOMING:DIR_OUTCOMING;
         functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), dir);
     }
 
+    // sanity check on output, due to limitation on GraphVector nmber of elements
+    // TODO address that. i don't like the potential performance hit here.
+    if (res.size() > 16)
+    { 
+        std::cout << "Error : more than 16 edges (" << res.size() << ") out of node, not supported (already more than 8 is strange)" << std::endl; 
+        std::cout << "graphU getEdges was called on source: " << toString(source) << " unitig: " << source.unitig << " pos: " << (source.pos==UNITIG_BEGIN?"beg":"end") << " strand: " << source.strand << " dir " << direction << std::endl;
+        exit(1);
+    }
     return res;
 }
 
@@ -1241,7 +1250,7 @@ template<size_t span>
 void GraphUnitigsTemplate<span>::
 simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int& endDegree, bool markDuringTraversal, float& coverage, string* seq, std::vector<NodeGU> *nodesList) 
 {
-    bool debug = true;
+    bool debug = false;
     if (debug)
         std::cout << "simplePathLongest_avance called, node " << toString(node) << " dir " << dir << std::endl;
 

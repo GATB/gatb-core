@@ -276,12 +276,14 @@ bool Simplifications<GraphType,Node,Edge>::satisfyRCTC(double pathAbundance, Nod
     GraphVector<Edge> connectedBranchingNodes = _graph.neighborsEdge(node, dir);
     unsigned int nbBranchingNodes = 0;
     double meanNeighborsCoverage = 0;
-    if (_graph.simplePathLength(node , dir) > 0) 
+
+    // disabling the following check, becuse in EC removal, reverse direction, node may not be a last node (was in a hurry, need to revisit whole RCTC someday anyway to see if it can be improved)
+/*    if (_graph.simplePathLength(node , dir) > 0) 
     {
         std::cout << "satisfyRCTC; unexpected: node isn't a last node?" << std::endl;
         std::cout << _graph.toString(node) << " dir " << dir << " simple path length: " << _graph.simplePathLength(node , dir)<< " connectedBranchingNodes[0].to: " << _graph.toString(connectedBranchingNodes[0].to) << " connectedBranchingNodes.size(): " << connectedBranchingNodes.size() << std::endl;
         exit(1);
-    }
+    }*/
 
     /* there may be more than one connectedBranchNode
      * it's weird when it's more than one branching node though, it's a situation like:

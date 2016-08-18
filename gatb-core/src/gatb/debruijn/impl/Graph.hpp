@@ -476,7 +476,7 @@ class GraphIterator : public tools::dp::ISmartIterator<Item>
 };
 
 /* exactly same comment as GraphIterator above*/
-template<typename Item, int NB=8>
+template<typename Item, int NB=16 /* TODO bring it down to 8 whenever possible; or try with a much higher value (e.g. 128) and see if there is actually a performance hit*/>
 class GraphVector
 {
     public:
