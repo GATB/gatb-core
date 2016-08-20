@@ -56,14 +56,14 @@ struct NodeGU
 
     /** Constructor.
      */
-    NodeGU (const uint32_t unitig, Unitig_pos pos, kmer::Strand strand)
+    NodeGU (const uint64_t unitig, Unitig_pos pos, kmer::Strand strand)
         : unitig(unitig), pos(pos), strand(strand) {}
 
-    NodeGU (const uint32_t unitig, Unitig_pos pos)
+    NodeGU (const uint64_t unitig, Unitig_pos pos)
         : unitig(unitig), pos(pos), strand(kmer::STRAND_FORWARD) {}
 
 
-    uint32_t unitig;
+    uint64_t unitig;
     Unitig_pos pos;
 
     /** Strand telling how to interpret the node in the bi-directed DB graph. */
@@ -77,7 +77,7 @@ struct NodeGU
     // this need to be implemented, for traversedNodes.find() in Simplifications
     bool operator< (const NodeGU& other) const  { return (unitig < other.unitig || (unitig == other.unitig && pos < other.pos)); }
 
-    void set (uint32_t unitig, Unitig_pos pos, kmer::Strand strand)
+    void set (uint64_t unitig, Unitig_pos pos, kmer::Strand strand)
     {
         this->unitig = unitig;
         this->strand = strand;
@@ -113,8 +113,8 @@ struct EdgeGU
      * \param[in] dir : direction of the transition.
      */
     void set (
-        uint32_t unitig_from, Unitig_pos pos_from, kmer::Strand strand_from,
-        uint32_t unitig_to,   Unitig_pos pos_to,   kmer::Strand strand_to,
+        uint64_t unitig_from, Unitig_pos pos_from, kmer::Strand strand_from,
+        uint64_t unitig_to,   Unitig_pos pos_to,   kmer::Strand strand_to,
         Direction dir
     )
     {
@@ -475,7 +475,7 @@ public: // was private: before, but had many compilation errors during the chang
     // don't forget to copy those variables in operator= (and the move operator) !!
     Model       *modelK;
     ModelDirect *modelKdirect;
-    std::vector<uint32_t> incoming, outcoming, incoming_map, outcoming_map;
+    std::vector<uint64_t> incoming, outcoming, incoming_map, outcoming_map;
     std::vector<std::string> unitigs;
     std::vector<float> unitigs_mean_abundance;
     std::vector<bool> unitigs_deleted; // could also be replaced by setting incoming and outcoming to all deleted.

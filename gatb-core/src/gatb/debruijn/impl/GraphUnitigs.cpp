@@ -314,7 +314,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
 }
 
 static void
-parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc, vector<uint32_t>& outc)
+parse_unitig_header(string header, float& mean_abundance, vector<uint64_t>& inc, vector<uint64_t>& outc)
 {
     bool debug = false;
     if (debug) std::cout << "parsing unitig links for " << header << std::endl;
@@ -336,7 +336,7 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
             int pos_rc = tok.find_last_of(':');
             bool rc = tok.substr(pos_rc+1) == "-";
             tok = tok.substr(0,pos_rc); // chop last field
-            uint32_t unitig = atoi(tok.substr(tok.find_last_of(':')+1).c_str());
+            uint64_t unitig = atoi(tok.substr(tok.find_last_of(':')+1).c_str());
             /* situation is: 
              * L:+:next_unitig:+    unitig[end] -> [begin]next_unitig 
              * L:+:next_unitig:-    unitig[end] -> [begin]next_unitig_rc
@@ -373,7 +373,7 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
         
 
 static void
-insert_navigational_vector(std::vector<uint32_t> &v, std::vector<uint32_t>& to_insert, uint32_t utig_counter, std::vector<uint32_t> &v_map)
+insert_navigational_vector(std::vector<uint64_t> &v, std::vector<uint64_t>& to_insert, uint64_t utig_counter, std::vector<uint64_t> &v_map)
 {
     v_map[utig_counter] = v.size();
     v.insert(v.end(), to_insert.begin(), to_insert.end());
@@ -398,8 +398,8 @@ make_range(Container& c, size_t b, size_t e) {
 
 /* returns an iterator of all incoming or outcoming edges from an unitig */
 static 
-range<std::vector<uint32_t>::const_iterator >
-get_from_navigational_vector(const std::vector<uint32_t> &v, uint32_t utig, const std::vector<uint32_t> &v_map) 
+range<std::vector<uint64_t>::const_iterator >
+get_from_navigational_vector(const std::vector<uint64_t> &v, uint64_t utig, const std::vector<uint64_t> &v_map) 
 {
     if (utig == v_map.size() /*total number of unitigs*/ - 1)
     {
@@ -440,7 +440,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         const string& comment = itSeq->getComment();
 
         float mean_abundance;
-        vector<uint32_t> inc, outc; // incoming and outcoming unitigs
+        vector<uint64_t> inc, outc; // incoming and outcoming unitigs
         parse_unitig_header(comment, mean_abundance, inc, outc);
 
         insert_navigational_vector(incoming,  inc,  utig_counter, incoming_map);
@@ -459,7 +459,6 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
             nb_unitigs_extremities+=2;
     }
 
-    if (utig_counter > 1000000000LL) { std::cout << "Error: more than 1B unitigs, GATB-core isn't ready for that yet. Try to better error-correct the data." << std::endl; exit(1);} // just need to change some uint32's in uint64's but would 2x the mem (incoming and outcoming vectors, i think that's it)
 
     unitigs_traversed.resize(0);
     unitigs_traversed.resize(unitigs.size(), false); // resize "traversed" bitvector, setting it to zero as well
@@ -471,14 +470,14 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     uint64_t nb_kmers = unitigs.size();
     uint64_t mem_vec = (unitigs.capacity() * sizeof(string) + nb_utigs_nucl_mem);
     std::cout <<  "Memory usage:" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
     std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
     std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
-    std::cout <<  "   " <<  (nb_kmers/8) / 1024 / 1024 << " MB visited bitvector (hopefully 1 bit/elt)" << std::endl;
-    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 1.0/8.0) + ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+    std::cout <<  "   " <<  (2*nb_kmers/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
+    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
 
     if (nb_utigs_nucl != nb_utigs_nucl_mem)
         std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
@@ -813,7 +812,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     // otherwise, that extremity kmer has neighbors at are also extremities.
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
    
-    auto functor = [&](range<std::vector<uint32_t>::const_iterator >&& edges, Direction dir)
+    auto functor = [&](range<std::vector<uint64_t>::const_iterator >&& edges, Direction dir)
     {
         auto it = edges.begin();
         if (it == edges.end()) return;
@@ -829,7 +828,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
                 continue;
             }
 
-            uint32_t unitig = li.unitig;
+            uint64_t unitig = li.unitig;
             Unitig_pos pos = li.pos;
             bool rc = li.rc;
 
