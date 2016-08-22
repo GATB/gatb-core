@@ -7,35 +7,35 @@ PROJECT (HDF5_TOOLS_H5DUMP)
 INCLUDE_DIRECTORIES (${HDF5_TOOLS_SRC_DIR}/lib)
 
 # --------------------------------------------------------------------
-# Add the h5dump executables
+# Add the gatb-h5dump executables
 # --------------------------------------------------------------------
-ADD_EXECUTABLE (h5dump
+ADD_EXECUTABLE (gatb-h5dump
     ${HDF5_TOOLS_H5DUMP_SOURCE_DIR}/h5dump.c
     ${HDF5_TOOLS_H5DUMP_SOURCE_DIR}/h5dump_ddl.c
     ${HDF5_TOOLS_H5DUMP_SOURCE_DIR}/h5dump_xml.c
 )
-TARGET_NAMING (h5dump ${LIB_TYPE})
-TARGET_LINK_LIBRARIES (h5dump  ${HDF5_TOOLS_LIB_TARGET} ${HDF5_LIB_TARGET})
-SET_TARGET_PROPERTIES (h5dump PROPERTIES FOLDER tools)
+TARGET_NAMING (gatb-h5dump ${LIB_TYPE})
+TARGET_LINK_LIBRARIES (gatb-h5dump  ${HDF5_TOOLS_LIB_TARGET} ${HDF5_LIB_TARGET})
+SET_TARGET_PROPERTIES (gatb-h5dump PROPERTIES FOLDER tools)
 
 # (rayan) attempt at static linking, not sure if it works properly
 if (static)
-    set_target_properties(h5dump PROPERTIES LINK_SEARCH_START_STATIC 1)
-    set_target_properties(h5dump PROPERTIES LINK_SEARCH_END_STATIC 1)
+    set_target_properties(gatb-h5dump PROPERTIES LINK_SEARCH_START_STATIC 1)
+    set_target_properties(gatb-h5dump PROPERTIES LINK_SEARCH_END_STATIC 1)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
     if (APPLE)
         set(CMAKE_EXE_LINKER_FLAGS "-static-libstdc++") #removed -static because doesn't work on mac's
     else()
         set(CMAKE_EXE_LINKER_FLAGS "-static-libstdc++ -static")
     endif()
-   message ("STATIC BINARIES for h5dump")
+   message ("STATIC BINARIES for gatb-h5dump")
 else()
-   message ("DYNAMIC BINARIES for h5dump")
+   message ("DYNAMIC BINARIES for gatb-h5dump")
 endif()
 
 
 
-SET (H5_DEP_EXECUTABLES h5dump)
+SET (H5_DEP_EXECUTABLES gatb-h5dump)
 
 ##############################################################################
 ##############################################################################
@@ -45,7 +45,7 @@ SET (H5_DEP_EXECUTABLES h5dump)
 
 IF (BUILD_TESTING)
   # --------------------------------------------------------------------
-  # Add the h5dump test executable
+  # Add the gatb-h5dump test executable
   # --------------------------------------------------------------------
   IF (HDF5_BUILD_GENERATORS AND NOT BUILD_SHARED_LIBS)
     ADD_EXECUTABLE (h5dumpgentest ${HDF5_TOOLS_H5DUMP_SOURCE_DIR}/h5dumpgentest.c)
@@ -348,7 +348,7 @@ IF (BUILD_TESTING)
     SET (dest "${PROJECT_BINARY_DIR}/testfiles/std/${fname}")
     #MESSAGE (STATUS " Copying ${tst_h5_file}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${tst_h5_file} ${dest}
@@ -361,7 +361,7 @@ IF (BUILD_TESTING)
       FILE (WRITE ${PROJECT_BINARY_DIR}/testfiles/std/${tst_exp_file} "${TEST_STREAM}")
     ELSE (WIN32 AND NOT CYGWIN)
       ADD_CUSTOM_COMMAND (
-          TARGET     h5dump
+          TARGET     gatb-h5dump
           POST_BUILD
           COMMAND    ${CMAKE_COMMAND}
           ARGS       -E copy_if_different  ${HDF5_TOOLS_SRC_DIR}/testfiles/${tst_exp_file}  ${PROJECT_BINARY_DIR}/testfiles/std/${tst_exp_file}
@@ -374,7 +374,7 @@ IF (BUILD_TESTING)
     SET (dest "${PROJECT_BINARY_DIR}/testfiles/std/${fname}")
     #MESSAGE (STATUS " Copying ${tst_other_file}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${tst_other_file} ${dest}
@@ -386,7 +386,7 @@ IF (BUILD_TESTING)
     SET (dest "${PROJECT_BINARY_DIR}/testfiles/std/${fname}")
     #MESSAGE (STATUS " Copying ${tst_error_file}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${tst_error_file} ${dest}
@@ -397,7 +397,7 @@ IF (BUILD_TESTING)
   # Special file handling
   # --------------------------------------------------------------------
   ADD_CUSTOM_COMMAND (
-      TARGET     h5dump
+      TARGET     gatb-h5dump
       POST_BUILD
       COMMAND    ${CMAKE_COMMAND}
       ARGS       -E copy_if_different  ${HDF5_TOOLS_SOURCE_DIR}/testfiles/tbin1.ddl  ${PROJECT_BINARY_DIR}/testfiles/std/tbin1LE.ddl
@@ -408,7 +408,7 @@ IF (BUILD_TESTING)
     FILE (WRITE ${PROJECT_BINARY_DIR}/testfiles/std/tbinregR.exp "${TEST_STREAM}")
   ELSE (WIN32 AND NOT CYGWIN)
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different  ${HDF5_TOOLS_SRC_DIR}/testfiles/tbinregR.exp  ${PROJECT_BINARY_DIR}/testfiles/std/tbinregR.exp
@@ -542,7 +542,7 @@ IF (BUILD_TESTING)
     SET (dest "${PROJECT_BINARY_DIR}/testfiles/xml/${fname}")
     #MESSAGE (STATUS " Copying ${tst_xml_h5_file}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${tst_xml_h5_file} ${dest}
@@ -554,7 +554,7 @@ IF (BUILD_TESTING)
     SET (dest "${PROJECT_BINARY_DIR}/testfiles/xml/${fname}")
     #MESSAGE (STATUS " Copying ${tst_xml_other_file}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${tst_xml_other_file} ${dest}
@@ -646,7 +646,7 @@ IF (BUILD_TESTING)
     SET (dest "${PROJECT_BINARY_DIR}/testfiles/pbits/${fname}")
     #MESSAGE (STATUS " Copying ${pbits_h5_file}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${pbits_h5_file} ${dest}
@@ -659,7 +659,7 @@ IF (BUILD_TESTING)
     SET (ddldest "${PROJECT_BINARY_DIR}/testfiles/pbits/${fname}")
     #MESSAGE (STATUS " Copying ${ddl_pbits}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${ddl_pbits} ${ddldest}
@@ -671,7 +671,7 @@ IF (BUILD_TESTING)
     SET (ddldest "${PROJECT_BINARY_DIR}/testfiles/pbits/${fname}")
     #MESSAGE (STATUS " Copying ${ddl_pbits}")
     ADD_CUSTOM_COMMAND (
-        TARGET     h5dump
+        TARGET     gatb-h5dump
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy_if_different ${ddl_pbits} ${ddldest}
@@ -687,7 +687,7 @@ IF (BUILD_TESTING)
   MACRO (ADD_HELP_TEST testname resultcode)
     # If using memchecker add tests without using scripts
     IF (HDF5_ENABLE_USING_MEMCHECKER)
-      ADD_TEST (NAME H5DUMP-${testname} COMMAND $<TARGET_FILE:h5dump> ${ARGN})
+      ADD_TEST (NAME H5DUMP-${testname} COMMAND $<TARGET_FILE:gatb-h5dump> ${ARGN})
       SET_TESTS_PROPERTIES (H5DUMP-${testname} PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
       IF (NOT "${last_test}" STREQUAL "")
         SET_TESTS_PROPERTIES (H5DUMP-${testname} PROPERTIES DEPENDS ${last_test})
@@ -695,23 +695,23 @@ IF (BUILD_TESTING)
       SET (last_test "H5DUMP-${testname}")
     ELSE (HDF5_ENABLE_USING_MEMCHECKER)
       ADD_TEST (
-          NAME H5DUMP-h5dump-${testname}-clear-objects
+          NAME H5DUMP-gatb-h5dump-${testname}-clear-objects
           COMMAND    ${CMAKE_COMMAND}
-              -E remove h5dump-${testname}.out h5dump-${testname}.out.err
+              -E remove gatb-h5dump-${testname}.out gatb-h5dump-${testname}.out.err
       )
-      SET_TESTS_PROPERTIES (H5DUMP-h5dump-${testname}-clear-objects PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
+      SET_TESTS_PROPERTIES (H5DUMP-gatb-h5dump-${testname}-clear-objects PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
       ADD_TEST (
-          NAME H5DUMP-h5dump-${testname}
+          NAME H5DUMP-gatb-h5dump-${testname}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
-              -D "TEST_OUTPUT=h5dump-${testname}.out"
+              -D "TEST_OUTPUT=gatb-h5dump-${testname}.out"
               -D "TEST_EXPECT=${resultcode}"
-              -D "TEST_REFERENCE=h5dump-${testname}.txt"
+              -D "TEST_REFERENCE=gatb-h5dump-${testname}.txt"
               -P "${HDF5_RESOURCES_DIR}/runTest.cmake"
       )
-      SET_TESTS_PROPERTIES (H5DUMP-h5dump-${testname} PROPERTIES DEPENDS "H5DUMP-h5dump-${testname}-clear-objects")
+      SET_TESTS_PROPERTIES (H5DUMP-gatb-h5dump-${testname} PROPERTIES DEPENDS "H5DUMP-gatb-h5dump-${testname}-clear-objects")
     ENDIF (HDF5_ENABLE_USING_MEMCHECKER)
   ENDMACRO (ADD_HELP_TEST)
 
@@ -731,7 +731,7 @@ IF (BUILD_TESTING)
   MACRO (ADD_H5_TEST resultfile resultcode)
     # If using memchecker add tests without using scripts
     IF (HDF5_ENABLE_USING_MEMCHECKER)
-      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:h5dump> ${ARGN})
+      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:gatb-h5dump> ${ARGN})
       SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
       IF (NOT ${resultcode} STREQUAL "0")
         SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WILL_FAIL "true")
@@ -749,7 +749,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -764,7 +764,7 @@ IF (BUILD_TESTING)
   MACRO (ADD_H5_TEST_EXPORT resultfile targetfile resultcode)
     # If using memchecker add tests without using scripts
     IF (HDF5_ENABLE_USING_MEMCHECKER)
-      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:h5dump> ${ARGN} ${resultfile}.txt ${targetfile})
+      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:gatb-h5dump> ${ARGN} ${resultfile}.txt ${targetfile})
       SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
       IF (NOT ${resultcode} STREQUAL "0")
         SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WILL_FAIL "true")
@@ -782,7 +782,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN};${resultfile}.txt;${targetfile}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -804,7 +804,7 @@ IF (BUILD_TESTING)
   MACRO (ADD_H5_TEST_EXPORT_DDL resultfile targetfile resultcode ddlfile)
     # If using memchecker add tests without using scripts
     IF (HDF5_ENABLE_USING_MEMCHECKER)
-      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:h5dump> --ddl=${ddlfile}.txt ${ARGN} ${resultfile}.txt ${targetfile})
+      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:gatb-h5dump> --ddl=${ddlfile}.txt ${ARGN} ${resultfile}.txt ${targetfile})
       SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
       IF (NOT ${resultcode} STREQUAL "0")
         SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WILL_FAIL "true")
@@ -822,7 +822,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=--ddl=${ddlfile}.txt;${ARGN};${resultfile}.txt;${targetfile}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -858,7 +858,7 @@ IF (BUILD_TESTING)
       SET_TESTS_PROPERTIES (H5DUMP-output-${resultfile}-clear-objects PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
       ADD_TEST (
           NAME H5DUMP-output-${resultfile}
-          COMMAND $<TARGET_FILE:h5dump> ${ARGN} ${resultfile}.txt ${targetfile}
+          COMMAND $<TARGET_FILE:gatb-h5dump> ${ARGN} ${resultfile}.txt ${targetfile}
       )
       SET_TESTS_PROPERTIES (H5DUMP-output-${resultfile} PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/std")
       SET_TESTS_PROPERTIES (H5DUMP-output-${resultfile} PROPERTIES DEPENDS H5DUMP-output-${resultfile}-clear-objects)
@@ -883,7 +883,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -907,7 +907,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -932,7 +932,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -960,7 +960,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-IMPORT-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN};-o;${resultfile}.bin;${testfile}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/std"
               -D "TEST_OUTPUT=${conffile}.out"
@@ -981,7 +981,7 @@ IF (BUILD_TESTING)
   MACRO (ADD_H5_PBITS_TEST resultfile resultcode)
     # If using memchecker add tests without using scripts
     IF (HDF5_ENABLE_USING_MEMCHECKER)
-      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:h5dump> ${ARGN})
+      ADD_TEST (NAME H5DUMP-${resultfile} COMMAND $<TARGET_FILE:gatb-h5dump> ${ARGN})
       SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/pbits")
       IF (NOT ${resultcode} STREQUAL "0")
         SET_TESTS_PROPERTIES (H5DUMP-${resultfile} PROPERTIES WILL_FAIL "true")
@@ -999,7 +999,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=${ARGN}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/pbits"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -1026,7 +1026,7 @@ IF (BUILD_TESTING)
 
   MACRO (ADD_XML_H5_TEST resultfile resultcode)
     IF (HDF5_ENABLE_USING_MEMCHECKER)
-      ADD_TEST (NAME H5DUMP-XML-${resultfile} COMMAND $<TARGET_FILE:h5dump> --xml ${ARGN})
+      ADD_TEST (NAME H5DUMP-XML-${resultfile} COMMAND $<TARGET_FILE:gatb-h5dump> --xml ${ARGN})
       SET_TESTS_PROPERTIES (H5DUMP-XML-${resultfile} PROPERTIES WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/testfiles/xml")
       IF (NOT ${resultcode} STREQUAL "0")
         SET_TESTS_PROPERTIES (H5DUMP-XML-${resultfile} PROPERTIES WILL_FAIL "true")
@@ -1044,7 +1044,7 @@ IF (BUILD_TESTING)
       ADD_TEST (
           NAME H5DUMP-XML-${resultfile}
           COMMAND "${CMAKE_COMMAND}"
-              -D "TEST_PROGRAM=$<TARGET_FILE:h5dump>"
+              -D "TEST_PROGRAM=$<TARGET_FILE:gatb-h5dump>"
               -D "TEST_ARGS:STRING=--xml;${ARGN}"
               -D "TEST_FOLDER=${PROJECT_BINARY_DIR}/testfiles/xml"
               -D "TEST_OUTPUT=${resultfile}.out"
@@ -2143,11 +2143,11 @@ ENDIF (BUILD_TESTING)
 # Rules for Installation of tools using make Install target
 #-----------------------------------------------------------------------------
 
-#INSTALL_PROGRAM_PDB (h5dump ${HDF5_INSTALL_BIN_DIR} toolsapplications)
+#INSTALL_PROGRAM_PDB (gatb-h5dump ${HDF5_INSTALL_BIN_DIR} toolsapplications)
 
 INSTALL (
     TARGETS
-        h5dump
+        gatb-h5dump
     RUNTIME DESTINATION
         ${HDF5_INSTALL_BIN_DIR}
     COMPONENT
