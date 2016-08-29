@@ -133,7 +133,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
 
     BankFasta inputBank (unitigs_filename);
     BankFasta::Iterator itSeq (inputBank);
-    uint32_t utig_counter = 0;
+    uint64_t utig_counter = 0;
     
     Model modelKminusOne(kmerSize - 1); // it's canonical (defined in the .hpp file)
 
@@ -195,7 +195,6 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             ExtremityInfo e_in(in_packed);
 
-            if (nevermindInOrientation && (e_in.pos == UNITIG_BEGIN) && (e_in.unitig == utigs_number)) continue; // don't self-link
 
             if (debug) std::cout << "extremity " << modelKminusOne.toString(kmerBegin.value()) << " ";
             if (debug) std::cout << "potential in-neighbor: " << e_in.toString() << " beginSameOrientation " << beginInSameOrientation;
@@ -205,15 +204,22 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
             //  [begin diff orientation]---- -> [begin same orientation]----
             //  ------[end diff orientation] -> [begin diff orientation]----
             //  [begin same orientation]---- -> [begin diff orientation]----
-            if (((beginInSameOrientation || nevermindInOrientation)  &&  (e_in.pos == UNITIG_END  ) && (e_in.rc == false)) ||
-                ((beginInSameOrientation  || nevermindInOrientation) &&  (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
-              (((!beginInSameOrientation) || nevermindInOrientation) && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
-              (((!beginInSameOrientation) || nevermindInOrientation) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)))
+            if ((((beginInSameOrientation)  &&  (e_in.pos == UNITIG_END  ) && (e_in.rc == false)) ||
+                ((beginInSameOrientation) &&  (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
+              (((!beginInSameOrientation)) && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
+              (((!beginInSameOrientation)) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)))
+                    || nevermindInOrientation)
             {
+                if (nevermindInOrientation && (e_in.unitig == utigs_number)) continue; // don't consider the same extremity
+
                 //LinkInfo li(e_in.unitig, e_in.rc ^ beginInSameOrientation);
                 //incoming[utig_number].push_back(li.pack());
                 bool rc = e_in.rc ^ (!beginInSameOrientation);
                 links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"+":"-") + " "; /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
+
+                if (nevermindInOrientation)
+                    links += "L:-:" + to_string(e_in.unitig) + ":" + ((!rc)?"+":"-") + " "; /* in that case, there is also another link with the reverse direction*/
+                    
                 if (debug) std::cout << " [valid] ";
             }
                 
@@ -225,8 +231,6 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
         {
             ExtremityInfo e_out(out_packed);
 
-            if (nevermindOutOrientation && (e_out.pos == UNITIG_END) && (e_out.unitig == utigs_number)) continue; // don't self-link
-
             if (debug) std::cout << "extremity " << modelKminusOne.toString(kmerEnd.value()) << " ";
             if (debug) std::cout << "potential out-neighbor: " << e_out.toString();
 
@@ -235,15 +239,22 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
             //  ------[end same orientation] -> ------[end diff orientation]
             //  ------[end diff orientation] -> [begin diff orientation]----
             //  ------[end diff orientation] -> ------[end same orientation]
-            if (((endInSameOrientation || nevermindOutOrientation) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == false)) ||
-                ((endInSameOrientation || nevermindOutOrientation) && (e_out.pos == UNITIG_END  ) && (e_out.rc == true)) ||
-             (((!endInSameOrientation) || nevermindOutOrientation) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == true)) ||
-             (((!endInSameOrientation) || nevermindOutOrientation) && (e_out.pos == UNITIG_END  ) && (e_out.rc == false)))
+            if ((((endInSameOrientation) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == false)) ||
+                ((endInSameOrientation) && (e_out.pos == UNITIG_END  ) && (e_out.rc == true)) ||
+             (((!endInSameOrientation)) && (e_out.pos == UNITIG_BEGIN) && (e_out.rc == true)) ||
+             (((!endInSameOrientation)) && (e_out.pos == UNITIG_END  ) && (e_out.rc == false)))
+                ||nevermindOutOrientation)
             {
+                if (nevermindOutOrientation && (e_out.unitig == utigs_number)) continue; // don't consider the same extremity
+
                 //LinkInfo li(e_out.unitig, e_out.rc ^ endInSameOrientation);
                 //outcoming[utig_number].push_back(li.pack());
                 bool rc = e_out.rc ^ (!endInSameOrientation);
                 links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+") + " "; /* logically this is going to be opposite of the line above */
+
+                if (nevermindOutOrientation)
+                    links += "L:+:" + to_string(e_out.unitig) + ":" + ((!rc)?"-":"+") + " "; /* in that case, there is also another link with the reverse direction*/
+
                 if (debug) std::cout << " [valid] ";
             }
             if (debug) std::cout << std::endl;

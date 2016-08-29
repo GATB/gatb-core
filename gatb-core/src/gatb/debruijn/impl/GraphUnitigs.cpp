@@ -286,7 +286,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers.");
     }
     
-    bool force_loading_unitigs = false;
+    bool force_loading_unitigs = false; // debug option
 
     if (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/))
     {
@@ -314,7 +314,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
 }
 
 static void
-parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc, vector<uint32_t>& outc)
+parse_unitig_header(string header, float& mean_abundance, vector<uint64_t>& inc, vector<uint64_t>& outc)
 {
     bool debug = false;
     if (debug) std::cout << "parsing unitig links for " << header << std::endl;
@@ -336,7 +336,7 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
             int pos_rc = tok.find_last_of(':');
             bool rc = tok.substr(pos_rc+1) == "-";
             tok = tok.substr(0,pos_rc); // chop last field
-            uint32_t unitig = atoi(tok.substr(tok.find_last_of(':')+1).c_str());
+            uint64_t unitig = atoi(tok.substr(tok.find_last_of(':')+1).c_str());
             /* situation is: 
              * L:+:next_unitig:+    unitig[end] -> [begin]next_unitig 
              * L:+:next_unitig:-    unitig[end] -> [begin]next_unitig_rc
@@ -373,7 +373,7 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint32_t>& inc,
         
 
 static void
-insert_navigational_vector(std::vector<uint32_t> &v, std::vector<uint32_t>& to_insert, uint32_t utig_counter, std::vector<uint32_t> &v_map)
+insert_navigational_vector(std::vector<uint64_t> &v, std::vector<uint64_t>& to_insert, uint64_t utig_counter, std::vector<uint64_t> &v_map)
 {
     v_map[utig_counter] = v.size();
     v.insert(v.end(), to_insert.begin(), to_insert.end());
@@ -398,8 +398,8 @@ make_range(Container& c, size_t b, size_t e) {
 
 /* returns an iterator of all incoming or outcoming edges from an unitig */
 static 
-range<std::vector<uint32_t>::const_iterator >
-get_from_navigational_vector(const std::vector<uint32_t> &v, uint32_t utig, const std::vector<uint32_t> &v_map) 
+range<std::vector<uint64_t>::const_iterator >
+get_from_navigational_vector(const std::vector<uint64_t> &v, uint64_t utig, const std::vector<uint64_t> &v_map) 
 {
     if (utig == v_map.size() /*total number of unitigs*/ - 1)
     {
@@ -440,7 +440,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         const string& comment = itSeq->getComment();
 
         float mean_abundance;
-        vector<uint32_t> inc, outc; // incoming and outcoming unitigs
+        vector<uint64_t> inc, outc; // incoming and outcoming unitigs
         parse_unitig_header(comment, mean_abundance, inc, outc);
 
         insert_navigational_vector(incoming,  inc,  utig_counter, incoming_map);
@@ -459,7 +459,6 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
             nb_unitigs_extremities+=2;
     }
 
-    if (utig_counter > 1000000000LL) { std::cout << "Error: more than 1B unitigs, GATB-core isn't ready for that yet. Try to better error-correct the data." << std::endl; exit(1);} // just need to change some uint32's in uint64's but would 2x the mem (incoming and outcoming vectors, i think that's it)
 
     unitigs_traversed.resize(0);
     unitigs_traversed.resize(unitigs.size(), false); // resize "traversed" bitvector, setting it to zero as well
@@ -470,15 +469,15 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     // an estimation of memory usage
     uint64_t nb_kmers = unitigs.size();
     uint64_t mem_vec = (unitigs.capacity() * sizeof(string) + nb_utigs_nucl_mem);
-    std::cout << "Memory usage:" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint32_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
+    std::cout <<  "Memory usage:" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
     std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
     std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
-    std::cout <<  "   " <<  (nb_kmers/8) / 1024 / 1024 << " MB visited bitvector (hopefully 1 bit/elt)" << std::endl;
-    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 1.0/8.0) + unitigs.size() * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+    std::cout <<  "   " <<  (2*nb_kmers/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
+    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
 
     if (nb_utigs_nucl != nb_utigs_nucl_mem)
         std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
@@ -781,7 +780,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
             Unitig_pos pos = UNITIG_INSIDE;
             if (seqSize == kmerSize + 1) pos = UNITIG_END;
             res.resize(res.size()+1);
-            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_INCOMING); // TODO not sure about the dest.strand in those cases, so i'm setting to source.strand, we'll see. (applies to all 3 other cases)
+            res[res.size()-1].set ( source.unitig, source.pos, source.strand, source.unitig, pos, source.strand, DIR_INCOMING); // not sure about the dest.strand in those cases, so i'm setting to source.strand, we'll see. (applies to all 3 other cases) It doesn't matter in Minia anyway, we don't use nodes inside unitigs
             if (debug) std::cout << "found success of [kmer rc]---" << std::endl;
         }
 
@@ -813,7 +812,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     // otherwise, that extremity kmer has neighbors at are also extremities.
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
    
-    auto functor = [&](range<std::vector<uint32_t>::const_iterator >&& edges, Direction dir)
+    auto functor = [&](range<std::vector<uint64_t>::const_iterator >&& edges, Direction dir)
     {
         auto it = edges.begin();
         if (it == edges.end()) return;
@@ -829,7 +828,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
                 continue;
             }
 
-            uint32_t unitig = li.unitig;
+            uint64_t unitig = li.unitig;
             Unitig_pos pos = li.pos;
             bool rc = li.rc;
 
@@ -849,19 +848,28 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
         }
     }; 
 
-    if (pos_end && ((direction & DIR_OUTCOMING) && same_orientation) || ( (direction & DIR_INCOMING) && (!same_orientation) ) )
+    // TODO: write an unit test for the bug where not putting paranthesis there: pos_end && (...) was still working, but causes more edges to be returned than necessary. (only in DIR_END i think)
+    if (pos_end && (((direction & DIR_OUTCOMING) && same_orientation) || ( (direction & DIR_INCOMING) && (!same_orientation) ) ))
     {
         // nodes to the right of a unitig (outcoming)
         Direction dir = same_orientation?DIR_OUTCOMING:DIR_INCOMING;
         functor(get_from_navigational_vector(outcoming, source.unitig, outcoming_map), dir);
     }
-    if (pos_begin && ((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) )
+    if (pos_begin && (((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) ))
     {
         // nodes to the left of a unitig (incoming)
         Direction dir = same_orientation?DIR_INCOMING:DIR_OUTCOMING;
         functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), dir);
     }
 
+    // sanity check on output, due to limitation on GraphVector nmber of elements
+    // TODO address that. i don't like the potential performance hit here.
+    if (res.size() > 16)
+    { 
+        std::cout << "Error : more than 16 edges (" << res.size() << ") out of node, not supported (already more than 8 is strange)" << std::endl; 
+        std::cout << "graphU getEdges was called on source: " << toString(source) << " unitig: " << source.unitig << " pos: " << (source.pos==UNITIG_BEGIN?"beg":"end") << " strand: " << source.strand << " dir " << direction << std::endl;
+        exit(1);
+    }
     return res;
 }
 
@@ -1191,7 +1199,7 @@ void GraphUnitigsTemplate<span>::
 unitigDelete (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
     nodesDeleter.onlyListMethod = true; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
-    std::cout << "GraphU queuing to delete unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << " mean abundance " << unitigMeanAbundance(node) << std::endl; 
+    //std::cout << "GraphU queuing to delete unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << " mean abundance " << unitigMeanAbundance(node) << std::endl; 
     nodesDeleter.markToDelete(node);
 }
 
@@ -1241,7 +1249,7 @@ template<size_t span>
 void GraphUnitigsTemplate<span>::
 simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int& endDegree, bool markDuringTraversal, float& coverage, string* seq, std::vector<NodeGU> *nodesList) 
 {
-    bool debug = true;
+    bool debug = false;
     if (debug)
         std::cout << "simplePathLongest_avance called, node " << toString(node) << " dir " << dir << std::endl;
 
@@ -1332,8 +1340,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         if (neighbors[0].to.pos != UNITIG_BOTH) 
         {
             // FIXME: there is a bcalm bug. see strange_seq.fa. i'll send it to antoine, but meanwhile, i'm coding a workaround
-            // DOUBLE FIXME: still, enabling this for now. (debugging on small genomes)
-            if (1)
+            if (0)
             {
             if (dir==DIR_INCOMING )
                 assert( (npos == UNITIG_END   && same_orientation) || (npos == UNITIG_BEGIN && (!same_orientation)));
