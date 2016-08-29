@@ -78,7 +78,14 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
-   IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
+    if (CMAKE_CXX_COMPILER_VERSION STREQUAL "")
+        # travis-cl has a clang that shows no version, so trying this http://stackoverflow.com/questions/16150888/cmake-branch-on-clang-version
+        EXECUTE_PROCESS( COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string )
+        string (REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
+        set(CMAKE_CXX_COMPILER_VERSION CLANG_VERSION_STRING)
+    endif()
+
+    IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
         if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
             set (use_mphf 0)
         else()
