@@ -129,7 +129,7 @@ template<size_t span>
 void UnitigsConstructionAlgorithm<span>::
 link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
 {
-    bool debug = true;
+    bool debug = false;
 
     BankFasta inputBank (unitigs_filename);
     BankFasta::Iterator itSeq (inputBank);
