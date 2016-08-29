@@ -831,9 +831,9 @@ public:
     unsigned int simplePathLength            (Node& node, Direction dir) const;
     double           unitigMeanAbundance     (Node& node) const;
     double       simplePathMeanAbundance     (Node& node, Direction dir) const;
-    void             unitigDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) ;
+    void             unitigDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant> >& nodesDeleter) ;
     void             unitigDelete          (Node& node) ;
-    void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) ;
+    void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant> >& nodesDeleter) ;
     std::string  unitigSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
     std::string  unitigPathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
     void         unitigMark            (Node& node) ; // used to flag simple path as traversed, in minia
@@ -1294,7 +1294,7 @@ using NodeFast = Node_t<typename gatb::core::kmer::impl::Kmer<span>::Type >;
 template <size_t span>
 using EdgeFast = Edge_t<NodeFast<span> >;
 template <size_t span>
-using GraphDataVariantFast = boost::variant<GraphData<span>>; 
+using GraphDataVariantFast = boost::variant<GraphData<span> >; 
 #else
 // untested code
 /*template <size_t span>

@@ -108,7 +108,7 @@ if (use_new_cxx)
     message ("-------------------------------------------------------------------------------------")
 else()
     message ("-------------------------------------------------------------------------------------")
-    message ("-- COMPILER VERSION IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
+    message ("-- COMPILER VERSION (id:'${CMAKE_CXX_COMPILER_ID}' ver:'${CMAKE_CXX_COMPILER_VERSION}') IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
     message ("-------------------------------------------------------------------------------------")
 endif()
 
