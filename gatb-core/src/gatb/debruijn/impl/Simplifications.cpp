@@ -75,7 +75,7 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nb
         _nbCores(nbCores), _firstNodeIteration(true), _verbose(verbose)
 {
     // the next list is only here to get number of nodes
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> itNode (this->_graph.template GraphType::iterator(), "");
+    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> itNode (this->_graph.iterator(), "");
     nbNodes = itNode.size();
 
     // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
