@@ -1,6 +1,6 @@
 /*****************************************************************************
  *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  INRIA
+ *   Copyright (C) 2014-2016 
  *   Authors: R.Chikhi, G.Rizk, E.Drezen
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -46,7 +46,8 @@ namespace impl      {
 
 /********************************************************************************/
 
-/* Nodes. 
+/* Nodes. Those correspond to left or right extremities of a unitig
+ *
  * Big difference with Graph.hpp: in GraphUnitig, we don't store kmers in nodes. Kmers are inferred from unitigs
  */
 struct NodeGU
@@ -134,9 +135,10 @@ struct EdgeGU
                  #####   #     #  #     #  #        #     #
 ********************************************************************************/
 
-/** \brief Class representing a De Bruijn graph on top of unitigs.
- * a bit drastic here: no more big templatization, it's built on top of nodefast and edgefast,
- * and requires just a span template
+/** \brief Class representing a De Bruijn graph based on unitigs.
+ *
+ * Nodes are k-mer extremities of unitigs. They're represented implicitly internally.
+ * Edges are (k-1) overlaps between nodes in different unitigs
  */
 
 template <size_t span>
@@ -239,57 +241,6 @@ public:
     inline GraphVector<EdgeGU> successorsEdge   ( NodeGU& node) const                 {  return getEdges(node, DIR_OUTCOMING); }
     inline GraphVector<EdgeGU> predecessorsEdge ( NodeGU& node) const                 {  return getEdges(node, DIR_INCOMING);  }
 
-
-    // TODO delete those, i don't want to implement those, unless unit tests really want them. but even. i'd rather modify the unit tests
-#if 0
-
-    /**********************************************************************/
-    /*                     ONE NEIGHBOR METHODS                           */
-    /**********************************************************************/
-
-    /** Return a specific neighbor from a given node. The neighbor is defined by a direction and the transition
-     * nucleotide.
-     * IMPORTANT: this method will not check that the neighbor node belongs to the graph: it merely
-     * computes the next kmer but doesn't check the Bloom filter. It is supposed that the client has already asked
-     * for the neighbors and so knows the valid transitions.
-     * \param[in] source : the source neighbor
-     * \param[in] dir : the direction of the transition
-     * \param[in] nt : the nucleotide of the transition
-     * \return the neighbor object.
-     */
-    inline NodeGU neighbor ( NodeGU& source, Direction dir, kmer::Nucleotide nt) const
-    {  bool exists=true; return getNode (source, dir, nt, exists);  }
-
-    /** Return a specific neighbor from a given node. The neighbor is defined by a direction and the transition
-     * nucleotide.
-     * IMPORTANT: this method will check that the neighbor node belongs to the graph. If the neighbor is not in the
-     * graph, the 'exists' parameter is set to false, true otherwise.
-     * \param[in] source : the source neighbor
-     * \param[in] dir : the direction of the transition
-     * \param[in] nt : the nucleotide of the transition
-     * \param[out] exists : yes means that the neighbor is in the graph, false otherwise
-     * \return the neighbor object.
-     */
-    inline NodeGU neighbor ( NodeGU& source, Direction dir, kmer::Nucleotide nt, bool& exists) const
-    {  return getNode (source, dir, nt, exists);  }
-
-    /** Shortcut for neighbor with dir==DIR_OUTCOMING. */
-    inline NodeGU successor ( Node& source, kmer::Nucleotide nt) const
-    {  bool exists=true; return getNode (source, DIR_OUTCOMING, nt, exists);  }
-
-    inline Node successor ( Node& source, kmer::Nucleotide nt, bool& exists) const
-    {  return getNode (source, DIR_OUTCOMING, nt, exists);  }
-
- 
-    /** Shortcut for neighbor with dir==DIR_INCOMING. */
-    inline Node predecessor ( Node& source, kmer::Nucleotide nt) const
-    {  bool exists=true; return getNode (source, DIR_INCOMING, nt, exists);  }
-
-    inline Node predecessor ( Node& source, kmer::Nucleotide nt, bool& exists) const
-    {  return getNode (source, DIR_INCOMING, nt, exists);  }
-
-#endif
-
     /**********************************************************************/
     /*                      MISC NEIGHBORS METHODS                        */
     /**********************************************************************/
@@ -320,8 +271,6 @@ public:
      *      -2 if no out-branching but next kmer has in-branching
      */
     int simplePathAvance (const NodeGU& node, Direction dir, EdgeGU& output) const;
-
-    /** */
     int simplePathAvance (const NodeGU& node, Direction dir) const;
 
     /** */
@@ -329,7 +278,10 @@ public:
     GraphIterator<EdgeGU> simplePathEdge (const NodeGU& node, Direction dir) const  { return getSimpleEdgeIterator(node, dir); }
 
 
-    // high-level functions that are now used in Simplifications.cpp
+    /**********************************************************************/
+    /*                         UNITIGS METHODS (the essential stuff)      */
+    /**********************************************************************/
+
     // convention: unitigXXX works on the unitigs as computed as bcalm. never leaves that unitig
     //             simplepathXXX may traverse multiple unitigs
     bool isLastNode                          (const NodeGU& node, Direction dir) const;
@@ -361,38 +313,22 @@ public:
 
     std::string toString(const NodeGU& node) const;
 
-    /** Tells whether or not a node belongs to the graph.
-     * \param[in] item : the node
-     * \return true if the node belongs to the graph, false otherwise. */
+    // those are not implemented but I need them headers for compatibility with original Graph
     bool contains (const NodeGU& item) const;
-
-    /** Tells whether the provided node is branching or not.
-     * \param[in] node : the node to be asked
-     * \return true if the node is branching, false otherwise. */
     bool isBranching (const NodeGU& node) const;
-
-    /** Return the abundance of a node by querying the perfect hash function 
-     * \param[in] node : the node
-     * \return the abundance */
     int queryAbundance (const NodeGU& node) const;
-
-    /** Return the state of a node by querying the perfect hash function. A node state is either normal, marked, or deleted.
-     * \param[in] node : the node or a node index (unsigned long) from the MPHF
-     * \return the abundance */
     int queryNodeState (const NodeGU& node) const;
     void setNodeState (const NodeGU& node, int state) const;
     void resetNodeState () const ;
-    void disableNodeState () const ; // see Graph.cpp for explanation
+    void disableNodeState () const ;
+    void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
+    unsigned long nodeMPHFIndex(const NodeGU& node) const;
+    void cacheNonSimpleNodes(unsigned int nbCores, bool verbose); 
+
 
     // deleted nodes, related to NodeState above
     void deleteNode (/* cannot be const because nodeDeleter isn't */ NodeGU& node) ;
-    void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
     bool isNodeDeleted(const NodeGU& node) const;
-
-    // a direct query to the MPHF
-    unsigned long nodeMPHFIndex(const NodeGU& node) const;
-
-    void cacheNonSimpleNodes(unsigned int nbCores, bool verbose) ; // dummy for unitigs
 
     /**********************************************************************/
     /*                         EDGE METHODS                               */
