@@ -38,7 +38,7 @@ int main (int argc, char* argv[])
         Path pathLeft;
 
         // We get one branching node in the graph
-        Graph::Iterator<BranchingNode> itBranching = graph.iteratorBranching ();
+        GraphIterator<BranchingNode> itBranching = graph.iteratorBranching ();
         for (itBranching.first(); !itBranching.isDone(); itBranching.next())
         {
             BranchingNode current = itBranching.item();

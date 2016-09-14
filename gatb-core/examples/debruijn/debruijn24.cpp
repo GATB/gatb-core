@@ -33,7 +33,7 @@ public:
         map<Node, u_int64_t> mapping;
         u_int64_t count = 0;
     
-        Graph::Iterator<Node> itMap = graph.iterator ();
+        GraphIterator<Node> itMap = graph.iterator ();
         for (itMap.first(); !itMap.isDone(); itMap.next())  { mapping[itMap.item()] = count++; }
 
         ProgressGraphIterator<Node,ProgressTimer> it = graph.iterator ();
@@ -41,7 +41,7 @@ public:
         {
             Node current = it.item();
 
-            Graph::Vector<Node> neighbors = graph.neighbors(current.kmer);
+            GraphVector<Node> neighbors = graph.neighbors(current.kmer);
 
             for (size_t i=0; i<neighbors.size(); i++)
             {
@@ -59,7 +59,7 @@ public:
         map<Node, u_int64_t> mapping;
         u_int64_t count = 0;
     
-        Graph::Iterator<BranchingNode> itMap = graph.iteratorBranching();
+        GraphIterator<BranchingNode> itMap = graph.iteratorBranching();
         for (itMap.first(); !itMap.isDone(); itMap.next())  { mapping[itMap.item()] = count++; }
 
         ProgressGraphIterator<BranchingNode,ProgressTimer> it = graph.iteratorBranching ();
@@ -67,7 +67,7 @@ public:
         {
             BranchingNode current = it.item();
 
-            Graph::Vector<BranchingNode> neighbors = graph.neighborsBranching (current.kmer);
+            GraphVector<BranchingNode> neighbors = graph.neighborsBranching (current.kmer);
 
             for (size_t i=0; i<neighbors.size(); i++)
             {

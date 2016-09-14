@@ -53,8 +53,8 @@ int main (int argc, char* argv[])
             map <InOut_t,size_t>& localTopology = topology();
 
             // We get branching nodes neighbors for the current branching node.
-            Graph::Vector<BranchingEdge> successors   = graph.successorsBranchingEdge ((Node&)node); /* node casting is necessary due to incomplete Graph.hpp api for successorsBranchingEdge */
-            Graph::Vector<BranchingEdge> predecessors = graph.predecessorsBranchingEdge ((Node&)node); 
+            GraphVector<BranchingEdge> successors   = graph.successorsBranchingEdge ((Node&)node); /* node casting is necessary due to incomplete Graph.hpp api for successorsBranchingEdge */
+            GraphVector<BranchingEdge> predecessors = graph.predecessorsBranchingEdge ((Node&)node); 
 
             // We increase the occurrences number for the current couple (in/out) neighbors
             localTopology [make_pair(predecessors.size(), successors.size())] ++;

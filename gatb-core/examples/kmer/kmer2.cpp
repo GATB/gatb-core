@@ -11,6 +11,11 @@
 
 int main (int argc, char* argv[])
 {
+#define KSIZE_32 (KSIZE_LIST == 32)                                                                                                                                                                               
+        std::cout << "this example cannot be run when gatb-core is compiled for kmers <= 32" << std::endl;
+#if KSIZE_32                                                                                                                                                                                                      
+#else  
+
     // We set the maximal span of the kmers. We use here a constant of gatb-core
     // that gives a default span for kmers up to the second kmer size value
     const size_t span = KMER_SPAN(1);
@@ -120,5 +125,6 @@ int main (int argc, char* argv[])
         std::cout << "minimizer changed          : " << kmer.hasChanged() << std::endl;
 //! [snippet1_minimizer]
     }
+#endif
 }
 //! [snippet1]

@@ -25,7 +25,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::load (argv[1]);
 
         // We get an iterator for all nodes of the graph.
-        Graph::Iterator<Node> it = graph.iterator ();
+        GraphIterator<Node> it = graph.iterator ();
 
         // We choose how many cores we want to use.
         // By convention, a 0 value will use all available cores.

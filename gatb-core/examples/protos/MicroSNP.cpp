@@ -40,7 +40,7 @@ public:
             if ((indegree ==1 && outdegree==2)  ||  (indegree ==2 && outdegree==1) )
             {
                 //get neighbor branching edges
-                Graph::Vector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (current);
+                GraphVector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (current);
 
                 //clean bubble
                 if(branchingNeighbors.size()==2  && branchingNeighbors[0].distance == ksize && branchingNeighbors[1].distance == ksize)
