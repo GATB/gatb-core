@@ -23,7 +23,7 @@ int main (int argc, char* argv[])
 
         // We create a Node iterator that iterates all the simple nodes from the first node
         // Remember that a simple node has indegree==1 and outdegree==1
-        Graph::Iterator<Node> path = graph.simplePath (node, DIR_OUTCOMING);
+        GraphIterator<Node> path = graph.simplePath (node, DIR_OUTCOMING);
 
         // We iterate the simple path.
         for (path.first(); !path.isDone(); path.next())

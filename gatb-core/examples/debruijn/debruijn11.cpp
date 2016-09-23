@@ -17,7 +17,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::create (new BankStrings ("AATGC", NULL), "-kmer-size 4  -abundance-min 1  -verbose 0");
 
         // We get an iterator for all nodes of the graph.
-        Graph::Iterator<Node> it = graph.iterator ();
+        GraphIterator<Node> it = graph.iterator ();
 
         // We check that we have only two possible nodes
         assert (it.size() == 2);

@@ -79,7 +79,7 @@ public:
     
     // structure that links each kmer to an unitig
     // also used to enumerate kmers
-    typedef typename std::unordered_map<Type, std::vector<uint32_t>> NodeLinksMap;
+    typedef typename std::unordered_map<Type, std::vector<uint64_t>> NodeLinksMap;
 
     NodeLinksMap utigs_links_map;
 

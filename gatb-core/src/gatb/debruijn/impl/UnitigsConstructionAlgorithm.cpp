@@ -133,7 +133,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
 
     BankFasta inputBank (unitigs_filename);
     BankFasta::Iterator itSeq (inputBank);
-    uint32_t utig_counter = 0;
+    uint64_t utig_counter = 0;
     
     Model modelKminusOne(kmerSize - 1); // it's canonical (defined in the .hpp file)
 

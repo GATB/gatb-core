@@ -9,6 +9,11 @@ using namespace std;
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
+
+#define KSIZE_32 (KSIZE_LIST == 32)                                                                                                                                                                               
+    std::cout << "this example cannot be run when gatb-core is compiled for kmers <= 32" << std::endl;
+#if KSIZE_32                                                                                                                                                                                                      
+#else        
     const size_t SPAN = KMER_SPAN(1);
 
     /** Shortcuts. */
@@ -106,5 +111,6 @@ int main (int argc, char* argv[])
     {
         std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
+#endif
 }
 //! [snippet1]

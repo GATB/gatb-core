@@ -948,7 +948,7 @@ public:
             for (size_t j=0; j<ARRAY_SIZE(nbCores); j++)
             {
                 Graph graph = Graph::create (
-                    "-verbose 0 -in %s -kmer-size %d -integer-precision %d  -bloom %s  -debloom %s  -debloom-impl %s  -max-memory %d  -nb-cores %d  -max-memory %d",
+                    "-verbose 0 -in %s -kmer-size %d -integer-precision %d  -bloom %s  -debloom %s  -debloom-impl %s  -max-memory %d  -nb-cores %d  -max-memory %d -abundance-min 3",
                     readfile.c_str(),
                     kmerSize,
                     integerPrecision,
@@ -959,7 +959,15 @@ public:
                     nbCores[j],
                     MAX_MEMORY
                 );
+                if (graph.getInfo().getStr ("checksum_branching") != checksum)
+                    std::cout << "in anticipation of assert fail, checksum_branching = " << graph.getInfo().getStr ("checksum_branching")  << " != " << checksum << 
+                        " for params " <<  readfile << " " << kmerSize << " " << integerPrecision << " " << bloom << " " << debloom << " " << debloomImpl << 
+                        std::endl;
                 CPPUNIT_ASSERT (graph.getInfo().getStr ("checksum_branching") == checksum);
+                if (graph.getInfo().getInt ("nb_branching") != (int)nbBranching)
+                    std::cout << "in anticipation of assert fail, nb_branching = " << graph.getInfo().getStr ("nb_branching")  << " != " << nbBranching << 
+                        " for params " <<  readfile << " " << kmerSize << " " << integerPrecision << " " << bloom << " " << debloom << " " << debloomImpl <<
+                        std::endl;
                 CPPUNIT_ASSERT (graph.getInfo().getInt ("nb_branching")       == (int)nbBranching);
             }
         }
@@ -1001,7 +1009,11 @@ public:
         /*****************************************/
         filepath = DBPATH("reads1.fa");
 
-        debruijn_checksum_aux (filepath,  31,  1, 24,   "30eb72bc69eca0d3", true);
+#define KSIZE_32 (KSIZE_LIST == 32)                                                                                                                                                                               
+        debruijn_checksum_aux (filepath,  31,  1, 24,  "30eb72bc69eca0d3", true);
+
+#if KSIZE_32        
+#else
         debruijn_checksum_aux (filepath,  31,  2, 24, "2.30eb72bc69eca0d3", true);
         debruijn_checksum_aux (filepath,  31,  3, 24, "2.30eb72bc69eca0d3", true);
         debruijn_checksum_aux (filepath,  31,  4, 24, "2.30eb72bc69eca0d3", true);
@@ -1014,6 +1026,7 @@ public:
         debruijn_checksum_aux (filepath,  95,  4,  4, "71ed998e1b26a8e0.1a1d73f05438c413.1c6405c67a8fab0a", true);
 
         debruijn_checksum_aux (filepath, 127,  4,  4, "5a5d5720302692fd.214182472e05744f.5c6b807cecb99db2.c5655b04b6a7b8fe", true);
+#endif
 
         /*****************************************/
         /**          FILE reads3.fa.gz           */
@@ -1021,6 +1034,8 @@ public:
         filepath = DBPATH("reads3.fa.gz");
 
         debruijn_checksum_aux (filepath,  31,  1, 2956,    "d238698aa54e0ce2");
+#if KSIZE_32        
+#else
         debruijn_checksum_aux (filepath,  31,  2, 2956, "cc.d238698aa54e0ce2");
         debruijn_checksum_aux (filepath,  31,  3, 2956, "cc.d238698aa54e0ce2");
         debruijn_checksum_aux (filepath,  31,  4, 2956, "cc.d238698aa54e0ce2");
@@ -1033,6 +1048,7 @@ public:
         debruijn_checksum_aux (filepath,  95,  4,  600, "2c.99817bec5ebde83b.97a71a71c72636c7.4cd2353be480a3b4");
 
         debruijn_checksum_aux (filepath, 127,  4,  424, "50c7d59f28890ef3.23f38c0611dc341c.525fd5f6a6fa045b.6f1255d3695f039d");
+#endif
     }
 
     /********************************************************************************/
