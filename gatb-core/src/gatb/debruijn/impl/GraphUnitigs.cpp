@@ -812,7 +812,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     
     // otherwise, that extremity kmer has neighbors at are also extremities.
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
-   
+    
     auto functor = [&](range<std::vector<uint32_t>::const_iterator >&& edges, Direction dir)
     {
         auto it = edges.begin();
@@ -825,7 +825,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
             if (unitigs_deleted[li.unitig]) 
             {
                 if (debug)
-                    std::cout << "found deleted neighbor unitig "<<  li.unitig <<" (kmer: " << toString(NodeGU(li.unitig, li.pos)) << ")" << std::endl;
+                    std::cout << "found deleted neighbor unitig "<<  li.unitig <<" (kmer: " << this->/*not putting this this crashes gcc 4.7 */toString(NodeGU(li.unitig, li.pos)) << ")" << std::endl;
                 continue;
             }
 
@@ -841,7 +841,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
             if (debug) 
             {
                 NodeGU node(unitig, pos, strand);
-                std::cout << "[out-of-unitig getEdges], found neighbor " << toString(node) << " dir " << dir << std::endl;
+                std::cout << "[out-of-unitig getEdges], found neighbor " << this->/*not putting this this crashes gcc 4.7 */toString(node) << " dir " << dir << std::endl;
             }
     
             res.resize(res.size()+1);
@@ -871,6 +871,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
         std::cout << "graphU getEdges was called on source: " << toString(source) << " unitig: " << source.unitig << " pos: " << (source.pos==UNITIG_BEGIN?"beg":"end") << " strand: " << source.strand << " dir " << direction << std::endl;
         exit(1);
     }
+    
     return res;
 }
 
