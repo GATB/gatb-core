@@ -812,7 +812,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     // otherwise, that extremity kmer has neighbors at are also extremities.
     // so, mutate to get all 4 outneighrs, and test for their existence in the utigs_map
     
-    auto functor = [&](range<std::vector<uint32_t>::const_iterator >&& edges, Direction dir)
+    auto functor = [&](range<std::vector<uint64_t>::const_iterator >&& edges, Direction dir)
     {
         auto it = edges.begin();
         if (it == edges.end()) return;
