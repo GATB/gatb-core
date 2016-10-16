@@ -373,6 +373,9 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
     Configuration config = configAlgo.getConfiguration();
     graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_CONFIGURATION_DONE);
 
+    /* remember configuration details (e.g. number of passes, partitions). useful for bcalm. */                                                                     
+    graph.getStorage().getGroup(configAlgo.getName()).setProperty("xml", string("\n") + configAlgo.getInfo()->getXML());        
+
     DEBUG ((cout << "build_visitor : ConfigurationAlgorithm END\n"));
 
     /** We may have to stop just after configuration. */
@@ -665,6 +668,7 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
     parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
     parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
+    parserGeneral->push_front (new OptionOneParam (STR_STORAGE_TYPE,      "storage type (file or hdf5)",      false, "file"  ));
     parserGeneral->push_front (new OptionNoParam  (STR_CONFIG_ONLY,       "dump config only"));
 
     /** We add it to the root parser. */
@@ -873,14 +877,11 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
     {
         /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
         
-        string output = input;//.substr(0,input.find_last_of(".h5")) + "_new.h5";
-        //cout << "To avoid overwriting the input (" << input << "), output will be saved to: "<< output << std::endl;
-
         cout << "Input is a h5 file (we assume that it contains at least the solid kmers), we will complete it into a graph if necessary.\n"; 
         
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */
-        setStorage (StorageFactory(_storageMode).create (output , false, false));
+        setStorage (StorageFactory(_storageMode).create (input, false, false));
     
         /** We get some properties. */
         _state     = (typename GraphTemplate<Node, Edge, GraphDataVariant>::StateMask) atol (getGroup().getProperty ("state").c_str());

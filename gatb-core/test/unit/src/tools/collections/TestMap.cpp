@@ -18,6 +18,7 @@
 
 #include <CppunitCommon.hpp>
 
+#include <gatb/system/impl/System.hpp>
 #include <gatb/tools/designpattern/api/Iterator.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
 #include <gatb/tools/collections/impl/MapMPHF.hpp>
@@ -44,6 +45,7 @@ using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::storage;
 using namespace gatb::core::tools::storage::impl;
 using namespace gatb::core::system;
+using namespace gatb::core::system::impl;
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
@@ -144,6 +146,7 @@ public:
 
         /** We create a file with some keys (coded as NativeInt8 values). */
         const char* filename = "keys";
+        System::file().remove (filename); // new since october 2016 BagFile change
         BagFile<NativeInt8> keysFile (filename);
         for (size_t i=0; i<ARRAY_SIZE(keysValue); i++)  {  keysFile.insert (keysValue[i]); }
         keysFile.flush();

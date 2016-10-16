@@ -115,10 +115,10 @@ public:
     /** Return a buffer of items.
      * \param[out] buffer : the buffer
      * \return the buffer */
-    T2* getItems (T2*& buffer) { return 0; }
+    T2* getItems (T2*& buffer) { std::cout << "IterableAdaptor::getItems() called (but it's not implemented)" << std::endl; exit(1); return 0; }
 
     /** */
-    size_t getItems (T2*& buffer, size_t start, size_t nb) { return 0; }
+    size_t getItems (T2*& buffer, size_t start, size_t nb) { std::cout << "IterableAdaptor::getItems() called (but that function isn't implemented)" << std::endl; exit(1); return 0; }
 
 private:
     Iterable<T1>& _ref;
@@ -138,6 +138,7 @@ public:
     template<typename T>
     static bool getItems (Iterable<T>& iterable, std::vector<T>& items)
     {
+        std::cout << "IterableHelper::getItems() called" << std::endl; 
         size_t nbItems = items.size();
 
         dp::Iterator<T>* it = iterable.iterator();  LOCAL (it);

@@ -14,12 +14,13 @@ static void atomic_double_add(std::atomic<double> &d1, double d2) {
                 ;
 }
 #endif
-
+            
 static atomic_double global_wtime_compactions (0), global_wtime_cdistribution (0), global_wtime_add_nodes (0), global_wtime_create_buckets (0), global_wtime_foreach_bucket (0), global_wtime_lambda (0), global_wtime_parallel (0), global_wtime_longest_lambda (0), global_wtime_best_sched(0);
 
 static bool time_lambdas = true;
 static std::mutex lambda_timing_mutex, active_minimizers_mutex, write_to_glue_mutex;
 static size_t nb_threads_simulate=1; // this is somewhat a legacy parameter, i should get rid of (and replace by nb_threads)
+
 
 static unsigned long memory_usage(string message="", bool verbose=true)
 {
@@ -138,7 +139,9 @@ void bcalm2(Storage *storage,
     // remove potential old glue files
     for (unsigned int i = 0; i < 10000 /* there cannot be more than 10000 threads, right? unsure if i'll pay for that asumption someday*/; i++)
         if (System::file().doesExist(prefix + ".glue." + std::to_string(i)))
-           System::file().remove (prefix + ".glue." + std::to_string(i));
+        {
+           System::file().remove (prefix + ".glue." + std::to_string(i)); 
+        }
 
     unsigned long *nb_seqs_in_glue = new unsigned long[nb_threads];
 
@@ -257,19 +260,6 @@ void bcalm2(Storage *storage,
             }
         };
 
-        // auto add_to_bucket_queue = [&active_minimizers, &bucket_queues](uint32_t minimizer, __uint128_t seq, uint32_t leftmin, uint32_t rightmin, int p)
-        // {
-        //     //std::cout << "adding elt to bucket: " << seq << " "<< minimizer<<std::endl;
-        //     bucket_queues[minimizer].enqueue(std::make_tuple(seq,leftmin,rightmin));
-        //
-        //     if (active_minimizers[p].find(minimizer) == active_minimizers[p].end())
-        //     {
-        //         active_minimizers_mutex.lock();
-        //         active_minimizers[p].insert(minimizer);
-        //         active_minimizers_mutex.unlock();
-        //     }
-        // };
-
         std::atomic<unsigned long> nb_left_min_diff_right_min;
         std::atomic<unsigned long> nb_kmers_in_partition;
         nb_kmers_in_partition = 0;
@@ -282,8 +272,8 @@ void bcalm2(Storage *storage,
                     &bucket_queues, &modelK1, &k, &repart, &nb_left_min_diff_right_min,
                     &kmerInGraph, &model, &save_traveller_kmer, abundance_threshold,
                     &nb_kmers_in_partition]
-                (Count item) {
-
+                (Count& item) {
+            
             // if the abundance threshold is higher than the h5 abundance,
             // filter out this kmer (useful when you want to re-use same .h5 but with higher "-abundance" parameter)
             size_t abundance = item.abundance;
@@ -303,7 +293,7 @@ void bcalm2(Storage *storage,
 
             ++kmerInGraph;
             ++nb_kmers_in_partition;
-
+            
             if (repart(leftMin) == p)
                 add_to_bucket_queue(leftMin, seq, abundance, leftMin, rightMin, p);
 
@@ -334,6 +324,7 @@ void bcalm2(Storage *storage,
             {                printf("wtf? repart bucket\n");                exit(1);            }
 
         };
+        
 
         auto start_createbucket_t=get_wtime();
 
@@ -344,9 +335,7 @@ void bcalm2(Storage *storage,
             /** We retrieve an iterator on the Count objects of the pth partition in pass pass_index */
             unsigned long interm_partition_index = p + pass_index * nb_partitions;
             Iterator<Count>* it_kmers = partition[interm_partition_index].iterator();
-
             LOCAL (it_kmers);
-
             dispatcher.iterate (it_kmers, insertIntoQueues);
         }
 
@@ -389,6 +378,7 @@ void bcalm2(Storage *storage,
             traveller_kmers_bank.finalize();
             System::file().remove (traveller_kmers_file);
         }
+        
 
         auto end_createbucket_t=get_wtime();
         atomic_double_add(global_wtime_create_buckets, diff_wtime(start_createbucket_t, end_createbucket_t));
@@ -406,7 +396,7 @@ void bcalm2(Storage *storage,
                 auto start_nodes_t=get_wtime();
 
                 bool debug = false;
-
+                
                 // (make sure to change other places labelled "// graph3" and "// graph4" as well)
                 //graph4 g(kmerSize-1,actualMinimizer,minSize); // graph4
                 uint number_elements(bucket_queues[actualMinimizer].size_approx());
@@ -474,11 +464,11 @@ void bcalm2(Storage *storage,
                         s._comment += " ";
                         for (auto abundance : abundances)
                             s._comment += to_string(abundance) + " ";
-                        out_to_glue[thread_id]->insert(s);
+                        out_to_glue[thread_id]->insert(s); 
                         nb_seqs_in_glue[thread_id]++;
                     }
                 }
-                graphCompactor.clear();
+                graphCompactor.clear(); // frees memory allocated during graph3 constructor (sort of a destructor, if you will)
                 auto end_cdistribution_t=get_wtime();
                 atomic_double_add(global_wtime_cdistribution, diff_wtime(start_cdistribution_t, end_cdistribution_t));
 
@@ -506,13 +496,13 @@ void bcalm2(Storage *storage,
 
         // flush glues
         for (unsigned int thread_id = 0; thread_id < (unsigned int)nb_threads; thread_id++)
-            out_to_glue[thread_id]->flush ();
+        {
+            out_to_glue[thread_id]->flush (); 
+        }
 
 
         if (partition[p].getNbItems() == 0)
             continue; // no stats to print here
-
-        memory_usage("Done with partition " + std::to_string(p), verbose);
 
         // check if buckets are indeed empty
         for (unsigned int minimizer = 0; minimizer < rg; minimizer++)
@@ -583,7 +573,9 @@ void bcalm2(Storage *storage,
                 global_wtime_lambda = 0;
             }
         }
+
         delete [] bucket_queues;
+        memory_usage("Done with partition " + std::to_string(p), verbose);
     } // end iteration superbuckets
 
     /*
@@ -593,12 +585,14 @@ void bcalm2(Storage *storage,
      */
 
     // create list of non empty glues
-    std::ofstream list_of_glues(prefix + ".glue");
+    std::ofstream list_of_glues(prefix + ".glue"); 
     for (unsigned int i = 0; i < (unsigned int)nb_threads; i++)
     {
         string glue_file = prefix + ".glue." + std::to_string(i);
         if (nb_seqs_in_glue[i])
+        {
             list_of_glues << glue_file << endl;
+        }
     }
     list_of_glues.close();
 
@@ -640,9 +634,19 @@ void bcalm2(Storage *storage,
         cout<<"                       Sum of best scheduling for each sb : "<< global_wtime_best_sched / unit << " secs"<<endl;
     }
 
-    // to stop after bcalm, before bglue:
-    //delete storage;
-    //exit(1);
+    // cleanup everything that was new'd
+    if (minimizer_type == 1)
+        delete[] freq_order;
+    delete[] nb_seqs_in_glue;
+    for (unsigned int i = 0; i < (unsigned int)nb_threads; i++)
+        delete out_to_glue[i];
+    delete[] traveller_kmers_save_mutex;
+    for (unsigned int i = 0; i < nb_partitions; i++)
+        delete traveller_kmers_files[i];
+ 
+    memory_usage("Done with all compactions", verbose);
+
+    //delete storage; exit(0); // to stop after bcalm, before bglue
 }
 
 }}}}

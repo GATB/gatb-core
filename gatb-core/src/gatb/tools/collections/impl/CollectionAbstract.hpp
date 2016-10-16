@@ -90,10 +90,14 @@ public:
     int64_t estimateNbItems () { return _iterable->estimateNbItems(); }
 
     /** \copydoc Iterable::getItems */
-    Item* getItems (Item*& buffer)  { return _iterable->getItems(buffer); }
+    Item* getItems (Item*& buffer)  { 
+        //std::cout << "CollectionAsbtract getItems called" << std::endl;
+        return _iterable->getItems(buffer); }
 
     /** \copydoc Iterable::getItems(Item*& buffer, size_t start, size_t nb) */
-    size_t getItems (Item*& buffer, size_t start, size_t nb)  { return _iterable->getItems (buffer, start, nb); }
+    size_t getItems (Item*& buffer, size_t start, size_t nb)  { 
+        //std::cout << "CollectionAsbtract getItems called" << std::endl;
+        return _iterable->getItems (buffer, start, nb); }
 
     /** \copydoc Bag::insert */
     void insert (const Item& item)  { _bag->insert (item); }

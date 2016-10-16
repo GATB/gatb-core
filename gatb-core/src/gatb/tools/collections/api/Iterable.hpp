@@ -82,7 +82,8 @@ public:
      * \return the buffer */
     virtual Item* getItems (Item*& buffer)
     {
-        throw "Iterable::getItems... SHOULD NOT BE HERE...";
+        std::cout << "ERROR" << std::endl; exit(1);
+        //throw "Iterable::getItems... SHOULD NOT BE HERE..."; // this throw wasn't caught by the unit test. so i'm doing an exit now.
         return buffer;
     }
 
@@ -93,7 +94,8 @@ public:
      * \return the number of items retrieved */
     virtual size_t getItems (Item*& buffer, size_t start, size_t nb)
     {
-        throw "Iterable::getItems... SHOULD NOT BE HERE...";
+        std::cout << "ERROR" << std::endl; exit(1);
+        //throw "Iterable::getItems... SHOULD NOT BE HERE...";
         return 0;
     }
 };

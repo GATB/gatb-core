@@ -55,10 +55,15 @@ public:
     BagFile (const std::string& filename) : _filename(filename), _file(0)
     {
         /** We first erase the file. */
-        system::impl::System::file().remove (filename);
+        //system::impl::System::file().remove (filename); // NOTE: before, the file was erased. Not anymore now, because GraphUnitigs sometimes reopens the same file (through this function) and wants to read it. I checked with minia, it's fine to not remove the file, there is no endless appending going on. But, some unit tests assumed that the file was deleted, so I had to modify them.
+
+        //std::cout << "BagFile created: " << _filename << std::endl;
 
         /** We get a handle on the file. */
-        _file = system::impl::System::file().newFile (filename, "wb+");
+        if (system::impl::System::file().doesExist(filename))
+            _file = system::impl::System::file().newFile (filename, "rb+");
+        else
+            _file = system::impl::System::file().newFile (filename, "wb");
     }
 
     /** Destructor. */
@@ -72,19 +77,23 @@ public:
     const std::string& getName () const { return _filename; }
 
     /**  \copydoc Bag::insert */
-    void insert (const Item& item)  {  _file->fwrite (&item, sizeof(Item), 1);  }
+    void insert (const Item& item)  {  _file->fwrite (&item, sizeof(Item), 1);  
+        //std::cout << "inserted(Item) to " << _filename << std::endl;
+    }
 
     /**  \copydoc Bag::insert(const std::vector<Item>& items, size_t length) */
     void insert (const std::vector<Item>& items, size_t length)
     {
         if (length == 0)  { length = items.size(); }
         _file->fwrite (items.data(), sizeof(Item), length);
+        //std::cout << "inserted(vector<Items>,length) to " << _filename << std::endl;
     }
 
     /**  \copydoc Bag::insert(const Item* items, size_t length) */
     void insert (const Item* items, size_t length)
     {
         _file->fwrite (items, sizeof(Item), length);
+        //std::cout << "inserted(Items*,length) to " << _filename << " " << length << std::endl;
     }
 
     /**  \copydoc Bag::flush */

@@ -139,7 +139,10 @@ public:
         _collection = & group.getCollection<math::NativeInt8> (name);
     }
 
-    virtual ~Storage_ostreambuf() { sync(); }
+    virtual ~Storage_ostreambuf() { 
+        sync(); 
+        //std::cout << "ostream destructor" << std::endl; 
+        }
 
 protected:
 
@@ -150,6 +153,7 @@ protected:
     {
         int num = pptr()-pbase();
         _collection->insert ((math::NativeInt8*)buffer, num);
+        _collection->flush(); // important!
         _nbWritten += num;
         pbump(-num); // reset put pointer accordingly
         return num;
@@ -184,7 +188,7 @@ protected:
 /*********************************************************************
 *********************************************************************/
 
-/* Output stream buffer implementation. */
+/* Input stream buffer implementation. */
 class Storage_istreambuf : public std::streambuf
 {
     public:
@@ -216,7 +220,13 @@ class Storage_istreambuf : public std::streambuf
             // start is now the start of the buffer, proper.
             // Read from fptr_ in to the provided buffer
             math::NativeInt8* start2 = (math::NativeInt8*) start;
-            size_t n = _collection->getItems (start2, currentIdx, buffer_.size() - (start - base));
+            //std::cout << "(storage) istream calling getItems with params: start2=" << start2 << " currentIdx=" << currentIdx << " buffer.size()-start+base=" << (buffer_.size() - (start - base)) << ", total buffer size " << buffer_.size()  << std::endl;
+            if ( ((int64_t)base > (int64_t)start) || (((int64_t)start - (int64_t)base) > (int64_t)buffer_.size()))
+            {
+                std::cout << "Error: trying to read more elements " << (start - base) << " = (" << start << " - " << base << ") than the buffer size" << std::endl; exit(1);
+            }
+            size_t offset = currentIdx ; // in hdf5: needs to be currentIdx; in file: needs to be 0 (but it will be fixed in IteratorFile, ok, not here)
+            size_t n = _collection->getItems (start2, offset, buffer_.size() - (start - base));
             currentIdx += n;
 
             if (n == 0)  {   return traits_type::eof();  }

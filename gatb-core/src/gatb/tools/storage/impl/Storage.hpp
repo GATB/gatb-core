@@ -200,17 +200,17 @@ public:
      * \param[in] key : key
      * \param[in] value : value
      */
-    virtual void addProperty (const std::string& key, const std::string value) { /*throw system::ExceptionNotImplemented ();*/ }
+    virtual void addProperty (const std::string& key, const std::string value) { throw system::ExceptionNotImplemented (); }
 
     /** Get a [key,value] from the group. Note: according to the kind of storage,
      * this feature may be not supported (looks like it's only supported in HDF5).
      * \param[in] key : key
      * \return the value associated to the string.
      */
-    virtual std::string getProperty (const std::string& key)  { return "?"; /*throw system::ExceptionNotImplemented ();*/  }
+    virtual std::string getProperty (const std::string& key)  { return "?"; throw system::ExceptionNotImplemented ();  }
     
     /* same as addProperty but sets the value if it already exists */
-    virtual void setProperty (const std::string& key, const std::string value) { /*throw system::ExceptionNotImplemented ();*/ }
+    virtual void setProperty (const std::string& key, const std::string value) { throw system::ExceptionNotImplemented (); }
 
 protected:
 

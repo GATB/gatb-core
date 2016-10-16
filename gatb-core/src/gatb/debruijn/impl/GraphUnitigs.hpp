@@ -183,7 +183,8 @@ public:
      */
     static GraphUnitigsTemplate  load (const std::string& uri)  {  return  GraphUnitigsTemplate (uri);  }
     
-    static tools::misc::IOptionsParser* getOptionsParser (bool includeMandatory=true);
+    // we don't provide an option parser. use Graph's one
+    //static tools::misc::IOptionsParser* getOptionsParser (bool includeMandatory=true);
 
     /********************************************************************************/
     /*                               CONSTRUCTORS                                   */

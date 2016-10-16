@@ -95,29 +95,9 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
                  #####   #     #  #     #  #        #     #
 ********************************************************************************/
 
-// TODO: maybe change a few things in here or else delete and use Graph::getOptionsParser
-template<size_t span>
-IOptionsParser* GraphUnitigsTemplate<span>::getOptionsParser (bool includeMandatory)
-{
-
-    /** We build the root options parser. */
-    OptionsParser* parser = new OptionsParser ("graph");
-
-    /** We add children parser to it (kmer count, bloom/debloom, branching). */
-    parser->push_back (SortingCountAlgorithm<>::getOptionsParser(includeMandatory));
-
-    /** We create a "general options" parser. */
-    IOptionsParser* parserGeneral  = new OptionsParser ("general");
-    parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
-    parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
-    parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
-    parserGeneral->push_front (new OptionNoParam  (STR_CONFIG_ONLY,       "dump config only"));
-
-    /** We add it to the root parser. */
-    parser->push_back  (parserGeneral);
-
-    return parser;
-}
+// we don't provide an option parser. use Graph::getOptionsParser
+//template<size_t span>
+//IOptionsParser* GraphUnitigsTemplate<span>::getOptionsParser (bool includeMandatory)
 
 /*********************************************************************
 ** METHOD  :
@@ -130,7 +110,7 @@ IOptionsParser* GraphUnitigsTemplate<span>::getOptionsParser (bool includeMandat
 template<size_t span>
 GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (bank::IBank* bank, const char* fmt, ...)
 {
-    IOptionsParser* parser = getOptionsParser (false);   LOCAL(parser);
+    IOptionsParser* parser = BaseGraph::getOptionsParser (false);   LOCAL(parser);
 
     /** We build the command line from the format and the ellipsis. */
     std::string commandLine;
@@ -164,7 +144,7 @@ GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (bank::IBank* ban
 template<size_t span>
 GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (const char* fmt, ...)
 {
-    IOptionsParser* parser = getOptionsParser (true);   LOCAL (parser);
+    IOptionsParser* parser = BaseGraph::getOptionsParser (true);   LOCAL (parser);
 
     /** We build the command line from the format and the ellipsis. */
     std::string commandLine;
@@ -288,7 +268,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
     
     bool force_loading_unitigs = false; // debug option
 
-    if (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/))
+    if (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/)) 
     {
         int nb_threads =
             props->getInt(STR_NB_CORES);
@@ -492,7 +472,24 @@ template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params, bool load_unitigs_after) 
 //    : BaseGraph() // call base () constructor // seems to do nothing, maybe it's always called by default
 {
-   
+
+    string storage_type = params->getStr(STR_STORAGE_TYPE);
+    if (storage_type == "hdf5")
+    {
+        BaseGraph::_storageMode = tools::storage::impl::STORAGE_HDF5;
+        std::cout << "setting storage type to hdf5" << std::endl;
+    }
+    else
+    {
+        if (storage_type == "file")
+        {
+            BaseGraph::_storageMode = tools::storage::impl::STORAGE_FILE; // moving away frmo HDF5 because 1) memory leaks and 2) storing unitigs in a fasta file instead, more clean this way. nothing else needs to be stored
+            std::cout << "setting storage type to file" << std::endl;
+        }
+        else
+        {std::cout << "Error: unknown storage type specified: " << storage_type << std::endl; exit(1); }
+    }
+    
     string input = params->getStr(STR_URI_INPUT);
 
     string unitigs_filename = (params->get(STR_URI_OUTPUT) ?
@@ -517,8 +514,6 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     }
 
 
-
-
     if (system::impl::System::file().getExtension(input) == "h5")
     {
         /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
@@ -526,14 +521,11 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         if (!System::file().doesExist(input))
             throw system::Exception ("Input file does not exist");
 
-        string output = input;//.substr(0,input.find_last_of(".h5")) + "_new.h5";
-        //cout << "To avoid overwriting the input (" << input << "), output will be saved to: "<< output << std::endl;
-
         cout << "Input is a h5 file (we assume that it contains at least the solid kmers).\n"; 
         
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */
-        BaseGraph::setStorage (StorageFactory(BaseGraph::_storageMode).create (output , false, false));
+        BaseGraph::setStorage (StorageFactory(BaseGraph::_storageMode).create (input, false, false));
     
         /** We get some properties. */
         BaseGraph::_state     = (typename GraphUnitigsTemplate<span>::StateMask) atol (BaseGraph::getGroup().getProperty ("state").c_str());
@@ -562,9 +554,11 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
 
         build_unitigs_postsolid(unitigs_filename, params);
       
+        // cycle storage to remove leaks..? doesn't seem to help with that actually
+        //BaseGraph::setStorage (StorageFactory(BaseGraph::_storageMode).create (input, false, false));
+
         if (load_unitigs_after) 
             load_unitigs(unitigs_filename);
-
 
     }
     else
@@ -585,7 +579,7 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         boost::apply_visitor ( build_visitor_solid<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>(*this, bank,params),  *(GraphDataVariantFast<span>*)BaseGraph::_variant);
 
         build_unitigs_postsolid(unitigs_filename, params);
-
+        
         if (load_unitigs_after)
             load_unitigs(unitigs_filename);
     }

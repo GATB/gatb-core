@@ -245,6 +245,7 @@ template<typename Type>
 inline int64_t Partition<Type>::getNbItems ()
 {
     int64_t result = 0;   for (size_t i=0; i<this->size(); i++) { result += (*this)[i].getNbItems(); }
+    //std::cout << "returning getNbItems from " << this->size() << " partitions: " << result << std::endl;
     return result;
 }
 

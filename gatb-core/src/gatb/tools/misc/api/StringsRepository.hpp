@@ -103,7 +103,6 @@ public:
     const char* uri_output_tmp ()  { return "-out-tmp";        }
     const char* verbose        ()  { return "-verbose";        }
     const char* help           ()  { return "-help";           }
-    const char* output_format  ()  { return "-outfmt";         }
     const char* version        ()  { return "-version";        }
     const char* bloom_type     ()  { return "-bloom";          }
     const char* debloom_type   ()  { return "-debloom";        }
@@ -119,6 +118,7 @@ public:
     const char* repartition_type() { return "-repartition-type"; }
     const char* compress_level()   { return "-out-compress"; }
     const char* config_only()      { return "-config-only"; }
+    const char* storage_type()     { return "-storage-type"; }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -156,7 +156,6 @@ public:
 #define STR_URI_OUTPUT_TMP      gatb::core::tools::misc::StringRepository::singleton().uri_output_tmp ()
 #define STR_VERBOSE             gatb::core::tools::misc::StringRepository::singleton().verbose ()
 #define STR_HELP                gatb::core::tools::misc::StringRepository::singleton().help ()
-#define STR_OUTPUT_FORMAT       gatb::core::tools::misc::StringRepository::singleton().output_format ()
 #define STR_VERSION             gatb::core::tools::misc::StringRepository::singleton().version ()
 #define STR_BLOOM_TYPE          gatb::core::tools::misc::StringRepository::singleton().bloom_type()
 #define STR_DEBLOOM_TYPE        gatb::core::tools::misc::StringRepository::singleton().debloom_type()
@@ -171,6 +170,7 @@ public:
 #define STR_REPARTITION_TYPE    gatb::core::tools::misc::StringRepository::singleton().repartition_type()
 #define STR_COMPRESS_LEVEL      gatb::core::tools::misc::StringRepository::singleton().compress_level()
 #define STR_CONFIG_ONLY         gatb::core::tools::misc::StringRepository::singleton().config_only()
+#define STR_STORAGE_TYPE        gatb::core::tools::misc::StringRepository::singleton().storage_type ()
 
 /********************************************************************************/
 

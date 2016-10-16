@@ -109,7 +109,6 @@ void UnitigsConstructionAlgorithm<span>::execute ()
 
     bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type, verbose); 
     bglue<span> (&_storage, unitigs_filename, kmerSize,            minimizerSize, nbThreads, minimizer_type, verbose);
-
     link_unitigs(unitigs_filename, kmerSize, verbose);
 
     /** We gather some statistics. */

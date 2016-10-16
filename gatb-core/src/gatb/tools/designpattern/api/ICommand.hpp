@@ -180,18 +180,17 @@ public:
         bool localIterator=true;
 
         Status status;
-
         if (localIterator) { iterator->use(); }
 
         /** We create N functors that are copies of the provided one. */
         std::vector<Functor*> functors (getExecutionUnitsNumber());
-        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
+        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  } // will be deleted by IteratorCommand
 
         /** We iterate the iterator. */
         status = iterate (iterator, functors, groupSize, deleteSynchro);
 
         if (localIterator) { iterator->forget(); }
-
+        
         /** We return the status. */
         return status;
     }
@@ -215,10 +214,12 @@ public:
     {
         /** We create N functors that are copies of the provided one. */
         std::vector<Functor*> functors (getExecutionUnitsNumber());
-        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  }
+        for (size_t i=0; i<functors.size(); i++)  {  functors[i] = new Functor (functor);  } // will be deleted by IteratorCommand
 
         /** We iterate the iterator. */
-        return iterate ((Iterator<Item>*)&iterator, functors, groupSize, deleteSynchro);
+        Status status = iterate ((Iterator<Item>*)&iterator, functors, groupSize, deleteSynchro);
+
+        return status;
     }
 
     /** Set the number of items to be retrieved from the iterator by one thread in a synchronized way.
@@ -281,7 +282,7 @@ protected:
 
         /** We set the group size. */
         status.groupSize = groupSize;
-
+        
         /** We return the status. */
         return status;
     }

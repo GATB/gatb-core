@@ -59,6 +59,8 @@ namespace impl      {
  *
  * Now, we use H5Dclose when the collection apparently doesn't look to be accessed
  * any more. If the datasetId is needed again, a request to get it again is needed.
+ *
+ * -- R: nice find, Erwan!
  */
 template <class Item> struct  CollectionDataHDF5Patch : public system::SmartPointer
 {
@@ -333,7 +335,8 @@ public:
     dp::Iterator<Item>* iterator ()  {  return new HDF5IteratorPatch<Item> (this);  }
 
     /** */
-    int64_t getNbItems ()  {  return _common->_nbItems;  }
+    int64_t getNbItems ()  {  
+        return _common->_nbItems;  }
 
     /** */
     int64_t estimateNbItems ()  {  return getNbItems();  }
@@ -341,6 +344,7 @@ public:
     /** */
     Item* getItems (Item*& buffer)
     {
+        //std::cout << "collectionHDF5Patch getItems called" << std::endl;
         retrieveCache (buffer, 0, getNbItems());
         return buffer;
     }
@@ -348,6 +352,7 @@ public:
     /** */
     size_t getItems (Item*& buffer, size_t start, size_t count)
     {
+        //std::cout << "collectionHDF5Patch getItems called" << std::endl;
         return retrieveCache (buffer, start, count);
     }
 

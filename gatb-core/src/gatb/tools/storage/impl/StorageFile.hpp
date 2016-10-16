@@ -32,6 +32,9 @@
 
 #include <cassert>
 #include <gatb/tools/storage/impl/CollectionFile.hpp>
+#include <../thirdparty/json/json.hpp>
+#include <iostream>
+#include <fstream>
 
 #define DEBUG_STORAGE(a)  //printf a
 
@@ -42,6 +45,91 @@ namespace tools     {
 namespace storage   {
 namespace impl      {
 /********************************************************************************/
+
+    class GroupFile : public Group
+    {
+        public:
+            GroupFile (Storage* storage, ICell* parent, const std::string& name)
+                : Group(storage->getFactory(),parent,name), filename("")
+            {
+                /** We may need to create the HDF5 group. Empty name means root group, which is constructed by default. */
+                if (name.empty() == false)
+                {
+                    filename = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + name;
+                }
+                else
+                {
+                    filename = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + "json" /* i chose this name arbitrarily*/;
+                }
+
+                std::ifstream myfile (filename);
+                std::string data, line;
+                if (myfile.is_open())
+                {
+                    while ( getline (myfile,line) )
+                    {
+                        data += line;
+                    }
+                    myfile.close();
+                }
+                //std::cout << "data:" << data<< std::endl;
+                if (data.size() > 0)
+                    j = nlohmann::json::parse(data); // populate json array;
+
+                //std::cout << "GroupFile initialized" << std::endl;
+            }
+
+            /** */
+            ~GroupFile()
+            {
+            }
+
+            /** */
+            void addProperty (const std::string& key, const std::string value)
+            {
+                std::cout << "GRoupFile addProperty called with: " << key << " / " << value << std::endl;
+                j[key] = value;
+                flushJson();               
+            }
+
+            /** */
+            std::string getProperty (const std::string& key)
+            {
+                std::cout << "GroupFile getProperty called with: " << key << std::endl;
+                std::string result;
+
+                if (j.find(key) != j.end()) {
+                    return j[key];
+                }
+                return "";
+            }
+
+            void delProperty (const std::string& key)
+            {
+                j.erase(key);
+                flushJson();
+            }
+
+            void setProperty (const std::string& key, const std::string value)
+            {
+                std::cout << "GRoupFile setProperty called with: " << key << " / " << value << std::endl;
+                j[key] = value;
+                flushJson(); 
+            }
+
+            void flushJson()
+            {
+                std::string s = j.dump();
+                std::ofstream myfile;
+                myfile.open (filename);
+                myfile << s;
+                myfile.close();
+            }
+        private:
+            nlohmann::json j;
+            std::string filename;
+    };
+
 
 /** \brief Factory used for storage of kind STORAGE_FILE
  */
@@ -83,7 +171,7 @@ public:
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
 
-        return new Group (storage->getFactory(), parent, name);
+        return new GroupFile (storage, parent, name);
     }
 
     /** Create a Partition instance and attach it to a cell in a storage.
@@ -100,6 +188,29 @@ public:
         ICell* root = ICell::getRoot (parent);
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
+
+        if (nb == 0)
+        {   // if nb is 0, it means we're opening partitions and not creating them, thus we need to get the number of partitions.
+
+            int nb_partitions=0;
+            /** We define the full qualified id of the current collection to be created. */
+            std::string filename = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + name;
+            std::string folder = system::impl::System::file().getDirectory(filename);
+            std::string prefix = system::impl::System::file().getBaseName(filename);
+            for (auto filename : system::impl::System::file().listdir(folder))
+            {
+                if (!filename.compare(0, prefix.size(), prefix)) // startswith
+                {
+                    nb_partitions++;
+                }
+			}
+            nb = nb_partitions;
+            if (nb == 0)
+            {
+                std::cout << "error: could not get number of partition for " << name << " using StorageFile" << std::endl;
+                exit(1);
+            }
+		}
 
         Partition<Type>* result = new Partition<Type> (storage->getFactory(), parent, name, nb);
         return result;

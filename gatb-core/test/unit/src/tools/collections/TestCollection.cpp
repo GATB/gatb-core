@@ -76,6 +76,9 @@ public:
     /********************************************************************************/
     template<typename T> void collection_check1_aux (T* table, size_t nb)
     {
+        // new since STORAGE_FILE modification in october 2016: remove the file, because BagFile doesn't anymore
+         System::file().remove ("foo");
+
         /** We create a collection. */
         Collection<T>* c = new CollectionFile<T> ("foo");
         LOCAL(c);
@@ -85,6 +88,11 @@ public:
 
         /** We have to flush to be sure all items are in the collection. */
         c->flush();
+
+        if (c->getNbItems() != (int)nb)
+        {
+            std::cout << "in anticipation of unit test failing, c->getNbItems() = " << c->getNbItems() << " , nb = " << nb << std::endl;
+        }
 
         /** We check we have the correct number of items. */
         CPPUNIT_ASSERT (c->getNbItems() == (int)nb);

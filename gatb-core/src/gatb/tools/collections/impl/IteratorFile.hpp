@@ -61,6 +61,7 @@ public:
     {
         _file    = system::impl::System::file().newFile (_filename, "rb");
         _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
+            std::cout << "iteratorfile constructed" << std::endl;
     }
 
     /** Constructor. */
@@ -115,6 +116,7 @@ public:
         if (_cpt_buffer==0)
         {
             _idx = 0;
+            //std::cout << "(next) doing a fread of " << _cacheItemsNb << " items at position " << _file->tell() << " file size " << _file->getSize() << std::endl;
             _cpt_buffer = _file->fread (_buffer, sizeof(Item), _cacheItemsNb);
             if (_cpt_buffer==0)  { _isDone = true;  return; }
         }
@@ -134,6 +136,7 @@ public:
     size_t fill (std::vector<Item>& vec, size_t len=0)
     {
         if (len==0)  { len = vec.size(); }
+        //std::cout << "(fill) doing a fread of " << len << " items at position " << _file->tell() << " file size " << _file->getSize() << std::endl;
         return _file->fread (vec.data(), sizeof(Item), len);
     }
 
@@ -153,7 +156,6 @@ private:
  *
  * This implementation uses a file as the source of the items that can be iterated.
  *
- * A cache system is implemented in order to speed up I/O.
  */
 template <class Item> class IterableFile : public tools::collections::Iterable<Item>, public virtual system::SmartPointer
 {
@@ -164,23 +166,53 @@ public:
      * \param[in] cacheItemsNb : number of items in the cache memory
      */
     IterableFile (const std::string& filename, size_t cacheItemsNb=10000)
-        :   _filename(filename), _cacheItemsNb (cacheItemsNb)  {}
+        :   _filename(filename), _cacheItemsNb (cacheItemsNb), 
+        _file(0)  // hacking my own iterator, for getItems, separate from IteratorFile. dirty, but nothing used to work at all
+    {
+        _file    = system::impl::System::file().newFile (filename, "ab+");
+    }
 
     /** Destructor. */
-    ~IterableFile () {}
+    ~IterableFile () {
+        if (_file)  { delete _file;  }
+    }
 
     /** \copydoc Iterable::iterator */
     dp::Iterator<Item>* iterator ()  { return new IteratorFile<Item> (_filename, _cacheItemsNb); }
 
     /** \copydoc Iterable::getNbItems */
-    int64_t getNbItems ()   {  return system::impl::System::file().getSize(_filename) / sizeof(Item); }
+    int64_t getNbItems ()   {  
+        //std::cout << "IteratorFile::getNbItems called (file size: "<< system::impl::System::file().getSize(_filename) << "), returning " << system::impl::System::file().getSize(_filename) / sizeof(Item) << std::endl;
+        return system::impl::System::file().getSize(_filename) / sizeof(Item); }
 
     /** \copydoc Iterable::estimateNbItems */
     int64_t estimateNbItems ()   {  return getNbItems(); }
+    
+    Item* getItems (Item*& buffer)
+    {
+        std::cout << "IteratorFile::getItems(buffer) not implemented" << std::endl; exit(1);
+    }
+    
+    /* from ../src/gatb/tools/collections/api/Iterable.hpp:
+       Return a buffer of items.
+        * \param[out] buffer : the buffer
+        * \param[in] start : index where to start in the buffer --> NOTE: it is ignored here because we're not buffering anything (this ties in with a different behavior in istream of Storage with CurrentIdx, depending on STORAGE_FILE or STORAGE_HDF5, currentIdx should be set to 0 when calling getItems, which in turns calls this function)
+        * \param[in] nb : number of items to be retrieved
+        * \return the number of items retrieved 
+    */
+    size_t getItems (Item*& buffer, size_t start, size_t nb)
+    {
+        if (_file == 0) {std::cout << "cannot call getItems when _file is null" << std::endl; exit(1); }
+        //std::cout << "want to read " << nb << " elements of size " << sizeof(Item) << " at position " << _file->tell() << " file size " << _file->getSize() /*<< " then write them to buffer at position " << (sizeof(Item) * start) << std::endl*/;
+        size_t n = _file->fread (buffer /*+ sizeof(Item) * start*/, sizeof(Item), nb);
+        //std::cout << "read " << n << " elements" << std::endl;
+        return n;
+    }
 
 private:
     std::string     _filename;
     size_t          _cacheItemsNb;
+    system::IFile*  _file;
 };
     
 /********************************************************************************/
@@ -417,6 +449,7 @@ private:
             //deplacer ce quil reste au debut avant
             memcpy (_buffer,_buffer + _idx,_cpt_buffer ); _idx = 0;
             int remaining = _cpt_buffer;
+            //std::cout << "(readChunkIfNeeded) doing a fread of " << (_cacheItemsNb - remaining) << " items at position " << _file->tell() << std::endl;
             _cpt_buffer += _file->fread (_buffer+ remaining , sizeof(u_int8_t), _cacheItemsNb - remaining  );
             // printf(" B new pos in file %p  %llu  \n",_file, _file->tell());
 

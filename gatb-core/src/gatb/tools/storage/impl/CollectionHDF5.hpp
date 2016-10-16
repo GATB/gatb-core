@@ -123,8 +123,8 @@ private:
 
     hid_t     _datasetId;
     hid_t     _typeId;
-    u_int64_t& _nbItems;
     u_int64_t _nbInserted;
+    u_int64_t& _nbItems;
     system::ISynchronizer* _synchro;
 
 };
@@ -162,11 +162,14 @@ public:
     /** */
     Item* getItems (Item*& buffer)
     {
+        //std::cout << "collectionHDF5 getItems called" << std::endl;
         retrieveCache (buffer, 0, getNbItems());
         return buffer;
     }
 
-    size_t getItems (Item*& buffer, size_t start, size_t count)  { return retrieveCache (buffer, start, count); }
+    size_t getItems (Item*& buffer, size_t start, size_t count)  { 
+        //std::cout << "collectionHDF5 getItems called" << std::endl;
+        return retrieveCache (buffer, start, count); }
 
 
 private:
@@ -239,7 +242,7 @@ public:
     HDF5Iterator (IterableHDF5<Item>* ref, size_t blockSize=4096)
         : _ref(ref), _blockSize(blockSize),
           _data(0), _dataSize(0), _dataIdx(0), _isDone (true),
-          _nbRead(0), _memspaceId(0), _total(0)
+          _nbRead(0), _total(0), _memspaceId(0)
     {
         _data = (Item*) MALLOC (_blockSize*sizeof(Item));
         memset (_data, 0, _blockSize*sizeof(Item));
@@ -398,6 +401,7 @@ public:
         this->setBag      (new BagHDF5<Item>      (_datasetId, _typeId, _nbItems, synchro));
         this->setIterable (new IterableHDF5<Item> (_datasetId, _typeId, _nbItems, synchro));
 
+        (void)status; // to remove compiler warning that status is set but not used
     }
 
     /** Destructor. */
@@ -406,6 +410,7 @@ public:
         herr_t status;
         status = H5Dclose (_datasetId);
         status = H5Tclose (_typeId);
+        (void)status; // to avoid compiler claiming status is unused. well it is, but i don't care.
     }
 
     /** \copydoc tools::collections::Collection::remove */
@@ -461,6 +466,8 @@ public:
         H5Aclose (attrId);
         H5Tclose (datatype);
         H5Sclose (space_id);
+        
+        (void)status; // to remove compiler warning that status is set but not used
 
         return result;
     }

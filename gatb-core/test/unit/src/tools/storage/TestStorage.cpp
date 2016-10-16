@@ -61,6 +61,11 @@ class TestStorage : public Test
 {
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestStorage);
+ 
+        CPPUNIT_TEST_GATB (storage_stream_file);
+        CPPUNIT_TEST_GATB (storage_stream_file_big);
+        CPPUNIT_TEST_GATB (storage_stream_hdf5);
+
 
         CPPUNIT_TEST_GATB (storage_check1);
         CPPUNIT_TEST_GATB (storage_check2);
@@ -69,8 +74,8 @@ class TestStorage : public Test
 
         CPPUNIT_TEST_GATB (storage_HDF5_check_collection);
         CPPUNIT_TEST_GATB (storage_HDF5_check_partition);
-
-    CPPUNIT_TEST_SUITE_GATB_END();
+        
+        CPPUNIT_TEST_SUITE_GATB_END();
 
 public:
 
@@ -339,6 +344,94 @@ public:
         NativeInt64 values1[1<<15];  for (size_t i=0; i<ARRAY_SIZE(values1); i++)  { values1[i]=i; }
         collection_HDF5_check_partition_aux (values1, ARRAY_SIZE(values1), 4);
     }
+
+    
+    template <class T>
+    void storage_stream_aux(T storage)
+    {
+
+        gatb::core::tools::storage::impl::Group& group = (*storage)().getGroup("test");
+
+        uint32_t _nbpart = 5, _mm = 1, _nb_minims = 60000, _nbPass = 100;
+        {
+        gatb::core::tools::storage::impl::Storage::ostream os (group, "minimRepart");
+        os.write ((const char*)&_nbpart,                sizeof(_nbpart));
+        os.write ((const char*)&_mm,                    sizeof(_mm));
+        os.write ((const char*)&_nb_minims,             sizeof(_nb_minims));
+        os.write ((const char*)&_nbPass,                sizeof(_nbPass));
+        os.flush();
+        }
+        
+        gatb::core::tools::storage::impl::Storage::istream is (group, "minimRepart");
+        uint32_t _nbpart2, _mm2, _nb_minims2, _nbPass2;
+        is.read ((char*)&_nbpart2,     sizeof(_nbpart));
+        is.read ((char*)&_mm2,         sizeof(_mm));
+        is.read ((char*)&_nb_minims2,  sizeof(_nb_minims));
+        is.read ((char*)&_nbPass2,     sizeof(_nbPass));
+
+
+        CPPUNIT_ASSERT (_nbpart2 == _nbpart);
+        CPPUNIT_ASSERT (_mm2 == _mm);
+        CPPUNIT_ASSERT (_nb_minims == _nb_minims2);
+        CPPUNIT_ASSERT (_nbPass == _nbPass2);
+    }
+
+    void storage_stream_hdf5()
+    {
+        /** We create a storage. */
+        Storage* storage = StorageFactory(STORAGE_HDF5).create ("aStorage", true, false);
+        LOCAL (storage);
+
+        storage_stream_aux(storage);
+
+       /** We remove physically the storage. */
+        storage->remove ();
+    }
+    
+    void storage_stream_file()
+   {
+         /** We create a storage. */
+        Storage storage (STORAGE_FILE, "test_storage_file");
+        
+        storage_stream_aux(&storage);
+        
+        storage.remove ();
+    }
+
+    void storage_stream_file_big()
+   {
+         /** We create a storage. */
+        Storage storage (STORAGE_FILE, "test_storage_file");
+        
+   
+         gatb::core::tools::storage::impl::Group& group = (storage)().getGroup("test");
+
+         // 1 MB
+         int size = 1000000;
+         unsigned char *buffer = (unsigned char*)malloc(size);
+         for (int i = 0; i < size; i ++)
+         {
+             buffer[i] = i % 255;
+         }
+
+        gatb::core::tools::storage::impl::Storage::ostream os (group, "minimRepart");
+        os.write ((const char*)buffer, size);
+        os.flush();
+        
+        
+        gatb::core::tools::storage::impl::Storage::istream is (group, "minimRepart");
+        unsigned char *buffer2 = (unsigned char*)malloc(size);
+        is.read ((char *)buffer2, size);
+
+        for (int i = 0; i < size; i ++)
+        CPPUNIT_ASSERT (buffer[i] == buffer2[i]);
+
+        storage.remove ();
+        free(buffer);
+        free(buffer2);
+    }
+
+
 };
 
 /********************************************************************************/

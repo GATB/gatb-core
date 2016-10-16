@@ -434,6 +434,7 @@ void SortingCountAlgorithm<span>::configure ()
             }
         }
 
+        //std::cout << "creating HDF5 storage (remove this debug message)" << std::endl;
         storage = StorageFactory(STORAGE_HDF5).create (output, true, false); ////GR ici choix du hdf5 pour le storage de sortie
     }
 
