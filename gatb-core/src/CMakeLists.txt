@@ -91,6 +91,6 @@ set_target_properties  (gatbcore-static   PROPERTIES OUTPUT_NAME  gatbcore  clea
 # We install the libraries
 IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     install (TARGETS gatbcore-static DESTINATION lib)
-    install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.tpp" PATTERN "*.pri")
+    install (DIRECTORY ${PROJECT_SOURCE_DIR}/src/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.tpp" PATTERN "*.pri" PATTERN "*.h")
     install (FILES ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp DESTINATION include/gatb/system/api/)
 ENDIF ()

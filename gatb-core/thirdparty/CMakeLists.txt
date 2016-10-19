@@ -50,14 +50,10 @@ foreach (header ${headerfiles})
 endforeach()
 
 ################################################################################
-#  EMPHF GENERATION 
+#  EMPHF HANDLING
 ################################################################################
 
-# TODO: I actually just mimicked hdf5, but I'm not so sure anymore whether
-# this is useful. MPHF is just #include'd, perhaps we can just not copy it? in
-# that case just delete this code
-
-IF (DEFINED use_mphf)
+IF (DEFINED use_emphf) # not using this code
 
     ADD_SUBDIRECTORY (emphf)
 
@@ -84,11 +80,23 @@ IF (DEFINED use_mphf)
 ENDIF() # WITH_MPHF
 
 
+# include other smaller libraries (json, Boophf)
+
+add_custom_target (thirdparty_copy ALL)
+add_custom_command (TARGET thirdparty_copy COMMAND ${CMAKE_COMMAND} -E
+    make_directory ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json)
+add_custom_command (TARGET thirdparty_copy COMMAND ${CMAKE_COMMAND} -E
+    make_directory ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF)
+add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/BooPHF/BooPHF.h ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF/)
+add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/json/json.hpp   ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json/)
+
 ################################################################################
 #  INSTALL 
 ################################################################################
 IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5 DESTINATION include)
+    INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json DESTINATION include)
+    INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF DESTINATION include)
     IF (DEFINED WITH_MPHF)
         INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/emphf DESTINATION include)
     ENDIF()

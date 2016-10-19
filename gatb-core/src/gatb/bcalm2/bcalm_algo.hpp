@@ -56,10 +56,7 @@
 
 #include <thread>
 #include <atomic>
-//#include "../thirdparty/concurrentqueue.h" // not using those
-//#include "../thirdparty/lockbasedqueue.h"  // see comments in code for explanations
 #include "lockstdqueue.h"
-//#include "../thirdparty/lockstdvector.h"
 
 #include "ThreadPool.h"
 

@@ -32,7 +32,7 @@
 
 #include <cassert>
 #include <gatb/tools/storage/impl/CollectionFile.hpp>
-#include <../thirdparty/json/json.hpp>
+#include <json/json.hpp>
 #include <iostream>
 #include <fstream>
 

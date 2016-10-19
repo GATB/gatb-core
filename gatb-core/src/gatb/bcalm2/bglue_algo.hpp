@@ -28,8 +28,7 @@
 #include <string>
 #include <mutex>
 #include <unordered_map>
-#include "../../../thirdparty/BooPHF/BooPHF.h"
-//#include "../../../thirdparty/emphf/base_hash.hpp" // for jenkins64_hasher // already included in MPHF.hpp
+#include <BooPHF/BooPHF.h>
 #include <ctime> // for time
 #include <iostream> // for time (and maybe other things?)
 #include <iomanip> // for cout mods

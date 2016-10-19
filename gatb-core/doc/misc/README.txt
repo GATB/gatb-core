@@ -25,7 +25,7 @@ The archive is made of:
 For documentation, please have a look at doc/html/index.html
 
 You can check the library by launching unit tests on your system. Just go into 'test' directory 
-and run 'gatb-core-cppunit'. 
+and run 'gatb-core-cppunit'. (note that the current working directory needs to be the 'test' directory)
 
 You can try the library by compiling a snippet from the 'examples' directory:
 
