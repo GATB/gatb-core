@@ -24,14 +24,6 @@
 #include <vector>
 #include <set>
 
-#ifdef USE_NEW_CXX
-#include <unordered_map>
-#define NS_TR1_PREFIX std
-#else
-#include <tr1/unordered_map>
-#define NS_TR1_PREFIX std::tr1
-#endif
-
 #include <gatb/debruijn/impl/Graph.hpp>
 #include <gatb/debruijn/impl/UnitigsConstructionAlgorithm.hpp>
 #include <gatb/debruijn/impl/ExtremityInfo.hpp>

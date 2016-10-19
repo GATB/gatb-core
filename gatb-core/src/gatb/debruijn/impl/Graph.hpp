@@ -34,8 +34,18 @@
 #include <unordered_map>
 #define NS_TR1_PREFIX std
 #else
-#include <tr1/unordered_map>
-#define NS_TR1_PREFIX std::tr1
+    #if defined(__clang__) // special treatment for clang, see Patrick's email from 19/10/2016
+        #   if __has_include(<tr1/unordered_map>)
+                #include <tr1/unordered_map>
+                #define NS_TR1_PREFIX std::tr1
+        #   else
+                #include <unordered_map>
+                #define NS_TR1_PREFIX std
+        #   endif
+    #else
+        #include <tr1/unordered_map>
+        #define NS_TR1_PREFIX std::tr1
+    #endif
 #endif
 
 #include <gatb/system/api/IThread.hpp> // for ISynchronizer
