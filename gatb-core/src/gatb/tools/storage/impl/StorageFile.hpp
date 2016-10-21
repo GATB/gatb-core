@@ -74,7 +74,7 @@ namespace impl      {
                 }
                 //std::cout << "data:" << data<< std::endl;
                 if (data.size() > 0)
-                    j = nlohmann::json::parse(data); // populate json array;
+                    j = json::JSON::Load(data); // populate json array;
 
                 //std::cout << "GroupFile initialized" << std::endl;
             }
@@ -98,15 +98,16 @@ namespace impl      {
                 std::cout << "GroupFile getProperty called with: " << key << std::endl;
                 std::string result;
 
-                if (j.find(key) != j.end()) {
-                    return j[key];
+                if (j.hasKey(key)) {
+                    return j[key].ToString();
                 }
                 return "";
             }
 
+            /* this is unused - also the json api we're using doesn't support it - hdf5 needed it for stupid reasons */
             void delProperty (const std::string& key)
             {
-                j.erase(key);
+                j[key]="";
                 flushJson();
             }
 
@@ -126,7 +127,7 @@ namespace impl      {
                 myfile.close();
             }
         private:
-            nlohmann::json j;
+            json::JSON j;
             std::string filename;
     };
 
