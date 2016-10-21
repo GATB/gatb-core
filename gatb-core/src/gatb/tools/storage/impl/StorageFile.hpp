@@ -87,7 +87,7 @@ namespace impl      {
             /** */
             void addProperty (const std::string& key, const std::string value)
             {
-                std::cout << "GRoupFile addProperty called with: " << key << " / " << value << std::endl;
+                //std::cout << "GRoupFile addProperty called with: " << key << " / " << value << std::endl;
                 j[key] = value;
                 flushJson();               
             }
@@ -95,7 +95,7 @@ namespace impl      {
             /** */
             std::string getProperty (const std::string& key)
             {
-                std::cout << "GroupFile getProperty called with: " << key << std::endl;
+                //std::cout << "GroupFile getProperty called with: " << key << std::endl;
                 std::string result;
 
                 if (j.hasKey(key)) {
@@ -113,7 +113,7 @@ namespace impl      {
 
             void setProperty (const std::string& key, const std::string value)
             {
-                std::cout << "GRoupFile setProperty called with: " << key << " / " << value << std::endl;
+                //std::cout << "GRoupFile setProperty called with: " << key << " / " << value << std::endl;
                 j[key] = value;
                 flushJson(); 
             }
