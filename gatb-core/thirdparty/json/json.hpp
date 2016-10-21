@@ -3,6 +3,10 @@
 
 #pragma once
 
+#ifndef  THIRDPARTY_JSON
+#define  THIRDPARTY_JSON
+
+
 #include <cstdint>
 #include <cmath>
 #include <cctype>
@@ -201,8 +205,6 @@ class JSON
             JSON ret; ret.SetType( type );
             return ret;
         }
-
-        static JSON Load( const string & );
 
         template <typename T>
         void append( T arg ) {
@@ -420,6 +422,8 @@ class JSON
         Class Type = Class::Null;
 };
 
+// not needed in gatb and incompatible with file being included in multiple places anyway
+/*
 JSON Array() {
     return std::move( JSON::Make( JSON::Class::Array ) );
 }
@@ -439,6 +443,7 @@ std::ostream& operator<<( std::ostream &os, const JSON &json ) {
     os << json.dump();
     return os;
 }
+*/
 
 namespace {
     JSON parse_next( const string &, size_t & );
@@ -641,11 +646,14 @@ namespace {
         std::cerr << "ERROR: Parse: Unknown starting character '" << value << "'\n";
         return JSON();
     }
+
+    JSON LoadJson( const string & str){
+            size_t offset = 0;
+            return std::move( parse_next( str, offset ) );
+    }
 }
 
-JSON JSON::Load( const string &str ) {
-    size_t offset = 0;
-    return std::move( parse_next( str, offset ) );
-}
 
 } // End Namespace json
+
+#endif

@@ -74,7 +74,7 @@ namespace impl      {
                 }
                 //std::cout << "data:" << data<< std::endl;
                 if (data.size() > 0)
-                    j = json::JSON::Load(data); // populate json array;
+                    j = json::LoadJson(data); // populate json array;
 
                 //std::cout << "GroupFile initialized" << std::endl;
             }
