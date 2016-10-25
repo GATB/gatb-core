@@ -1,9 +1,9 @@
 //! [snippet1]
 
 /********************************************************************************/
-/*                              Kmer management                                 */
+/*                              K-mer management                                */
 /*                                                                              */
-/* This snippet shows how to iterate the kmers of a given string.               */
+/* This snippet shows how to iterate the kmers of a given sequence.             */
 /*                                                                              */
 /********************************************************************************/
 
@@ -19,7 +19,7 @@ int main (int argc, char* argv[])
   const char* seq = "CATTGATAGTGGATGGT";
   std::cout << "Initial sequence: " << seq << std::endl;
 
-  // We declare a kmer model with kmer of size 5.
+  // We declare a kmer model with kmer sizing 5 letters.
   // Note that we want "direct" kmers, not the min(forward,revcomp) 
   // default behavior.
   Kmer<>::ModelDirect model (5);
