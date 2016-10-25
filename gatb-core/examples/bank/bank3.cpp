@@ -15,7 +15,6 @@
 /*                                                                              */
 /********************************************************************************/
 
-
 // We include GATB-Core
 #include <gatb/gatb_core.hpp>
 #include <iostream>
