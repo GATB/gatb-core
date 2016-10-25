@@ -1,9 +1,5 @@
 //! [snippet1]
 
-// We include GATB-Core
-#include <gatb/gatb_core.hpp>
-#include <iostream>
-
 /********************************************************************************/
 /*                    Bank iteration with a functor                             */
 /*                                                                              */
@@ -19,13 +15,18 @@
 /*                                                                              */
 /********************************************************************************/
 
+
+// We include GATB-Core
+#include <gatb/gatb_core.hpp>
+#include <iostream>
+
+/********************************************************************************/
 // We define a functor that will be called for every iterated sequence.
 // The advantages are:
 //     - we have a code that focuses on the treatment to do on the sequence;
 //       this may be interesting when the corresponding code is long and is
 //       likely to be moved in an independent method.
 //     - such a functor can be reused in other contexts.
-
 struct Functor {  void operator ()  (Sequence& s)  const
 {
   // We dump the sequence size and the comment
@@ -36,6 +37,7 @@ struct Functor {  void operator ()  (Sequence& s)  const
 }};
 
 /********************************************************************************/
+// START Application
 int main (int argc, char* argv[])
 {
   // We check that the user provides at least one option: a Fasta/FastQ file.

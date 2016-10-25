@@ -1,11 +1,14 @@
 //! [snippet1]
 
+/********************************************************************************/
+/*             Graph creation from a bank file                                  */
+/********************************************************************************/
+
 // We include GATB-Core
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*             Graph creation from a bank file                                  */
-/********************************************************************************/
+// START Application
 int main (int argc, char* argv[])
 {
   // We check that the user provides at least one option: a Fasta/FastQ file.

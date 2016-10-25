@@ -1,9 +1,5 @@
 //! [snippet1]
 
-// We include GATB-Core
-#include <gatb/gatb_core.hpp>
-#include <iostream>
-
 /********************************************************************************/
 /*                    Simple Bank management                                    */
 /*                                                                              */
@@ -14,6 +10,13 @@
 /* This snippet shows how to open a FASTA file and iterate over sequences.      */
 /*                                                                              */
 /********************************************************************************/
+
+// We include GATB-Core
+#include <gatb/gatb_core.hpp>
+#include <iostream>
+
+/********************************************************************************/
+// START Application
 int main (int argc, char* argv[])
 {
   // We get the file name from the user arguments

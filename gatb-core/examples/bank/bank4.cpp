@@ -1,9 +1,5 @@
 //! [snippet1]
 
-// We include GATB-Core
-#include <gatb/gatb_core.hpp>
-#include <iostream>
-
 /********************************************************************************/
 /*                    Bank iteration with progress information                  */
 /*                                                                              */
@@ -12,7 +8,12 @@
 /*                                                                              */
 /********************************************************************************/
 
-// We a define a functor that will be called during bank parsing
+// We include GATB-Core
+#include <gatb/gatb_core.hpp>
+#include <iostream>
+
+/********************************************************************************/
+// We define a functor that will be called during bank parsing
 struct ProgressFunctor : public IteratorListener  {  
   void inc (u_int64_t current){
     // produce a '.' on stdout each time the functor is called 
@@ -22,6 +23,7 @@ struct ProgressFunctor : public IteratorListener  {
 };
 
 /********************************************************************************/
+// START Application
 int main (int argc, char* argv[])
 {
   // We check that the user provides at least one option: a Fasta/FastQ file.

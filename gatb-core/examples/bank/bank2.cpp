@@ -1,7 +1,4 @@
 //! [snippet1]
-// We include what we need for the test
-#include <gatb/gatb_core.hpp>
-#include <iostream>
 
 /********************************************************************************/
 /*                    Bank with exception management                            */
@@ -14,6 +11,13 @@
 /* Note: we use here a try/catch block in case the bank opening doesn't work.   */
 /*                                                                              */
 /********************************************************************************/
+
+// We include what we need for the test
+#include <gatb/gatb_core.hpp>
+#include <iostream>
+
+/********************************************************************************/
+// START Application
 int main (int argc, char* argv[])
 {
   // We check that the user provides at least one option: a Fasta/FastQ file.

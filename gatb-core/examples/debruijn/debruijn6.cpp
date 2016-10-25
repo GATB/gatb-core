@@ -1,11 +1,14 @@
 //! [snippet1]
 
+/********************************************************************************/
+/*            De Bruijn Graph nodes iteration                                   */
+/********************************************************************************/
+
 // We include GATB-Core
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*            De Bruijn Graph nodes iteration                                   */
-/********************************************************************************/
+// START Application
 int main (int argc, char* argv[])
 {
   // We check that the user provides at least one option: a Fasta/FastQ file.

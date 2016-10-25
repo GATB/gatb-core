@@ -1,5 +1,13 @@
 //! [snippet1]
 
+/********************************************************************************/
+/*                                Bank filtering                                */
+/*                                                                              */
+/* This snippet shows how to iterate a bank and filter some sequences through   */
+/* a functor.                                                                   */
+/*                                                                              */
+/********************************************************************************/
+
 // We include GATB-Core
 #include <gatb/gatb_core.hpp>
 #include <iostream>
@@ -10,8 +18,9 @@ using namespace std;
 // sequence size threshold; see its use in the FilterFunctor
 size_t threshold = 500;
 
-// We a define a functor that will be called during iteration for 
-// filtering sequences.
+/********************************************************************************/
+// We a define a functor that will be called during iteration to 
+// filter out sequences.
 struct FilterFunctor  {  
   bool operator ()  (Sequence& seq) const  {  
     // Here, we keep sequences whose size is greater than 500.
@@ -20,12 +29,7 @@ struct FilterFunctor  {
 };
 
 /********************************************************************************/
-/*                                Bank filtering                                */
-/*                                                                              */
-/* This snippet shows how to iterate a bank and filter some sequences through   */
-/* a functor.                                                                   */
-/*                                                                              */
-/********************************************************************************/
+// START Application
 int main (int argc, char* argv[])
 {
   // We check that the user provides at least one option: a Fasta/FastQ file.
