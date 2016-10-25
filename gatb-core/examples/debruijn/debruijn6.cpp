@@ -8,17 +8,17 @@
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
-    // We check that the user provides at least one option (supposed to be in HDF5 format).
+    // We check that the user provides at least one option (supposed to be in Fasta/FastQ format).
     if (argc < 2)
     {
-        std::cerr << "You must provide a HDF5 file." << std::endl;
+        std::cerr << "You must provide a sequence file file." << std::endl;
         return EXIT_FAILURE;
     }
 
     try
     {
-        // We load the graph from the given graph file
-        Graph graph = Graph::load (argv[1]);
+        // We load the graph from the given sequence file
+        Graph graph = Graph::create (Bank::open(argv[1]), "-abundance-min %d", 5);
 
         // We get an iterator for all nodes of the graph.
         Graph::Iterator<Node> it = graph.iterator ();
