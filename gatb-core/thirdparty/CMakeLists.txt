@@ -53,7 +53,7 @@ endforeach()
 #  EMPHF HANDLING
 ################################################################################
 
-IF (DEFINED use_emphf) # not using this code
+IF (DEFINED use_mphf) 
 
     ADD_SUBDIRECTORY (emphf)
 
