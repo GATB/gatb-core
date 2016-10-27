@@ -1,43 +1,50 @@
 //! [snippet1]
+// GATB-Core Online Tutorial 
+/********************************************************************************/
+/*                                                                              */
+/*                          Simple path iteration (with Node)                   */
+/*                                                                              */
+/********************************************************************************/
 
-// We include what we need for the test
+// We include GATB-Core
 #include <gatb/gatb_core.hpp>
 
-/********************************************************************************/
-/*                          Simple path iteration (with Node)                   */
-/********************************************************************************/
 int main (int argc, char* argv[])
 {
-    try
+  try
+  {
+    size_t kmerSize = 11;
+    const char* seq = "AGGCGCTAGGGTAGAGGATGATGA";
+
+    std::cout << "The initial sequence is: " << seq << std::endl;
+    std::cout << "kmer size is: " << kmerSize << std::endl;
+
+    // We create the graph from a given sequence, and for a given kmer size
+    Graph graph = Graph::create (
+      new BankStrings (seq, NULL),  
+      "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
+
+    // We get the first node of the sequence.
+    Node node = graph.buildNode (seq);
+
+    // We create a Node iterator that iterates all the simple nodes from the first node
+    // Remember that a simple node has indegree==1 and outdegree==1
+    Graph::Iterator<Node> path = graph.simplePath (node, DIR_OUTCOMING);
+
+    // We iterate the simple path.
+    for (path.first(); !path.isDone(); path.next())
     {
-        size_t kmerSize = 11;
-        const char* seq = "AGGCGCTAGGGTAGAGGATGATGA";
-
-        std::cout << "The initial sequence is '" << seq << "', kmer size is " << kmerSize << std::endl;
-
-        // We create the graph from a given sequence, and for a given kmer size
-        Graph graph = Graph::create (new BankStrings (seq, NULL),  "-kmer-size %d  -abundance-min 1  -verbose 0", kmerSize);
-
-        // We get the first node of the sequence.
-        Node node = graph.buildNode (seq);
-
-        // We create a Node iterator that iterates all the simple nodes from the first node
-        // Remember that a simple node has indegree==1 and outdegree==1
-        Graph::Iterator<Node> path = graph.simplePath (node, DIR_OUTCOMING);
-
-        // We iterate the simple path.
-        for (path.first(); !path.isDone(); path.next())
-        {
-            std::cout << "   [" << path.rank() << "]  current item is " << graph.toString (path.item()) << std::endl;
-        }
-
-        std::cout << "The simple path was " << path.rank() << " long" << std::endl;
-    }
-    catch (Exception& e)
-    {
-        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+      std::cout << "   [" << path.rank() << "]  current item is " 
+        << graph.toString (path.item()) << std::endl;
     }
 
-    return EXIT_SUCCESS;
+    std::cout << "The simple path was " << path.rank() << " long" << std::endl;
+  }
+  catch (Exception& e)
+  {
+    std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+  }
+
+  return EXIT_SUCCESS;
 }
 //! [snippet1]
