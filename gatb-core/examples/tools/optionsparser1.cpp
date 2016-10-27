@@ -28,13 +28,13 @@ int main (int argc, char* argv[])
   IOptionsParser* child1 = new OptionsParser ("child1");
   
   // and we add that specific parser to the main parser that also
-  // contains arguments from Graph
+  // contains arguments from SortingCountAlgorithm
   root->push_back (child1);
 
   // we declare are own arguments
   child1->push_back (
     new OptionOneParam (
-      STR_NB_CORES,
+      STR_NB_CORES, //this argument name already exists in GATB-Core, so use it!
       "nb cores (0 for all)",
       false,
       "0"
@@ -64,6 +64,7 @@ int main (int argc, char* argv[])
   }
 
   // We can dump the many arguments and their values
+  // You'll see that our 3 arguments are augmented with many others...
   printf ("-------------------------------------------------------------\n");
   RawDumpPropertiesVisitor v;
   root->getProperties()->accept (&v);
