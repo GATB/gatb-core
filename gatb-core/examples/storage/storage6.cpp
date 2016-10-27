@@ -46,13 +46,17 @@ int main (int argc, char* argv[])
         Properties props;
         props.readXML (dskGroup.getProperty("xml"));
 
+        Properties configProps;
+        configProps.readXML (storage->getGroup("configuration").getProperty("xml"));
+
+
         // Now, we can for instance get the kmer size (as an integer)
-        cout << "kmer size:      " << props.getInt ("kmer_size")      << endl;
-        cout << "nb solid kmers: " << props.getInt ("kmers_nb_solid") << endl;
+        cout << "kmer size:      " << configProps.getInt ("kmer_size")      << endl;
+        cout << "nb solid kmers: " <<       props.getInt ("kmers_nb_solid") << endl;
 
         // We create a Model instance. It will help to dump the kmers in
         // a human readable form (ie as a string of nucleotides)
-        Kmer<>::ModelCanonical model (props.getInt ("kmer_size"));
+        Kmer<>::ModelCanonical model (configProps.getInt ("kmer_size"));
 
         size_t nbKmers = 0;
 
