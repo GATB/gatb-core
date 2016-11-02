@@ -1,12 +1,5 @@
 //! [snippet1]
-// We include what we need for the test
-#include <gatb/gatb_core.hpp>
-
-#include <iostream>
-#include <memory>
-
-// We use the required packages
-using namespace std;
+// GATB-Core Online Tutorial 
 
 /********************************************************************************/
 /*                  Iterate solid kmers from a HDF5 file                        */
@@ -15,92 +8,109 @@ using namespace std;
 /* or by dbgh5. It also compute the distribution of kmers.                      */
 /*                                                                              */
 /********************************************************************************/
+
+// We include GATB-Core
+#include <gatb/gatb_core.hpp>
+
+#include <iostream>
+#include <memory>
+
+// We use the required packages
+using namespace std;
+
 int main (int argc, char* argv[])
 {
-    /** We create a command line parser. */
-    OptionsParser parser ("StorageSnippet");
-    parser.push_back (new OptionOneParam (STR_URI_GRAPH, "graph input",   true));
-    parser.push_back (new OptionOneParam (STR_VERBOSE,   "verbosity (0:no display, 1: display kmers, 2: display distrib",  false, "0"));
+  // We check that the user provides at least one option: graph file.
+  // Online GATB-Tutorial: this argument is automatically filled in with an 
+  // appropriate file.
+  if (argc < 2)
+  {
+    std::cerr << "Please, provide a graph file (.h5)." << std::endl;
+    return EXIT_FAILURE;
+  }
 
-    try
+  try
+  {
+    //verbosity mode: 0 (all), 1 (display kmers), 2 (display distribution)
+    int display = 0;
+
+    // We get a handle on the HDF5 storage object.
+    // Note that we use an auto pointer since the StorageFactory dynamically allocates an instance
+    auto_ptr<Storage> storage (StorageFactory(STORAGE_HDF5).load (argv[1]));
+
+    // We get the group for dsk
+    Group& dskGroup = storage->getGroup("dsk");
+
+    // We get the solid kmers collection 1) from the 'dsk' group  2) from the 'solid' collection
+    Partition<Kmer<>::Count>& solidKmers = dskGroup.getPartition<Kmer<>::Count> ("solid");
+
+    // We can retrieve information (as an XML string) about the construction of the solid kmers
+    cout << dskGroup.getProperty("xml") << endl;
+
+    // We can access each of these information through a Properties object
+    Properties props;
+    props.readXML (dskGroup.getProperty("xml"));
+
+    Properties configProps;
+    configProps.readXML (storage->getGroup("configuration").getProperty("xml"));
+
+
+    // Now, we can for instance get the kmer size (as an integer)
+    cout << "kmer size:      " << configProps.getInt ("kmer_size")      << endl;
+    cout << "nb solid kmers: " <<       props.getInt ("kmers_nb_solid") << endl;
+
+    // We create a Model instance. It will help to dump the kmers in
+    // a human readable form (ie as a string of nucleotides)
+    Kmer<>::ModelCanonical model (configProps.getInt ("kmer_size"));
+
+    size_t nbKmers = 0;
+
+    // We create an iterator for our [kmer,abundance] values
+    ProgressIterator<Kmer<>::Count> iter (solidKmers);
+
+    Kmer<>::Type checksum;
+    map<u_int64_t,u_int64_t> distrib;
+
+    // We iterate the solid kmers from the retrieved collection
+    for (iter.first(); !iter.isDone(); iter.next())
     {
-        /** We parse the user options. */
-        IProperties* options = parser.parse (argc, argv);
+      // shortcut
+      Kmer<>::Count& count = iter.item();
 
-        int display = options->getInt (STR_VERBOSE);
+      // We update the checksum.
+      checksum += count.value;
 
-        // We get a handle on the HDF5 storage object.
-        // Note that we use an auto pointer since the StorageFactory dynamically allocates an instance
-        auto_ptr<Storage> storage (StorageFactory(STORAGE_HDF5).load (options->getStr(STR_URI_GRAPH)));
+      // We update the distribution
+      distrib [count.abundance] ++;
 
-        // We get the group for dsk
-        Group& dskGroup = storage->getGroup("dsk");
-
-        // We get the solid kmers collection 1) from the 'dsk' group  2) from the 'solid' collection
-        Partition<Kmer<>::Count>& solidKmers = dskGroup.getPartition<Kmer<>::Count> ("solid");
-
-        // We can retrieve information (as an XML string) about the construction of the solid kmers
-        cout << dskGroup.getProperty("xml") << endl;
-
-        // We can access each of these information through a Properties object
-        Properties props;
-        props.readXML (dskGroup.getProperty("xml"));
-
-        // Now, we can for instance get the kmer size (as an integer)
-        cout << "kmer size:      " << props.getInt ("kmer_size")      << endl;
-        cout << "nb solid kmers: " << props.getInt ("kmers_nb_solid") << endl;
-
-        // We create a Model instance. It will help to dump the kmers in
-        // a human readable form (ie as a string of nucleotides)
-        Kmer<>::ModelCanonical model (props.getInt ("kmer_size"));
-
-        size_t nbKmers = 0;
-
-        // We create an iterator for our [kmer,abundance] values
-        ProgressIterator<Kmer<>::Count> iter (solidKmers);
-
-        Kmer<>::Type checksum;
-        map<u_int64_t,u_int64_t> distrib;
-
-        // We iterate the solid kmers from the retrieved collection
-        for (iter.first(); !iter.isDone(); iter.next())
-        {
-            // shortcut
-            Kmer<>::Count& count = iter.item();
-
-            // We update the checksum.
-            checksum += count.value;
-
-            // We update the distribution
-            distrib [count.abundance] ++;
-
-            // We dump the solid kmer information:
-            //   1) nucleotides
-            //   2) raw value (integer)
-            //   3) abundance
-            if (display==1)
-            {
-                cout << "[" << ++nbKmers << "]  " << model.toString(count.value) << "  " << count.value << "  "  << count.abundance << endl;
-            }
-        }
-
-        cout << "kmer checksum:  " << checksum << endl;
-
-        if (display==2)
-        {
-            for (map<u_int64_t,u_int64_t>::iterator it = distrib.begin(); it != distrib.end(); ++it)
-            {
-                cout << it->first << "  "  << it->second << endl;
-            }
-        }
+      // We dump the solid kmer information:
+      //   1) nucleotides
+      //   2) raw value (integer)
+      //   3) abundance
+      if (display==1)
+      {
+        cout << "[" << ++nbKmers << "]  " << model.toString(count.value) << "  " << count.value << "  "  << count.abundance << endl;
+      }
     }
-    catch (OptionFailure& e)
+
+    cout << "kmer checksum:  " << checksum << endl;
+
+    if (display==2)
     {
-        return e.displayErrors (std::cout);
+      for (map<u_int64_t,u_int64_t>::iterator it = distrib.begin(); it != distrib.end(); ++it)
+      {
+        cout << it->first << "  "  << it->second << endl;
+      }
     }
-    catch (Exception& e)
-    {
-        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
-    }
+  }
+  catch (OptionFailure& e)
+  {
+    return e.displayErrors (std::cout);
+  }
+  catch (Exception& e)
+  {
+    std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+  }
 }
 //! [snippet1]
+
