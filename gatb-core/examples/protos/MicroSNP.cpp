@@ -22,7 +22,7 @@ public:
         // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
         ProgressGraphIterator<BranchingNode,ProgressTimer>  it (graph.iteratorBranching(), "MiniDiscoSNP: finding bubbles          ");
 
-        int nbsnps = 1 ;
+        int nbsnps = 0 ;
         int ksize  = graph.getKmerSize();
 
         for (it.first(); !it.isDone(); it.next())
@@ -32,6 +32,7 @@ public:
             int outdegree = graph.outdegree(current);
             int indegree  = graph.indegree (current);
 
+
             if ((indegree ==2 && outdegree==1) )
             {
                 current = graph.reverse(current);
@@ -40,8 +41,9 @@ public:
             if ((indegree ==1 && outdegree==2)  ||  (indegree ==2 && outdegree==1) )
             {
                 //get neighbor branching edges
-                Graph::Vector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (current);
+                GraphVector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (current);
 
+				
                 //clean bubble
                 if(branchingNeighbors.size()==2  && branchingNeighbors[0].distance == ksize && branchingNeighbors[1].distance == ksize)
                 {
@@ -50,19 +52,19 @@ public:
                         BranchingEdge edge = branchingNeighbors[i];
 
                         // We avoid duplicates
-                        if( edge.to.kmer < edge.from.kmer )  { continue; }
-
+                        //  if( edge.to.kmer < edge.from.kmer )  { continue; }
+						
                         flockfile(snps);
                         fprintf(snps,">SNP %i path %zu\n",nbsnps,i );
-                        fprintf(snps,"%s%c%s\n",graph.toString (edge.from).c_str(), ascii(edge.nt) , graph.toString (edge.to).c_str() );
+						fprintf(snps,"%s%s\n",graph.toString (edge.from).c_str(), graph.toString (edge.to).c_str() );
                         funlockfile(snps);
 
-                        __sync_fetch_and_add ( &nbsnps, i);
+                        __sync_fetch_and_add ( &nbsnps, 1);
                     }
                 }
             }
         }
-
+		
         getInfo()->add (1, "stats");
         getInfo()->add (2, "nb", "%d", nbsnps);
 
