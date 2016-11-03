@@ -22,7 +22,7 @@ public:
         // We get an iterator for all nodes of the graph. We use a progress iterator to get some progress feedback
         ProgressGraphIterator<BranchingNode,ProgressTimer>  it (graph.iteratorBranching(), "MiniDiscoSNP: finding bubbles          ");
 
-        int nbsnps = 1 ;
+        int nbsnps = 0 ;
         int ksize  = graph.getKmerSize();
 
         for (it.first(); !it.isDone(); it.next())
@@ -32,17 +32,19 @@ public:
             int outdegree = graph.outdegree(current);
             int indegree  = graph.indegree (current);
 
+			///reverse if end node
             if ((indegree ==2 && outdegree==1) )
             {
                 current = graph.reverse(current);
             }
 
+			//if beginning or end of clean bubble
             if ((indegree ==1 && outdegree==2)  ||  (indegree ==2 && outdegree==1) )
             {
                 //get neighbor branching edges
                 GraphVector<BranchingEdge> branchingNeighbors = graph.successorsBranchingEdge (current);
 
-                //clean bubble
+				//clean bubble : exactly 2 branches and size of each branch  = kmer
                 if(branchingNeighbors.size()==2  && branchingNeighbors[0].distance == ksize && branchingNeighbors[1].distance == ksize)
                 {
                     for (size_t i=0; i<branchingNeighbors.size(); i++)
@@ -86,3 +88,12 @@ int main (int argc, char* argv[])
         return EXIT_FAILURE;
     }
 }
+// test on this file
+//>read_1
+//TACACGTCGGCACATCG
+//>read_2
+//TACACGTCTGCACATCG
+//
+//with:
+//MicroSNP -in read.fasta -kmer-size 7 -abundance-min 1
+
