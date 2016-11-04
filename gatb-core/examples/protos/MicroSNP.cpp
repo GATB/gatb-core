@@ -22,23 +22,19 @@ class MicroSNP : public Tool
 
   MicroSNP () : Tool ("MicroSNP")
   {
-  // If you use the cmd-line, then un-comment the following line
-  //getParser()->push_back (Graph::getOptionsParser());
+    // we setup a command line arguments parser, and we inherits from
+    // Graph arguments
+    getParser()->push_back (Graph::getOptionsParser());
   }
 
   void execute ()
   {
+    // For A||Go integration, we dump results on the cmd-line
+    // instead of a file
     FILE * snps = stdout;//fopen ("snps","w");
 
     // We create the de Bruijn graph.
-    // case 1: for the purpose of the online GATB-Tutorial, input file is 
-    // provided, so we "force the command-line.
-    Graph graph = Graph::create (
-      "-in read.fasta -kmer-size 7 -abundance-min 1 -verbose 0");
-
-    // case 2: use the following line when passing arguments from the cmd-line
-    // (and also uncomment code line in the constructor)
-    //Graph graph = Graph::create (getParser()->getProperties());
+    Graph graph = Graph::create (getParser()->getProperties());
 
     // We get an iterator for all branching nodes of the graph. 
     // We use a progress iterator to get some progress feedback 
