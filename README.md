@@ -79,7 +79,11 @@ Unit tests (requires cppunit) can also be executed to check the integrity of the
 
 More about GATB-CORE code compiling instruction is available [here](http://gatb-core.gforge.inria.fr/doc/api/compilation.html).
 
-# Reading documentation
+# GATB-Core programming tutorial
+
+You can follow [this link](https://gatb.inria.fr/gatb-programming-tutorial/) to start the GATB-Core Online Tutorial trail.
+
+# Documentation
 
 API documentation is available [here](http://gatb-core.gforge.inria.fr/doc/api/).
 
