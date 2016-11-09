@@ -137,7 +137,7 @@ public:
      * file system for instance. */
     virtual void remove () = 0;
 
-    /** Method that may be called when the bank is done. */
+    /** Method that may be called when the bank is done. This will close fclose() or something equivalent. You don't need to call this function yourself. */
     virtual void finalize () = 0;
 };
 
