@@ -178,7 +178,7 @@ public:
         CPPUNIT_ASSERT (seqLen >= kmerSize);
 
         /** We create a bank with one sequence. */
-        IBank* bank = new BankStrings (seq, 0);
+        IBank* bank = new BankStrings (seq, (char*)0);
 
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
@@ -229,7 +229,7 @@ public:
         char* rev = (char*) "AGGTACCTACTTATAATTATACATGGT";
 
         /** We create the graph. */
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, (char*)0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         GraphIterator<NodeGU> it = graph.iterator();  it.first();
 
@@ -291,7 +291,7 @@ public:
         char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
 
         /** We create the graph. */
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, (char*)0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_unitigs_test6_fct fct(graph);
         graph.iterator().iterate (fct);
@@ -404,7 +404,7 @@ public:
     void debruijn_unitigs_test7 ()
     {
         /** We create the graph. */
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 1 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGC", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 1 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
 
         /** We should get two kmers:
          *      - AGGCG / CGCCT
@@ -433,7 +433,7 @@ public:
     void debruijn_unitigs_test7_nocircular ()
     {
         // same as test7, but without the circular contig
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGC", "ACTGACT",0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGC", "ACTGACT",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
 
         /** We should get two kmers:
          *      - AGGCG / CGCCT
@@ -454,7 +454,7 @@ public:
 
     void debruijn_unitigs_test1()
     {
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "GCGAA",0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "GCGAA",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3", MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"GGCGA");
         NodeGU n2 = graph.debugBuildNode ((char*)"GCGAT");
@@ -493,7 +493,8 @@ public:
 
     void debruijn_unitigs_test10()
     {
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", "CGATT",0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
+       // the following line seems to crash at BankStrings if i dont set the last argument as char*, see http://stackoverflow.com/questions/39121792/c-function-with-any-parameters-make-segmentation-fault
+       GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", "CGATT", (char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"GCGAT");
 
@@ -567,7 +568,7 @@ public:
 
     void debruijn_unitigs_test11()
     {
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", 0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", (char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"GCGAT");
 
@@ -644,7 +645,7 @@ public:
             "CATCGATGCGAGACGCCTGTCGCGGGGAATTGTGGGGCGGACCACGCTCTGGCTAACGAGCTACCGTTTCCTTTAACCTGCCAGACGGTGACCAGGGCCGTTCGGCGTTGCATCGAGCGGTGTCGCTAGCGCAATGCGCAAGATTTTGACATTTACAAGGCAACATTGCAGCGTCCGATGGTCCGGTGGCCTCCAGATAGTGTCCAGTCGCTCTAACTGTATGGAGACCATAGGCATTTACCTTATTCTCATCGCCACGCCCCAAGATCTTTAGGACCCAGCATTCCTTTAACCACTAACATAACGCGTGTCATCTAGTTCAACAACC",
             "TGTCATCTAGTTCAACAACCAAAAAAA", //>that's the tip
             "TGTCATCTAGTTCAACAACCGTTATGCCGTCCGACTCTTGCGCTCGGATGTCCGCAATGGGTTATCCCTATGTTCCGGTAATCTCTCATCTACTAAGCGCCCTAAAGGTCGTATGGTTGGAGGGCGGTTACACACCCTTAAGTACCGAACGATAGAGCACCCGTCTAGGAGGGCGTGCAGGGTCTCCCGCTAGCTAATGGTCACGGCCTCTCTGGGAAAGCTGAACAACGGATGATACCCATACTGCCACTCCAGTACCTGGGCCGCGTGTTGTACGCTGTGTATCTTGAGAGCGTTTCCAGCAGATAGAACAGGATCACATGTACATG" //>remaining part
-            ,0),
+            ,(char*)0),
                 "-kmer-size 21  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -nb-cores 1 -minimizer-size 3" /* minimizer size 3 is important to reproduce the problem found in Simplifications*/, MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"TGTCATCTAGTTCAACAACCA"); // part of the tip
@@ -690,7 +691,7 @@ public:
             "CATCGATGCGAGACGCCTGTCGCGGGGAATTGTGGGGCGGACCACGCTCTGGCTAACGAGCTACCGTTTCCTTTAACCTGCCAGACGGTGACCAGGGCCGTTCGGCGTTGCATCGAGCGGTGTCGCTAGCGCAATGCGCAAGATTTTGACATTTACAAGGCAACATTGCAGCGTCCGATGGTCCGGTGGCCTCCAGATAGTGTCCAGTCGCTCTAACTGTATGGAGACCATAGGCATTTACCTTATTCTCATCGCCACGCCCCAAGATCTTTAGGACCCAGCATTCCTTTAACCACTAACATAACGCGTGTCATCTAGTTCAACAACC",
             "TGTCATCTAGTTCAACAACCAAAAAAA", //>that's the tip
             "TGTCATCTAGTTCAACAACCGTTATGCCGTCCGACTCTTGCGCTCGGATGTCCGCAATGGGTTATCCCTATGTTCCGGTAATCTCTCATCTACTAAGCGCCCTAAAGGTCGTATGGTTGGAGGGCGGTTACACACCCTTAAGTACCGAACGATAGAGCACCCGTCTAGGAGGGCGTGCAGGGTCTCCCGCTAGCTAATGGTCACGGCCTCTCTGGGAAAGCTGAACAACGGATGATACCCATACTGCCACTCCAGTACCTGGGCCGCGTGTTGTACGCTGTGTATCTTGAGAGCGTTTCCAGCAGATAGAACAGGATCACATGTACATG" //>remaining part
-            ,0),
+            ,(char*)0),
                 "-kmer-size 21  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -nb-cores 1", MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"TGTCATCTAGTTCAACAACCA"); // part of the tip
@@ -714,7 +715,7 @@ public:
         GraphUnitigs graph = GraphUnitigs::create (new BankStrings (
         "AAGAGCCCGCTTATCCGGTGGTGATACCTAC",
         "AGAGCCCGCTTATCCGGTGGTGATACCTACC"
-            ,0),
+            ,(char*)0),
                 "-kmer-size 31  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -nb-cores 1", MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"AGAGCCCGCTTATCCGGTGGTGATACCTACC"); // 
@@ -922,7 +923,7 @@ public:
     {
         // MPHF has a known bug where, when there are only like a tiny amount of elements (I tested with three), it will just return mphf(elt)=0 always.
         // so this is why I'm adding the dummy "ACTGACTGACTGACTG" sequence, to artificially increase the amount of elements in the mphf
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_unitigs_deletenode_fct (graph);
     }
@@ -961,13 +962,13 @@ public:
 
     void debruijn_unitigs_deletenode2 ()
     {
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
 
         debruijn_unitigs_deletenode_fct (graph);
 
         /* rerun this test with adjacency information instead of bloom */
         
-        GraphUnitigs graph2 = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        GraphUnitigs graph2 = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
         graph2.precomputeAdjacency(1, false);
         
         debruijn_unitigs_deletenode2_fct (graph2);
