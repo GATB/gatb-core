@@ -157,7 +157,7 @@ void BankFasta::init ()
     if (_filenames.empty() || _filenames.size() > getMaxNbFiles())
     {
         /** We send an exception. */
-		fprintf(stderr,"unable to open file(s)"); // normally you get an information exception, but not always in some test programs (e.g. GATB training day), so i'm printing an explicit message
+	    fprintf(stderr,"unable to open file(s)"); // normally you get an information exception, but not always in some test programs (e.g. GATB training day), so i'm printing an explicit message
         throw gatb::core::system::Exception (STR_BANK_bad_file_number, _filenames.size(), getMaxNbFiles());
     }
 
@@ -310,7 +310,6 @@ BankFasta::Iterator::Iterator (BankFasta& ref, CommentMode_e commentMode)
     /** We check that the file can be opened. */
     if (gzFile stream = gzopen (_ref._filenames[0].c_str(), "r"))  {  gzclose (stream);  }
     else  {  
-	    fprintf(stderr,"unable to open file(s)"); // normally you get an information exception, but not always in some test programs (e.g. GATB training day), so i'm printing an explicit message
         throw gatb::core::system::ExceptionErrno (STR_BANK_unable_open_file, _ref._filenames[0].c_str());  }
 }
 
