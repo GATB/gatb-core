@@ -178,7 +178,7 @@ public:
         CPPUNIT_ASSERT (seqLen >= kmerSize);
 
         /** We create a bank with one sequence. */
-        IBank* bank = new BankStrings (seq, 0);
+        IBank* bank = new BankStrings (seq, (char*)0);
 
         /** We configure parameters for a SortingCountAlgorithm object. */
         IProperties* params = SortingCountAlgorithm<>::getDefaultProperties();
@@ -229,7 +229,7 @@ public:
         char* rev = (char*) "AGGTACCTACTTATAATTATACATGGT";
 
         /** We create the graph. */
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, (char*)0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         GraphIterator<NodeGU> it = graph.iterator();  it.first();
 
@@ -291,7 +291,7 @@ public:
         char* seq = (char*) "ACCATGTATAATTATAAGTAGGTACCACGATCGATCGATCGATCGTAGCATATCGTACGATCT";
 
         /** We create the graph. */
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, 0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings (seq, (char*)0), "-kmer-size 27  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_unitigs_test6_fct fct(graph);
         graph.iterator().iterate (fct);
@@ -493,7 +493,8 @@ public:
 
     void debruijn_unitigs_test10()
     {
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", "CGATT",0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
+	// the following line seems to crash at BankStrings if i dont set the last argument as char*, see http://stackoverflow.com/questions/39121792/c-function-with-any-parameters-make-segmentation-fault
+	GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", "CGATT", (char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"GCGAT");
 
@@ -567,7 +568,7 @@ public:
 
     void debruijn_unitigs_test11()
     {
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", 0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGA", "TTGCGA", "GCGAT", "CGATA", (char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0 -max-memory %d -out dummy -minimizer-size 3 -nb-cores 1", MAX_MEMORY);
 
         NodeGU n1 = graph.debugBuildNode ((char*)"GCGAT");
 
