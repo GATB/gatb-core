@@ -45,6 +45,8 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
+#define DEBUG_ITERATORFILE(x) {} // {x}
+
 #define BUFFER_SIZE (128*1024)
 
 /** \brief Iterator implementation for file
@@ -61,7 +63,7 @@ public:
     {
         _file    = system::impl::System::file().newFile (_filename, "rb");
         _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
-            std::cout << "iteratorfile constructed" << std::endl;
+        DEBUG_ITERATORFILE(std::cout << "iteratorfile constructed" << std::endl;)
     }
 
     /** Constructor. */
@@ -116,7 +118,7 @@ public:
         if (_cpt_buffer==0)
         {
             _idx = 0;
-            //std::cout << "(next) doing a fread of " << _cacheItemsNb << " items at position " << _file->tell() << " file size " << _file->getSize() << std::endl;
+            DEBUG_ITERATORFILE(std::cout << "(next) doing a fread of " << _cacheItemsNb << " items at position " << _file->tell() << " file size " << _file->getSize() << std::endl;)
             _cpt_buffer = _file->fread (_buffer, sizeof(Item), _cacheItemsNb);
             if (_cpt_buffer==0)  { _isDone = true;  return; }
         }
@@ -136,7 +138,7 @@ public:
     size_t fill (std::vector<Item>& vec, size_t len=0)
     {
         if (len==0)  { len = vec.size(); }
-        //std::cout << "(fill) doing a fread of " << len << " items at position " << _file->tell() << " file size " << _file->getSize() << std::endl;
+        DEBUG_ITERATORFILE(std::cout << "(fill) doing a fread of " << len << " items at position " << _file->tell() << " file size " << _file->getSize() << std::endl;)
         return _file->fread (vec.data(), sizeof(Item), len);
     }
 
@@ -169,7 +171,7 @@ public:
         :   _filename(filename), _cacheItemsNb (cacheItemsNb), 
         _file(0)  // hacking my own iterator, for getItems, separate from IteratorFile. dirty, but nothing used to work at all
     {
-        _file    = system::impl::System::file().newFile (filename, "ab+");
+        _file    = system::impl::System::file().newFile (filename, "rb"); // used to be ab+ but i believe it was a bug
     }
 
     /** Destructor. */
@@ -182,7 +184,7 @@ public:
 
     /** \copydoc Iterable::getNbItems */
     int64_t getNbItems ()   {  
-        //std::cout << "IteratorFile::getNbItems called (file size: "<< system::impl::System::file().getSize(_filename) << "), returning " << system::impl::System::file().getSize(_filename) / sizeof(Item) << std::endl;
+        DEBUG_ITERATORFILE(std::cout << "IteratorFile::getNbItems called (file size: "<< system::impl::System::file().getSize(_filename) << "), returning " << system::impl::System::file().getSize(_filename) / sizeof(Item) << std::endl;)
         return system::impl::System::file().getSize(_filename) / sizeof(Item); }
 
     /** \copydoc Iterable::estimateNbItems */
@@ -203,9 +205,9 @@ public:
     size_t getItems (Item*& buffer, size_t start, size_t nb)
     {
         if (_file == 0) {std::cout << "cannot call getItems when _file is null" << std::endl; exit(1); }
-        //std::cout << "want to read " << nb << " elements of size " << sizeof(Item) << " at position " << _file->tell() << " file size " << _file->getSize() /*<< " then write them to buffer at position " << (sizeof(Item) * start) << std::endl*/;
+        DEBUG_ITERATORFILE(std::cout << "want to read " << nb << " elements of size " << sizeof(Item) << " at position " << _file->tell() << " file size " << _file->getSize() /*<< " then write them to buffer at position " << (sizeof(Item) * start) << std::endl*/;)
         size_t n = _file->fread (buffer /*+ sizeof(Item) * start*/, sizeof(Item), nb);
-        //std::cout << "read " << n << " elements" << std::endl;
+        DEBUG_ITERATORFILE(std::cout << "read " << n << " elements" << std::endl;)
         return n;
     }
 

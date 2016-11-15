@@ -57,7 +57,7 @@ public:
         /** We first erase the file. */
         //system::impl::System::file().remove (filename); // NOTE: before, the file was erased. Not anymore now, because GraphUnitigs sometimes reopens the same file (through this function) and wants to read it. I checked with minia, it's fine to not remove the file, there is no endless appending going on. But, some unit tests assumed that the file was deleted, so I had to modify them.
 
-        //std::cout << "BagFile created: " << _filename << std::endl;
+        //std::cout << "BagFile created: " << _filename << ", size: " << system::impl::System::file().getSize(filename) << std::endl;
 
         /** We get a handle on the file. */
         if (system::impl::System::file().doesExist(filename))

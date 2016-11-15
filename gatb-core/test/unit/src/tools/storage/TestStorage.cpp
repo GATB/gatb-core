@@ -352,24 +352,40 @@ public:
 
         gatb::core::tools::storage::impl::Group& group = (*storage)().getGroup("test");
 
-        uint32_t _nbpart = 5, _mm = 1, _nb_minims = 60000, _nbPass = 100;
-        {
-        gatb::core::tools::storage::impl::Storage::ostream os (group, "minimRepart");
-        os.write ((const char*)&_nbpart,                sizeof(_nbpart));
-        os.write ((const char*)&_mm,                    sizeof(_mm));
-        os.write ((const char*)&_nb_minims,             sizeof(_nb_minims));
-        os.write ((const char*)&_nbPass,                sizeof(_nbPass));
-        os.flush();
-        }
+	uint32_t _nbpart = 5, _mm = 1, _nb_minims = 60000, _nbPass = 100;
+	{
+		gatb::core::tools::storage::impl::Storage::ostream os (group, "minimRepart");
+		os.write ((const char*)&_nbpart,                sizeof(_nbpart));
+		os.write ((const char*)&_mm,                    sizeof(_mm));
+		os.write ((const char*)&_nb_minims,             sizeof(_nb_minims));
+		os.write ((const char*)&_nbPass,                sizeof(_nbPass));
+		os.flush();
+	}
         
         gatb::core::tools::storage::impl::Storage::istream is (group, "minimRepart");
+	if (is.bad() || is.fail() ||is.eof())
+	{
+		 std::cout << " in anticipation of assert fail, could not even open istream, bad/fail status: " << is.bad()  << " " << is.fail()<< std::endl;
+                  CPPUNIT_ASSERT(false);
+
+	}
         uint32_t _nbpart2, _mm2, _nb_minims2, _nbPass2;
         is.read ((char*)&_nbpart2,     sizeof(_nbpart));
+
+	  if ( is.bad() || is.fail() ||is.eof() )
+	  {
+                   std::cout << " in anticipation of assert fail, could open but not read from istream, bad/fail/eof status: " << is.bad()  << " " << is.fail()<< " " <<is.eof()  << std::endl;
+		   CPPUNIT_ASSERT(false);
+	  }
+
         is.read ((char*)&_mm2,         sizeof(_mm));
+
         is.read ((char*)&_nb_minims2,  sizeof(_nb_minims));
         is.read ((char*)&_nbPass2,     sizeof(_nbPass));
 
 
+	if (_nbpart2 != _nbpart)
+		std::cout << " in anticipation of assert fail, _nbpart2 = "<< _nbpart2 << " and _nbpart = " << _nbpart << std::endl;
         CPPUNIT_ASSERT (_nbpart2 == _nbpart);
         CPPUNIT_ASSERT (_mm2 == _mm);
         CPPUNIT_ASSERT (_nb_minims == _nb_minims2);
