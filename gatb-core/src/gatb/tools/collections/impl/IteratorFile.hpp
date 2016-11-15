@@ -45,7 +45,7 @@ namespace collections   {
 namespace impl          {
 /********************************************************************************/
 
-#define DEBUG_ITERATORFILE(x) {} // {x}
+#define DEBUG_ITERATORFILE(x) {}//{x}
 
 #define BUFFER_SIZE (128*1024)
 
@@ -171,7 +171,14 @@ public:
         :   _filename(filename), _cacheItemsNb (cacheItemsNb), 
         _file(0)  // hacking my own iterator, for getItems, separate from IteratorFile. dirty, but nothing used to work at all
     {
-        _file    = system::impl::System::file().newFile (filename, "rb"); // used to be ab+ but i believe it was a bug
+        // if the file doesn't exist (meaning that BagFile hasn't created it yet), let's create it just for the sake of it. but then we'll open it just for reading
+        if (!system::impl::System::file().doesExist(filename))
+            {
+                auto   _file2 = system::impl::System::file().newFile (filename, "wb");
+                delete _file2;
+            }
+
+        _file    = system::impl::System::file().newFile (filename, "rb"); 
     }
 
     /** Destructor. */

@@ -60,6 +60,9 @@ public:
         : collections::impl::CollectionAbstract<Item> (
              new collections::impl::BagFile<Item>(filename),
              new collections::impl::IterableFile<Item>(filename, cacheItemsNb)
+             /* Note (Rayan): this isn't very clean. Two files objectss are opened, one by BagFile (in write mode) and one in IterableFile (in read mode).
+              * With Clang/OSX, turns out the IterableFile was created before BagFile, causing some troubles.
+              * Also this is opening the file twice, not nice. Anyway until I think of a better system, it's kept as it is, and IterableFile does a small hack*/
           ),  _name(filename)
     {}
 
