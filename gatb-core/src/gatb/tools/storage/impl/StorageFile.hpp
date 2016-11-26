@@ -52,14 +52,24 @@ namespace impl      {
             GroupFile (Storage* storage, ICell* parent, const std::string& name)
                 : Group(storage->getFactory(),parent,name), filename("")
             {
-                /** We may need to create the HDF5 group. Empty name means root group, which is constructed by default. */
+
+				std::string folder = storage->getName() + "_gatb/";
+
+				// create folder if it doesn't exist
+				if(!system::impl::System::file().doesExist(folder)){
+					int ok = system::impl::System::file().mkdir(folder, 0755);
+					if(ok != 0){  
+						std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);
+					}   
+				}
+				/** We may need to create the HDF5 group. Empty name means root group, which is constructed by default. */
                 if (name.empty() == false)
                 {
-                    filename = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + name;
+                    filename = folder + parent->getFullId('.') + std::string(".") + name;
                 }
                 else
                 {
-                    filename = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + "json" /* i chose this name arbitrarily*/;
+                    filename = folder + parent->getFullId('.') + std::string(".") + "json" /* i chose this name arbitrarily*/;
                 }
 
                 std::ifstream myfile (filename);
@@ -195,7 +205,7 @@ public:
 
             int nb_partitions=0;
             /** We define the full qualified id of the current collection to be created. */
-            std::string filename = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + name;
+            std::string filename = storage->getName() + std::string("_gatb/") + parent->getFullId('.') + std::string(".") + name;
             std::string folder = system::impl::System::file().getDirectory(filename);
             std::string prefix = system::impl::System::file().getBaseName(filename);
             for (auto filename : system::impl::System::file().listdir(folder))
@@ -230,10 +240,20 @@ public:
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
 
-        /** We define the full qualified id of the current collection to be created. */
-        std::string actualName = storage->getName() + std::string(".") + parent->getFullId('.') + std::string(".") + name;
+        std::string folder = storage->getName() + "_gatb/";
 
-        DEBUG_STORAGE (("StorageFileFactory::createCollection  name='%s'  actualName='%s' \n", name.c_str(), actualName.c_str() ));
+		// create folder if it doesn't exist
+		if(!system::impl::System::file().doesExist(folder)){
+			int ok = system::impl::System::file().mkdir(folder, 0755);
+			if(ok != 0){  
+                std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);
+			}   
+		}
+
+        /** We define the full qualified id of the current collection to be created. */
+        std::string actualName = folder + parent->getFullId('.') + std::string(".") + name;
+
+		DEBUG_STORAGE (("StorageFileFactory::createCollection  name='%s'  actualName='%s' \n", name.c_str(), actualName.c_str() ));
 
         return new CollectionNode<Type> (storage->getFactory(), parent, name, new CollectionFile<Type>(actualName));
     }
