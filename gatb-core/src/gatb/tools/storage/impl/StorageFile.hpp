@@ -56,7 +56,7 @@ namespace impl      {
 				std::string folder = storage->getName() + "_gatb/";
 
 				// create folder if it doesn't exist
-				if(!system::impl::System::file().doesExist(folder)){
+				if(!system::impl::System::file().doesExistDirectory(folder)){
 					int ok = system::impl::System::file().mkdir(folder, 0755);
 					if(ok != 0){  
 						std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);
@@ -243,7 +243,7 @@ public:
         std::string folder = storage->getName() + "_gatb/";
 
 		// create folder if it doesn't exist
-		if(!system::impl::System::file().doesExist(folder)){
+		if(!system::impl::System::file().doesExistDirectory(folder)){
 			int ok = system::impl::System::file().mkdir(folder, 0755);
 			if(ok != 0){  
                 std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);

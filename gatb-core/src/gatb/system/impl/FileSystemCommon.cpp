@@ -210,6 +210,19 @@ bool FileSystemCommon::doesExist (const Path& path)
    }
 }
 
+bool FileSystemCommon::doesExistDirectory (const Path& path)
+{
+    DIR* dir = opendir(path.c_str());
+   if (dir)
+   {
+           /* Directory exists. */
+           closedir(dir);
+           return true;
+   }
+   return false;
+}
+
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :

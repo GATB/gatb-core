@@ -189,6 +189,9 @@ public:
 
     /** \copydoc IFileSystem::doesExist */
     bool doesExist (const Path& path);
+    
+    /** \copydoc IFileSystem::doesExistDirectory */
+    bool doesExistDirectory (const Path& path);
 
     /** \copydoc IFileSystem::getSize */
     u_int64_t  getSize (const Path& path);

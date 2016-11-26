@@ -192,10 +192,15 @@ public:
       * \return a unique file name. */
      virtual std::string getTemporaryFilename (const std::string& filename="") = 0;
 
-     /** Tells whether a path exists or not.
-      * \return true if path exists, false otherwise
+     /** Tells whether a file exists or not.
+      * \return true if file exists, false otherwise
       */
      virtual bool doesExist (const Path& path) = 0;
+
+     /** Tells whether a folder exists or not.
+      * \return true if folder exists, false otherwise
+      */
+     virtual bool doesExistDirectory (const Path& path) = 0;
 
      /** Return the size of the file given by the provided path.
       * \param[in] path : the location from where the space size is computed.
