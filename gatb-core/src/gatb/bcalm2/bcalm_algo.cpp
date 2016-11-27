@@ -100,8 +100,11 @@ void bcalm2(Storage *storage,
     }
 
     if (nb_h5_partitions != nb_passes * nb_partitions)
+    {
         cout << "Error: number of h5 partitions ("<< nb_h5_partitions << ") does not match number of DSK passes*partitions ("\
             << nb_passes<<"*"<<nb_partitions<<")" << endl;
+        exit(1);
+    }
 
 
     /** We retrieve the minimizers distribution from the solid kmers storage. */

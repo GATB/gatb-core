@@ -44,7 +44,7 @@ public:
     : _kmerSize(0), _minim_size(0), _repartitionType(0), _minimizerType(0),
       _solidityKind(tools::misc::KMER_SOLIDITY_SUM),
       _max_disk_space(0), _max_memory(0),
-      _nbCores(0), _nb_partitions_in_parallel(0), _abundanceUserNb(0),
+      _nbCores(0), _nb_partitions_in_parallel(0), _abundanceUserNb(0), _storage_type(tools::storage::impl::STORAGE_FILE) ,
       _isComputed(false), _nbCores_per_partition(0),
       _estimateSeqNb(0), _estimateSeqTotalSize(0), _estimateSeqMaxSize(0),
       _available_space(0), _volume(0), _kmersNb(0), _nb_passes(0), _nb_partitions(0), _nb_bits_per_kmer(0), _nb_banks(0) {}
@@ -68,6 +68,8 @@ public:
 
     std::vector<tools::misc::CountRange>  _abundance;
     size_t _abundanceUserNb;
+
+    tools::storage::impl::StorageMode_e _storage_type;
 
     /****************************************/
     /**             COMPUTED                */

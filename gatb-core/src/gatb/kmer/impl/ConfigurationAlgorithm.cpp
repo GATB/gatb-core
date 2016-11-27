@@ -210,6 +210,8 @@ ConfigurationAlgorithm<span>::ConfigurationAlgorithm (bank::IBank* bank, IProper
     _config._nb_partitions_in_parallel = _config._nbCores;
 
     _config._nb_bits_per_kmer = Type::getSize();
+    
+    _config._storage_type = static_cast<tools::storage::impl::StorageMode_e>(input->get(STR_STORAGE_TYPE) ?input->getInt(STR_STORAGE_TYPE):0);
 }
 
 /*********************************************************************
@@ -333,6 +335,7 @@ void ConfigurationAlgorithm<span>::execute ()
 
     //printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
+
     u_int64_t volume_per_pass;
     float est_volume_distinct_ratio;
 
@@ -397,6 +400,12 @@ void ConfigurationAlgorithm<span>::execute ()
     int  incpart = _config._nb_partitions_in_parallel - _config._nb_partitions % _config._nb_partitions_in_parallel;
     incpart = incpart % _config._nb_partitions_in_parallel;
     if(((int)max_open_files - (int)_config._nb_partitions  > incpart)) _config._nb_partitions+= incpart ;
+    
+    if (_config._storage_type == tools::storage::impl::STORAGE_FILE)
+    {
+        std::cout << "lowering nb partitions (" << _config._nb_partitions << ") by 4x due to storage file setting" << std::endl;
+        _config._nb_partitions /= 4; // will need to open twice in STORAGE_FILE instead of HDF5, so this adjustment is needed. needs to be fixed later by putting partitions inside the same file. but i'd rather not do it in the current messy collection/group/partition hdf5-inspired system. overall, that's a FIXME
+    }
 
     //_nb_partitions_in_parallel = 1 ;
 

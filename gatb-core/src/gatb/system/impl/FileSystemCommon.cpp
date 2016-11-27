@@ -212,7 +212,7 @@ bool FileSystemCommon::doesExist (const Path& path)
 
 bool FileSystemCommon::doesExistDirectory (const Path& path)
 {
-    DIR* dir = opendir(path.c_str());
+   DIR* dir = opendir(path.c_str());
    if (dir)
    {
            /* Directory exists. */

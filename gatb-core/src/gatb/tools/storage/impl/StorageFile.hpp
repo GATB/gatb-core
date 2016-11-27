@@ -60,6 +60,7 @@ namespace impl      {
 					int ok = system::impl::System::file().mkdir(folder, 0755);
 					if(ok != 0){  
 						std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);
+                    std::cout << "created directory " << folder << std::endl;
 					}   
 				}
 				/** We may need to create the HDF5 group. Empty name means root group, which is constructed by default. */
@@ -200,15 +201,16 @@ public:
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
 
+        // get the partitions folder and prefix
+        std::string filename = storage->getName() + std::string("_gatb/") + parent->getFullId('.') + std::string(".") + name;
+        std::string folder = system::impl::System::file().getDirectory(filename);
+        std::string prefix = system::impl::System::file().getBaseName(filename);
+
         if (nb == 0)
         {   // if nb is 0, it means we're opening partitions and not creating them, thus we need to get the number of partitions.
 
-            int nb_partitions=0;
-            /** We define the full qualified id of the current collection to be created. */
-            std::string filename = storage->getName() + std::string("_gatb/") + parent->getFullId('.') + std::string(".") + name;
-            std::string folder = system::impl::System::file().getDirectory(filename);
-            std::string prefix = system::impl::System::file().getBaseName(filename);
-            for (auto filename : system::impl::System::file().listdir(folder))
+           int nb_partitions=0;
+           for (auto filename : system::impl::System::file().listdir(folder))
             {
                 if (!filename.compare(0, prefix.size(), prefix)) // startswith
                 {
@@ -222,6 +224,21 @@ public:
                 exit(1);
             }
 		}
+        else
+        {
+            // else, if nb is set, means we're creating some partitions. let's delete all the previous ones to avoid wrongly counting 
+            for (auto filename : system::impl::System::file().listdir(folder))
+            {
+                //std::cout <<"name: " << name << " comparing " << filename << " with prefix " << prefix << std::endl;
+                if (!filename.compare(0, prefix.size(), prefix)) // startswith
+                {
+                    // some additional guard:
+                    if (filename == "." ||filename == "..") continue;
+                    system::impl::System::file().remove(folder + "/" + filename);
+                    //std::cout << "deleting" << folder << "/" << filename << std::endl;
+                }
+            }
+        }
 
         Partition<Type>* result = new Partition<Type> (storage->getFactory(), parent, name, nb);
         return result;
@@ -248,6 +265,7 @@ public:
 			if(ok != 0){  
                 std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);
 			}   
+                    std::cout << "created directory " << folder << std::endl;
 		}
 
         /** We define the full qualified id of the current collection to be created. */

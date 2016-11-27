@@ -22,6 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/times.h>
+#include <iostream>
 
 using namespace std;
 
@@ -176,23 +177,28 @@ u_int64_t SystemInfoLinux::getMemoryBuffers () const
 /********************************************************************************/
 u_int64_t SystemInfoLinux::getMemorySelfUsed () const
 {
-    FILE* file = fopen("/proc/self/status", "r");
     u_int64_t result = 0;
-    char line[128];
-
-    while (fgets(line, 128, file) != NULL)
+    FILE* file = fopen("/proc/self/status", "r");
+    if (file)
     {
-        if (strncmp(line, "VmRSS:", 6) == 0)
+        char line[128];
+
+        while (fgets(line, 128, file) != NULL)
         {
-            char* loop = line;
-            result = strlen(line);
-            while (*loop < '0' || *loop > '9') loop++;
-            loop[result-3] = '\0';
-            result = atoi(loop);
-            break;
+            if (strncmp(line, "VmRSS:", 6) == 0)
+            {
+                char* loop = line;
+                result = strlen(line);
+                while (*loop < '0' || *loop > '9') loop++;
+                loop[result-3] = '\0';
+                result = atoi(loop);
+                break;
+            }
         }
+        fclose(file);
     }
-    fclose(file);
+    else
+        std::cout << "warning: could not fopen /proc/self/status" << std::endl;
     return result;
 }
 

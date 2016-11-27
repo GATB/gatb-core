@@ -369,6 +369,7 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
     DEBUG ((cout << "build_visitor : ConfigurationAlgorithm BEGIN\n"));
 
     ConfigurationAlgorithm<span> configAlgo (bank, props);
+    configAlgo.getInput()->add (0, STR_STORAGE_TYPE, std::to_string(graph._storageMode) );
     graph.executeAlgorithm (configAlgo, & graph.getStorage(), props, graph._info);
     Configuration config = configAlgo.getConfiguration();
     graph.setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_CONFIGURATION_DONE);
