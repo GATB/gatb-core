@@ -53,7 +53,10 @@ namespace impl      {
                 : Group(storage->getFactory(),parent,name), filename("")
             {
 
-				std::string folder = storage->getName() + "_gatb/";
+                std::string prefix = storage->getName();
+                std::string folder = prefix;
+                if (!system::impl::System::file().isFolderEndingWith(prefix,"_gatb"))
+				    folder += "_gatb/";
 
 				// create folder if it doesn't exist
 				if(!system::impl::System::file().doesExistDirectory(folder)){
@@ -202,7 +205,12 @@ public:
         assert (storage != 0);
 
         // get the partitions folder and prefix
-        std::string filename = storage->getName() + std::string("_gatb/") + parent->getFullId('.') + std::string(".") + name;
+        std::string storage_prefix = storage->getName();
+        std::string file_folder = storage_prefix;
+        if (!system::impl::System::file().isFolderEndingWith(storage_prefix,"_gatb"))
+            file_folder += "_gatb/";
+
+        std::string filename = file_folder + parent->getFullId('.') + std::string(".") + name;
         std::string folder = system::impl::System::file().getDirectory(filename);
         std::string prefix = system::impl::System::file().getBaseName(filename);
 
@@ -257,7 +265,10 @@ public:
         Storage* storage = dynamic_cast<Storage*> (root);
         assert (storage != 0);
 
-        std::string folder = storage->getName() + "_gatb/";
+        std::string storage_prefix = storage->getName();
+        std::string folder = storage_prefix;
+        if (!system::impl::System::file().isFolderEndingWith(storage_prefix,"_gatb"))
+            folder += "_gatb/";
 
 		// create folder if it doesn't exist
 		if(!system::impl::System::file().doesExistDirectory(folder)){

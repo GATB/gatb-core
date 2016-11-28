@@ -524,7 +524,7 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         if (!System::file().doesExist(input))
             throw system::Exception ("Input file does not exist");
 
-        cout << "Input is a h5 file (we assume that it contains at least the solid kmers).\n"; 
+        cout << "Input is gatb_/ or h5 (we assume that it contains at least the solid kmers).\n"; 
         
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */
