@@ -351,7 +351,9 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 			uint64_t s1 = s[ 0 ];
 			const uint64_t s0 = s[ 1 ];
 			s[ 0 ] = s0;
+            #pragma GCC diagnostic ignored "-Wuninitialized" // remove the "may be uninitialized" message 
 			s1 ^= s1 << 23; // a
+            #pragma GCC diagnostic ignored "-Wuninitialized" 
 			return ( s[ 1 ] = ( s1 ^ s0 ^ ( s1 >> 17 ) ^ ( s0 >> 26 ) ) ) + s0; // b, c
 		}
 
@@ -791,7 +793,6 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 
 
 			hash_pair_t bbhash;  int level;
-            #pragma GCC diagnostic ignored "-Wuninitialized" // remove the "may be uninitialized" message 
 			uint64_t level_hash = getLevel(bbhash,elem,&level);
 
 			if( level == (_nb_levels-1))
