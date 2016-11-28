@@ -467,6 +467,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 ** METHOD  :
 ** PURPOSE : creates or completes a graph from parsed command line arguments.
 ** INPUT   : a bank or a h5 file 
+** remarks: this function looks similar to the one in Graph; there is some code duplication here
 *********************************************************************/
 template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params, bool load_unitigs_after) 
@@ -513,8 +514,10 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         //std::cout << "setting repartition type to 1" << std::endl;;
     }
 
-
-    if (system::impl::System::file().getExtension(input) == "h5")
+    bool load_from_hdf5 = (system::impl::System::file().getExtension(input) == "h5");
+    bool load_from_file = (system::impl::System::file().isFolderEndingWith(input,"_gatb"));
+    bool load_graph = (load_from_hdf5 || load_from_file);
+    if (load_graph)
     {
         /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
         
