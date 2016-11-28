@@ -885,6 +885,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
         
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */
+        _storageMode = load_from_hdf5 ? STORAGE_HDF5 : STORAGE_FILE;
         setStorage (StorageFactory(_storageMode).create (input, false, false));
     
         /** We get some properties. */

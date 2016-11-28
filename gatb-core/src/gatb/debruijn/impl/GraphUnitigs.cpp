@@ -528,6 +528,7 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */
+        BaseGraph::_storageMode = load_from_hdf5 ? STORAGE_HDF5 : STORAGE_FILE;
         BaseGraph::setStorage (StorageFactory(BaseGraph::_storageMode).create (input, false, false));
     
         /** We get some properties. */
