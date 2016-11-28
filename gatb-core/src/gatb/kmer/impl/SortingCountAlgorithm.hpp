@@ -251,6 +251,7 @@ private:
 
     std::vector <std::vector<size_t> > _nbKmersPerPartitionPerBank;
 
+    tools::storage::impl::StorageMode_e _storage_type;
     tools::storage::impl::Storage* _storage;
     void setStorage (tools::storage::impl::Storage* storage)  { SP_SETATTR(storage); }
 };

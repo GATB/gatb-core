@@ -192,6 +192,9 @@ public:
     
     /** \copydoc IFileSystem::doesExistDirectory */
     bool doesExistDirectory (const Path& path);
+    
+    /** \copydoc IFileSystem::isFolderEndingWith*/
+    bool isFolderEndingWith (const Path& path, const std::string &ending);
 
     /** \copydoc IFileSystem::getSize */
     u_int64_t  getSize (const Path& path);

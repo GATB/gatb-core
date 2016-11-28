@@ -217,7 +217,8 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT,        "output file",                                    false));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_DIR,    "output directory",                               false, "."));
     parser->push_back (new OptionOneParam (STR_URI_OUTPUT_TMP,    "output directory for temporary files",           false, "."));
-    parser->push_back (new OptionOneParam (STR_COMPRESS_LEVEL,    "h5 compression level (0:none, 9:best)",      false, "0"));
+    parser->push_back (new OptionOneParam (STR_COMPRESS_LEVEL,    "h5 compression level (0:none, 9:best)",          false, "0"));
+    parser->push_back (new OptionOneParam (STR_STORAGE_TYPE,      "storage type of kmer counts ('hdf5' or 'file')", false, "hdf5"  ));
 
     IOptionsParser* devParser = new OptionsParser ("kmer count, algorithmic options");
 
@@ -434,8 +435,18 @@ void SortingCountAlgorithm<span>::configure ()
             }
         }
 
-        //std::cout << "creating HDF5 storage (remove this debug message)" << std::endl;
-        storage = StorageFactory(STORAGE_HDF5).create (output, true, false); ////GR ici choix du hdf5 pour le storage de sortie
+        string storage_type = getInput()->getStr(STR_STORAGE_TYPE);
+        if (storage_type == "hdf5")
+            _storage_type = tools::storage::impl::STORAGE_HDF5;
+        else
+        {
+            if (storage_type == "file")
+                _storage_type = tools::storage::impl::STORAGE_FILE;
+            else
+            {std::cout << "Error: unknown storage type specified: " << storage_type << std::endl; exit(1); }
+        }
+
+        storage = StorageFactory(_storage_type).create (output, true, false); //// this is the storage for the output (kmer counts), formerly fixed to HDF5
     }
 
     /** In case the storage is created in this method, we need to keep an eye on it. */

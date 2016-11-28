@@ -223,6 +223,29 @@ bool FileSystemCommon::doesExistDirectory (const Path& path)
 }
 
 
+bool FileSystemCommon::isFolderEndingWith (const Path& path, const std::string &ending)
+{
+    if (!doesExistDirectory(path))
+        return false;
+
+    // strip '/' at end of path
+    std::string path_without_slashes = path;
+   if (path_without_slashes.length() > 0)
+   {
+       std::string::iterator it = path_without_slashes.end() - 1;
+       if (*it == '/')
+           path_without_slashes.erase(it);
+   }
+
+    // http://stackoverflow.com/questions/874134/find-if-string-ends-with-another-string-in-c
+    if (path_without_slashes.length() >= ending.length()) {
+        if (0 == path_without_slashes.compare (path_without_slashes.length() - ending.length(), ending.length(), ending))
+            return true;
+    }
+    return false;
+}
+
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :

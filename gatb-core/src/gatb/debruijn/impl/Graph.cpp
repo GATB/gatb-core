@@ -442,7 +442,7 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
 
     if (!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
     {
-        throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers");
+        throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input _gatb/ folder (or .h5 file) needs to contain at least solid kmers");
     }
 
     size_t   kmerSize = graph.getKmerSize();
@@ -669,7 +669,6 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
     parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
     parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
-    parserGeneral->push_front (new OptionOneParam (STR_STORAGE_TYPE,      "storage type (file or hdf5)",      false, "file"  ));
     parserGeneral->push_front (new OptionNoParam  (STR_CONFIG_ONLY,       "dump config only"));
 
     /** We add it to the root parser. */
@@ -770,7 +769,7 @@ GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (size_t kmerSize)
 
 /*********************************************************************
 ** METHOD  :
-** PURPOSE : loads a graph from a h5 file name
+** PURPOSE : loads a graph from a h5 file name or a _gatb/ folder
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
@@ -846,7 +845,8 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (bank::IBank* bank, t
 ** INPUT   : a bank or a h5 file (new feature)
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS : this code could also work for (and is more generic than) the function above, TODO refactor?
+** REMARKS : this code could also work for (and is more generic than) the function above, TODO refactor.
+            it is called from Graph::create (const char* fmt, ...)
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
 GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProperties* params)
@@ -874,11 +874,14 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
 
     string input = params->getStr(STR_URI_INPUT);
 
-    if (system::impl::System::file().getExtension(input) == "h5")
+    bool load_from_hdf5 = (system::impl::System::file().getExtension(input) == "h5");
+    bool load_from_file = (system::impl::System::file().isFolderEndingWith(input,"_gatb"));
+    bool load_graph = (load_from_hdf5 || load_from_file);
+    if (load_graph)
     {
         /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
         
-        cout << "Input is a h5 file (we assume that it contains at least the solid kmers), we will complete it into a graph if necessary.\n"; 
+        cout << "Input is h5 or _gatb/ (we assume that kmer counting has already been done), we will complete it into a graph if necessary.\n"; 
         
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */

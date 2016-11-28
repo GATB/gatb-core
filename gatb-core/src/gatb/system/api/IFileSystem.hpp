@@ -201,6 +201,11 @@ public:
       * \return true if folder exists, false otherwise
       */
      virtual bool doesExistDirectory (const Path& path) = 0;
+ 
+     /** Tells whether path is a folder that ends with a certain string
+      * \return true if folder ends with string, false otherwise
+      */
+     virtual bool isFolderEndingWith (const Path& path, const std::string &ending) = 0;
 
      /** Return the size of the file given by the provided path.
       * \param[in] path : the location from where the space size is computed.
