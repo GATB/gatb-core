@@ -791,6 +791,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 
 
 			hash_pair_t bbhash;  int level;
+            #pragma GCC diagnostic ignored "-Wuninitialized" // remove the "may be uninitialized" message 
 			uint64_t level_hash = getLevel(bbhash,elem,&level);
 
 			if( level == (_nb_levels-1))
@@ -876,7 +877,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 
 					if(level == i) //insert into lvl i
 					{
-							__sync_fetch_and_add(& _cptLevel,1);
+						//	__sync_fetch_and_add(& _cptLevel,1);
 
 						if(_fastmode && i == _fastModeLevel)
 						{
@@ -1068,12 +1069,15 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 				//calc le hash suivant
 				 if ( ii == 0)
 					hash_raw = _hasher.h0(bbhash,val);
-				else if ( ii == 1)
+				else 
+                {
+                    if ( ii == 1)
 					hash_raw = _hasher.h1(bbhash,val);
-				else
-				{
-					hash_raw = _hasher.next(bbhash);
-				}
+    				else
+    				{
+    					hash_raw = _hasher.next(bbhash);
+	    			}
+                }
 
 
 				if( _levels[ii].get(hash_raw) )
