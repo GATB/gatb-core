@@ -337,6 +337,13 @@ void ConfigurationAlgorithm<span>::execute ()
     //printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
 
+
+    if (_config._storage_type == tools::storage::impl::STORAGE_FILE)
+    {
+        std::cout << "using less max_open_open files (" << max_open_files << "), by 4x, due to storage file setting" << std::endl;
+        max_open_files /= 3; // will need to open twice in STORAGE_FILE instead of HDF5, so this adjustment is needed. needs to be fixed later by putting partitions inside the same file. but i'd rather not do it in the current messy collection/group/partition hdf5-inspired system. overall, that's a FIXME
+    }
+
     u_int64_t volume_per_pass;
     float est_volume_distinct_ratio;
 
@@ -395,18 +402,12 @@ void ConfigurationAlgorithm<span>::execute ()
         //printf("update nb passes  %i  (nb part %i / %zu)\n",_nb_passes,_nb_partitions,max_open_files);
     } while (1);
 
-    //if (_config._nb_partitions < 50 &&  (max_open_files - _config._nb_partitions  > 30) ) _config._nb_partitions += 30; //some more does not hurt
+    //if (_config._nb_partitions < 50 &&  (max_open_files - _config._nb_partitions  > 30) ) _config._nb_partitions += 30; //a hack to have more partitions than 30
 
     //round nb parti to upper multiple of _nb_partitions_in_parallel if possible
     int  incpart = _config._nb_partitions_in_parallel - _config._nb_partitions % _config._nb_partitions_in_parallel;
     incpart = incpart % _config._nb_partitions_in_parallel;
     if(((int)max_open_files - (int)_config._nb_partitions  > incpart)) _config._nb_partitions+= incpart ;
-    
-    if (_config._storage_type == tools::storage::impl::STORAGE_FILE)
-    {
-        std::cout << "lowering nb partitions (" << _config._nb_partitions << ") by 4x due to storage file setting" << std::endl;
-        _config._nb_partitions /= 4; // will need to open twice in STORAGE_FILE instead of HDF5, so this adjustment is needed. needs to be fixed later by putting partitions inside the same file. but i'd rather not do it in the current messy collection/group/partition hdf5-inspired system. overall, that's a FIXME
-    }
 
     //_nb_partitions_in_parallel = 1 ;
 
