@@ -1,6 +1,6 @@
 /*****************************************************************************
- *   GATB : Genome Assembly Tool Box
- *   Copyright (C) 2014  INRIA
+ *   GATB software relying on Genome Analysis Toolbox with de-Bruijn graph 
+ *   Copyright (C) 2014-2016  INRIA
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -30,7 +30,7 @@
 // THIS IS A SIMPLE EXAMPLE HOW TO USE THE Tool CLASS. IF YOU WANT MORE FEATURES,
 // YOU CAN HAVE A LOOK AT THE ToyTool SNIPPET HERE:
 //
-//      http://gatb-core.gforge.inria.fr/snippets_tools.html
+//      http://gatb-core.gforge.inria.fr/doc/api/snippets_tools.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 

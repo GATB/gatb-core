@@ -1,5 +1,3 @@
-//! [snippet1]
-
 #include <XXX.hpp>
 
 using namespace std;
