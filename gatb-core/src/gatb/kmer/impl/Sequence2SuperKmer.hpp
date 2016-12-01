@@ -135,7 +135,7 @@ public:
 		int32_t nbKmers = sequence.getData().size() - _model.getKmerSize() + 1;
 		if (nbKmers <= 0)  { return ; }
 		
-        int maxs = (Type::getSize() - 8 )/2 ;  // 8 is because  8 bit used for size of superkmers, not mini size
+		int maxs = std::min((int)((Type::getSize() - 8 )/2),255) ;  // 8 is because  8 bit used for size of superkmers, not mini size and 255 : max superk size on 8 bits
 
         /** We create a superkmer object. */
         SuperKmer superKmer (_kmersize, _miniSize);

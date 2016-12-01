@@ -348,7 +348,7 @@ public:
         size_t extraMem = 16*_nbCores + 1024;
 
         capacity   = size+extraMem;
-        mainbuffer = (char*) MALLOC(capacity);
+        mainbuffer = (char*) CALLOC(capacity,1);
         used_space = 0;
     }
 
