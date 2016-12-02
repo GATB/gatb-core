@@ -398,6 +398,8 @@ get_from_navigational_vector(const std::vector<uint64_t> &v, uint64_t utig, cons
 template<size_t span>
 void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 {
+    std::cout << "loading unitigs from disk to memory" << std::endl;
+
     BankFasta inputBank (unitigs_filename);
     //bank::IBank* inputBank = Bank::open (unitigs_filename);
     //LOCAL (inputBank);
