@@ -925,8 +925,18 @@ public:
     void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
     bool isNodeDeleted(Node& node) const;
 
-    // a direct query to the MPHF
+    // a direct query to the MPHF data strcuture
+    /* returns an index between 0 and (number of nodes - 1)
+     * the function is a bijection between the nodes and the indices
+     *
+     * NOTE: if you query this function for a node that doesn't beling to the graph, 
+     * it may still return an index (that will be in collision with
+     * the index of another node in the graph), or it may return ULLONG_MAX, 
+     * the latter indicates that for sure, the node isn't in the graph
+     */
     unsigned long nodeMPHFIndex(Node& node) const;
+
+
     unsigned long nodeMPHFIndexDummy(Node& node) const; // debug function, for profiling only
 
 
