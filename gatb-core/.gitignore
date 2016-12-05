@@ -1,6 +1,4 @@
 CMakeLists.txt.user
-/buildclang
-/build
-/builddebug
+/build*
 /.settings/
 /.cproject
