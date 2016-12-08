@@ -74,6 +74,9 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nb
         : _nbTipRemovalPasses(0), _nbBubbleRemovalPasses(0), _nbBulgeRemovalPasses(0), _nbECRemovalPasses(0), _graph(graph), 
         _nbCores(nbCores), _firstNodeIteration(true), _verbose(verbose)
 {
+    // by default; do everything
+    _doTipRemoval = _doBulgeRemoval = _doECRemoval = true;
+
     // the next list is only here to get number of nodes
     ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> itNode (this->_graph.iterator(), "");
     nbNodes = itNode.size();
@@ -99,59 +102,72 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     bubbleRemoval = "";
     ECRemoval = "";
     
-    do
+    if (_doTipRemoval)
     {
-        nbTipsRemovedPreviously = nbTipsRemoved;
-        nbTipsRemoved = removeTips();
-        if (tipRemoval.size() != 0)
-            tipRemoval += " + ";
-        tipRemoval += to_string(nbTipsRemoved);
+        do
+        {
+            nbTipsRemovedPreviously = nbTipsRemoved;
+            nbTipsRemoved = removeTips();
+            if (tipRemoval.size() != 0)
+                tipRemoval += " + ";
+            tipRemoval += to_string(nbTipsRemoved);
+        }
+        while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses <= 2 || nbTipsRemoved >= cutoffEvents)) 
+                && _nbTipRemovalPasses < 20);
     }
-    while ( ((nbTipsRemovedPreviously == 0 && nbTipsRemoved > 0) || (_nbTipRemovalPasses <= 2 || nbTipsRemoved >= cutoffEvents)) 
-            && _nbTipRemovalPasses < 20);
+
+    if (_doBulgeRemoval)
+    {
+        do
+        {
+            nbBubblesRemovedPreviously = nbBubblesRemoved;
+            nbBubblesRemoved = removeBulges(); // now we're using bulges removal, not bubbles (to follow SPAdes)
+            if (bubbleRemoval.size() != 0)
+                bubbleRemoval += " + ";
+            bubbleRemoval += to_string(nbBubblesRemoved);
+        }
+        while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || (_nbBulgeRemovalPasses <= 2 || nbBubblesRemoved >= cutoffEvents))
+                && _nbBulgeRemovalPasses < 20);
+    }
+
+    if (_doECRemoval)
+    {
+        do
+        {
+            nbECRemovedPreviously = nbECRemoved;
+            nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
+            if (ECRemoval.size() != 0)
+                ECRemoval += " + ";
+            ECRemoval += to_string(nbECRemoved);
+        }
+        while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || (_nbECRemovalPasses <= 2 || nbECRemoved >= cutoffEvents))
+                && _nbECRemovalPasses < 20);
+    }
     
-    do
+    // final simplifications rounds: do a mix of everything
+    if (_doTipRemoval && _doBulgeRemoval && _doECRemoval)
     {
-        nbBubblesRemovedPreviously = nbBubblesRemoved;
-        nbBubblesRemoved = removeBulges(); // now we're using bulges removal, not bubbles (to follow SPAdes)
-        if (bubbleRemoval.size() != 0)
-            bubbleRemoval += " + ";
-        bubbleRemoval += to_string(nbBubblesRemoved);
+        nbECRemoved = 0; // reset EC removal counter
+        do
+        {
+            nbTipsRemoved = removeTips();
+
+            nbBubblesRemovedPreviously = nbBubblesRemoved;
+            nbBubblesRemoved = removeBulges();
+
+            nbECRemovedPreviously = nbECRemoved;
+            nbECRemoved = removeErroneousConnections();
+
+            tipRemoval += " + " + to_string(nbTipsRemoved);
+
+            bubbleRemoval += " + " + to_string(nbBubblesRemoved);
+
+            ECRemoval += " + " + to_string(nbECRemoved);
+
+        }
+        while (((nbECRemovedPreviously == 0 && nbECRemoved > 0) || (nbECRemoved >= cutoffEvents || nbTipsRemoved >= cutoffEvents || nbBubblesRemoved >= cutoffEvents))
+                && _nbTipRemovalPasses < 30);
     }
-    while (((nbBubblesRemovedPreviously == 0 && nbBubblesRemoved > 0) || (_nbBulgeRemovalPasses <= 2 || nbBubblesRemoved >= cutoffEvents))
-            && _nbBulgeRemovalPasses < 20);
-    
-    do
-    {
-        nbECRemovedPreviously = nbECRemoved;
-        nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
-        if (ECRemoval.size() != 0)
-            ECRemoval += " + ";
-        ECRemoval += to_string(nbECRemoved);
-    }
-    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0 ) || (_nbECRemovalPasses <= 2 || nbECRemoved >= cutoffEvents))
-            && _nbECRemovalPasses < 20);
-
-    nbECRemoved = 0; // reset EC removal counter
-    do
-    {
-        nbTipsRemoved = removeTips();
-
-        nbBubblesRemovedPreviously = nbBubblesRemoved;
-        nbBubblesRemoved = removeBulges();
-
-        nbECRemovedPreviously = nbECRemoved;
-        nbECRemoved = removeErroneousConnections();
-
-        tipRemoval += " + " + to_string(nbTipsRemoved);
-
-        bubbleRemoval += " + " + to_string(nbBubblesRemoved);
-
-        ECRemoval += " + " + to_string(nbECRemoved);
-
-    }
-    while (((nbECRemovedPreviously == 0 && nbECRemoved > 0) || (nbECRemoved >= cutoffEvents || nbTipsRemoved >= cutoffEvents || nbBubblesRemoved >= cutoffEvents))
-            && _nbTipRemovalPasses < 30);
 }
 
 

@@ -56,6 +56,7 @@ public:
     int _nbECRemovalPasses;
     
     std::string tipRemoval, bubbleRemoval, ECRemoval;
+    bool _doTipRemoval, _doBulgeRemoval, _doECRemoval;
     
 protected:
     /*const*/ GraphType &  _graph;
