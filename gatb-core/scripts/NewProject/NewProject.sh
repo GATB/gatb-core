@@ -180,7 +180,7 @@ function displayEndingMsg(){
 # Section : main
 
 # Prepare arguments for processing
-while getopts htd:n: opt
+while getopts ht:d:n: opt
 do
     case "$opt" in
       h)  help;;
