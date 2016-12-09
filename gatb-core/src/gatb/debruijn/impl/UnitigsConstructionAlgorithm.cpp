@@ -137,7 +137,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
     Model modelKminusOne(kmerSize - 1); // it's canonical (defined in the .hpp file)
 
     if (verbose)
-        std::cout << "Finding links between unitigs, pass 1" << std::endl;
+        std::cout << "Finding links between unitigs, pass 1,  mem current/maxRSS: " << system::impl::System::info().getMemorySelfUsed() / 1024 << "/" << system::impl::System::info().getMemorySelfMaxUsed() / 1024  << std::endl;
 
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
     {
@@ -162,7 +162,7 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
     BankFasta* out = new BankFasta(unitigs_filename+".indexed");
     
     if (verbose)
-        std::cout << "Finding links between unitigs, pass 2" << std::endl;
+        std::cout << "Finding links between unitigs, pass 2,  mem current/maxRSS: " << system::impl::System::info().getMemorySelfUsed() / 1024 << "/" << system::impl::System::info().getMemorySelfMaxUsed() / 1024  << std::endl;
 
     uint64_t utigs_number = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
