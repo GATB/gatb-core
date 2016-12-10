@@ -62,7 +62,7 @@ namespace impl      {
 				if(!system::impl::System::file().doesExistDirectory(folder)){
 					int ok = system::impl::System::file().mkdir(folder, 0755);
 					if(ok != 0){  
-						std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);
+                        std::cout << "Error: can't create output directory (" << folder<< ")\n" << " debug, doesexist:" << system::impl::System::file().doesExistDirectory(folder);
                     std::cout << "created directory " << folder << std::endl;
 					}   
 				}
@@ -274,7 +274,7 @@ public:
 		if(!system::impl::System::file().doesExistDirectory(folder)){
 			int ok = system::impl::System::file().mkdir(folder, 0755);
 			if(ok != 0){  
-                std::cout << "Error: can't create output directory (" << folder<< ")"; exit(1);
+                std::cout << "Error: can't create output directory (" << folder<< ")\n" << " debug, doesexist:" << system::impl::System::file().doesExistDirectory(folder);
 			}   
                     std::cout << "created directory " << folder << std::endl;
 		}
