@@ -275,7 +275,10 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
 
         size_t  kmerSize = BaseGraph::getKmerSize();
         if (kmerSize != (unsigned int)props->getInt(STR_KMER_SIZE))
-            std::cout << "kmer discrepancy: should i take " << kmerSize << " or " << props->getInt(STR_KMER_SIZE) << std::endl;
+            std::cout << "kmer discrepancy: stored data has kmer size " << kmerSize << " but input command line has " << props->getInt(STR_KMER_SIZE) << std::endl;
+        // delete this message mater
+        props->setInt(STR_KMER_SIZE, kmerSize);
+
 
         UnitigsConstructionAlgorithm<span> unitigs_algo(BaseGraph::getStorage(), unitigs_filename, nb_threads, props);
 
