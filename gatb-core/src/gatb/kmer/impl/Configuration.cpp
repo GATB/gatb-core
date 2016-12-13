@@ -51,12 +51,23 @@ Properties Configuration::getProperties() const
     result.add (1, "mini_size",         "%ld", _minim_size);
     result.add (1, "solidity_kind",      "%s", toString(_solidityKind).c_str());
 
+	if(_solidityKind==KMER_SOLIDITY_CUSTOM)
+	{
+		std::stringstream ss2;
+		for (size_t i=0; i<_solidVecUserNb; i++)  {  ss2 <<  " " << _solidVec[i]; }
+		result.add (1, "custom_solidity",     ss2.str());
+	}
+
+	
     std::stringstream ss;
     for (size_t i=0; i<_abundanceUserNb; i++)  {  ss << (i==0 ? "" : " ") << _abundance[i].getBegin(); }
 
     result.add (1, "abundance_min",     ss.str());
     result.add (1, "abundance_max",     "%ld", _abundance[0].getEnd());
 
+	
+
+	
     result.add (1, "available_space",   "%ld", _available_space);
     result.add (1, "sequence_number",   "%ld", _estimateSeqNb);
     result.add (1, "sequence_volume",   "%ld", _estimateSeqTotalSize / system::MBYTE);

@@ -70,6 +70,9 @@ public:
     size_t _abundanceUserNb;
 
     tools::storage::impl::StorageMode_e _storage_type;
+	
+	std::vector<bool> _solidVec;
+	size_t _solidVecUserNb;
 
     /****************************************/
     /**             COMPUTED                */

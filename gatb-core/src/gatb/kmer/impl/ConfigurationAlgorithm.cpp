@@ -204,6 +204,8 @@ ConfigurationAlgorithm<span>::ConfigurationAlgorithm (bank::IBank* bank, IProper
     _config._nbCores            = input->get(STR_NB_CORES) ? input->getInt(STR_NB_CORES) : 0;
 
     _config._abundance = getSolidityThresholds(input);
+	
+	_config._solidVec = getSolidityCustomVector(input);
 
     if (_config._nbCores == 0)  { _config._nbCores = system::impl::System::info().getNbCores(); }
 
@@ -272,6 +274,13 @@ void ConfigurationAlgorithm<span>::execute ()
         throw system::Exception ("Kmer solidity has more thresholds (%d) than banks (%d)",  _config._abundanceUserNb, _config._nb_banks);
     }
 
+	_config._solidVecUserNb = _config._solidVec.size();
+
+	if (_config._solidityKind == KMER_SOLIDITY_CUSTOM &&  _config._solidVecUserNb != _config._nb_banks)
+	{
+		throw system::Exception ("Kmer solidity custom has different number of values  (%d) than banks (%d)",  _config._solidVecUserNb, _config._nb_banks);
+	}
+	
     /** We complete missing thresholds with the value of the last one. */
     if (_config._abundanceUserNb < _config._nb_banks)
     {
@@ -482,6 +491,30 @@ vector<CountRange> ConfigurationAlgorithm<span>::getSolidityThresholds (IPropert
     return thresholds;
 }
 
+	
+	/*********************************************************************
+	 ** METHOD  :
+	 ** PURPOSE :
+	 ** INPUT   :
+	 ** OUTPUT  :
+	 ** RETURN  :
+	 ** REMARKS :
+	 *********************************************************************/
+	
+template<size_t span>
+	std::vector<bool> ConfigurationAlgorithm<span>::getSolidityCustomVector (IProperties* params)
+	{
+		std::vector<bool> solidVec;
+
+		std::string solidList = params->getStr (STR_SOLIDITY_CUSTOM);
+		for ( std::string::iterator it=solidList.begin(); it!=solidList.end(); ++it)
+		{
+			solidVec.push_back(*it =='1');
+		}
+		return solidVec;
+	}
+	
+	
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

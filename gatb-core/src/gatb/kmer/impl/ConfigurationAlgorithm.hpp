@@ -57,7 +57,9 @@ public:
 private:
     /** */
     static std::vector<tools::misc::CountRange> getSolidityThresholds (tools::misc::IProperties* params);
-    
+
+	static std::vector<bool> getSolidityCustomVector (tools::misc::IProperties* params);
+
     /** Shortcut. */
     typedef typename Kmer<span>::Type Type;
 

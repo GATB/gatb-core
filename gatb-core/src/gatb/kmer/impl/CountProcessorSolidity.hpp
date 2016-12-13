@@ -39,7 +39,7 @@ class CountProcessorSolidityInfo
 {
 public:
     CountProcessorSolidityInfo () {}
-    CountProcessorSolidityInfo (const std::vector<tools::misc::CountRange>& thresholds) : _thresholds(thresholds) {};
+	CountProcessorSolidityInfo (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool> solidVec) : _thresholds(thresholds), _solidVec(solidVec) {};
 
     /** Update abundance min in the threshold ranges. */
     void setAbundanceMin (const std::vector<CountNumber>& cutoffs)
@@ -67,6 +67,7 @@ public:
 
 protected:
     std::vector<tools::misc::CountRange> _thresholds;
+	std::vector<bool> _solidVec;
 };
 
 /********************************************************************************/
@@ -91,8 +92,8 @@ public:
     CountProcessorSolidityAbstract () : _total(0), _ok(0)   {}
 
     /** Constructor for clone instance. */
-    CountProcessorSolidityAbstract (const std::vector<tools::misc::CountRange>& thresholds)
-        : CountProcessorSolidityInfo(thresholds), _total(0), _ok(0)   {}
+	CountProcessorSolidityAbstract (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool>& solidVec)
+        : CountProcessorSolidityInfo(thresholds,solidVec), _total(0), _ok(0)   {}
 
     /** Destructor. */
     virtual ~CountProcessorSolidityAbstract()  {}
@@ -106,10 +107,11 @@ public:
     {
         /** We copy the abundance thresholds got during configuration. */
         this->_thresholds = config._abundance;
+		this->_solidVec = config._solidVec;
     }
 
     /** \copydoc ICountProcessor<span>::clones */
-    CountProcessorAbstract<span>* clone ()  { return new Derived (_thresholds); }
+    CountProcessorAbstract<span>* clone ()  { return new Derived (_thresholds,_solidVec); }
 
     /** \copydoc ICountProcessor<span>::finishClones */
     void finishClones (std::vector<ICountProcessor<span>*>& clones)
@@ -178,8 +180,8 @@ public:
 
     CountProcessorSoliditySum () {}
 
-    CountProcessorSoliditySum (const std::vector<tools::misc::CountRange>& thresholds)
-        : CountProcessorSolidityAbstract<span,CountProcessorSoliditySum<span> > (thresholds)  {}
+    CountProcessorSoliditySum (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool>& solidVec)
+        : CountProcessorSolidityAbstract<span,CountProcessorSoliditySum<span> > (thresholds,solidVec)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
@@ -198,8 +200,8 @@ public:
 
     CountProcessorSolidityMax () {}
 
-    CountProcessorSolidityMax (const std::vector<tools::misc::CountRange>& thresholds)
-        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMax<span> > (thresholds)  {}
+	CountProcessorSolidityMax (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool>& solidVec)
+        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMax<span> > (thresholds,solidVec)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
@@ -218,8 +220,8 @@ public:
 
     CountProcessorSolidityMin () {}
 
-    CountProcessorSolidityMin (const std::vector<tools::misc::CountRange>& thresholds)
-        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMin<span> > (thresholds)  {}
+    CountProcessorSolidityMin (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool>& solidVec)
+        : CountProcessorSolidityAbstract<span,CountProcessorSolidityMin<span> > (thresholds,solidVec)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
@@ -238,8 +240,8 @@ public:
 
     CountProcessorSolidityAll () {}
 
-    CountProcessorSolidityAll (const std::vector<tools::misc::CountRange>& thresholds)
-        : CountProcessorSolidityAbstract<span,CountProcessorSolidityAll<span> > (thresholds)  {}
+    CountProcessorSolidityAll (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool>& solidVec)
+        : CountProcessorSolidityAbstract<span,CountProcessorSolidityAll<span> > (thresholds,solidVec)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
@@ -259,8 +261,8 @@ public:
 
     CountProcessorSolidityOne () {}
 
-    CountProcessorSolidityOne (const std::vector<tools::misc::CountRange>& thresholds)
-        : CountProcessorSolidityAbstract<span, CountProcessorSolidityOne<span> > (thresholds)  {}
+    CountProcessorSolidityOne (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool>& solidVec)
+        : CountProcessorSolidityAbstract<span, CountProcessorSolidityOne<span> > (thresholds,solidVec)  {}
 
     bool check (const CountVector& count, CountNumber sum)
     {
@@ -280,10 +282,10 @@ public:
 	{
 	public:
 		
-		CountProcessorSolidityCustom (std::vector<bool>& solidVec) { _solidVec = solidVec;}
+		CountProcessorSolidityCustom () {}
 		
-		CountProcessorSolidityCustom (const std::vector<tools::misc::CountRange>& thresholds)
-		: CountProcessorSolidityAbstract<span, CountProcessorSolidityCustom<span> > (thresholds)  {}
+		CountProcessorSolidityCustom (const std::vector<tools::misc::CountRange>& thresholds, std::vector<bool>& solidVec)
+		: CountProcessorSolidityAbstract<span, CountProcessorSolidityCustom<span> > (thresholds,solidVec)  {}
 		
 		
 		//todo
@@ -291,8 +293,8 @@ public:
 		{
 			for (size_t i=0; i<count.size(); i++)  {
 				
-				if (_solidVec.at(i) == false &&   this->_thresholds[i].includes(count[i]) == true   )   { return false; }
-				else if (_solidVec.at(i) == true &&   this->_thresholds[i].includes(count[i]) == false  ) { return false; }
+				if (this->_solidVec.at(i) == false &&   this->_thresholds[i].includes(count[i]) == true   )   { return false; }
+				else if (this->_solidVec.at(i) == true &&   this->_thresholds[i].includes(count[i]) == false  ) { return false; }
 			
 			}
 			return true;
@@ -300,8 +302,6 @@ public:
 		
 		std::string getName() const  { return std::string("custom"); }
 		
-		private :
-		std::vector<bool> _solidVec;
 	};
 
 	
@@ -314,14 +314,14 @@ class CountProcessorSolidityFactory
 public:
 
     /** */
-	static ICountProcessor<span>* create (tools::misc::KmerSolidityKind kind, std::vector<bool> solidVec = std::vector<bool>())
+	static ICountProcessor<span>* create (tools::misc::KmerSolidityKind kind)
     {
         switch (kind)
         {
         case tools::misc::KMER_SOLIDITY_MIN: return new CountProcessorSolidityMin<span> ();
         case tools::misc::KMER_SOLIDITY_MAX: return new CountProcessorSolidityMax<span> ();
         case tools::misc::KMER_SOLIDITY_ONE: return new CountProcessorSolidityOne<span> ();
-		case tools::misc::KMER_SOLIDITY_CUSTOM: return new CountProcessorSolidityCustom<span> (solidVec);
+		case tools::misc::KMER_SOLIDITY_CUSTOM: return new CountProcessorSolidityCustom<span> ();
         case tools::misc::KMER_SOLIDITY_ALL: return new CountProcessorSolidityAll<span> ();
         case tools::misc::KMER_SOLIDITY_SUM: return new CountProcessorSoliditySum<span> ();
         default:  throw system::Exception ("unable to create CountProcessorSolidity instance for kind %d", kind);
@@ -333,19 +333,7 @@ public:
     {
         tools::misc::KmerSolidityKind kind;
         parse (props.getStr (STR_SOLIDITY_KIND), kind);
-		
-		std::vector<bool> solidVec;
-		if(tools::misc::KMER_SOLIDITY_CUSTOM == kind)
-		{
-			std::string solidList = props.getStr (STR_SOLIDITY_CUSTOM);
-			for ( std::string::iterator it=solidList.begin(); it!=solidList.end(); ++it)
-			{
-				solidVec.push_back(*it =='1');
-			}
-			return create (kind, solidVec);
-		}
-		else
-        	return create (kind);
+		return create (kind);
     }
 };
 
