@@ -270,6 +270,41 @@ public:
 
     std::string getName() const  { return std::string("one"); }
 };
+	
+
+/********************************************************************************/
+
+	
+	template<size_t span>
+	class CountProcessorSolidityCustom : public CountProcessorSolidityAbstract<span, CountProcessorSolidityCustom<span> >
+	{
+	public:
+		
+		CountProcessorSolidityCustom (std::vector<bool>& solidVec) { _solidVec = solidVec;}
+		
+		CountProcessorSolidityCustom (const std::vector<tools::misc::CountRange>& thresholds)
+		: CountProcessorSolidityAbstract<span, CountProcessorSolidityCustom<span> > (thresholds)  {}
+		
+		
+		//todo
+		bool check (const CountVector& count, CountNumber sum)
+		{
+			for (size_t i=0; i<count.size(); i++)  {
+				
+				if (_solidVec.at(i) == false &&   this->_thresholds[i].includes(count[i]) == true   )   { return false; }
+				else if (_solidVec.at(i) == true &&   this->_thresholds[i].includes(count[i]) == false  ) { return false; }
+			
+			}
+			return true;
+		}
+		
+		std::string getName() const  { return std::string("custom"); }
+		
+		private :
+		std::vector<bool> _solidVec;
+	};
+
+	
 
 /********************************************************************************/
 
@@ -279,13 +314,14 @@ class CountProcessorSolidityFactory
 public:
 
     /** */
-    static ICountProcessor<span>* create (tools::misc::KmerSolidityKind kind)
+	static ICountProcessor<span>* create (tools::misc::KmerSolidityKind kind, std::vector<bool> solidVec = std::vector<bool>())
     {
         switch (kind)
         {
         case tools::misc::KMER_SOLIDITY_MIN: return new CountProcessorSolidityMin<span> ();
         case tools::misc::KMER_SOLIDITY_MAX: return new CountProcessorSolidityMax<span> ();
         case tools::misc::KMER_SOLIDITY_ONE: return new CountProcessorSolidityOne<span> ();
+		case tools::misc::KMER_SOLIDITY_CUSTOM: return new CountProcessorSolidityCustom<span> (solidVec);
         case tools::misc::KMER_SOLIDITY_ALL: return new CountProcessorSolidityAll<span> ();
         case tools::misc::KMER_SOLIDITY_SUM: return new CountProcessorSoliditySum<span> ();
         default:  throw system::Exception ("unable to create CountProcessorSolidity instance for kind %d", kind);
@@ -297,7 +333,19 @@ public:
     {
         tools::misc::KmerSolidityKind kind;
         parse (props.getStr (STR_SOLIDITY_KIND), kind);
-        return create (kind);
+		
+		std::vector<bool> solidVec;
+		if(tools::misc::KMER_SOLIDITY_CUSTOM == kind)
+		{
+			std::string solidList = props.getStr (STR_SOLIDITY_CUSTOM);
+			for ( std::string::iterator it=solidList.begin(); it!=solidList.end(); ++it)
+			{
+				solidVec.push_back(*it =='1');
+			}
+			return create (kind, solidVec);
+		}
+		else
+        	return create (kind);
     }
 };
 

@@ -210,7 +210,8 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MAX,"max abundance threshold for solid kmers",        false, abundanceMax));
     parser->push_back (new OptionOneParam (STR_KMER_ABUNDANCE_MIN_THRESHOLD,"min abundance hard threshold (only used when min abundance is \"auto\")",false, "2"));
     parser->push_back (new OptionOneParam (STR_HISTOGRAM_MAX,     "max number of values in kmers histogram",        false, "10000"));
-    parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute counts of several files (sum, min, max, one, all)",false, "sum"));
+    parser->push_back (new OptionOneParam (STR_SOLIDITY_KIND,     "way to compute counts of several files (sum, min, max, one, all, custom)",false, "sum"));
+	parser->push_back (new OptionOneParam (STR_SOLIDITY_CUSTOM,   "when solidity-kind is cutom, specifies list of files where kmer must be present",false, ""));
     parser->push_back (new OptionOneParam (STR_MAX_MEMORY,        "max memory (in MBytes)",                         false, "5000"));
     parser->push_back (new OptionOneParam (STR_MAX_DISK,          "max disk   (in MBytes)",                         false, "0"));
     parser->push_back (new OptionOneParam (STR_URI_SOLID_KMERS,   "output file for solid kmers (only when constructing a graph)", false));
@@ -375,6 +376,7 @@ vector<ICountProcessor<span>*> SortingCountAlgorithm<span>::getDefaultProcessorV
             break;
 
         case KMER_SOLIDITY_ONE:
+		case KMER_SOLIDITY_CUSTOM:
         case KMER_SOLIDITY_ALL:
             /** We create a cutoff count processor to compute cutoffs of the N banks. */
             cutoffProcessor = new CountProcessorCutoff<span> (config._nb_banks);
