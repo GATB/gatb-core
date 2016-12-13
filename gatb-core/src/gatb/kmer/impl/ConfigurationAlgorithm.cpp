@@ -205,7 +205,8 @@ ConfigurationAlgorithm<span>::ConfigurationAlgorithm (bank::IBank* bank, IProper
 
     _config._abundance = getSolidityThresholds(input);
 	
-	_config._solidVec = getSolidityCustomVector(input);
+	if( _config._solidityKind == KMER_SOLIDITY_CUSTOM )
+		_config._solidVec = getSolidityCustomVector(input);
 
     if (_config._nbCores == 0)  { _config._nbCores = system::impl::System::info().getNbCores(); }
 
