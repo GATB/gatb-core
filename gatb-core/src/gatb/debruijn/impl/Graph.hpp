@@ -130,8 +130,11 @@ inline Direction reverse (Direction dir)  { return dir==DIR_OUTCOMING ? DIR_INCO
  *  for the BranchingNode structure).
  *
  *  The Node structure has also a 'abundance' attribute; it gives the occurrences number of the kmer in
- *  the initial set of reads. Note that this attribute has a value only for so-called 'solid kmers',
- *  generally computed by the DSK tool.
+ *  the initial set of reads. Note that this attribute has a correct value only when nodes are iterated 
+ *  (from the solid kmers on disk). When Node objects are created via the Graph API (e.g. using
+ *  as a result of buildNode, successors(), predecessors(), etc..), developers should not assume
+ *  that the 'abundance' attribute is correctly set. Use the queryAbundance() function instead to get
+ *  the abundance of a node.
  */
 
 template <typename Value_t=tools::math::Integer>

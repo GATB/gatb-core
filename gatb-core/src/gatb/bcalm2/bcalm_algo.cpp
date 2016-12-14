@@ -581,6 +581,9 @@ void bcalm2(Storage *storage,
         memory_usage("Done with partition " + std::to_string(p), verbose);
     } // end iteration superbuckets
 
+
+        // FIXME there may be a memory leak here, test it (saw it on spruce)
+
     /*
      *
      * Finishing up
