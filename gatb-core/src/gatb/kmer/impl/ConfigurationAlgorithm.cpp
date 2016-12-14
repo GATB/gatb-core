@@ -282,6 +282,11 @@ void ConfigurationAlgorithm<span>::execute ()
 		throw system::Exception ("Kmer solidity custom has different number of values  (%d) than banks (%d)",  _config._solidVecUserNb, _config._nb_banks);
 	}
 	
+	if (_config._solidityKind != KMER_SOLIDITY_CUSTOM )
+	{
+		_config._solidVec = std::vector<bool> (_config._nb_banks,true);
+	}
+	
     /** We complete missing thresholds with the value of the last one. */
     if (_config._abundanceUserNb < _config._nb_banks)
     {

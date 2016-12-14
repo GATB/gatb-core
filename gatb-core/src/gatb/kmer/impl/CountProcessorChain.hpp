@@ -48,7 +48,7 @@ public:
     typedef typename Kmer<span>::Type Type;
 
     /** Constructor. */
-    CountProcessorChain (const std::vector<CountProcessor*> items) : _items(items) {}
+    CountProcessorChain (const std::vector<CountProcessor*> items , std::vector<bool>& solidVec) : _items(items) , _solidVec(solidVec) {}
 
     /** Constructor. */
     CountProcessorChain (CountProcessor* first, ...)
@@ -70,7 +70,11 @@ public:
     /********************************************************************/
 
     /** \copydoc ICountProcessor<span>::begin */
-    void begin (const Configuration& config)  {  for (size_t i=0; i<_items.size(); i++)  {  _items[i]->begin (config);  }  }
+    void begin (const Configuration& config)  {
+  		for (size_t i=0; i<_items.size(); i++)  {  _items[i]->begin (config);  }
+		this->_solidVec = config._solidVec;
+
+	}
 
     /** \copydoc ICountProcessor<span>::end */
     void end   ()  {  for (size_t i=0; i<_items.size(); i++)  {  _items[i]->end   ();         }  }
@@ -80,7 +84,7 @@ public:
     {
         std::vector<CountProcessor*> clones;
         for (size_t i=0; i<_items.size(); i++)  {  clones.push_back (_items[i]->clone());  }
-        return new CountProcessorChain (clones);
+        return new CountProcessorChain (clones,_solidVec);
     }
 
     /** \copydoc ICountProcessor<span>::finishClones */
@@ -160,10 +164,13 @@ protected:
     {
         /** Optimization. */
         if (count.size()==1)  { return count[0]; }
-        CountNumber sum=0; for (size_t k=0; k<count.size(); k++)  { sum+=count[k]; }  return sum;
+        CountNumber sum=0; for (size_t k=0; k<count.size(); k++)  { if (_solidVec.at(k)) sum+=count[k]; }
+		return sum;
     }
 
     std::vector<CountProcessor*> _items;
+	
+	std::vector<bool> _solidVec;
 };
 
 /********************************************************************************/

@@ -288,7 +288,6 @@ public:
 		: CountProcessorSolidityAbstract<span, CountProcessorSolidityCustom<span> > (thresholds,solidVec)  {}
 		
 		
-		//todo
 		bool check (const CountVector& count, CountNumber sum)
 		{
 			for (size_t i=0; i<count.size(); i++)  {
