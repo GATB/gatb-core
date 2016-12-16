@@ -110,7 +110,7 @@ IFileSystem::Path FileSystemCommon::getTemporaryDirectory ()
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : Warning! this method isn't exactly basename() as you'd expect in C++. It returns the base name but cuts everything after the last dot.
 *********************************************************************/
 IFileSystem::Path FileSystemCommon::getBaseName (const Path& path, bool cutToFirstDot)
 {

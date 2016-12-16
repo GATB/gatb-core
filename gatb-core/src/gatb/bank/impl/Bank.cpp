@@ -146,9 +146,12 @@ IBank* Bank::_open_ (const std::string& uri)
     {
         result = it->factory->createBank(uri);
         DEBUG (("   factory '%s' => result=%p \n", it->name.c_str(), result ));
+
+        if (result) // if one of the factories produce a result, we can just stop, no need to try other factories.
+            break;
     }
 
-    if (result == 0) { throw system::Exception ("Unable to open bank '%s'", uri.c_str()); }
+    if (result == 0) { throw system::Exception ("Unable to open bank '%s' (if it is a list of files, perhaps some of the files inside don't exist)", uri.c_str()); }
 
     return result;
 }

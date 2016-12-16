@@ -1,4 +1,5 @@
 #include "bcalm_algo.hpp"
+#include <libgen.h> // for basename()
 
 /*
  * some notes: this code could be further optimized.
@@ -594,7 +595,12 @@ void bcalm2(Storage *storage,
     std::ofstream list_of_glues(prefix + ".glue"); 
     for (unsigned int i = 0; i < (unsigned int)nb_threads; i++)
     {
-        string glue_file = prefix + ".glue." + std::to_string(i);
+
+        char* prefix_copy = strdup (prefix.c_str());
+        std::string prefix_base (basename(prefix_copy)); // posix basename() may alter the string
+        free (prefix_copy);
+
+        string glue_file = prefix_base + ".glue." + std::to_string(i);
         if (nb_seqs_in_glue[i])
         {
             list_of_glues << glue_file << endl;
