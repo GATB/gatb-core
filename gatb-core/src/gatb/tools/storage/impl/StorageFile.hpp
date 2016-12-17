@@ -54,7 +54,7 @@ namespace impl      {
             {
 
                 std::string prefix = storage->getName();
-                std::string folder = prefix;
+                folder = prefix;
                 if (!system::impl::System::file().isFolderEndingWith(prefix,"_gatb"))
 				    folder += "_gatb/";
 
@@ -96,6 +96,7 @@ namespace impl      {
             /** */
             ~GroupFile()
             {
+				system::impl::System::file().rmdir(folder); // hack to remove the trashme folers. I'd have liked to make that call in remove() but for some reason remove() isn't called
             }
 
             /** */
@@ -140,9 +141,17 @@ namespace impl      {
                 myfile << s;
                 myfile.close();
             }
+
+            // for some reason this isn't called. let me know if it is
+            void remove ()
+            {
+                std::cout << "GroupFile remove called" << std::endl;
+            }
+
         private:
             json::JSON j;
             std::string filename;
+            std::string folder;
     };
 
 
