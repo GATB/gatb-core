@@ -1,3 +1,11 @@
+/* 
+ * given N datasets
+ * outputs a matrix containing the following information:
+ *
+ * [kmer] [abundance in dataset 1] [abundance in dataset 2] etc..
+ *
+ * for all input kmers in the union of the datasets
+ */
 #include <gatb/gatb_core.hpp>
 using namespace std;
 
