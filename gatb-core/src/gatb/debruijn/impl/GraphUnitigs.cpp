@@ -658,7 +658,8 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
 template<size_t span>
 GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsTemplate<span> && graph)
 {
-    std::cout <<"move constructor called" << std::endl;
+    //std::cout <<"move constructor called" << std::endl;
+    
     if (this != &graph)
     {
         BaseGraph::_kmerSize        = graph._kmerSize;
@@ -705,7 +706,7 @@ template<size_t span>
 GraphUnitigsTemplate<span>::~GraphUnitigsTemplate<span> ()
 {
     // base deleter already called
-    std::cout <<"unitigs graph destructor called" << std::endl;
+    //std::cout <<"unitigs graph destructor called" << std::endl;
 }
 
 /*********************************************************************
@@ -719,7 +720,7 @@ GraphUnitigsTemplate<span>::~GraphUnitigsTemplate<span> ()
 template<size_t span>
 void GraphUnitigsTemplate<span>::remove ()
 {
-    std::cout << "GraphU remove called" << std::endl;
+    //std::cout << "GraphU remove called" << std::endl;
     BaseGraph::getStorage().remove();
 }
 
