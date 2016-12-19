@@ -45,7 +45,7 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info(0), _parser(0), _dispatcher(0)
+Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info(0), _parser(0), _dispatcher(0),userDisplayHelp(0),userDisplayVersion(0)
 {
     setOutput (new Properties());
 
@@ -57,6 +57,11 @@ Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info
 
     getParser()->push_back (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
     getParser()->push_back (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
+	
+	getParser()->push_back (new OptionNoParam (STR_VERSION, "version", false));
+	getParser()->push_back (new OptionNoParam (STR_HELP, "help", false));
+
+	
 }
 
 /*********************************************************************
@@ -99,7 +104,6 @@ void Tool::displayVersion(std::ostream& os){
 IProperties* Tool::run (int argc, char* argv[])
 {
     DEBUG (("Tool::run(argc,argv) => tool='%s'  \n", getName().c_str() ));
-
     try
     {
         /** We parse the user parameters. */
@@ -113,6 +117,27 @@ IProperties* Tool::run (int argc, char* argv[])
         e.displayErrors (std::cout);
         return NULL;
     }
+	catch (ExceptionHelp& h)
+	{
+		if(userDisplayHelp!=NULL)
+		{
+			this->userDisplayHelp();
+		}
+		else
+		{
+			h.displayDefaultHelp (std::cout);
+		}
+		return NULL;
+	}
+	catch (ExceptionVersion& v)
+	{
+		if(userDisplayVersion!=NULL)
+		{
+			this->userDisplayVersion();
+		}
+		return NULL;
+	}
+	
 }
 
 /*********************************************************************

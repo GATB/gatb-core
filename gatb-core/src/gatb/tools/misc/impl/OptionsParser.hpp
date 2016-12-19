@@ -29,6 +29,8 @@
 /********************************************************************************/
 
 #include <gatb/tools/misc/api/IOptionsParser.hpp>
+#include <gatb/tools/misc/api/StringsRepository.hpp>
+
 #include <list>
 #include <set>
 #include <string>
@@ -361,6 +363,29 @@ protected:
     IOptionsParser::Result _result;
     std::string            _msg;
 };
+	
+
+	//specific exception to handle help and version
+class ExceptionHelp
+	{
+	public:
+
+		ExceptionHelp(IOptionsParser* parser) :_parser(parser) {}
+		
+		int displayDefaultHelp (std::ostream& os) const
+		{
+			OptionsHelpVisitor visitor (os);
+			_parser->accept (visitor, 0);
+			return EXIT_FAILURE;
+		}
+	protected:
+		IOptionsParser*        _parser;
+	};
+	
+class ExceptionVersion
+	{
+	};
+
 
 /********************************************************************************/
 } } } } } /* end of namespaces. */

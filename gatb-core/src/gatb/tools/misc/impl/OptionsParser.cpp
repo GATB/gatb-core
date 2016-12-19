@@ -207,6 +207,18 @@ misc::IProperties* OptionsParser::parse (int argc, char** argv)
     ParserVisitor visitor (argc-1, argv+1);
     this->accept (visitor);
 
+	
+	//if saw help ou version, throw specific exception
+	if(visitor.getResult().properties.get(STR_HELP) != 0)
+	{
+		throw ExceptionHelp(this);
+	}
+	
+	if(visitor.getResult().properties.get(STR_VERSION) != 0)
+	{
+		throw ExceptionVersion();
+	}
+	
     /** We launch an exception in case we got errors during the parsing. */
     if (!visitor.getResult().errors.empty())  {  throw OptionFailure (this, visitor.getResult());  }
 
