@@ -207,9 +207,9 @@ if (use_mphf)
 
     # for emphf
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        message ("-- EMPHF CLANG<3.8 FIX ")
+        message ("-- EMPHF CLANG<=3.9 FIX ") # it also addresses the "vector not found" error
 
-        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.8)  # TODO perhaps might need to be revisited for Mac
+        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.0)  # used to be 3.8 but my 3.9 on Archlinux also complains, so i've upped it to 3.9
             # my clang 3.7 (linux) doesn't like when i use stdlib=libc++, it refuses to compile because cannot found standard libs like <vector>
         else()
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")

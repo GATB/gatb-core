@@ -18,6 +18,8 @@ typedef boost::variant<GraphData<${KSIZE}> > GraphDataVariantT; // same as Graph
 template class BranchingAlgorithm <${KSIZE},Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >,GraphDataVariantT>>;
 //template class BranchingAlgorithm <${KSIZE}, NodeGU, EdgeGU, GraphUnitigsTemplate<${KSIZE}>>; // same as below
 
+template class IterativeExtensions  <${KSIZE}, Node, Edge, Graph>;
+
 template class IterativeExtensions  <${KSIZE}, Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >, GraphTemplate<Node_t<Kmer<${KSIZE}>::Type>,Edge_t<Node_t<Kmer<${KSIZE}>::Type > >,GraphDataVariantT>>;
 //template class IterativeExtensions  <${KSIZE}, NodeGU, EdgeGU, GraphUnitigsTemplate<${KSIZE}>>; // IterativeExtensinos isn't ready for GraphU, because it asks for Node::Value then queries node.kmer
 
