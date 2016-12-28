@@ -89,7 +89,7 @@ class TestDebruijn : public Test
 
         CPPUNIT_TEST_GATB (debruijn_test7); 
         CPPUNIT_TEST_GATB (debruijn_deletenode);
-        CPPUNIT_TEST_GATB (debruijn_checksum);
+        //CPPUNIT_TEST_GATB (debruijn_checksum); // FIXME removed it because it's a damn long test
         CPPUNIT_TEST_GATB (debruijn_test2);
         CPPUNIT_TEST_GATB (debruijn_test3);
         CPPUNIT_TEST_GATB (debruijn_test4);
@@ -101,11 +101,12 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_test11);
         CPPUNIT_TEST_GATB (debruijn_test12);
         CPPUNIT_TEST_GATB (debruijn_test13);
-//        CPPUNIT_TEST_GATB (debruijn_mutation); // FIXME: has been removed due to it crashing clang
+//        CPPUNIT_TEST_GATB (debruijn_mutation); // has been removed due to it crashing clang, and since mutate() isn't really used in apps, i didn't bother.
         CPPUNIT_TEST_GATB (debruijn_build);
         CPPUNIT_TEST_GATB (debruijn_checkbranching);
 #ifdef WITH_MPHF
         CPPUNIT_TEST_GATB (debruijn_mphf);
+        CPPUNIT_TEST_GATB (debruijn_mphf_nodeindex);
 #endif
         CPPUNIT_TEST_GATB (debruijn_traversal1);
         
@@ -484,7 +485,7 @@ public:
     {
         /** We create the graph. */
 #ifdef WITH_MPHF
-        // MPHF has a known bug where, when there are only like a tiny amount of elements (I tested with three), it will just return mphf(elt)=0 always.
+        // emphf had a known bug where, when there are only like a tiny amount of elements (I tested with three), it will just return mphf(elt)=0 always.
         // so this is why I'm adding the dummy "ACTGACTGACTGACTG" sequence, to artificially increase the amount of elements in the mphf
         Graph graph = Graph::create (new BankStrings ("AGGCGC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
 #else
@@ -837,6 +838,40 @@ public:
 
         debruijn_mphf_aux (sequences1, ARRAY_SIZE(sequences1), abundances);
     }
+
+
+    /** */
+    void debruijn_mphf_nodeindex ()
+    {
+        const char* sequences[] =
+        {
+            "ATTGCTCACATGTTCTTTCCTGCGTTATCCC",
+            "TTTGCTCACATGTTCTTTCCTGCGTTATCCC",
+            "GTTGCTCACATGTTCTTTCCTGCGTTATCCC"
+        };
+
+        
+        size_t kmerSize = strlen (sequences[0])-1;
+
+        // We create the graph.
+        Graph graph = Graph::create (new BankStrings (sequences, 3),  "-kmer-size %d  -abundance-min 1  -verbose 0 -mphf boophf -max-memory %d", kmerSize, MAX_MEMORY);
+
+        GraphIterator<Node> it = graph.iterator();
+
+		std::string kmer = "TTGCTCACATGTTCTTTCCTGCGTTATCCC"; //(previously stored and here extracted for you to see what's in the variable)
+		Node node_first = graph.buildNode(kmer.c_str());
+		GraphVector<Node> pre = graph.predecessors(node_first);
+		//-------------predecessors----------------------------------------------------------------------------
+		//iterate through all predecessors
+		set<int> indices;
+		for (size_t a=0; a<pre.size(); a++) {
+			unsigned long idx = graph.nodeMPHFIndex(pre[a]);
+			indices.insert(idx);
+		}
+
+		assert(pre.size() == 3 && indices.size() == 3);
+    }
+
 
     /********************************************************************************/
     struct debruijn_build_entry
