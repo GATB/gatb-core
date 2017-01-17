@@ -104,13 +104,13 @@ xmllint --xpath "string(//errorcounts)" $XMLFILE
 
 #>>>>>>>>>>>> 2. Diagnostics for dbgh5 >>>>>>>>>>>>>>>>>>>>>>>>>
 
-XMLFILE=$BUILD_DIR/bin/valgrind_dbgh5_${BUILD_NUMBER}.xml
-valgrind --xml=yes --xml-file=$XMLFILE \
-	$BUILD_DIR/bin/dbgh5 -verbose 0 -in $HOME/reference/fastq/aphid_662451seq.fa -check $HOME/reference/check/aphid_662451.props || error_code
+# XMLFILE=$BUILD_DIR/bin/valgrind_dbgh5_${BUILD_NUMBER}.xml
+# valgrind --xml=yes --xml-file=$XMLFILE \
+# $BUILD_DIR/bin/dbgh5 -verbose 0 -in $HOME/reference/fastq/aphid_662451seq.fa -check $HOME/reference/check/aphid_662451.props || error_code
 
-xmllint --xpath "string(//error)" $XMLFILE
+# xmllint --xpath "string(//error)" $XMLFILE
 
-xmllint --xpath "string(//errorcounts)" $XMLFILE
+# xmllint --xpath "string(//errorcounts)" $XMLFILE
 
 
 ################################################################
