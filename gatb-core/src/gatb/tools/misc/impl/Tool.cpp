@@ -45,7 +45,7 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info(0), _parser(0), _dispatcher(0),userDisplayHelp(0),userDisplayVersion(0)
+Tool::Tool (const std::string& name) : _name(name), _input(0), _output(0), _info(0), _parser(0), _dispatcher(0),userDisplayHelp(0),userDisplayVersion(0),_helpTarget(0),_versionTarget(0)
 {
     setOutput (new Properties());
 
@@ -121,7 +121,7 @@ IProperties* Tool::run (int argc, char* argv[])
 	{
 		if(userDisplayHelp!=NULL)
 		{
-			this->userDisplayHelp();
+			this->userDisplayHelp(_helpTarget);
 		}
 		else
 		{
@@ -133,7 +133,7 @@ IProperties* Tool::run (int argc, char* argv[])
 	{
 		if(userDisplayVersion!=NULL)
 		{
-			this->userDisplayVersion();
+			this->userDisplayVersion(_versionTarget);
 		}
 		return NULL;
 	}

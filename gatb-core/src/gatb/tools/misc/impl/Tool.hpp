@@ -189,14 +189,17 @@ public:
     virtual void displayVersion(std::ostream& os);
 
 	
+	
 	/* let the user provide its own function to display Help
 	 */
-	void setHelp(void (*user_Help)()) {     if(user_Help != NULL) userDisplayHelp = user_Help; }
-	
+	void setHelp(void (*user_Help)(void * target)) {     if(user_Help != NULL) userDisplayHelp = user_Help; }
+	void setHelpTarget(void * helpTarget) { _helpTarget = helpTarget;}
+
 	/* let the user provide its own function to display Version
 	 */
-	void setVersion(void (*user_Version)()) {     if(user_Version != NULL) userDisplayVersion = user_Version; }
-	
+	void setVersion(void (*user_Version)(void * target)) {     if(user_Version != NULL) userDisplayVersion = user_Version; }
+	void setVersionTarget(void * versionTarget) { _versionTarget = versionTarget;}
+
 	
 protected:
 
@@ -221,11 +224,13 @@ protected:
 
 	
 	//pointer to function to display help
-	void (*userDisplayHelp)();
+	void (*userDisplayHelp)(void * target);
+	void * _helpTarget;
 	
 	//pointer to function to display help
-	void (*userDisplayVersion)();
-	
+	void (*userDisplayVersion)(void * target);
+	void * _versionTarget;
+
 	
     /** Name of the tool (set at construction). */
     std::string _name;
