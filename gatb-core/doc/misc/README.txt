@@ -60,8 +60,11 @@ taken from the 'examples' directory:
 == TESTING THE LIBRARY ON YOUR SYSTEM ==
 ========================================
 
-You can check the library by launching unit tests on your system. Just go into 'test' directory 
-and run 'gatb-core-cppunit'. (note that the current working directory needs to be the 'test' directory)
+You can check the library by launching unit tests on your system, as follows:
+
+  cd test
+  export CPPUNIT_VERBOSE=1
+  ./gatb-core-cppunit
 
 
 =========================
