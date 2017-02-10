@@ -1,36 +1,80 @@
-##################################################################################################
-#                                                                                                #
-#          #####      #     #######  ######             #####   #######  ######   #######        # 
-#         #     #    # #       #     #     #           #     #  #     #  #     #  #              #
-#         #         #   #      #     #     #           #        #     #  #     #  #              #
-#         #  ####  #     #     #     ######   #######  #        #     #  ######   #####          #
-#         #     #  #######     #     #     #           #        #     #  #   #    #              #
-#         #     #  #     #     #     #     #           #     #  #     #  #    #   #              #
-#          #####   #     #     #     ######             #####   #######  #     #  #######        #
-#                                                                                                #
-##################################################################################################
+                          ***********************************
+                          *                                 *
+                          *  GATB-Core binary distribution  *
+                          *                                 *
+                          ***********************************
 
-The gatb-core project provides a library for denovo genome assembly.
+==================
+== INTRODUCTION ==
+==================
 
-The archive is made of:
+This release provides you with a pre-compiled binary release of the GATB-Core library. 
+Using it, you can easily compile home-made GATB software, as explained below.
+
+
+=============
+== CONTENT ==
+=============
 
     - README.txt : the file you are reading
-    - lib        : a static library holding all the assembly services
-    - include    : a header files directory
-    - doc        : the documentation of the library
-    - bin        : 'dbgh5' tool that builds a De Bruijn graph from a set of reads
+    - lib        : static GATB-Core library
+    - include    : header files; usually, you’ll use ‘gatb/gatb_core.hpp’
+    - bin        : De Bruijn graph utilities (see below)
     - test       : unit tests of the library
     - examples   : a few snippets showing how to use the library
 
-For documentation, please have a look at doc/html/index.html
+
+===================
+== DOCUMENTATION ==
+===================
+
+For documentation, please have a look at:
+
+- tutorial with code snippets: https://gatb.inria.fr/gatb-programming-tutorial/
+  
+  This tutorial runs in action some of the code snippets available in the “examples” directory.
+  
+  All these snippets are also described here: 
+  http://gatb-core.gforge.inria.fr/doc/api/snippets_page.html
+
+- API documentation: http://gatb-core.gforge.inria.fr/doc/api/
+  
+  The complete c++ API of GATB-Core.
+
+
+=====================
+== COMPILING CODES ==
+=====================
+
+You can compile a code based on GATB-Core using the library as follows. Here, we simply compile a snippet 
+taken from the 'examples' directory:
+
+- on Linux:
+   g++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3 -o debruijn1
+    
+-on MacOS X:
+    clang++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3 -DBOOST_NO_CXX11_RVALUE_REFERENCES=1 -o debruijn1
+
+
+========================================
+== TESTING THE LIBRARY ON YOUR SYSTEM ==
+========================================
 
 You can check the library by launching unit tests on your system. Just go into 'test' directory 
 and run 'gatb-core-cppunit'. (note that the current working directory needs to be the 'test' directory)
 
-You can try the library by compiling a snippet from the 'examples' directory:
 
-for Linux:
-    g++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3 -o debruijn1
-    
-for MacOs:
-    clang++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3 -DBOOST_NO_CXX11_RVALUE_REFERENCES=1 -o debruijn1
+=========================
+== GATB-Core Utilities ==
+=========================
+
+The ‘bin’ directory contains the following tools:
+
+- dbgh5: converts a sequence file into a De Bruin graph and stores it into a HDF5 formatted file; 
+         file extension is: .h5
+         (HDF5 is the data format used by GATB-Core to store compact representation of a graph)
+
+- dbginfo: displays some information about a ‘.h5’ file created with ‘dbgh5’ tool
+
+- gatb-h5dump: dump the content of a ‘.h5’ file created with ‘dbgh5’ tool
+
