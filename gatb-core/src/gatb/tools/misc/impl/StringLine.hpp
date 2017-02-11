@@ -29,9 +29,7 @@
 /********************************************************************************/
 
 #include <string>
-#include <iostream>
-#include <cstdarg>
-#include <cstdio>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -61,21 +59,14 @@ public:
 
     static std::string format (const char* fmt, ...)
     {
-        using namespace std;
-
         /** We get the buffer from the ellipsis argument. */
-        char* buffer = 0;
         va_list args;
         va_start (args, fmt);
-        vasprintf (&buffer, fmt, args);
+        std::string result = StringLine::format(Stringify::format(fmt, args));
         va_end (args);
 
-        string result (buffer != NULL ? buffer : "");
-
-        if (buffer != NULL)  { free(buffer); }
-
         /** We return the result. */
-        return format (result);
+        return result;
     }
 
     static size_t& getDefaultWidth () { static size_t value=40; return value; }

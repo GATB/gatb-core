@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <gatb/system/api/Exception.hpp>
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -63,14 +65,25 @@ public:
      */
     static std::string format (const char* fmt, ...)
     {
-        char* buffer = 0;
-
         va_list args;
         va_start (args, fmt);
-        vasprintf (&buffer, fmt, args);
+        std::string res = Stringify::format(fmt, args);
         va_end (args);
 
-        if (buffer != NULL)
+        return res;
+    }
+
+    /** Generates a string object with a printf-like prototype.
+     * \param[in] fmt : the format of the string
+     * \param[in] args. : list of arguments
+     * \return the string
+     */
+    static std::string format (const char* fmt, va_list args)
+    {
+        char* buffer = 0;
+        int ret = vasprintf (&buffer, fmt, args);
+
+        if (ret > -1 && buffer != NULL)
         {
             std::string result (buffer);
             free (buffer);
@@ -78,7 +91,8 @@ public:
         }
         else
         {
-            return std::string ("");
+            // Exception is not using Stringify::format or anything allocating memory
+            throw gatb::core::system::Exception("Stringify::format could not allocate memory");
         }
     }
 };

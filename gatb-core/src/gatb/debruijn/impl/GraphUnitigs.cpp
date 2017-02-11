@@ -113,13 +113,10 @@ GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (bank::IBank* ban
     IOptionsParser* parser = BaseGraph::getOptionsParser (false);   LOCAL(parser);
 
     /** We build the command line from the format and the ellipsis. */
-    std::string commandLine;
-    char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    vasprintf (&buffer, fmt, args);
+    std::string commandLine = Stringify::format(fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
@@ -147,13 +144,10 @@ GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (const char* fmt,
     IOptionsParser* parser = BaseGraph::getOptionsParser (true);   LOCAL (parser);
 
     /** We build the command line from the format and the ellipsis. */
-    std::string commandLine;
-    char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    vasprintf (&buffer, fmt, args);
+    std::string commandLine = Stringify::format(fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
