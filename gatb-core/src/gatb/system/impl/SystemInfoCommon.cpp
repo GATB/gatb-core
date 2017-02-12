@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <gatb/system/impl/SystemInfoCommon.hpp>
+#include <gatb/system/api/build_info.hpp>
 
 #include <string.h>
 #include <unistd.h>
@@ -93,6 +94,16 @@ private:
 
 /** */
 ISystemInfo::CpuInfo* SystemInfoCommon::createCpuInfo ()  {  return new CpuInfoCommon (); }
+
+std::string SystemInfoCommon::getVersion () const  { return STR_LIBRARY_VERSION; }
+
+std::string SystemInfoCommon::getBuildDate () const { return STR_COMPILATION_DATE; }
+
+std::string SystemInfoCommon::getBuildCompiler () const  { return STR_COMPILER; }
+
+std::string SystemInfoCommon::getBuildOptions () const { return STR_COMPILATION_FLAGS; }
+
+std::string SystemInfoCommon::getBuildSystem () const { return STR_OPERATING_SYSTEM; }
 
 /*********************************************************************
                 #        ###  #     #  #     #  #     #

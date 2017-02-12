@@ -31,7 +31,6 @@
 #include <gatb/system/api/ISystemInfo.hpp>
 #include <gatb/system/api/IMemory.hpp>
 #include <gatb/system/api/Exception.hpp>
-#include <gatb/system/api/config.hpp>
 
 /********************************************************************************/
 namespace gatb      {
@@ -54,19 +53,19 @@ class SystemInfoCommon : public ISystemInfo
 public:
 
     /** \copydoc ISystemInfo::getVersion */
-    std::string getVersion () const  { return STR_LIBRARY_VERSION; }
+    std::string getVersion () const;
 
     /** \copydoc ISystemInfo::getBuildDate */
-    std::string getBuildDate () const { return STR_COMPILATION_DATE; }
+    std::string getBuildDate () const;
 
     /** \copydoc ISystemInfo::getBuildCompiler */
-    std::string getBuildCompiler () const  { return STR_COMPILER; }
+    std::string getBuildCompiler () const;
 
     /** \copydoc ISystemInfo::getBuildOptions */
-    std::string getBuildOptions () const { return STR_COMPILATION_FLAGS; }
+    std::string getBuildOptions () const;
 
     /** \copydoc ISystemInfo::getBuildSystem */
-    std::string getBuildSystem () const { return STR_OPERATING_SYSTEM; }
+    std::string getBuildSystem () const;
 
     /** \copydoc ISystemInfo::getHomeDirectory */
     std::string getHomeDirectory ()  const {  return getenv("HOME") ? getenv("HOME") : ".";  }
