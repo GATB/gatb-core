@@ -1214,7 +1214,7 @@ struct getItems_visitor : public boost::static_visitor<GraphVector<Item> >    {
                     bitmask = (value >> 4) & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems OUTCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;
@@ -1255,7 +1255,7 @@ struct getItems_visitor : public boost::static_visitor<GraphVector<Item> >    {
                     bitmask = value & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems INCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;
@@ -1930,7 +1930,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
                     bitmask = (value >> 4) & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems OUTCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;
@@ -1971,7 +1971,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
                     bitmask = value & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems INCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;

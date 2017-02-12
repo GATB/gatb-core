@@ -113,8 +113,8 @@ void RangeEncoder::encode(Order0Model& model, uint8_t c){
 	_low += model.rangeLow(c) * _range;
 	_range *= model.rangeHigh(c) - model.rangeLow(c);
 
-	while((_low ^ _low+_range) < TOP || _range < BOTTOM ){
-		if(_range < BOTTOM && ((_low ^ _low+_range)) >= TOP){
+	while((_low ^ (_low + _range)) < TOP || _range < BOTTOM){
+		if(_range < BOTTOM && (_low ^ (_low+_range)) >= TOP){
 			_range = -_low & (BOTTOM-1);
 		}
 		
@@ -215,8 +215,8 @@ void RangeDecoder::removeRange(Order0Model& model, uint8_t c){
 	_low += model.rangeLow(c) * _range;
 	_range *= model.rangeHigh(c) - model.rangeLow(c);
 
-	while((_low ^ _low+_range) < TOP || _range < BOTTOM ){
-		if(_range < BOTTOM && ((_low ^ _low+_range)) >= TOP){
+	while((_low ^ (_low + _range)) < TOP || _range < BOTTOM ){
+		if(_range < BOTTOM && (_low ^ (_low + _range)) >= TOP){
 			_range = -_low & (BOTTOM-1);
 		}
 		

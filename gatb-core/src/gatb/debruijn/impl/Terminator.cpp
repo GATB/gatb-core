@@ -311,7 +311,7 @@ template <typename Node, typename Edge, typename Graph>
 bool MPHFTerminatorTemplate<Node,Edge,Graph>::is_marked (Node& node) const
 {
     int status = this->_graph.queryNodeState(node);
-    return status & 1 == 1;
+    return (status & 1) == 1;
 }
 
 template <typename Node, typename Edge, typename Graph>
