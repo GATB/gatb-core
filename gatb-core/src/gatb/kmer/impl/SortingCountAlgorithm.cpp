@@ -641,7 +641,7 @@ public:
             /** Now, we compute statistics about kxmers. */
             /*********************************************/
 
-            Type radix, radix_kxmer_forward ,radix_kxmer ;
+            Type radix_kxmer_forward ,radix_kxmer ;
             bool prev_which = superKmer[0].which();
             size_t kx_size =0;
 
@@ -775,8 +775,6 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     if (_config._minimizerType == 1)  {  freq_order = _repartitor->getMinimizerFrequencies ();  }
 
     Model model( _config._kmerSize, _config._minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequencyOrLex(), freq_order);
-
-    int mmsize = model.getMmersModel().getKmerSize();
 
 	/** We have to reinit the progress instance since it may have been used by SampleRepart before. */
     _progress->init();
@@ -1083,8 +1081,6 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
 template<size_t span>
 Partition<typename SortingCountAlgorithm<span>::Count>* SortingCountAlgorithm<span>::getSolidCounts  ()
 {
-    Partition<Count>* result = 0;
-
     /** We look in the count processor a potential CountProcessorDump instance. */
     for (size_t i=0; i<_processors.size(); i++)
     {

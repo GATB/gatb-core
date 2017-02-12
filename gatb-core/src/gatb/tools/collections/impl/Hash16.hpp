@@ -104,7 +104,7 @@ public:
  		datah       = (cell_ptr_t *) _memory.calloc( tai , sizeof(cell_ptr_t));  //create hashtable
 
 		//printf("Hash16 size asked in MB %zu  tai_Hash16 %i  nb entries %llu \n",sizeMB,tai_Hash16,tai);
-		cell pcell;
+		//cell pcell;
 		//printf("Hash 16 cell %lli   graine %i suiv %i val %i\n",sizeof(cell),sizeof(pcell.graine),sizeof(pcell.suiv),sizeof(pcell.val));
 
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));

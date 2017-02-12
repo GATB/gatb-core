@@ -182,7 +182,6 @@ public:
 
 			for(size_t i=1;i< ref.n_pools;i++)
 			{
-				cellpair_t  newwcp= cellpair_t(i,&(ref.tab_pool[i][0])  );
 				pq.push( cellpair_t(i,  (cell *)  &(ref.tab_pool[i][0])  )   );
 			}
 			next();

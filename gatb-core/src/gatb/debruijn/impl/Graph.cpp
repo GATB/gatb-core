@@ -293,11 +293,6 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
     // TODO Erwan: do we even use those variables? if not, why put them here? I feel that it's weak to parse cmdline arguments in build_visitor
     // because graph._kmerSize is already defined at this point; and config._minim_size has minimizer size info. The rest we don't use.
     size_t kmerSize      = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
-    size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
-    size_t nksMin        = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
-    size_t nksMax        = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
-    size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
-    size_t repartitionType = props->get(STR_REPARTITION_TYPE) ? props->getInt(STR_REPARTITION_TYPE)    : 0;
     size_t compressLevel   = props->get(STR_COMPRESS_LEVEL)   ? props->getInt(STR_COMPRESS_LEVEL)      : 0;
     bool   configOnly      = props->get(STR_CONFIG_ONLY) != 0;
 
@@ -1490,7 +1485,6 @@ struct countNeighbors_visitor : public boost::static_visitor<void>    {
         {
             for (u_int64_t nt=0; nt<4; nt++)
             {
-                typename Node::Value dest_value;
                 Type forward = ( (graine << 2 )  + nt) & mask;
                 Type reverse = revcomp (forward, kmerSize);
 
@@ -1519,7 +1513,6 @@ struct countNeighbors_visitor : public boost::static_visitor<void>    {
                 Type single_nt;
                 single_nt.setVal(nt);
                 single_nt <<=  ((kmerSize-1)*2);
-                typename Node::Value dest_value;
                 Type forward = ((graine >> 2 )  + single_nt ) & mask; /* previous kmer */
                 Type reverse = revcomp (forward, kmerSize);
 

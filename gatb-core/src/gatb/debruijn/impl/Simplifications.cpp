@@ -64,7 +64,6 @@ namespace gatb {  namespace core {  namespace debruijn {  namespace impl {
 
 
 static const char* simplprogressFormat0 = "removing tips,    pass %2d ";
-static const char* simplprogressFormat1 = "removing bubbles, pass %2d ";
 static const char* simplprogressFormat2 = "removing bulges,  pass %2d ";
 static const char* simplprogressFormat3 = "removing ec,      pass %2d ";
 
@@ -404,8 +403,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 
     // nodes deleter stuff
     NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores, _verbose);
-    
-    bool haveInterestingNodesInfo = !_firstNodeIteration;
 
     dispatcher.iterate (*itNode, [&] (Node& node)
     {
@@ -447,8 +444,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
          */
 
         TIME(auto start_thread_t=get_wtime());
-        
-        unsigned long index = _graph.nodeMPHFIndex(node);
 
         // skip deleted nodes
         if (_graph.isNodeDeleted(node)) {
@@ -1032,8 +1027,6 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         return false;
     };
 
-    unsigned int k = _graph.getKmerSize();
-
     // traverse simple path from that node
     // we end up at a branching node. 
     // if the node has no out-branching, keep going, we don't care about in-branching here.
@@ -1220,7 +1213,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     unsigned long nbBadCovBulges = 0;
 
     unsigned long timeAll = 0, timePathFinding = 0, timeFailedPathFinding = 0, timeLongestFailure = 0,
-                  timeSimplePath = 0, timeDelete = 0, timePost = 0, timeVarious = 0, timeNodeIndex = 0;
+                  timeSimplePath = 0, timeDelete = 0, timePost = 0, timeVarious = 0;
 
     unsigned long longestFailureDepth = 0;
 
@@ -1247,8 +1240,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
     NodesDeleter<Node,Edge,GraphType> nodesDeleter(_graph, nbNodes, _nbCores, _verbose);
 
-    bool haveInterestingNodesInfo = !_firstNodeIteration;
-
 #ifdef SIMPLIFICATION_LAMBDAS 
     dispatcher.iterate (itNode, [&] (Node& node) {
 #else
@@ -1265,13 +1256,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
             continue;
 #endif
         }
-      
-      TIME(auto start_nodeindex_t=get_wtime());
-      
-      unsigned long index = _graph.nodeMPHFIndex(node);
-       
-      TIME(auto end_nodeindex_t=get_wtime());
-      TIME(__sync_fetch_and_add(&timeNodeIndex, diff_wtime(start_nodeindex_t,end_nodeindex_t)));
 
       TIME(auto start_various_overhead_t=get_wtime());
 
@@ -1303,8 +1287,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
             assert(neighbors.size() > 1);
             for (unsigned int i = 0; i < neighbors.size(); i++)
             {
-                bool foundShortPath = false;
-                
                 if (node == (neighbors[i].to)) // node being it's own neighbors, is rare, but let's avoid it
                     continue;
             
@@ -1423,8 +1405,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                         cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl;
                         DEBUG_BULGES(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
                     }
-    
-                    unsigned int dummyLen;
+
                     double simplePathCoverage = _graph.simplePathMeanAbundance(simplePathStart, simplePathDir);
     
                     bool isBulge =  simplePathCoverage * 1.1  <=  mean_abundance_most_covered;
@@ -1492,7 +1473,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
         TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal." << endl);
         TIME(cout << "                " << timePathFinding / unit << "(/" << timePathFinding / unit << ") CPUsecs path-finding(/failed). Longest: " << timeLongestFailure / (unit/1000) << " CPUmillisecs (depth " << longestFailureDepth << ")." << endl);
         TIME(cout << "                " << timePost / unit << " CPUsecs topological bulge processing, " << endl);
-        TIME(cout << "                " << timeNodeIndex / unit << " CPUsecs nodes MPHF index retrieval." << endl);
         TIME(cout << "                " << timeDelete / unit << " CPUsecs nodes deletion." << endl);
         TIME(cout << "                " << timeVarious / unit << " CPUsecs various overhead." << endl);
     }
@@ -1586,8 +1566,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
             continue;
 #endif
             }
-
-            unsigned long index = _graph.nodeMPHFIndex(node);
 
             unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
 

@@ -19,7 +19,7 @@ static void atomic_double_add(std::atomic<double> &d1, double d2) {
 static atomic_double global_wtime_compactions (0), global_wtime_cdistribution (0), global_wtime_add_nodes (0), global_wtime_create_buckets (0), global_wtime_foreach_bucket (0), global_wtime_lambda (0), global_wtime_parallel (0), global_wtime_longest_lambda (0), global_wtime_best_sched(0);
 
 static bool time_lambdas = true;
-static std::mutex lambda_timing_mutex, active_minimizers_mutex, write_to_glue_mutex;
+static std::mutex lambda_timing_mutex, active_minimizers_mutex;
 static size_t nb_threads_simulate=1; // this is somewhat a legacy parameter, i should get rid of (and replace by nb_threads)
 
 
@@ -76,7 +76,6 @@ void bcalm2(Storage *storage,
 
     auto start_t=chrono::system_clock::now();
     size_t maxBucket(0);
-    unsigned long nbKmers(0);
 
     /** We get the dsk and minimizers hash group in the storage object. */
     Group& dskGroup = storage->getGroup("dsk");

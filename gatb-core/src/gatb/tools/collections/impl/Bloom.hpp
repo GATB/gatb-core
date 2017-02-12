@@ -878,7 +878,7 @@ public:
     /** \copydoc Bag::insert. */
     void insert (const Item& item)
     {
-        u_int64_t h0, h1;
+        u_int64_t h0;
         u_int64_t racine;
 
         Item suffix = item & ((Item)0x3f);
@@ -967,7 +967,7 @@ public:
             _sharedpart = sharedpart;
         }
         
-        u_int64_t racine, h0, h1;
+        u_int64_t racine, h0;
 
         racine = _hpartHash % this->_reduced_tai;
         h0 = racine + delta;

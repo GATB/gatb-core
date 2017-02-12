@@ -125,7 +125,6 @@ typename graph3<span>::kmerType graph3<span>::rcb(typename graph3<span>::kmerTyp
 template<size_t span>
 void graph3<span>::compaction(uint iL,  uint iR){
 	if(iR!=iL){
-		uint s1(unitigs[iL].size()),s2(unitigs[iR].size());
 		bool b1(isNumber(unitigs[iL][0])),b2(isNumber(unitigs[iR][0]));
 		if(b1 and b2){return compaction(stoi(unitigs[iL]),stoi(unitigs[iR]));}
 		if(b1){return compaction(stoi(unitigs[iL]),iR);}

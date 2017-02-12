@@ -222,7 +222,6 @@ static vector<vector<uint32_t> > determine_order_sequences(vector<markedSeq> &se
 
         bool rmark = current.rmark;
         int current_index = i;
-        int start_index = i;
         usedSeq.insert(i);
 
         while (rmark)
@@ -761,12 +760,12 @@ typedef uint64_t partition_t;
 #endif
 
 
-    unsigned long memUF = logging("UF constructed");
+    logging("UF constructed");
 
     if (debug_uf_stats) // for debugging
     {
         ufkmers.printStats("uf kmers");
-        unsigned long memUFpostStats = logging("after computing UF stats");
+        logging("after computing UF stats");
     }
 
     if (only_uf) // for debugging

@@ -1134,9 +1134,6 @@ template<size_t span>
 unsigned int GraphUnitigsTemplate<span>::
 unitigLength            (const NodeGU& node, Direction dir) const
 {
-    const std::string& seq = unitigs[node.unitig];
-    bool same_orientation = node_in_same_orientation_as_in_unitig(node);
-
     int length;
     if (isLastNode(node,dir))
         length = 0;
@@ -1225,7 +1222,6 @@ unitigSequence (const NodeGU& node, bool& isolatedLeft, bool& isolatedRight) con
     const string& seq = unitigs[node.unitig];
 
     //std::cout << " seq " << seq << " node " << toString(node) << std::endl;
-    int kmerSize = BaseGraph::_kmerSize;
     NodeGU left = NodeGU(node.unitig, UNITIG_BEGIN);
     NodeGU right = NodeGU(node.unitig, UNITIG_END);
 

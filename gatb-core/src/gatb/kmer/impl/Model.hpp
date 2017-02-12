@@ -1342,10 +1342,6 @@ struct Kmer
             kmer._position  = -1;
             kmer._changed   = true;
 
-            /** We need a local object that loops each mmer of the provided kmer (and we don't want
-             * to modify the kmer value of this provided kmer). */
-            Kmer loop = kmer;
-
             typename ModelType::Kmer mmer;
 
             /** We compute each mmer and memorize the minimizer among them. */
@@ -1470,7 +1466,6 @@ struct Kmer
             int64_t zero = 0;
             Type masknt;
             masknt.setVal((int64_t) 3);
-            Type radix, radix_kxmer_forward ,radix_kxmer ;
             Type nbK;
             nbK.setVal((int64_t) size());
             Type compactedK;
