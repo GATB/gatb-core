@@ -116,8 +116,7 @@ static unsigned long file_serial_no;
 /* File driver ID class */
 static const H5I_class_t H5I_VFL_CLS[1] = {{
     H5I_VFL,			/* ID class value */
-    0,				/* Class flags */
-    64,				/* Minimum hash size for class */
+    H5I_CLASS_REUSE_IDS,	/* Class flags */
     0,				/* # of reserved IDs for class */
     (H5I_free_t)H5FD_free_cls	/* Callback routine for closing objects of this class */
 }};
@@ -231,7 +230,6 @@ H5FD_term_interface(void)
                 H5FD_multi_term();
 #ifdef H5_HAVE_PARALLEL
                 H5FD_mpio_term();
-                H5FD_mpiposix_term();
 #endif /* H5_HAVE_PARALLEL */
             } /* end if */
 	} else {
@@ -508,7 +506,7 @@ H5FD_sb_size(H5FD_t *file)
 
     FUNC_ENTER_NOAPI(0)
 
-    assert(file && file->cls);
+    HDassert(file && file->cls);
 
     if(file->cls->sb_size)
 	ret_value = (file->cls->sb_size)(file);
@@ -546,7 +544,7 @@ H5FD_sb_encode(H5FD_t *file, char *name/*out*/, uint8_t *buf)
 
     FUNC_ENTER_NOAPI(FAIL)
 
-    assert(file && file->cls);
+    HDassert(file && file->cls);
     if(file->cls->sb_encode &&
             (file->cls->sb_encode)(file, name/*out*/, buf/*out*/) < 0)
 	HGOTO_ERROR(H5E_VFL, H5E_CANTINIT, FAIL, "driver sb_encode request failed")
@@ -708,7 +706,7 @@ H5FD_fapl_get(H5FD_t *file)
 
     FUNC_ENTER_NOAPI(NULL)
 
-    assert(file);
+    HDassert(file);
 
     if(file->cls->fapl_get)
 	ret_value = (file->cls->fapl_get)(file);
@@ -1215,8 +1213,8 @@ H5FDquery(const H5FD_t *f, unsigned long *flags/*out*/)
     FUNC_ENTER_API(FAIL)
     H5TRACE2("Is", "*xx", f, flags);
 
-    assert(f);
-    assert(flags);
+    HDassert(f);
+    HDassert(flags);
 
     ret_value = H5FD_query(f, flags);
 

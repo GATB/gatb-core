@@ -106,47 +106,6 @@ void phdiff_dismiss_workers(void)
 
 
 /*-------------------------------------------------------------------------
- * Function: print_manager_output
- *
- * Purpose: special function that prints any output accumulated by the
- *      manager task.
- *
- * Return: none
- *
- * Programmer: Leon Arber
- *
- * Date: Feb 7, 2005
- *
- *-------------------------------------------------------------------------
- */
-void print_manager_output(void)
-{
-    /* If there was something we buffered, let's print it now */
-    if( (outBuffOffset>0) && g_Parallel)
-    {
-        printf("%s", outBuff);
-
-        if(overflow_file)
-        {
-            int     tmp;
-            rewind(overflow_file);
-            while((tmp = getc(overflow_file)) >= 0)
-                putchar(tmp);
-            fclose(overflow_file);
-            overflow_file = NULL;
-        }
-
-        HDfflush(stdout);
-        HDmemset(outBuff, 0, OUTBUFF_SIZE);
-        outBuffOffset = 0;
-    }
-    else if( (outBuffOffset>0) && !g_Parallel)
-    {
-        HDfprintf(stderr, "h5diff error: outBuffOffset>0, but we're not in parallel!\n");
-    }
-}
-
-/*-------------------------------------------------------------------------
  * Function: print_incoming_data
  *
  * Purpose: special function that prints any output that has been sent to the manager
@@ -832,10 +791,10 @@ hsize_t h5diff(const char *fname1,
     else
     {
         /* set root group */
-        obj1fullname = (char*)HDcalloc(2, sizeof(char));
+        obj1fullname = (char*)HDcalloc((size_t)2, sizeof(char));
         HDstrcat(obj1fullname, "/");
         obj1type = H5TRAV_TYPE_GROUP;
-        obj2fullname = (char*)HDcalloc(2, sizeof(char));
+        obj2fullname = (char*)HDcalloc((size_t)2, sizeof(char));
         HDstrcat(obj2fullname, "/");
         obj2type = H5TRAV_TYPE_GROUP;
     }
@@ -1119,7 +1078,6 @@ hsize_t diff_match(hid_t file1_id, const char *grp1, trav_info_t *info1,
     char * grp2_path = "";
     char * obj1_fullpath = NULL;
     char * obj2_fullpath = NULL;
-    h5trav_type_t objtype;
     diff_args_t argdata;
     size_t idx1 = 0;
     size_t idx2 = 0;
@@ -1185,7 +1143,6 @@ hsize_t diff_match(hid_t file1_id, const char *grp1, trav_info_t *info1,
     {
         if( table->objs[i].flags[0] && table->objs[i].flags[1])
         {
-            objtype = table->objs[i].type;
             /* make full path for obj1 */
             obj1_fullpath = (char*)HDcalloc (HDstrlen(grp1_path) + strlen (table->objs[i].name) + 1, sizeof (char));
             HDstrcpy(obj1_fullpath, grp1_path);
@@ -1531,12 +1488,11 @@ hsize_t diff(hid_t file1_id,
     hid_t   grp1_id = (-1);
     hid_t   grp2_id = (-1);
     int     ret;
-    int     is_dangle_link1 = 0;
-    int     is_dangle_link2 = 0;
-    int     is_hard_link = 0;
+    hbool_t     is_dangle_link1 = FALSE;
+    hbool_t     is_dangle_link2 = FALSE;
+    hbool_t     is_hard_link = FALSE;
     hsize_t nfound = 0;
     h5trav_type_t object_type;
-
 
     /* to get link info */
     h5tool_link_info_t linkinfo1;
@@ -1574,7 +1530,7 @@ hsize_t diff(hid_t file1_id,
                 goto out;
             }
             else
-                is_dangle_link1 = 1;
+                is_dangle_link1 = TRUE;
         }
         else if (ret < 0)
             goto out;
@@ -1592,7 +1548,7 @@ hsize_t diff(hid_t file1_id,
                 goto out;
             }
             else
-                is_dangle_link2 = 1;
+                is_dangle_link2 = TRUE;
         }
         else if (ret < 0)
             goto out;

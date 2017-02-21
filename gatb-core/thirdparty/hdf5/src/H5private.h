@@ -210,10 +210,11 @@
  */
 #define eventa(func_name)   h5_mpe_eventa
 #define eventb(func_name)   h5_mpe_eventb
-#define MPE_LOG_VARS                                               \
-    static int eventa(FUNC) = -1;                                        \
-    static int eventb(FUNC) = -1;                                        \
-    const char* p_event_start = "start" FUNC;
+#define MPE_LOG_VARS                                                    \
+    static int h5_mpe_eventa = -1;                                      \
+    static int h5_mpe_eventb = -1;                                      \
+    static char p_event_start[128];                                     \
+    static char p_event_end[128];
 
 /* Hardwire the color to "red", since that's what all the routines are using
  * now.  In the future, if we want to change that color for a given routine,
@@ -222,15 +223,18 @@
  * color information down to the BEGIN_MPE_LOG macro (which should have a new
  * BEGIN_MPE_LOG_COLOR variant). -QAK
  */
-#define BEGIN_MPE_LOG                                              \
-  if (H5_MPEinit_g){                    \
-    if (eventa(FUNC) == -1 && eventb(FUNC) == -1) {          \
-  const char* p_color = "red";                \
-         eventa(FUNC)=MPE_Log_get_event_number();                        \
-         eventb(FUNC)=MPE_Log_get_event_number();                        \
-         MPE_Describe_state(eventa(FUNC), eventb(FUNC), (char *)FUNC, (char *)p_color); \
-    }                                                                         \
-    MPE_Log_event(eventa(FUNC), 0, (char *)p_event_start);                 \
+#define BEGIN_MPE_LOG                                                   \
+  if(H5_MPEinit_g) {                                                    \
+    if(h5_mpe_eventa == -1 && h5_mpe_eventb == -1) {                    \
+         const char *p_color = "red";                                   \
+                                                                        \
+         h5_mpe_eventa = MPE_Log_get_event_number();                    \
+         h5_mpe_eventb = MPE_Log_get_event_number();                    \
+         HDsnprintf(p_event_start, sizeof(p_event_start) - 1, "start_%s", FUNC); \
+         HDsnprintf(p_event_end, sizeof(p_event_end) - 1, "end_%s", FUNC); \
+         MPE_Describe_state(h5_mpe_eventa, h5_mpe_eventb, (char *)FUNC, (char *)p_color); \
+    }                                                                   \
+    MPE_Log_event(h5_mpe_eventa, 0, p_event_start);                     \
   }
 
 
@@ -240,9 +244,9 @@
  *
  * Programmer: Long Wang
  */
-#define FINISH_MPE_LOG                                                       \
-    if (H5_MPEinit_g) {                                                      \
-        MPE_Log_event(eventb(FUNC), 0, (char *)FUNC);                 \
+#define FINISH_MPE_LOG                                                  \
+    if(H5_MPEinit_g) {                                                  \
+        MPE_Log_event(h5_mpe_eventb, 0, p_event_end);                   \
     }
 
 #else /* H5_HAVE_MPE */
@@ -433,8 +437,8 @@
 /*
  * Maximum & minimum values for our typedefs.
  */
-#define  HSIZET_MAX  ((hsize_t)ULLONG_MAX)
-#define  HSSIZET_MAX  ((hssize_t)LLONG_MAX)
+#define HSIZET_MAX   ((hsize_t)ULLONG_MAX)
+#define HSSIZET_MAX  ((hssize_t)LLONG_MAX)
 #define HSSIZET_MIN  (~(HSSIZET_MAX))
 
 /*
@@ -838,6 +842,9 @@ H5_DLL int HDfprintf (FILE *stream, const char *fmt, ...);
 #ifndef HDgetgroups
     #define HDgetgroups(Z,G)  getgroups(Z,G)
 #endif /* HDgetgroups */
+#ifndef HDgethostname
+    #define HDgethostname(N,L)    gethostname(N,L)
+#endif /* HDgetlogin */
 #ifndef HDgetlogin
     #define HDgetlogin()    getlogin()
 #endif /* HDgetlogin */
@@ -1723,7 +1730,7 @@ typedef struct H5_api_struct {
 
 /* Macro for first thread initialization */
 #ifdef H5_HAVE_WIN_THREADS
-#define H5_FIRST_THREAD_INIT InitOnceExecuteOnce(&H5TS_first_init_g, H5TS_win32_first_thread_init, NULL, NULL);
+#define H5_FIRST_THREAD_INIT InitOnceExecuteOnce(&H5TS_first_init_g, H5TS_win32_process_enter, NULL, NULL);
 #else
 #define H5_FIRST_THREAD_INIT pthread_once(&H5TS_first_init_g, H5TS_pthread_first_thread_init);
 #endif
@@ -2049,7 +2056,11 @@ static herr_t    H5_INTERFACE_INIT_FUNC(void);
 #define H5_GLUE4(w,x,y,z)  w##x##y##z
 
 /* Compile-time "assert" macro */
-#define HDcompile_assert(e)     do { enum { compile_assert__ = 1 / (e) }; } while(0)
+#define HDcompile_assert(e)     ((void)sizeof(char[ !!(e) ? 1 : -1]))
+/* Variants that are correct, but generate compile-time warnings in some circumstances:
+  #define HDcompile_assert(e)     do { enum { compile_assert__ = 1 / (e) }; } while(0)
+  #define HDcompile_assert(e)     do { typedef struct { unsigned int b: (e); } x; } while(0)
+*/
 
 /* Private functions, not part of the publicly documented API */
 H5_DLL herr_t H5_init_library(void);

@@ -377,10 +377,10 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef GETTIMEOFDAY_GIVES_TZ
+#include <time.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <time.h>
 int main(void)
 {
  struct timeval tv;
@@ -436,17 +436,6 @@ main ()
 }
 
 #endif
-
-#ifdef HAVE_GPFS
-
-#include <gpfs.h>
-int main ()
-{
-    int fd = 0; 
-    gpfs_fcntl(fd, (void *)0);
-}
-
-#endif /* HAVE_GPFS */
 
 #ifdef HAVE_IOEO
 

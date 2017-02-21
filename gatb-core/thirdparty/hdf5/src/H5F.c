@@ -77,7 +77,7 @@ typedef struct H5F_olist_t {
         } ptr;
     } file_info;
     size_t     list_index;      /* Current index in open ID array */
-    size_t     max_index;            /* Maximum # of IDs to put into array */
+    size_t     max_nobjs;       /* Maximum # of IDs to put into array */
 } H5F_olist_t;
 
 
@@ -91,8 +91,8 @@ typedef struct H5F_olist_t {
 /********************/
 static herr_t H5F_get_objects(const H5F_t *f, unsigned types, size_t max_index, hid_t *obj_id_list, hbool_t app_ref, size_t *obj_id_count_ptr);
 static int H5F_get_objects_cb(void *obj_ptr, hid_t obj_id, void *key);
-static H5F_t *H5F_new(H5F_file_t *shared, hid_t fcpl_id, hid_t fapl_id,
-                      H5FD_t *lf);
+static H5F_t *H5F_new(H5F_file_t *shared, unsigned flags, hid_t fcpl_id,
+    hid_t fapl_id, H5FD_t *lf);
 static herr_t H5F_build_actual_name(const H5F_t *f, const H5P_genplist_t *fapl,
     const char *name, char ** /*out*/ actual_name);
 static herr_t H5F_dest(H5F_t *f, hid_t dxpl_id, hbool_t flush);
@@ -122,8 +122,7 @@ H5FL_DEFINE(H5F_file_t);
 /* File ID class */
 static const H5I_class_t H5I_FILE_CLS[1] = {{
     H5I_FILE,			/* ID class value */
-    0,				/* Class flags */
-    64,				/* Minimum hash size for class */
+    H5I_CLASS_REUSE_IDS,	/* Class flags */
     0,				/* # of reserved IDs for class */
     (H5I_free_t)H5F_close	/* Callback routine for closing objects of this class */
 }};
@@ -521,7 +520,8 @@ H5Fget_obj_ids(hid_t file_id, unsigned types, size_t max_objs, hid_t *oid_list)
         HGOTO_ERROR(H5E_ARGS, H5E_BADVALUE, FAIL, "not a file id")
     if(0 == (types & H5F_OBJ_ALL))
         HGOTO_ERROR(H5E_ARGS, H5E_BADVALUE, FAIL, "not an object type")
-    HDassert(oid_list);
+    if(!oid_list)
+        HGOTO_ERROR(H5E_ARGS, H5E_BADVALUE, FAIL, "object ID list is NULL")
 
     /* Perform the query */
     if(H5F_get_obj_ids(f, types, max_objs, oid_list, TRUE, &obj_id_count) < 0)
@@ -580,7 +580,7 @@ done:
  *---------------------------------------------------------------------------
  */
 static herr_t
-H5F_get_objects(const H5F_t *f, unsigned types, size_t max_index, hid_t *obj_id_list, hbool_t app_ref, size_t *obj_id_count_ptr)
+H5F_get_objects(const H5F_t *f, unsigned types, size_t max_nobjs, hid_t *obj_id_list, hbool_t app_ref, size_t *obj_id_count_ptr)
 {
     size_t obj_id_count=0;      /* Number of open IDs */
     H5F_olist_t olist;          /* Structure to hold search results */
@@ -592,10 +592,10 @@ H5F_get_objects(const H5F_t *f, unsigned types, size_t max_index, hid_t *obj_id_
     HDassert(obj_id_count_ptr);
 
     /* Set up search information */
-    olist.obj_id_list  = (max_index==0 ? NULL : obj_id_list);
+    olist.obj_id_list  = (max_nobjs==0 ? NULL : obj_id_list);
     olist.obj_id_count = &obj_id_count;
     olist.list_index   = 0;
-    olist.max_index   = max_index;
+    olist.max_nobjs   = max_nobjs;
 
     /* Determine if we are searching for local or global objects */
     if(types & H5F_OBJ_LOCAL) {
@@ -615,38 +615,54 @@ H5F_get_objects(const H5F_t *f, unsigned types, size_t max_index, hid_t *obj_id_
             HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(1)")
     } /* end if */
 
-    /* Search through dataset IDs to count number of datasets, and put their
+    /* If the caller just wants to count the number of objects (OLIST.MAX_NOBJS is zero),
+     * or the caller wants to get the list of IDs and the list isn't full,
+     * search through dataset IDs to count number of datasets, and put their
      * IDs on the object list */
-    if(types & H5F_OBJ_DATASET) {
-        olist.obj_type = H5I_DATASET;
-        if(H5I_iterate(H5I_DATASET, H5F_get_objects_cb, &olist, app_ref) < 0)
-            HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(2)")
-    } /* end if */
+    if(!olist.max_nobjs || (olist.max_nobjs && olist.list_index<olist.max_nobjs)) { 
+        if (types & H5F_OBJ_DATASET) {
+            olist.obj_type = H5I_DATASET;
+            if(H5I_iterate(H5I_DATASET, H5F_get_objects_cb, &olist, app_ref) < 0)
+                HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(2)")
+        } /* end if */
+    } 
 
-    /* Search through group IDs to count number of groups, and put their
+    /* If the caller just wants to count the number of objects (OLIST.MAX_NOBJS is zero),
+     * or the caller wants to get the list of IDs and the list isn't full,
+     * search through group IDs to count number of groups, and put their
      * IDs on the object list */
-    if(types & H5F_OBJ_GROUP) {
-        olist.obj_type = H5I_GROUP;
-        if(H5I_iterate(H5I_GROUP, H5F_get_objects_cb, &olist, app_ref) < 0)
-            HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(3)")
-    } /* end if */
+    if(!olist.max_nobjs || (olist.max_nobjs && olist.list_index<olist.max_nobjs)) { 
+        if(types & H5F_OBJ_GROUP) {
+            olist.obj_type = H5I_GROUP;
+            if(H5I_iterate(H5I_GROUP, H5F_get_objects_cb, &olist, app_ref) < 0)
+                HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(3)")
+        } /* end if */
+    } 
 
-    /* Search through datatype IDs to count number of named datatypes, and put their
+    /* If the caller just wants to count the number of objects (OLIST.MAX_NOBJS is zero),
+     * or the caller wants to get the list of IDs and the list isn't full,
+     * search through datatype IDs to count number of named datatypes, and put their
      * IDs on the object list */
-    if(types & H5F_OBJ_DATATYPE) {
-        olist.obj_type = H5I_DATATYPE;
-        if(H5I_iterate(H5I_DATATYPE, H5F_get_objects_cb, &olist, app_ref) < 0)
-            HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(4)")
-    } /* end if */
+    if(!olist.max_nobjs || (olist.max_nobjs && olist.list_index<olist.max_nobjs)) { 
+        if(types & H5F_OBJ_DATATYPE) {
+            olist.obj_type = H5I_DATATYPE;
+            if(H5I_iterate(H5I_DATATYPE, H5F_get_objects_cb, &olist, app_ref) < 0)
+                HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(4)")
+        } /* end if */
+    } 
 
-    /* Search through attribute IDs to count number of attributes, and put their
+    /* If the caller just wants to count the number of objects (OLIST.MAX_NOBJS is zero),
+     * or the caller wants to get the list of IDs and the list isn't full,
+     * search through attribute IDs to count number of attributes, and put their
      * IDs on the object list */
-    if(types & H5F_OBJ_ATTR) {
-        olist.obj_type = H5I_ATTR;
-        if(H5I_iterate(H5I_ATTR, H5F_get_objects_cb, &olist, app_ref) < 0)
-            HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(5)")
-    } /* end if */
-
+    if(!olist.max_nobjs || (olist.max_nobjs && olist.list_index<olist.max_nobjs)) {
+        if(types & H5F_OBJ_ATTR) {
+            olist.obj_type = H5I_ATTR;
+            if(H5I_iterate(H5I_ATTR, H5F_get_objects_cb, &olist, app_ref) < 0)
+                HGOTO_ERROR(H5E_FILE, H5E_BADITER, FAIL, "iteration failed(5)")
+        } /* end if */
+    }
+ 
     /* Set the number of objects currently open */
     *obj_id_count_ptr = obj_id_count;
 
@@ -662,8 +678,8 @@ done:
  * 		object is in the file, and either count it or put its ID
  *		on the list.
  *
- * Return:      TRUE if the array of object IDs is filled up.
- *              FALSE otherwise.
+ * Return:      H5_ITER_STOP if the array of object IDs is filled up.
+ *              H5_ITER_CONT otherwise.
  *
  * Programmer:  Raymond Lu
  *              Wednesday, Dec 5, 2001
@@ -674,7 +690,8 @@ static int
 H5F_get_objects_cb(void *obj_ptr, hid_t obj_id, void *key)
 {
     H5F_olist_t *olist = (H5F_olist_t *)key;    /* Alias for search info */
-    int      ret_value = FALSE;    /* Return value */
+    int         ret_value = H5_ITER_CONT;    /* Return value */
+    hbool_t     add_obj = FALSE;
 
     FUNC_ENTER_NOAPI_NOINIT
 
@@ -687,22 +704,7 @@ H5F_get_objects_cb(void *obj_ptr, hid_t obj_id, void *key)
                         (!olist->file_info.ptr.file || (olist->file_info.ptr.file && (H5F_t*)obj_ptr == olist->file_info.ptr.file) ))
                 ||  (!olist->file_info.local &&
                         ( !olist->file_info.ptr.shared || (olist->file_info.ptr.shared && ((H5F_t*)obj_ptr)->shared == olist->file_info.ptr.shared) ))) {
-            /* Add the object's ID to the ID list, if appropriate */
-            if(olist->obj_id_list) {
-                olist->obj_id_list[olist->list_index] = obj_id;
-		olist->list_index++;
-	    }
-
-            /* Increment the number of open objects */
-	    if(olist->obj_id_count)
-	    	(*olist->obj_id_count)++;
-
-            /* Check if we've filled up the array.  Return TRUE only if
-             * we have filled up the array. Otherwise return FALSE(RET_VALUE is
-             * preset to FALSE) because H5I_iterate needs the return value of 
- 	     * FALSE to continue the iteration. */
-            if(olist->max_index>0 && olist->list_index>=olist->max_index)
-                HGOTO_DONE(TRUE)  /* Indicate that the iterator should stop */
+            add_obj = TRUE;
 	}
     } /* end if */
     else { /* either count opened object IDs or put the IDs on the list */
@@ -741,7 +743,7 @@ H5F_get_objects_cb(void *obj_ptr, hid_t obj_id, void *key)
 	    case H5I_ERROR_STACK:
 	    case H5I_NTYPES:
             default:
-                HGOTO_ERROR(H5E_ARGS, H5E_BADTYPE, FAIL, "unknown data object")
+                HGOTO_ERROR(H5E_ARGS, H5E_BADTYPE, H5_ITER_ERROR, "unknown data object")
 	} /* end switch */
 
         if((olist->file_info.local &&
@@ -752,24 +754,28 @@ H5F_get_objects_cb(void *obj_ptr, hid_t obj_id, void *key)
                     ((!olist->file_info.ptr.shared && olist->obj_type == H5I_DATATYPE && H5T_is_immutable((H5T_t *)obj_ptr) == FALSE)
                             || (!olist->file_info.ptr.shared && olist->obj_type != H5I_DATATYPE)
                             || (oloc && oloc->file && oloc->file->shared == olist->file_info.ptr.shared)))) {
-            /* Add the object's ID to the ID list, if appropriate */
-            if(olist->obj_id_list) {
-            	olist->obj_id_list[olist->list_index] = obj_id;
-		olist->list_index++;
-	    } /* end if */
-
-            /* Increment the number of open objects */
-	    if(olist->obj_id_count)
-            	(*olist->obj_id_count)++;
-
-            /* Check if we've filled up the array.  Return TRUE only if
-             * we have filled up the array. Otherwise return FALSE(RET_VALUE is
-             * preset to FALSE) because H5I_iterate needs the return value of 
-	     * FALSE to continue iterating. */
-            if(olist->max_index>0 && olist->list_index>=olist->max_index)
-                HGOTO_DONE(TRUE)  /* Indicate that the iterator should stop */
+            add_obj = TRUE;
     	} /* end if */
     } /* end else */
+
+    if(TRUE==add_obj) {
+        /* Add the object's ID to the ID list, if appropriate */
+        if(olist->obj_id_list) {
+            olist->obj_id_list[olist->list_index] = obj_id;
+	    olist->list_index++;
+	} /* end if */
+
+        /* Increment the number of open objects */
+	if(olist->obj_id_count)
+            (*olist->obj_id_count)++;
+
+        /* Check if we've filled up the array.  Return H5_ITER_STOP only if
+         * we have filled up the array. Otherwise return H5_ITER_CONT(RET_VALUE is
+         * preset to H5_ITER_CONT) because H5I_iterate needs the return value of 
+         * H5_ITER_CONT to continue the iteration. */
+        if(olist->max_nobjs>0 && olist->list_index>=olist->max_nobjs)
+            HGOTO_DONE(H5_ITER_STOP)  /* Indicate that the iterator should stop */
+    }
 
 done:
     FUNC_LEAVE_NOAPI(ret_value)
@@ -839,22 +845,25 @@ done:
 htri_t
 H5Fis_hdf5(const char *name)
 {
-    H5FD_t	*file = NULL;           /* Low-level file struct */
-    htri_t	ret_value;              /* Return value */
+    H5FD_t      *file = NULL;           /* Low-level file struct */
+    haddr_t     sig_addr;               /* Address of hdf5 file signature */
+    htri_t      ret_value;              /* Return value */
 
     FUNC_ENTER_API(FAIL)
     H5TRACE1("t", "*s", name);
 
     /* Check args and all the boring stuff. */
     if(!name || !*name)
-	HGOTO_ERROR(H5E_ARGS, H5E_BADRANGE, FAIL, "no file name specified")
+        HGOTO_ERROR(H5E_ARGS, H5E_BADRANGE, FAIL, "no file name specified")
 
     /* Open the file at the virtual file layer */
     if(NULL == (file = H5FD_open(name, H5F_ACC_RDONLY, H5P_FILE_ACCESS_DEFAULT, HADDR_UNDEF)))
-	HGOTO_ERROR(H5E_IO, H5E_CANTINIT, FAIL, "unable to open file")
+        HGOTO_ERROR(H5E_IO, H5E_CANTINIT, FAIL, "unable to open file")
 
     /* The file is an hdf5 file if the hdf5 file signature can be found */
-    ret_value = (HADDR_UNDEF != H5F_locate_signature(file, H5AC_ind_dxpl_id));
+    if(H5F_locate_signature(file, H5AC_ind_dxpl_id, &sig_addr) < 0)
+        HGOTO_ERROR(H5E_FILE, H5E_NOTHDF5, FAIL, "unable to locate file signature")
+    ret_value = (HADDR_UNDEF != sig_addr);
 
 done:
     /* Close the file */
@@ -889,7 +898,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static H5F_t *
-H5F_new(H5F_file_t *shared, hid_t fcpl_id, hid_t fapl_id, H5FD_t *lf)
+H5F_new(H5F_file_t *shared, unsigned flags, hid_t fcpl_id, hid_t fapl_id, H5FD_t *lf)
 {
     H5F_t	*f = NULL, *ret_value;
 
@@ -912,6 +921,7 @@ H5F_new(H5F_file_t *shared, hid_t fcpl_id, hid_t fapl_id, H5FD_t *lf)
         if(NULL == (f->shared = H5FL_CALLOC(H5F_file_t)))
             HGOTO_ERROR(H5E_FILE, H5E_NOSPACE, NULL, "can't allocate shared file structure")
 
+        f->shared->flags = flags;
 	f->shared->sohm_addr = HADDR_UNDEF;
 	f->shared->sohm_vers = HDF5_SHAREDHEADER_VERSION;
         for(u = 0; u < NELMTS(f->shared->fs_addr); u++)
@@ -1020,8 +1030,17 @@ H5F_new(H5F_file_t *shared, hid_t fcpl_id, hid_t fapl_id, H5FD_t *lf)
 
 done:
     if(!ret_value && f) {
-	if(!shared)
+	if(!shared) {
+            /* Attempt to clean up some of the shared file structures */
+            if(f->shared->efc)
+                if(H5F_efc_destroy(f->shared->efc) < 0)
+                    HDONE_ERROR(H5E_FILE, H5E_CANTRELEASE, NULL, "can't destroy external file cache")
+            if(f->shared->fcpl_id > 0)
+                if(H5I_dec_ref(f->shared->fcpl_id) < 0)
+                    HDONE_ERROR(H5E_FILE, H5E_CANTDEC, NULL, "can't close property list")
+
             f->shared = H5FL_FREE(H5F_file_t, f->shared);
+        } /* end if */
 	f = H5FL_FREE(H5F_t, f);
     } /* end if */
 
@@ -1307,7 +1326,7 @@ H5F_open(const char *name, unsigned flags, hid_t fcpl_id, hid_t fapl_id,
 	    HGOTO_ERROR(H5E_FILE, H5E_CANTOPENFILE, NULL, "file is already open for read-only")
 
         /* Allocate new "high-level" file struct */
-        if((file = H5F_new(shared, fcpl_id, fapl_id, NULL)) == NULL)
+        if((file = H5F_new(shared, flags, fcpl_id, fapl_id, NULL)) == NULL)
             HGOTO_ERROR(H5E_FILE, H5E_CANTOPENFILE, NULL, "unable to create new file object")
     } /* end if */
     else {
@@ -1328,23 +1347,16 @@ H5F_open(const char *name, unsigned flags, hid_t fcpl_id, hid_t fapl_id,
             } /* end if */
         } /* end if */
 
-        if(NULL == (file = H5F_new(NULL, fcpl_id, fapl_id, lf)))
+        if(NULL == (file = H5F_new(NULL, flags, fcpl_id, fapl_id, lf)))
             HGOTO_ERROR(H5E_FILE, H5E_CANTOPENFILE, NULL, "unable to create new file object")
-        file->shared->flags = flags;
     } /* end else */
+
+    /* Retain the name the file was opened with */
+    file->open_name = H5MM_xstrdup(name);
 
     /* Short cuts */
     shared = file->shared;
     lf = shared->lf;
-
-    /*
-     * The intent at the top level file struct are not necessarily the same as
-     * the flags at the bottom.	 The top level describes how the file can be
-     * accessed through the HDF5 library.  The bottom level describes how the
-     * file can be accessed through the C library.
-     */
-    file->intent = flags;
-    file->open_name = H5MM_xstrdup(name);
 
     /*
      * Read or write the file superblock, depending on whether the file is
@@ -2099,11 +2111,8 @@ H5Freopen(hid_t file_id)
 	HGOTO_ERROR(H5E_ARGS, H5E_BADTYPE, FAIL, "not a file")
 
     /* Get a new "top level" file struct, sharing the same "low level" file struct */
-    if(NULL == (new_file = H5F_new(old_file->shared, H5P_FILE_CREATE_DEFAULT, H5P_FILE_ACCESS_DEFAULT, NULL)))
+    if(NULL == (new_file = H5F_new(old_file->shared, 0, H5P_FILE_CREATE_DEFAULT, H5P_FILE_ACCESS_DEFAULT, NULL)))
 	HGOTO_ERROR(H5E_FILE, H5E_CANTINIT, FAIL, "unable to reopen file")
-
-    /* Keep old file's read/write intent in new file */
-    new_file->intent = old_file->intent;
 
     /* Duplicate old file's names */
     new_file->open_name = H5MM_xstrdup(old_file->open_name);
@@ -2367,8 +2376,10 @@ H5F_build_actual_name(const H5F_t *f, const H5P_genplist_t *fapl, const char *na
     } /* end else */
 
 done:
-    if(new_fapl_id > 0 && H5Pclose(new_fapl_id) < 0)
-        HGOTO_ERROR(H5E_FILE, H5E_CANTCLOSEOBJ, FAIL, "can't close duplicated FAPL")
+    /* Close the property list */
+    if(new_fapl_id > 0)
+        if(H5I_dec_app_ref(new_fapl_id) < 0)
+            HDONE_ERROR(H5E_FILE, H5E_CANTCLOSEOBJ, FAIL, "can't close duplicated FAPL")
 
     FUNC_LEAVE_NOAPI(ret_value)
 } /* H5F_build_actual_name() */
@@ -2595,16 +2606,15 @@ done:
  *              david.pitt@bigpond.com
  *              Apr 27, 2004
  *
- * Modifications:
- *
  *-------------------------------------------------------------------------
  */
 herr_t
 H5Fget_filesize(hid_t file_id, hsize_t *size)
 {
-    H5F_t      *file;                   /* File object for file ID */
-    haddr_t    eof;                     /* End of file address */
-    herr_t     ret_value = SUCCEED;     /* Return value */
+    H5F_t       *file;                  /* File object for file ID */
+    haddr_t     eof;                    /* End of file address */
+    haddr_t     base_addr;              /* Base address for the file */
+    herr_t      ret_value = SUCCEED;    /* Return value */
 
     FUNC_ENTER_API(FAIL)
     H5TRACE2("e", "i*h", file_id, size);
@@ -2614,10 +2624,12 @@ H5Fget_filesize(hid_t file_id, hsize_t *size)
         HGOTO_ERROR(H5E_ARGS, H5E_BADVALUE, FAIL, "not a file ID")
 
     /* Go get the actual file size */
-    if(HADDR_UNDEF == (eof = H5FDget_eof(file->shared->lf)))
+    if(HADDR_UNDEF == (eof = H5FD_get_eof(file->shared->lf)))
         HGOTO_ERROR(H5E_FILE, H5E_CANTGET, FAIL, "unable to get file size")
+    base_addr = H5FD_get_base_addr(file->shared->lf);
 
-    *size = (hsize_t)eof;
+    if(size)
+        *size = (hsize_t)(eof + base_addr);     /* Convert relative base address for file to absolute address */
 
 done:
     FUNC_LEAVE_API(ret_value)

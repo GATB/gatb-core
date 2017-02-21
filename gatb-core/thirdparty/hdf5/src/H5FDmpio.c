@@ -44,6 +44,10 @@
  */
 static hid_t H5FD_MPIO_g = 0;
 
+/* Whether to allow collective I/O operations */
+/* (Value can be set from environment variable also) */
+hbool_t H5FD_mpi_opt_types_g = TRUE;
+
 /*
  * The view is set to this value
  */
@@ -187,13 +191,10 @@ H5FD_mpio_init_interface(void)
  *    library.
  *
  * Return:  Success:  The driver ID for the mpio driver.
- *
  *    Failure:  Negative.
  *
  * Programmer:  Robb Matzke
  *              Thursday, August 5, 1999
- *
- * Modifications:
  *
  *-------------------------------------------------------------------------
  */
@@ -201,37 +202,43 @@ hid_t
 H5FD_mpio_init(void)
 {
 #ifdef H5FDmpio_DEBUG
-    static int H5FD_mpio_Debug_inited=0;
+    static int H5FD_mpio_Debug_inited = 0;
 #endif /* H5FDmpio_DEBUG */
-    hid_t ret_value;          /* Return value */
+    const char *s;              /* String for environment variables */
+    hid_t ret_value;        	/* Return value */
 
     FUNC_ENTER_NOAPI(FAIL)
 
-    if (H5I_VFL!=H5I_get_type(H5FD_MPIO_g))
-        H5FD_MPIO_g = H5FD_register((const H5FD_class_t *)&H5FD_mpio_g,sizeof(H5FD_class_mpi_t),FALSE);
+    /* Register the MPI-IO VFD, if it isn't already */
+    if(H5I_VFL != H5I_get_type(H5FD_MPIO_g))
+        H5FD_MPIO_g = H5FD_register((const H5FD_class_t *)&H5FD_mpio_g, sizeof(H5FD_class_mpi_t), FALSE);
+
+    /* Allow MPI buf-and-file-type optimizations? */
+    s = HDgetenv("HDF5_MPI_OPT_TYPES");
+    if(s && HDisdigit(*s))
+        H5FD_mpi_opt_types_g = (hbool_t)HDstrtol(s, NULL, 0);
 
 #ifdef H5FDmpio_DEBUG
-    if (!H5FD_mpio_Debug_inited)
-    {
-  /* set debug mask */
-  /* Should this be done in H5F global initialization instead of here? */
-        const char *s = HDgetenv ("H5FD_mpio_Debug");
-        if (s) {
-      while (*s){
-    H5FD_mpio_Debug[(int)*s]++;
-    s++;
-      }
-        }
-  H5FD_mpio_Debug_inited++;
-    }
+    if(!H5FD_mpio_Debug_inited) {
+        /* Retrieve MPI-IO debugging environment variable */
+        s = HDgetenv("H5FD_mpio_Debug");
+        if(s) {
+            /* Set debug mask */
+	    while(*s) {
+		H5FD_mpio_Debug[(int)*s]++;
+		s++;
+	    } /* end while */
+        } /* end if */
+        H5FD_mpio_Debug_inited++;
+    } /* end if */
 #endif /* H5FDmpio_DEBUG */
 
     /* Set return value */
-    ret_value=H5FD_MPIO_g;
+    ret_value = H5FD_MPIO_g;
 
 done:
     FUNC_LEAVE_NOAPI(ret_value)
-}
+} /* end H5FD_mpio_init() */
 
 
 /*---------------------------------------------------------------------------
@@ -825,10 +832,10 @@ H5FD_mpio_fapl_free(void *_fa)
 if (H5FD_mpio_Debug[(int)'t'])
 fprintf(stderr, "in H5FD_mpio_fapl_free\n");
 #endif
-    assert(fa);
+    HDassert(fa);
 
     /* Free the internal communicator and INFO object */
-    assert(MPI_COMM_NULL!=fa->comm);
+    HDassert(MPI_COMM_NULL!=fa->comm);
     H5FD_mpi_comm_info_free(&fa->comm, &fa->info);
     H5MM_xfree(fa);
 
@@ -1167,8 +1174,8 @@ H5FD_mpio_close(H5FD_t *_file)
     if (H5FD_mpio_Debug[(int)'t'])
       fprintf(stdout, "Entering H5FD_mpio_close\n");
 #endif
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
 
     /* MPI_File_close sets argument to MPI_FILE_NULL */
     if (MPI_SUCCESS != (mpi_code=MPI_File_close(&(file->f)/*in,out*/)))
@@ -1255,8 +1262,8 @@ H5FD_mpio_get_eoa(const H5FD_t *_file, H5FD_mem_t UNUSED type)
 
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
 
     FUNC_LEAVE_NOAPI(file->eoa)
 }
@@ -1290,8 +1297,8 @@ H5FD_mpio_set_eoa(H5FD_t *_file, H5FD_mem_t UNUSED type, haddr_t addr)
 
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
 
     file->eoa = addr;
 
@@ -1335,8 +1342,8 @@ H5FD_mpio_get_eof(const H5FD_t *_file)
 
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
 
     FUNC_LEAVE_NOAPI(file->eof)
 }
@@ -1466,12 +1473,12 @@ H5FD_mpio_read(H5FD_t *_file, H5FD_mem_t UNUSED type, hid_t dxpl_id, haddr_t add
     if (H5FD_mpio_Debug[(int)'t'])
       fprintf(stdout, "Entering H5FD_mpio_read\n" );
 #endif
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
     /* Make certain we have the correct type of property list */
-    assert(H5I_GENPROP_LST==H5I_get_type(dxpl_id));
-    assert(TRUE==H5P_isa_class(dxpl_id,H5P_DATASET_XFER));
-    assert(buf);
+    HDassert(H5I_GENPROP_LST==H5I_get_type(dxpl_id));
+    HDassert(TRUE==H5P_isa_class(dxpl_id,H5P_DATASET_XFER));
+    HDassert(buf);
 
     /* Portably initialize MPI status variable */
     HDmemset(&mpi_stat,0,sizeof(MPI_Status));
@@ -1750,12 +1757,12 @@ H5FD_mpio_write(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, haddr_t addr,
     if (H5FD_mpio_Debug[(int)'t'])
       fprintf(stdout, "Entering H5FD_mpio_write\n" );
 #endif
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
     /* Make certain we have the correct type of property list */
-    assert(H5I_GENPROP_LST==H5I_get_type(dxpl_id));
-    assert(TRUE==H5P_isa_class(dxpl_id,H5P_DATASET_XFER));
-    assert(buf);
+    HDassert(H5I_GENPROP_LST==H5I_get_type(dxpl_id));
+    HDassert(TRUE==H5P_isa_class(dxpl_id,H5P_DATASET_XFER));
+    HDassert(buf);
 
     /* Portably initialize MPI status variable */
     HDmemset(&mpi_stat, 0, sizeof(MPI_Status));
@@ -2056,8 +2063,8 @@ H5FD_mpio_mpi_rank(const H5FD_t *_file)
 
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
 
     FUNC_LEAVE_NOAPI(file->mpi_rank)
 } /* end H5FD_mpio_mpi_rank() */
@@ -2085,8 +2092,8 @@ H5FD_mpio_mpi_size(const H5FD_t *_file)
 
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
 
     FUNC_LEAVE_NOAPI(file->mpi_size)
 } /* end H5FD_mpio_mpi_size() */
@@ -2115,8 +2122,8 @@ H5FD_mpio_communicator(const H5FD_t *_file)
 
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
-    assert(file);
-    assert(H5FD_MPIO==file->pub.driver_id);
+    HDassert(file);
+    HDassert(H5FD_MPIO==file->pub.driver_id);
 
     FUNC_LEAVE_NOAPI(file->comm)
 }

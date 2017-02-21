@@ -1,6 +1,6 @@
-SET (CTEST_CUSTOM_MAXIMUM_NUMBER_OF_WARNINGS 1500)
+set (CTEST_CUSTOM_MAXIMUM_NUMBER_OF_WARNINGS 3000)
  
-SET (CTEST_CUSTOM_WARNING_EXCEPTION
+set (CTEST_CUSTOM_WARNING_EXCEPTION
     ${CTEST_CUSTOM_WARNING_EXCEPTION}
     "H5detect.c.[0-9]+.[ \t]*:[ \t]*warning C4090:"
     "H5detect.c.[0-9]+.[ \t]*:[ \t]*warning:[ \t]*passing argument"
@@ -17,25 +17,26 @@ SET (CTEST_CUSTOM_WARNING_EXCEPTION
 #    "fpp:[ \t]*warning:[ \t]*cannot remove H5_DEBUG_API - not a predefined macro"
 )
  
-SET (CTEST_CUSTOM_MEMCHECK_IGNORE
+set (CTEST_CUSTOM_MEMCHECK_IGNORE
     ${CTEST_CUSTOM_MEMCHECK_IGNORE}
-    flush1           #designed to fail
-    flush2           #designed to need flush1
-    error_test       #uses runTest.cmake
-    err_compat       #uses runTest.cmake
-    links_env        #uses runTest.cmake
-    testlibinfo      #uses grepTest.cmake
-    h5test-clear-testhdf5-objects
-    h5test-clear-objects
-    h5test-clear-cache-objects
-    h5test-clear-cache_api-objects
-    h5test-clear-ttsafe-objects
-    h5test-clear-err_compat-objects
-    h5test-clear-error_test-objects
-    h5test-clear-links_env-objects
+    H5TEST-flush1           #designed to fail
+    H5TEST-flush2           #designed to need flush1
+    H5TEST-error_test       #uses runTest.cmake
+    H5TEST-err_compat       #uses runTest.cmake
+    H5TEST-links_env        #uses runTest.cmake
+    H5TEST-testlibinfo      #uses grepTest.cmake
+    H5TEST-clear-testhdf5-objects
+    H5TEST-clear-objects
+    H5TEST-clear-cache-objects
+    H5TEST-clear-cache_api-objects
+    H5TEST-clear-ttsafe-objects
+    H5TEST-clear-err_compat-objects
+    H5TEST-clear-error_test-objects
+    H5TEST-clear-links_env-objects
     PERFORM_h5perform-clear-objects
-    hl_test-clear-objects
-    hl_fortran_test-clear-objects
+    HL_TOOLS-clear-objects
+    HL_test-clear-objects
+    HL_fortran_test-clear-objects
     ######### tools/h5copy #########
     H5COPY-clearall-objects
     ######### tools/h5diff #########
@@ -201,6 +202,7 @@ SET (CTEST_CUSTOM_MEMCHECK_IGNORE
     H5REPACK_VERIFY_LAYOUT-contig_small_fixed_compa     #uses grepTest.cmake
     H5REPACK_VERIFY_LAYOUT_ALL-layout_long_switches     #uses grepTest.cmake
     H5REPACK_VERIFY_LAYOUT_ALL-layout_short_switches    #uses grepTest.cmake
+    H5REPACK-plugin
     ######### tools/h5stat #########
     H5STAT-clearall-objects
     ######### tools/misc #########
@@ -208,5 +210,5 @@ SET (CTEST_CUSTOM_MEMCHECK_IGNORE
     H5MKGRP-clearall-objects
     ######### examples #########
     EXAMPLES-clear-objects
-    cpp_ex-clear-objects
+    CPP_ex-clear-objects
 )
