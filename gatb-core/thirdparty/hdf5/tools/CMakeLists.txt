@@ -19,31 +19,31 @@ if (NOT BUILD_TESTING)
 endif (NOT BUILD_TESTING)
 
 #-- Add the h5diff and test executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5diff)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5diff)
 
 #-- Add the h5ls executable
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5ls)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5ls)
 
 #-- Misc Executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/misc)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/misc)
 
 #-- Add the h5import and test executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5import)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5import)
 
 #-- h5Repack executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5repack)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5repack)
 
 #-- Add the h5dump and test executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5jam)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5jam)
 
 #-- Add the h5copy and test executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5copy)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5copy)
 
 #-- Add the h5stat and test executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5stat)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5stat)
 
 #-- Add the h5dump and test executables
 add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5dump)
 
 #-- Add the perform and test executables
-add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/perform)
+#add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/perform)

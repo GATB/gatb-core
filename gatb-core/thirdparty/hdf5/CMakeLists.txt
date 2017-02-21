@@ -141,18 +141,18 @@ set (HDF5_HL_F90_C_LIB_NAME     "${HDF5_EXTERNAL_LIB_PREFIX}${HDF5_HL_F90_C_LIB_
 #-----------------------------------------------------------------------------
 # Set the target names of all the libraries
 #-----------------------------------------------------------------------------
-set (HDF5_LIB_TARGET              "${HDF5_LIB_CORENAME}-static")
-set (HDF5_TEST_LIB_TARGET         "${HDF5_TEST_LIB_CORENAME}-static")
-set (HDF5_CPP_LIB_TARGET          "${HDF5_CPP_LIB_CORENAME}-static")
-set (HDF5_HL_LIB_TARGET           "${HDF5_HL_LIB_CORENAME}-static")
-set (HDF5_HL_CPP_LIB_TARGET       "${HDF5_HL_CPP_LIB_CORENAME}-static")
-set (HDF5_TOOLS_LIB_TARGET        "${HDF5_TOOLS_LIB_CORENAME}-static")
-set (HDF5_F90_LIB_TARGET          "${HDF5_F90_LIB_CORENAME}-static")
-set (HDF5_F90_C_LIB_TARGET        "${HDF5_F90_C_LIB_CORENAME}-static")
-set (HDF5_F90_TEST_LIB_TARGET     "${HDF5_F90_TEST_LIB_CORENAME}-static")
-set (HDF5_F90_C_TEST_LIB_TARGET   "${HDF5_F90_C_TEST_LIB_CORENAME}-static")
-set (HDF5_HL_F90_LIB_TARGET       "${HDF5_HL_F90_LIB_CORENAME}-static")
-set (HDF5_HL_F90_C_LIB_TARGET     "${HDF5_HL_F90_C_LIB_CORENAME}-static")
+set (HDF5_LIB_TARGET              "${HDF5_LIB_CORENAME}")
+set (HDF5_TEST_LIB_TARGET         "${HDF5_TEST_LIB_CORENAME}")
+set (HDF5_CPP_LIB_TARGET          "${HDF5_CPP_LIB_CORENAME}")
+set (HDF5_HL_LIB_TARGET           "${HDF5_HL_LIB_CORENAME}")
+set (HDF5_HL_CPP_LIB_TARGET       "${HDF5_HL_CPP_LIB_CORENAME}")
+set (HDF5_TOOLS_LIB_TARGET        "${HDF5_TOOLS_LIB_CORENAME}")
+set (HDF5_F90_LIB_TARGET          "${HDF5_F90_LIB_CORENAME}")
+set (HDF5_F90_C_LIB_TARGET        "${HDF5_F90_C_LIB_CORENAME}")
+set (HDF5_F90_TEST_LIB_TARGET     "${HDF5_F90_TEST_LIB_CORENAME}")
+set (HDF5_F90_C_TEST_LIB_TARGET   "${HDF5_F90_C_TEST_LIB_CORENAME}")
+set (HDF5_HL_F90_LIB_TARGET       "${HDF5_HL_F90_LIB_CORENAME}")
+set (HDF5_HL_F90_C_LIB_TARGET     "${HDF5_HL_F90_C_LIB_CORENAME}")
 set (HDF5_LIBSH_TARGET            "${HDF5_LIB_CORENAME}-shared")
 set (HDF5_TEST_LIBSH_TARGET       "${HDF5_TEST_LIB_CORENAME}-shared")
 set (HDF5_CPP_LIBSH_TARGET        "${HDF5_CPP_LIB_CORENAME}-shared")
@@ -361,9 +361,9 @@ endif (NOT HDF5_EXTERNALLY_CONFIGURED)
 # Targets built within this project are exported at Install time for use
 # by other projects using FindHDF5.
 #-----------------------------------------------------------------------------
-if (NOT HDF5_EXPORTED_TARGETS)
-  set (HDF5_EXPORTED_TARGETS "hdf5-targets")
-endif (NOT HDF5_EXPORTED_TARGETS)
+#if (NOT HDF5_EXPORTED_TARGETS)
+#  set (HDF5_EXPORTED_TARGETS "hdf5-targets")
+#endif (NOT HDF5_EXPORTED_TARGETS)
 
 #-----------------------------------------------------------------------------
 # To include a library in the list exported by the project AT BUILD TIME,
@@ -394,7 +394,7 @@ endif (HDF5_BUILD_FRAMEWORKS AND NOT BUILD_SHARED_LIBS)
 #-----------------------------------------------------------------------------
 # Option to Build Shared and Static libs, default is static
 #-----------------------------------------------------------------------------
-option (BUILD_SHARED_LIBS "Build Shared Libraries" ON)
+option (BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
 set (H5_ENABLE_SHARED_LIB NO)
 if (BUILD_SHARED_LIBS)
   set (H5_ENABLE_SHARED_LIB YES)
