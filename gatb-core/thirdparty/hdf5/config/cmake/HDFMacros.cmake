@@ -82,7 +82,7 @@ MACRO (HDF_SET_LIB_OPTIONS libtarget libname libtype)
       set (LIB_DEBUG_NAME "${libname}_D")
     else (WIN32)
       set (LIB_RELEASE_NAME "${libname}")
-      set (LIB_DEBUG_NAME "${libname}_debug")
+      set (LIB_DEBUG_NAME "${libname}") # (rayan) changed that. used to be ${libname}_debug
     endif (WIN32)
   else (${libtype} MATCHES "SHARED")
     if (WIN32)
@@ -92,10 +92,10 @@ MACRO (HDF_SET_LIB_OPTIONS libtarget libname libtype)
       # if the generator supports configuration types or if the CMAKE_BUILD_TYPE has a value
       if (CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)
         set (LIB_RELEASE_NAME "${libname}")
-        set (LIB_DEBUG_NAME "${libname}_debug")
+        set (LIB_DEBUG_NAME "${libname}") # (rayan) changed that. used to be ${libname}_debug
       else (CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)
         set (LIB_RELEASE_NAME "lib${libname}")
-        set (LIB_DEBUG_NAME "lib${libname}_debug")
+        set (LIB_DEBUG_NAME "lib${libname}") # (rayan) changed that. used to be ${libname}_debug
       endif (CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE)
     endif (WIN32)
   endif (${libtype} MATCHES "SHARED")
