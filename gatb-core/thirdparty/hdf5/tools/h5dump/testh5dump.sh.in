@@ -19,10 +19,6 @@ srcdir=@srcdir@
 
 USE_FILTER_SZIP="@USE_FILTER_SZIP@"
 USE_FILTER_DEFLATE="@USE_FILTER_DEFLATE@"
-USE_FILTER_SHUFFLE="@USE_FILTER_SHUFFLE@"
-USE_FILTER_FLETCHER32="@USE_FILTER_FLETCHER32@"
-USE_FILTER_NBIT="@USE_FILTER_NBIT@"
-USE_FILTER_SCALEOFFSET="@USE_FILTER_SCALEOFFSET@"
 
 TESTNAME=h5dump
 EXIT_SUCCESS=0
@@ -107,6 +103,7 @@ $SRC_H5DUMP_TESTFILES/tcmpdattrintsize.h5
 $SRC_H5DUMP_TESTFILES/tcmpdintsize.h5
 $SRC_H5DUMP_TESTFILES/tcompound.h5
 $SRC_H5DUMP_TESTFILES/tcompound_complex.h5
+$SRC_H5DUMP_TESTFILES/tcompound_complex2.h5
 $SRC_H5DUMP_TESTFILES/tdatareg.h5
 $SRC_H5DUMP_TESTFILES/tdset.h5
 $SRC_H5DUMP_TESTFILES/tempty.h5
@@ -136,6 +133,7 @@ $SRC_H5DUMP_TESTFILES/tgrp_comments.h5
 $SRC_H5DUMP_TESTFILES/thlink.h5
 $SRC_H5DUMP_TESTFILES/thyperslab.h5
 $SRC_H5DUMP_TESTFILES/tintsattrs.h5
+$SRC_H5DUMP_TESTFILES/tints4dims.h5
 $SRC_H5DUMP_TESTFILES/tlarge_objname.h5
 #$SRC_H5DUMP_TESTFILES/tldouble.h5
 $SRC_H5DUMP_TESTFILES/tlonglinks.h5
@@ -171,6 +169,7 @@ $SRC_H5DUMP_TESTFILES/tvldtypes2.h5
 $SRC_H5DUMP_TESTFILES/tvldtypes3.h5
 $SRC_H5DUMP_TESTFILES/tvldtypes4.h5
 $SRC_H5DUMP_TESTFILES/tvldtypes5.h5
+$SRC_H5DUMP_TESTFILES/tvlenstr_array.h5
 $SRC_H5DUMP_TESTFILES/tvlstr.h5
 $SRC_H5DUMP_TESTFILES/tvms.h5
 "
@@ -178,6 +177,7 @@ $SRC_H5DUMP_TESTFILES/tvms.h5
 LIST_OTHER_TEST_FILES="
 $SRC_H5DUMP_TESTFILES/charsets.ddl
 $SRC_H5DUMP_TESTFILES/filter_fail.ddl
+$SRC_H5DUMP_TESTFILES/non_existing.ddl
 $SRC_H5DUMP_TESTFILES/packedbits.ddl
 $SRC_H5DUMP_TESTFILES/tall-1.ddl
 $SRC_H5DUMP_TESTFILES/tall-2.ddl
@@ -229,6 +229,7 @@ $SRC_H5DUMP_TESTFILES/tcomp-1.ddl
 $SRC_H5DUMP_TESTFILES/tcomp-2.ddl
 $SRC_H5DUMP_TESTFILES/tcomp-3.ddl
 $SRC_H5DUMP_TESTFILES/tcomp-4.ddl
+$SRC_H5DUMP_TESTFILES/tcompound_complex2.ddl
 $SRC_H5DUMP_TESTFILES/tcompact.ddl
 $SRC_H5DUMP_TESTFILES/tcontents.ddl
 $SRC_H5DUMP_TESTFILES/tcontiguos.ddl
@@ -266,6 +267,12 @@ $SRC_H5DUMP_TESTFILES/tindicessub2.ddl
 $SRC_H5DUMP_TESTFILES/tindicessub3.ddl
 $SRC_H5DUMP_TESTFILES/tindicessub4.ddl
 $SRC_H5DUMP_TESTFILES/tindicesyes.ddl
+$SRC_H5DUMP_TESTFILES/tints4dims.ddl
+$SRC_H5DUMP_TESTFILES/tints4dimsBlock2.ddl
+$SRC_H5DUMP_TESTFILES/tints4dimsBlockEq.ddl
+$SRC_H5DUMP_TESTFILES/tints4dimsCount2.ddl
+$SRC_H5DUMP_TESTFILES/tints4dimsCountEq.ddl
+$SRC_H5DUMP_TESTFILES/tints4dimsStride2.ddl
 $SRC_H5DUMP_TESTFILES/tintsattrs.ddl
 $SRC_H5DUMP_TESTFILES/tlarge_objname.ddl
 #$SRC_H5DUMP_TESTFILES/tldouble.ddl 
@@ -336,6 +343,7 @@ $SRC_H5DUMP_TESTFILES/tvldtypes2.ddl
 $SRC_H5DUMP_TESTFILES/tvldtypes3.ddl
 $SRC_H5DUMP_TESTFILES/tvldtypes4.ddl
 $SRC_H5DUMP_TESTFILES/tvldtypes5.ddl
+$SRC_H5DUMP_TESTFILES/tvlenstr_array.ddl
 $SRC_H5DUMP_TESTFILES/tvlstr.ddl
 $SRC_H5DUMP_TESTFILES/tvms.ddl
 $SRC_H5DUMP_TESTFILES/twidedisplay.ddl
@@ -349,6 +357,7 @@ $SRC_H5DUMP_TESTFILES/tbinregR.exp
 
 LIST_ERROR_TEST_FILES="
 ${SRC_H5DUMP_ERRORFILES}/filter_fail.err
+${SRC_H5DUMP_ERRORFILES}/non_existing.err
 ${SRC_H5DUMP_ERRORFILES}/tall-1.err
 ${SRC_H5DUMP_ERRORFILES}/tall-2A.err
 ${SRC_H5DUMP_ERRORFILES}/tall-2A0.err
@@ -438,8 +447,21 @@ TESTING() {
 # the actual output file is calculated by replacing the `.ddl' with
 # `.out'.  The actual output is not removed if $HDF5_NOCLEANUP has a
 # non-zero value.
+# If $1 == ignorecase then do caseless CMP and DIFF.
 # ADD_H5_TEST
 TOOLTEST() {
+    # check if caseless compare and diff requested
+    if [ "$1" = ignorecase ]; then
+	caseless="-i"
+	# replace cmp with diff which runs much longer.
+	xCMP="$DIFF -i"
+	shift
+    else
+	caseless=""
+	# stick with faster cmp if ignorecase is not requested.
+	xCMP="$CMP"
+    fi
+
     expect="$TESTDIR/$1"
     actual="$TESTDIR/`basename $1 .ddl`.out"
     actual_err="$TESTDIR/`basename $1 .ddl`.err"
@@ -465,13 +487,13 @@ TOOLTEST() {
     # Create the expect file if it doesn't yet exist.
      echo " CREATED"
      cp $actual $expect
-    elif $CMP $expect $actual; then
+    elif $xCMP $expect $actual > /dev/null 2>&1 ; then
      echo " PASSED"
     else
      echo "*FAILED*"
      echo "    Expected result (*.ddl) differs from actual result (*.out)"
      nerrors="`expr $nerrors + 1`"
-     test yes = "$verbose" && $DIFF $expect $actual |sed 's/^/    /'
+     test yes = "$verbose" && $DIFF $caseless $expect $actual |sed 's/^/    /'
     fi
 
     # Clean up output file
@@ -1014,6 +1036,9 @@ TOOLTEST tcomp-2.ddl --enable-error-stack -N /type1 --any_path /type2 --any_path
 TOOLTEST4 tcomp-3.ddl --enable-error-stack -t /#6632 -g /group2 tcompound.h5
 # test complicated compound datatype
 TOOLTEST tcomp-4.ddl --enable-error-stack tcompound_complex.h5
+TOOLTEST tcompound_complex.ddl --enable-error-stack tcompound_complex2.h5
+# tests for bitfields and opaque data types
+TOOLTEST tbitnopaque.ddl --enable-error-stack tbitnopaque.h5
 
 #test for the nested compound type
 TOOLTEST tnestcomp-1.ddl --enable-error-stack tnestedcomp.h5
@@ -1046,6 +1071,7 @@ TOOLTEST tvldtypes5.ddl --enable-error-stack tvldtypes5.h5
 
 #test for file with variable length string data
 TOOLTEST tvlstr.ddl --enable-error-stack tvlstr.h5
+TOOLTEST tvlenstr_array.ddl --enable-error-stack tvlenstr_array.h5
 
 # test for files with array data
 TOOLTEST tarray1.ddl --enable-error-stack tarray1.h5
@@ -1092,6 +1118,12 @@ TOOLTEST tall-4s.ddl --enable-error-stack --dataset=/g1/g1.1/dset1.1.1 --start=1
 TOOLTEST tall-5s.ddl --enable-error-stack -d "/g1/g1.1/dset1.1.2[0;2;10;]" tall.h5
 TOOLTEST tdset-3s.ddl --enable-error-stack -d "/dset1[1,1;;;]" tdset.h5
 TOOLTEST tno-subset.ddl --enable-error-stack --no-compact-subset -d "AHFINDERDIRECT::ah_centroid_t[0] it=0 tl=0" tno-subset.h5
+
+TOOLTEST tints4dimsCount2.ddl --enable-error-stack -d FourDimInts -s 0,0,0,0 -c 2,2,2,2 tints4dims.h5
+TOOLTEST tints4dimsBlock2.ddl --enable-error-stack -d FourDimInts -s 0,0,0,0 -c 1,1,1,1 -k 2,2,2,2 tints4dims.h5
+TOOLTEST tints4dimsStride2.ddl --enable-error-stack -d FourDimInts -s 0,0,0,0 -S 2,2,2,2 -c 2,2,2,2 tints4dims.h5
+TOOLTEST tints4dimsCountEq.ddl --enable-error-stack -d FourDimInts -s 0,0,0,0 -S 2,2,1,1 -k 1,2,1,1 -c 2,2,4,4 tints4dims.h5
+TOOLTEST tints4dimsBlockEq.ddl --enable-error-stack -d FourDimInts -s 0,0,0,0 -S 2,2,1,1 -c 2,2,1,1 -k 1,2,4,4 tints4dims.h5
 
 # test printing characters in ASCII instead of decimal
 TOOLTEST tchar1.ddl --enable-error-stack -r tchar.h5
@@ -1181,7 +1213,7 @@ TOOLTEST tallfilters.ddl --enable-error-stack -H -p -d all  tfilters.h5
 # user defined
 TOOLTEST tuserfilter.ddl --enable-error-stack -H  -p -d myfilter  tfilters.h5
 
-if test $USE_FILTER_DEFLATE = "yes" -a $USE_FILTER_SHUFFLE = "yes" -a $USE_FILTER_FLETCHER32 = "yes" -a $USE_FILTER_NBIT = "yes" -a $USE_FILTER_SCALEOFFSET = "yes" ; then
+if test $USE_FILTER_DEFLATE = "yes" ; then
   # data read internal filters
   TOOLTEST treadintfilter.ddl --enable-error-stack -d deflate -d shuffle -d fletcher32 -d nbit -d scaleoffset tfilters.h5
   if test $USE_FILTER_SZIP = "yes"; then
@@ -1293,6 +1325,9 @@ TOOLTEST5 filter_fail.ddl --enable-error-stack filter_fail.h5
 
 # test for -o -y for dataset with attributes
 TOOLTEST2 tall-6.exp --enable-error-stack -y -o tall-6.txt -d /g1/g1.1/dset1.1.1 tall.h5
+
+# test for non-existing file
+TOOLTEST3 non_existing.ddl --enable-error-stack tgroup.h5 non_existing.h5
 
 # Clean up temporary files/directories
 CLEAN_TESTFILES_AND_TESTDIR

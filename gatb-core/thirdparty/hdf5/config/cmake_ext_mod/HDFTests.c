@@ -104,27 +104,6 @@ return 0;
 int main() { return 0; }
 #endif /* STDC_HEADERS */
 
-#ifdef HAVE_TM_ZONE
-
-#include <sys/types.h>
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-#include <time.h>
-SIMPLE_TEST(struct tm tm; tm.tm_zone);
-
-#endif /* HAVE_TM_ZONE */
-
-#ifdef HAVE_STRUCT_TM_TM_ZONE
-
-#include <sys/types.h>
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-#include <time.h>
-SIMPLE_TEST(struct tm tm; tm.tm_zone);
-
-#endif /* HAVE_STRUCT_TM_TM_ZONE */
 
 #ifdef HAVE_ATTRIBUTE
 
@@ -234,7 +213,7 @@ SIMPLE_TEST(struct stat sb; sb.st_blocks=0);
 
 int main(void)
 {
-  char *llwidthArgs[] = { "l64", "l", "L", "q", "ll", NULL };
+  char *llwidthArgs[] = { "I64", "l64", "l", "L", "q", "ll", NULL };
   char *s = malloc(128);
   char **currentArg = NULL;
   LL_TYPE x = (LL_TYPE)1048576 * (LL_TYPE)1048576;
@@ -344,6 +323,21 @@ int main(void)
        SIMPLE_TEST(posix_memalign());
 #endif
 
+#ifdef HAVE_DEFAULT_SOURCE
+/* check default source */
+#include <features.h>
+
+int
+main(void)
+{
+#ifdef __GLIBC_PREREQ
+  return __GLIBC_PREREQ(2,19);
+#else
+  return 0;
+#endif /* defined(__GLIBC_PREREQ) */
+}
+#endif
+
 #ifdef TEST_LFS_WORKS
 /* Return 0 when LFS is available and 1 otherwise.  */
 #define _LARGEFILE_SOURCE
@@ -392,13 +386,6 @@ int main(void)
  if(tz.tz_minuteswest == 7777 && tz.tz_dsttime == 7)
      return 1;
  else return 0;
-}
-#endif
-
-#ifdef LONE_COLON
-int main(int argc, char * argv) 
-{
-  return 0;
 }
 #endif
 
@@ -467,13 +454,19 @@ SIMPLE_TEST(struct text_info w; w.screenwidth=0);
 
 #endif /* HAVE_TM_GMTOFF */
 
-
-#if defined( INLINE_TEST_inline ) || defined( INLINE_TEST___inline__ ) || defined( INLINE_TEST___inline )
+#if defined( HAVE_INLINE ) || defined( HAVE___INLINE__ ) || defined( HAVE___INLINE )
 #ifndef __cplusplus
+#if defined( HAVE_INLINE )
+#  define INLINE_KW inline
+#elif defined ( HAVE___INLINE__ )
+#  define INLINE_KW __inline__
+#elif defined ( HAVE___INLINE )
+#  define INLINE_KW __inline
+#endif /* HAVE_INLINE */
 typedef int foo_t;
-static INLINE_TEST_INLINE foo_t static_foo () { return 0; }
-INLINE_TEST_INLINE foo_t foo () {return 0; }
-int main() { return 0; }
-#endif
+static INLINE_KW foo_t static_foo () { return 0; }
+INLINE_KW foo_t foo () {return 0; }
+int main(void) { return 0; }
+#endif /* __cplusplus */
+#endif /* defined( HAVE_INLINE ) || defined( HAVE___INLINE__ ) || defined( HAVE___INLINE ) */
 
-#endif /* INLINE_TEST */

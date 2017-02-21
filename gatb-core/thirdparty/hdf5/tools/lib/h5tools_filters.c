@@ -13,7 +13,7 @@
  * access to either file, you may request a copy from help@hdfgroup.org.     *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#include "hdf5.h"
+#include "H5private.h"
 #include "h5tools.h"
 
 /*-------------------------------------------------------------------------
@@ -107,44 +107,24 @@ int h5tools_canreadf(const char* name, /* object name, serves also as boolean pr
 			 *-------------------------------------------------------------------------
 			 */
 		case H5Z_FILTER_SHUFFLE:
-#ifndef H5_HAVE_FILTER_SHUFFLE
-			if (name)
-				print_warning(name,"shuffle");
-			return 0;
-#endif
 			break;
 			/*-------------------------------------------------------------------------
 			 * H5Z_FILTER_FLETCHER32 3 , fletcher32 checksum of EDC
 			 *-------------------------------------------------------------------------
 			 */
 		case H5Z_FILTER_FLETCHER32:
-#ifndef H5_HAVE_FILTER_FLETCHER32
-			if (name)
-				print_warning(name,"fletcher32");
-			return 0;
-#endif
 			break;
 			/*-------------------------------------------------------------------------
 			 * H5Z_FILTER_NBIT
 			 *-------------------------------------------------------------------------
 			 */
 		case H5Z_FILTER_NBIT:
-#ifndef H5_HAVE_FILTER_NBIT
-			if (name)
-				print_warning(name,"nbit");
-			return 0;
-#endif
 			break;
 			/*-------------------------------------------------------------------------
 			 * H5Z_FILTER_SCALEOFFSET
 			 *-------------------------------------------------------------------------
 			 */
 		case H5Z_FILTER_SCALEOFFSET:
-#ifndef H5_HAVE_FILTER_SCALEOFFSET
-			if (name)
-				print_warning(name,"scaleoffset");
-			return 0;
-#endif
 			break;
 		}/*switch*/
 	}/*for*/
@@ -171,66 +151,60 @@ int h5tools_can_encode(H5Z_filter_t filtn) {
 	switch (filtn) {
 	/* user defined filter     */
 	default:
-		return 0;
+            return 0;
 
 	case H5Z_FILTER_DEFLATE:
 #ifndef H5_HAVE_FILTER_DEFLATE
-		return 0;
+            return 0;
 #endif
-		break;
+            break;
+
 	case H5Z_FILTER_SZIP:
 #ifndef H5_HAVE_FILTER_SZIP
-		return 0;
+            return 0;
 #else
 	{
-		unsigned int filter_config_flags;
+            unsigned int filter_config_flags;
 
-		if (H5Zget_filter_info(filtn, &filter_config_flags) < 0)
-			return -1;
-		if ((filter_config_flags
-				& (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) == 0) {
-			/* filter present but neither encode nor decode is supported (???) */
-			return -1;
-		} 
-		else if ((filter_config_flags
-				& (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) == H5Z_FILTER_CONFIG_DECODE_ENABLED) {
-			/* decoder only: read but not write */
-			return 0;
-		} 
-		else if ((filter_config_flags
-				& (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) == H5Z_FILTER_CONFIG_ENCODE_ENABLED) {
-			/* encoder only: write but not read (???) */
-			return -1;
-		} 
-		else if ((filter_config_flags
-				& (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED))
-				== (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) {
-			return 1;
-		}
+            if (H5Zget_filter_info(filtn, &filter_config_flags) < 0)
+                return -1;
+            if ((filter_config_flags
+                    & (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) == 0) {
+                /* filter present but neither encode nor decode is supported (???) */
+                return -1;
+            } 
+            else if ((filter_config_flags
+                        & (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) == H5Z_FILTER_CONFIG_DECODE_ENABLED) {
+                /* decoder only: read but not write */
+                return 0;
+            } 
+            else if ((filter_config_flags
+                        & (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) == H5Z_FILTER_CONFIG_ENCODE_ENABLED) {
+                /* encoder only: write but not read (???) */
+                return -1;
+            } 
+            else if ((filter_config_flags
+                        & (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED))
+                        == (H5Z_FILTER_CONFIG_ENCODE_ENABLED | H5Z_FILTER_CONFIG_DECODE_ENABLED)) {
+                return 1;
+            }
 	}
 #endif
-		break;
-	case H5Z_FILTER_SHUFFLE:
-#ifndef H5_HAVE_FILTER_SHUFFLE
-		return 0;
-#endif
-		break;
-	case H5Z_FILTER_FLETCHER32:
-#ifndef H5_HAVE_FILTER_FLETCHER32
-		return 0;
-#endif
-		break;
-	case H5Z_FILTER_NBIT:
-#ifndef H5_HAVE_FILTER_NBIT
-		return 0;
-#endif
-		break;
-	case H5Z_FILTER_SCALEOFFSET:
-#ifndef H5_HAVE_FILTER_SCALEOFFSET
-		return 0;
-#endif
-		break;
-	}/*switch*/
+            break;
 
-	return 1;
+	case H5Z_FILTER_SHUFFLE:
+            break;
+
+	case H5Z_FILTER_FLETCHER32:
+            break;
+
+	case H5Z_FILTER_NBIT:
+            break;
+
+	case H5Z_FILTER_SCALEOFFSET:
+            break;
+    }/*switch*/
+
+    return 1;
 }
+

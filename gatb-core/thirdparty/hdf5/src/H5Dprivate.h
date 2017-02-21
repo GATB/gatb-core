@@ -52,6 +52,7 @@
 #define H5D_ACS_DATA_CACHE_NUM_SLOTS_NAME   "rdcc_nslots"   /* Size of raw data chunk cache(slots) */
 #define H5D_ACS_DATA_CACHE_BYTE_SIZE_NAME   "rdcc_nbytes"   /* Size of raw data chunk cache(bytes) */
 #define H5D_ACS_PREEMPT_READ_CHUNKS_NAME    "rdcc_w0"       /* Preemption read chunks first */
+#define H5D_ACS_EFILE_PREFIX_NAME           "external file prefix" /* External file prefix */
 
 /* ======== Data transfer properties ======== */
 #define H5D_XFER_MAX_TEMP_BUF_NAME      "max_temp_buf"  /* Maximum temp buffer size */
@@ -165,6 +166,9 @@ H5_DLL H5G_name_t *H5D_nameof(H5D_t *dataset);
 H5_DLL H5T_t *H5D_typeof(const H5D_t *dset);
 H5_DLL herr_t H5D_flush(const H5F_t *f, hid_t dxpl_id);
 H5_DLL hid_t H5D_get_create_plist(H5D_t *dset);
+H5_DLL hid_t H5D_get_access_plist(H5D_t *dset);
+H5_DLL hid_t H5D_get_space(H5D_t *dset);
+H5_DLL hid_t H5D_get_type(H5D_t *dset);
 
 /* Functions that operate on vlen data */
 H5_DLL herr_t H5D_vlen_reclaim(hid_t type_id, H5S_t *space, hid_t plist_id,

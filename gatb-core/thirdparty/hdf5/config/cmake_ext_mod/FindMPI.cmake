@@ -1,80 +1,94 @@
-# - Find a Message Passing Interface (MPI) implementation
+# Distributed under the OSI-approved BSD 3-Clause License.  See https://cmake.org/licensing for details.
+
+#.rst:
+# FindMPI
+# -------
+#
+# Find a Message Passing Interface (MPI) implementation
+#
 # The Message Passing Interface (MPI) is a library used to write
-# high-performance distributed-memory parallel applications, and
-# is typically deployed on a cluster. MPI is a standard interface
-# (defined by the MPI forum) for which many implementations are
-# available. All of them have somewhat different include paths,
-# libraries to link against, etc., and this module tries to smooth
-# out those differences.
+# high-performance distributed-memory parallel applications, and is
+# typically deployed on a cluster.  MPI is a standard interface (defined
+# by the MPI forum) for which many implementations are available.  All
+# of them have somewhat different include paths, libraries to link
+# against, etc., and this module tries to smooth out those differences.
 #
-# === Variables ===
+# Variables
+# ^^^^^^^^^
 #
-# This module will set the following variables per language in your project,
-# where <lang> is one of C, CXX, or Fortran:
-#   MPI_<lang>_FOUND           TRUE if FindMPI found MPI flags for <lang>
-#   MPI_<lang>_COMPILER        MPI Compiler wrapper for <lang>
-#   MPI_<lang>_COMPILE_FLAGS   Compilation flags for MPI programs
-#   MPI_<lang>_INCLUDE_PATH    Include path(s) for MPI header
-#   MPI_<lang>_LINK_FLAGS      Linking flags for MPI programs
-#   MPI_<lang>_LIBRARIES       All libraries to link MPI programs against
+# This module will set the following variables per language in your
+# project, where <lang> is one of C, CXX, or Fortran:
+#
+# ::
+#
+#    MPI_<lang>_FOUND           TRUE if FindMPI found MPI flags for <lang>
+#    MPI_<lang>_COMPILER        MPI Compiler wrapper for <lang>
+#    MPI_<lang>_COMPILE_FLAGS   Compilation flags for MPI programs
+#    MPI_<lang>_INCLUDE_PATH    Include path(s) for MPI header
+#    MPI_<lang>_LINK_FLAGS      Linking flags for MPI programs
+#    MPI_<lang>_LIBRARIES       All libraries to link MPI programs against
+#
 # Additionally, FindMPI sets the following variables for running MPI
 # programs from the command line:
-#   MPIEXEC                    Executable for running MPI programs
-#   MPIEXEC_NUMPROC_FLAG       Flag to pass to MPIEXEC before giving
-#                              it the number of processors to run on
-#   MPIEXEC_PREFLAGS           Flags to pass to MPIEXEC directly
-#                              before the executable to run.
-#   MPIEXEC_POSTFLAGS          Flags to pass to MPIEXEC after other flags
-# === Usage ===
+#
+# ::
+#
+#    MPIEXEC                    Executable for running MPI programs
+#    MPIEXEC_NUMPROC_FLAG       Flag to pass to MPIEXEC before giving
+#                               it the number of processors to run on
+#    MPIEXEC_PREFLAGS           Flags to pass to MPIEXEC directly
+#                               before the executable to run.
+#    MPIEXEC_POSTFLAGS          Flags to pass to MPIEXEC after other flags
+#
+# Usage
+# ^^^^^
 #
 # To use this module, simply call FindMPI from a CMakeLists.txt file, or
-# run find_package(MPI), then run CMake.  If you are happy with the auto-
-# detected configuration for your language, then you're done.  If not, you
-# have two options:
-#   1. Set MPI_<lang>_COMPILER to the MPI wrapper (mpicc, etc.) of your
-#      choice and reconfigure.  FindMPI will attempt to determine all the
-#      necessary variables using THAT compiler's compile and link flags.
-#   2. If this fails, or if your MPI implementation does not come with
-#      a compiler wrapper, then set both MPI_<lang>_LIBRARIES and
-#      MPI_<lang>_INCLUDE_PATH.  You may also set any other variables
-#      listed above, but these two are required.  This will circumvent
-#      autodetection entirely.
-# When configuration is successful, MPI_<lang>_COMPILER will be set to the
-# compiler wrapper for <lang>, if it was found.  MPI_<lang>_FOUND and other
-# variables above will be set if any MPI implementation was found for <lang>,
-# regardless of whether a compiler was found.
+# run ``find_package(MPI)``, then run CMake.  If you are happy with the
+# auto-detected configuration for your language, then you're done.  If
+# not, you have two options:
 #
-# When using MPIEXEC to execute MPI applications, you should typically use
-# all of the MPIEXEC flags as follows:
-#   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} PROCS
-#     ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS
-# where PROCS is the number of processors on which to execute the program,
-# EXECUTABLE is the MPI program, and ARGS are the arguments to pass to the
-# MPI program.
+# ::
 #
-# === Backward Compatibility ===
+#    1. Set MPI_<lang>_COMPILER to the MPI wrapper (mpicc, etc.) of your
+#       choice and reconfigure.  FindMPI will attempt to determine all the
+#       necessary variables using THAT compiler's compile and link flags.
+#    2. If this fails, or if your MPI implementation does not come with
+#       a compiler wrapper, then set both MPI_<lang>_LIBRARIES and
+#       MPI_<lang>_INCLUDE_PATH.  You may also set any other variables
+#       listed above, but these two are required.  This will circumvent
+#       autodetection entirely.
+#
+# When configuration is successful, ``MPI_<lang>_COMPILER`` will be set to
+# the compiler wrapper for <lang>, if it was found.  ``MPI_<lang>_FOUND``
+# and other variables above will be set if any MPI implementation was
+# found for <lang>, regardless of whether a compiler was found.
+#
+# When using ``MPIEXEC`` to execute MPI applications, you should typically
+# use all of the ``MPIEXEC`` flags as follows:
+#
+# ::
+#
+#    ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} PROCS
+#      ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS
+#
+# where ``PROCS`` is the number of processors on which to execute the
+# program, ``EXECUTABLE`` is the MPI program, and ``ARGS`` are the arguments to
+# pass to the MPI program.
+#
+# Backward Compatibility
+# ^^^^^^^^^^^^^^^^^^^^^^
 #
 # For backward compatibility with older versions of FindMPI, these
 # variables are set, but deprecated:
-#   MPI_FOUND           MPI_COMPILER        MPI_LIBRARY
-#   MPI_COMPILE_FLAGS   MPI_INCLUDE_PATH    MPI_EXTRA_LIBRARY
-#   MPI_LINK_FLAGS      MPI_LIBRARIES
-# In new projects, please use the MPI_<lang>_XXX equivalents.
-
-#=============================================================================
-# Copyright 2001-2011 Kitware, Inc.
-# Copyright 2010-2011 Todd Gamblin tgamblin@llnl.gov
-# Copyright 2001-2009 Dave Partyka
 #
-# Distributed under the OSI-approved BSD License (the "License");
-# see accompanying file Copyright.txt for details.
+# ::
 #
-# This software is distributed WITHOUT ANY WARRANTY; without even the
-# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the License for more information.
-#=============================================================================
-# (To distribute this file outside of CMake, substitute the full
-#  License text for the above reference.)
+#    MPI_FOUND           MPI_COMPILER        MPI_LIBRARY
+#    MPI_COMPILE_FLAGS   MPI_INCLUDE_PATH    MPI_EXTRA_LIBRARY
+#    MPI_LINK_FLAGS      MPI_LIBRARIES
+#
+# In new projects, please use the ``MPI_<lang>_XXX`` equivalents.
 
 # include this to handle the QUIETLY and REQUIRED arguments
 include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
@@ -136,7 +150,7 @@ set(_MPI_XL_Fortran_COMPILER_NAMES         mpixlf95   mpixlf95_r mpxlf95 mpxlf95
 # or if we know it matches the regular compiler.
 foreach (lang C CXX Fortran)
   foreach (id GNU Intel PGI XL)
-    if (NOT CMAKE_${lang}_COMPILER_ID OR "${CMAKE_${lang}_COMPILER_ID}" STREQUAL "${id}")
+    if (NOT CMAKE_${lang}_COMPILER_ID OR CMAKE_${lang}_COMPILER_ID STREQUAL id)
       list(APPEND _MPI_${lang}_COMPILER_NAMES ${_MPI_${id}_${lang}_COMPILER_NAMES})
     endif()
     unset(_MPI_${id}_${lang}_COMPILER_NAMES)    # clean up the namespace here
@@ -150,6 +164,13 @@ set(_MPI_EXEC_NAMES                        mpiexec mpirun lamexec srun)
 # Grab the path to MPI from the registry if we're on windows.
 set(_MPI_PREFIX_PATH)
 if(WIN32)
+  # MSMPI
+  file(TO_CMAKE_PATH "$ENV{MSMPI_BIN}" msmpi_bin_path) # The default path ends with a '\' and doesn't mix with ';' when appending.
+  list(APPEND _MPI_PREFIX_PATH "${msmpi_bin_path}")
+  unset(msmpi_bin_path)
+  list(APPEND _MPI_PREFIX_PATH "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\MPI;InstallRoot]/Bin")
+  list(APPEND _MPI_PREFIX_PATH "$ENV{MSMPI_INC}/..") # The SDK is installed separately from the runtime
+  # MPICH
   list(APPEND _MPI_PREFIX_PATH "[HKEY_LOCAL_MACHINE\\SOFTWARE\\MPICH\\SMPD;binary]/..")
   list(APPEND _MPI_PREFIX_PATH "[HKEY_LOCAL_MACHINE\\SOFTWARE\\MPICH2;Path]")
   list(APPEND _MPI_PREFIX_PATH "$ENV{ProgramW6432}/MPICH2/")
@@ -164,6 +185,21 @@ foreach(SystemPrefixDir ${CMAKE_SYSTEM_PREFIX_PATH})
   endforeach()
 endforeach()
 
+function (_mpi_check_compiler compiler options cmdvar resvar)
+  execute_process(
+    COMMAND "${compiler}" ${options}
+    OUTPUT_VARIABLE  cmdline OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_VARIABLE   cmdline ERROR_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE  success)
+  # Intel MPI 5.0.1 will return a zero return code even when the
+  # argument to the MPI compiler wrapper is unknown.  Attempt to
+  # catch this case.
+  if(cmdline MATCHES "undefined reference" OR cmdline MATCHES "unrecognized")
+    set(success 255 )
+  endif()
+  set(${cmdvar} "${cmdline}" PARENT_SCOPE)
+  set(${resvar} "${success}" PARENT_SCOPE)
+endfunction()
 
 #
 # interrogate_mpi_compiler(lang try_libs)
@@ -196,12 +232,7 @@ function (interrogate_mpi_compiler lang try_libs)
     if (MPI_${lang}_COMPILER)
       # Check whether the -showme:compile option works. This indicates that we have either OpenMPI
       # or a newer version of LAM-MPI, and implies that -showme:link will also work.
-      execute_process(
-        COMMAND ${MPI_${lang}_COMPILER} -showme:compile
-        OUTPUT_VARIABLE  MPI_COMPILE_CMDLINE OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_VARIABLE   MPI_COMPILE_CMDLINE ERROR_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE  MPI_COMPILER_RETURN)
-
+      _mpi_check_compiler("${MPI_${lang}_COMPILER}" "-showme:compile" MPI_COMPILE_CMDLINE MPI_COMPILER_RETURN)
       if (MPI_COMPILER_RETURN EQUAL 0)
         # If we appear to have -showme:compile, then we should
         # also have -showme:link. Try it.
@@ -233,20 +264,12 @@ function (interrogate_mpi_compiler lang try_libs)
 
       # Older versions of LAM-MPI have "-showme". Try to find that.
       if (NOT MPI_COMPILER_RETURN EQUAL 0)
-        execute_process(
-          COMMAND ${MPI_${lang}_COMPILER} -showme
-          OUTPUT_VARIABLE  MPI_COMPILE_CMDLINE OUTPUT_STRIP_TRAILING_WHITESPACE
-          ERROR_VARIABLE   MPI_COMPILE_CMDLINE ERROR_STRIP_TRAILING_WHITESPACE
-          RESULT_VARIABLE  MPI_COMPILER_RETURN)
+        _mpi_check_compiler("${MPI_${lang}_COMPILER}" "-showme" MPI_COMPILE_CMDLINE MPI_COMPILER_RETURN)
       endif()
 
       # MVAPICH uses -compile-info and -link-info.  Try them.
       if (NOT MPI_COMPILER_RETURN EQUAL 0)
-        execute_process(
-          COMMAND ${MPI_${lang}_COMPILER} -compile-info
-          OUTPUT_VARIABLE  MPI_COMPILE_CMDLINE OUTPUT_STRIP_TRAILING_WHITESPACE
-          ERROR_VARIABLE   MPI_COMPILE_CMDLINE ERROR_STRIP_TRAILING_WHITESPACE
-          RESULT_VARIABLE  MPI_COMPILER_RETURN)
+        _mpi_check_compiler("${MPI_${lang}_COMPILER}" "-compile-info" MPI_COMPILE_CMDLINE MPI_COMPILER_RETURN)
 
         # If we have compile-info, also have link-info.
         if (MPI_COMPILER_RETURN EQUAL 0)
@@ -266,11 +289,7 @@ function (interrogate_mpi_compiler lang try_libs)
 
       # MPICH just uses "-show". Try it.
       if (NOT MPI_COMPILER_RETURN EQUAL 0)
-        execute_process(
-          COMMAND ${MPI_${lang}_COMPILER} -show
-          OUTPUT_VARIABLE  MPI_COMPILE_CMDLINE OUTPUT_STRIP_TRAILING_WHITESPACE
-          ERROR_VARIABLE   MPI_COMPILE_CMDLINE ERROR_STRIP_TRAILING_WHITESPACE
-          RESULT_VARIABLE  MPI_COMPILER_RETURN)
+        _mpi_check_compiler("${MPI_${lang}_COMPILER}" "-show" MPI_COMPILE_CMDLINE MPI_COMPILER_RETURN)
       endif()
 
       if (MPI_COMPILER_RETURN EQUAL 0)
@@ -296,7 +315,7 @@ function (interrogate_mpi_compiler lang try_libs)
 
         foreach(FLAG ${MPI_ALL_COMPILE_FLAGS})
           if (MPI_COMPILE_FLAGS_WORK)
-            set(MPI_COMPILE_FLAGS_WORK "${MPI_COMPILE_FLAGS_WORK} ${FLAG}")
+            string(APPEND MPI_COMPILE_FLAGS_WORK " ${FLAG}")
           else()
             set(MPI_COMPILE_FLAGS_WORK ${FLAG})
           endif()
@@ -306,7 +325,7 @@ function (interrogate_mpi_compiler lang try_libs)
         string(REGEX MATCHALL "(^| )-I([^\" ]+|\"[^\"]+\")" MPI_ALL_INCLUDE_PATHS "${MPI_COMPILE_CMDLINE}")
         foreach(IPATH ${MPI_ALL_INCLUDE_PATHS})
           string(REGEX REPLACE "^ ?-I" "" IPATH ${IPATH})
-          string(REGEX REPLACE "//" "/" IPATH ${IPATH})
+          string(REPLACE "//" "/" IPATH ${IPATH})
           list(APPEND MPI_INCLUDE_PATH_WORK ${IPATH})
         endforeach()
 
@@ -326,11 +345,11 @@ function (interrogate_mpi_compiler lang try_libs)
         endif()
 
         # Extract linker paths from the link command line
-        string(REGEX MATCHALL "(^| |-Wl,)-L([^\" ]+|\"[^\"]+\")" MPI_ALL_LINK_PATHS "${MPI_LINK_CMDLINE}")
+        string(REGEX MATCHALL "(^| |-Wl,)(-L|/LIBPATH:)([^\" ]+|\"[^\"]+\")" MPI_ALL_LINK_PATHS "${MPI_LINK_CMDLINE}")
         set(MPI_LINK_PATH)
         foreach(LPATH ${MPI_ALL_LINK_PATHS})
-          string(REGEX REPLACE "^(| |-Wl,)-L" "" LPATH ${LPATH})
-          string(REGEX REPLACE "//" "/" LPATH ${LPATH})
+          string(REGEX REPLACE "^(| |-Wl,)(-L|/LIBPATH:)" "" LPATH ${LPATH})
+          string(REPLACE "//" "/" LPATH ${LPATH})
           list(APPEND MPI_LINK_PATH ${LPATH})
         endforeach()
 
@@ -341,11 +360,11 @@ function (interrogate_mpi_compiler lang try_libs)
         endif()
 
         # Extract linker flags from the link command line
-        string(REGEX MATCHALL "(^| )-Wl,([^\" ]+|\"[^\"]+\")" MPI_ALL_LINK_FLAGS "${MPI_LINK_CMDLINE}")
+        string(REGEX MATCHALL "(^| )(-Wl,|-Xlinker )([^\" ]+|\"[^\"]+\")" MPI_ALL_LINK_FLAGS "${MPI_LINK_CMDLINE}")
         set(MPI_LINK_FLAGS_WORK)
         foreach(FLAG ${MPI_ALL_LINK_FLAGS})
           if (MPI_LINK_FLAGS_WORK)
-            set(MPI_LINK_FLAGS_WORK "${MPI_LINK_FLAGS_WORK} ${FLAG}")
+            string(APPEND MPI_LINK_FLAGS_WORK " ${FLAG}")
           else()
             set(MPI_LINK_FLAGS_WORK ${FLAG})
           endif()
@@ -354,25 +373,31 @@ function (interrogate_mpi_compiler lang try_libs)
         # Extract the set of libraries to link against from the link command
         # line
         string(REGEX MATCHALL "(^| )-l([^\" ]+|\"[^\"]+\")" MPI_LIBNAMES "${MPI_LINK_CMDLINE}")
+        if(WIN32)
+          # The intel wrappers on windows link against static versions of the MPI libraries.
+          # The static libraries are simply listed on the command line without -l.
+          # For instance: " icl ... impi.lib "
+          string(REGEX MATCHALL "(^| )([^\" ]+)\\.lib" tmp "${MPI_LINK_CMDLINE}")
+          list(APPEND MPI_LIBNAMES ${tmp})
+        endif()
+
         # add the compiler implicit directories because some compilers
         # such as the intel compiler have libraries that show up
         # in the showme list that can only be found in the implicit
-        # link directories of the compiler. Do this for C++ and C
-        # compilers if the implicit link directories are defined.
-        if (DEFINED CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES)
-          set(MPI_LINK_PATH
-            "${MPI_LINK_PATH};${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES}")
-        endif ()
-
-        if (DEFINED CMAKE_C_IMPLICIT_LINK_DIRECTORIES)
-          set(MPI_LINK_PATH
-            "${MPI_LINK_PATH};${CMAKE_C_IMPLICIT_LINK_DIRECTORIES}")
+        # link directories of the compiler.
+        if (DEFINED CMAKE_${lang}_IMPLICIT_LINK_DIRECTORIES)
+          string(APPEND MPI_LINK_PATH
+            ";${CMAKE_${lang}_IMPLICIT_LINK_DIRECTORIES}")
         endif ()
 
         # Determine full path names for all of the libraries that one needs
         # to link against in an MPI program
         foreach(LIB ${MPI_LIBNAMES})
           string(REGEX REPLACE "^ ?-l" "" LIB ${LIB})
+          if(WIN32)
+            string(REGEX REPLACE "\\.lib$" "" LIB ${LIB})
+          endif()
+          string(STRIP ${LIB} LIB)
           # MPI_LIB is cached by find_library, but we don't want that.  Clear it first.
           set(MPI_LIB "MPI_LIB-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
           find_library(MPI_LIB NAMES ${LIB} HINTS ${MPI_LINK_PATH})
@@ -404,16 +429,18 @@ function (interrogate_mpi_compiler lang try_libs)
 
       # Decide between 32-bit and 64-bit libraries for Microsoft's MPI
       if("${CMAKE_SIZEOF_VOID_P}" EQUAL 8)
-        set(MS_MPI_ARCH_DIR amd64)
+        set(MS_MPI_ARCH_DIR x64)
+        set(MS_MPI_ARCH_DIR2 amd64)
       else()
-        set(MS_MPI_ARCH_DIR i386)
+        set(MS_MPI_ARCH_DIR x86)
+        set(MS_MPI_ARCH_DIR2 i386)
       endif()
 
       set(MPI_LIB "MPI_LIB-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
       find_library(MPI_LIB
         NAMES         mpi mpich mpich2 msmpi
         HINTS         ${_MPI_BASE_DIR} ${_MPI_PREFIX_PATH}
-        PATH_SUFFIXES lib lib/${MS_MPI_ARCH_DIR} Lib Lib/${MS_MPI_ARCH_DIR})
+        PATH_SUFFIXES lib lib/${MS_MPI_ARCH_DIR} Lib Lib/${MS_MPI_ARCH_DIR} lib/${MS_MPI_ARCH_DIR2} Lib/${MS_MPI_ARCH_DIR2})
       set(MPI_LIBRARIES_WORK ${MPI_LIB})
 
       # Right now, we only know about the extra libs for C++.
@@ -432,6 +459,14 @@ function (interrogate_mpi_compiler lang try_libs)
       endif()
 
       if (${lang} STREQUAL Fortran)
+        set(MPI_HEADER_PATH "MPI_HEADER_PATH-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
+        find_path(MPI_HEADER_PATH mpifptr.h
+          HINTS ${_MPI_BASE_DIR} ${_MPI_PREFIX_PATH}
+          PATH_SUFFIXES include include/${MS_MPI_ARCH_DIR} include/${MS_MPI_ARCH_DIR2} Inc Inc/${MS_MPI_ARCH_DIR} Inc/${MS_MPI_ARCH_DIR2})
+        if (MPI_INCLUDE_PATH_WORK AND MPI_HEADER_PATH)
+          list(APPEND MPI_INCLUDE_PATH_WORK ${MPI_HEADER_PATH})
+        endif()
+        
         set(MPI_LIB "MPI_LIB-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
         find_library(MPI_LIB
           NAMES         fmpi fmpich fmpich2 fmpich2g msmpifec msmpifmc
@@ -514,6 +549,7 @@ endfunction()
 # Most mpi distros have some form of mpiexec which gives us something we can reliably look for.
 find_program(MPIEXEC
   NAMES ${_MPI_EXEC_NAMES}
+  HINTS ${MPI_HOME} $ENV{MPI_HOME}
   PATHS ${_MPI_PREFIX_PATH}
   PATH_SUFFIXES bin
   DOC "Executable for running MPI programs.")
@@ -562,21 +598,22 @@ foreach (lang C CXX Fortran)
   if (CMAKE_${lang}_COMPILER_WORKS)
     # If the user supplies a compiler *name* instead of an absolute path, assume that we need to find THAT compiler.
     if (MPI_${lang}_COMPILER)
-      is_file_executable(MPI_${lang}_COMPILER MPI_COMPILER_IS_EXECUTABLE)
-      if (NOT MPI_COMPILER_IS_EXECUTABLE)
+      if (NOT IS_ABSOLUTE "${MPI_${lang}_COMPILER}")
         # Get rid of our default list of names and just search for the name the user wants.
         set(_MPI_${lang}_COMPILER_NAMES ${MPI_${lang}_COMPILER})
         set(MPI_${lang}_COMPILER "MPI_${lang}_COMPILER-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
-        # If the user specifies a compiler, we don't want to try to search libraries either.
-        set(try_libs FALSE)
       endif()
+      # If the user specifies a compiler, we don't want to try to search libraries either.
+      set(try_libs FALSE)
     else()
       set(try_libs TRUE)
     endif()
 
     find_program(MPI_${lang}_COMPILER
       NAMES  ${_MPI_${lang}_COMPILER_NAMES}
-      PATHS  "${MPI_HOME}/bin" "$ENV{MPI_HOME}/bin" ${_MPI_PREFIX_PATH})
+      HINTS  ${_MPI_BASE_DIR}/bin
+      PATHS  ${_MPI_PREFIX_PATH}
+      )
     interrogate_mpi_compiler(${lang} ${try_libs})
     mark_as_advanced(MPI_${lang}_COMPILER)
 

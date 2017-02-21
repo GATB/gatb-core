@@ -8,21 +8,21 @@ int main(void) { return 0; }
 #endif
 
 
-#ifdef H5_NO_NAMESPACE
+#ifdef HDF_NO_NAMESPACE
 
-namespace H5 {
+namespace HDF {
 int fnord;
 }
 
 int main(void) {
-   using namespace H5;
+   using namespace HDF;
    fnord = 37;
    return 0;
 }
 
 #endif
 
-#ifdef H5_NO_STD
+#ifdef HDF_NO_STD
 
 #include <string>
 

@@ -16,7 +16,7 @@ MACRO (HDF_CHECK_TYPE_SIZE TYPE VARIABLE)
     foreach (def HAVE_SYS_TYPES_H HAVE_STDINT_H HAVE_STDDEF_H HAVE_INTTYPES_H)
       if ("${def}")
         set (MACRO_CHECK_TYPE_SIZE_FLAGS "${MACRO_CHECK_TYPE_SIZE_FLAGS} -D${def}")
-      ENDIF("${def}")
+      endif ("${def}")
     endforeach (def)
 
     message (STATUS "Check size of ${TYPE}")
@@ -25,21 +25,23 @@ MACRO (HDF_CHECK_TYPE_SIZE TYPE VARIABLE)
           "-DLINK_LIBRARIES:STRING=${CMAKE_REQUIRED_LIBRARIES}"
       )
     endif (CMAKE_REQUIRED_LIBRARIES)
-    TRY_RUN (${VARIABLE} HAVE_${VARIABLE}
+    try_run (${VARIABLE} HAVE_${VARIABLE}
         ${CMAKE_BINARY_DIR}
-        ${HDF5_RESOURCES_DIR}/CheckTypeSize.c
+        ${HDF_RESOURCES_EXT_DIR}/CheckTypeSize.c
         CMAKE_FLAGS -DCOMPILE_DEFINITIONS:STRING=${MACRO_CHECK_TYPE_SIZE_FLAGS}
         "${CHECK_TYPE_SIZE_ADD_LIBRARIES}"
         OUTPUT_VARIABLE OUTPUT
     )
     if (HAVE_${VARIABLE})
       message (STATUS "Check size of ${TYPE} - done")
-      file (APPEND ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeOutput.log 
+      file (APPEND
+          ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeOutput.log 
           "Determining size of ${TYPE} passed with the following output:\n${OUTPUT}\n\n"
       )
     else (HAVE_${VARIABLE})
       message (STATUS "Check size of ${TYPE} - failed")
-      file (APPEND ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeError.log 
+      file (APPEND
+          ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeError.log 
           "Determining size of ${TYPE} failed with the following output:\n${OUTPUT}\n\n"
       )
     endif (HAVE_${VARIABLE})
