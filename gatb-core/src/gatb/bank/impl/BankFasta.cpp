@@ -265,7 +265,7 @@ void BankFasta::insert (const Sequence& item)
         /** We add the sequence into the bag. */
         fprintf (_insertHandle, ">%s\n", item.getComment().c_str());
 
-#if 0
+#if 1
         fprintf (_insertHandle, "%.*s\n",(int)item.getDataSize(),  item.getDataBuffer());
 #else
         // We dump the data with fixed sized columns
