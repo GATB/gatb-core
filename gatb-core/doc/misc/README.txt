@@ -55,6 +55,46 @@ taken from the 'examples' directory:
 -on MacOS X:
     clang++ examples/debruijn/debruijn1.cpp -Iinclude -Llib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3 -DBOOST_NO_CXX11_RVALUE_REFERENCES=1 -o debruijn1
 
+To get started with your own code (let's say, test.cpp), here is a quick walkthrough
+
+    wget https://github.com/GATB/gatb-core/releases/download/v1.2.2/gatb-core-1.2.2-bin-Linux.tar.gz
+    tar xf gatb-core-1.2.2-bin-Linux.tar.gz
+    mv gatb-core-1.2.2-bin-Linux gatb-core
+
+Create a small example code in test.cpp:
+
+    #include <gatb/gatb_core.hpp>
+    int main (int argc, char* argv[])
+    {
+        // a small GATB example
+
+        const size_t span = KMER_SPAN(1);
+        typedef Kmer<span>::ModelCanonical Model;
+        Model model (5);
+        Model::Kmer kmer = model.codeSeed ("AAGTC", Data::ASCII);
+        std::cout << "revcomp kmer: " << model.toString(kmer.revcomp())    << std::endl;
+    }
+
+
+Now the folder structure looks like:
+  
+    test.cpp
+    gatb-core/
+    gatb-core/include/
+    gatb-core/lib/
+    ...
+
+To compile:
+    
+    g++ test.cpp -Igatb-core/include -Lgatb-core/lib -lgatbcore -lhdf5 -ldl -lz -lpthread  -std=c++0x -O3 -o test 
+
+Then the program is ready to run:
+    
+    ./test
+    
+Output:
+    
+    revcomp kmer: GACTT
 
 ========================================
 == TESTING THE LIBRARY ON YOUR SYSTEM ==
