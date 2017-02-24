@@ -220,6 +220,64 @@ protected:
     std::vector<Group*> _groups;
 };
 
+	
+	
+	////////////////////////////////////////////////////////////
+	////////////////// superkmer storage ///////////////////////
+	////////////////////////////////////////////////////////////
+	
+	
+
+	
+//block header = 4B = block size
+//puis block = liste de  1B = superk len , superk
+//why not taille, liste superk de cette taille, mais il faudrait bcp de buffer (un par taille superk)
+class SuperKmerBinFiles
+{
+	
+public:
+	
+	//construct
+	SuperKmerBinFiles(const std::string& name, size_t nb_files);
+	
+	void closeFiles();
+	void openFiles(const std::string& name, size_t nb_files);
+
+	//write block
+	void writeBlock(unsigned char * block, unsigned int  block_size, int file_id);
+	int nbFiles();
+private:
+
+	std::string _basefilename;
+	std::vector<system::IFile* > _files;
+	std::vector <system::ISynchronizer*> _synchros;
+};
+	
+
+//encapsulate SuperKmerBinFiles with a buffer
+class CacheSuperKmerBinFiles
+{
+	public:
+	CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buffsize);
+	
+	void insertSuperkmer(u_int8_t* superk, int nb_bytes, u_int8_t nbk, int file_id);
+	void flushAll();
+	void flush(int file_id);
+	~CacheSuperKmerBinFiles();
+
+private:
+	SuperKmerBinFiles * _ref;
+	int _max_superksize;
+	int _buffer_max_capacity;
+	int _nb_files;
+	
+	std::vector< u_int8_t* > _buffers;
+	std::vector<int> _buffers_idx;
+	
+};
+	
+	
+	
 /**********************************************************************
 ######      #     ######   #######  ###  #######  ###  #######  #     #
 #     #    # #    #     #     #      #      #      #   #     #  ##    #

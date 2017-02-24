@@ -41,6 +41,8 @@
 
 #include <gatb/tools/math/Integer.hpp>
 
+#include <gatb/tools/storage/impl/Storage.hpp>
+
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -1460,7 +1462,60 @@ struct Kmer
 		void reset()
 		{
 			kmers.clear();
+			binrep.clear();
 		}
+		
+		//save superkmer to CacheSuperKmerBinFiles
+		void save(tools::storage::impl::CacheSuperKmerBinFiles  & cacheSuperkFile, int file_id)
+		{
+			size_t superKmerLen = size();
+
+			binrep.clear();
+
+			Type basekmer = (*this)[0].forward();
+			
+			int rem_size = kmerSize;
+			u_int8_t newbyte=0;
+			u_int64_t mask4nt  = 255;
+			u_int64_t mask1nt  = 3;
+			
+			while(rem_size>=4)
+			{
+				newbyte = basekmer.getVal() & mask4nt ; // ptet un getVal et cast to u_int8_t
+				rem_size -= 4;
+				basekmer = basekmer >> 4;
+				binrep.push_back(newbyte);
+			}
+			
+			//reste du kmer
+			newbyte = basekmer.getVal() & mask4nt;
+			int uid = rem_size; //uid = nb nt used in this newbyte
+
+			//reste du newbyte avec le superk
+
+			int skid =1;
+			
+			while(true)
+			{
+				while(uid<4 && skid < superKmerLen)
+				{
+					
+					u_int8_t newnt = ((*this)[skid].forward()).getVal() & mask1nt ;
+					
+					newbyte |=  newnt << (uid*2);
+					uid++; skid++;
+				}
+				
+				binrep.push_back(newbyte);
+				
+				if(skid >= superKmerLen) break;
+				
+				newbyte=0; uid=0;
+			}
+			
+			cacheSuperkFile.insertSuperkmer(binrep.data(), binrep.size(), kmers.size(),  file_id);
+		}
+		
 		
         /** */
         void save (tools::collections::Bag<Type>& bag)
@@ -1536,6 +1591,7 @@ struct Kmer
         size_t              kmerSize;
         size_t              miniSize;
         std::vector<Kmer>  kmers;
+		std::vector<u_int8_t> binrep;
     };
 
     /************************************************************/
