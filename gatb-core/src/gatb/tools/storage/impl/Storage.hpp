@@ -240,12 +240,18 @@ public:
 	//construct
 	SuperKmerBinFiles(const std::string& name, size_t nb_files);
 	
+	~SuperKmerBinFiles();
+
 	void closeFiles();
+	void flushFiles();
+
 	void openFiles(const std::string& name, size_t nb_files);
 
 	//write block
 	void writeBlock(unsigned char * block, unsigned int  block_size, int file_id);
 	int nbFiles();
+	
+	//todo:  int getNbItems(int fileId)
 private:
 
 	std::string _basefilename;
@@ -260,6 +266,8 @@ class CacheSuperKmerBinFiles
 	public:
 	CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buffsize);
 	
+	CacheSuperKmerBinFiles (const CacheSuperKmerBinFiles& p);
+
 	void insertSuperkmer(u_int8_t* superk, int nb_bytes, u_int8_t nbk, int file_id);
 	void flushAll();
 	void flush(int file_id);

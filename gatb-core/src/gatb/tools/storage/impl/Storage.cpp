@@ -347,7 +347,17 @@ void SuperKmerBinFiles::writeBlock(unsigned char * block, unsigned int block_siz
 
 }
 	
-	
+void SuperKmerBinFiles::flushFiles()
+{
+	for(int ii=0;ii<_files.size();ii++)
+	{
+		if(_files[ii]!=0)
+		{
+			_files[ii]->flush();
+		}
+	}
+}
+
 void SuperKmerBinFiles::closeFiles()
 {
 	for(int ii=0;ii<_files.size();ii++)
@@ -360,6 +370,13 @@ void SuperKmerBinFiles::closeFiles()
 		_synchros[ii]->forget();
 	}
 }
+	
+SuperKmerBinFiles::~SuperKmerBinFiles()
+{
+	this->flushFiles();
+	this->closeFiles();
+}
+	
 int SuperKmerBinFiles::nbFiles()
 {
 	return _files.size();
@@ -369,7 +386,6 @@ int SuperKmerBinFiles::nbFiles()
 //////////  CacheSuperKmerBinFiles /////////
 ////////////////////////////////////////////
 
-	
 
 void CacheSuperKmerBinFiles::flushAll()
 {
@@ -400,8 +416,8 @@ void CacheSuperKmerBinFiles::insertSuperkmer(u_int8_t* superk, int nb_bytes, u_i
 	memcpy(_buffers[file_id] + _buffers_idx[file_id]  , superk,nb_bytes);
 	_buffers_idx[file_id] += nb_bytes;
 	
-	
 }
+	
 	
 CacheSuperKmerBinFiles::CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buffsize )
 {
@@ -423,7 +439,7 @@ CacheSuperKmerBinFiles::CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buff
 }
 	
 //copy construc : alloc own buffer for the copy
-inline CacheSuperKmerBinFiles::PartitionCache (const CacheSuperKmerBinFiles& p)
+CacheSuperKmerBinFiles::CacheSuperKmerBinFiles (const CacheSuperKmerBinFiles& p)
 {
 	
 	_ref = p._ref;

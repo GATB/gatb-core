@@ -706,12 +706,13 @@ public:
         BankStats&         bankStats,
         Partition<Type>*   partition,
         Repartitor&        repartition,
-        PartiInfo<5>&      pInfo
+        PartiInfo<5>&      pInfo,
+		SuperKmerBinFiles* superKstorage
     )
     :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
         _kx(4),
         _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
-        _repartition (repartition), _partition (*partition, nbCacheItems, 0)
+        _repartition (repartition), _partition (*partition, nbCacheItems, 0), _superkmerFiles(superKstorage,nbCacheItems)
     {
         _mask_radix.setVal((int64_t) 255);
         _mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
@@ -768,6 +769,8 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
     setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts", _config._nb_partitions));
 
+	SuperKmerBinFiles* superKstorage = new SuperKmerBinFiles("superKparts", _config._nb_partitions) ;
+
     /** We update the message of the progress bar. */
     _progress->setMessage (Stringify::format(progressFormat1, pass+1, _config._nb_passes));
 
@@ -811,7 +814,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
 	
         getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
-            model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo
+            model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo,superKstorage
         ), groupSize, deleteSynchro);
 
 
@@ -832,6 +835,8 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 		//GR: close the input bank here with call to finalize 
 		itBanks[i]->finalize();
     }
+	
+	delete superKstorage;
 }
 
 /*********************************************************************
