@@ -769,6 +769,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
     setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts", _config._nb_partitions));
 
+	System::file().mkdir("tmpdsk", 0755);
 	SuperKmerBinFiles* superKstorage = new SuperKmerBinFiles("superKparts", _config._nb_partitions) ;
 
     /** We update the message of the progress bar. */
@@ -836,6 +837,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 		itBanks[i]->finalize();
     }
 	
+	System::file().rmdir("tmpdsk");
 	delete superKstorage;
 }
 
