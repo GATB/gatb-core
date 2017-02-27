@@ -734,6 +734,9 @@ private:
 
     /** Shared resources (must support concurrent accesses). */
     PartitionCacheType <Type> _partition;
+	
+	CacheSuperKmerBinFiles _superkmerFiles;
+	
 
     Type getHeavyWeight (const Type& kmer) const  {  return (kmer & this->_mask_radix) >> ((this->_kmersize - 4)*2);  }
 };

@@ -369,6 +369,8 @@ int SuperKmerBinFiles::nbFiles()
 //////////  CacheSuperKmerBinFiles /////////
 ////////////////////////////////////////////
 
+	
+
 void CacheSuperKmerBinFiles::flushAll()
 {
 	for(int ii=0; ii<_buffers.size();ii++ )
@@ -418,6 +420,24 @@ CacheSuperKmerBinFiles::CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buff
 		_buffers[ii] = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _buffer_max_capacity);
 	}
 	
+}
+	
+//copy construc : alloc own buffer for the copy
+inline CacheSuperKmerBinFiles::PartitionCache (const CacheSuperKmerBinFiles& p)
+{
+	
+	_ref = p._ref;
+	_nb_files= p._nb_files;
+	_buffer_max_capacity= p._buffer_max_capacity;
+	_max_superksize= p._max_superksize;
+	
+	_buffers.resize(_nb_files);
+	_buffers_idx.resize(_nb_files,0);
+	
+	for(int ii=0; ii<_buffers.size();ii++ )
+	{
+		_buffers[ii] = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _buffer_max_capacity);
+	}
 }
 	
 CacheSuperKmerBinFiles::~CacheSuperKmerBinFiles()
