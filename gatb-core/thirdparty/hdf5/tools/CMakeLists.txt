@@ -14,9 +14,15 @@ INCLUDE_DIRECTORIES (${HDF5_TOOLS_SOURCE_DIR}/lib)
 # --------------------------------------------------------------------
 # If testing was NOT enabled, then we need to build the tools library
 # --------------------------------------------------------------------
-if (NOT BUILD_TESTING)
+# Patrick added: as stated in hdf5-1.8.18/release_docs/INSTALL_CMake.txt
+#   hdf5 lib has to be built using:  
+#     cmake [...] -DBUILD_TESTING:BOOL=ON -DHDF5_BUILD_TOOLS:BOOL=ON [...]
+#   within gatb-core, we do set HDF5_BUILD_TOOLS to true in 
+#   gatb-core/gatb-core/thirdparty/CMakeLists.txt, but we not use BUILD_TESTING. 
+#   So, we need to compile the  tools library.
+#if (NOT BUILD_TESTING)
   add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/lib)
-endif (NOT BUILD_TESTING)
+#endif (NOT BUILD_TESTING)
 
 #-- Add the h5diff and test executables
 #add_subdirectory (${HDF5_TOOLS_SOURCE_DIR}/h5diff)
