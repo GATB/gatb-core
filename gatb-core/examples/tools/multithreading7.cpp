@@ -40,7 +40,11 @@ int main (int argc, char* argv[])
     // one value of the defined range
 
     // NOTE: we could also use lambda expression (easing the code readability)
-    /* NOTE: it'very important to set third argument (groupSize) as 1, because otherwise threads are batched by groups of 1000 by default */
+    // Note: third argument is set to groupSize of 1 instead of 1000 (default), 
+    // to avoid that 1000 tasks are batched in the same thread.
+    // In practice, when iterating over a large set of elements, set a reasonable 
+    // groupSize value, because a groupSize=1 will incur significant overhead 
+    // if Functor() is a very quick task.
     IDispatcher::Status status = dispatcher.iterate (it, Functor(), 1); 
 
     // We dump some information about the dispatching
