@@ -14,13 +14,14 @@
 #set -xv
 
 GCORE_BUILD=/tmp/gatb-core-build/build
+GCORE_SOURCE=/tmp/gatb-core-code
 
 [ ! -d ${GCORE_BUILD} ] && { echo "${GCORE_BUILD} does not exist. Abort."; exit 1; }
 
 # Run unit tests
 cd ${GCORE_BUILD}
 
-cp -r ../test/db ./test/ 
+cp -r ${GCORE_SOURCE}/gatb-core/gatb-core/test/db ./test/ 
 export CPPUNIT_VERBOSE=1 
 cd bin 
 ./gatb-core-cppunit
