@@ -40,7 +40,8 @@ int main (int argc, char* argv[])
     // one value of the defined range
 
     // NOTE: we could also use lambda expression (easing the code readability)
-    IDispatcher::Status status = dispatcher.iterate (it, Functor());
+    /* NOTE: it'very important to set third argument (groupSize) as 1, because otherwise threads are batched by groups of 1000 by default */
+    IDispatcher::Status status = dispatcher.iterate (it, Functor(), 1); 
 
     // We dump some information about the dispatching
     cout << "nbCores=" << status.nbCores << "  time=" << status.time << endl;

@@ -19,7 +19,7 @@ int main (int argc, char* argv[])
     size_t nbCores = (argc >=2 ? atoi(argv[1]) : 0);
 
     // We create an iterator over an integer range
-    int nmax = 1000;
+    int nmax = 10000;
     Range<int>::Iterator it (1,nmax);
 
     // We create a dispatcher configured for 'nbCores' cores.

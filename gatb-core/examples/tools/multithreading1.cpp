@@ -34,7 +34,8 @@ int main (int argc, char* argv[])
     // one value of the defined range
 
     // NOTE: we could also use lambda expression (easing the code readability)
-    IDispatcher::Status status = dispatcher.iterate (it, Functor());
+    // Note: third argument is set to groupSize of 1 instead of 1000 (default), to avoid that 1000 tasks are batched in the same thread
+    IDispatcher::Status status = dispatcher.iterate (it, Functor(), 1);
 
     // We dump some information about the dispatching
     cout << "nbCores=" << status.nbCores << "  time=" << status.time << endl;

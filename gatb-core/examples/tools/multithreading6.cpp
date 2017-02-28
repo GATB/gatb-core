@@ -56,7 +56,7 @@ int main (int argc, char* argv[])
                 case 'N':  localN++;  break;
             }
         }
-    });
+    }, 1 /*groupSize of 1*/);
 
     sumA.foreach ([&] (int n) { *sumA += n; });
     sumC.foreach ([&] (int n) { *sumC += n; });
