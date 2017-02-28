@@ -238,27 +238,34 @@ class SuperKmerBinFiles
 public:
 	
 	//construct
-	SuperKmerBinFiles(const std::string& name, size_t nb_files);
+	SuperKmerBinFiles(const std::string& path,const std::string& name, size_t nb_files);
 	
 	~SuperKmerBinFiles();
 
 	void closeFiles();
 	void flushFiles();
+	void eraseFiles();
+	void openFiles(const char* mode);
 
-	void openFiles(const std::string& name, size_t nb_files);
+	void writeBlock(unsigned char * block, unsigned int block_size, int file_id, int nbkmers);
+	int readBlock(unsigned char ** block, unsigned int* max_block_size, unsigned int* nb_bytes_read, int file_id);
 
-	//write block
-	void writeBlock(unsigned char * block, unsigned int  block_size, int file_id);
 	int nbFiles();
+	int getNbItems(int fileId);
 	
 	//todo:  int getNbItems(int fileId)
 private:
 
 	std::string _basefilename;
+	std::string _path;
+	
+	std::vector<int> _nbKmerperFile;
 	std::vector<system::IFile* > _files;
 	std::vector <system::ISynchronizer*> _synchros;
+	int _nb_files;
 };
-	
+
+
 
 //encapsulate SuperKmerBinFiles with a buffer
 class CacheSuperKmerBinFiles
@@ -281,7 +288,8 @@ private:
 	
 	std::vector< u_int8_t* > _buffers;
 	std::vector<int> _buffers_idx;
-	
+	std::vector<int> _nbKmerperFile;
+
 };
 	
 	

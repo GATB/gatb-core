@@ -229,6 +229,7 @@ private:
     /** Handle on the count processor object. */
     std::vector<CountProcessor*> _processors;
 
+	
     /** Handle on the progress information. */
     gatb::core::tools::dp::IteratorListener* _progress;
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
@@ -254,6 +255,11 @@ private:
     tools::storage::impl::StorageMode_e _storage_type;
     tools::storage::impl::Storage* _storage;
     void setStorage (tools::storage::impl::Storage* storage)  { SP_SETATTR(storage); }
+	
+	
+	//superkmer efficient storage
+	tools::storage::impl::SuperKmerBinFiles* _superKstorage;
+	std::string _tmpStorageName_superK;
 };
 
 /********************************************************************************/

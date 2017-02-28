@@ -65,7 +65,9 @@ PartitionsCommand<span>:: PartitionsCommand (
     int                 parti,
     size_t              nbCores,
     size_t              kmerSize,
-    MemAllocator&       pool
+    MemAllocator&       pool,
+	tools::storage::impl::SuperKmerBinFiles* 		superKstorage
+
 )
     :
       _partition(partition),
@@ -78,7 +80,8 @@ PartitionsCommand<span>:: PartitionsCommand (
       _cacheSize(cacheSize),
       _pool(pool),
       _globalTimeInfo(timeInfo),
-      _processor(0)
+      _processor(0),
+	  _superKstorage(superKstorage)
 {
     setProcessor      (processor);
 }
@@ -146,9 +149,11 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
     size_t                  nbCores,
     size_t                  kmerSize,
     MemAllocator&           pool,
-    u_int64_t               hashMemory
+    u_int64_t               hashMemory,
+	tools::storage::impl::SuperKmerBinFiles* 		superKstorage
+
 )
-    : PartitionsCommand<span> (partition, processor, cacheSize, progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool),
+    : PartitionsCommand<span> (partition, processor, cacheSize, progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool,superKstorage),
      _hashMemory(hashMemory)
 {
 }
@@ -467,9 +472,10 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
     size_t              nbCores,
     size_t              kmerSize,
     MemAllocator&       pool,
-    vector<size_t>&     offsets
+    vector<size_t>&     offsets,
+	tools::storage::impl::SuperKmerBinFiles* 		superKstorage
 )
-    : PartitionsCommand<span> (partition, processor, cacheSize,  progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool),
+    : PartitionsCommand<span> (partition, processor, cacheSize,  progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool,superKstorage),
         _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0), _nbItemsPerBankPerPart(offsets)
 {
     _dispatcher = new Dispatcher (this->_nbCores);
@@ -503,7 +509,9 @@ void PartitionsByVectorCommand<span>::execute ()
     this->_processor->beginPart (this->_pass_num, this->_parti_num, this->_cacheSize, this->getName());
 
     /** We check that we got something. */
-    if (this->_partition.getNbItems() == 0)  {  return;  }
+    //if (this->_partition.getNbItems() == 0)  {  return;  }
+
+	if (this->_superKstorage->getNbItems(this->_parti_num) == 0)  {  return;  }
 
     /** We configure tables. */
     _radix_kmers  = (Type**)     MALLOC (256*(KX+1)*sizeof(Type*)); //make the first dims static ?  5*256
@@ -531,6 +539,255 @@ void PartitionsByVectorCommand<span>::execute ()
     this->_processor->endPart (this->_pass_num, this->_parti_num);
 };
 
+	//pour l'instant marchera que en mode comptage simple, pas en multi jeu separes
+	//car le jeu separe necessite de passer un cpt de separatio ndes banques, a verifier, et il faut que les buffer conservent l'ordre d'entree, a verifier aussi
+	//readcommand pour lecture parallele des parti superkmers
+template<size_t span>
+class ReadSuperKCommand : public gatb::core::tools::dp::ICommand, public system::SmartPointer
+{
+	typedef typename Kmer<span>::Type  Type;
+
+public:
+	ReadSuperKCommand(tools::storage::impl::SuperKmerBinFiles* superKstorage, int fileId, int kmerSize,
+					  uint64_t * r_idx, Type** radix_kmers, uint64_t* radix_sizes, bank::BankIdType** bankIdMatrix)
+	: _superKstorage(superKstorage), _fileId(fileId),_buffer(0),_buffer_size(0), _kmerSize(kmerSize),_radix_kmers(radix_kmers), _radix_sizes(radix_sizes), _bankIdMatrix(bankIdMatrix), _r_idx (r_idx)
+	{
+		_kx=4;
+		Type un;
+		un.setVal(1);
+		_kmerMask    = (un << (_kmerSize*2)) - 1;
+		_mask_radix.setVal((int64_t) 255);
+		_mask_radix  = _mask_radix << ((_kmerSize - 4)*2);
+		_shift       = 2*(_kmerSize-1);
+		_shift_val   = un.getSize() -8;
+		_shift_radix = ((_kmerSize - 4)*2); // radix is 4 nt long
+	}
+	
+	void execute ()
+	{
+		unsigned int nb_bytes_read;
+	//	printf("execute read parti %i %p\n",_fileId,_superKstorage);
+		while(_superKstorage->readBlock(&_buffer, &_buffer_size, &nb_bytes_read, _fileId))
+		{
+	//		printf("read block %i parti %i\n",nb_bytes_read,_fileId);
+			//decode block and iterate through its superkmers
+			unsigned char * ptr = _buffer;
+			u_int8_t nbK; //number of kmers in the superkmer
+			int nbsuperkmer_read =0;
+			u_int8_t newbyte=0;
+
+			while(ptr < (_buffer+nb_bytes_read)) //decode whole block
+			{
+				//decode a superkmer
+				nbK = *ptr; ptr++;
+				int nb_bytes_superk = (_kmerSize + nbK -1 +3) /4  ;
+				
+				int rem_size = _kmerSize;
+
+				Type Tnewbyte;
+				int nbr=0;
+				_seedk.setVal(0);
+				while(rem_size>=4)
+				{
+					newbyte = *ptr ; ptr++;
+					Tnewbyte.setVal(newbyte);
+
+					
+					_seedk =  _seedk  |  (Tnewbyte  << (8*nbr)) ;
+//					//debug read
+//					printf("popping %s       seedk %s\n",	(Tnewbyte.toString(4)).c_str(), _seedk.toString(31).c_str());
+//					//
+					rem_size -= 4; nbr++;
+				}
+				
+				int uid = 4; //uid = nb nt used in current newbyte
+				
+				//reste du seed kmer
+				if(rem_size>0)
+				{
+					newbyte = *ptr ; ptr++;
+					Tnewbyte.setVal(newbyte);
+
+					_seedk = ( _seedk  |  (Tnewbyte  << (8*nbr)) ) ;
+//					//debug read
+//					printf("rr popping %s       seedk %s\n",	(Tnewbyte.toString(4)).c_str(), _seedk.toString(31).c_str());
+//					//
+					uid = rem_size;
+				}
+				_seedk = _seedk & _kmerMask;
+							  
+
+				//std::string pt = _seedk.toString(_kmerSize);
+				//printf("seedk \n%s \n",pt.c_str());
+				///////////////////////// seedk should be ready here , now parse kx-mers ////////////////////////////////
+						  
+						  u_int8_t rem = nbK;
+						  Type temp = _seedk;
+						  Type rev_temp = revcomp(temp,_kmerSize);
+						  Type newnt ;
+						  Type mink, prev_mink; prev_mink.setVal(0);
+						  uint64_t idx;
+						  
+#ifdef NONCANONICAL
+						  bool prev_which = true;
+#else
+						  bool prev_which =  (temp < rev_temp );
+#endif
+						  
+						  int kx_size = -1; //next loop start at ii=0, first kmer will put it at 0
+						  Type radix_kxmer_forward =  (temp & _mask_radix) >> ((_kmerSize - 4)*2);
+						  Type  first_revk, kinsert,radix_kxmer;
+						  first_revk.setVal(0);
+						  
+						  if(!prev_which) first_revk = rev_temp;
+						  
+						  u_int8_t rid;
+						  
+						  for (int ii=0; ii< nbK; ii++,rem--)
+						  {
+#ifdef NONCANONICAL
+							  bool which = true;
+							  mink = temp;
+#else
+							  bool which =  (temp < rev_temp );
+							  mink = which ? temp : rev_temp;
+#endif
+							  
+							  if (which != prev_which || kx_size >= _kx) // kxmer_size = 1
+							  {
+								  //output kxmer size kx_size,radix_kxmer
+								  //kx mer is composed of superKp[ii-1] superKp[ii-2] .. superKp[ii-n] with nb elems  n  == kxmer_size +1  (un seul kmer ==k+0)
+								  
+								  if(prev_which)
+								  {
+									  radix_kxmer = radix_kxmer_forward;
+									  kinsert = prev_mink;
+								  }
+								  else // si revcomp, le radix du kxmer est le debut du dernier kmer
+								  {
+									  //previous mink
+									  radix_kxmer =  (prev_mink & _mask_radix) >> _shift_radix;
+									  kinsert = first_revk;
+								  }
+								  
+								  //record kxmer
+								  rid = radix_kxmer.getVal();
+								  //idx = _r_idx[IX(kx_size,rid)]++;
+								  idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
+								  
+								  _radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2);  //[kx_size][rid]
+								  if (_bankIdMatrix)  { _bankIdMatrix[IX(kx_size,rid)][ idx] = _bankId; }
+								  
+								  radix_kxmer_forward =  (mink & _mask_radix) >> _shift_radix;
+								  kx_size =0;
+								  
+								  if(!which) first_revk = rev_temp;
+							  }
+							  else
+							  {
+								  kx_size++;
+							  }
+							  
+							  prev_which = which ;
+							  prev_mink = mink;
+							  
+							  if(rem < 2) break; //no more kmers in this superkmer, the last one has just been eaten
+							  
+							  //////////////////////////////now decode next kmer of this superkmer //////////////////////////////////////////////
+							  
+							  if(uid>=4) //read next byte
+							  {
+								  newbyte = *ptr ; ptr++;
+								  Tnewbyte.setVal(newbyte);
+								  uid =0;
+							  }
+
+							  newnt = (Tnewbyte >> (2*uid))& 3; uid++;
+							  
+							 // printf("newnt %s \n",newnt.toString(1).c_str());
+
+							  temp = ((temp << 2 ) |  newnt   ) & _kmerMask;
+							  
+							  /////
+							  //std::string pt = temp.toString(_kmerSize);
+							  //printf("%s \n",pt.c_str());
+							  ///////
+							  
+							  
+							  newnt.setVal(comp_NT[newnt.getVal()]) ;
+							  rev_temp = ((rev_temp >> 2 ) |  (newnt << _shift) ) & _kmerMask;
+							  
+							  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+						  }
+						  
+						  //record last kxmer prev_mink et monk ?
+						  if(prev_which)
+						  {
+							  radix_kxmer = radix_kxmer_forward;
+							  kinsert = prev_mink;
+						  }
+						  else // si revcomp, le radix du kxmer est le debut du dernier kmer
+						  {
+							  //previous mink
+							  radix_kxmer =  (prev_mink & _mask_radix) >> _shift_radix;
+							  kinsert = first_revk;
+						  }
+						  
+						  //record kxmer
+						  rid = radix_kxmer.getVal();
+						  //idx = _r_idx[IX(kx_size,rid)]++;
+						  idx = __sync_fetch_and_add( _r_idx +  IX(kx_size,rid) ,1); // si le sync fetch est couteux, faire un mini buffer par thread
+
+						  
+						  _radix_kmers [IX(kx_size,rid)][ idx] = kinsert << ((4-kx_size)*2);   // [kx_size][rid]
+						  //cout << "went okay " << idx << endl;
+						  
+						  if (_bankIdMatrix)  { _bankIdMatrix[IX(kx_size,rid)][ idx] = _bankId; }
+
+						  
+						  
+				//printf("going to next superk \n");
+
+						  //////////////////////////////////////////////////////////
+				//ptr+=nb_bytes_superk;
+						  
+				//now go to next superk of this block, ptr should point to beginning of next superk
+				nbsuperkmer_read++;
+				/////////
+			}
+			
+			//printf("nb superk in this block %i parti %i\n",nbsuperkmer_read,_fileId);
+
+			
+		}
+		
+		if(_buffer!=0)
+			free(_buffer);
+	}
+private:
+	tools::storage::impl::SuperKmerBinFiles* _superKstorage;
+	int _fileId;
+	unsigned char * _buffer;
+	unsigned int _buffer_size;
+	int _kmerSize;
+	int    _kx;
+
+	Type** _radix_kmers;
+	uint64_t*          _radix_sizes;
+	bank::BankIdType** _bankIdMatrix;
+	uint64_t* _r_idx ;
+	
+	Type _superk, _seedk;
+	Type _radix, _mask_radix ;
+	Type _kmerMask;
+	size_t _shift ;
+	size_t _shift_val ;
+	size_t _shift_radix ;
+	size_t _bankId;
+
+};
+	
+	
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -633,9 +890,26 @@ void PartitionsByVectorCommand<span>::executeRead ()
     else
     {
         /** We iterate the superkmers. */
-        _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, 0, 0), 10000); //must be even , reading by pairs
+       // _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, 0, 0), 10000); //must be even , reading by pairs
+		
+		vector<ICommand*> cmds;
+		for (size_t tid=0; tid < this->_nbCores; tid++)
+		{
+			cmds.push_back(new ReadSuperKCommand<span> (
+												  this->_superKstorage,
+												  this->_parti_num,
+												  this->_kmerSize,
+												  _r_idx, _radix_kmers, _radix_sizes, 0
+												  )
+						   );
+		}
+//		printf("\nReadSuperKCommand parti %i\n",this->_parti_num);
+		_dispatcher->dispatchCommands (cmds, 0);
+//		printf("-----done ReadSuperKCommand ---\n");
+
     }
 }
+
 
 /*********************************************************************
 ** METHOD  :

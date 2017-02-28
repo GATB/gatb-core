@@ -1439,6 +1439,8 @@ struct Kmer
             : minimizer(DEFAULT_MINIMIZER), kmerSize(kmerSize), miniSize(miniSize)
         {
 			kmers.clear();
+			_sk_buffer = (u_int8_t *) malloc(100); //todo
+			_sk_buffer_idx=0;
           //  if (kmers.empty())  { kmers.resize(kmerSize); range.second = kmers.size()-1; }
         }
 
@@ -1462,16 +1464,27 @@ struct Kmer
 		void reset()
 		{
 			kmers.clear();
-			binrep.clear();
+			//binrep.clear();
+			_sk_buffer_idx =0;
 		}
 		
 		//save superkmer to CacheSuperKmerBinFiles
 		void save(tools::storage::impl::CacheSuperKmerBinFiles  & cacheSuperkFile, int file_id)
 		{
+//			printf("saving superk to file %i \n",file_id);
+//			//debug
+//			for (size_t ii=0 ; ii < kmers.size(); ii++)
+//			{
+//			
+//				printf("%s\n",	(((*this)[ii].forward()).toString(kmerSize)).c_str());
+//
+//			}
+//			//
 			size_t superKmerLen = size();
 
-			binrep.clear();
-
+			//binrep.clear();
+			_sk_buffer_idx =0;
+			
 			Type basekmer = (*this)[0].forward();
 			
 			int rem_size = kmerSize;
@@ -1483,8 +1496,13 @@ struct Kmer
 			{
 				newbyte = basekmer.getVal() & mask4nt ; // ptet un getVal et cast to u_int8_t
 				rem_size -= 4;
-				basekmer = basekmer >> 4;
-				binrep.push_back(newbyte);
+				basekmer = basekmer >> 8;
+				_sk_buffer[_sk_buffer_idx++]= newbyte;
+				//binrep.push_back(newbyte);
+//				//debug pushing
+//				Type dd; dd.setVal(newbyte);
+//				printf("pushing %s\n",	(dd.toString(4)).c_str());
+//				//
 			}
 			
 			//reste du kmer
@@ -1505,15 +1523,21 @@ struct Kmer
 					newbyte |=  newnt << (uid*2);
 					uid++; skid++;
 				}
-				
-				binrep.push_back(newbyte);
+				_sk_buffer[_sk_buffer_idx++]= newbyte;
+				//binrep.push_back(newbyte);
+//				//debug pushing
+//				Type dd; dd.setVal(newbyte);
+//				printf("pushing %s\n",	(dd.toString(4)).c_str());
+//				//
 				
 				if(skid >= superKmerLen) break;
 				
 				newbyte=0; uid=0;
 			}
 			
-			cacheSuperkFile.insertSuperkmer(binrep.data(), binrep.size(), kmers.size(),  file_id);
+		//	cacheSuperkFile.insertSuperkmer(binrep.data(), binrep.size(), kmers.size(),  file_id);
+			cacheSuperkFile.insertSuperkmer(_sk_buffer, _sk_buffer_idx, kmers.size(),  file_id);
+			
 		}
 		
 		
@@ -1591,7 +1615,9 @@ struct Kmer
         size_t              kmerSize;
         size_t              miniSize;
         std::vector<Kmer>  kmers;
-		std::vector<u_int8_t> binrep;
+		//std::vector<u_int8_t> binrep;
+		u_int8_t * _sk_buffer;
+		int _sk_buffer_idx;
     };
 
     /************************************************************/

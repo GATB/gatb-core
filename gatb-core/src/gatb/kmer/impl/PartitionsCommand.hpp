@@ -119,7 +119,8 @@ public:
 		int                                             parti,
 		size_t                                          nbCores,
 		size_t                                          kmerSize,
-		gatb::core::tools::misc::impl::MemAllocator&    pool
+		gatb::core::tools::misc::impl::MemAllocator&    pool,
+		tools::storage::impl::SuperKmerBinFiles* 		superKstorage
     );
 
     /** Destructor. */
@@ -146,6 +147,9 @@ protected:
 
     CountProcessor* _processor;
     void setProcessor (CountProcessor* processor)  { SP_SETATTR(processor); }
+	
+	tools::storage::impl::SuperKmerBinFiles* 				_superKstorage;
+
 };
 
 /********************************************************************************/
@@ -173,7 +177,8 @@ public:
         size_t                                          nbCores,
         size_t                                          kmerSize,
         gatb::core::tools::misc::impl::MemAllocator&    pool,
-        u_int64_t                                       hashMemory
+        u_int64_t                                       hashMemory,
+		tools::storage::impl::SuperKmerBinFiles* 		superKstorage
     );
 
     /** Get the class name (for statistics). */
@@ -219,7 +224,9 @@ public:
         size_t                                          nbCores,
         size_t                                          kmerSize,
         gatb::core::tools::misc::impl::MemAllocator&    pool,
-        std::vector<size_t>&                            offsets
+        std::vector<size_t>&                            offsets,
+		tools::storage::impl::SuperKmerBinFiles* 		superKstorage
+
     );
 
     /** Destructor. */

@@ -95,7 +95,7 @@ template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (IProperties* params)
   : Algorithm("dsk", -1, params),
     _bank(0), _repartitor(0),
-    _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0)
+    _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0),_superKstorage(0)
 {
 }
 
@@ -111,7 +111,7 @@ template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (IBank* bank, IProperties* params)
   : Algorithm("dsk", -1, params),
     _bank(0), _repartitor(0),
-    _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0)
+    _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0),_superKstorage(0)
 {
     setBank (bank);
 }
@@ -135,7 +135,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
 )
   : Algorithm("dsk", config._nbCores, params),
     _config(config), _bank(0), _repartitor(0),
-    _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0)
+    _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0),_superKstorage(0)
 {
     setBank       (bank);
     setRepartitor (repartitor);
@@ -565,6 +565,9 @@ void SortingCountAlgorithm<span>::execute ()
     /** We want to remove physically the partitions. */
     _tmpPartitions->remove ();
 
+	
+	delete _superKstorage; //delete files and containing dir
+
     /*************************************************************/
     /*                         STATISTICS                        */
     /*************************************************************/
@@ -635,7 +638,8 @@ public:
             size_t p = this->_repartition (superKmer.minimizer);
 
             /** We save the superkmer into the right partition. */
-            superKmer.save (this->_partition[p]);
+            //superKmer.save (this->_partition[p]);
+			superKmer.save (_superkmerFiles,p);
 
             /*********************************************/
             /** Now, we compute statistics about kxmers. */
@@ -712,7 +716,7 @@ public:
     :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
         _kx(4),
         _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
-        _repartition (repartition), _partition (*partition, nbCacheItems, 0), _superkmerFiles(superKstorage,nbCacheItems)
+        _repartition (repartition), _partition (*partition, nbCacheItems, 0), _superkmerFiles(superKstorage,nbCacheItems* sizeof(Type))
     {
         _mask_radix.setVal((int64_t) 255);
         _mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
@@ -723,6 +727,7 @@ public:
     {
         //add to global parti_info
         _extern_pInfo += _local_pInfo;
+		
     }
 
 private:
@@ -763,15 +768,19 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
     /** We build the temporary storage name from the output storage name. */
     string tmpStorageName = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("dsk_partitions");
 	//string tmpStorageName =  "./" + System::file().getTemporaryFilename("dsk_partitions");
+	_tmpStorageName_superK = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("superK_partitions");
 
     /** We create the partition files for the current pass. */
     setPartitionsStorage (StorageFactory(STORAGE_TYPE).create (tmpStorageName, true, false));
     setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
     setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts", _config._nb_partitions));
 
-	System::file().mkdir("tmpdsk", 0755);
-	SuperKmerBinFiles* superKstorage = new SuperKmerBinFiles("superKparts", _config._nb_partitions) ;
-
+	
+	if(_superKstorage!=0)
+		delete _superKstorage;
+	
+	_superKstorage = new SuperKmerBinFiles(_tmpStorageName_superK,"superKparts", _config._nb_partitions) ;
+	
     /** We update the message of the progress bar. */
     _progress->setMessage (Stringify::format(progressFormat1, pass+1, _config._nb_passes));
 
@@ -815,7 +824,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 
 	
         getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
-            model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo,superKstorage
+            model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo,_superKstorage
         ), groupSize, deleteSynchro);
 
 
@@ -837,8 +846,13 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 		itBanks[i]->finalize();
     }
 	
-	System::file().rmdir("tmpdsk");
-	delete superKstorage;
+
+	_superKstorage->flushFiles();
+	_superKstorage->closeFiles();
+
+	
+	printf("done\n");
+
 }
 
 /*********************************************************************
@@ -910,6 +924,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
 
     /** We update the message of the progress bar. */
     _progress->setMessage (Stringify::format (progressFormat2, pass+1, _config._nb_passes));
+
+	
+	_superKstorage->openFiles("r");
 
     /** We retrieve the list of cores number for dispatching N partitions in N threads.
      *  We need to know these numbers for allocating the N maps according to the maximum allowed memory.
@@ -985,7 +1002,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
                 // also allow to use mem pool for oahash ? ou pas la peine
                 cmd = new PartitionsByHashCommand<span>   (
                     (*_tmpPartitions)[p], processorClone, cacheSize, _progress, _fillTimeInfo,
-                    pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, mem
+                    pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, mem,_superKstorage
                 );
             }
             else
@@ -1059,7 +1076,7 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
 
                 cmd = new PartitionsByVectorCommand<span> (
                     (*_tmpPartitions)[p], processorClone, cacheSize, _progress, _fillTimeInfo,
-                    pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, nbItemsPerBankPerPart
+                    pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, nbItemsPerBankPerPart,_superKstorage
                 );
             }
 
@@ -1080,6 +1097,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
         // free internal memory of pool here
         pool.free_all();
     }
+	
+	_superKstorage->closeFiles();
+
 }
 
 /*********************************************************************
