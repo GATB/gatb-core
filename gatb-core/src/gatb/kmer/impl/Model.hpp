@@ -1438,8 +1438,9 @@ struct Kmer
         SuperKmer (size_t kmerSize, size_t miniSize)
             : minimizer(DEFAULT_MINIMIZER), kmerSize(kmerSize), miniSize(miniSize)
         {
+			_max_size_sk = 1000;
 			kmers.clear();
-			_sk_buffer = (u_int8_t *) malloc(100); //todo
+			_sk_buffer = (u_int8_t *) malloc(_max_size_sk);
 			_sk_buffer_idx=0;
           //  if (kmers.empty())  { kmers.resize(kmerSize); range.second = kmers.size()-1; }
         }
@@ -1482,6 +1483,15 @@ struct Kmer
 //			//
 			size_t superKmerLen = size();
 
+			
+			int required_bytes = (superKmerLen + kmerSize +3) /4 ;
+			if(required_bytes > _max_size_sk)
+			{
+				_sk_buffer = (u_int8_t *) realloc(_sk_buffer, _max_size_sk);
+				_max_size_sk = required_bytes;
+			}
+			
+			
 			//binrep.clear();
 			_sk_buffer_idx =0;
 			
@@ -1611,6 +1621,11 @@ struct Kmer
         }
 #endif
 
+		~SuperKmer()
+		{
+			free(_sk_buffer);
+		}
+		
     private:
         size_t              kmerSize;
         size_t              miniSize;
@@ -1618,6 +1633,7 @@ struct Kmer
 		//std::vector<u_int8_t> binrep;
 		u_int8_t * _sk_buffer;
 		int _sk_buffer_idx;
+		int _max_size_sk;
     };
 
     /************************************************************/
