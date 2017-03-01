@@ -82,7 +82,7 @@ class TestBank : public Test
         CPPUNIT_TEST_GATB (bank_album2);
         CPPUNIT_TEST_GATB (bank_album3);
         CPPUNIT_TEST_GATB (bank_iteration);
-        CPPUNIT_TEST_GATB (bank_datalinesize);
+        //        CPPUNIT_TEST_GATB (bank_datalinesize); // disabled since we're printing fasta in one line now (see "#if 1" in BankFasta)
         CPPUNIT_TEST_GATB (bank_registery_types);
         CPPUNIT_TEST_GATB (bank_checkPower2);
 
