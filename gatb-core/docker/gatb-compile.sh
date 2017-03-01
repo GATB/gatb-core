@@ -25,23 +25,30 @@ GCORE_BUILD=/tmp/gatb-core-build
 [ ! -d ${GCORE_SOURCE} ] && { echo "${GCORE_SOURCE} does not exist. Abort."; exit 1; }
 [ ! -d ${GCORE_BUILD} ] && { echo "${GCORE_BUILD} does not exist. Abort."; exit 1; }
 
-# Figure out whether or not we have to get GATB-Core source code
-cd ${GCORE_SOURCE}
-if [ ! -d "gatb-core" ]; then
-    git clone https://github.com/GATB/gatb-core.git 
+if [ -z ${GIT_PROVIDER} ]; then
+  GIT_PROVIDER="hub"
 fi
 
-# Update GATB-Core then checkout appropriate branch
-cd gatb-core
-git pull --all
+# git management not done for Jenkins/CI (Inria only)
+if [ ! ${GIT_PROVIDER} == "ci" ]; then
+  # Figure out whether or not we have to get GATB-Core source code
+  cd ${GCORE_SOURCE}
+  if [ ! -d "gatb-core" ]; then
+      git clone https://github.com/GATB/gatb-core.git 
+  fi
 
-# set default branch to master if not specified otherwise using
-# GIT_BRANCH environment variable
-if [ -z ${GIT_BRANCH} ]; then
-  GIT_BRANCH=master
+  # Update GATB-Core then checkout appropriate branch
+  cd gatb-core
+  git pull --all
+
+  # set default branch to master if not specified otherwise using
+  # GIT_BRANCH environment variable
+  if [ -z ${GIT_BRANCH} ]; then
+    GIT_BRANCH=master
+  fi
+
+  git checkout ${GIT_BRANCH}
 fi
-
-git checkout ${GIT_BRANCH}
 
 # Prepare a fresh build directory
 cd ${GCORE_BUILD}
