@@ -74,7 +74,9 @@
 #   All in all, the GATB-Core compiler machine can be started as follows:
 #
 #   docker run --name gatb_core_machine_clang \
-#              -i -t -e "GIT_BRANCH=master"
+#              -i -t \                       <-- remove if running from Jenkins/slave
+#                                                (TTY not allowed)
+#              -e "GIT_BRANCH=master"
 #              -v /path/to/gatb-core-source:/tmp/gatb-core-code \
 #              -v /path/to/gatb-core-build:/tmp/gatb-core-build \
 #              gatb_core_machine_clang \
