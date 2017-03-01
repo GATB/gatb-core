@@ -121,7 +121,7 @@ MAINTAINER Patrick Durand patrick.durand@inria.fr
 # Note: software-properties-common contains add-apt-repository, used to install 
 #       clang
 RUN apt-get update && apt-get -y dist-upgrade \
-    && apt-get install -y --no-install-recommends software-properties-common git wget make zlib1g-dev libcppunit-dev
+    && apt-get install -y --no-install-recommends software-properties-common vim git wget make zlib1g-dev libcppunit-dev
 
 # ###
 #    Configuring gcc and cmake release

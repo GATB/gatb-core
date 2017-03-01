@@ -119,7 +119,7 @@ MAINTAINER Patrick Durand patrick.durand@inria.fr
 # install latest packages of the base system
 # as well as packages required to compile GATB-Core
 RUN apt-get update && apt-get -y dist-upgrade \
-    && apt-get install -y --no-install-recommends git wget make zlib1g-dev libcppunit-dev
+    && apt-get install -y --no-install-recommends vim git wget make zlib1g-dev libcppunit-dev
 
 # ###
 #    Configuring gcc and cmake release
