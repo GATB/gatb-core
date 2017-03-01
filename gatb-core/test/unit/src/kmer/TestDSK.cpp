@@ -80,7 +80,6 @@ static const int KSIZE_1 = KMER_SPAN(0);
 #else
 static const int KSIZE_2 = KMER_SPAN(1);
 static const int KSIZE_3 = KMER_SPAN(2);
-static const int KSIZE_4 = KMER_SPAN(3);
 #endif
 struct Functor_getValue : public boost::static_visitor<Integer>    {
     template<typename T>  Integer operator() (const T& a) const  { return Integer(a.getValue());  }};

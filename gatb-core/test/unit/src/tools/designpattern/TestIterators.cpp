@@ -111,7 +111,6 @@ public:
     void iterators_checkCartesianIterator ()
     {
         size_t nbItems = 0;
-        size_t i=0, j=0;
 
         /** We declare a STL list with some values. */
         int values1[] = {1,2,3,5,8,13,21,34};
@@ -173,7 +172,6 @@ public:
     void iterators_checkCompoundIterator ()
     {
         size_t nbItems = 0;
-        size_t i=0, j=0;
         const char* str = "abcdefghijklmnopqrstuvwxyz";
 
         /** We declare a STL list with some values. */

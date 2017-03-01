@@ -194,7 +194,7 @@ public:
         sortingCount.execute();
 
         /** We get the storage instance. */
-        Storage* storage = sortingCount.getStorage();
+        sortingCount.getStorage();
 
         /** We check that the sequence has no duplicate kmers. */
         CPPUNIT_ASSERT ( (int64_t) (seqLen - kmerSize + 1) == sortingCount.getSolidCounts()->getNbItems());
