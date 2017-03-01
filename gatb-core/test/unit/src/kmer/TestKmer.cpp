@@ -142,7 +142,6 @@ public:
         {
             const char* seq = "CATTGATAGTGG";
             long directKmers [] = {18, 10, 43, 44, 50,  8, 35, 14, 59, 47};
-            long reverseKmers[] = {11,  2, 16, 36,  9, 34, 24,  6, 17, 20};
 
             kmer_checkCompute_aux <typename Kmer<span>::ModelDirect> (seq, directKmers,  ARRAY_SIZE(directKmers));
         }
@@ -386,7 +385,6 @@ public:
     void kmer_minimizer2 ()
     {
         const char* seq = "ATGTCTGAAGTGACCTAACATTGCA";
-        size_t sequenceSize = strlen(seq);
 
         size_t kmerSize = 15;
         size_t mmerSize = 7;
@@ -437,7 +435,6 @@ public:
     void kmer_minimizer3 ()
     {
         const char* seq = "ATGTCTGAAGTGACCTAACATTGCAGTGTGTT"; 
-        size_t sequenceSize = strlen(seq);
 
         size_t kmerSize = 15;
         size_t mmerSize = 7;

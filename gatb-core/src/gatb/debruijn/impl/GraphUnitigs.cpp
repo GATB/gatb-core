@@ -113,13 +113,10 @@ GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (bank::IBank* ban
     IOptionsParser* parser = BaseGraph::getOptionsParser (false);   LOCAL(parser);
 
     /** We build the command line from the format and the ellipsis. */
-    std::string commandLine;
-    char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    vasprintf (&buffer, fmt, args);
+    std::string commandLine = Stringify::format(fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
@@ -147,13 +144,10 @@ GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (const char* fmt,
     IOptionsParser* parser = BaseGraph::getOptionsParser (true);   LOCAL (parser);
 
     /** We build the command line from the format and the ellipsis. */
-    std::string commandLine;
-    char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    vasprintf (&buffer, fmt, args);
+    std::string commandLine = Stringify::format(fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
@@ -1140,9 +1134,6 @@ template<size_t span>
 unsigned int GraphUnitigsTemplate<span>::
 unitigLength            (const NodeGU& node, Direction dir) const
 {
-    const std::string& seq = unitigs[node.unitig];
-    bool same_orientation = node_in_same_orientation_as_in_unitig(node);
-
     int length;
     if (isLastNode(node,dir))
         length = 0;
@@ -1231,7 +1222,6 @@ unitigSequence (const NodeGU& node, bool& isolatedLeft, bool& isolatedRight) con
     const string& seq = unitigs[node.unitig];
 
     //std::cout << " seq " << seq << " node " << toString(node) << std::endl;
-    int kmerSize = BaseGraph::_kmerSize;
     NodeGU left = NodeGU(node.unitig, UNITIG_BEGIN);
     NodeGU right = NodeGU(node.unitig, UNITIG_END);
 

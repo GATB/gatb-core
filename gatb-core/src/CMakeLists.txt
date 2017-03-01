@@ -45,7 +45,12 @@ MESSAGE ("-- OPTIMIZED KMER SIZES INTERVALS ARE " ${KSIZE_STRING_SPACE} " <-- ma
 
 # We build the file holding system information
 configure_file (
-    ${PROJECT_SOURCE_DIR}/src/gatb/system/api/config.hpp.in 
+    ${PROJECT_SOURCE_DIR}/src/gatb/system/api/build_info.hpp.in
+    ${PROJECT_BINARY_DIR}/include/gatb/system/api/build_info.hpp
+)
+# File holding configuration macros
+configure_file (
+    ${PROJECT_SOURCE_DIR}/src/gatb/system/api/config.hpp.in
     ${PROJECT_BINARY_DIR}/include/gatb/system/api/config.hpp
 )
 

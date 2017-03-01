@@ -293,11 +293,6 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
     // TODO Erwan: do we even use those variables? if not, why put them here? I feel that it's weak to parse cmdline arguments in build_visitor
     // because graph._kmerSize is already defined at this point; and config._minim_size has minimizer size info. The rest we don't use.
     size_t kmerSize      = props->get(STR_KMER_SIZE)          ? props->getInt(STR_KMER_SIZE)           : 31;
-    size_t minimizerSize = props->get(STR_MINIMIZER_SIZE)     ? props->getInt(STR_MINIMIZER_SIZE)      : 8;
-    size_t nksMin        = props->get(STR_KMER_ABUNDANCE_MIN) ? props->getInt(STR_KMER_ABUNDANCE_MIN)  : 3;
-    size_t nksMax        = props->get(STR_KMER_ABUNDANCE_MAX) ? props->getInt(STR_KMER_ABUNDANCE_MAX)  : 0; // if max<min, we use max=MAX
-    size_t minimizerType = props->get(STR_MINIMIZER_TYPE)     ? props->getInt(STR_MINIMIZER_TYPE)      : 0;
-    size_t repartitionType = props->get(STR_REPARTITION_TYPE) ? props->getInt(STR_REPARTITION_TYPE)    : 0;
     size_t compressLevel   = props->get(STR_COMPRESS_LEVEL)   ? props->getInt(STR_COMPRESS_LEVEL)      : 0;
     bool   configOnly      = props->get(STR_CONFIG_ONLY) != 0;
 
@@ -691,13 +686,10 @@ GraphTemplate<Node, Edge, GraphDataVariant>  GraphTemplate<Node, Edge, GraphData
     IOptionsParser* parser = getOptionsParser (false);   LOCAL(parser);
 
     /** We build the command line from the format and the ellipsis. */
-    std::string commandLine;
-    char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    vasprintf (&buffer, fmt, args);
+    std::string commandLine = Stringify::format(fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
@@ -725,13 +717,10 @@ GraphTemplate<Node, Edge, GraphDataVariant>  GraphTemplate<Node, Edge, GraphData
     IOptionsParser* parser = getOptionsParser (true);   LOCAL (parser);
 
     /** We build the command line from the format and the ellipsis. */
-    std::string commandLine;
-    char* buffer = 0;
     va_list args;
     va_start (args, fmt);
-    vasprintf (&buffer, fmt, args);
+    std::string commandLine = Stringify::format(fmt, args);
     va_end (args);
-    if (buffer != NULL)  {  commandLine = buffer;  FREE (buffer);  }
 
     try
     {
@@ -1220,7 +1209,7 @@ struct getItems_visitor : public boost::static_visitor<GraphVector<Item> >    {
                     bitmask = (value >> 4) & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems OUTCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;
@@ -1261,7 +1250,7 @@ struct getItems_visitor : public boost::static_visitor<GraphVector<Item> >    {
                     bitmask = value & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems INCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;
@@ -1496,7 +1485,6 @@ struct countNeighbors_visitor : public boost::static_visitor<void>    {
         {
             for (u_int64_t nt=0; nt<4; nt++)
             {
-                typename Node::Value dest_value;
                 Type forward = ( (graine << 2 )  + nt) & mask;
                 Type reverse = revcomp (forward, kmerSize);
 
@@ -1525,7 +1513,6 @@ struct countNeighbors_visitor : public boost::static_visitor<void>    {
                 Type single_nt;
                 single_nt.setVal(nt);
                 single_nt <<=  ((kmerSize-1)*2);
-                typename Node::Value dest_value;
                 Type forward = ((graine >> 2 )  + single_nt ) & mask; /* previous kmer */
                 Type reverse = revcomp (forward, kmerSize);
 
@@ -1936,7 +1923,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
                     bitmask = (value >> 4) & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems OUTCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;
@@ -1977,7 +1964,7 @@ struct getItem_visitor : public boost::static_visitor<Item>    {
                     bitmask = value & 0xF;
 
                     /* also revcomp the nt's: instead of GTCA (high bits to low), make it CAGT */
-                    bitmask = ((bitmask & 3) << 2) | (bitmask >> 2) & 3;
+                    bitmask = ((bitmask & 3) << 2) | ((bitmask >> 2) & 3);
                 }
 
                 //std::cout << "getItems INCOMING: forward strand?" << forwardStrand << "; adjacency value: " << to_string((int)value) << " hashindex " << hashIndex << " dir " << direction << " bitmask " << (int)bitmask << std::endl;

@@ -47,9 +47,6 @@ using namespace gatb::core::tools::math;
 namespace gatb  {  namespace core  {   namespace debruijn  {   namespace impl {
 /********************************************************************************/
 
-static const char* progressFormat1 = "Graph: building unitigs using bcalm2  ";
-static const char* progressFormat2 = "Graph: nb unitigs constructed : %-9d  ";
-
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -142,7 +139,6 @@ link_unitigs(string unitigs_filename, int kmerSize, bool verbose)
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
     {
         const string& seq = itSeq->toString();
-        const string& comment = itSeq->getComment();
  
         typename Model::Kmer kmerBegin = modelKminusOne.codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
         typename Model::Kmer kmerEnd = modelKminusOne.codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);

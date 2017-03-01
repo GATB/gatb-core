@@ -23,6 +23,7 @@
 // We use the required packages
 using namespace std;
 
+#define IFDEBUG(a) // a
 #define DEBUG(a) //printf a
 #define DEBUG2(a) //printf a
 // wanted to debug separately
@@ -50,17 +51,16 @@ void Repartitor::computeDistrib (const PartiInfo<5>& extern_pInfo)
     std::priority_queue< itriple, std::vector<itriple>,compSpaceTriple > pq;
 
     //sum total bins size
-    u_int64_t sumsizes =0;
+    IFDEBUG(u_int64_t sumsizes =0);
     for (u_int64_t ii=0; ii< _nb_minims; ii++)
     {
         // sumsizes +=   extern_pInfo.getNbSuperKmer_per_minim(ii); // _binsize[ii];
         // bin_size_vec.push_back(ipair( extern_pInfo.getNbSuperKmer_per_minim(ii) ,ii));
-        sumsizes +=   extern_pInfo.getNbKxmer_per_minim(ii); // _binsize[ii];
+        IFDEBUG(sumsizes += extern_pInfo.getNbKxmer_per_minim(ii)); // _binsize[ii];
         bin_size_vec.push_back(ipair( extern_pInfo.getNbKxmer_per_minim(ii) ,ii));
     }
-    u_int64_t mean_size =  sumsizes /  _nbpart;
 
-    DEBUG (("Repartitor : mean size per parti should be :  %lli  (total %lli )\n",mean_size,sumsizes));
+    DEBUG(("Repartitor : mean size per parti should be :  %lli  (total %lli )\n", sumsizes / _nbpart, sumsizes));
 
     //init space left
     for (int jj = 0; jj < _nbpart; jj++)  {  pq.push (itriple(jj,0,0));  }

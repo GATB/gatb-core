@@ -168,8 +168,6 @@ void PartitionsByHashCommand<span>:: execute ()
 
     CounterBuilder solidCounter;
 
-	size_t count=0;
-
 	/** We need a map for storing part of solid kmers. */
 	//OAHash<Type> hash (_hashMemory);
 

@@ -28,6 +28,7 @@
 
 /********************************************************************************/
 
+#include <gatb/system/api/config.hpp>
 #include <gatb/system/impl/MemoryCommon.hpp>
 #include <gatb/system/impl/TimeCommon.hpp>
 #include <gatb/system/impl/SystemInfoCommon.hpp>

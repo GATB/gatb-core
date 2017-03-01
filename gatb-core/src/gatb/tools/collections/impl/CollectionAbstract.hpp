@@ -31,6 +31,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/collections/api/Collection.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <cstdarg>
 #include <cstdio>
@@ -117,14 +118,10 @@ public:
     /** \copydoc Collection::addProperty */
     void addProperty (const std::string& key, const char* format ...)
     {
-        std::string value;
-        char* buffer = 0;
         va_list args;
         va_start (args, format);
-        vasprintf (&buffer, format, args);
+        this->addProperty (key, misc::impl::Stringify::format(format, args));
         va_end (args);
-        if (buffer != NULL)  {  value = buffer;  FREE (buffer);  }
-        this->addProperty (key, value);
     }
 
     /** \copydoc Collection::getProperty */

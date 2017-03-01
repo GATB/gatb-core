@@ -173,7 +173,6 @@ public:
 
     void debruijn_traversal (GraphUnitigs& graph, string startSeq ,const char* checkStr, bool reverse_seq=false)
     {
-        TraversalKind traversalKind=TRAVERSAL_UNITIG; /* setting traversal=CONTIG doesn't make sense anymore, it was for miniav1 */
 
         string startKmer = startSeq.substr(0, graph._kmerSize);
 		NodeGU node = graph.debugBuildNode(startKmer);

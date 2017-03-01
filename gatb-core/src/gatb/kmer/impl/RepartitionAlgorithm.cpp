@@ -459,7 +459,6 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 
 
 
-    		size_t  currentPass = 0;
     		/** We compute a distribution of Superkmers from a part of the bank. */
     		serialDispatcher.iterate (cancellable_it, SampleRepart<span> (
     			model,
@@ -503,8 +502,6 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 
 
 		BankStats bstatsDummy;
-
-		size_t  currentPass = 0;
 
 		/** We compute a distribution of Superkmers from a part of the bank. */
 		SerialDispatcher serialDispatcher;

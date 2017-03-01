@@ -110,7 +110,6 @@ namespace boomphf {
 		void finish_threaded()// called by only one of the threads
 		{
 			done = 0;
-			double rem = 0;
 			for (int ii=0; ii<_nthreads;ii++) done += (done_threaded[ii] );
 			for (int ii=0; ii<_nthreads;ii++) partial += (partial_threaded[ii] );
 
@@ -1023,7 +1022,7 @@ we need this 2-functors scheme because HashFunctors won't work with unordered_ma
 
 			_proba_collision = 1.0 -  pow(((_gamma*(double)_nelem -1 ) / (_gamma*(double)_nelem)),_nelem-1);
 
-			double sum_geom =_gamma * ( 1.0 +  _proba_collision / (1.0 - _proba_collision));
+			// double sum_geom =_gamma * ( 1.0 +  _proba_collision / (1.0 - _proba_collision));
 			// printf("proba collision %f  sum_geom  %f   \n",_proba_collision,sum_geom);
 
 			_nb_levels = 25;

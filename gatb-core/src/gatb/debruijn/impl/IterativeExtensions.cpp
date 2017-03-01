@@ -80,8 +80,6 @@ struct NodeDepth
 template<size_t span, typename Node, typename Edge, typename Graph>
 bool IterativeExtensions<span, Node, Edge, Graph>::compare_and_mark_last_k_minus_one_mer (const string& node, set<kmer_type>& kmers_set)
 {
-    kmer_type kmer_fw, kmer_rc;
-
     KmerModel leftKmer = modelMinusOne.codeSeed (node.c_str(), Data::ASCII, node.size() - modelMinusOne.getKmerSize());
     kmer_type kmer = leftKmer.value();
 

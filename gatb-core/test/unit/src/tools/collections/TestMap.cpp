@@ -185,7 +185,7 @@ public:
         LOCAL (storage);
 
         /** We save the map. */
-        size_t writeLen = map1.save (storage->root(), "mphf");
+        map1.save (storage->root(), "mphf");
 
         /** We create another map. */
         MapMPHF <NativeInt8, float> map2;

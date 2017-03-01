@@ -161,7 +161,6 @@ public:
     {
         T a (1);
         a <<= 64;
-        size_t s = 0;
 
         CPPUNIT_ASSERT ( (a>>0) == a);
     }

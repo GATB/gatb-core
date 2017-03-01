@@ -208,8 +208,6 @@ float MPHFAlgorithm<span,Abundance_t,NodeState_t>::getNbBitsPerKmer () const
 template<size_t span,typename Abundance_t,typename NodeState_t>
 void MPHFAlgorithm<span,Abundance_t,NodeState_t>::initNodeStates()
 {
-    size_t n = _abundanceMap->size();
-
     _nodeStateMap->useHashFrom(_abundanceMap, 2); // use abundancemap's MPHF, and allocate n/2 bytes
 }
 

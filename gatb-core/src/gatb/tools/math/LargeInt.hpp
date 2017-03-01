@@ -738,7 +738,7 @@ template<int precision>  inline LargeInt<precision> revcomp (const LargeInt<prec
 template<int precision>  inline u_int64_t hash1 (const LargeInt<precision>& elem, u_int64_t seed=0)
 {
     // hash = XOR_of_series[hash(i-th chunk iof 64 bits)]
-    u_int64_t result = 0, chunk;
+    u_int64_t result = 0;
 
     for (size_t i=0;i<precision;i++)
     {

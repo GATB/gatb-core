@@ -244,19 +244,11 @@ ConfigurationAlgorithm<span>::~ConfigurationAlgorithm ()
 template<size_t span>
 void ConfigurationAlgorithm<span>::execute ()
 {
-    float load_factor = 0.7;
-
-   /** We get some information about the bank. */
-
     /** By default, we want to have mmers of size 8. However (for unit tests for instance),
      * we may need to have kmer sizes less than 8; in such a case, we set by convention m=k-1. */
     if (_config._minim_size == 0)  {   _config._minim_size = 8;  }
 
     _config._minim_size = std::min ((int)_config._kmerSize-1, (int)_config._minim_size);
-
-    // optimism == 0 mean that we guarantee worst case the memory usage,
-    // any value above assumes that, on average, any distinct k-mer will be seen 'optimism+1' times
-    int optimism = 0; // 0: guarantees to always work; above 0: risky
 
     /** We get some information about the bank. */
     _bank->estimate (_config._estimateSeqNb, _config._estimateSeqTotalSize, _config._estimateSeqMaxSize);
@@ -359,11 +351,9 @@ void ConfigurationAlgorithm<span>::execute ()
         max_open_files /= 3; // will need to open twice in STORAGE_FILE instead of HDF5, so this adjustment is needed. needs to be fixed later by putting partitions inside the same file. but i'd rather not do it in the current messy collection/group/partition hdf5-inspired system. overall, that's a FIXME
     }
 
-    u_int64_t volume_per_pass;
-    float est_volume_distinct_ratio;
-
 #if 0
     /* disabled by default; this was an experiment */
+    float est_volume_distinct_ratio;
     if (_flagEstimateNbDistinctKmers)
     {
         /* we estimate the volume of distinct kmers vs total number of kmers.
@@ -395,7 +385,7 @@ void ConfigurationAlgorithm<span>::execute ()
         printf ("LinearCounter done, estimated %ld number of distinct kmers, ratio to total number of kmers: %.2f\n", (long)_estimatedDistinctKmerNb, est_volume_distinct_ratio);
     }
 #endif
-
+    u_int64_t volume_per_pass;
     do  {
 
         assert (_config._nb_passes > 0);

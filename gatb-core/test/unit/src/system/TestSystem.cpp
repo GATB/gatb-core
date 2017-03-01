@@ -557,7 +557,7 @@ public:
         for (list<ITime*>::iterator it = timeList.begin(); it != timeList.end(); it++)
         {
             ITime::Value t0 = (*it)->getTimeStamp();
-            int err = sleep (delayInSecond);
+            sleep (delayInSecond);
             ITime::Value t1 = (*it)->getTimeStamp();
 
             CPPUNIT_ASSERT ((t1-t0) / (*it)->getUnit() == delayInSecond);

@@ -259,7 +259,7 @@ public:
         Kmer kmer = model.codeSeed ("ACCATGTATAA", Data::ASCII);
 
         // We check that it is known by the hash function
-        MPHF::Code code = hash1 (kmer.value());
+        hash1 (kmer.value());
 
         //////////////////////////////////////////////////
         // PART 3 : we read the hash from a storage
@@ -292,7 +292,7 @@ public:
 
             try  {
                 /** We try to get a hash value. */
-                Hash::Code v = hash (3);
+                hash (3);
             }
             catch (gatb::core::system::ExceptionNotImplemented& e)
             {
