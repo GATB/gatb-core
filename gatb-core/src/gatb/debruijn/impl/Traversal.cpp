@@ -17,9 +17,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
 
-/********************************************************************************/
-// We include required definitions
-/********************************************************************************/
 
 #include <gatb/debruijn/impl/Traversal.hpp>
 #include <gatb/debruijn/impl/Frontline.hpp>

@@ -32,16 +32,22 @@ namespace debruijn  {
 namespace impl      {
 /********************************************************************************/
 
-/** \brief Interface that allows to mark nodes in a graph.
+/** \brief Interface that allows to mark certain nodes in a graph. Note: It is on the verge of becoming deprecated.
  *
- * De Bruijn graphs in GATB are immutable and therefore it is not
- * possible to directly tag nodes inside the graph structure.
+ * In short: don't use it. Use the MPHF.
  *
- * Nevertheless, we can use external data structure to mark nodes,
- * during graph traversal for instance.
+ * This is a legacy class that was used when the graph did not have a MPHF.
+ * I.e. in Minia version 1.
+ * Back then, it was not possible to directly tag nodes inside the graph structure.
+ * So this Terminator class uses an external data structure to mark some of 
+ * the nodes (specifically, the branching nodes). It was used during graph traversal 
+ * for instance.
  *
  * The Terminator interface provides such a service. It is often used
  * by the \ref Traversal class during its traversing process.
+ *
+ * The name Terminator is just related to termination, we needed a way to ensure that we don't traverse
+ * the same contig twice, so that the algorithm terminates eventually.
  */
 
 template <typename Node, typename Edge, typename Graph>
