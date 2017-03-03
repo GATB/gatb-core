@@ -32,9 +32,6 @@
 
 #include <BooPHF/BooPHF.h>
 
-// let's use emphf base_hash for hashing elements here
-#include <emphf/base_hash.hpp>
-
 /********************************************************************************/
 namespace gatb        {
 namespace core        {
