@@ -537,43 +537,12 @@ typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
 
 typedef uint64_t partition_t;
 
-#if 0
-    /** We get the dsk and minimizers hash group in the storage object. */
-    Group& dskGroup = storage->getGroup("dsk");
-    Group& minimizersGroup = storage->getGroup("minimizers");
-
-    typedef typename Kmer<SPAN>::Count Count;
-    Partition<Count>& partition = dskGroup.getPartition<Count> ("solid");
-    size_t nbPartitions = partition.size();
-    if (verbose)
-        cout << "DSK created " << nbPartitions << " partitions" << endl;
-
-    /** We retrieve the minimizers distribution from the solid kmers storage. */
-    Repartitor repart;
-    repart.load (minimizersGroup);
-
-    /* Retrieve frequency of minimizers; */
-    u_int64_t rg = ((u_int64_t)1 << (2*minSize));
-    uint32_t *freq_order = NULL;
-
-    if (minimizer_type == 1)
-    {
-        freq_order = new uint32_t[rg];
-        Storage::istream is (minimizersGroup, "minimFrequency");
-        is.read ((char*)freq_order, sizeof(uint32_t) * rg);
-    }
-
-    // all those models are for creating UF with k-1 mers or minimizers, we don't do that anymore. legacy/debugging code, that can be removed later.
-    Model model(kmerSize, minSize, Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
-    Model modelK1(kmerSize-1, minSize,  Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
-    Model modelK2(kmerSize-2, minSize,  Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
-    Model modelM(minSize, minSize,  Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
-#endif
+    std::atomic<unsigned long> nb_extremities; 
+    nb_extremities = 0;
 
     // create a hasher for UF
     ModelCanon modelCanon(kmerSize); // i'm a bit lost with those models.. I think GATB could be made more simple here.
     Hasher_T<ModelCanon> hasher(modelCanon);
-
 
     Iterator<Sequence>* it = in->iterator();
 
@@ -584,7 +553,7 @@ typedef uint64_t partition_t;
 
     // prepare UF: create the set of keys
     auto prepareUF = [k, &modelCanon, \
-        &uf_hashes_vectorsMutex, &uf_hashes_vectors, &hasher, nb_uf_hashes_vectors](const Sequence& sequence)
+        &uf_hashes_vectorsMutex, &uf_hashes_vectors, &hasher, nb_uf_hashes_vectors, &nb_extremities](const Sequence& sequence)
     {
         string seq = sequence.toString();
         string comment = sequence.getComment();
@@ -612,13 +581,15 @@ typedef uint64_t partition_t;
         uf_hashes_vectorsMutex[h2%nb_uf_hashes_vectors].lock();
         uf_hashes_vectors[h2%nb_uf_hashes_vectors].push_back(h2);
         uf_hashes_vectorsMutex[h2%nb_uf_hashes_vectors].unlock();
+
+        nb_extremities+=2;
     };
 
     Dispatcher dispatcher (nb_threads);
     it = in->iterator(); // yeah so.. I think the old iterator cannot be reused
     dispatcher.iterate (it, prepareUF);
 
-    logging("created vector of redundant UF elements");
+    logging("created vector of redundant UF elements (" + std::to_string(nb_extremities.load()) + " kmers, approx " + std::to_string( sizeof(partition_t)*nb_extremities/1024/1024) + " MB)");
 
     ThreadPool uf_merge_pool(nb_threads);
 
