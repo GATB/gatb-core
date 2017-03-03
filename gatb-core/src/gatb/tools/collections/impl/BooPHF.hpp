@@ -32,6 +32,8 @@
 
 #include <BooPHF/BooPHF.h>
 
+#include <random> // for mt19937_64
+
 /********************************************************************************/
 namespace gatb        {
 namespace core        {
