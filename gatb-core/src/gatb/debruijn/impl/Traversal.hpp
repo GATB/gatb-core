@@ -67,13 +67,24 @@ struct TraversalStats
 
 /** \brief Class that traverse nodes of a Graph
  *
- * The Traversal class looks for path in a graph according to several criteria. This
- * is done through the 'traverse' method. As a result, one gets a Path object that
+ * The Traversal class traverses the graph according to several criteria (think of contigs and unitigs). 
+ * 
+ * This is done through the 'traverse' method. As a result, one gets a Path object that
  * holds the traversed path information.
+ * Typically, you start from a node in the graph, and you call traverse() from that node with a direction
+ * (forward or reverse). The function returns a path in the graph that corresponds to a sequence.
  *
  * There are two kinds of traversal:
- *  - \ref tools::misc::TRAVERSAL_UNITIG : one gets only simple path in the graph
- *  - \ref tools::misc::TRAVERSAL_CONTIG : one gets more complex path
+ *  - \ref tools::misc::TRAVERSAL_UNITIG : one gets only the non-branching paths in the graph
+ *  - \ref tools::misc::TRAVERSAL_CONTIG : one gets contigs, according to the method implemented in Minia version 1
+ *
+ *  More specifically, TRAVERSAL_CONTIG attempts to ignore tips and bubbles.
+ *  Note that this traversal isn't used in Minia versions 2 and 3 anymore. 
+ *  Since we can now simplify the graph, we just remove tips and bulge and then perform a TRAVERSAL_UNITIG in the
+ *  simplified graph.
+ *
+ *  But anyway, TRAVERSAL_CONTIG is still provided here, as it can be of independent interest. Say, if you want
+ *  to quickly create contigs in a targeted assembly scenario.
  *
  * A factory method \ref create is available and should be used by end users to instantiate
  * this class.
