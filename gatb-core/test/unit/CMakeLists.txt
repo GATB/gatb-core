@@ -20,7 +20,7 @@ target_link_libraries (gatb-core-cppunit    ${gatb-core-libraries} ${CPPUNIT_LIB
 #################################################
 
 # We add an optional target for launching unit tests
-add_custom_target (test gatb-core-cppunit  "All Tests"  ${gatb-core_SOURCE_DIR}/test/db  unittests.xml)
+add_custom_target (gatb_test gatb-core-cppunit  "All Tests"  ${gatb-core_SOURCE_DIR}/test/db  unittests.xml)
 
 #################################################
 #  INSTALL 
