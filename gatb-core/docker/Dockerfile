@@ -110,55 +110,60 @@
 #     Base commands
 #
 #     We use a Debian 8 (Jessie) Linux
+#
 FROM debian:jessie
 
 # who to blame?
 MAINTAINER Patrick Durand patrick.durand@inria.fr
 
 # ###
-#     Package installation
-#
-# install latest packages of the base system
-# as well as packages required to compile GATB-Core
-RUN apt-get update && apt-get -y dist-upgrade \
-    && apt-get install -y --no-install-recommends vim git wget make zlib1g-dev libcppunit-dev
-
-# ###
 #    Configuring gcc and cmake release
-ENV GCC_VERSION 4.8
-ENV CMAKE_SERIES 3.1
-ENV CMAKE_VERSION 3.1.3
+#
+ENV GCC_VERSION=4.8 \
+    CMAKE_SERIES=3.1 \
+    CMAKE_VERSION=3.1.3
+    
+# ###
+#     Package installation and configuration
+#
+#     install latest packages of the base system
+#     as well as packages required to compile GATB-Core
+#
+RUN apt-get update && apt-get -y dist-upgrade \
+    && apt-get install -y --no-install-recommends vim git wget make zlib1g-dev libcppunit-dev \
+    && apt-get clean \
+    && git config --global http.sslVerify false
 
 # ###
 #     Compiler installation
 #
-# We need a c/c++ compiler in an appropriate release
-# Note: update-alternatives used to enable cmake installer (./boostrap)
-#       to locate gcc
+#     We need a c/c++ compiler in an appropriate release.
+#     Note: update-alternatives used by cmake installer (./boostrap)
+#           to locate gcc
+#
 RUN apt-get install -y --no-install-recommends \
     gcc-${GCC_VERSION} g++-${GCC_VERSION} gcc-${GCC_VERSION}-base \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 100 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 100
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 100 \
+    && apt-get clean 
 
 # ###
 #     CMAKE installation
 #
-#     and we need cmake; we do not use: apt-get install cmake
-#     since we have to control which version we use.
+#     we need cmake in aparticular release; we do not use: apt-get 
+#     install cmake since we have to control which version we use.
 #     Cmake install procedure: https://cmake.org/install/
-ENV CMAKE_URL http://cmake.org/files/v${CMAKE_SERIES}/cmake-${CMAKE_VERSION}.tar.gz
-WORKDIR /opt
-RUN wget --no-check-certificate ${CMAKE_URL} -O - | tar xzf -
-WORKDIR cmake-${CMAKE_VERSION}
-RUN ./bootstrap && make && make install && cd .. && rm -rf cmake-${CMAKE_VERSION}
+#
+RUN cd /opt \
+    && export CMAKE_URL="http://cmake.org/files/v${CMAKE_SERIES}/cmake-${CMAKE_VERSION}.tar.gz" \
+    && wget --no-check-certificate ${CMAKE_URL} -O - | tar xzf - \
+    && cd cmake-${CMAKE_VERSION} \
+    && ./bootstrap && make && make install && cd /opt && rm -rf cmake-${CMAKE_VERSION} 
+    
 
 # ###
-#     git stuff
-RUN git config --global http.sslVerify false 
-
-# ###
-#     GATB-Core compiler scripts
-COPY ./gatb-compile.sh /usr/local/bin
-COPY ./gatb-test.sh /usr/local/bin
+#     GATB-Core management scripts
+#
+COPY *.sh /usr/local/bin/
 
 
