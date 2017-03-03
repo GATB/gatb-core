@@ -206,7 +206,7 @@ void configure_visitor<Node,Edge,GraphDataVariant>::operator() (GraphData<span>&
         data.setBranching (algo.getBranchingCollection());
     }
 
-    if ((graph._mphfKind != MPHF_NONE) && (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE) &&  (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
+    if ((graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE) &&  (graph.getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE))
     {
         typedef typename Kmer<span>::Count Count;
         typedef typename Kmer<span>::Type  Type;
@@ -219,7 +219,6 @@ void configure_visitor<Node,Edge,GraphDataVariant>::operator() (GraphData<span>&
         Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 
         MPHFAlgorithm<span> mphf_algo (
-                graph._mphfKind,
                 dskGroup,
                 "mphf",
                 solidCounts,
@@ -474,7 +473,7 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
     Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
 
     /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
-    if (graph._mphfKind != MPHF_NONE && (!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)))
+    if ((!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)))
     {
         DEBUG ((cout << "build_visitor : MPHFAlgorithm BEGIN\n"));
 
@@ -482,7 +481,6 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
         Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 
         MPHFAlgorithm<span> mphf_algo (
-                graph._mphfKind,
                 dskGroup,
                 "mphf",
                 solidCounts,
@@ -645,20 +643,6 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     parser->push_back (DebloomAlgorithm<>::getOptionsParser());
     parser->push_back (BranchingAlgorithm<>::getOptionsParser());
 
-    /** We activate MPHF option only if available. */
-    if (MPHF<char>::enabled)
-    {
-        IOptionsParser* parserEmphf  = new OptionsParser ("mphf");
-        parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none' or 'emphf' or 'BooPHF')", false,  "BooPHF"));
-        parser->push_back  (parserEmphf);
-    }
-	else 	//we still activate option for command line compatibility
-	{
-		IOptionsParser* parserEmphf  = new OptionsParser ("mphf");
-		parserEmphf->push_back (new tools::misc::impl::OptionOneParam (STR_MPHF_TYPE, "mphf type ('none')", false,  "none"));
-		parser->push_back  (parserEmphf);
-	}
-
     /** We create a "general options" parser. */
     IOptionsParser* parserGeneral  = new OptionsParser ("general");
     parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
@@ -747,7 +731,7 @@ GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (size_t kmerSize)
       _variant(new GraphDataVariant_t()), _kmerSize(kmerSize), _info("graph"),
       _state(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_INIT_DONE),
       _bloomKind(BLOOM_DEFAULT), _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT),
-      _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
+      _branchingKind(BRANCHING_STORED)
 {
     /** We configure the data variant according to the provided kmer size. */
     setVariant (_variant, _kmerSize);
@@ -768,7 +752,7 @@ template<typename Node, typename Edge, typename GraphDataVariant_t>
 GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (const std::string& uri)
     : _storageMode(PRODUCT_MODE_DEFAULT), _storage(0),
       _variant(new GraphDataVariant_t()), _kmerSize(0), _info("graph"), 
-      _name(System::file().getBaseName(uri)), _mphfKind(MPHF_BOOPHF)
+      _name(System::file().getBaseName(uri))
 
 {
     /** We create a storage instance. */
@@ -816,10 +800,6 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (bank::IBank* bank, t
     parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
 
-    /** This one is conditional. */
-    if (params->get(STR_MPHF_TYPE) && MPHF<char>::enabled) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
-    else                            { _mphfKind = MPHF_NONE; }
-	
     /** We configure the data variant according to the provided kmer size. */
     setVariant (_variant, _kmerSize, integerPrecision);
 
@@ -853,10 +833,6 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
     parse (params->getStr(STR_DEBLOOM_TYPE),      _debloomKind);
     parse (params->getStr(STR_DEBLOOM_IMPL),      _debloomImpl);
     parse (params->getStr(STR_BRANCHING_TYPE),    _branchingKind);
-
-    /** This one is conditional. */
-    if (params->get(STR_MPHF_TYPE) && MPHF<char>::enabled) {  parse (params->getStr(STR_MPHF_TYPE), _mphfKind); }
-    else                            { _mphfKind = MPHF_NONE; }
 
     /** We configure the data variant according to the provided kmer size. */
     setVariant (_variant, _kmerSize, integerPrecision);
@@ -925,7 +901,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate ()
       _variant(new GraphDataVariant()), _kmerSize(0), _info("graph"),
       _state(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_INIT_DONE),
       _bloomKind(BLOOM_DEFAULT),
-      _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT), _branchingKind(BRANCHING_STORED), _mphfKind(MPHF_NONE)
+      _debloomKind(DEBLOOM_DEFAULT), _debloomImpl(DEBLOOM_IMPL_DEFAULT), _branchingKind(BRANCHING_STORED)
 {
     //std::cout << "empty graphtemplate constructor" << std::endl;
 }
@@ -941,8 +917,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate ()
 template<typename Node, typename Edge, typename GraphDataVariant>
 GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (const GraphTemplate<Node, Edge, GraphDataVariant>& graph)
     : _storageMode(graph._storageMode), _storage(0),
-      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state),
-      _mphfKind(graph._mphfKind)
+      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state)
 {
     setStorage (graph._storage);
 
@@ -969,7 +944,6 @@ GraphTemplate<Node, Edge, GraphDataVariant>& GraphTemplate<Node, Edge, GraphData
         _bloomKind       = graph._bloomKind;
         _debloomKind     = graph._debloomKind;
         _debloomImpl     = graph._debloomImpl;
-        _mphfKind        = graph._mphfKind;
         _branchingKind   = graph._branchingKind;
         _state           = graph._state;
 
@@ -3497,10 +3471,6 @@ struct allocateAdjacency_visitor : public boost::static_visitor<void>    {
 template<typename Node, typename Edge, typename GraphDataVariant> 
 void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned int nbCores, bool verbose) 
 {
-#ifndef WITH_MPHF
-    std::cout << "Adjacency precomputation isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
-#else
-
     ProgressGraphIteratorTemplate<Node, ProgressTimerAndSystem> itNode (iterator(), "precomputing adjacency", verbose);
     
     bool hasMPHF = getState() & GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE;
@@ -3565,7 +3535,6 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::precomputeAdjacency(unsigned i
 
 
     // TODO delete _container here
-#endif
 }
 
 // now deleteNode depends on getNodeAdjacency
@@ -3720,10 +3689,6 @@ bool GraphTemplate<Node, Edge, GraphDataVariant>::debugCompareNeighborhoods(Node
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool> &bitmap, int nbCores, gatb::core::system::ISynchronizer* synchro) const
 {
-#ifndef WITH_MPHF
-    std::cout << "Node deletion isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
-#else
-
     GraphIterator<Node> itNode = this->iterator();
     Dispatcher dispatcher (nbCores); 
 
@@ -3743,7 +3708,6 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::deleteNodesByIndex(vector<bool
                 synchro->unlock();
         }
     }); // end of parallel node iteration
-#endif
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant>
@@ -3825,9 +3789,6 @@ struct allocateNonSimpleNodeCache_visitor : public boost::static_visitor<void>  
 template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned int nbCores, bool verbose) 
 {
-#ifndef WITH_MPHF
-    std::cout << "cacheNonSimpleNode isn't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
-#else
     boost::apply_visitor (allocateNonSimpleNodeCache_visitor<Node, Edge, GraphDataVariant>(),  *(GraphDataVariant*)_variant);
     setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_NONSIMPLE_CACHE);
     GraphIterator<Node> itNode = this->iterator();
@@ -3845,7 +3806,6 @@ void GraphTemplate<Node, Edge, GraphDataVariant>::cacheNonSimpleNodes(unsigned i
         }
     }); // end of parallel node iteration
     std::cout << "Cached " << nbCachedNodes << " non-simple nodes" << std::endl;
-#endif
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant>

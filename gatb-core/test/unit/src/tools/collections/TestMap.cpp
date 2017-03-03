@@ -138,8 +138,6 @@ public:
     /** */
     void checkMapMPHF ()
     {
-        if (MapMPHF<NativeInt8,float>::enabled == false) { return; }
-
         float val = 0;
 
         u_int8_t keysValue[] = {14, 35, 1, 9, 65, 37, 12, 24, 98, 124, 32};

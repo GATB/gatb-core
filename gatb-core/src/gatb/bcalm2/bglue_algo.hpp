@@ -56,7 +56,7 @@
 #include <gatb/kmer/impl/PartiInfo.hpp>   // for repartitor 
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/tools/collections/impl/MPHF.hpp>
+#include <gatb/tools/collections/impl/BooPHF.hpp>
 
 
 //heh at this point I could have maybe just included gatb_core.hpp but well, no circular dependencies, this file is part of gatb-core now.

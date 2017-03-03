@@ -1074,7 +1074,6 @@ public: // was private: before, but had many compilation errors during the chang
     tools::misc::DebloomKind     _debloomKind;
     tools::misc::DebloomImpl     _debloomImpl;
     tools::misc::BranchingKind   _branchingKind;
-    tools::misc::MPHFKind        _mphfKind;
    
     /** */
     GraphIterator<Node> getNodes () const;

@@ -70,12 +70,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set (use_new_cxx 1)
     endif()
 
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.7) 
-        set (use_mphf 0)
-    else()
-        set (use_mphf 1)
-    endif()
-
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
         if ("${CMAKE_CXX_COMPILER_VERSION}" STREQUAL "")
@@ -87,18 +81,14 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
     IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
         if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
-            set (use_mphf 0)
         else()
-            set (use_mphf 1)
             set (use_new_cxx 1)
         endif()
 
     else()
         if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
-            set (use_mphf 0)
         else()
             set (use_new_cxx 1)
-            set (use_mphf 1)
         endif()
 
     endif()
@@ -156,7 +146,9 @@ if (use_new_cxx)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION ${CXX_STD_VERSION}")
 endif()
 
-# detect SSE 
+# detect SSE for popcount 
+# this was for emphf, maybe it's for something else also? otherwise this part can be removed.
+#
 # from https://github.com/rurban/smhasher/blob/master/CMakeLists.txt
 # i do not see much performance gain for now, but let's keep that code here, might be useful later.
 # list of performance gain observed:
@@ -194,29 +186,6 @@ ENDIF()
 
 if (use_new_cxx)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DUSE_NEW_CXX ")
-endif()
- 
-if (use_mphf)
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DWITH_MPHF ")
-    message ("-------------------------------------------------------------------------------------")
-    message ("-- WILL COMPILE MPHF! (COMPILER VERSION IS HIGH ENOUGH) ")
-    message ("-------------------------------------------------------------------------------------")
-    if (SSE4_2_FOUND)
-        set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}    -DEMPHF_USE_POPCOUNT=1")
-    endif()
-
-    # for emphf
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        message ("-- Using stdlib=libc++ for clang/osx") 
-
-        IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") 
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-        endif()
-        # my clang 3.7 (linux) and 3.9 (linux also) doesn't like when i use stdlib=libc++, it refuses to compile because cannot found standard libs like <vector>
-        # so i'm setting this as mac-only
-
-    endif ()
-
 endif()
 
 # In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
@@ -320,10 +289,6 @@ ADD_SUBDIRECTORY(thirdparty)
 ################################################################################
 # we must be sure that hdf5 is built and installed before building gatb-core
 ADD_DEPENDENCIES (gatbcore-static hdf5 hdf5_postbuild)
-
-IF (DEFINED WITH_MPHF)
-    ADD_DEPENDENCIES(gatbcore-static emphf_copyasis)
-ENDIF()
 
 ################################################################################
 #  DOCUMENTATION GENERATION 

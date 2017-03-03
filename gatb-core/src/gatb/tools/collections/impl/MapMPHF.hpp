@@ -29,7 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/tools/collections/api/Iterable.hpp>
-#include <gatb/tools/collections/impl/MPHF.hpp>
+#include <gatb/tools/collections/impl/BooPHF.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
 #include <vector>
 
@@ -46,7 +46,7 @@ namespace impl        {
  * This hash table implementation uses a minimal perfect hash function (MPHF) for
  * identifying the keys with a unique number in [0..N-1] where N is the number of items.
  *
- * If the EMPHF library is used, the memory usage is about 2.61 bits per key.
+ * Using BooPHF, the memory usage is about 3-4 bits per key.
  *
  * The values can be stored in a simple vector. The keys are not stored in memory, only
  * the mphf is needed.
@@ -59,13 +59,7 @@ class MapMPHF : public system::SmartPointer
 public:
 
     /** Hash type. */
-    typedef MPHF<Key, Adaptator> Hash;
-
-    /** Constant telling whether the feature is enabled or not. */
-    static const bool enabled = Hash::enabled;
-
-    /** Default constructor. */
-    MapMPHF (tools::misc::MPHFKind mphfKind) : hash(mphfKind) {}
+    typedef BooPHF<Key, Adaptator> Hash;
 
     /** Default constructor. */
     MapMPHF () : hash() {}

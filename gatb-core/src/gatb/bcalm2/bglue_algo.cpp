@@ -473,7 +473,7 @@ struct Comp{
 template<typename Key>
 class hasher_t
 {   
-    typedef emphf::jenkins64_hasher BaseHasher;
+    typedef jenkins64_hasher BaseHasher; /* from BooPHF.hpp, which itself is from emphf:base_hasher */
     BaseHasher emphf_hasher;
     AdaptatorDefault<Key> adaptor;
 

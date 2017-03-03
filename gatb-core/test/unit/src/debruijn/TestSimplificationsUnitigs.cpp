@@ -91,13 +91,10 @@ class TestSimplificationsUnitigs : public Test
 
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestSimplificationsUnitigs);
-// they all need the mphf
-#ifdef WITH_MPHF
         CPPUNIT_TEST_GATB (debruijn_simplunitigs_ec);
         CPPUNIT_TEST_GATB (debruijn_simplunitigs_X);
         CPPUNIT_TEST_GATB (debruijn_simplunitigs_tip);
         CPPUNIT_TEST_GATB (debruijn_simplunitigs_bubble);
-#endif
     CPPUNIT_TEST_SUITE_GATB_END();
 
 public:

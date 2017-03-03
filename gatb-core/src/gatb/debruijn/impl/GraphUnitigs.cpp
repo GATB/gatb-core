@@ -395,7 +395,9 @@ get_from_navigational_vector(const std::vector<uint64_t> &v, uint64_t utig, cons
 template<size_t span>
 void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 {
-    std::cout << "loading unitigs from disk to memory" << std::endl;
+    bool verbose = (nb_unitigs > 1000000); // big dataset, let's show some memory usage verbosity here
+    if (verbose)
+        std::cout << "loading unitigs from disk to memory" << std::endl;
 
     BankFasta inputBank (unitigs_filename);
     //bank::IBank* inputBank = Bank::open (unitigs_filename);
@@ -448,18 +450,21 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     // an estimation of memory usage
     uint64_t nb_kmers = unitigs.size();
     uint64_t mem_vec = (unitigs.capacity() * sizeof(string) + nb_utigs_nucl_mem);
-    std::cout <<  "Memory usage:" << std::endl;
-    std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
-    std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
-    std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
-    std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
-    std::cout <<  "   " <<  (2*nb_kmers/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
-    std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+    if (verbose)
+    {
+        std::cout <<  "Memory usage:" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
+        std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
+        std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
+        std::cout <<  "   " <<  (2*nb_kmers/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
+        std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
 
-    if (nb_utigs_nucl != nb_utigs_nucl_mem)
-        std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
+        if (nb_utigs_nucl != nb_utigs_nucl_mem)
+            std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
+    }
 }
 
 /*********************************************************************
@@ -616,7 +621,6 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         BaseGraph::_storageMode     = graph._storageMode;
         BaseGraph::_name            = graph._name;
         BaseGraph::_info            = graph._info;
-        BaseGraph::_mphfKind        = graph._mphfKind;
         BaseGraph::_state           = graph._state;
 
         BaseGraph::setStorage (graph._storage);
@@ -660,7 +664,6 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         BaseGraph::_storageMode     = graph._storageMode;
         BaseGraph::_name            = graph._name;
         BaseGraph::_info            = graph._info;
-        BaseGraph::_mphfKind        = graph._mphfKind;
         BaseGraph::_state           = graph._state;
 
         BaseGraph::setStorage (graph._storage);

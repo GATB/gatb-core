@@ -25,7 +25,6 @@
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/tools/misc/api/Enums.hpp> // for MPHFKind
 #include <gatb/tools/collections/api/Iterable.hpp>
 #include <gatb/tools/collections/impl/MapMPHF.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
@@ -106,7 +105,6 @@ public:
      * \param[in] buildOrLoad : true for build/save the MPHF, false for load only
      * \param[in] options : extra options for configuration (may be empty) */
     MPHFAlgorithm (
-        tools::misc::MPHFKind                 mphfKind,
         tools::storage::impl::Group&          group,
         const std::string&                    name,
         tools::collections::Iterable<Count>*  solidCounts,
@@ -182,8 +180,6 @@ private:
     tools::dp::IteratorListener* _progress;
     void setProgress (tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
 	
-	/**  rememer mphf kind here also*/
-	tools::misc::MPHFKind _mphfKind;
 };
 
 /********************************************************************************/

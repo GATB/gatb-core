@@ -80,7 +80,6 @@ const Abundance_t MPHFAlgorithm<span,Abundance_t,NodeState_t>::MAX_ABUNDANCE = s
 *********************************************************************/
 template<size_t span, typename Abundance_t, typename NodeState_t>
 MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
-    tools::misc::MPHFKind mphfKind,
     Group&              group,
     const std::string&  name,
     Iterable<Count>*    solidCounts,
@@ -90,7 +89,7 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     IProperties*        options
 )
     :  Algorithm("mphf", nbCores, options), _group(group), _name(name), _buildOrLoad(buildOrLoad),
-       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _adjacencyMap(0), _progress(0),_mphfKind(mphfKind)
+       _dataSize(0), _nb_abundances_above_precision(0), _solidCounts(0), _solidKmers(0), _abundanceMap(0), _nodeStateMap(0), _adjacencyMap(0), _progress(0)
 {
     /** We keep a reference on the solid kmers. */
     setSolidCounts (solidCounts);
@@ -99,15 +98,12 @@ MPHFAlgorithm<span,Abundance_t,NodeState_t>::MPHFAlgorithm (
     setSolidKmers (solidKmers);
 
     /** We build the hash object. */
-    setAbundanceMap (new AbundanceMap(mphfKind));
-    setNodeStateMap (new NodeStateMap(mphfKind));
-    setAdjacencyMap (new AdjacencyMap(mphfKind));
-
-    /** We gather some statistics. */
-    getInfo()->add (1, "enabled", "%d", AbundanceMap::enabled);
+    setAbundanceMap (new AbundanceMap());
+    setNodeStateMap (new NodeStateMap());
+    setAdjacencyMap (new AdjacencyMap());
 
     /** In case of load, we load the mphf and populate right now. */
-    if (AbundanceMap::enabled == true && buildOrLoad == false)
+    if (buildOrLoad == false)
     {
         /** We load the hash object from the dedicated storage group. */
         {   TIME_INFO (getTimeInfo(), "load");
@@ -154,7 +150,7 @@ template<size_t span, typename Abundance_t, typename NodeState_t>
 void MPHFAlgorithm<span,Abundance_t,NodeState_t>::execute ()
 {
     /** We check whether we can use such a type. */
-    if (AbundanceMap::enabled == true && _buildOrLoad == true)
+    if (_buildOrLoad == true)
     {
         /** We need a progress object. */
         tools::dp::IteratorListener* delegate = createIteratorListener(0,"");  LOCAL (delegate);
@@ -163,7 +159,7 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::execute ()
 		
 
 		//if MPHF_BOOPHF and verbose 0,  give a null progress to the builder, make it understand the internal progress bar of boophf needs to be removed
-		if((_mphfKind == tools::misc::MPHF_BOOPHF)  &&  (typeid(*delegate) == typeid(tools::dp::IteratorListener)))
+		if((typeid(*delegate) == typeid(tools::dp::IteratorListener)))
 			setProgress    (0);
 
 

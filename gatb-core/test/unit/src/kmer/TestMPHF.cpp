@@ -33,7 +33,7 @@
 
 #include <gatb/tools/storage/impl/Storage.hpp>
 
-#include <gatb/tools/collections/impl/MPHF.hpp>
+#include <gatb/tools/collections/impl/BooPHF.hpp>
 
 using namespace std;
 
@@ -72,7 +72,7 @@ class TestMPHF : public Test
         CPPUNIT_TEST_GATB (MPHF_check1);
         CPPUNIT_TEST_GATB (MPHF_check2);
 
-        CPPUNIT_TEST_GATB (test_mphf1);
+        // no mphf1 anymore
         CPPUNIT_TEST_GATB (test_mphf2);
 
     CPPUNIT_TEST_SUITE_GATB_END();
@@ -94,10 +94,6 @@ public:
     /********************************************************************************/
     void MPHF_check1 ()
     {
-        MPHFKind mphfKind = MPHF_BOOPHF; // TODO: test with emphf also
-
-        if (MPHFAlgorithm<>::AbundanceMap::enabled == false)  { std::cout << "can't test mphf, it is disabled" << std::endl; return; }
-
         size_t kmerSize = 11;
         size_t nks      = 1;
 
@@ -130,7 +126,7 @@ public:
 
 
         /** We create a mphf instance. */
-        MPHFAlgorithm<> mphf (mphfKind, storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), 1, true);
+        MPHFAlgorithm<> mphf (storage->getGroup("dsk"), "mphf", sortingCount.getSolidCounts(), sortingCount.getSolidKmers(), 1, true);
 
         /** We actually execute the mphf construction. */
         mphf.execute();
@@ -167,10 +163,7 @@ public:
     void MPHF_check2 ()
     {
         /** We define our MPHF type for kmers. */
-        typedef MPHF<Type> MPHF;
-
-        /** We check that we can use such a type. */
-        if (MPHF::enabled == false) { return; }
+        typedef BooPHF<Type> MPHF;
 
         size_t kmerSize = 11;
         size_t nks      = 1;
@@ -277,40 +270,15 @@ public:
         }
     }
 
-    /********************************************************************************/
-    void test_mphf1 (void)
-    {
-        /** Shortcuts. */
-        typedef int Key;
-        typedef MPHF<Key> Hash;
-
-        /** We check whether the feature is activated or not. */
-        if (Hash::enabled == false)
-        {
-            /** We create the hash function. */
-            Hash hash;
-
-            try  {
-                /** We try to get a hash value. */
-                hash (3);
-            }
-            catch (gatb::core::system::ExceptionNotImplemented& e)
-            {
-                CPPUNIT_ASSERT (true);
-            }
-        }
-    }
 
     /********************************************************************************/
     void test_mphf2 (void)
     {
         /** Shortcuts. */
         typedef int Key;
-        typedef MPHF<Key>   Hash;
+        typedef BooPHF<Key>   Hash;
         typedef Hash::Code HashValue;
 
-        if (Hash::enabled == true)
-        {
             // We create a list of keys.
             Key values[] = {1,2,3,5,8,13,21,34,55,89};
             std::list<Key> l (values, values + sizeof(values)/sizeof(values[0]) );
@@ -353,7 +321,6 @@ public:
             // We check that all codes have been seen
             for (size_t i=0; i<check.size(); i++)  { CPPUNIT_ASSERT(check[i]==true); }
         }
-    }
 };
 
 /********************************************************************************/

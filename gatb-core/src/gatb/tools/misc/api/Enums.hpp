@@ -223,44 +223,6 @@ static std::string toString (BranchingKind kind)
 
 /********************************************************************************/
 
-/** Enumeration for the different kinds of Minimal Perfect Hash Function algorithm supported in GATB. */
-enum MPHFKind
-{
-    /** No MPHF */
-    MPHF_NONE,
-    /** Usage of EMPHF library */
-    MPHF_EMPHF,
-    /** Usage of BooPHF library */
-    MPHF_BOOPHF
-};
-
-/** Get the enum from a string.
- * \param[in] s : string to be parsed
- * \param[out] kind : enum to be set from the string parsing. */
-static void parse (const std::string& s, MPHFKind& kind)
-{
-         if (s == "none")     { kind = MPHF_NONE;  }
-    else if (s == "emphf")    { kind = MPHF_EMPHF;  }
-    else if (s == "boophf" || s == "BooPHF" )   { kind = MPHF_BOOPHF;  }
-    else   { throw system::Exception ("bad mphf kind '%s'", s.c_str()); }
-}
-
-/** Get the string associated to an enum
- * \param[in] kind : the enum value
- * \return the associated string */
-static std::string toString (MPHFKind kind)
-{
-    switch (kind)
-    {
-        case MPHF_NONE:     return "none";
-        case MPHF_EMPHF:    return "emphf";
-        case MPHF_BOOPHF:   return "BooPHF";
-        default:        throw system::Exception ("bad mphf kind %d", kind);
-    }
-}
-
-/********************************************************************************/
-
 /** Enumeration for the different kinds of kmer solidity criteria supported in GATB. */
 enum KmerSolidityKind
 {

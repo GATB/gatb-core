@@ -104,10 +104,8 @@ class TestDebruijn : public Test
 //        CPPUNIT_TEST_GATB (debruijn_mutation); // has been removed due to it crashing clang, and since mutate() isn't really used in apps, i didn't bother.
         CPPUNIT_TEST_GATB (debruijn_build);
         CPPUNIT_TEST_GATB (debruijn_checkbranching);
-#ifdef WITH_MPHF
         CPPUNIT_TEST_GATB (debruijn_mphf);
         CPPUNIT_TEST_GATB (debruijn_mphf_nodeindex);
-#endif
         CPPUNIT_TEST_GATB (debruijn_traversal1);
         
         CPPUNIT_TEST_SUITE_GATB_END();
@@ -484,13 +482,10 @@ public:
     void debruijn_test7 ()
     {
         /** We create the graph. */
-#ifdef WITH_MPHF
+        // useless historical note:
         // emphf had a known bug where, when there are only like a tiny amount of elements (I tested with three), it will just return mphf(elt)=0 always.
-        // so this is why I'm adding the dummy "ACTGACTGACTGACTG" sequence, to artificially increase the amount of elements in the mphf
-        Graph graph = Graph::create (new BankStrings ("AGGCGC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
-#else
+        // so this is why I added the dummy "ACTGACTGACTGACTG" sequence, to artificially increase the amount of elements in the mphf
         Graph graph = Graph::create (new BankStrings ("AGGCGC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
-#endif
 
         /** We should get two kmers:
          *      - AGGCG / CGCCT
@@ -507,13 +502,10 @@ public:
         debruijn_test7_fct fct (graph, n1, n2);
         graph.iterator().iterate (fct);
 
-#ifdef WITH_MPHF
         /* rerun this test with adjacency information instead of bloom */
         graph.precomputeAdjacency(1, false);
         
         graph.iterator().iterate (fct);
-#endif
-
     }
 
     /********************************************************************************/
@@ -796,7 +788,7 @@ public:
         size_t kmerSize = strlen (sequences[0]);
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0 -mphf emphf  -max-memory %d", kmerSize, MAX_MEMORY);
+        Graph graph = Graph::create (new BankStrings (sequences, len),  "-kmer-size %d  -abundance-min 1  -verbose 0 -max-memory %d", kmerSize, MAX_MEMORY);
 
         GraphIterator<Node> it = graph.iterator();
 
@@ -854,7 +846,7 @@ public:
         size_t kmerSize = strlen (sequences[0])-1;
 
         // We create the graph.
-        Graph graph = Graph::create (new BankStrings (sequences, 3),  "-kmer-size %d  -abundance-min 1  -verbose 0 -mphf boophf -max-memory %d", kmerSize, MAX_MEMORY);
+        Graph graph = Graph::create (new BankStrings (sequences, 3),  "-kmer-size %d  -abundance-min 1  -verbose 0 -max-memory %d", kmerSize, MAX_MEMORY);
 
         GraphIterator<Node> it = graph.iterator();
 
@@ -1197,15 +1189,13 @@ public:
 
     void debruijn_deletenode ()
     {
-        // MPHF has a known bug where, when there are only like a tiny amount of elements (I tested with three), it will just return mphf(elt)=0 always.
-        // so this is why I'm adding the dummy "ACTGACTGACTGACTG" sequence, to artificially increase the amount of elements in the mphf
-        Graph graph = Graph::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        Graph graph = Graph::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_deletenode_fct (graph);
 
         /* rerun this test with adjacency information instead of bloom */
         
-        Graph graph2 = Graph::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        Graph graph2 = Graph::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
         graph2.precomputeAdjacency(1, false);
         
         debruijn_deletenode_fct (graph2);
@@ -1246,13 +1236,13 @@ public:
 
     void debruijn_deletenode2 ()
     {
-        Graph graph = Graph::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        Graph graph = Graph::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_deletenode_fct (graph);
 
         /* rerun this test with adjacency information instead of bloom */
         
-        Graph graph2 = Graph::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        Graph graph2 = Graph::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
         graph2.precomputeAdjacency(1, false);
         
         debruijn_deletenode2_fct (graph2);

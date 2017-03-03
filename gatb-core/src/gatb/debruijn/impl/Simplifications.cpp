@@ -41,11 +41,9 @@
 #include <gatb/debruijn/impl/NodesDeleter.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp> // for ProgressTimerAndSystem
 
-#ifdef WITH_MPHF
 #include <chrono>
 #define get_wtime() chrono::system_clock::now()
 #define diff_wtime(x,y) (unsigned long)chrono::duration_cast<chrono::nanoseconds>(y - x).count()
-#endif
 
 #define DIR2STR(dir) ((dir==DIR_OUTCOMING) ? "outcoming" : "incoming")
 
@@ -362,10 +360,6 @@ bool Simplifications<GraphType,Node,Edge>::satisfyRCTC(double pathAbundance, Nod
 template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 {
-#ifndef WITH_MPHF
-    std::cout << "Graph simplifications aren't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
-    return 0;
-#else
     unsigned int k = _graph.getKmerSize();
     
     unsigned int maxTipLengthTopological = (unsigned int)((float)k * (3.5 - 1.0)); // aggressive with SPAdes length threshold, but no coverage criterion
@@ -591,7 +585,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     _firstNodeIteration = false;
 
     return nbTipsRemoved;
-#endif // WITH_MPHF
 }
 
 enum HMCP_Success { HMCP_DIDNT_FIND_END = 0, HMCP_FOUND_END = 1 , HMCP_MAX_DEPTH = -1, HMCP_LOOP = -2};
@@ -1187,11 +1180,6 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
 template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 {
-#ifndef WITH_MPHF
-    std::cout << "Graph simplifications aren't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
-    return 0;
-#else
-
     unsigned int k = _graph.getKmerSize();
     unsigned int coeff = 3;
     unsigned int additive_coeff = 100;
@@ -1478,7 +1466,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     }
 
     return nbBulgesRemoved;
-#endif
 }
 
 
@@ -1509,11 +1496,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 {
-#ifndef WITH_MPHF
-    std::cout << "Graph simplifications aren't supported when GATB-core is compiled with a non-C++11 compiler" << std::endl;
-    return 0;
-#else
-    
     unsigned int k = _graph.getKmerSize();
     unsigned int maxECLength = (unsigned int)((float)k * (10 - 1.0)) ;  // SPAdes mode 
     double RCTCcutoff = 4.0;
@@ -1724,7 +1706,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     }
 
     return nbECRemoved;
-#endif
 }
 
 // instantiation

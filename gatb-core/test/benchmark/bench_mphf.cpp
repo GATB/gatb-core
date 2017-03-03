@@ -208,7 +208,7 @@ void debruijn_mphf ()
             /** We create the graph. */
             Graph graph = Graph::create (
                     new BankStrings (sequences[i], 0),
-                    "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", kmerSizes[j], 500 
+                    "-kmer-size %d  -abundance-min 1  -verbose 0  -max-memory %d", kmerSizes[j], 500 
                     );
 
             Integer::apply<debruijn_mphf_bench, Parameter> (kmerSizes[j], Parameter( kmerSizes[j], graph) );
@@ -234,7 +234,7 @@ int main (int argc, char* argv[])
             if (argc > 2)
                 k = stoi(argv[2]);
 
-            string args = "-in " + string(argv[1]) + " -kmer-size " + std::to_string(k) + " -abundance-min 1  -verbose 0  -max-memory 500 -mphf emphf";
+            string args = "-in " + string(argv[1]) + " -kmer-size " + std::to_string(k) + " -abundance-min 1  -verbose 0  -max-memory 500";
             Graph graph = Graph::create (args.c_str());
             cout << "graph built, benchmarking.." << endl;
             Integer::apply<debruijn_mphf_bench, Parameter> (k, Parameter( k, graph) );

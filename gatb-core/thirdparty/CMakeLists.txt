@@ -49,37 +49,6 @@ foreach (header ${headerfiles})
   add_custom_command (TARGET hdf5_postbuild POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header} ${HDF5_INSTALL_INCLUDE_DIR}  )
 endforeach()
 
-################################################################################
-#  EMPHF HANDLING
-################################################################################
-
-IF (DEFINED use_mphf) 
-
-    ADD_SUBDIRECTORY (emphf)
-
-    # We add a custom target for copying emphf as it is.
-    add_custom_target (emphf_copyasis ALL)
-
-    SET (EMPHF_INSTALL_INCLUDE_DIR
-        ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/emphf)
-
-    # We define all the header files to be copied
-    file (GLOB headerfiles ${PROJECT_SOURCE_DIR}/thirdparty/emphf/*.hpp
-        ${PROJECT_SOURCE_DIR}/thirdparty/emphf/*.cpp)
-
-    # create emphf directory
-    add_custom_command (TARGET emphf_copyasis COMMAND ${CMAKE_COMMAND} -E
-        make_directory ${EMPHF_INSTALL_INCLUDE_DIR})
-
-    # We copy each header file
-    foreach (header ${headerfiles})
-      add_custom_command (TARGET emphf_copyasis 
-          COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header} ${EMPHF_INSTALL_INCLUDE_DIR}  
-        )
-    endforeach()
-ENDIF() # WITH_MPHF
-
-
 # include other smaller libraries (json, Boophf)
 
 add_custom_target (thirdparty_copy ALL)
@@ -97,7 +66,4 @@ IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5 DESTINATION include)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json DESTINATION include)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF DESTINATION include)
-    IF (DEFINED WITH_MPHF)
-        INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/emphf DESTINATION include)
-    ENDIF()
 ENDIF ()

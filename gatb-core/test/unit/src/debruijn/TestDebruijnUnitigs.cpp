@@ -421,13 +421,10 @@ public:
         debruijn_unitigs_test7_fct fct (graph, n1, n2);
         graph.iterator().iterate (fct);
 
-#ifdef WITH_MPHF
         /* rerun this test with adjacency information instead of bloom */
         graph.precomputeAdjacency(1, false);
         
         graph.iterator().iterate (fct);
-#endif
-
     }
 
     void debruijn_unitigs_test7_nocircular ()
@@ -921,8 +918,6 @@ public:
 
     void debruijn_unitigs_deletenode ()
     {
-        // MPHF has a known bug where, when there are only like a tiny amount of elements (I tested with three), it will just return mphf(elt)=0 always.
-        // so this is why I'm adding the dummy "ACTGACTGACTGACTG" sequence, to artificially increase the amount of elements in the mphf
         GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGCC", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_unitigs_deletenode_fct (graph);
@@ -962,13 +957,13 @@ public:
 
     void debruijn_unitigs_deletenode2 ()
     {
-        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        GraphUnitigs graph = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
 
         debruijn_unitigs_deletenode_fct (graph);
 
         /* rerun this test with adjacency information instead of bloom */
         
-        GraphUnitigs graph2 = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d -mphf emphf", MAX_MEMORY);
+        GraphUnitigs graph2 = GraphUnitigs::create (new BankStrings ("AGGCGAAGGCGT", "ACTGACTGACTGACTG",(char*)0),  "-kmer-size 5  -abundance-min 1  -verbose 0  -max-memory %d", MAX_MEMORY);
         graph2.precomputeAdjacency(1, false);
         
         debruijn_unitigs_deletenode2_fct (graph2);

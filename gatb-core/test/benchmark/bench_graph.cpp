@@ -1,8 +1,6 @@
 /* this is the most advanced benchmark i've coded (more recent than bench_mphf, and some benchmarks overlap) 
  * */
 
-#define WITH_MPHF 1  // funny story: even though gatb-core defines WITH_MPHF in its cmakefile, this isn't taken into account in compiling benchmarks. haha. i'm sad it took me so many minutes to find.
-
 #include <chrono>
 #define get_wtime() chrono::system_clock::now()
 #define diff_wtime(x,y) chrono::duration_cast<chrono::nanoseconds>(y - x).count()
@@ -390,7 +388,7 @@ void debruijn_mphf ()
     {
         for (size_t j=0; j<ARRAY_SIZE(kmerSizes); j++)
         {
-            string args = "-kmer-size " + std::to_string(kmerSizes[j]) + "  -abundance-min 1  -verbose 0  -max-memory 500 -mphf emphf";
+            string args = "-kmer-size " + std::to_string(kmerSizes[j]) + "  -abundance-min 1  -verbose 0  -max-memory 500";
 
             Integer::apply<debruijn_mphf_bench, Parameter> (kmerSizes[j], Parameter( kmerSizes[j], args, sequences[i]) );
         }
@@ -412,7 +410,7 @@ int main (int argc, char* argv[])
             if (argc > 2)
                 k = stoi(argv[2]);
 
-            string args = "-in " + string(argv[1]) + " -kmer-size " + std::to_string(k) + " -abundance-min 1  -verbose 0  -max-memory 500 -mphf emphf";
+            string args = "-in " + string(argv[1]) + " -kmer-size " + std::to_string(k) + " -abundance-min 1  -verbose 0  -max-memory 500";
             Integer::apply<debruijn_mphf_bench, Parameter> (k, Parameter( k, args) );
         }
 
