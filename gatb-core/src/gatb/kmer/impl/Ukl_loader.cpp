@@ -51,8 +51,18 @@ namespace impl          {
 			return _ukl_set;
 		}
 		std::string filename(datadir);
-		filename += tools::misc::impl::Stringify::format ("ukl_%i_%i.bin", mmerSize,kmerSize);
+		//filename += tools::misc::impl::Stringify::format ("/ukl_%i_%i.bin", mmerSize,kmerSize);
+		filename += tools::misc::impl::Stringify::format ("/ukl_%i_30.bin", mmerSize); //todo file system
+
 		std::ifstream is(filename, std::ios::binary);
+		
+		if(!is.good())
+		{
+			printf("Error cannot open %s, will resume in normal mode\n",filename.c_str());
+			_ukl_set=0;
+			return _ukl_set;
+		}
+		std::cout<< filename<< std::endl;
 		_ukl_set = new simpleBitArray();
 		_ukl_set->load(is);
 

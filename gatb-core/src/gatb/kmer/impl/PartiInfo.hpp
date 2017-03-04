@@ -198,8 +198,8 @@ public:
             Typem cur;
             cur.setVal(np);
 
-			if(this->getNbSuperKmer_per_minim(np)!=0 || this->getNbKmer_per_minim(np)  !=0 )
-            	printf("Bin[%5i (%s) ]= %lli    %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
+		//	if(this->getNbSuperKmer_per_minim(np)!=0 || this->getNbKmer_per_minim(np)  !=0 )
+		//   	printf("Bin[%5i (%s) ]= %lli    %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
 
             sumk += this->getNbKmer_per_minim(np);
             sumsuperk +=  this->getNbSuperKmer_per_minim(np);
