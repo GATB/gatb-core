@@ -601,10 +601,16 @@ void SortingCountAlgorithm<span>::execute ()
 
 
 	
+	u_int64_t nbtotalsuperk = pInfo.getNbSuperKmerTotal();
+	u_int64_t nbtotalk = pInfo.getNbKmerTotal();
 	
     getInfo()->add (1, "stats");
 	
 	getInfo()->add (2, "temp files");
+	getInfo()->add (3, "nb superkmers ","%lld",nbtotalsuperk);
+	getInfo()->add (3, "avg superk length ","%.2f",(nbtotalk/(float) nbtotalsuperk));
+	getInfo()->add (3, "minimizer density ","%.2f",(nbtotalsuperk/(float)nbtotalk)*(_config._kmerSize - _config._minim_size +2));
+	
 	getInfo()->add (3, "total size (MB)","%lld",totaltmp/1024LL/1024LL);
 	getInfo()->add (3, "tmp file biggest (MB)","%lld",biggesttmp/1024LL/1024LL);
 	getInfo()->add (3, "tmp file smallest (MB)","%lld",smallesttmp/1024LL/1024LL);

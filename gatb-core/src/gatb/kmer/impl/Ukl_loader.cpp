@@ -51,8 +51,8 @@ namespace impl          {
 			return _ukl_set;
 		}
 		std::string filename(datadir);
-		//filename += tools::misc::impl::Stringify::format ("/ukl_%i_%i.bin", mmerSize,kmerSize);
-		filename += tools::misc::impl::Stringify::format ("/ukl_%i_30.bin", mmerSize); //todo file system
+		filename += tools::misc::impl::Stringify::format ("/ukl_%i_%i.bin", mmerSize,kmerSize);
+		//filename += tools::misc::impl::Stringify::format ("/ukl_%i_30.bin", mmerSize); //todo file system
 
 		std::ifstream is(filename, std::ios::binary);
 		

@@ -1139,6 +1139,7 @@ struct Kmer
             bool isModelCanonical = isModelCanonical_p != NULL;
             _defaultFast = isModelCanonical;
 
+			u_int64_t cptset=0;
 			for(u_int64_t ii=0; ii< nbminims_total; ii++)
 			{
 				Type mmer;
@@ -1147,6 +1148,9 @@ struct Kmer
 				//UKL
 				if(_ukl_set!=0 && !_freq_order)
 				{
+					if (is_allowed(mmer.getVal(),minimizerSize))
+						cptset++;
+					
 					if (isModelCanonical)
 					{
 						Type rev_mmer = revcomp(mmer, minimizerSize);
@@ -1162,6 +1166,10 @@ struct Kmer
 						
 						if(rev_mmer < mmer) mmer = rev_mmer;
 
+						
+//						Type res;
+//						res.setVal(hash1(mmer, 0) & _mask.getVal());
+//						_mmer_lut[ii] = res;
 						_mmer_lut[ii] = mmer;
 
 					}
@@ -1189,10 +1197,19 @@ struct Kmer
 					if (!is_allowed(mmer.getVal(),minimizerSize))
 						mmer = _mask;
 					
+					
+					// with hash to randomize order
+					
+//					Type res;
+//					res.setVal(hash1(mmer, 0) & _mask.getVal());
+//					_mmer_lut[ii] = res;
+
 					_mmer_lut[ii] = mmer;
 				}
 			}
 
+			if(_ukl_set!=0 && !_freq_order)
+				printf("nb in set %llu / %llu \n",cptset,nbminims_total);
             if (freq_order)
                 setMinimizersFrequency(freq_order);
         }
@@ -1345,9 +1362,30 @@ struct Kmer
          *  that are too frequent. */
         bool is_allowed (uint32_t mmer, uint32_t len)
         {
+			//return true;
+			u_int64_t  _mmask_m1  ;
+			u_int64_t  _mask_0101 ;
+			u_int64_t  _mask_ma1 ;
+			//code to ban mmer with AA inside except if at the beginnning
+			// A C T G        00   01   10   11
+			_mmask_m1  = (1 << ((len-2)*2)) -1 ; //vire 2 premieres lettres m = 8  donne    00 00 11 11 11 11 11 11
+			_mask_0101 = 0x5555555555555555  ; //         01 01 01 01 01 01 01 01
+			_mask_ma1  = _mask_0101 & _mmask_m1;//        00 00 01 01 01 01 01 01
+			
+			
 			//UKL
 			if(_ukl_set!=0 && !_freq_order)
 			{
+				//if(mmer ==0) return false;
+//				u_int64_t a1 = mmer; //
+//				a1 =   ~(( a1 )   | (  a1 >>2 ));  //
+//				a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
+//				
+//				if(a1 != 0) return false;
+				
+				
+//				return true;
+
 				if (_ukl_set->get(mmer))
 					return true;
 				else
@@ -1356,15 +1394,9 @@ struct Kmer
 			
             if (_freq_order) return true; // every minimizer is allowed in freq order
 
-            u_int64_t  _mmask_m1  ;
-            u_int64_t  _mask_0101 ;
-            u_int64_t  _mask_ma1 ;
+
 			
-			//code to ban mmer with AA inside except if at the beginnning
-			// A C T G        00   01   10   11
-            _mmask_m1  = (1 << ((len-2)*2)) -1 ; //vire 2 premieres lettres m = 8  donne    00 00 11 11 11 11 11 11
-            _mask_0101 = 0x5555555555555555  ; //         01 01 01 01 01 01 01 01
-            _mask_ma1  = _mask_0101 & _mmask_m1;//        00 00 01 01 01 01 01 01
+
 
             u_int64_t a1 = mmer; //
             a1 =   ~(( a1 )   | (  a1 >>2 ));  //
