@@ -31,6 +31,7 @@
 #include <gatb/system/api/Exception.hpp>
 
 #include <gatb/kmer/api/IModel.hpp>
+#include <gatb/kmer/impl/Ukl_loader.hpp>
 
 #include <gatb/tools/collections/api/Bag.hpp>
 
@@ -1105,12 +1106,17 @@ struct Kmer
          */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator(), uint32_t *freq_order=NULL)
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
-              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp), _freq_order(freq_order)
+              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp), _freq_order(freq_order),_ukl_set(0)
         {
             if (kmerSize < minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
             _minimizerSize = minimizerSize;
 
+			if(minimizerSize==8 && kmerSize >=30 && _freq_order==0) //trying ukl, todo adjsut range
+			{
+				_ukl_set = _ukl_loader.loadSetFromFile(kmerSize,minimizerSize);
+			}
+			
             /** We compute the number of mmers found in a kmer. */
             _nbMinimizers = _kmerModel.getKmerSize() - minimizerSize + 1;
 
@@ -1138,21 +1144,53 @@ struct Kmer
 				Type mmer;
                 mmer.setVal(ii);
 				
-                // if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
-                // if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
+				//UKL
+				if(_ukl_set!=0 && !_freq_order)
+				{
+					if (isModelCanonical)
+					{
+						Type rev_mmer = revcomp(mmer, minimizerSize);
+						
+						//with UKL, needs to test separately  mmer and its reverse :
+						// the canonical mmer is not necessarily the smaller, if it's not in the ukl
+						if (!is_allowed(rev_mmer.getVal(),minimizerSize))
+							rev_mmer = _mask;
+						
+						if (!is_allowed(mmer.getVal(),minimizerSize))
+							mmer = _mask;
+						
+						
+						if(rev_mmer < mmer) mmer = rev_mmer;
 
-                if (isModelCanonical)
-                {
-    				Type rev_mmer = revcomp(mmer, minimizerSize);
-    				if(rev_mmer < mmer) mmer = rev_mmer;
-                }
+						_mmer_lut[ii] = mmer;
 
-                //std:: cout << "ii " << ii << " is allowed " << is_allowed(mmer.getVal(),minimizerSize) <<  " mmer getval " << mmer.getVal() << " is model canonical " << isModelCanonical << std::endl;
-
-                if (!is_allowed(mmer.getVal(),minimizerSize)) 
-                    mmer = _mask;
-
-				_mmer_lut[ii] = mmer;
+					}
+					else
+					{
+						if (!is_allowed(mmer.getVal(),minimizerSize))
+							mmer = _mask;
+						
+						_mmer_lut[ii] = mmer;
+					}
+				}
+				else
+				{
+					// if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
+					// if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
+					
+					if (isModelCanonical)
+					{
+						Type rev_mmer = revcomp(mmer, minimizerSize);
+						if(rev_mmer < mmer) mmer = rev_mmer;
+					}
+					
+					//std:: cout << "ii " << ii << " is allowed " << is_allowed(mmer.getVal(),minimizerSize) <<  " mmer getval " << mmer.getVal() << " is model canonical " << isModelCanonical << std::endl;
+					
+					if (!is_allowed(mmer.getVal(),minimizerSize))
+						mmer = _mask;
+					
+					_mmer_lut[ii] = mmer;
+				}
 			}
 
             if (freq_order)
@@ -1299,11 +1337,23 @@ struct Kmer
         bool       _defaultFast;
 
         uint32_t *_freq_order;
+		
+		kmer::impl::simpleBitArray * _ukl_set;
+		kmer::impl::UKL_loader _ukl_loader;
 
         /** Tells whether a minimizer is valid or not, in order to skip minimizers
          *  that are too frequent. */
         bool is_allowed (uint32_t mmer, uint32_t len)
         {
+			//UKL
+			if(_ukl_set!=0 && !_freq_order)
+			{
+				if (_ukl_set->get(mmer))
+					return true;
+				else
+					return false;
+			}
+			
             if (_freq_order) return true; // every minimizer is allowed in freq order
 
             u_int64_t  _mmask_m1  ;

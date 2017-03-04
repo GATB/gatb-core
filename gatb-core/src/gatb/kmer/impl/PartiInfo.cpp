@@ -24,7 +24,7 @@
 using namespace std;
 
 #define DEBUG(a) //printf a
-#define DEBUG2(a) //printf a
+#define DEBUG2(a) printf a
 // wanted to debug separately
 
 /********************************************************************************/

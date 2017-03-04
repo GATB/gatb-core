@@ -890,7 +890,8 @@ void PartitionsByVectorCommand<span>::executeRead ()
     else
     {
         /** We iterate the superkmers. */
-       // _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, 0, 0), 10000); //must be even , reading by pairs
+        _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, 0, 0), 10000); //must be even , reading by pairs
+		
 		
 		vector<ICommand*> cmds;
 		for (size_t tid=0; tid < this->_nbCores; tid++)

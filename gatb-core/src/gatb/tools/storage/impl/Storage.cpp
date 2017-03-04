@@ -310,7 +310,8 @@ Storage::istream::~istream ()
 SuperKmerBinFiles::SuperKmerBinFiles(const std::string& path,const std::string& name, size_t nb_files) : _basefilename(name), _path(path),_nb_files(nb_files)
 {
 	_nbKmerperFile.resize(_nb_files,0);
-
+	_FileSize.resize(_nb_files,0);
+	
 	openFiles("wb"); //at construction will open file for writing
 	// then use close() and openFiles() to open for reading
 	
@@ -369,13 +370,38 @@ int SuperKmerBinFiles::getNbItems(int fileId)
 	return _nbKmerperFile[fileId];
 }
 	
+	
+u_int64_t SuperKmerBinFiles::getFileSize(int fileId)
+{
+
+	return _FileSize[fileId];
+}
+
+void SuperKmerBinFiles::getFilesStats(u_int64_t & total, u_int64_t & biggest, u_int64_t & smallest, float & mean)
+{
+	total =0;
+	smallest = ~0;
+	biggest  = 0;
+	mean=0;
+	for(int ii=0;ii<_FileSize.size();ii++)
+	{
+		smallest = std::min (smallest, _FileSize[ii]);
+		biggest  = std::max (biggest,  _FileSize[ii]);
+		total+=_FileSize[ii];
+	}
+	if(_FileSize.size()!=0)
+		mean= total/_FileSize.size();
+	
+}
+	
+	
 void SuperKmerBinFiles::writeBlock(unsigned char * block, unsigned int block_size, int file_id, int nbkmers)
 {
 	//printf("writeblock bs %i fid %i\n",block_size,file_id);
 	_synchros[file_id]->lock();
 	
 	_nbKmerperFile[file_id]+=nbkmers;
-	
+	_FileSize[file_id] += block_size+sizeof(block_size);
 	//block header
 	_files[file_id]->fwrite(&block_size, sizeof(block_size),1);
 	//_files[file_id]->fwrite(&superklen, sizeof(superklen),1);

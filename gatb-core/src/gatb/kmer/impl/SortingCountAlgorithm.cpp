@@ -562,10 +562,17 @@ void SortingCountAlgorithm<span>::execute ()
 
     _progress->finish ();
 
+	
+	pInfo.printInfo();
+	
+
     /** We want to remove physically the partitions. */
     _tmpPartitions->remove ();
 
-	
+	u_int64_t totaltmp, biggesttmp, smallesttmp;
+	float meantmp;
+	_superKstorage->getFilesStats(totaltmp,biggesttmp,smallesttmp, meantmp);
+
 	delete _superKstorage; //delete files and containing dir
 
     /*************************************************************/
@@ -588,9 +595,20 @@ void SortingCountAlgorithm<span>::execute ()
         getInfo()->add (2, "kmers");
         getInfo()->add (3, "kmers_nb_valid",   "%lld", _bankStats.kmersNbValid);
         getInfo()->add (3, "kmers_nb_invalid", "%lld", _bankStats.kmersNbInvalid);
+		
+		
     }
 
+
+	
+	
     getInfo()->add (1, "stats");
+	
+	getInfo()->add (2, "temp files");
+	getInfo()->add (3, "total size (MB)","%lld",totaltmp/1024LL/1024LL);
+	getInfo()->add (3, "tmp file biggest (MB)","%lld",biggesttmp/1024LL/1024LL);
+	getInfo()->add (3, "tmp file smallest (MB)","%lld",smallesttmp/1024LL/1024LL);
+	getInfo()->add (3, "tmp file mean (MB)","%.1f",meantmp/1024LL/1024LL);
 
     /** We dump information about count processors. */
     if (_processors.size()==1)  {  getInfo()->add (2, _processors[0]->getProperties()); }
@@ -640,6 +658,10 @@ public:
             /** We save the superkmer into the right partition. */
             //superKmer.save (this->_partition[p]);
 			superKmer.save (_superkmerFiles,p);
+
+			
+			//for debug purposes
+			_local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmer.size());
 
             /*********************************************/
             /** Now, we compute statistics about kxmers. */
@@ -850,6 +872,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 	_superKstorage->flushFiles();
 	_superKstorage->closeFiles();
 
+	
 	
 	printf("done\n");
 

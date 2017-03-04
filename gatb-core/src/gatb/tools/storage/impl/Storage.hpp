@@ -253,6 +253,9 @@ public:
 	int nbFiles();
 	int getNbItems(int fileId);
 	
+	void getFilesStats(u_int64_t & total, u_int64_t & biggest, u_int64_t & smallest, float & mean);
+	u_int64_t getFileSize(int fileId);
+
 	//todo:  int getNbItems(int fileId)
 private:
 
@@ -260,6 +263,8 @@ private:
 	std::string _path;
 	
 	std::vector<int> _nbKmerperFile;
+	std::vector<u_int64_t> _FileSize;
+
 	std::vector<system::IFile* > _files;
 	std::vector <system::ISynchronizer*> _synchros;
 	int _nb_files;
