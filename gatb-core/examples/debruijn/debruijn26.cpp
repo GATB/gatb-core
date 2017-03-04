@@ -22,8 +22,8 @@ int main (int argc, char* argv[])
     // We create a fake bank with 4 times the same sequence
     IBank* bank = new BankStrings (seq, seq, seq, seq, 0);
 
-    // We create the graph. IMPORTANT : we use the -mphf option
-    Graph graph = Graph::create (bank, "-kmer-size %d  -abundance-min 1  -mphf emphf  -verbose 0", kmerSize);
+    // We create the graph. (it needs a mphf, but now mphf is created by default)
+    Graph graph = Graph::create (bank, "-kmer-size %d  -abundance-min 1 -verbose 0", kmerSize);
 
     // We build a fake node (we are sure that it will be in the graph).
     Node node = graph.buildNode (seq);
