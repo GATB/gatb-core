@@ -66,8 +66,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         include(CheckCompiler)
     ENDIF()
     if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.5) 
-    else()
-        set (use_new_cxx 1)
+        message(FATAL_ERROR "Insufficient gcc version (gcc>=4.5 needed)")
     endif()
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -80,15 +79,13 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         endif()
 
     IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
-        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
-        else()
-            set (use_new_cxx 1)
+        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3)
+            message(FATAL_ERROR "Insufficient clang version (clang>=4.5 needed)")
         endif()
 
     else()
         if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 3.2) 
-        else()
-            set (use_new_cxx 1)
+            message(FATAL_ERROR "Insufficient clang version (clang>=3.2 needed)")
         endif()
 
     endif()
@@ -98,16 +95,6 @@ else()
         message ("-------------------------------------------------------------------------------------")
 endif()
 
-    
-if (use_new_cxx)
-    message ("-------------------------------------------------------------------------------------")
-    message ("-- C++ EXTENSIONS WILL BE USED... (compiler:'${CMAKE_CXX_COMPILER_ID}' ver:'${CMAKE_CXX_COMPILER_VERSION}') ")
-    message ("-------------------------------------------------------------------------------------")
-else()
-    message ("-------------------------------------------------------------------------------------")
-    message ("-- COMPILER VERSION (id:'${CMAKE_CXX_COMPILER_ID}' ver:'${CMAKE_CXX_COMPILER_VERSION}') IS NOT ENOUGH TO HAVE C++ EXTENSIONS... SOME EXAMPLES CAN'T COMPILE...")
-    message ("-------------------------------------------------------------------------------------")
-endif()
 
 ################################################################################
 # GENERAL DEFINITIONS
@@ -134,17 +121,8 @@ if (NONCANONICAL)
 endif()
 
 
-
-# We determine what kind of c++ standard we should use according to the compiler
-# According to the CXX version, we have to activate some flags
-if (use_new_cxx)
-    # We set a flag for lambda expressions usage
-    set (CXX_STD_VERSION "-std=c++0x")
-    # We set a flag for lambda expressions
-    set (WITH_LAMBDA_EXPRESSION "1")
-    # We add compilation flags to the global flags
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DWITH_LAMBDA_EXPRESSION ${CXX_STD_VERSION}")
-endif()
+# We use c++11 standard
+set (CXX_STD_VERSION "-std=c++0x")
 
 # detect SSE for popcount 
 # this was for emphf, maybe it's for something else also? otherwise this part can be removed.
@@ -183,15 +161,6 @@ IF(SSE4_2_FOUND AND (NOT NO_SSE))
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse2 -msse4.2 -mpopcnt")
     message ("-- SSE 4.2 detected")
 ENDIF()
-
-if (use_new_cxx)
-    set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DUSE_NEW_CXX ")
-endif()
-
-# In case we use an "old" version of clang with boost and c++0x, we have to skip rvalue usage
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -DBOOST_NO_CXX11_RVALUE_REFERENCES=1")
-endif()
 
 # WARNING !!! For the moment, we need to remove some warnings (on Macos) due to use of offsetof macro on non Plain Old Data
 set (LIBRARY_COMPILE_DEFINITIONS "${LIBRARY_COMPILE_DEFINITIONS} -Wno-invalid-offsetof") 
