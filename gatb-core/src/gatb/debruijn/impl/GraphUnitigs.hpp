@@ -133,8 +133,6 @@ struct EdgeGU
  * Edges are (k-1) overlaps between nodes in different unitigs
  */
 
-#ifdef WITH_LAMBDA_EXPRESSION
-
 template <size_t span>
 class GraphUnitigsTemplate : public GraphTemplate<NodeFast<span>, EdgeFast<span>, GraphDataVariantFast<span>>
 {
@@ -413,8 +411,6 @@ public: // was private: before, but had many compilation errors during the chang
     std::vector<bool> unitigs_traversed;
     uint64_t nb_unitigs, nb_unitigs_extremities;
 };
-  
-#endif // WITH_LAMBDA_EXPRESSION
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

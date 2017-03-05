@@ -176,37 +176,6 @@ DebloomAlgorithm<span>::~DebloomAlgorithm ()
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-#ifndef WITH_LAMBDA_EXPRESSION
-template<typename Model, typename Count, typename Type>
-struct FunctorKmersExtension
-{
-    struct FunctorNeighbors
-    {
-        IBloom<Type>* bloom; ThreadObject<BagCache<Type> >& extendBag;
-        FunctorNeighbors (IBloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
-            : bloom(bloom), extendBag(extendBag) {}
-        void operator() (const Type& k)  const {  if (bloom->contains (k))  {  extendBag().insert (k);  }  }
-    } functorNeighbors;
-
-    Model& model;
-    FunctorKmersExtension (Model& model, IBloom<Type>* bloom, ThreadObject<BagCache<Type> >& extendBag)
-        : functorNeighbors(bloom,extendBag), model(model) {}
-    void operator() (const Count& kmer) const
-    {
-        /** We iterate the neighbors of the current solid kmer. */
-        model.iterateNeighbors (kmer.value, functorNeighbors);
-    }
-};
-#endif
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
 template<size_t span>
 IOptionsParser* DebloomAlgorithm<span>::getOptionsParser ()
 {
@@ -316,20 +285,15 @@ void DebloomAlgorithm<span>::execute_aux (
         /** We create a synchronized cache on the debloom output. This cache will be cloned by the dispatcher. */
         ThreadObject<BagCache<Type> > extendBag = BagCache<Type> (new BagFile<Type>(_debloomUri), 50*1000, System::thread().newSynchronizer());
 
-#ifdef WITH_LAMBDA_EXPRESSION
-        auto functorKmers = [&] (const Count& kmer)
+        /** We iterate the solid kmers. */
+        getDispatcher()->iterate (itKmers, [&] (const Count& kmer)
         {
             /** We iterate the neighbors of the current solid kmer. */
             model.iterateNeighbors (kmer.value, [&] (const Type& k)
             {
                 if (bloom->contains (k))  {  extendBag().insert (k);  }
             });
-        };
-#else
-        FunctorKmersExtension<Model,Count,Type> functorKmers (model, bloom, extendBag);
-#endif
-        /** We iterate the solid kmers. */
-        getDispatcher()->iterate (itKmers, functorKmers);
+        });
 
         /** We have to flush each bag cache used during iteration. */
         for (size_t i=0; i<extendBag.size(); i++)  {  extendBag[i].flush();  }
@@ -408,28 +372,6 @@ void DebloomAlgorithm<span>::execute_aux (
     System::file().remove (outputUri);
     criticalCollection->remove ();
 }
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-#ifndef WITH_LAMBDA_EXPRESSION
-template<typename Type>
-struct FunctorKmersFinalize
-{
-    Hash16<Type>& partition; ThreadObject<BagCache<Type> >& finalizeBag;
-    FunctorKmersFinalize (Hash16<Type>& partition, ThreadObject<BagCache<Type> >& finalizeBag)
-        : partition(partition), finalizeBag(finalizeBag) {}
-    void operator() (const Type& extensionKmer)
-    {
-        if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
-    }
-};
-#endif
 /*********************************************************************/
 
 template<size_t span>
@@ -459,16 +401,10 @@ void DebloomAlgorithm<span>::end_debloom_partition (
      *  we have to protect the output cFP file against concurrent access, which is
      *  achieved by encapsulating the actual output file by a BagCache instance.
      */
-#ifdef WITH_LAMBDA_EXPRESSION
-    auto functorKmers = [&] (const Type& extensionKmer)
+    getDispatcher()->iterate (debloomInput, [&] (const Type& extensionKmer)
     {
         if (partition.contains (extensionKmer) == false)  {  finalizeBag().insert (extensionKmer);  }
-    };
-#else
-    FunctorKmersFinalize<Type> functorKmers (partition, finalizeBag);
-#endif
-
-    getDispatcher()->iterate (debloomInput, functorKmers);
+    });
 
     /** We have to flush each bag cache used during iteration. */
     for (size_t i=0; i<finalizeBag.size(); i++) { finalizeBag[i].flush(); }
@@ -523,53 +459,6 @@ IBloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
     /** We return the created bloom filter. */
     return bloom;
 }
-
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
-
-#ifndef WITH_LAMBDA_EXPRESSION
-
-/*********************************************************************/
-template<typename Type>
-struct Functor0
-{
-    IBloom<Type>* bloom2;
-    Functor0 (IBloom<Type>* bloom2) : bloom2(bloom2) {}
-    void operator() (const Type& t)  {  bloom2->insert (t); };
-};
-/*********************************************************************/
-template<typename Count, typename Type>
-struct Functor1
-{
-    Iterable<Count>* solidIterable;  IBloom<Type>* bloom2;  IBloom<Type>* bloom3;  ThreadObject<BagCache<Type> >& T2Cache;
-    Functor1 (Iterable<Count>* solidIterable,  IBloom<Type>* bloom2, IBloom<Type>* bloom3, ThreadObject<BagCache<Type> >& T2Cache)
-        : solidIterable(solidIterable), bloom2(bloom2), bloom3(bloom3), T2Cache(T2Cache) {}
-    void operator() (const Count& t)
-    {
-        if (bloom2->contains(t.value))
-        {
-            T2Cache().insert (t.value);
-            bloom3->insert (t.value);
-        }
-    }
-};
-/*********************************************************************/
-template<typename Type>
-struct Functor2
-{
-    IBloom<Type>* bloom3;  IBloom<Type>* bloom4;
-    Functor2 (IBloom<Type>* bloom3, IBloom<Type>* bloom4) : bloom3(bloom3), bloom4(bloom4) {}
-    void operator() (const Type& t) { if (bloom3->contains(t))  {  bloom4->insert (t); }  }
-};
-/*********************************************************************/
-
-#endif  // ! WITH_LAMBDA_EXPRESSION
 
 /*********************************************************************/
 
@@ -633,12 +522,9 @@ void DebloomAlgorithm<span>::createCFP (
             LOCAL (bloom4);
 
             // **** Insert the false positives in B2 ****
-#ifdef WITH_LAMBDA_EXPRESSION
-            auto functor0 = [&] (const Type& t)  {  bloom2->insert (t); };
-#else
-            Functor0<Type> functor0 (bloom2);
-#endif
-            getDispatcher()->iterate (criticalCollection->iterator(), functor0);
+            getDispatcher()->iterate (criticalCollection->iterator(), [&] (const Type& t) {
+                bloom2->insert (t);
+            });
             itTask->next();
 
             //  **** Insert false positives in B3 and write T2
@@ -648,31 +534,25 @@ void DebloomAlgorithm<span>::createCFP (
             /** We need to protect the T2File against concurrent accesses, we use a ThreadObject for this. */
             ThreadObject<BagCache<Type> > T2Cache = BagCache<Type> (T2File, 8*1024, System::thread().newSynchronizer());
 
-#ifdef WITH_LAMBDA_EXPRESSION
-            auto functor1 = [&] (const Count& t)
+            getDispatcher()->iterate (_solidIterable->iterator(), [&] (const Count& t)
             {
                 if (bloom2->contains(t.value))
                 {
                     T2Cache().insert (t.value);
                     bloom3->insert (t.value);
                 }
-            };
-#else
-            Functor1<Count,Type> functor1 (_solidIterable, bloom2, bloom3, T2Cache);
-#endif
-            getDispatcher()->iterate (_solidIterable->iterator(), functor1);
+            });
 
             /** We have to flush each bag cache used during iteration. */
             for (size_t i=0; i<T2Cache.size(); i++)  { T2Cache[i].flush(); }
             itTask->next();
 
             // **** Insert false positives in B4 (we could write T3, but it's not necessary)
-#ifdef WITH_LAMBDA_EXPRESSION
-            auto functor2 = [&] (const Type& t)  {  if (bloom3->contains(t))  {  bloom4->insert (t); }  };
-#else
-            Functor2<Type> functor2 (bloom3,bloom4);
-#endif
-            getDispatcher()->iterate (criticalCollection->iterator(), functor2);
+            getDispatcher()->iterate (criticalCollection->iterator(), [&] (const Type& t) {
+                if (bloom3->contains(t)) {
+                    bloom4->insert (t);
+                }
+            });
             itTask->next();
 
             /** We build the final cfp set. */

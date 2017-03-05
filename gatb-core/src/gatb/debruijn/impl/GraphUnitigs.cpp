@@ -1665,10 +1665,8 @@ void GraphUnitigsTemplate<span>::disableNodeState() const
 // instantiation
 // uses Node and Edge as defined in Graph.hpp (legacy GATB compatibility, when Graph was not templated)
 // so.. update;. this instantiation cannot be used by programs, but rather, it's to be used by TemplateSpecialization I think. So it could maybe be removed, and same for those in Graph.hpp
-#ifdef WITH_LAMBDA_EXPRESSION //  requires C++11
 template <size_t span>
 using GraphUnitigs = GraphUnitigsTemplate<span>; 
-#endif
 
 /********************************************************************************/
 } } } } /* end of namespaces. */

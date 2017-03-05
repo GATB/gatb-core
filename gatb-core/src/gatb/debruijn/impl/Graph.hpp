@@ -1310,22 +1310,13 @@ typedef GraphTemplate<Node, Edge, GraphDataVariant> Graph; // define classical G
 
 
 /* rationale: Node is when you have no idea what the kmer size is going to be. NodeFast is when you do. and it's faster */
-#ifdef WITH_LAMBDA_EXPRESSION //  requires C++11
+
 template <size_t span>
 using NodeFast = Node_t<typename gatb::core::kmer::impl::Kmer<span>::Type >;
 template <size_t span>
 using EdgeFast = Edge_t<NodeFast<span> >;
 template <size_t span>
 using GraphDataVariantFast = boost::variant<GraphData<span> >; 
-#else
-// untested code
-/*template <size_t span>
-class NodeFast : public Node_t< tools::math::LargeInt<span> > {};
-template <size_t span>
-class EdgeFast : public Edge_t<Node_t< tools::math::LargeInt<span> >> {};*/
-// TODO: GraphDataVariantFast
-// so, I don't know how to do GraphDataVariantFast without C++11, let's jsut skip it.
-#endif
 
 
 template <typename Type, class Listener>
