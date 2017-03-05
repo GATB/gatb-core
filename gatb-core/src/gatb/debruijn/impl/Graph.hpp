@@ -30,23 +30,7 @@
 #include <vector>
 #include <set>
 
-#ifdef USE_NEW_CXX
 #include <unordered_map>
-#define NS_TR1_PREFIX std
-#else
-    #if defined(__clang__) // special treatment for clang, see Patrick's email from 19/10/2016
-        #   if __has_include(<tr1/unordered_map>)
-                #include <tr1/unordered_map>
-                #define NS_TR1_PREFIX std::tr1
-        #   else
-                #include <unordered_map>
-                #define NS_TR1_PREFIX std
-        #   endif
-    #else
-        #include <tr1/unordered_map>
-        #define NS_TR1_PREFIX std::tr1
-    #endif
-#endif
 
 #include <gatb/system/api/IThread.hpp> // for ISynchronizer
 #include <gatb/bank/api/IBank.hpp>
@@ -1193,7 +1177,7 @@ struct GraphData
     typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
     typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::NodeStateMap   NodeStateMap;
     typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AdjacencyMap   AdjacencyMap;
-    typedef typename NS_TR1_PREFIX::unordered_map<Type, std::pair<char,std::string>, NodeHasher<Type> > NodeCacheMap; // rudimentary for now
+    typedef typename std::unordered_map<Type, std::pair<char,std::string>, NodeHasher<Type> > NodeCacheMap; // rudimentary for now
 
     /** Constructor. */
     GraphData () : _model(0), _solid(0), _container(0), _branching(0), _abundance(0), _nodestate(0), _adjacency(0), _nodecache(0) {}
