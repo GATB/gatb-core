@@ -46,6 +46,7 @@ top -l 1|head -15
 
 gcc --version
 g++ --version
+cmake --version
 
 [ `gcc -dumpversion` = 4.2.1 ] && { echo "GCC 4.2.1"; } || { echo "GCC version is not 4.2.1, we exit"; exit 1; }
 

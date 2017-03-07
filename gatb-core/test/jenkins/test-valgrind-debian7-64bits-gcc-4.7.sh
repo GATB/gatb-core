@@ -56,6 +56,7 @@ df -kh
 
 gcc --version
 g++ --version
+cmake --version
 
 [ `gcc -dumpversion` = 4.7 ] && { echo "GCC 4.7"; } || { echo "GCC version is not 4.7, we exit"; exit 1; }
 

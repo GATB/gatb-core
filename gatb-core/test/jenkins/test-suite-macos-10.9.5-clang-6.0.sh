@@ -46,6 +46,7 @@ top -l 1|head -15
 
 clang --version
 clang++ --version
+cmake --version
 
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++

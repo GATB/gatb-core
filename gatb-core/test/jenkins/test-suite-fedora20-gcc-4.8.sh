@@ -59,6 +59,7 @@ gcc --version
 g++ --version
 
 gcc -dumpversion
+cmake --version
 
 JENKINS_TASK=${JOB_NAME}
 GIT_DIR=/home/ci-gatb/workspace/$JENKINS_TASK/gatb-core
