@@ -46,7 +46,8 @@
  * cd <some_directory>
  * git clone https://github.com/GATB/gatb-core.git
  * cd gatb-core/gatb-core 
- * mkdir build ; cd build ; cmake .. ; make
+ * mkdir build ; cd build ; cmake ..
+ * make -j8   (adjust -j8 to the number of cores of your system)
  * \endcode
  *
  * You can force compilation in debug mode by calling cmake in a specific way:
@@ -89,7 +90,7 @@
  ************************************************************************************
  * \section compilation_snippets Compile the code snippets
  *
- * A directory named 'examples' holds some snippets that show how to use services provided by the library.
+ * A directory named <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">examples</a> holds some snippets that show how to use services provided by the library.
  *
  * In order to compile them, you will first need to compile the library.
  *
@@ -106,6 +107,8 @@
  * c++ framework:
  *
  * <a href="https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/">https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/</a>
+ *
+ * You also have the opportunity to easily work on <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">code snippets</a> directly from Eclipse. Please, refer to the above link.
  *
  *************************************************************************************
  * \page new_project Quick project creation
@@ -203,11 +206,17 @@
  ************************************************************************************
   * \tableofcontents
  *************************************************************************************
+ * \section snippets_iterators_intro Presentation
+ * 
+ * This page presents some code snippets related to the use of Iterators.
+ *
+ * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/tools">gatb-core/gatb-core/examples/tools</a>.
  *
  * \section snippets_iterators_snippet1 Iterate a list
  *
  * This snippet shows how to iterate a STL list with our iterator design.
  *
+ * Code is from example iterators1.cpp:
  *\snippet iterators1.cpp  snippet1
  *
  ************************************************************************************
@@ -222,7 +231,9 @@
  * The current item of the iteration is a pair, so one should retrieve the couple of
  * values with methods 'first' and 'second'.
  *
+ * Code is from example iterators2.cpp:
  *\snippet iterators2.cpp  snippet1
+ * [go back to \ref snippets_iterators "top"]
  *
  ************************************************************************************
  * \section snippets_iterators_snippet7 Iterate two lists by pairs
@@ -232,14 +243,18 @@
  *
  * A usage of such an iterator is to iterate two paired ends banks.
  *
+ * Code is from example iterators7.cpp:
  *\snippet iterators7.cpp  snippet1
+ * [go back to \ref snippets_iterators "top"]
  *
  ************************************************************************************
  * \section snippets_iterators_snippet3 Truncating an iteration
  *
  * This snippet shows how to truncate the iteration of some iterator.
  *
+ * Code is from example iterators3.cpp:
  *\snippet iterators3.cpp  snippet1
+ * [go back to \ref snippets_iterators "top"]
  *
  *
  ************************************************************************************
@@ -257,7 +272,9 @@
  * The listener will then receive at regular interval the number of currently iterated
  * items.
  *
+ * Code is from example iterators4.cpp:
  *\snippet iterators4.cpp  snippet1
+ * [go back to \ref snippets_iterators "top"]
  *
  ************************************************************************************
  * \section snippets_iterators_snippet5 Iterate a list with progress feedback (simple)
@@ -265,7 +282,9 @@
  * This snippet is the same as before but here we use a default console progress bar.
  * In most case, it allows to avoid an explicit listener configuration.
  *
+ * Code is from example iterators5.cpp:
  *\snippet iterators5.cpp  snippet1
+ * [go back to \ref snippets_iterators "top"]
  *
  ************************************************************************************
  * \section snippets_iterators_snippet6 Iterate a list and filter out some items
@@ -273,7 +292,9 @@
  * This snippet shows how to iterate a STL list while filtering out some items that
  * don't check some condition.
  *
+ * Code is from example iterators6.cpp:
  *\snippet iterators6.cpp  snippet1
+ * [go back to \ref snippets_iterators "top"]
  *
  ************************************************************************************
  * \section snippets_iterators_snippet8 Mixing iterators
@@ -281,7 +302,9 @@
  * This snippet shows how mix several iterators. Note again that the iteration loop
  * is still the same.
  *
+ * Code is from example iterators8.cpp:
  *\snippet iterators8.cpp  snippet1
+ * [go back to \ref snippets_iterators "top"]
  *
  *
  ************************************************************************************
@@ -292,6 +315,14 @@
  * \tableofcontents
  *
  * *************************************************************************************
+ *
+ * \section snippets_multithread_intro Presentation
+ *
+ * This page presents some code snippets related to the use of Multithreading API.
+ *
+ * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">here</a>.
+ *
+ * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/tools">gatb-core/gatb-core/examples/tools</a>.
  *
  * \section snippets_multithread_snippet1 Iteration in a multithreaded fashion
  *
@@ -304,7 +335,9 @@
  * <b>Note: this approach can work only if the items can be iterated and processed independently
  * from each other.</b>
  *
+ * Code is from example multithreading1.cpp:
  *\snippet multithreading1.cpp  snippet1
+ * [go back to \ref snippets_multithread "top"]
  *
  *************************************************************************************
  *
@@ -316,7 +349,9 @@
  * The important point here is to understand that shared resources must be modified
  * cautiously by different threads running at the same time.
  *
+ * Code is from example multithreading2.cpp:
  *\snippet multithreading2.cpp  snippet1
+ * [go back to \ref snippets_multithread "top"]
  *
  *************************************************************************************
  *
@@ -328,7 +363,9 @@
  * We need some general synchronization mechanism that will ensure that a portion of code
  * can be executed only by one thread at one time.
  *
+ * Code is from example multithreading3.cpp:
  *\snippet multithreading3.cpp  snippet1
+ * [go back to \ref snippets_multithread "top"]
  *
  *
  *************************************************************************************
@@ -341,7 +378,9 @@
  * This is useful for avoiding classical deadlock bugs when one forgets to unlock a
  * synchronizer.
  *
+ * Code is from example multithreading4.cpp:
  *\snippet multithreading4.cpp  snippet1
+ * [go back to \ref snippets_multithread "top"]
  *
  *************************************************************************************
  *
@@ -358,7 +397,9 @@
  * uses a single shared resource. This may be interesting since synchronization mechanisms
  * may introduce time overheads.
  *
+ * Code is from example multithreading5.cpp:
  *\snippet multithreading5.cpp  snippet1
+ * [go back to \ref snippets_multithread "top"]
  *
  *************************************************************************************
  *
@@ -373,7 +414,9 @@
  * once, the bank (if not too big) may be in the RAM cache, so it is interesting to
  * relaunch the snippet with varying number of cores and see how execution time evolves.
  *
+ * Code is from example multithreading6.cpp:
  *\snippet multithreading6.cpp  snippet1
+ * [go back to \ref snippets_multithread "top"]
  *
  ************************************************************************************
  ************************************************************************************
@@ -384,6 +427,14 @@
  *
  ************************************************************************************
  *
+ * \section snippets_bank_intro Presentation
+ *
+ * This page presents some code snippets related to the use of Bank API.
+ *
+ * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training/">here</a>.
+ *
+ * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/bank">gatb-core/gatb-core/examples/bank</a>.
+ *
  * \section snippets_bank_snippet1 Parsing a single FASTA bank without checks
  *
  * This snippet shows how to read one FASTA bank in a simple way. No check is done about
@@ -391,7 +442,9 @@
  *
  * Some information of each iterated sequence are diplayed as output.
  *
+ * Code is from example bank1.cpp:
  *\snippet bank1.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  ************************************************************************************
  * \section snippets_bank_snippet2 Parsing several banks
@@ -403,7 +456,9 @@
  *
  * Some information of each iterated sequence are diplayed as output.
  *
+ * Code is from example bank2.cpp:
  *\snippet bank2.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  *************************************************************************************
  * \section snippets_bank_snippet3 Parsing a FASTA bank in a different way
@@ -415,7 +470,9 @@
  * iterator is called to provide the current item, instead of calling some function to
  * do as we do in this sample.
  *
+ * Code is from example bank3.cpp:
  *\snippet bank3.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  **************************************************************************************
  * \section snippets_bank_snippet4 Parsing a FASTA bank and getting progress information
@@ -428,7 +485,9 @@
  * Note: the "notifying" iterator is generic and could be reused to send progress notification
  * with any kind of iterator, not only on sequences.
  *
+ * Code is from example bank4.cpp:
  *\snippet bank4.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  **************************************************************************************
  * \section snippets_bank_snippet5 Parsing a FASTA bank and getting percentage progress information
@@ -442,7 +501,9 @@
  * progress information, try for instance:
  *      - ProgressIterator<Sequence,ProgressTimer>
  *
+ * Code is from example bank5.cpp:
  *\snippet bank5.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -451,7 +512,9 @@
  *
  * This snippet provides a small utility for cutting lines of data with a given size.
  *
+ * Code is from example bank6.cpp:
  *\snippet bank6.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -460,7 +523,9 @@
  *
  * This snippet shows how to parse a bank with a functor used to filter out some items.
  *
+ * Code is from example bank7.cpp:
  *\snippet bank7.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -469,7 +534,9 @@
  *
  * This snippet shows how to parse a nucleic bank and convert it to a binary format.
  *
+ * Code is from example bank8.cpp:
  *\snippet bank8.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -479,7 +546,9 @@
  * This snippet shows how to parse a bank, check whether the sequences match a criteria
  * and dump the matching sequences into an output FASTA bank.s
  *
+ * Code is from example bank9.cpp:
  *\snippet bank9.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -502,7 +571,9 @@
  * can be used as a bank and could be the input bank of the snippet bank14 for instance
  * (and we should get the same results as using directly the 'reads.fa' bank)
  *
+ * Code is from example bank10.cpp:
  *\snippet bank10.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -514,7 +585,9 @@
  *
  * Each sequence is saved into an output FASTA file.
  *
+ * Code is from example bank11.cpp:
  *\snippet bank11.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -526,7 +599,9 @@
  *
  * It uses the FilterIterator feature.
  *
+ * Code is from example bank12.cpp:
  *\snippet bank12.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -537,7 +612,9 @@
  *
  * It uses the FilterIterator feature.
  *
+ * Code is from example bank13.cpp:
  *\snippet bank13.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -546,7 +623,9 @@
  *
  * This snippet shows how to read a bank and get statistics on it.
  *
+ * Code is from example bank14.cpp:
  *\snippet bank14.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -558,7 +637,9 @@
  *
  * This is good example how to reads paired end banks.
  *
+ * Code is from example bank18.cpp:
  *\snippet bank18.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
  *
  * \n
  *
@@ -571,11 +652,21 @@
  *
  *************************************************************************************
  *
+ * \section snippets_kmer_intro Presentation
+ *
+ * This page presents some code snippets related to the use of k-mer API.
+ *
+ * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training/">here</a>.
+ *
+ * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/kmer">gatb-core/gatb-core/examples/kmer</a>.
+ *
  * \section snippets_kmer_snippet1 Using a kmer model
  *
  * This snippet shows how to create kmer models.
  *
+ * Code is from example kmer1.cpp:
  *\snippet kmer1.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -589,7 +680,9 @@
  *
  * The snippet shows different methods usable for each kind of model.
  *
+ * Code is from example kmer2.cpp:
  *\snippet kmer2.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -597,7 +690,9 @@
  *
  * This snippet shows how to iterate the kmers from a sequence, for a given model.
  *
+ * Code is from example kmer3.cpp:
  *\snippet kmer3.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -608,7 +703,9 @@
  *      - outer loop on sequences of the bank
  *      - inner loop on kmer on the current sequence from the outer loop
  *
+ * Code is from example kmer4.cpp:
  *\snippet kmer4.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -620,7 +717,9 @@
  * It also computes the following distribution : number of times a read has X different
  * minimizers (in other words, the number of super kmers).
  *
+ * Code is from example kmer5.cpp:
  *\snippet kmer5.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -645,7 +744,9 @@
  *  - for KSIZE_3 and KSIZE_4, we need to switch to specific large integer representations that
  *  are no more native on the system, which implies bigger computation times.
  *
+ * Code is from example kmer6.cpp:
  *\snippet kmer6.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -654,7 +755,9 @@
  * This snippet shows how to iterate the kmers of an input bank and computes some statistics
  * about the iterated minimizers.
  *
+ * Code is from example kmer7.cpp:
  *\snippet kmer7.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -662,7 +765,9 @@
  *
  * This snippet shows how to configure custom minimizer definition through a functor.
  *
+ * Code is from example kmer8.cpp:
  *\snippet kmer8.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -671,7 +776,9 @@
  * This snippet shows how to use the SortingCountAlgorithm class for counting kmers in
  * a bank
  *
+ * Code is from example kmer9.cpp:
  *\snippet kmer9.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  ************************************************************************************
@@ -683,7 +790,9 @@
  *  - we read all the couples with a single iterator
  *  - we read each solid collection and use an iterator on it
  *
+ * Code is from example kmer10.cpp:
  *\snippet kmer10.cpp  snippet1
+ * [go back to \ref snippets_kmer "top"]
  * \n
  *
  *
@@ -696,7 +805,13 @@
  *
  *\tableofcontents
  *
- * We propose here a few snippets related to De Bruijn graphs.
+ * \section snippets_dbg_intro Presentation
+ *
+ * This page presents some code snippets related to the use of De Bruijn graph API.
+ *
+ * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training/">here</a>.
+ *
+ * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/debruijn">gatb-core/gatb-core/examples/debruijn</a>.
  *
  ************************************************************************************
  * \section snippets_dbg_1  Build / Load De Bruijn graphs
@@ -721,6 +836,7 @@
  * gatb-core project: it takes a set of reads (as a FASTA file) and generates the corresponding
  * De Bruijn graph as a HDF5 file.
  *
+ * Code is from example debruijn1.cpp:
  *\snippet debruijn1.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -731,6 +847,7 @@
  * Like the previous snippet, we create a Graph object with command line options, but
  * here the options are directly provided as a string.
  *
+ * Code is from example debruijn2.cpp:
  * \snippet debruijn2.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -746,6 +863,7 @@
  *
  * Note in the example that we can provide additional options after the bank object.
  *
+ * Code is from example debruijn3.cpp:
  * \snippet debruijn3.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -761,6 +879,7 @@
  * In such a case, the output file for the graph will be named "noname", unless a specific
  * name is set through the command line option "-out mygraph".
  *
+ * Code is from example debruijn4.cpp:
  * \snippet debruijn4.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -772,6 +891,7 @@
  *
  * This snippet shows how to load such a file to get a Graph object.
  *
+ * Code is from example debruijn5.cpp:
  * \snippet debruijn5.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -789,6 +909,7 @@
  *
  * Here, the nodes are retrieved regardless of any edges between them.
  *
+ * Code is from example debruijn6.cpp:
  * \snippet debruijn6.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -808,6 +929,7 @@
  * an up-to-date compiler). You can have some information at
  * http://stackoverflow.com/questions/7627098/what-is-a-lambda-expression-in-c11
  *
+ * Code is from example debruijn7.cpp:
  * \snippet debruijn7.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -830,6 +952,7 @@
  * Graph::predecessors method. By the way, it is possible to know the in and out degree of a given node with the two
  * corresponding methods Graph::indegree and Graph::outdegree
  *
+ * Code is from example debruijn9.cpp:
  * \snippet debruijn9.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -845,6 +968,7 @@
  *
  * In particular, we use some of the Edge attributes (Edge::to, Edge::nt)
  *
+ * Code is from example debruijn10.cpp:
  * \snippet debruijn10.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -861,6 +985,7 @@
  * The Graph::neighbor fulfills this need. This method has two forms, with or without check
  * to graph membership, according to performance considerations.
  *
+ * Code is from example debruijn11.cpp:
  * \snippet debruijn11.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -890,6 +1015,7 @@
  *
  * The idea is to get an iterator from the graph and use it to get each branching node of the graph.
  *
+ * Code is from example debruijn8.cpp:
  * \snippet debruijn8.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -905,6 +1031,7 @@
  * Here, we use directly the Graph::successors<BranchingNode> method that encapsulates
  * this behavior.
  *
+ * Code is from example debruijn16.cpp:
  * \snippet debruijn16.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -923,6 +1050,7 @@
  *    on the simple path between the two branching nodes.
  *  - the number of transitions that link the two branching nodes.
  *
+ * Code is from example debruijn17.cpp:
  * \snippet debruijn17.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -939,6 +1067,7 @@
  * This snippet shows how to iterate such a simple path. Here, the iterated items are the
  * successive nodes of the path.
  *
+ * Code is from example debruijn14.cpp:
  * \snippet debruijn14.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -951,6 +1080,7 @@
  * in this path, we will have:
  *  - outdegree(E.from)==1  &&  indegree(E.to)==1
  *
+ * Code is from example debruijn15.cpp:
  * \snippet debruijn15.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -966,6 +1096,7 @@
  * It is often required to change the reading strand of a node. This can be done with the
  * Graph::reverse method.
  *
+ * Code is from example debruijn12.cpp:
  * \snippet debruijn12.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -978,6 +1109,7 @@
  * It is possible to get an empty Graph object (its kmer size must be nevertheless specified),
  * and then use the Graph::buildNode to get a node based on a Data object.
  *
+ * Code is from example debruijn13.cpp:
  * \snippet debruijn13.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  * \n
@@ -1018,6 +1150,7 @@
  * In this example, we also use progress notification feature (with ProgressIterator) in order to have
  * some user feedback during the iteration of the branching nodes.
  *
+ * Code is from example debruijn18.cpp:
  * \snippet debruijn18.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  *
@@ -1025,6 +1158,7 @@
  *
  * \subsection snippets_kmer_dbg_19  Computing connected components of the branching nodes sub graph
  *
+ * Code is from example debruijn19.cpp:
  * \snippet debruijn19.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  *
@@ -1035,6 +1169,7 @@
  * This snippet generates a dot file from a de Bruijn graph. It is then possible to
  * generate a pdf output of the graph (dot -Tpdf graph.dot -o graph.pdf)
  *
+ * Code is from example debruijn24.cpp:
  * \snippet debruijn24.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  *
@@ -1045,9 +1180,7 @@
  * This snippet shows how to use the 'queryAbundance' method that returns the occurrences
  * number of the node in the initial set of reads.
  *
- * This feature uses the EMPHF feature, and the graph must therefore build with the
- * "-mphf emphf" option (otherwise the 'queryAbundance' method won't work).
- *
+ * Code is from example debruijn26.cpp:
  * \snippet debruijn26.cpp  snippet1
  * [go back to \ref snippets_graph "top"]
  *
@@ -1058,16 +1191,24 @@
  *
  * \tableofcontents
  *
- *************************************************************************************
+ * \section snippets_storage_intro Presentation
  *
- * These snippets show how to use the persistency layer used in gatb-core
+ * This page presents some code snippets related to the use of persistency API.
+ *
+ * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">here</a>.
+ *
+ * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/storage">gatb-core/gatb-core/examples/storage</a>.
+ *
+ *************************************************************************************
  *
  * \section snippets_storage_snippet1 Create and save a collection with a Storage object
  *
  * This snippet shows how to use a Storage object for creating a collection of integers.
  * We use the HDF5 format, so we can control the result of our snippet with HDF5 tools.
  *
+ * Code is from example storage1.cpp:
  *\snippet storage1.cpp  snippet1
+ * [go back to \ref snippets_storage "top"]
  *
  *************************************************************************************
  * \section snippets_storage_snippet2 Create and save two collections with a Storage object
@@ -1075,14 +1216,18 @@
  * This snippet shows how to use a Storage object for creating collections of integers.
  * We use the HDF5 format, so we can control the result of our snippet with HDF5 tools.
  *
+ * Code is from example storage2.cpp:
  *\snippet storage2.cpp  snippet1
+ * [go back to \ref snippets_storage "top"]
  *
  *************************************************************************************
  * \section snippets_storage_snippet3 Load a collection from a Storage object
  *
  * This snippet shows how to load a Storage object and get a saved collection from it.
  *
+ * Code is from example storage3.cpp:
  *\snippet storage3.cpp  snippet1
+ * [go back to \ref snippets_storage "top"]
  *
  *************************************************************************************
  * \section snippets_storage_snippet4 Load collections from a Storage object
@@ -1090,7 +1235,9 @@
  * This snippet shows how to load a Storage object and get saved collections from it.
  * Note that we use lambda expressions in this example.
  *
+ * Code is from example storage4.cpp:
  *\snippet storage4.cpp  snippet1
+ * [go back to \ref snippets_storage "top"]
  *
  *************************************************************************************
  * \section snippets_storage_snippet6 Iterate solid kmers from a HDF5 file
@@ -1106,7 +1253,9 @@
  * If you want to know the structure of the HDF5 file, you can use the h5dump utility,
  * for instance:  h5dump -H file.h5
  *
+ * Code is from example storage6.cpp:
  *\snippet storage6.cpp  snippet1
+ * [go back to \ref snippets_storage "top"]
  *
  *************************************************************************************
  * \section snippets_storage_snippet7 Associate metadata to HDF5 collections
@@ -1116,7 +1265,9 @@
  * You can dump such values with h5dump:
  *      h5dump -a myIntegers/myData foo.h5
  *
+ * Code is from example storage7.cpp:
  *\snippet storage7.cpp  snippet1
+ * [go back to \ref snippets_storage "top"]
  *
  *************************************************************************************
  * \section snippets_storage_snippet8 Using C++ like streams with HDF5
@@ -1126,7 +1277,9 @@
  *  - Storage::ostream : used for saving binary data into a HDF5 collection
  *  - Storage::istream : used for retrieving binary data from a HDF5 collection
  *
+ * Code is from example storage8.cpp:
  *\snippet storage8.cpp  snippet1
+ * [go back to \ref snippets_storage "top"]
  *
  ************************************************************************************
  * \page snippets_tools  Tools snippets
@@ -1143,8 +1296,11 @@
  *
  * This snippet shows how to quickly create a new tool by subclassing the Tool class.
  *
+ * You can try it online <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">here</a>.
+ *
  * Using the Tool class will give to use some useful features for developing our toy tool.
  *
+ * Code is from example ToyTool.cpp:
  *\snippet ToyTool.cpp  snippet1
  *
  */
