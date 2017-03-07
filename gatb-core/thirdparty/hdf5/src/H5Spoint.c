@@ -29,7 +29,7 @@
 #include "H5Iprivate.h"		/* ID Functions		  */
 #include "H5MMprivate.h"	/* Memory Management functions		  */
 #include "H5Spkg.h"		/* Dataspace functions			  */
-#include "H5Vprivate.h"         /* Vector functions */
+#include "H5VMprivate.h"         /* Vector functions */
 
 /* Static function prototypes */
 
@@ -355,7 +355,7 @@ H5S_point_iter_next_block(H5S_sel_iter_t *iter)
  REVISION LOG
 --------------------------------------------------------------------------*/
 static herr_t
-H5S_point_iter_release (H5S_sel_iter_t UNUSED * iter)
+H5S_point_iter_release (H5S_sel_iter_t H5_ATTR_UNUSED * iter)
 {
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
@@ -602,7 +602,7 @@ done:
  REVISION LOG
 --------------------------------------------------------------------------*/
 static herr_t
-H5S_point_copy(H5S_t *dst, const H5S_t *src, hbool_t UNUSED share_selection)
+H5S_point_copy(H5S_t *dst, const H5S_t *src, hbool_t H5_ATTR_UNUSED share_selection)
 {
     H5S_pnt_node_t *curr, *new_node, *new_tail;    /* Point information nodes */
     herr_t ret_value = SUCCEED;         /* Return value */
@@ -1383,7 +1383,7 @@ H5S_point_project_scalar(const H5S_t *space, hsize_t *offset)
         HGOTO_ERROR(H5E_DATASPACE, H5E_BADRANGE, FAIL, "point selection of one element has more than one node!")
 
     /* Calculate offset of selection in projected buffer */
-    *offset = H5V_array_offset(space->extent.rank, space->extent.size, node->pnt); 
+    *offset = H5VM_array_offset(space->extent.rank, space->extent.size, node->pnt); 
 
 done:
     FUNC_LEAVE_NOAPI(ret_value)
@@ -1437,7 +1437,7 @@ H5S_point_project_simple(const H5S_t *base_space, H5S_t *new_space, hsize_t *off
         /* Calculate offset of selection in projected buffer */
         HDmemset(block, 0, sizeof(block));
         HDmemcpy(block, base_space->select.sel_info.pnt_lst->head->pnt, sizeof(hsize_t) * rank_diff);
-        *offset = H5V_array_offset(base_space->extent.rank, base_space->extent.size, block); 
+        *offset = H5VM_array_offset(base_space->extent.rank, base_space->extent.size, block); 
 
         /* Iterate through base space's point nodes, copying the point information */
         base_node = base_space->select.sel_info.pnt_lst->head;

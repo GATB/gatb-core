@@ -86,7 +86,7 @@ static herr_t H5O_copy_header_real(const H5O_loc_t *oloc_src, H5O_loc_t *oloc_ds
 static herr_t H5O_copy_header(const H5O_loc_t *oloc_src, H5O_loc_t *oloc_dst /*out*/,
     hid_t dxpl_id, hid_t ocpypl_id);
 static herr_t H5O_copy_obj(H5G_loc_t *src_loc, H5G_loc_t *dst_loc,
-    const char *dst_name, hid_t ocpypl_id, hid_t lcpl_id);
+    const char *dst_name, hid_t ocpypl_id, hid_t lcpl_id, hid_t dxpl_id);
 static herr_t H5O_copy_obj_by_ref(H5O_loc_t *src_oloc, hid_t dxpl_id,
     H5O_loc_t *dst_oloc, H5G_loc_t *dst_root_loc, H5O_copy_t *cpy_info);
 static herr_t H5O_copy_free_comm_dt_cb(void *item, void *key, void *op_data);
@@ -243,7 +243,7 @@ H5Ocopy(hid_t src_loc_id, const char *src_name, hid_t dst_loc_id,
         H5G_loc_reset(&tmp_loc);
 
         /* Check if object already exists in destination */
-        if(H5G_loc_find(&dst_loc, dst_name, &tmp_loc, H5P_DEFAULT, H5AC_dxpl_id) >= 0) {
+        if(H5G_loc_find(&dst_loc, dst_name, &tmp_loc, H5P_DEFAULT, H5AC_ind_dxpl_id) >= 0) {
             H5G_name_free(&tmp_path);
             HGOTO_ERROR(H5E_SYM, H5E_EXISTS, FAIL, "destination object already exists")
         } /* end if */
@@ -255,7 +255,7 @@ H5Ocopy(hid_t src_loc_id, const char *src_name, hid_t dst_loc_id,
     H5G_loc_reset(&src_loc);
 
     /* Find the source object to copy */
-    if(H5G_loc_find(&loc, src_name, &src_loc/*out*/, H5P_DEFAULT, H5AC_dxpl_id) < 0)
+    if(H5G_loc_find(&loc, src_name, &src_loc/*out*/, H5P_DEFAULT, H5AC_ind_dxpl_id) < 0)
         HGOTO_ERROR(H5E_SYM, H5E_NOTFOUND, FAIL, "source object not found")
     loc_found = TRUE;
 
@@ -281,14 +281,14 @@ H5Ocopy(hid_t src_loc_id, const char *src_name, hid_t dst_loc_id,
             HGOTO_ERROR(H5E_ARGS, H5E_BADTYPE, FAIL, "not object copy property list")
 
     /* Do the actual copying of the object */
-    if(H5O_copy_obj(&src_loc, &dst_loc, dst_name, ocpypl_id, lcpl_id) < 0)
+    if(H5O_copy_obj(&src_loc, &dst_loc, dst_name, ocpypl_id, lcpl_id, H5AC_dxpl_id) < 0)
         HGOTO_ERROR(H5E_OHDR, H5E_CANTCOPY, FAIL, "unable to copy object")
 
 done:
     if(loc_found && H5G_loc_free(&src_loc) < 0)
-        HDONE_ERROR(H5E_SYM, H5E_CANTRELEASE, FAIL, "can't free location")
-    if(obj_open)
-        H5O_close(&src_oloc);
+        HDONE_ERROR(H5E_OHDR, H5E_CANTRELEASE, FAIL, "can't free location")
+    if(obj_open && H5O_close(&src_oloc) < 0)
+        HDONE_ERROR(H5E_OHDR, H5E_CLOSEERROR, FAIL, "unable to release object header")
 
     FUNC_LEAVE_API(ret_value)
 } /* end H5Ocopy() */
@@ -669,7 +669,7 @@ H5O_copy_header_real(const H5O_loc_t *oloc_src, H5O_loc_t *oloc_dst /*out*/,
     } /* end if */
 
     /* Add in destination's object header size now */
-    dst_oh_size += H5O_SIZEOF_HDR(oh_dst);
+    dst_oh_size += (uint64_t)H5O_SIZEOF_HDR(oh_dst);
 
     /* Allocate space for chunk in destination file */
     if(HADDR_UNDEF == (oh_dst->chunk[0].addr = H5MF_alloc(oloc_dst->file, H5FD_MEM_OHDR, dxpl_id, (hsize_t)dst_oh_size)))
@@ -1009,7 +1009,7 @@ done:
  REVISION LOG
 --------------------------------------------------------------------------*/
 static herr_t
-H5O_copy_free_addrmap_cb(void *_item, void UNUSED *key, void UNUSED *op_data)
+H5O_copy_free_addrmap_cb(void *_item, void H5_ATTR_UNUSED *key, void H5_ATTR_UNUSED *op_data)
 {
     H5O_addr_map_t *item = (H5O_addr_map_t *)_item;
 
@@ -1141,14 +1141,13 @@ done:
  */
 static herr_t
 H5O_copy_obj(H5G_loc_t *src_loc, H5G_loc_t *dst_loc, const char *dst_name,
-    hid_t ocpypl_id, hid_t lcpl_id)
+    hid_t ocpypl_id, hid_t lcpl_id, hid_t dxpl_id)
 {
     H5G_name_t      new_path;                   /* Copied object group hier. path */
     H5O_loc_t       new_oloc;                   /* Copied object object location */
     H5G_loc_t       new_loc;                    /* Group location of object copied */
     H5F_t           *cached_dst_file;           /* Cached destination file */
     hbool_t         entry_inserted = FALSE;     /* Flag to indicate that the new entry was inserted into a group */
-    hid_t           dxpl_id = H5AC_dxpl_id;     /* DXPL for operation */
     herr_t          ret_value = SUCCEED;        /* Return value */
 
     FUNC_ENTER_NOAPI(FAIL)
@@ -1274,7 +1273,8 @@ H5O_copy_expand_ref(H5F_t *file_src, void *_src_ref, hid_t dxpl_id,
     H5O_loc_t 	dst_oloc;         	/* Copied object object location */
     H5O_loc_t	src_oloc;          	/* Temporary object location for source object */
     H5G_loc_t   dst_root_loc;           /* The location of root group of the destination file */
-    uint8_t     *p;                     /* Pointer to OID to store */
+    const uint8_t *q;                   /* Pointer to source OID to store */
+    uint8_t     *p;                     /* Pointer to destination OID to store */
     size_t      i;                      /* Local index variable */
     herr_t	ret_value = SUCCEED;
 
@@ -1308,8 +1308,8 @@ H5O_copy_expand_ref(H5F_t *file_src, void *_src_ref, hid_t dxpl_id,
         /* Making equivalent references in the destination file */
         for(i = 0; i < ref_count; i++) {
             /* Set up for the object copy for the reference */
-            p = (uint8_t *)(&src_ref[i]);
-            H5F_addr_decode(src_oloc.file, (const uint8_t **)&p, &(src_oloc.addr));
+            q = (uint8_t *)(&src_ref[i]);
+            H5F_addr_decode(src_oloc.file, (const uint8_t **)&q, &(src_oloc.addr));
             dst_oloc.addr = HADDR_UNDEF;
 
             /* Attempt to copy object from source to destination file */
@@ -1337,9 +1337,9 @@ H5O_copy_expand_ref(H5F_t *file_src, void *_src_ref, hid_t dxpl_id,
         /* Making equivalent references in the destination file */
         for(i = 0; i < ref_count; i++) {
             /* Get the heap ID for the dataset region */
-            p = (uint8_t *)(&src_ref[i]);
-            H5F_addr_decode(src_oloc.file, (const uint8_t **)&p, &(hobjid.addr));
-            INT32DECODE(p, hobjid.idx);
+            q = (const uint8_t *)(&src_ref[i]);
+            H5F_addr_decode(src_oloc.file, (const uint8_t **)&q, &(hobjid.addr));
+            UINT32DECODE(q, hobjid.idx);
 
             if(hobjid.addr != (haddr_t)0) {
                 /* Get the dataset region from the heap (allocate inside routine) */
@@ -1347,8 +1347,8 @@ H5O_copy_expand_ref(H5F_t *file_src, void *_src_ref, hid_t dxpl_id,
                     HGOTO_ERROR(H5E_REFERENCE, H5E_READERROR, FAIL, "Unable to read dataset region information")
 
                 /* Get the object oid for the dataset */
-                p = (uint8_t *)buf;
-                H5F_addr_decode(src_oloc.file, (const uint8_t **)&p, &(src_oloc.addr));
+                q = (const uint8_t *)buf;
+                H5F_addr_decode(src_oloc.file, (const uint8_t **)&q, &(src_oloc.addr));
                 dst_oloc.addr = HADDR_UNDEF;
 
                 /* copy the object pointed by the ref to the destination */
@@ -1374,7 +1374,7 @@ H5O_copy_expand_ref(H5F_t *file_src, void *_src_ref, hid_t dxpl_id,
             /* Set the dataset region reference info for the destination file */
             p = (uint8_t *)(&dst_ref[i]);
             H5F_addr_encode(dst_oloc.file, &p, hobjid.addr);
-            INT32ENCODE(p, hobjid.idx);
+            UINT32ENCODE(p, hobjid.idx);
 
             /* Free the buffer allocated in H5HG_read() */
             H5MM_xfree(buf);
@@ -1401,7 +1401,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5O_copy_free_comm_dt_cb(void *item, void *_key, void UNUSED *op_data)
+H5O_copy_free_comm_dt_cb(void *item, void *_key, void H5_ATTR_UNUSED *op_data)
 {
     haddr_t     *addr = (haddr_t *)item;
     H5O_copy_search_comm_dt_key_t *key = (H5O_copy_search_comm_dt_key_t *)_key;
@@ -1645,7 +1645,8 @@ H5O_copy_search_comm_dt_check(H5O_loc_t *obj_oloc,
     attr_op.u.lib_op = H5O_copy_search_comm_dt_attr_cb;
     udata->obj_oloc.file = obj_oloc->file;
     udata->obj_oloc.addr = obj_oloc->addr;
-    if(H5O_attr_iterate_real((hid_t)-1, obj_oloc, udata->dxpl_id, H5_INDEX_NAME, H5_ITER_NATIVE, 0, NULL, &attr_op, udata) < 0)
+    if(H5O_attr_iterate_real((hid_t)-1, obj_oloc, udata->dxpl_id, H5_INDEX_NAME, 
+                             H5_ITER_NATIVE, (hsize_t)0, NULL, &attr_op, udata) < 0)
         HGOTO_ERROR(H5E_OHDR, H5E_BADITER, FAIL, "error iterating over attributes");
 
 done:
@@ -1681,7 +1682,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5O_copy_search_comm_dt_cb(hid_t UNUSED group, const char *name,
+H5O_copy_search_comm_dt_cb(hid_t H5_ATTR_UNUSED group, const char *name,
     const H5L_info_t *linfo, void *_udata)
 {
     H5O_copy_search_comm_dt_ud_t *udata = (H5O_copy_search_comm_dt_ud_t *)_udata; /* Skip list of dtypes in dest file */

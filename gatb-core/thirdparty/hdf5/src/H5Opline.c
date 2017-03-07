@@ -109,8 +109,8 @@ H5FL_DEFINE(H5O_pline_t);
  *-------------------------------------------------------------------------
  */
 static void *
-H5O_pline_decode(H5F_t UNUSED *f, hid_t UNUSED dxpl_id, H5O_t UNUSED *open_oh,
-    unsigned UNUSED mesg_flags, unsigned UNUSED *ioflags, const uint8_t *p)
+H5O_pline_decode(H5F_t H5_ATTR_UNUSED *f, hid_t H5_ATTR_UNUSED dxpl_id, H5O_t H5_ATTR_UNUSED *open_oh,
+    unsigned H5_ATTR_UNUSED mesg_flags, unsigned H5_ATTR_UNUSED *ioflags, const uint8_t *p)
 {
     H5O_pline_t		*pline = NULL;          /* Pipeline message */
     H5Z_filter_info_t   *filter;                /* Filter to decode */
@@ -183,7 +183,7 @@ H5O_pline_decode(H5F_t UNUSED *f, hid_t UNUSED dxpl_id, H5O_t UNUSED *open_oh,
             else
                 filter->name = filter->_name;
 
-	    HDstrcpy(filter->name, (const char *)p);
+	    HDstrncpy(filter->name, (const char *)p, actual_name_length);
 	    p += name_length;
 	} /* end if */
 
@@ -237,7 +237,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5O_pline_encode(H5F_t UNUSED *f, uint8_t *p/*out*/, const void *mesg)
+H5O_pline_encode(H5F_t H5_ATTR_UNUSED *f, uint8_t *p/*out*/, const void *mesg)
 {
     const H5O_pline_t	*pline = (const H5O_pline_t*)mesg;      /* Pipeline message to encode */
     const       H5Z_filter_info_t *filter;      /* Filter to encode */
@@ -375,12 +375,9 @@ H5O_pline_copy(const void *_src, void *_dst/*out*/)
 
                 /* Allocate space for the filter name, or use the internal buffer */
                 if(namelen > H5Z_COMMON_NAME_LEN) {
-                    dst->filter[i].name = (char *)H5MM_malloc(namelen);
+                    dst->filter[i].name = (char *)H5MM_strdup(src->filter[i].name);
                     if(NULL == dst->filter[i].name)
                         HGOTO_ERROR(H5E_RESOURCE, H5E_NOSPACE, NULL, "memory allocation failed for filter name")
-
-                    /* Copy name */
-                    HDstrcpy(dst->filter[i].name, src->filter[i].name);
                 } /* end if */
                 else
                     dst->filter[i].name = dst->filter[i]._name;
@@ -433,7 +430,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static size_t
-H5O_pline_size(const H5F_t UNUSED *f, const void *mesg)
+H5O_pline_size(const H5F_t H5_ATTR_UNUSED *f, const void *mesg)
 {
     const H5O_pline_t	*pline = (const H5O_pline_t*)mesg;      /* Pipeline message */
     size_t i;                   /* Local index variable */
@@ -464,7 +461,7 @@ H5O_pline_size(const H5F_t UNUSED *f, const void *mesg)
         } /* end else */
 
 	ret_value += 2 +			/*filter identification number	*/
-		((pline->version == H5O_PLINE_VERSION_1 || pline->filter[i].id >= H5Z_FILTER_RESERVED) ? 2 : 0) +				/*name length			*/
+		(size_t)((pline->version == H5O_PLINE_VERSION_1 || pline->filter[i].id >= H5Z_FILTER_RESERVED) ? 2 : 0) +				/*name length			*/
 		2 +				/*flags				*/
 		2 +				/*number of client data values	*/
 		(pline->version == H5O_PLINE_VERSION_1 ? (size_t)H5O_ALIGN_OLD(name_len) : name_len);	/*length of the filter name	*/
@@ -569,8 +566,8 @@ H5O_pline_free(void *mesg)
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5O_pline_pre_copy_file(H5F_t UNUSED *file_src, const void *mesg_src,
-    hbool_t UNUSED *deleted, const H5O_copy_t UNUSED *cpy_info, void *_udata)
+H5O_pline_pre_copy_file(H5F_t H5_ATTR_UNUSED *file_src, const void *mesg_src,
+    hbool_t H5_ATTR_UNUSED *deleted, const H5O_copy_t H5_ATTR_UNUSED *cpy_info, void *_udata)
 {
     const H5O_pline_t *pline_src = (const H5O_pline_t *)mesg_src;    /* Source datatype */
     H5O_copy_file_ud_common_t *udata = (H5O_copy_file_ud_common_t *)_udata; /* Object copying user data */
@@ -609,7 +606,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5O_pline_debug(H5F_t UNUSED *f, hid_t UNUSED dxpl_id, const void *mesg, FILE *stream,
+H5O_pline_debug(H5F_t H5_ATTR_UNUSED *f, hid_t H5_ATTR_UNUSED dxpl_id, const void *mesg, FILE *stream,
 		int indent, int fwidth)
 {
     const H5O_pline_t	*pline = (const H5O_pline_t *)mesg;
@@ -633,7 +630,7 @@ H5O_pline_debug(H5F_t UNUSED *f, hid_t UNUSED dxpl_id, const void *mesg, FILE *s
     for(i = 0; i < pline->nused; i++) {
 	char		name[32];
 
-	sprintf(name, "Filter at position %u", (unsigned)i);
+	HDsnprintf(name, sizeof(name), "Filter at position %u", (unsigned)i);
 	HDfprintf(stream, "%*s%-*s\n", indent, "", fwidth, name);
 	HDfprintf(stream, "%*s%-*s 0x%04x\n", indent + 3, "", MAX(0, fwidth - 3),
 		"Filter identification:",
@@ -656,7 +653,7 @@ H5O_pline_debug(H5F_t UNUSED *f, hid_t UNUSED dxpl_id, const void *mesg, FILE *s
 	for(j = 0; j < pline->filter[i].cd_nelmts; j++) {
 	    char	field_name[32];
 
-	    sprintf(field_name, "CD value %lu", (unsigned long)j);
+	    HDsnprintf(field_name, sizeof(field_name), "CD value %lu", (unsigned long)j);
 	    HDfprintf(stream, "%*s%-*s %u\n", indent + 6, "", MAX(0, fwidth - 6),
 		    field_name,
 		    pline->filter[i].cd_values[j]);

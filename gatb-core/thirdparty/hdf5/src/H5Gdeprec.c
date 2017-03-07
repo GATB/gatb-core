@@ -34,7 +34,7 @@
 #define H5G_PACKAGE		/*suppress error about including H5Gpkg   */
 
 /* Interface initialization */
-#define H5_INTERFACE_INIT_FUNC	H5G_init_deprec_interface
+#define H5_INTERFACE_INIT_FUNC	H5G__init_deprec_interface
 
 
 /***********/
@@ -109,9 +109,9 @@ static H5G_obj_t H5G_obj_get_type_by_idx(H5O_loc_t *oloc, hsize_t idx,
 
 /*--------------------------------------------------------------------------
 NAME
-   H5G_init_deprec_interface -- Initialize interface-specific information
+   H5G__init_deprec_interface -- Initialize interface-specific information
 USAGE
-    herr_t H5G_init_deprec_interface()
+    herr_t H5G__init_deprec_interface()
 RETURNS
     Non-negative on success/Negative on failure
 DESCRIPTION
@@ -120,12 +120,36 @@ DESCRIPTION
 
 --------------------------------------------------------------------------*/
 static herr_t
-H5G_init_deprec_interface(void)
+H5G__init_deprec_interface(void)
 {
-    FUNC_ENTER_NOAPI_NOINIT_NOERR
+    FUNC_ENTER_STATIC_NOERR
 
     FUNC_LEAVE_NOAPI(H5G__init())
-} /* H5G_init_deprec_interface() */
+} /* H5G__init_deprec_interface() */
+
+
+/*--------------------------------------------------------------------------
+NAME
+   H5G__term_deprec_interface -- Terminate interface
+USAGE
+    herr_t H5G__term_deprec_interface()
+RETURNS
+    Non-negative on success/Negative on failure
+DESCRIPTION
+    Terminates interface.  (Just resets H5_interface_initialize_g
+    currently).
+
+--------------------------------------------------------------------------*/
+herr_t
+H5G__term_deprec_interface(void)
+{
+    FUNC_ENTER_PACKAGE_NOERR
+
+    /* Mark closed */
+    H5_interface_initialize_g = 0;
+
+    FUNC_LEAVE_NOAPI(0)
+} /* H5G__term_deprec_interface() */
 
 #ifndef H5_NO_DEPRECATED_SYMBOLS
 
@@ -237,7 +261,7 @@ H5Gcreate1(hid_t loc_id, const char *name, size_t size_hint)
             HGOTO_ERROR(H5E_PLIST, H5E_CANTGET, FAIL, "can't get group info")
 
         /* Set the non-default local heap size hint */
-        ginfo.lheap_size_hint = size_hint;
+        H5_CHECKED_ASSIGN(ginfo.lheap_size_hint, uint32_t, size_hint, size_t);
         if(H5P_set(gc_plist, H5G_CRT_GROUP_INFO_NAME, &ginfo) < 0)
             HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't set group info")
     } /* end if */
@@ -298,7 +322,7 @@ H5Gopen1(hid_t loc_id, const char *name)
         HGOTO_ERROR(H5E_ARGS, H5E_BADVALUE, FAIL, "no name")
 
     /* Open the group */
-    if((grp = H5G__open_name(&loc, name, H5P_DEFAULT, H5AC_dxpl_id)) == NULL)
+    if((grp = H5G__open_name(&loc, name, H5P_DEFAULT, H5AC_ind_dxpl_id)) == NULL)
         HGOTO_ERROR(H5E_SYM, H5E_CANTOPENOBJ, FAIL, "unable to open group")
 
     /* Register an atom for the group */
@@ -893,7 +917,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5G_get_objinfo_cb(H5G_loc_t UNUSED *grp_loc/*in*/, const char *name, const H5O_link_t *lnk,
+H5G_get_objinfo_cb(H5G_loc_t H5_ATTR_UNUSED *grp_loc/*in*/, const char *name, const H5O_link_t *lnk,
     H5G_loc_t *obj_loc, void *_udata/*in,out*/, H5G_own_loc_t *own_loc/*out*/)
 {
     H5G_trav_goi_t *udata = (H5G_trav_goi_t *)_udata;   /* User data passed in */

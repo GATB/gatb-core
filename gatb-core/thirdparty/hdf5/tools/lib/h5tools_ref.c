@@ -39,7 +39,7 @@
 
 typedef struct {
     haddr_t objno;      /* Object ID (i.e. address) */
-    const char *path;   /* Object path */
+    char *path;         /* Object path */
 } ref_path_node_t;
 
 static H5SL_t *ref_path_table = NULL;   /* the "table" (implemented with a skip list) */
@@ -61,11 +61,11 @@ static int ref_path_table_put(const char *, haddr_t objno);
  *-------------------------------------------------------------------------
  */
 static herr_t
-free_ref_path_info(void *item, void UNUSED *key, void UNUSED *operator_data/*in,out*/)
+free_ref_path_info(void *item, void H5_ATTR_UNUSED *key, void H5_ATTR_UNUSED *operator_data/*in,out*/)
 {
     ref_path_node_t *node = (ref_path_node_t *)item;
 
-    HDfree((void *)node->path);
+    HDfree(node->path);
     HDfree(node);
 
     return(0);
@@ -85,7 +85,7 @@ free_ref_path_info(void *item, void UNUSED *key, void UNUSED *operator_data/*in,
  */
 static herr_t
 init_ref_path_cb(const char *obj_name, const H5O_info_t *oinfo,
-    const char *already_seen, void UNUSED *_udata)
+    const char *already_seen, void H5_ATTR_UNUSED *_udata)
 {
     /* Check if the object is already in the path table */
     if(NULL == already_seen) {
@@ -218,7 +218,7 @@ ref_path_table_put(const char *path, haddr_t objno)
     HDassert(ref_path_table);
     HDassert(path);
 
-    if((new_node = HDmalloc(sizeof(ref_path_node_t))) == NULL)
+    if((new_node = (ref_path_node_t *)HDmalloc(sizeof(ref_path_node_t))) == NULL)
         return(-1);
 
     new_node->objno = objno;
@@ -300,7 +300,7 @@ lookup_ref_path(haddr_t ref)
     if(ref_path_table == NULL)
         init_ref_path_table();
 
-    node = H5SL_search(ref_path_table, &ref);
+    node = (ref_path_node_t *)H5SL_search(ref_path_table, &ref);
 
     return(node ? node->path : NULL);
 }

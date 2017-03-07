@@ -67,10 +67,6 @@ static H5S_t *H5S_decode(const unsigned char *buf);
 /*****************************/
 /* Library Private Variables */
 /*****************************/
-#ifdef H5_HAVE_PARALLEL
-/* Global vars whose value can be set from environment variable also */
-hbool_t H5S_mpi_opt_types_g = TRUE;
-#endif /* H5_HAVE_PARALLEL */
 
 
 /*******************/
@@ -89,8 +85,7 @@ H5FL_ARR_DEFINE(hsize_t,H5S_MAX_RANK);
 /* Dataspace ID class */
 static const H5I_class_t H5I_DATASPACE_CLS[1] = {{
     H5I_DATASPACE,		/* ID class value */
-    0,				/* Class flags */
-    64,				/* Minimum hash size for class */
+    H5I_CLASS_REUSE_IDS,	/* Class flags */
     2,				/* # of reserved IDs for class */
     (H5I_free_t)H5S_close	/* Callback routine for closing objects of this class */
 }};
@@ -119,15 +114,6 @@ H5S_init_interface(void)
     /* Initialize the atom group for the file IDs */
     if(H5I_register_type(H5I_DATASPACE_CLS) < 0)
 	HGOTO_ERROR(H5E_DATASPACE, H5E_CANTINIT, FAIL, "unable to initialize interface")
-
-#ifdef H5_HAVE_PARALLEL
-    {
-        /* Allow MPI buf-and-file-type optimizations? */
-        const char *s = HDgetenv ("HDF5_MPI_OPT_TYPES");
-        if (s && HDisdigit(*s))
-            H5S_mpi_opt_types_g = (hbool_t)HDstrtol (s, NULL, 0);
-    }
-#endif /* H5_HAVE_PARALLEL */
 
 done:
     FUNC_LEAVE_NOAPI(ret_value)
@@ -159,16 +145,17 @@ H5S_term_interface(void)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     if(H5_interface_initialize_g) {
-	if((n = H5I_nmembers(H5I_DATASPACE))) {
-	    H5I_clear_type(H5I_DATASPACE, FALSE, FALSE);
+	if(H5I_nmembers(H5I_DATASPACE) > 0) {
+	    (void)H5I_clear_type(H5I_DATASPACE, FALSE, FALSE);
+            n++; /*H5I*/
 	} /* end if */
         else {
-	    /* Free data types */
-	    H5I_dec_type_ref(H5I_DATASPACE);
+            /* Destroy the dataspace object id group */
+	    (void)H5I_dec_type_ref(H5I_DATASPACE);
+            n++; /*H5I*/
 
 	    /* Shut down interface */
 	    H5_interface_initialize_g = 0;
-	    n = 1; /*H5I*/
 	} /* end else */
     } /* end if */
 
@@ -203,7 +190,7 @@ H5S_create(H5S_class_t type)
     FUNC_ENTER_NOAPI(NULL)
 
     /* Create a new dataspace */
-    if(NULL == (new_ds = H5FL_MALLOC(H5S_t)))
+    if(NULL == (new_ds = H5FL_CALLOC(H5S_t)))
         HGOTO_ERROR(H5E_RESOURCE, H5E_NOSPACE, NULL, "memory allocation failed")
 
     /* Initialize default dataspace state */
@@ -324,7 +311,7 @@ H5S_extent_release(H5S_extent_t *extent)
 
     FUNC_ENTER_NOAPI(FAIL)
 
-    assert(extent);
+    HDassert(extent);
 
     /* Release extent */
     if(extent->type == H5S_SIMPLE) {
@@ -495,6 +482,12 @@ H5Sextent_copy(hid_t dst_id,hid_t src_id)
     if(H5S_extent_copy(&(dst->extent), &(src->extent), TRUE) < 0)
         HGOTO_ERROR(H5E_DATASPACE, H5E_CANTCOPY, FAIL, "can't copy extent")
 
+    /* If the selection is 'all', update the number of elements selected in the
+     * destination space */
+    if(H5S_SEL_ALL == H5S_GET_SELECT_TYPE(dst))
+        if(H5S_select_all(dst, FALSE) < 0)
+            HGOTO_ERROR(H5E_DATASPACE, H5E_CANTDELETE, FAIL, "can't change selection")
+
 done:
     FUNC_LEAVE_API(ret_value)
 } /* end H5Sextent_copy() */
@@ -521,6 +514,10 @@ H5S_extent_copy(H5S_extent_t *dst, const H5S_extent_t *src, hbool_t copy_max)
     herr_t ret_value = SUCCEED;   /* Return value */
 
     FUNC_ENTER_NOAPI(FAIL)
+
+    /* Release destination extent before we copy over it */
+    if(H5S_extent_release(dst) < 0)
+        HGOTO_ERROR(H5E_DATASPACE, H5E_CANTRELEASE, FAIL, "unable to release dataspace extent")
 
     /* Copy the regular fields */
     dst->type = src->type;
@@ -596,7 +593,7 @@ H5S_copy(const H5S_t *src, hbool_t share_selection, hbool_t copy_max)
 
     FUNC_ENTER_NOAPI(NULL)
 
-    if(NULL == (dst = H5FL_MALLOC(H5S_t)))
+    if(NULL == (dst = H5FL_CALLOC(H5S_t)))
         HGOTO_ERROR(H5E_RESOURCE, H5E_NOSPACE, NULL, "memory allocation failed")
 
     /* Copy the source dataspace's extent */
@@ -725,7 +722,7 @@ H5S_get_npoints_max(const H5S_t *ds)
     FUNC_ENTER_NOAPI(0)
 
     /* check args */
-    assert(ds);
+    HDassert(ds);
 
     switch (H5S_GET_EXTENT_TYPE(ds)) {
         case H5S_NULL:
@@ -755,7 +752,7 @@ H5S_get_npoints_max(const H5S_t *ds)
 
         case H5S_NO_CLASS:
         default:
-            assert("unknown dataspace class" && 0);
+            HDassert("unknown dataspace class" && 0);
             HGOTO_ERROR(H5E_DATASPACE, H5E_UNSUPPORTED, 0, "internal error (unknown dataspace class)")
     }
 
@@ -1317,8 +1314,7 @@ H5S_set_extent_simple(H5S_t *space, unsigned rank, const hsize_t *dims,
     /* Selection related cleanup */
 
     /* Set offset to zeros */
-    for(u = 0; u < space->extent.rank; u++)
-        space->select.offset[u] = 0;
+    HDmemset(space->select.offset, 0, sizeof(hsize_t) * space->extent.rank);
     space->select.offset_changed = FALSE;
 
     /* If the selection is 'all', update the number of elements selected */
@@ -1434,7 +1430,7 @@ H5S_create_simple(unsigned rank, const hsize_t dims[/*rank*/],
     FUNC_ENTER_NOAPI(NULL)
 
     /* Check arguments */
-    assert(rank <=H5S_MAX_RANK);
+    HDassert(rank <=H5S_MAX_RANK);
 
     /* Create the space and set the extent */
     if(NULL==(ret_value=H5S_create(H5S_SIMPLE)))
@@ -1524,7 +1520,7 @@ H5S_encode(H5S_t *obj, unsigned char *buf, size_t *nalloc)
     /* Find out the size of buffer needed for selection */
     if((sselect_size = H5S_SELECT_SERIAL_SIZE(obj)) < 0)
 	HGOTO_ERROR(H5E_DATASPACE, H5E_BADSIZE, FAIL, "can't find dataspace selection size")
-    H5_ASSIGN_OVERFLOW(select_size, sselect_size, hssize_t, size_t);
+    H5_CHECKED_ASSIGN(select_size, size_t, sselect_size, hssize_t);
 
     /* Verify the size of buffer.  If it's not big enough, simply return the
      * right size without filling the buffer. */
@@ -1712,7 +1708,7 @@ H5S_get_simple_extent_type(const H5S_t *space)
 
     FUNC_ENTER_NOAPI(H5S_NO_CLASS)
 
-    assert(space);
+    HDassert(space);
 
     ret_value=H5S_GET_EXTENT_TYPE(space);
 

@@ -1,7 +1,7 @@
 project(gatb-core)
 
 # We set the required version
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.1.0)
 
 ################################################################################
 # The version number.

@@ -122,8 +122,7 @@ H5FL_DEFINE_STATIC(H5E_msg_t);
 /* Error class ID class */
 static const H5I_class_t H5I_ERRCLS_CLS[1] = {{
     H5I_ERROR_CLASS,		/* ID class value */
-    0,				/* Class flags */
-    64,				/* Minimum hash size for class */
+    H5I_CLASS_REUSE_IDS,	/* Class flags */
     0,				/* # of reserved IDs for class */
     (H5I_free_t)H5E_unregister_class /* Callback routine for closing objects of this class */
 }};
@@ -131,8 +130,7 @@ static const H5I_class_t H5I_ERRCLS_CLS[1] = {{
 /* Error message ID class */
 static const H5I_class_t H5I_ERRMSG_CLS[1] = {{
     H5I_ERROR_MSG,		/* ID class value */
-    0,				/* Class flags */
-    64,				/* Minimum hash size for class */
+    H5I_CLASS_REUSE_IDS,	/* Class flags */
     0,				/* # of reserved IDs for class */
     (H5I_free_t)H5E_close_msg   /* Callback routine for closing objects of this class */
 }};
@@ -140,8 +138,7 @@ static const H5I_class_t H5I_ERRMSG_CLS[1] = {{
 /* Error stack ID class */
 static const H5I_class_t H5I_ERRSTK_CLS[1] = {{
     H5I_ERROR_STACK,		/* ID class value */
-    0,				/* Class flags */
-    64,				/* Minimum hash size for class */
+    H5I_CLASS_REUSE_IDS,	/* Class flags */
     0,				/* # of reserved IDs for class */
     (H5I_free_t)H5E_close_stack /* Callback routine for closing objects of this class */
 }};
@@ -298,15 +295,14 @@ H5E_term_interface(void)
         nmsg = H5I_nmembers(H5I_ERROR_MSG);
         nstk = H5I_nmembers(H5I_ERROR_STACK);
 
-        n = ncls + nmsg + nstk;
-        if(n > 0) {
+        if((ncls + nmsg + nstk) > 0) {
             /* Clear any outstanding error stacks */
             if(nstk > 0)
-	        H5I_clear_type(H5I_ERROR_STACK, FALSE, FALSE);
+	        (void)H5I_clear_type(H5I_ERROR_STACK, FALSE, FALSE);
 
             /* Clear all the error classes */
 	    if(ncls > 0) {
-	        H5I_clear_type(H5I_ERROR_CLASS, FALSE, FALSE);
+	        (void)H5I_clear_type(H5I_ERROR_CLASS, FALSE, FALSE);
 
                 /* Reset the HDF5 error class, if its been closed */
                 if(H5I_nmembers(H5I_ERROR_CLASS) == 0)
@@ -315,7 +311,7 @@ H5E_term_interface(void)
 
             /* Clear all the error messages */
 	    if(nmsg > 0) {
-	        H5I_clear_type(H5I_ERROR_MSG, FALSE, FALSE);
+	        (void)H5I_clear_type(H5I_ERROR_MSG, FALSE, FALSE);
 
                 /* Reset the HDF5 error messages, if they've been closed */
                 if(H5I_nmembers(H5I_ERROR_MSG) == 0) {
@@ -323,16 +319,21 @@ H5E_term_interface(void)
                     #include "H5Eterm.h"
                 } /* end if */
             } /* end if */
+
+            n++; /*H5I*/
 	} /* end if */
         else {
+            /* Close deprecated interface */
+            n += H5E__term_deprec_interface();
+
 	    /* Destroy the error class, message, and stack id groups */
-	    H5I_dec_type_ref(H5I_ERROR_STACK);
-	    H5I_dec_type_ref(H5I_ERROR_CLASS);
-	    H5I_dec_type_ref(H5I_ERROR_MSG);
+	    (void)H5I_dec_type_ref(H5I_ERROR_STACK);
+	    (void)H5I_dec_type_ref(H5I_ERROR_CLASS);
+	    (void)H5I_dec_type_ref(H5I_ERROR_MSG);
+            n++; /*H5I*/
 
 	    /* Mark closed */
 	    H5_interface_initialize_g = 0;
-	    n = 1; /*H5I*/
 	} /* end else */
     } /* end if */
 
@@ -366,8 +367,12 @@ H5E_get_stack(void)
     estack = (H5E_t *)H5TS_get_thread_local_value(H5TS_errstk_key_g);
 
     if(!estack) {
-        /* no associated value with current thread - create one */
+        /* No associated value with current thread - create one */
+#ifdef H5_HAVE_WIN_THREADS
+        estack = (H5E_t *)LocalAlloc(LPTR, sizeof(H5E_t)); /* Win32 has to use LocalAlloc to match the LocalFree in DllMain */
+#else
         estack = (H5E_t *)H5FL_MALLOC(H5E_t);
+#endif /* H5_HAVE_WIN_THREADS */
         HDassert(estack);
 
         /* Set the thread-specific info */
@@ -1372,6 +1377,11 @@ H5Epush2(hid_t err_stack, const char *file, const char *func, unsigned line,
             HGOTO_ERROR(H5E_ARGS, H5E_BADTYPE, FAIL, "not a error stack ID")
     } /* end else */
 
+/* Note that the variable-argument parsing for the format is identical in
+ *      the H5E_printf_stack() routine - correct errors and make changes in both
+ *      places. -QAK
+ */
+
     /* Format the description */
     va_start(ap, fmt);
     va_started = TRUE;
@@ -1387,17 +1397,7 @@ H5Epush2(hid_t err_stack, const char *file, const char *func, unsigned line,
         HGOTO_ERROR(H5E_RESOURCE, H5E_NOSPACE, FAIL, "memory allocation failed")
 
     /* If the description doesn't fit into the initial buffer size, allocate more space and try again */
-    while((desc_len = HDvsnprintf(tmp, (size_t)tmp_len, fmt, ap))
-#ifdef H5_VSNPRINTF_WORKS
-            >
-#else /* H5_VSNPRINTF_WORKS */
-            >=
-#endif /* H5_VSNPRINTF_WORKS */
-            (tmp_len - 1)
-#ifndef H5_VSNPRINTF_WORKS
-            || (desc_len < 0)
-#endif /* H5_VSNPRINTF_WORKS */
-            ) {
+    while((desc_len = HDvsnprintf(tmp, (size_t)tmp_len, fmt, ap)) > (tmp_len - 1)) {
         /* shutdown & restart the va_list */
         va_end(ap);
         va_start(ap, fmt);
@@ -1406,11 +1406,7 @@ H5Epush2(hid_t err_stack, const char *file, const char *func, unsigned line,
         H5MM_xfree(tmp);
 
         /* Allocate a description of the appropriate length */
-#ifdef H5_VSNPRINTF_WORKS
         tmp_len = desc_len + 1;
-#else /* H5_VSNPRINTF_WORKS */
-        tmp_len = 2 * tmp_len;
-#endif /* H5_VSNPRINTF_WORKS */
         if(NULL == (tmp = H5MM_malloc((size_t)tmp_len)))
             HGOTO_ERROR(H5E_RESOURCE, H5E_NOSPACE, FAIL, "memory allocation failed")
     } /* end while */

@@ -38,10 +38,12 @@ fi
 # Figure out PGI C compiler flags
 . $srcdir/config/pgi-flags
 
+# Figure out CCE C compiler flags
+. $srcdir/config/cce-flags
+
 # Figure out Intel C compiler flags
 . $srcdir/config/intel-flags
 
-echo "CC_BASENAME is $CC_BASENAME."
 # Use default Fortran 90 compiler according to what C compiler is used.
 if test "X-" = "X-$FC"; then
     case $CC_BASENAME in
@@ -90,10 +92,13 @@ else
     esac
 fi
 
-# Figure out PGI F90 compiler flags
+# Figure out PGI FC compiler flags
 . $srcdir/config/pgi-fflags
 
-# Figure out Intel F90 compiler flags
+# Figure out CCE FC compiler flags
+. $srcdir/config/cce-fflags
+
+# Figure out Intel FC compiler flags
 . $srcdir/config/intel-fflags
 
 case $FC_BASENAME in
@@ -126,6 +131,10 @@ if test -z "$CXX"; then
 fi
 
 # compiler version strings
+
+# check if the compiler_version_info is already set
+if test -z "$cc_version_info"; then
+
 case $CC in
     # whatever matches *pgcc* will also match *gcc*, so this one must come first
     *pgcc*)
@@ -136,6 +145,14 @@ case $CC in
         cc_version_info=`$CC $CFLAGS $H5_CFLAGS --version 2>&1 | grep -v 'PathScale' |\
             grep 'GCC' | sed 's/\(.*(GCC) [-a-z0-9\. ]*\).*/\1/'`
         ;;
+    # this must come before *icc* for the same reason
+    *mpicc*)
+        cc_version_info=`$CC $CCFLAGS $H5_CCFLAGS -v 2>&1 | grep 'version' |\
+            sed 's/^[a-z0-9]* for //' |\
+            sed 's/\"/\\\"/g' |\
+            sed 's/^\([a-z]* \)/ built with \1/1'`
+        cc_version_info=`echo $cc_version_info`
+        ;; 
 
     *icc*)
         cc_version_info=`$CC $CCFLAGS $H5_CCFLAGS -V 2>&1 | grep 'Version' |\
@@ -147,11 +164,23 @@ case $CC in
         ;;
 esac
 
+fi
+
 # get fortran version info
+# check if the compiler_version_info is already set
+if test -z "$fc_version_info"; then
 case $FC in
     *gfortran*)
         fc_version_info=`$FC $FCFLAGS $H5_FCFLAGS --version 2>&1 |\
             grep 'GCC' | sed 's/\(.*(GCC) [-a-z0-9\. ]*\).*/\1/'`
+        ;;
+
+    *mpif90*)
+        fc_version_info=`$FC $FCFLAGS $H5_FCFLAGS -v 2>&1 | grep 'version' |\
+            sed 's/^[a-z0-9]* for //' |\
+            sed 's/\"/\\\"/g' |\
+            sed 's/^\([a-z]* \)/ built with \1/1'`
+        fc_version_info=`echo $fc_version_info`
         ;;
 
     *ifc*|*ifort*)
@@ -186,9 +215,11 @@ case $FC in
         echo "No match to get fc_version_info for $FC"
         ;;
 esac
-
+fi
 
 # get c++ version info
+# check if the compiler_version_info is already set
+if test -z "$cxx_version_info"; then
 case $CXX in
     *g++*)
         cxx_version_info=`$CXX $CXXFLAGS $H5_CXXFLAGS --version 2>&1 |\
@@ -202,9 +233,15 @@ case $CXX in
         cxx_version_info=`$CXX $CXXFLAGS $H5_CXXFLAGS -V 2>&1 | grep 'pgCC'`
         ;;
 
+    *mpicxx*)
+        cxx_version_info=`$CXX $CXXFLAGS $H5_CXXFLAGS -v 2>&1 | grep 'version' |\
+            sed 's/^[a-z0-9]* for //' |\
+            sed 's/^\([a-z]* \)/ built with \1/1'`
+        cxx_version_info=`echo $cxx_version_info`
+        ;; 
 
     *)
         echo "No match to get cxx_version_info for $CXX"
         ;;
 esac
-
+fi

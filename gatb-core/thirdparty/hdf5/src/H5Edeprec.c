@@ -34,7 +34,7 @@
 #define H5E_PACKAGE		/*suppress error about including H5Epkg   */
 
 /* Interface initialization */
-#define H5_INTERFACE_INIT_FUNC	H5E_init_deprec_interface
+#define H5_INTERFACE_INIT_FUNC	H5E__init_deprec_interface
 
 
 /***********/
@@ -82,13 +82,12 @@
 /*******************/
 
 
-#ifndef H5_NO_DEPRECATED_SYMBOLS
 
 /*--------------------------------------------------------------------------
 NAME
-   H5E_init_deprec_interface -- Initialize interface-specific information
+   H5E__init_deprec_interface -- Initialize interface-specific information
 USAGE
-    herr_t H5E_init_deprec_interface()
+    herr_t H5E__init_deprec_interface()
 RETURNS
     Non-negative on success/Negative on failure
 DESCRIPTION
@@ -97,13 +96,38 @@ DESCRIPTION
 
 --------------------------------------------------------------------------*/
 static herr_t
-H5E_init_deprec_interface(void)
+H5E__init_deprec_interface(void)
 {
-    FUNC_ENTER_NOAPI_NOINIT_NOERR
+    FUNC_ENTER_STATIC_NOERR
 
     FUNC_LEAVE_NOAPI(H5E_init())
-} /* H5E_init_deprec_interface() */
+} /* H5E__init_deprec_interface() */
 
+
+/*--------------------------------------------------------------------------
+NAME
+   H5E__term_deprec_interface -- Terminate interface
+USAGE
+    herr_t H5E__term_deprec_interface()
+RETURNS
+    Non-negative on success/Negative on failure
+DESCRIPTION
+    Terminates interface.  (Just resets H5_interface_initialize_g
+    currently).
+
+--------------------------------------------------------------------------*/
+herr_t
+H5E__term_deprec_interface(void)
+{
+    FUNC_ENTER_PACKAGE_NOERR
+
+    /* Mark closed */
+    H5_interface_initialize_g = 0;
+
+    FUNC_LEAVE_NOAPI(0)
+} /* H5E__term_deprec_interface() */
+
+#ifndef H5_NO_DEPRECATED_SYMBOLS
 
 /*-------------------------------------------------------------------------
  * Function:	H5Eget_major
@@ -128,6 +152,7 @@ H5Eget_major(H5E_major_t maj)
     char        *ret_value;     /* Return value */
 
     FUNC_ENTER_API_NOCLEAR(NULL)
+    H5TRACE1("*s", "i", maj);
 
     /* Get the message object */
     if(NULL == (msg = (H5E_msg_t *)H5I_object_verify(maj, H5I_ERROR_MSG)))
@@ -180,6 +205,7 @@ H5Eget_minor(H5E_minor_t min)
     char        *ret_value;     /* Return value */
 
     FUNC_ENTER_API_NOCLEAR(NULL)
+    H5TRACE1("*s", "i", min);
 
     /* Get the message object */
     if(NULL == (msg = (H5E_msg_t *)H5I_object_verify(min, H5I_ERROR_MSG)))

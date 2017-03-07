@@ -93,10 +93,13 @@ static herr_t H5P__set_filter(H5P_genplist_t *plist, H5Z_filter_t filter,
 const H5P_libclass_t H5P_CLS_OCRT[1] = {{
     "object create",		/* Class name for debugging     */
     H5P_TYPE_OBJECT_CREATE,     /* Class type                   */
-    &H5P_CLS_ROOT_g,		/* Parent class ID              */
-    &H5P_CLS_OBJECT_CREATE_g,	/* Pointer to class ID          */
+
+    &H5P_CLS_ROOT_g,		/* Parent class                 */
+    &H5P_CLS_OBJECT_CREATE_g,	/* Pointer to class             */
+    &H5P_CLS_OBJECT_CREATE_ID_g,	/* Pointer to class ID          */
     NULL,			/* Pointer to default property list ID */
     H5P__ocrt_reg_prop,		/* Default property registration routine */
+
     NULL,		        /* Class creation callback      */
     NULL,		        /* Class creation callback info */
     H5P__ocrt_copy,		/* Class copy callback          */
@@ -179,7 +182,7 @@ done:
  */
 /* ARGSUSED */
 static herr_t
-H5P__ocrt_copy(hid_t dst_plist_id, hid_t src_plist_id, void UNUSED *copy_data)
+H5P__ocrt_copy(hid_t dst_plist_id, hid_t src_plist_id, void H5_ATTR_UNUSED *copy_data)
 {
     H5O_pline_t    src_pline, dst_pline;        /* Source & destination pipelines */
     H5P_genplist_t *src_plist;                  /* Pointer to source property list */
@@ -228,7 +231,7 @@ done:
  */
 /* ARGSUSED */
 static herr_t
-H5P__ocrt_close(hid_t dcpl_id, void UNUSED *close_data)
+H5P__ocrt_close(hid_t dcpl_id, void H5_ATTR_UNUSED *close_data)
 {
     H5O_pline_t     pline;              /* I/O pipeline */
     H5P_genplist_t *plist;              /* Property list */
@@ -804,7 +807,7 @@ H5P__set_filter(H5P_genplist_t *plist, H5Z_filter_t filter, unsigned int flags,
 
     /* Check if filter is already available */
     if((filter_avail = H5Z_filter_avail(filter)) < 0)
-        HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't check filter availability")
+        HGOTO_ERROR(H5E_PLIST, H5E_CANTGET, FAIL, "can't check filter availability")
 
     /* If filter is not available, try to dynamically load it */
     if(!filter_avail) {
@@ -813,7 +816,7 @@ H5P__set_filter(H5P_genplist_t *plist, H5Z_filter_t filter, unsigned int flags,
         if(NULL == (filter_info = (const H5Z_class2_t *)H5PL_load(H5PL_TYPE_FILTER, (int)filter)))
             HGOTO_ERROR(H5E_PLINE, H5E_CANTLOAD, FAIL, "failed to load dynamically loaded plugin")
         if(H5Z_register(filter_info) < 0)
-	    HGOTO_ERROR(H5E_PLINE, H5E_CANTINIT, FAIL, "unable to register filter")
+	    HGOTO_ERROR(H5E_PLINE, H5E_CANTINIT, FAIL, "unable to register dynamic filter")
     } /* end if */
 
     /* Get the pipeline property to append to */
@@ -1158,6 +1161,42 @@ done:
 
 
 /*-------------------------------------------------------------------------
+ * Function:	H5P_filter_in_pline
+ *
+ * Purpose:	Check whether the filter is in the pipeline of the object
+ *              creation property list.  
+ *
+ * Return:	TRUE:		found
+ *		FALSE:		not found
+ *              FAIL: 		error
+ *
+ * Programmer:	Raymond Lu
+ *              14 May 2013
+ *
+ *-------------------------------------------------------------------------
+ */
+htri_t
+H5P_filter_in_pline(H5P_genplist_t *plist, H5Z_filter_t id)
+{
+    H5O_pline_t         pline;  /* Filter pipeline */
+    htri_t ret_value = SUCCEED;   /* Return value */
+
+    FUNC_ENTER_NOAPI(FAIL)
+
+    /* Get pipeline info */
+    if(H5P_get(plist, H5O_CRT_PIPELINE_NAME, &pline) < 0)
+        HGOTO_ERROR(H5E_PLIST, H5E_CANTGET, FAIL, "can't get pipeline")
+
+    /* Check if the file is in the pipeline */
+    if((ret_value = H5Z_filter_in_pline(&pline, id)) < 0)
+        HGOTO_ERROR(H5E_PLINE, H5E_CANTCOMPARE, FAIL, "can't find filter")
+
+done:
+    FUNC_LEAVE_NOAPI(ret_value)
+} /* end H5P_get_filter_by_id() */
+
+
+/*-------------------------------------------------------------------------
  * Function: H5Premove_filter
  *
  * Purpose: Deletes a filter from the dataset creation property list;
@@ -1397,7 +1436,7 @@ H5P_get_filter(const H5Z_filter_info_t *filter, unsigned int *flags/*out*/,
 
     /* Filter configuration (assume filter ID has already been checked) */
     if(filter_config)
-        H5Zget_filter_info(filter->id, filter_config);
+        H5Z_get_filter_info(filter->id, filter_config);
 
     FUNC_LEAVE_NOAPI(SUCCEED)
 } /* end H5P_get_filter() */
@@ -1419,7 +1458,7 @@ H5P_get_filter(const H5Z_filter_info_t *filter, unsigned int *flags/*out*/,
  *-------------------------------------------------------------------------
  */
 static int
-H5P__ocrt_pipeline_cmp(const void *_pline1, const void *_pline2, size_t UNUSED size)
+H5P__ocrt_pipeline_cmp(const void *_pline1, const void *_pline2, size_t H5_ATTR_UNUSED size)
 {
     const H5O_pline_t *pline1 = (const H5O_pline_t *)_pline1,     /* Create local aliases for values */
         *pline2 = (const H5O_pline_t *)_pline2;

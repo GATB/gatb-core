@@ -40,7 +40,7 @@
 #include "H5Iprivate.h"		/* IDs			  		*/
 #include "H5MMprivate.h"	/* Memory management			*/
 #include "H5Oprivate.h"		/* Object headers		  	*/
-#include "H5Vprivate.h"		/* Vector and array functions		*/
+#include "H5VMprivate.h"		/* Vector and array functions		*/
 
 
 /****************/
@@ -117,7 +117,7 @@ H5FL_BLK_EXTERN(type_conv);
  *-------------------------------------------------------------------------
  */
 herr_t
-H5D__compact_fill(H5D_t *dset, hid_t dxpl_id)
+H5D__compact_fill(const H5D_t *dset, hid_t dxpl_id)
 {
     H5D_fill_buf_info_t fb_info;        /* Dataset's fill buffer info */
     hbool_t     fb_info_init = FALSE;   /* Whether the fill value buffer has been initialized */
@@ -202,7 +202,7 @@ H5D__compact_construct(H5F_t *f, H5D_t *dset)
     tmp_size = H5T_get_size(dset->shared->type);
     HDassert(tmp_size > 0);
     tmp_size = tmp_size * (hsize_t)stmp_size;
-    H5_ASSIGN_OVERFLOW(dset->shared->layout.storage.u.compact.size, tmp_size, hssize_t, size_t);
+    H5_CHECKED_ASSIGN(dset->shared->layout.storage.u.compact.size, size_t, tmp_size, hssize_t);
 
     /* Verify data size is smaller than maximum header message size
      * (64KB) minus other layout message fields.
@@ -229,7 +229,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static hbool_t
-H5D__compact_is_space_alloc(const H5O_storage_t UNUSED *storage)
+H5D__compact_is_space_alloc(const H5O_storage_t H5_ATTR_UNUSED *storage)
 {
     FUNC_ENTER_STATIC_NOERR
 
@@ -254,9 +254,9 @@ H5D__compact_is_space_alloc(const H5O_storage_t UNUSED *storage)
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5D__compact_io_init(const H5D_io_info_t *io_info, const H5D_type_info_t UNUSED *type_info,
-    hsize_t UNUSED nelmts, const H5S_t UNUSED *file_space, const H5S_t UNUSED *mem_space,
-    H5D_chunk_map_t UNUSED *cm)
+H5D__compact_io_init(const H5D_io_info_t *io_info, const H5D_type_info_t H5_ATTR_UNUSED *type_info,
+    hsize_t H5_ATTR_UNUSED nelmts, const H5S_t H5_ATTR_UNUSED *file_space, const H5S_t H5_ATTR_UNUSED *mem_space,
+    H5D_chunk_map_t H5_ATTR_UNUSED *cm)
 {
     FUNC_ENTER_STATIC_NOERR
 
@@ -297,7 +297,7 @@ H5D__compact_readvv(const H5D_io_info_t *io_info,
     HDassert(io_info);
 
     /* Use the vectorized memory copy routine to do actual work */
-    if((ret_value = H5V_memcpyvv(io_info->u.rbuf, mem_max_nseq, mem_curr_seq, mem_size_arr, mem_offset_arr, io_info->store->compact.buf, dset_max_nseq, dset_curr_seq, dset_size_arr, dset_offset_arr)) < 0)
+    if((ret_value = H5VM_memcpyvv(io_info->u.rbuf, mem_max_nseq, mem_curr_seq, mem_size_arr, mem_offset_arr, io_info->store->compact.buf, dset_max_nseq, dset_curr_seq, dset_size_arr, dset_offset_arr)) < 0)
         HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "vectorized memcpy failed")
 
 done:
@@ -338,7 +338,7 @@ H5D__compact_writevv(const H5D_io_info_t *io_info,
     HDassert(io_info);
 
     /* Use the vectorized memory copy routine to do actual work */
-    if((ret_value = H5V_memcpyvv(io_info->store->compact.buf, dset_max_nseq, dset_curr_seq, dset_size_arr, dset_offset_arr, io_info->u.wbuf, mem_max_nseq, mem_curr_seq, mem_size_arr, mem_offset_arr)) < 0)
+    if((ret_value = H5VM_memcpyvv(io_info->store->compact.buf, dset_max_nseq, dset_curr_seq, dset_size_arr, dset_offset_arr, io_info->u.wbuf, mem_max_nseq, mem_curr_seq, mem_size_arr, mem_offset_arr)) < 0)
         HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "vectorized memcpy failed")
 
     /* Mark the compact dataset's buffer as dirty */

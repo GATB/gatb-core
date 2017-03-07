@@ -135,7 +135,7 @@ H5G__component(const char *name, size_t *size_p)
 {
     FUNC_ENTER_PACKAGE_NOERR
 
-    assert(name);
+    HDassert(name);
 
     while ('/' == *name)
         name++;
@@ -236,13 +236,13 @@ H5G_common_path(const H5RS_str_t *fullpath_r, const H5RS_str_t *prefix_r)
 
     /* Get component of each name */
     fullpath=H5RS_get_str(fullpath_r);
-    assert(fullpath);
+    HDassert(fullpath);
     fullpath=H5G__component(fullpath,&nchars1);
-    assert(fullpath);
+    HDassert(fullpath);
     prefix=H5RS_get_str(prefix_r);
-    assert(prefix);
+    HDassert(prefix);
     prefix=H5G__component(prefix,&nchars2);
-    assert(prefix);
+    HDassert(prefix);
 
     /* Check if we have a real string for each component */
     while(*fullpath && *prefix) {
@@ -256,9 +256,9 @@ H5G_common_path(const H5RS_str_t *fullpath_r, const H5RS_str_t *prefix_r)
 
                 /* Get next component of each name */
                 fullpath=H5G__component(fullpath,&nchars1);
-                assert(fullpath);
+                HDassert(fullpath);
                 prefix=H5G__component(prefix,&nchars2);
-                assert(prefix);
+                HDassert(prefix);
             } /* end if */
             else
                 HGOTO_DONE(FALSE)
@@ -325,7 +325,7 @@ H5G_build_fullpath(const char *prefix, const char *name)
     /* Build full path */
     HDstrncpy(full_path, prefix, orig_path_len + 1);
     if(need_sep)
-        HDstrncat(full_path, "/", 1);
+        HDstrncat(full_path, "/", (size_t)1);
     HDstrncat(full_path, name, name_len);
 
     /* Create reference counted string for path */
@@ -1331,7 +1331,7 @@ H5G_get_name_by_addr(hid_t file, hid_t lapl_id, hid_t dxpl_id, const H5O_loc_t *
         /* If there's a buffer provided, copy into it, up to the limit of its size */
         if(name) {
             /* Copy the initial path separator */
-            HDstrncpy(name, "/", 2);
+            HDstrncpy(name, "/", (size_t)2);
 
             /* Append the rest of the path */
             /* (less one character, for the initial path separator) */

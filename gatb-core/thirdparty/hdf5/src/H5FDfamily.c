@@ -185,19 +185,19 @@ H5FD_family_init_interface(void)
 hid_t
 H5FD_family_init(void)
 {
-    hid_t ret_value=H5FD_FAMILY_g;   /* Return value */
+    hid_t ret_value = H5FD_FAMILY_g;   /* Return value */
 
     FUNC_ENTER_NOAPI(FAIL)
 
-    if (H5I_VFL!=H5Iget_type(H5FD_FAMILY_g))
-        H5FD_FAMILY_g = H5FD_register(&H5FD_family_g,sizeof(H5FD_class_t),FALSE);
+    if(H5I_VFL != H5I_get_type(H5FD_FAMILY_g))
+        H5FD_FAMILY_g = H5FD_register(&H5FD_family_g, sizeof(H5FD_class_t), FALSE);
 
     /* Set return value */
-    ret_value=H5FD_FAMILY_g;
+    ret_value = H5FD_FAMILY_g;
 
 done:
     FUNC_LEAVE_NOAPI(ret_value)
-}
+} /* H5FD_family_init() */
 
 
 /*---------------------------------------------------------------------------
@@ -416,7 +416,7 @@ H5FD_family_fapl_copy(const void *_old_fa)
         HGOTO_ERROR(H5E_RESOURCE, H5E_NOSPACE, NULL, "memory allocation failed")
 
     /* Copy the fields of the structure */
-    memcpy(new_fa, old_fa, sizeof(H5FD_family_fapl_t));
+    HDmemcpy(new_fa, old_fa, sizeof(H5FD_family_fapl_t));
 
     /* Deep copy the property list objects in the structure */
     if(old_fa->memb_fapl_id==H5P_FILE_ACCESS_DEFAULT) {
@@ -492,7 +492,7 @@ done:
  *-------------------------------------------------------------------------
  */
 static hsize_t
-H5FD_family_sb_size(H5FD_t UNUSED *_file)
+H5FD_family_sb_size(H5FD_t H5_ATTR_UNUSED *_file)
 {
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
@@ -566,7 +566,7 @@ H5FD_family_sb_encode(H5FD_t *_file, char *name/*out*/, unsigned char *buf/*out*
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5FD_family_sb_decode(H5FD_t *_file, const char UNUSED *name, const unsigned char *buf)
+H5FD_family_sb_decode(H5FD_t *_file, const char H5_ATTR_UNUSED *name, const unsigned char *buf)
 {
     H5FD_family_t	*file = (H5FD_family_t*)_file;
     uint64_t            msize;
@@ -933,7 +933,7 @@ H5FD_family_query(const H5FD_t * _file, unsigned long *flags /* out */)
  *-------------------------------------------------------------------------
  */
 static haddr_t
-H5FD_family_get_eoa(const H5FD_t *_file, H5FD_mem_t UNUSED type)
+H5FD_family_get_eoa(const H5FD_t *_file, H5FD_mem_t H5_ATTR_UNUSED type)
 {
     const H5FD_family_t	*file = (const H5FD_family_t*)_file;
 
@@ -1165,7 +1165,7 @@ H5FD_family_read(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, haddr_t addr, si
 
     /* Read from each member */
     while(size > 0) {
-        H5_ASSIGN_OVERFLOW(u,addr /file->memb_size,hsize_t,unsigned);
+        H5_CHECKED_ASSIGN(u, unsigned, addr / file->memb_size, hsize_t);
 
         sub = addr % file->memb_size;
 
@@ -1177,7 +1177,7 @@ H5FD_family_read(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, haddr_t addr, si
 	    tempreq = SIZET_MAX;
         req = MIN(size, (size_t)tempreq);
 
-        assert(u<file->nmembs);
+        HDassert(u<file->nmembs);
 
         if (H5FDread(file->memb[u], type, dxpl_id, sub, req, buf)<0)
             HGOTO_ERROR(H5E_IO, H5E_READERROR, FAIL, "member file read failed")
@@ -1234,7 +1234,7 @@ H5FD_family_write(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, haddr_t addr, s
 
     /* Write to each member */
     while (size>0) {
-        H5_ASSIGN_OVERFLOW(u,addr /file->memb_size,hsize_t,unsigned);
+        H5_CHECKED_ASSIGN(u, unsigned, addr / file->memb_size, hsize_t);
 
         sub = addr % file->memb_size;
 
@@ -1246,7 +1246,7 @@ H5FD_family_write(H5FD_t *_file, H5FD_mem_t type, hid_t dxpl_id, haddr_t addr, s
 	    tempreq = SIZET_MAX;
         req = MIN(size, (size_t)tempreq);
 
-        assert(u<file->nmembs);
+        HDassert(u<file->nmembs);
 
         if (H5FDwrite(file->memb[u], type, dxpl_id, sub, req, buf)<0)
             HGOTO_ERROR(H5E_IO, H5E_WRITEERROR, FAIL, "member file write failed")

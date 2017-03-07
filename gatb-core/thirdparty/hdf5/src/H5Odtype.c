@@ -25,7 +25,7 @@
 #include "H5MMprivate.h"	/* Memory management			*/
 #include "H5Opkg.h"             /* Object headers			*/
 #include "H5Tpkg.h"		/* Datatypes				*/
-#include "H5Vprivate.h"		/* Vectors and arrays 			*/
+#include "H5VMprivate.h"		/* Vectors and arrays 			*/
 
 
 /* PRIVATE PROTOTYPES */
@@ -266,7 +266,7 @@ H5O_dtype_decode_helper(H5F_t *f, unsigned *ioflags/*in,out*/, const uint8_t **p
                 unsigned j;
 
                 /* Compute the # of bytes required to store a member offset */
-                offset_nbytes = H5V_limit_enc_size((uint64_t)dt->shared->size);
+                offset_nbytes = H5VM_limit_enc_size((uint64_t)dt->shared->size);
 
                 /*
                  * Compound datatypes...
@@ -310,7 +310,11 @@ H5O_dtype_decode_helper(H5F_t *f, unsigned *ioflags/*in,out*/, const uint8_t **p
                     if(version == H5O_DTYPE_VERSION_1) {
                         /* Decode the number of dimensions */
                         ndims = *(*pp)++;
-                        HDassert(ndims <= 4);
+
+                        /* Check that ndims is valid */
+                        if(ndims > 4)
+                            HGOTO_ERROR(H5E_DATATYPE, H5E_BADTYPE, FAIL, "invalid number of dimensions for array")
+
                         *pp += 3;		/*reserved bytes */
 
                         /* Skip dimension permutation */
@@ -518,7 +522,8 @@ H5O_dtype_decode_helper(H5F_t *f, unsigned *ioflags/*in,out*/, const uint8_t **p
             dt->shared->u.array.ndims = *(*pp)++;
 
             /* Double-check the number of dimensions */
-            HDassert(dt->shared->u.array.ndims <= H5S_MAX_RANK);
+            if(dt->shared->u.array.ndims > H5S_MAX_RANK)
+                HGOTO_ERROR(H5E_DATATYPE, H5E_CANTLOAD, FAIL, "too many dimensions for array datatype")
 
             /* Skip reserved bytes, if version has them */
             if(version < H5O_DTYPE_VERSION_3)
@@ -891,7 +896,7 @@ H5O_dtype_encode_helper(const H5F_t *f, uint8_t **pp, const H5T_t *dt)
                 unsigned offset_nbytes;         /* Size needed to encode member offsets */
 
                 /* Compute the # of bytes required to store a member offset */
-                offset_nbytes = H5V_limit_enc_size((uint64_t)dt->shared->size);
+                offset_nbytes = H5VM_limit_enc_size((uint64_t)dt->shared->size);
 
                 /*
                  * Compound datatypes...
@@ -1089,7 +1094,7 @@ done:
     function using malloc() and is returned to the caller.
 --------------------------------------------------------------------------*/
 static void *
-H5O_dtype_decode(H5F_t *f, hid_t UNUSED dxpl_id, H5O_t UNUSED *open_oh, unsigned UNUSED mesg_flags,
+H5O_dtype_decode(H5F_t *f, hid_t H5_ATTR_UNUSED dxpl_id, H5O_t H5_ATTR_UNUSED *open_oh, unsigned H5_ATTR_UNUSED mesg_flags,
     unsigned *ioflags/*in,out*/, const uint8_t *p)
 {
     H5T_t	*dt = NULL;
@@ -1262,7 +1267,7 @@ H5O_dtype_size(const H5F_t *f, const void *_mesg)
                 unsigned offset_nbytes;         /* Size needed to encode member offsets */
 
                 /* Compute the # of bytes required to store a member offset */
-                offset_nbytes = H5V_limit_enc_size((uint64_t)dt->shared->size);
+                offset_nbytes = H5VM_limit_enc_size((uint64_t)dt->shared->size);
 
                 /* Compute the total size needed to encode compound datatype */
                 for(u = 0; u < dt->shared->u.compnd.nmembs; u++) {
@@ -1508,7 +1513,7 @@ done:
  */
 static herr_t
 H5O_dtype_pre_copy_file(H5F_t *file_src, const void *mesg_src,
-    hbool_t UNUSED *deleted, const H5O_copy_t UNUSED *cpy_info,
+    hbool_t H5_ATTR_UNUSED *deleted, const H5O_copy_t H5_ATTR_UNUSED *cpy_info,
     void *_udata)
 {
     const H5T_t	*dt_src = (const H5T_t *)mesg_src;  /* Source datatype */
@@ -1557,9 +1562,9 @@ done:
  *-------------------------------------------------------------------------
  */
 static void *
-H5O_dtype_copy_file(H5F_t UNUSED *file_src, const H5O_msg_class_t *mesg_type,
-    void *native_src, H5F_t *file_dst, hbool_t UNUSED *recompute_size,
-    H5O_copy_t UNUSED *cpy_info, void UNUSED *udata, hid_t UNUSED dxpl_id)
+H5O_dtype_copy_file(H5F_t H5_ATTR_UNUSED *file_src, const H5O_msg_class_t *mesg_type,
+    void *native_src, H5F_t *file_dst, hbool_t H5_ATTR_UNUSED *recompute_size,
+    H5O_copy_t H5_ATTR_UNUSED *cpy_info, void H5_ATTR_UNUSED *udata, hid_t H5_ATTR_UNUSED dxpl_id)
 {
     H5T_t *dst_mesg;            /* Destination datatype */
     void *ret_value;            /* Return value */
@@ -1597,9 +1602,9 @@ done:
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5O_dtype_shared_post_copy_upd(const H5O_loc_t UNUSED *src_oloc,
-    const void UNUSED *mesg_src, H5O_loc_t UNUSED *dst_oloc, void *mesg_dst,
-    hid_t UNUSED dxpl_id, H5O_copy_t UNUSED *cpy_info)
+H5O_dtype_shared_post_copy_upd(const H5O_loc_t H5_ATTR_UNUSED *src_oloc,
+    const void H5_ATTR_UNUSED *mesg_src, H5O_loc_t H5_ATTR_UNUSED *dst_oloc, void *mesg_dst,
+    hid_t H5_ATTR_UNUSED dxpl_id, H5O_copy_t H5_ATTR_UNUSED *cpy_info)
 {
     H5T_t       *dt_dst = (H5T_t *)mesg_dst;    /* Destination datatype */
 
