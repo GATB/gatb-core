@@ -102,6 +102,10 @@ endif()
 set (LIBRARY_COMPILE_DEFINITIONS "-std=c++11")
 set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-format -Wno-unknown-pragmas") # last one is exclusively for BooPHF
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set (debug 1)
+endif()
+
 if (debug)
     #set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p -pg")
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -g -p ${LIB_COMPILE_WARNINGS}")
