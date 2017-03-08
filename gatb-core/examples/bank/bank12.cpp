@@ -20,7 +20,12 @@ struct FilterFunctor
 /*           Extract sequences from a bank.                                     */
 /*                                                                              */
 /* This snippet shows how to extract some sequences for a given list of indexes.*/
+/* An "index" i means the i-th sequence inside the input file                   */
 /* These indexes are read from an input file, one index per line.               */
+/* E.g. if the index files contains:
+ *    1                                                                         
+      5                                                                         */
+/* Then read number 1 and number 5 will be returned */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
@@ -49,8 +54,7 @@ int main (int argc, char* argv[])
 
         /** We open the output bank. */
         string outputBankUri = options->getStr(STR_URI_INPUT) + "_" + System::file().getBaseName (options->getStr(STR_URI_SEQ_IDS));
-        IBank* outputBank = Bank::open (outputBankUri);
-        LOCAL (outputBank);
+        BankFasta outputBank(outputBankUri);
 
         /** We loop the input bank. */
         IBank* inputBank = Bank::open (options->getStr(STR_URI_INPUT));
@@ -62,11 +66,11 @@ int main (int argc, char* argv[])
         /** We loop the sequences. */
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
-            outputBank->insert (itSeq.item());
+            outputBank.insert (itSeq.item());
         }
 
         /** We flush the output bank. */
-        outputBank->flush();
+        outputBank.flush();
     }
 
     catch (OptionFailure& e)
