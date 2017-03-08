@@ -9,7 +9,7 @@
 /* You can dump the result of this test with HDF5 tools (provided by GATB):     */
 /*      h5dump mygraph.h5                                                       */
 /*                                                                              */
-/* Cmd-line: debruijn4                                                          */
+/* Cmd-line: debruijn4 (takes no argument)                                      */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])

@@ -8,6 +8,18 @@ using namespace std;
 /********************************************************************************/
 /*                   Looking for simple cycles in the graph.                    */
 /*                                                                              */
+/* Cmd-line: debruijn21 -graph <h5 file>                                        */
+/*                                                                              */
+/* Sample: debruijn21 -graph gatb-core/gatb-core/test/db/celegans_reads.h5      */
+/*                                                                              */
+/* Note:                                                                        */
+/*     - '.h5' file contains the HDF5 formatted representation of a de bruijn   */
+/*     graph created from a set of reads.                                       */
+/*     - a '.h5' file is created using dbgh5 program provided with GATB-Core.   */
+/*     Basic use is as follows:                                                 */
+/*        dbgh5 -in <fasta/q file> -out <h5 file>                               */
+/*     You can also control kmer-size and kmer abundance, see dbgh5 help.       */
+/*                                                                              */
 /* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
 /* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
 /*                                                                              */

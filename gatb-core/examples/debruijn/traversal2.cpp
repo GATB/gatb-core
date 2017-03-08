@@ -20,6 +20,8 @@ TraversalKind getTraversalKind (int argc, char* argv[]);
 /*  If one uses the 'contig' mode, one should get the whole sequence (which     */
 /*  means a consensus sequence)                                                 */
 /*                                                                              */
+/* Cmd-line: traversal2 -traversal unitig|contig                                */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

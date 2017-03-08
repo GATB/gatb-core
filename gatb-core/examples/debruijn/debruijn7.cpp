@@ -4,10 +4,23 @@
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*                      Graph nodes iteration (parallel)                        */
+/*                                                                              */
+/* Graph loading from a HDF5 file, the iterate over the nodes, parallel version.*/
+/*                                                                              */
+/* Cmd-line: debruijn7 <h5 file>                                                */
+/*                                                                              */
+/* Sample: debruijn7 gatb-core/gatb-core/test/db/celegans_reads.h5              */
 /*                                                                              */
 /* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
 /* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
+/*                                                                              */
+/* Note:                                                                        */
+/*     - '.h5' file contains the HDF5 formatted representation of a de bruijn   */
+/*     graph created from a set of reads.                                       */
+/*     - a '.h5' file is created using dbgh5 program provided with GATB-Core.   */
+/*     Basic use is as follows:                                                 */
+/*        dbgh5 -in <fasta/q file> -out <h5 file>                               */
+/*     You can also control kmer-size and kmer abundance, see dbgh5 help.       */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])

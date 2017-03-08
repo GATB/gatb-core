@@ -10,6 +10,20 @@ using namespace std;
 /*                                                                              */
 /* This snippet shows how to retrieve the abundance of a node in the graph.     */
 /*                                                                              */
+/* Cmd-line: debruijn27 <h5 file> <sequence>                                    */
+/*                                                                              */
+/* Sample: debruijn27 gatb-core/gatb-core/test/db/celegans_reads.h5 ...         */
+/*                    "TTTGCCCATTTCCTGCCATTTGTC"                                */
+/*                     |-> 5' end of 1st sequence from                          */
+/*                        https://github.com/GATB/gatb-core-tuto/blob/master/server/data/celegans_reads.fasta*/
+/*                                                                              */
+/* Note:                                                                        */
+/*     - '.h5' file contains the HDF5 formatted representation of a de bruijn   */
+/*     graph created from a set of reads.                                       */
+/*     - a '.h5' file is created using dbgh5 program provided with GATB-Core.   */
+/*     Basic use is as follows:                                                 */
+/*        dbgh5 -in <fasta/q file> -out <h5 file>                               */
+/*     You can also control kmer-size and kmer abundance, see dbgh5 help.       */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

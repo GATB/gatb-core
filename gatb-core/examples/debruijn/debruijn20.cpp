@@ -17,9 +17,25 @@
 using namespace std;
 
 /********************************************************************************/
-
-// We define a class that marks nodes in a graph and call tell whether a given node is marked or not.
-// We use a map for the implementation (could be not optimal).
+/*  BFS exploration of a graph.                                                 */
+/*                                                                              */
+/*  We define a class that marks nodes in a graph and call tell whether a given */
+/*  node is marked or not.                                                      */
+/*  We use a map for the implementation (could be not optimal).                 */
+/*                                                                              */
+/* Cmd-line: debruijn20 -graph <h5 file>                                        */
+/*                                                                              */
+/* Sample: debruijn20 -graph gatb-core/gatb-core/test/db/celegans_reads.h5      */
+/*                                                                              */
+/* Note:                                                                        */
+/*     - '.h5' file contains the HDF5 formatted representation of a de bruijn   */
+/*     graph created from a set of reads.                                       */
+/*     - a '.h5' file is created using dbgh5 program provided with GATB-Core.   */
+/*     Basic use is as follows:                                                 */
+/*        dbgh5 -in <fasta/q file> -out <h5 file>                               */
+/*     You can also control kmer-size and kmer abundance, see dbgh5 help.       */
+/*                                                                              */
+/********************************************************************************/
 class GraphMarker
 {
 public:

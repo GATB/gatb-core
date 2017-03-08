@@ -23,15 +23,19 @@ int main (int argc, char* argv[])
     // leaving the enclosing instructions block).
     LOCAL (storage);
 
-    // Shortcut: we get the root of this Storage object
-    Group& root = storage->root();
+    try
+    {
+		// We get the group for dsk
+		Group& dskGroup = storage->getGroup("dsk");
 
-    // We get the group for dsk
-    Group& dskGroup = storage->getGroup("dsk");
+		Repartitor repart;
+		repart.load (dskGroup);
 
-    Repartitor repart;
-    repart.load (dskGroup);
-
-    for (size_t i=0; i<(1<<16); i++)  {  printf ("%ld  %d\n", i, repart(i));  }
+		for (size_t i=0; i<(1<<16); i++)  {  printf ("%ld  %d\n", i, repart(i));  }
+    }
+    catch (Exception& e)
+    {
+        std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
+    }
 }
 //! [snippet1]

@@ -6,6 +6,11 @@
 using namespace std;
 
 /********************************************************************************/
+/*                                                                              */
+/* Cmd-line: debruijn25 -in <fasta/q file>                                      */
+/*                                                                              */
+/* Sample: debruijn25 -in gatb-core/gatb-core/test/db/reads1.fa                 */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

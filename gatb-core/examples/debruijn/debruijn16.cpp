@@ -8,6 +8,8 @@
 /*                                                                              */
 /* This snippet shows how to detect a specific pattern in the graph.            */
 /*                                                                              */
+/* Cmd-line: debruijn16 (takes no argument)                                     */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

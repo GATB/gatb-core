@@ -12,6 +12,8 @@ using namespace std;
 /* This feature is enabled only when the "-mphf emphf" is set during graph      */
 /* creation.                                                                    */
 /*                                                                              */
+/* Cmd-line: debruijn26 (takes no argument)                                     */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
