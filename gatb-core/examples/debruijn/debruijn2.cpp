@@ -4,7 +4,16 @@
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*             Graph creation from command line string                          */
+/*  Graph creation from command line options                                    */
+/*                                                                              */
+/*  This snippet DO NOT use the OptionsParser facility of GATB-Core library     */
+/*  but a simple string (expected to be a Fasta/q file) passed in on the        */
+/*  command-line.                                                               */
+/*                                                                              */
+/* Cmd-line: debruijn1 <fasta/q file>                                           */
+/*                                                                              */
+/* Sample: debruijn1 gatb-core/gatb-core/test/db/reads1.fa                      */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

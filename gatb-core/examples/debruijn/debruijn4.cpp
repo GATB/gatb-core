@@ -4,10 +4,12 @@
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*             Graph creation from a fake bank and command line options         */
+/* Graph creation from a fake bank and no command line options                  */
 /*                                                                              */
 /* You can dump the result of this test with HDF5 tools (provided by GATB):     */
 /*      h5dump mygraph.h5                                                       */
+/*                                                                              */
+/* Cmd-line: debruijn4                                                          */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])

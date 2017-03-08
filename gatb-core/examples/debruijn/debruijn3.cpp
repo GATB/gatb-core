@@ -4,7 +4,13 @@
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*             Graph creation from a bank and command line options              */
+/*  Graph creation from a basic command-line.                                   */
+/*  Uses abundance-min=5.                                                       */
+/*                                                                              */
+/* Cmd-line: debruijn1 <fasta/q file>                                           */
+/*                                                                              */
+/* Sample: debruijn1 gatb-core/gatb-core/test/db/reads1.fa                      */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

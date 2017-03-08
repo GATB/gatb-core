@@ -4,7 +4,12 @@
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*             Graph loading from a HDF5 file                                   */
+/* Graph loading from a HDF5 file.                                              */
+/*                                                                              */
+/* Cmd-line: debruijn5 <h5 file>                                                */
+/*                                                                              */
+/* Sample: debruijn5 gatb-core/gatb-core/test/db/celegans_reads.h5              */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

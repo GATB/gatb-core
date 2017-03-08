@@ -4,10 +4,13 @@
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
-/*             Graph creation from command line options                         */
+/*  Graph creation from command line options                                    */
 /*                                                                              */
-/*  This snippet is similar to the dbgh5 software.                              */
-/*  Here, we just show the minimal requirement to create a de Bruijn graph.     */
+/*  This snippet uses the OptionsParser facility of GATB-Core library.          */
+/*                                                                              */
+/* Cmd-line: debruijn1 -in <fasta/q file>                                       */
+/*                                                                              */
+/* Sample: debruijn1 -in gatb-core/gatb-core/test/db/reads1.fa                  */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])

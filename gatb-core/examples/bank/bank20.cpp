@@ -1,6 +1,14 @@
+//! [snippet1]
 #include <gatb/gatb_core.hpp>
 #include <iostream>
 
+/********************************************************************************/
+/*                    Bank snippet                                              */
+/*                                                                              */
+/* Cmd-line: bank20 -in <fasta/q file>                                          */
+/*                                                                              */
+/* Sample: bank20 -in gatb-core/gatb-core/test/db/reads1.fa                     */
+/*                                                                              */
 /********************************************************************************/
 void dump (IBank* bank, size_t depth=0)
 {
@@ -40,3 +48,5 @@ int main (int argc, char* argv[])
         std::cerr << "EXCEPTION: " << e.getMessage() << std::endl;
     }
 }
+//! [snippet1]
+
