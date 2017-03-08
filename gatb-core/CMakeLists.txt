@@ -65,8 +65,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     IF(NOT CMAKE_CXX_COMPILER_VERSION) #for old cmakes
         include(CheckCompiler)
     ENDIF()
-    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.5) 
-        message(FATAL_ERROR "Insufficient gcc version (gcc>=4.5 needed)")
+    if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.7) 
+        message(FATAL_ERROR "Insufficient gcc version (gcc>=4.7 needed)")
     endif()
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -99,7 +99,7 @@ endif()
 ################################################################################
 # GENERAL DEFINITIONS
 ################################################################################
-
+set (LIBRARY_COMPILE_DEFINITIONS "-std=c++11")
 set (LIB_COMPILE_WARNINGS "-Wall -Wno-unused-function -Wno-format -Wno-unknown-pragmas") # last one is exclusively for BooPHF
 
 if (debug)
@@ -120,9 +120,6 @@ if (NONCANONICAL)
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS}  -DNONCANONICAL=1")
 endif()
 
-
-# We use c++11 standard
-set (CXX_STD_VERSION "-std=c++0x")
 
 # detect SSE for popcount 
 # this was for emphf, maybe it's for something else also? otherwise this part can be removed.
