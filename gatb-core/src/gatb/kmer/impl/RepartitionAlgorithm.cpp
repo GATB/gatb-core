@@ -140,10 +140,10 @@ public:
 
 protected:
 
-    // ModelCanonical           _minimodel;
-    ModelDirect                _minimodel;
-    //vector<KmerTypeCanonical>  _mmers;
-    vector<KmerTypeDirect>  _mmers;
+    ModelCanonical           _minimodel;
+    //ModelDirect                _minimodel;
+    vector<KmerTypeCanonical>  _mmers;
+    //vector<KmerTypeDirect>  _mmers;
     ProgressSynchro         _progress;
     uint32_t*               _m_mer_counts;
     size_t                  _nbProcessedMmers;

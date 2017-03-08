@@ -23,10 +23,11 @@
 // We use the required packages
 using namespace std;
 
-#define IFDEBUG(a)  a
 #define DEBUG(a) //printf a
-#define DEBUG2(a) printf a
 // wanted to debug separately, DEBUG has more output than debug2
+// to see top20 repartitions of bins, uncomment IFDEBUG and DEBUG2
+#define IFDEBUG(a)  //a
+#define DEBUG2(a) //printf a
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
