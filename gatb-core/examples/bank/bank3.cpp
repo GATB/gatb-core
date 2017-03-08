@@ -10,6 +10,10 @@
 /* Note that this approach is necessary when one wants to parallelize the       */
 /* iteration (see snippets on multithreading).                                  */
 /*                                                                              */
+/* Cmd-line: bank3 <fasta/q file>                                               */
+/*                                                                              */
+/* Sample: bank3 gatb-core/gatb-core/test/db/reads1.fa                          */
+/*                                                                              */
 /********************************************************************************/
 
 // We define a functor that will be called for every iterated sequence.

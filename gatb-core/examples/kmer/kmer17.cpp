@@ -10,6 +10,13 @@
 /*                                                                              */
 /* This snippet computes the total number of minimizers with a parallel implem  */
 /*          with the use of the dispatcher                                      */
+/*                                                                              */
+/* Cmd-line: kmer17 -in <fasta/q file> -kmer-size <value> ...                   */
+/*                  -minimizer-size <size>                                      */
+/*                                                                              */
+/* Sample: kmer17 -in gatb-core/gatb-core/test/db/reads1.fa -kmer-size 11 ...   */
+/*               -minimizer-size 11                                             */
+/*                                                                              */
 /********************************************************************************/
 
 // We use the required packages

@@ -9,6 +9,13 @@
 /*                                                                              */
 /* A BankAlbum file is a bank defined by a list of URI of other banks.          */
 /*                                                                              */
+/* This code produces on std::out the total bank size, then each sequence       */
+/* description.                                                                 */
+/*                                                                              */
+/* Cmd-line: bank17 -in <album file>                                            */
+/*                                                                              */
+/* Sample: bank17 -in gatb-core/gatb-core/test/db/album.txt                     */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

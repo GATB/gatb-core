@@ -9,6 +9,10 @@
 /* This snippet shows how to open a bank and iterate its sequences.             */
 /* Note: we use here a try/catch block in case the bank opening doesn't work.   */
 /*                                                                              */
+/* Cmd-line: bank2 <fasta/q file>                                               */
+/*                                                                              */
+/* Sample: bank2 gatb-core/gatb-core/test/db/reads1.fa                          */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

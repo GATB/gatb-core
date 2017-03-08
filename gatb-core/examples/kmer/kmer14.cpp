@@ -12,6 +12,10 @@ using namespace std;
 /* a core kmer  := all its 8 neighbors are in the same partition                */
 /* a bound kmer := a kmer that is not core.                                     */
 /*                                                                              */
+/* Cmd-line: kmer14 -in <fasta/q file_1>                                        */
+/*                                                                              */
+/* Sample: kmer14 -in gatb-core/gatb-core/test/db/reads1.fa                     */
+/*                                                                              */
 /********************************************************************************/
 
 template<size_t span>

@@ -5,6 +5,11 @@
  * [kmer] [abundance in dataset 1] [abundance in dataset 2] etc..
  *
  * for all input kmers in the union of the datasets
+ *
+ * Cmd-line: kmer16 -in <fasta/q file_1>
+ *
+ * Sample: kmer16 -in gatb-core/gatb-core/test/db/reads1.fa
+ *
  */
 #include <gatb/gatb_core.hpp>
 using namespace std;

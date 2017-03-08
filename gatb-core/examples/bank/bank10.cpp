@@ -7,7 +7,6 @@
 // We use the required packages
 using namespace std;
 
-static const char* STR_BANKS_NB       = "-split";
 static const char* STR_MAX_INPUT_SIZE = "-max-size";
 static const char* STR_OUTPUT_FASTQ   = "-fastq";
 static const char* STR_OUTPUT_GZ      = "-gz";
@@ -20,6 +19,14 @@ static const char* STR_OUTPUT_GZ      = "-gz";
 /* as bank input by other tools.                                                */
 /* Note: all the generated files are put in a directory created by the snippet. */
 /*                                                                              */
+/* Cmd-line: -in <fasta/q file> -max-size <nb. nucl.>                           */
+/*           [-out-dir <some_dir>  -fastq 1 -gz 1 ]                             */
+/*                                                                              */
+/* Sample: bank10 -in gatb-core/gatb-core/test/db/reads1.fa                     */
+/*                -out-dir /tmp                                                 */
+/*                -max-size 5000                                                */
+/*         output: a new directory within ${out-dir} with sequences splitted    */
+/*                 by chunck of 5000 nucleotides                                */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

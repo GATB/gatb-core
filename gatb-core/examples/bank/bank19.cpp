@@ -9,6 +9,10 @@
 /*                                                                              */
 /* This snippet shows a checkum value on the genomic data.                      */
 /*                                                                              */
+/* Cmd-line: bank19 -in <fasta/q file>                                          */
+/*                                                                              */
+/* Sample: bank19 -in gatb-core/gatb-core/test/db/reads1.fa                     */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

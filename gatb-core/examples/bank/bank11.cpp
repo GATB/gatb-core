@@ -10,7 +10,11 @@ using namespace std;
 /*           Iterate a bank whose sequences are each kmer of a model.           */
 /*                                                                              */
 /* This snippet shows how iterate all possible kmers of a given size and dump   */
-/* them as output.                                                              */
+/* them as output. This program can be viewed as a kmer generator.              */
+/*                                                                              */
+/* Cmd-line: bank11 -kmer-size <size> -out <fasta file>                         */
+/*                                                                              */
+/* Sample: bank11 -kmer-size 4 -out /tmp/kmer.fa                                */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])

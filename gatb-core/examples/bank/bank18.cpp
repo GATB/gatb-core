@@ -11,6 +11,16 @@
 /* are pairs of two sequences. This may be useful to read pair ends banks for   */
 /* instance.                                                                    */
 /*                                                                              */
+/* This code produces on std::out the sequence description of each sequence     */
+/* contained in the two sequence files.                                         */
+/*                                                                              */
+/* See also bank17.cpp where we do the same using a single album file.          */
+/*                                                                              */
+/* Cmd-line: bank18 -one <fasta/q file> -two <fasta/q file>                     */
+/*                                                                              */
+/* Sample: bank18 -one gatb-core/gatb-core/test/db/reads1.fa                    */
+/*                -two gatb-core/gatb-core/test/db/reads2.fa                    */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

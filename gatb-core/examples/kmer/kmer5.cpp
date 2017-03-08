@@ -10,6 +10,12 @@
 /*                                                                              */
 /* This snippet shows how to iterate the kmers and have minimizer statistics.   */
 /*                                                                              */
+/* Cmd-line: kmer5 -in <fasta/q file> -kmer-size <value> ...                    */
+/*                  -minimizer-size <size>                                      */
+/*                                                                              */
+/* Sample: kmer5 -in gatb-core/gatb-core/test/db/reads1.fa -kmer-size 11 ...    */
+/*               -minimizer-size 11                                             */
+/*                                                                              */
 /********************************************************************************/
 
 // We use the required packages

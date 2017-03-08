@@ -9,7 +9,14 @@
 /*                                                                              */
 /* This snippet shows how to open a bank with a URI and without specifying      */
 /* the actual type of the bank. The correct bank format is found by analyzing   */
-/* the URI and/or the content of the resource given by the URI                  */
+/* the URI and/or the content of the resource given by the URI.                 */
+/*                                                                              */
+/* This code produces on std::out the sequence description and the sequence     */
+/* itself.                                                                      */
+/*                                                                              */
+/* Cmd-line: bank16 -in <fasta/q file>                                          */
+/*                                                                              */
+/* Sample: bank16 -in gatb-core/gatb-core/test/db/reads1.fa                     */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])

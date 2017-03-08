@@ -13,6 +13,10 @@ using namespace std;
 /* criteria. The criteria is described through a functor.                       */
 /* Here, we can keep only every 'modulo' sequence that have no 'N' in data.     */
 /*                                                                              */
+/* Cmd-line: bank9 <fasta/q file> <outfile> <modulo>                            */
+/*                                                                              */
+/* Sample: bank9 gatb-core/gatb-core/test/db/reads1.fa reads1_filtered.fa 5     */
+/*                                                                              */
 /********************************************************************************/
 
 // We define a functor for our sequence filtering.

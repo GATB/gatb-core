@@ -20,6 +20,10 @@ struct FilterFunctor  {  bool operator ()  (Sequence& seq) const  {  return seq.
 /* Note: lambda expressions could be used for the functor (in case the used     */
 /* compiler supports it)                                                        */
 /*                                                                              */
+/* Cmd-line: bank7 <fasta/q file> <threshold>                                   */
+/*                                                                              */
+/* Sample: bank7 gatb-core/gatb-core/test/db/reads1.fa 500                      */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

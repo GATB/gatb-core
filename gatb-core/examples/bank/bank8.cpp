@@ -15,6 +15,10 @@ using namespace std;
 /* output bank. We use progress information to get feedback about the iteration */
 /* progression.                                                                 */
 /*                                                                              */
+/* Cmd-line: bank8 <fasta/q file> <outfile>                                     */
+/*                                                                              */
+/* Sample: bank8 gatb-core/gatb-core/test/db/reads1.fa reads1.bin               */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

@@ -27,6 +27,8 @@ struct FilterFunctor
       5                                                                         */
 /* Then read number 1 and number 5 will be returned */
 /*                                                                              */
+/* Cmd-line: bank12 -in <fasta/q file> -seq-ids <seq-ids file>                  */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

@@ -9,6 +9,10 @@
 /* This snippet shows how to iterate sequences from a FASTA with some progress  */
 /* information. In this example, we provide our own progress manager.           */
 /*                                                                              */
+/* Cmd-line: bank4 <fasta/q file>                                               */
+/*                                                                              */
+/* Sample: bank4 gatb-core/gatb-core/test/db/reads1.fa                          */
+/*                                                                              */
 /********************************************************************************/
 
 // We a define a functor that will be called during bank parsing

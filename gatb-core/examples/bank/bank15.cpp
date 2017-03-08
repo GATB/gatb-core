@@ -7,8 +7,12 @@
 /********************************************************************************/
 /*                              Bank management                                 */
 /*                                                                              */
-/* This snippet shows how to open a FASTA bank and iterate its sequences.       */
-/* Some attributes of the iterated Sequence objects are used.                   */
+/* This snippet shows how to open a FASTA bank and iterate its sequences        */
+/* to provide some stats: data size, nb. sequences, etc.                        */
+/*                                                                              */
+/* Cmd-line: bank15 <fasta/q file>                                              */
+/*                                                                              */
+/* Sample: bank15 gatb-core/gatb-core/test/db/reads1.fa                         */
 /*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])

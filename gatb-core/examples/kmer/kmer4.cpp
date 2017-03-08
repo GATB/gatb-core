@@ -14,6 +14,10 @@ static const size_t span = KMER_SPAN(0);
 /*                                                                              */
 /* This snippet shows how to iterate the kmers of the sequences from a bank.    */
 /*                                                                              */
+/* Cmd-line: kmer4 -in <fasta/q file> -kmer-size <value> [-verbose]             */
+/*                                                                              */
+/* Sample: kmer4 -in gatb-core/gatb-core/test/db/reads1.fa -kmer-size 11        */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

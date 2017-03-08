@@ -10,6 +10,10 @@ using namespace std;
 /* This snippet shows how to count the kmers of a bank by using the sorting     */
 /* count algorithm.                                                             */
 /*                                                                              */
+/* Cmd-line: kmer9 -in <fasta/q file>                                           */
+/*                                                                              */
+/* Sample: kmer9 -in gatb-core/gatb-core/test/db/reads1.fa                      */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

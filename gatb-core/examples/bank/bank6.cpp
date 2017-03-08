@@ -15,6 +15,10 @@ using namespace std;
 /* modifications. Note that this snippet can be really useful for re-formatting */
 /* FASTA banks                                                                  */
 /*                                                                              */
+/* Cmd-line: bank6 <fasta/q file>                                               */
+/*                                                                              */
+/* Sample: bank6 gatb-core/gatb-core/test/db/reads1.fa                          */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

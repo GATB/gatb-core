@@ -13,6 +13,13 @@ static const char* STR_FILTER_RATIO = "-filter-ratio";
 /*                                                                              */
 /* This snippet shows how to keep sequences that have enough "good" data.       */
 /*                                                                              */
+/* A sequence is retained only if nb(A,C,G,T)/seq_size>=filter-ratio .          */
+/*                                                                              */
+/* Cmd-line: bank13 -in <fasta/q file> -filter-ratio <[0.0..1.0]>               */
+/*                                                                              */
+/* Sample: bank13 -in gatb-core/gatb-core/test/db/reads1.fa -filter-ratio 0.8   */
+/*         (output bank will be file:  reads1.fa_filtered)                      */
+/*                                                                              */
 /* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
 /* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
 /*                                                                              */

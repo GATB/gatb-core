@@ -15,6 +15,11 @@ using namespace std;
 /* size K. Each sequence of size N is split in pieces of size K, for instance:  */
 /*     ATCTCGGGCTAGCTCTCGATAAGC => for K=3, ATC TCG GGC TAG CTC TCG ATA AGC     */
 /* Then we count the number of occurrences of these pieces, and sort the result.*/
+/*                                                                              */
+/* Cmd-line: kmer7 -in <fasta/q file> -kmer-size <value>                       */
+/*                                                                              */
+/* Sample: kmer7 -in gatb-core/gatb-core/test/db/reads1.fa -kmer-size 11        */
+/*                                                                              */
 /* Finally, this distribution is saved in a Storage object (HDF5 format here).  */
 /* The resulting data can be shown with HDF5 tools (provided with GATB) by:     */
 /*      h5dump output.h5                                                        */

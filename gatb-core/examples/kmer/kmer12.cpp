@@ -12,6 +12,10 @@ using namespace std;
 /* It shows how to inherit from the CountProcessor class, i.e. the class that   */
 /* receives kmer counts notifications from the SortingCountAlgorithm.           */
 /*                                                                              */
+/* Cmd-line: kmer12 -in <fasta/q file_1>[,<fasta/q file_2>,...]                 */
+/*                                                                              */
+/* Sample: kmer12 -in gatb-core/gatb-core/test/db/reads1.fa,gatb-core/gatb-core/test/db/reads2.fa  */
+/*                                                                              */
 /********************************************************************************/
 
 // We define our own CountProcessor class. Here, we want to count the number of

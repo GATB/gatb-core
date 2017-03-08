@@ -10,6 +10,10 @@
 /* This snippet shows how to open a FASTA bank and iterate its sequences.       */
 /* Some attributes of the iterated Sequence objects are used.                   */
 /*                                                                              */
+/* Cmd-line: bank1 <fasta/q file>                                               */
+/*                                                                              */
+/* Sample: bank1 gatb-core/gatb-core/test/db/reads1.fa                          */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {

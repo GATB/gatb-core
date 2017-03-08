@@ -9,6 +9,10 @@
 /* This snippet shows how to iterate sequences from a bank with some progress   */
 /* information. In this example, we use some pre defined progress manager.      */
 /*                                                                              */
+/* Cmd-line: bank5 <fasta/q file>                                               */
+/*                                                                              */
+/* Sample: bank5 gatb-core/gatb-core/test/db/reads1.fa                          */
+/*                                                                              */
 /********************************************************************************/
 int main (int argc, char* argv[])
 {
