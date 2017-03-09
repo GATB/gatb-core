@@ -3,6 +3,14 @@
 #include <gatb/gatb_core.hpp>
 
 /********************************************************************************/
+/* A very simple program to find SNP in reads data.                             */
+/*                                                                              */
+/* Cmd-line: MicroSNP -in <fasta/a file> -kmer-size <size> -abundance-min <val> */
+/*                                                                              */
+/* Sample: MicroSNP -in gatb-core/gatb-core/test/db/microsnp.fa ...             */
+/*                  -kmer-size 7 -abundance-min 1                               */
+/*                                                                              */
+/********************************************************************************/
 class MicroSNP : public Tool
 {
 public:

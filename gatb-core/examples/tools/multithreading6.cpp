@@ -8,6 +8,11 @@ using namespace std;
 /********************************************************************************/
 /*                         Multithreaded iteration of a bank.                   */
 /*                                                                              */
+/*                                                                              */
+/* Cmd-line: multithreading6 <fasta/q file>                                     */
+/*                                                                              */
+/* Sample: multithreading6 gatb-core/gatb-core/test/db/reads1.fa                */
+/*                                                                              */
 /* WARNING ! THIS SNIPPET SHOWS ALSO HOW TO USE LAMBDA EXPRESSIONS, SO YOU NEED */
 /* TO USE A COMPILER THAT SUPPORTS THIS FEATURE.                                */
 /*                                                                              */
