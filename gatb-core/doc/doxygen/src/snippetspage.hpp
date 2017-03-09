@@ -99,6 +99,11 @@
  * make examples
  * \endcode
  *
+ * Then, you can have a look at the header of each snippet source file to review how
+ * to use them. You can also have a look at <a href="https://github.com/GATB/gatb-core/blob/master/gatb-core/test/jenkins/test-snippets-debian7-64bits-gcc-4.7.sh">this script</a> we used on a Jenkins platform
+ * to automatically run and test all these snippets; in that script, you'll see how
+ * they are started (i.e. what is the command-line to use).
+ *
  ************************************************************************************
  * \section use_eclipse Use Eclipse c++ IDE to work with GATB-Core
  *
@@ -320,7 +325,7 @@
  *
  * This page presents some code snippets related to the use of Multithreading API.
  *
- * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">here</a>.
+ * Some of the snippets presented below <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">can be used online</a>.
  *
  * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/tools">gatb-core/gatb-core/examples/tools</a>.
  *
@@ -431,7 +436,7 @@
  *
  * This page presents some code snippets related to the use of Bank API.
  *
- * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training/">here</a>.
+ * Some of the snippets presented below <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">can be used online</a>.
  *
  * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/bank">gatb-core/gatb-core/examples/bank</a>.
  *
@@ -656,7 +661,7 @@
  *
  * This page presents some code snippets related to the use of k-mer API.
  *
- * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training/">here</a>.
+ * Some of the snippets presented below <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">can be used online</a>.
  *
  * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/kmer">gatb-core/gatb-core/examples/kmer</a>.
  *
@@ -809,7 +814,7 @@
  *
  * This page presents some code snippets related to the use of De Bruijn graph API.
  *
- * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training/">here</a>.
+ * Some of the snippets presented below <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">can be used online</a>.
  *
  * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/debruijn">gatb-core/gatb-core/examples/debruijn</a>.
  *
@@ -1195,7 +1200,7 @@
  *
  * This page presents some code snippets related to the use of persistency API.
  *
- * Some of the snippets presented below can be used online <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">here</a>.
+ * Some of the snippets presented below <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">can be used online</a>.
  *
  * Additional snippets are available in directory: <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples/storage">gatb-core/gatb-core/examples/storage</a>.
  *
@@ -1296,7 +1301,7 @@
  *
  * This snippet shows how to quickly create a new tool by subclassing the Tool class.
  *
- * You can try it online <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">here</a>.
+ * You can try it <a href="http://gatb-core.gforge.inria.fr/training?trail=Expert">online here</a>.
  *
  * Using the Tool class will give to use some useful features for developing our toy tool.
  *
