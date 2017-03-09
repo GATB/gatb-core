@@ -23,10 +23,11 @@
 // We use the required packages
 using namespace std;
 
-#define IFDEBUG(a) // a
 #define DEBUG(a) //printf a
+// wanted to debug separately, DEBUG has more output than debug2
+// to see top20 repartitions of bins, uncomment IFDEBUG and DEBUG2
+#define IFDEBUG(a)  //a
 #define DEBUG2(a) //printf a
-// wanted to debug separately
 
 /********************************************************************************/
 namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
@@ -135,6 +136,25 @@ void Repartitor::justGroup (const PartiInfo<5>& extern_pInfo, std::vector <std::
         // important to have a consistent repartition for unseen (in the sample approximation) minimizers
         // and since any minimizer is potentially unseen, for bcalm, we have to put them into the last partition
     }
+
+
+    IFDEBUG(
+            {// same debugging as computeDistrib() 
+            std::vector<ipair> bin_size_vec;
+            //sum total bins size
+            u_int64_t sumsizes =0;
+            for (u_int64_t ii=0; ii< _nb_minims; ii++)
+            {
+            sumsizes += extern_pInfo.getNbKxmer_per_minim(ii);
+            bin_size_vec.push_back(ipair( extern_pInfo.getNbKxmer_per_minim(ii) ,ii));
+            }
+            DEBUG2(("Repartitor(justGroup): mean size per parti should be :  %lli  (total %lli )\n", sumsizes / _nbpart, sumsizes));
+            //sort minim bins per size
+            std::sort (bin_size_vec.begin (), bin_size_vec.end (), comp_bins);
+            DEBUG2(("Repartitor(justGroup): 20 largest estimated bin sizes \n"));
+            for (size_t ii=0; ii<20 &&  ii< bin_size_vec.size(); ii++ )
+            DEBUG2 (("binsize [%llu] = %llu \n",bin_size_vec[ii].second,bin_size_vec[ii].first));
+            })
 
     //sum total count size
     u_int64_t total_counts =0;

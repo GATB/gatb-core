@@ -95,7 +95,9 @@ class MmersFrequency
 {
 public:
     /** Shortcut. */
-    typedef typename RepartitorAlgorithm<span>::ModelDirect  ModelDirect;
+    typedef typename RepartitorAlgorithm<span>::ModelCanonical ModelCanonical;
+    typedef typename ModelCanonical::Kmer                       KmerTypeCanonical;
+    typedef typename RepartitorAlgorithm<span>::ModelDirect    ModelDirect;
     typedef typename ModelDirect::Kmer                       KmerTypeDirect;
 
     void operator() (Sequence& sequence)
@@ -138,8 +140,10 @@ public:
 
 protected:
 
-    ModelDirect             _minimodel;
-    vector<KmerTypeDirect>  _mmers;
+    ModelCanonical           _minimodel;
+    //ModelDirect                _minimodel;
+    vector<KmerTypeCanonical>  _mmers;
+    //vector<KmerTypeDirect>  _mmers;
     ProgressSynchro         _progress;
     uint32_t*               _m_mer_counts;
     size_t                  _nbProcessedMmers;
