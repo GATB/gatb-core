@@ -55,6 +55,10 @@ namespace misc      {
  *
  * For instance, Data is used for storing nucleotides sequences inside the Sequence
  * structure.
+ *
+ * \note
+ * In contrast to Vector, the size() represents the number of data elements,
+ * not the number of bytes (see Data::getBufferLength() for length in bytes).
  */
 class Data : public Vector<char>
 {
@@ -80,6 +84,11 @@ public:
     /** Constructor. */
     Data (size_t len, Encoding_e encode = BINARY)  : Vector<char>(len), encoding(encode)  {}
 
+    /** Number of bytes required  for representing the data
+     * \returns size in bytes
+     */
+    inline size_t getBufferLength() const { return (size() + 3) / 4; }
+
     /** Affectation operator.
      * \param[in] d : object to be copied.
      * \return the instance
@@ -91,7 +100,7 @@ public:
             /** Special case for binary encoding => we have 4 nucleotides in one byte. */
             if (d.getEncoding() == BINARY)
             {
-                this->set (d.getBuffer(), d.size()/4+1);
+                this->set (d.getBuffer(), d.getBufferLength());
                 this->setSize(d.size());
                 this->encoding = BINARY;
             }
@@ -140,7 +149,7 @@ public:
      * \param[in] out : output data */
     static void convert (Data& in, Data& out)
     {
-        size_t nchar = (in.size()+3)/4;
+        size_t nchar = in.getBufferLength();
         size_t j=0;
         for (size_t i=0; i<nchar; i++)
         {
