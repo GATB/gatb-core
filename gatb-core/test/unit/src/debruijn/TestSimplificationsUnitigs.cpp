@@ -179,13 +179,13 @@ public:
         string sequence = graph.simplePathBothDirections(node, isolatedLeft, isolatedRight, true, coverage);
         string rev_seq = revcomp(sequence);
 
-        if (sequence.compare(checkStr) != 0 || rev_seq.compare(checkStr) != 0)
+        if (sequence.compare(checkStr) != 0 && rev_seq.compare(checkStr) != 0)
         {
             std::cout << "anticipation of checkStr failing, sequence: " << sequence << " checkStr: " << checkStr << std::endl;
 		    graph.debugPrintAllUnitigs();
         }
 
-        CPPUNIT_ASSERT (sequence.compare(checkStr)==0);
+        CPPUNIT_ASSERT (sequence.compare(checkStr)==0 || rev_seq.compare(checkStr) == 0 );
     }
 
     /********************************************************************************/
