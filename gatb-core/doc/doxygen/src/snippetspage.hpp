@@ -52,7 +52,7 @@
  *
  * You can force compilation in debug mode by calling cmake in a specific way:
  * \code
- * cmake -Ddebug=1 ..
+ * cmake -D CMAKE_BUILD_TYPE=Debug ..
  * \endcode
  *
  * Several artifacts are generated:
