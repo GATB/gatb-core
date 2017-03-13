@@ -7,6 +7,8 @@
 
 [![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)
 
+[![](https://tokei.rs/b1/github/GATB/gatb-core)](https://github.com/GATB/gatb-core)
+
 --------------------------------------------------------------------------------
 # What is GATB ?
 
