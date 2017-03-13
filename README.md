@@ -187,14 +187,21 @@ More on creating a new GATB-Core based project: [http://gatb-core.gforge.inria.f
 ----------------------------------------------------------------------------------
 # Notes for GATB-core developers
 
-To compile in debug mode, type.
+## To compile in debug mode
 
-    mkdir build ; cd build && cmake -Ddebug=1 .. && make -j
+Type:
 
+    mkdir build ; cd build 
+    cmake cmake -D CMAKE_BUILD_TYPE=Debug .. .. 
+    make -j4
 
-To run unit tests:
+## To work on GATB-Core code using Eclipse
 
-* compile using the command above (-Ddebug=1 isn't necessary) 
+Read [this documentation](https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/).
+
+## To run unit tests
+
+* compile using the command above
 * then type:
 
         bin/gatb-core-cppunit
