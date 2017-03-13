@@ -10,16 +10,16 @@
 
 
 --------------------------------------------------------------------------------
-# What is GATB ?
+# What is GATB?
 
 GATB is made of two master projects: 
 
 * The **GATB-CORE project** provides a set of highly efficient algorithms to analyse NGS data sets. These 
 methods enable the analysis of data sets of any size on multi-core desktop computers, including very 
 huge amount of reads data coming from any kind of organisms such as bacteria, plants, animals and 
-even complex samples (e.g. metagenomes). Read more about GATB at <a href="https://project.inria.fr/gatb/">https://project.inria.fr/gatb</a>.
+even complex samples (e.g. metagenomes). Read more about GATB at <a href="https://gatb.inria.fr/">https://gatb.inria.fr/</a>.
  
-* The **GATB-TOOLS project** contains a set of ready-to-use softwares relying on GATB-CORE algorithms. You can have a look at available tools at <a href="https://project.inria.fr/gatb/software/">https://project.inria.fr/gatb/software</a>.
+* The **GATB-TOOLS project** contains a set of ready-to-use softwares relying on GATB-CORE algorithms. You can have a look at available tools at <a href="https://gatb.inria.fr/software/">https://gatb.inria.fr/software/</a>.
 
 --------------------------------------------------------------------------------
 # What is GATB-CORE ?
@@ -48,14 +48,9 @@ GATB-Core natively provides the following operations:
  * graph simplifications for assembly (tip removal, bulge removal)
 
 By itself GATB-CORE is not an NGS data analysis tool. However, it can be 
-used to create such tools; see below section called 'How to quickly create a project based on gatb-core ?'.
+used to create such tools; see section [Quickly create a new GATB-TOOL software](#Quickly create a new GATB-TOOL software), below.
 
-They already exist a set of ready-to-use tools relying on GATB-CORE library: see [https://project.inria.fr/gatb/software/](https://project.inria.fr/gatb/software/)
-
-# License
-
-GATB is free software; you can redistribute it and/or modify it under the Affero GPL v3 
-license. See http://www.gnu.org/licenses/agpl-3.0.en.html
+They already exist a set of ready-to-use tools relying on GATB-CORE library: see [https://gatb.inria.fr/software/](https://gatb.inria.fr/software/)
 
 # Project content
 
@@ -64,21 +59,65 @@ generate the wanted artifacts:
 
 * dynamic and static libraries holding the services component
 
-* unit tests of the component
+* 120+ unit tests of the entire library
 
-# Compiling GATB-CORE
+# Dependencies
 
-Since the compilation is based on CMake (release 2.6+), a common way to build all the artifacts is:
+The following third parties have to be already installed to compile GATB-Core:
 
+* a **C++/11 capable compiler** (*e.g.* gcc 4.7+, clang 3.5+, Apple/clang 6.0+)
+* **CMake 3.1+**
+
+In addition, you could install these optional tools:
+
+* **doxygen**: to compile a local copy of the GATB-Core documentation
+* **cppunit**: to compile and run Unit tests
+
+# Compile GATB-CORE
+
+
+## Compile in Release mode (default)
+
+Type:
+
+	cd <some_directory>
+	git clone https://github.com/GATB/gatb-core.git
 	cd gatb-core/gatb-core
-	mkdir build ; cd build ; cmake .. ; make
+	mkdir build ; cd build ; cmake .. ; make -j8
 	
-Unit tests (requires cppunit) can also be executed to check the integrity of the library on your system:
+## Compile in Debug mode
 
+Type save as above, except for the CMake command:
+
+    cmake -D CMAKE_BUILD_TYPE=Debug ..
+    make -j8
+
+## Run unit tests
+
+* cppunit is required
+* compile using the command above (Release or Debug mode)
+
+Then type:
+
+
+     # enter gatb-core build directory
      cd gatb-core/gatb-core/build
-     make test
+     # set verbose mode to on so that we have name of failing tests (if any)
+     export CPPUNIT_VERBOSE=1
+     # Copy database for unit tests
+     cp -r ../test/db ./test/
+     # Launch the full test suite
+     cd bin
+     ./gatb-core-cppunit
+
+The gatb-core-cppunit command may also take as argument the categories of tests that show up in the verbose output, e.g. './gatb-core-cppunit TestBank'.
 
 More about GATB-CORE code compiling instruction is available [here](http://gatb-core.gforge.inria.fr/doc/api/compilation.html).
+
+# Work on GATB-Core code using Eclipse
+
+Read [this documentation](https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/).
+
 
 # GATB-Core programming tutorial
 
@@ -86,7 +125,7 @@ You can follow [this link](https://gatb.inria.fr/gatb-programming-tutorial/) to 
 
 # Documentation
 
-API documentation is available [here](http://gatb-core.gforge.inria.fr/doc/api/).
+The complete GATB-Core documentation is available [here](http://gatb-core.gforge.inria.fr/doc/api/). It contains: API, code snippets, compile instructions, *etc*.
 
 Nevertheless, you can create a local copy of the documentation as follows (we suppose you already compiled the c++ code, see above; requires 'doxygen'):
 
@@ -113,15 +152,6 @@ Tools may set a default kmer lists in their CMakeFiles.txt, as such (see for ins
 
     list (APPEND KSIZE_DEFAULT_LIST  32   64   96  128  160  192  224  256)
 
-	
---------------------------------------------------------------------------------
-# Dependencies
-
-The following third parties should be already installed:
-
-* cmake (mandatory)
-* doxygen
-* cppunit
 
 --------------------------------------------------------------------------------
 # Directory content
@@ -159,22 +189,30 @@ For one atomic package (or sub package), we should have:
 * directory 'impl'      several implementations of the API
 
 --------------------------------------------------------------------------------
-# How to quickly create a project based on GATB-CORE ?
+# Quickly create a new GATB-TOOL software
 
-You use GATB-CORE by creating a new tool project, with the following script:
+A GATB-TOOL is a new software relying upon GATB-CORE.
 
-    sh scripts/NewProject/NewProject.sh  -d directory -n toolName
+You use GATB-CORE to create a new tool project, with the following script:
 
-where 'directory' is the directory where the project will be created and 'toolName' is the name of the project.
-The script will automatically creates the full path directory/toolName to deploy a self-contained tool.
+    sh scripts/NewProject/NewProject.sh -d directory -n toolName
+
+where:
+
+    'directory' is the directory where the project will be created
+    'toolName' is the name of the project.
+
+The script will automatically creates the full path 'directory/toolName' to deploy a self-contained tool.
  
 By default, the following part will be included in the project:
-    * a CMakeLists.txt file used for building the project
-    * a 'tools' directory holding a default source code using GATB-Core
-    * a 'scripts' directory holding a script to automatically package the tool
-    * an optional 'thirdparty' directory holding the gatb-core resources
+
+* a CMakeLists.txt file used for building the project
+* a 'tools' directory holding a default source code using GATB-Core
+* a 'scripts' directory holding a script to automatically package the tool
+* an optional 'thirdparty' directory holding the gatb-core resources
 
 The 'thirdparty' directory is only available for tool created outside the GATB-Tools repository.
+
 Tools located within GATB-Tools rely on a common GATB-CORE sub-module already available in this repository.
 
 The directory where the project is created has no link to any external resources. You can therefore
@@ -184,33 +222,14 @@ Such a project can be a start for building applications based on GATB-CORE.
 
 More on creating a new GATB-Core based project: [http://gatb-core.gforge.inria.fr/doc/api/new_project.html](http://gatb-core.gforge.inria.fr/doc/api/new_project.html)
 
-----------------------------------------------------------------------------------
-# Notes for GATB-core developers
-
-## To compile in debug mode
-
-Type:
-
-    mkdir build ; cd build 
-    cmake cmake -D CMAKE_BUILD_TYPE=Debug .. .. 
-    make -j4
-
-## To work on GATB-Core code using Eclipse
-
-Read [this documentation](https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/).
-
-## To run unit tests
-
-* compile using the command above
-* then type:
-
-        bin/gatb-core-cppunit
-
-One may set the environment variable CPPUNIT_VERBOSE to 1 to known which tests pass.
-
-The gatb-core-cppunit command may also take as argument the categories of tests that show up in the verbose output, e.g. 'bin/gatb-core-cppunit TestBank'.
-
 
 #Contact
 
-To contact a developer, request help, etc: https://gatb.inria.fr/contact/
+To contact a developer, request help, *etc*, use: 
+
+    https://gatb.inria.fr/contact/
+    
+
+# License
+
+GATB is free software; you can redistribute it and/or modify it under the [Affero GPL v3 license](http://www.gnu.org/licenses/agpl-3.0.en.html).

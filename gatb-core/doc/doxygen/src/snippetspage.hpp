@@ -205,6 +205,14 @@
  * 
  * Note: the script re-built the entire tool from its sources to ensure a clean build process.
  *
+* \section use_eclipse2 Use Eclipse c++ IDE to work on a GATB-TOOL
+ *
+ * If you are interested in using an IDE to develop c++ source codes relying on the
+ * GATB-Core library, we have written this manual to explain how to setup Eclipse
+ * c++ framework:
+ *
+ * <a href="https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/">https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/</a>
+ *
  ************************************************************************************
  ************************************************************************************
  * \page snippets_iterators Iterators snippets
