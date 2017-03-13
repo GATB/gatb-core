@@ -87,7 +87,7 @@ Type:
 	
 ## Compile in Debug mode
 
-Type save as above, except for the CMake command:
+Type same as above, except for the CMake command:
 
     cmake -D CMAKE_BUILD_TYPE=Debug ..
     make -j8
