@@ -527,6 +527,7 @@ void bglue(Storage *storage,
     }
 
     IBank *in = Bank::open (prefix + ".glue");
+    LOCAL(in);
 
 
 typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
@@ -544,16 +545,12 @@ typedef uint64_t partition_t;
     ModelCanon modelCanon(kmerSize); // i'm a bit lost with those models.. I think GATB could be made more simple here.
     Hasher_T<ModelCanon> hasher(modelCanon);
 
-    Iterator<Sequence>* it = in->iterator();
-
-    int nb_uf_hashes_vectors = 1000;
-    std::vector<std::vector<partition_t >> uf_hashes_vectors(nb_uf_hashes_vectors);
-    // std::mutex uf_hashes_vectorsMutex[nb_uf_hashes_vectors];
-    std::mutex *uf_hashes_vectorsMutex=new std::mutex  [nb_uf_hashes_vectors];
+    constexpr int nb_uf_hashes_vectors = 1000;
+    std::vector<std::pair<std::mutex, std::vector<partition_t >>> uf_hashes_vectors(nb_uf_hashes_vectors);
 
     // prepare UF: create the set of keys
     auto prepareUF = [k, &modelCanon, \
-        &uf_hashes_vectorsMutex, &uf_hashes_vectors, &hasher, nb_uf_hashes_vectors, &nb_extremities](const Sequence& sequence)
+        &uf_hashes_vectors, &hasher, nb_uf_hashes_vectors, &nb_extremities](const Sequence& sequence)
     {
         string seq = sequence.toString();
         string comment = sequence.getComment();
@@ -574,20 +571,19 @@ typedef uint64_t partition_t;
         uint64_t h1 = hasher(kmmerBegin);
         uint64_t h2 = hasher(kmmerEnd);
 
-        uf_hashes_vectorsMutex[h1%nb_uf_hashes_vectors].lock();
-        uf_hashes_vectors[h1%nb_uf_hashes_vectors].push_back(h1);
-        uf_hashes_vectorsMutex[h1%nb_uf_hashes_vectors].unlock();
+        uf_hashes_vectors[h1%nb_uf_hashes_vectors].first.lock();
+        uf_hashes_vectors[h1%nb_uf_hashes_vectors].second.push_back(h1);
+        uf_hashes_vectors[h1%nb_uf_hashes_vectors].first.unlock();
 
-        uf_hashes_vectorsMutex[h2%nb_uf_hashes_vectors].lock();
-        uf_hashes_vectors[h2%nb_uf_hashes_vectors].push_back(h2);
-        uf_hashes_vectorsMutex[h2%nb_uf_hashes_vectors].unlock();
+        uf_hashes_vectors[h2%nb_uf_hashes_vectors].first.lock();
+        uf_hashes_vectors[h2%nb_uf_hashes_vectors].second.push_back(h2);
+        uf_hashes_vectors[h2%nb_uf_hashes_vectors].first.unlock();
 
         nb_extremities+=2;
     };
 
     Dispatcher dispatcher (nb_threads);
-    it = in->iterator(); // yeah so.. I think the old iterator cannot be reused
-    dispatcher.iterate (it, prepareUF);
+    dispatcher.iterate (in->iterator(), prepareUF);
 
     logging("created vector of redundant UF elements (" + std::to_string(nb_extremities.load()) + " kmers, approx " + std::to_string( sizeof(partition_t)*nb_extremities/1024/1024) + " MB)");
 
@@ -599,7 +595,7 @@ typedef uint64_t partition_t;
 
         auto uniquify = [&uf_hashes_vectors, i] (int thread_id)
         {
-            std::vector<partition_t> &vec = uf_hashes_vectors[i];
+            std::vector<partition_t> &vec = uf_hashes_vectors[i].second;
             //http://stackoverflow.com/questions/1041620/whats-the-most-efficient-way-to-erase-duplicates-and-sort-a-vector
             set<partition_t> s( vec.begin(), vec.end() );
             vec.assign( s.begin(), s.end() );
@@ -615,15 +611,15 @@ typedef uint64_t partition_t;
     // compute number of UF elements from intermediate vectors
     unsigned long tmp_nb_uf_keys = 0;
     for (int i = 0; i < nb_uf_hashes_vectors; i++)
-        tmp_nb_uf_keys += uf_hashes_vectors[i].size();
+        tmp_nb_uf_keys += uf_hashes_vectors[i].second.size();
 
     // merge intermediate vectors into a single vector, to prepare MPHF (this step could be skipped if created a special iterator for boophf)
     std::vector<partition_t > uf_hashes;
     uf_hashes.reserve(tmp_nb_uf_keys);
     for (int i = 0; i < nb_uf_hashes_vectors; i++)
     {
-        uf_hashes.insert( uf_hashes.end(), uf_hashes_vectors[i].begin(), uf_hashes_vectors[i].end());
-        free_memory_vector(uf_hashes_vectors[i]);
+        uf_hashes.insert( uf_hashes.end(), uf_hashes_vectors[i].second.begin(), uf_hashes_vectors[i].second.end());
+        free_memory_vector(uf_hashes_vectors[i].second);
     }
 
     logging("merged UF elements (" + std::to_string(uf_hashes.size()) + ") into a single vector");
@@ -719,8 +715,7 @@ typedef uint64_t partition_t;
     };
 
     //setDispatcher (new SerialDispatcher()); // force single thread
-    it = in->iterator(); // yeah so.. I think the old iterator cannot be reused
-    dispatcher.iterate (it, createUF);
+    dispatcher.iterate (in->iterator(), createUF);
 
 #if 0
     ufmin.printStats("uf minimizers");
@@ -798,8 +793,6 @@ typedef uint64_t partition_t;
             return partition;
         };
 
-    // std::mutex gluePartitionsLock[nbGluePartitions];
-    std::mutex *gluePartitionsLock=new     std::mutex [nbGluePartitions];
     std::mutex outLock; // for the main output file
     std::vector<BufferedFasta*> gluePartitions(nbGluePartitions);
     std::string gluePartition_prefix = output_prefix + ".gluePartition.";
@@ -820,7 +813,7 @@ typedef uint64_t partition_t;
 
     // partition the glue into many files, à la dsk
     auto partitionGlue = [k, &modelCanon /* crashes if copied!*/, \
-        &get_partition, &gluePartitions, &gluePartitionsLock,
+        &get_partition, &gluePartitions,
         &out, &outLock, &nb_seqs_in_partition, &out_id, nbGluePartitions]
             (const Sequence& sequence)
     {
@@ -867,8 +860,7 @@ typedef uint64_t partition_t;
 
     logging("Disk partitioning of glue");
 
-    it = in->iterator(); // yeah so.. I think the old iterator cannot be reused
-    dispatcher.iterate (it, partitionGlue);
+    dispatcher.iterate (in->iterator(), partitionGlue);
 
     // get top10 largest glue partitions
     int top_n_glue_partition = 10;
@@ -893,6 +885,7 @@ typedef uint64_t partition_t;
     {
         delete gluePartitions[i]; // takes care of the final flush (this doesn't delete the file, just closes it)
     }
+    free_memory_vector(gluePartitions);
 
     out.flush();
 
