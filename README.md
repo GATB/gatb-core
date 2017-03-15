@@ -1,13 +1,22 @@
 # GATB - The Genome Analysis Toolbox with de-Bruijn graph
 
-&nbsp;&nbsp;&nbsp;[![](https://img.shields.io/badge/release-1.3.0-orange.svg?style=plastic)](https://github.com/GATB/gatb-core/releases)
+&nbsp;&nbsp;&nbsp;[![](https://img.shields.io/badge/release-1.3.0-orange.svg?style=plastic)](https://github.com/GATB/gatb-core/releases)&nbsp;-&nbsp;[![](https://img.shields.io/badge/build--Linux-passing-green.svg?style=plastic)]()&nbsp;&nbsp;[![](https://img.shields.io/badge/build--OSX-passing-green.svg?style=plastic)]()
+
+--------------------------------------------------------------------------------
 
 &nbsp;&nbsp;&nbsp;[![License](http://img.shields.io/:license-Affero--GPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)&nbsp;&nbsp;[![](https://tokei.rs/b1/github/GATB/gatb-core?category=code)](https://github.com/GATB/gatb-core)&nbsp;&nbsp;[![](https://img.shields.io/badge/platform-c++/11-yellow.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)&nbsp;&nbsp;[![](https://img.shields.io/badge/run_on-Linux--Mac_OSX-yellowgreen.svg)]()
 
-| **Linux gcc 4.7** | **Linux gcc 4.8** | **MacOS clang-600** | **Valgrind** |
-|-------------------|-------------------|---------------------|--------------|
-| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/) | 
+--------------------------------------------------------------------------------
+**Continuous integration on master branch - build status:**
 
+|**Linux**| **gcc 4.7** | **gcc 4.8** | **gcc 4.9** | **clang 3.6** | **clang 3.9**| **Valgrind** |
+|-|-------------------|-------------------|---------------------|--------------|-------|
+|*Debian 8*|   | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc48/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc48/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc49/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc49/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang36/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang36/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang39/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang39/) |   | 
+|*Debian 7*| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/) |   |   |  |   | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/) | 
+
+| **Mac OSX** | **clang-600** | **gcc 4.2.1** |
+|    :--:     |---------------|---------------|
+| *10.9* | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-clang-6.0/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-clang-6.0/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/) | 
 
 
 --------------------------------------------------------------------------------
