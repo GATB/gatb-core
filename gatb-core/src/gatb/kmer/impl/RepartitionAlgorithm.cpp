@@ -337,7 +337,9 @@ void RepartitorAlgorithm<span>::computeFrequencies (Repartitor& repartitor)
 
     Model model (_config._kmerSize, _config._minim_size);
 
-    CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(_bank->iterator()));
+    Iterator<Sequence>* bank_it = _bank->iterator();
+    LOCAL(bank_it);
+    CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*bank_it);
     LOCAL(cancellable_it);
 
     /** We create a sequence iterator and give it a progress message */
@@ -420,7 +422,7 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
         u_int64_t nbseq_sample = (_config._estimateSeqNb / _config._nb_banks) * 0.01;
         nbseq_sample = max((u_int64_t)nbseq_sample, (u_int64_t)100000);
 
-        Iterator<Sequence>* it = _bank->iterator();       //LOCAL (it);
+        Iterator<Sequence>* it = _bank->iterator(); LOCAL (it);
         std::vector<Iterator<Sequence>*> itBanks =  it->getComposition(); 
 
         /*
@@ -481,7 +483,6 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
     		//it_all_reads->finalize() ;
     		//cancellable_it->finalize() ;
     		itBanks[i]->finalize();
-    		delete itBanks[i];
     		//delete cancellable_it;
         }
     }
