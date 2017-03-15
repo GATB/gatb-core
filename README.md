@@ -4,7 +4,7 @@
 
 --------------------------------------------------------------------------------
 
-&nbsp;&nbsp;&nbsp;[![License](http://img.shields.io/:license-Affero--GPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)&nbsp;&nbsp;[![](https://tokei.rs/b1/github/GATB/gatb-core?category=code)](https://github.com/GATB/gatb-core)&nbsp;&nbsp;[![](https://img.shields.io/badge/platform-c++/11-yellow.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)&nbsp;&nbsp;[![](https://img.shields.io/badge/run_on-Linux--Mac_OSX-yellowgreen.svg)]()
+&nbsp;&nbsp;&nbsp;[![License](http://img.shields.io/:license-Affero--GPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)&nbsp;&nbsp;[![](https://tokei.rs/b1/github/GATB/gatb-core?category=code)](https://github.com/GATB/gatb-core)&nbsp;&nbsp;[![](https://img.shields.io/badge/platform-c++/11-yellow.svg)](https://isocpp.org/wiki/faq/cpp11)&nbsp;&nbsp;[![](https://img.shields.io/badge/run_on-Linux--Mac_OSX-yellowgreen.svg)]()
 
 --------------------------------------------------------------------------------
 **Continuous integration on master branch - build status:**
