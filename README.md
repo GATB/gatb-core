@@ -1,12 +1,13 @@
-**GATB** - The **G**enome **A**nalysis **T**oolbox with de-**B**ruijn graph
+# GATB - The Genome Analysis Toolbox with de-Bruijn graph
 
+&nbsp;&nbsp;&nbsp;[![](https://img.shields.io/badge/release-1.3.0-orange.svg?style=plastic)](https://github.com/GATB/gatb-core/releases)
 
-| **Linux gcc 4.7** | **Linux gcc 4.8** | **MacOS clang-600** | **Valgrind** | **Code** |
-|-------------------|-------------------|---------------------|--------------|----------|
-| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/) | [![](https://tokei.rs/b1/github/GATB/gatb-core?category=code)](https://github.com/GATB/gatb-core)
+&nbsp;&nbsp;&nbsp;[![License](http://img.shields.io/:license-Affero--GPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)&nbsp;&nbsp;[![](https://tokei.rs/b1/github/GATB/gatb-core?category=code)](https://github.com/GATB/gatb-core)&nbsp;&nbsp;[![](https://img.shields.io/badge/platform-c++/11-yellow.svg)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)&nbsp;&nbsp;[![](https://img.shields.io/badge/run_on-Linux--Mac_OSX-yellowgreen.svg)]()
 
+| **Linux gcc 4.7** | **Linux gcc 4.8** | **MacOS clang-600** | **Valgrind** |
+|-------------------|-------------------|---------------------|--------------|
+| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/) | 
 
-[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)
 
 
 --------------------------------------------------------------------------------
