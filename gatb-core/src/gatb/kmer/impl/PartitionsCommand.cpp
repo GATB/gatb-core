@@ -20,6 +20,8 @@
 #include <gatb/kmer/impl/PartitionsCommand.hpp>
 #include <gatb/tools/collections/impl/OAHash.hpp>
 #include <gatb/tools/collections/impl/Hash16.hpp>
+#include <gatb/tools/misc/impl/Stringify.hpp>
+
 
 using namespace std;
 
@@ -55,7 +57,7 @@ namespace gatb  {  namespace core  {   namespace kmer  {   namespace impl {
 *********************************************************************/
 template<size_t span>
 PartitionsCommand<span>:: PartitionsCommand (
-    Iterable<Type>&     partition,
+   // Iterable<Type>&     partition,
     CountProcessor*     processor,
     size_t              cacheSize,
     IteratorListener*   progress,
@@ -70,7 +72,7 @@ PartitionsCommand<span>:: PartitionsCommand (
 
 )
     :
-      _partition(partition),
+    //  _partition(partition),
       _progress(progress),
       _pInfo(pInfo),
       _pass_num(passi),
@@ -138,7 +140,7 @@ void PartitionsCommand<span>::insert (const Type& kmer, const CounterBuilder& co
 /** in this scheme we count k-mers inside a partition by a hash table */
 template<size_t span>
 PartitionsByHashCommand<span>:: PartitionsByHashCommand (
-    Iterable<Type>&         partition,
+  //  Iterable<Type>&         partition,
     CountProcessor*         processor,
     size_t                  cacheSize,
     IteratorListener*       progress,
@@ -153,11 +155,160 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
 	tools::storage::impl::SuperKmerBinFiles* 		superKstorage
 
 )
-    : PartitionsCommand<span> (partition, processor, cacheSize, progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool,superKstorage),
+    : PartitionsCommand<span> ( processor, cacheSize, progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool,superKstorage),
      _hashMemory(hashMemory)
 {
 }
 
+	
+//will take N sorted files, will merge them to M files, by chunks of T files at a time
+	
+	template<size_t span>
+	class TempCountFileMerger
+	{
+		typedef typename Kmer<span>::Type  Type;
+		typedef tools::misc::Abundance<Type> abundance_t;
+		typedef std::pair< int , Type> ptcf; //  id pointer , kmer value
+		struct ptcfcomp { bool operator() (ptcf l,ptcf r) { return ((r.second) < (l.second)); } } ;
+		
+	public:
+		TempCountFileMerger(int reduceTarget, int chunksize) :_reduceTarget(reduceTarget), _chunksize(chunksize),_idx(0)
+		{
+		}
+		
+		std::vector<string>  mergeFiles(std::vector<string> filenames)
+		{
+			ptcf best_elem;
+			int best_p;
+			int current_ab = 0;
+			int previous_ab = 0;
+			Type current_kmer,previous_kmer;
+			
+			
+			while(filenames.size() > _reduceTarget)
+			{
+				
+				std::vector<string> currentFiles;
+				for(int ii=0; ii<_chunksize; ii++)
+				{
+					currentFiles.push_back(filenames.back()); filenames.pop_back();
+				}
+				
+				//the new file containing the merged counts
+				std::string newfname = currentFiles[0]  + Stringify::format ("_merged_%i", _idx++) ;
+				BagFile<abundance_t> * bagf = new BagFile<abundance_t>(newfname); LOCAL(bagf);
+				Bag<abundance_t> * currentbag =  new BagCache<abundance_t> (  bagf, 10000 ); LOCAL(currentbag);
+				
+				filenames.push_back(newfname);
+				
+				std::vector<Iterator<abundance_t>*> _tmpCountIterators;
+				
+				for(int ii=0; ii< currentFiles.size(); ii++)
+				{
+					_tmpCountIterators.push_back( new IteratorFile<abundance_t> (currentFiles[ii])  );
+				}
+				std::priority_queue< ptcf, std::vector<ptcf>,ptcfcomp > pq;
+				
+				
+				//// init all iterators  ////
+				for(int ii=0; ii< _tmpCountIterators.size(); ii++)
+				{
+					_tmpCountIterators[ii]->first();
+				}
+				
+				//////   init pq ////
+				for(int ii=0; ii< _tmpCountIterators.size(); ii++)
+				{
+					if( ! _tmpCountIterators[ii]->isDone())  {
+						pq.push(ptcf(ii,_tmpCountIterators[ii]->item().value) );
+					}
+				}
+				
+				//now merge the n sorted iterators and merge their kmer counts.
+				if(pq.size() != 0)
+				{
+					//get first pointer
+					best_elem = pq.top() ; pq.pop();
+					best_p = best_elem.first;
+					previous_ab = _tmpCountIterators[best_p]->item().abundance;
+					previous_kmer = best_elem.second;
+					
+					//go forward in this list
+					_tmpCountIterators[best_p]->next();
+					if (! _tmpCountIterators[best_p]->isDone())
+					{
+						pq.push(ptcf( best_p,_tmpCountIterators[best_p]->item().value) );
+					}
+					
+					while (pq.size() != 0)
+					{
+						
+						//get  first pointer
+						best_elem = pq.top() ; pq.pop();
+						best_p = best_elem.first;
+						current_ab = _tmpCountIterators[best_p]->item().abundance;
+						current_kmer = best_elem.second;
+						
+						//go forward in this list
+						_tmpCountIterators[best_p]->next();
+						if (! _tmpCountIterators[best_p]->isDone())
+						{
+							pq.push(ptcf( best_p,_tmpCountIterators[best_p]->item().value) );
+						}
+						
+						
+						if(current_kmer != previous_kmer)
+						{
+							//output previous kmer
+							currentbag->insert( abundance_t(previous_kmer,previous_ab) );
+							previous_kmer = current_kmer;
+							previous_ab = current_ab;
+						}
+						else
+						{
+							//merge counter
+							previous_ab += current_ab;
+						}
+					}
+					
+					//output last one
+					currentbag->insert( abundance_t(previous_kmer,previous_ab) );
+				}
+				
+
+				currentbag->flush();
+
+				
+				//cleanup
+				
+				for(int ii=0; ii< _tmpCountIterators.size(); ii++)
+				{
+					delete _tmpCountIterators[ii];
+				}
+				
+				
+				//erase used files
+				for(int ii=0; ii< currentFiles.size(); ii++)
+				{
+					std::string fname = currentFiles[ii];
+					system::impl::System::file().remove(fname);
+				}
+				
+			}
+			
+			
+			return filenames;
+		}
+		
+		private :
+		
+		int _reduceTarget;
+		int _chunksize;
+		int _idx;
+		
+	};
+	
+	
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -169,109 +320,369 @@ PartitionsByHashCommand<span>:: PartitionsByHashCommand (
 template<size_t span>
 void PartitionsByHashCommand<span>:: execute ()
 {
-    this->_processor->beginPart (this->_pass_num, this->_parti_num, this->_cacheSize, this->getName());
+	typedef typename tools::collections::impl::Hash16<Type>::cell cell_t;
 
-    CounterBuilder solidCounter;
-
+	this->_superKstorage->openFile("r",this->_parti_num);
+	
+	this->_processor->beginPart (this->_pass_num, this->_parti_num, this->_cacheSize, this->getName());
+	
+	CounterBuilder solidCounter;
+	
 	size_t count=0;
-
+	
 	/** We need a map for storing part of solid kmers. */
 	//OAHash<Type> hash (_hashMemory);
-
+	
 	Hash16<Type> hash16 (_hashMemory/MBYTE); // now use hash 16 to ensure always finish
 	
 	/** We directly fill the vector from the current partition file. */
-	Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
-
+	
+	//Iterator<Type>* it = this->_partition.iterator();  LOCAL(it);
+	
 	// If the partition holds kmers (and not superkmers), it would be :
 	//      for (it->first(); !it->isDone(); it->next())   {  hash.increment (it->item());  }
-
+	
 	DEBUG (("PartitionsByHashCommand::execute:  fillsolid parti num %i  by oahash --- mem %llu  MB\n",
-        this->_parti_num,_hashMemory/MBYTE
-    ));
+			this->_parti_num,_hashMemory/MBYTE
+));
 	
 	//with decompactage
 	//superk
-	u_int8_t		nbK, rem ;
-	Type compactedK;
 	int ks = this->_kmerSize;
 	Type un; un.setVal(1);
 	size_t _shift_val = Type::getSize() -8;
 	Type kmerMask = (un << (ks*2)) - un;
 	size_t shift = 2*(ks-1);
 	
-	/** We iterate the superkmers from the table. */
-	for (it->first(); !it->isDone(); it->next())
+	Type _seedk;
+	
+	int _fileId = this->_parti_num;
+	unsigned char * _buffer = 0 ;
+	unsigned int _buffer_size = 0;
+	
+	
+	typedef tools::misc::Abundance<Type> abundance_t;
+	std::vector<string> _tmpCountFileNames;
+	
+	unsigned int nb_bytes_read;
+	while(this->_superKstorage->readBlock(&_buffer, &_buffer_size, &nb_bytes_read, _fileId))
 	{
-	    /** A superkmer is encoded with two successive Type objects, so we read both of them. */
-		Type superk = it->item();
-		it->next();
-		Type seedk = it->item();
+		unsigned char * ptr = _buffer;
+		u_int8_t nbK; //number of kmers in the superkmer
+		u_int8_t newbyte=0;
 		
-		compactedK =  superk;
-		nbK = (compactedK >> _shift_val).getVal() & 255; // 8 bits poids fort = cpt //todo for large k values
-		rem = nbK;
-		
-		Type temp = seedk;
-		Type rev_temp = revcomp(temp,ks);
-		Type newnt ;
-		Type mink;
-		
-		/** We loop over each kmer of the current superkmer. */
-		for (int ii=0; ii<nbK; ii++,rem--)
+		while(ptr < (_buffer+nb_bytes_read)) //decode whole block
 		{
-
+			//decode a superkmer
+			nbK = *ptr; ptr++;
+			int nb_bytes_superk = (this->_kmerSize + nbK -1 +3) /4  ;
+			
+			int rem_size = this->_kmerSize;
+			
+			Type Tnewbyte;
+			int nbr=0;
+			_seedk.setVal(0);
+			while(rem_size>=4)
+			{
+				newbyte = *ptr ; ptr++;
+				Tnewbyte.setVal(newbyte);
+				_seedk =  _seedk  |  (Tnewbyte  << (8*nbr)) ;
+				rem_size -= 4; nbr++;
+			}
+			
+			int uid = 4; //uid = nb nt used in current newbyte
+			
+			//reste du seed kmer
+			if(rem_size>0)
+			{
+				newbyte = *ptr ; ptr++;
+				Tnewbyte.setVal(newbyte);
+				
+				_seedk = ( _seedk  |  (Tnewbyte  << (8*nbr)) ) ;
+				uid = rem_size;
+			}
+			_seedk = _seedk & kmerMask;
+			
+			
+			
+			u_int8_t rem = nbK;
+			Type temp = _seedk;
+			Type rev_temp = revcomp(temp,this->_kmerSize);
+			Type newnt ;
+			Type mink;
+			
+			
+			//iterate over kmers of this superk
+			for (int ii=0; ii< nbK; ii++,rem--)
+			{
+				
 #ifdef NONCANONICAL
-            mink = temp;
+				mink = temp;
 #else
-			mink = std::min (rev_temp, temp);
+				mink = std::min (rev_temp, temp);
 #endif
+				
+				
+				/** We insert the kmer into the hash. */
+				hash16.insert(mink);
+				
+				
+				if(rem < 2) break; //no more kmers in this superkmer, the last one has just been eaten
+				
+				////////now decode next kmer of this superkmer ///////
+				
+				if(uid>=4) //read next byte
+				{
+					newbyte = *ptr ; ptr++;
+					Tnewbyte.setVal(newbyte);
+					uid =0;
+				}
+				
+				newnt = (Tnewbyte >> (2*uid))& 3; uid++;
+				temp = ((temp << 2 ) |  newnt   ) & kmerMask;
+				
+				newnt.setVal(comp_NT[newnt.getVal()]) ;
+				rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
+			}
 			
-			/** We insert the kmer into the hash. */
-			//hash.increment (mink);
-			hash16.insert(mink);
+			//now go to next superk of this block, ptr should point to beginning of next superk
+		}
+		
+		if(hash16.getByteSize() > _hashMemory) // to be improved (can be slightly larger than maxmemory by a block size)
+		//if(_tmpCountFileNames.size()<20) //force  dumps for testing
+		{
+			//printf("splitting into subparts %lli KB / %lli KB  parti %i subpart %i \n",hash16.getByteSize()/1024,_hashMemory/1024 ,this->_parti_num,_tmpCountFiles.size()  );
+			//dump partial count to disk file
 			
-			if(rem < 2) break;
-			newnt =  ( superk >> ( 2*(rem-2)) ) & 3 ;
 			
-			temp = ((temp << 2 ) |  newnt   ) & kmerMask;
-			newnt.setVal(comp_NT[newnt.getVal()]) ;
-			rev_temp = ((rev_temp >> 2 ) |  (newnt << shift) ) & kmerMask;
+			Iterator < cell_t >* itKmerAbundancePartial = hash16.iterator(true);
+			LOCAL (itKmerAbundancePartial);
+
+			
+			std::string fname = this->_superKstorage->getFileName(this->_parti_num) + Stringify::format ("_subpart_%i", _tmpCountFileNames.size()) ;
+			_tmpCountFileNames.push_back(fname);
+			
+			BagFile<abundance_t> * bagf = new BagFile<abundance_t>(fname); LOCAL(bagf);
+			Bag<abundance_t> * currentbag =  new BagCache<abundance_t> (  bagf, 10000 ); LOCAL(currentbag);
+			
+			
+			for (itKmerAbundancePartial->first(); !itKmerAbundancePartial->isDone(); itKmerAbundancePartial->next())
+			{
+				cell_t & cell = itKmerAbundancePartial->item();
+				currentbag->insert( abundance_t(cell.graine,cell.val) );
+			}
+	
+			currentbag->flush();			
+			hash16.clear();
 		}
 	}
+	
+	if(_buffer!=0)
+		free(_buffer);
+	
 
 	/** We loop over the solid kmers map.
 	 * NOTE !!! we want the items to be sorted by kmer values (see finalize part of debloom). */
 	//Iterator < Abundance<Type> >* itKmerAbundance = hash.iterator(true);
-
 	//shortcut
-	typedef typename tools::collections::impl::Hash16<Type>::cell cell_t;
 	Iterator < cell_t >* itKmerAbundance = hash16.iterator(true);
+	LOCAL (itKmerAbundance);
+	
+	
+	//now merge sort over current hash and over the sorted _tmpCountFiles
+	// : simple merge sort of n sorted iterators
+	
+	if(_tmpCountFileNames.size()!=0)
+	{
+		
+		TempCountFileMerger<span> tempCountFileMerger (10,10);
+		//will merge by chunk of 10 files at a time, until reach less than 10 files
+		_tmpCountFileNames = tempCountFileMerger.mergeFiles(_tmpCountFileNames);
+		//then will use code below to merge remaining files with the contents of the hash table
+
+		std::vector<Iterator<abundance_t>*> _tmpCountIterators;
+
+		//how to make sure there are not too many subpart files ?  and that we'll not reach the max limit ?
+		//we *could* merge  only some of them at a time ..  todo ?  --> done with TempCountFileMerger
+		for(int ii=0; ii< _tmpCountFileNames.size(); ii++)
+		{
+			std::string fname = _tmpCountFileNames[ii];
+			_tmpCountIterators.push_back( new IteratorFile<abundance_t> (fname)  );
+		}
+	
+		// Note (guillaume) : code below is ugly because I have to manage itKmerAbundance (iterator over cell_t)
+		// and _tmpCountIterators (iterators over abundance_t) differently since they have different types
+		// I would have liked to transform  Iterator<cell_t>  to an Iterator<abundance_t>   with the following adaptor :
+		//
+		// 		struct cell2AbAdaptor  {  abundance_t operator() (cell_t& c)  { return abundance_t(c.graine,c.val) ; }  };
+		//Iterator<abundance_t>*   hashAbundance  = new IteratorAdaptor<cell_t,abundance_t,cell2AbAdaptor> (itKmerAbundance);
+	    //	but it turns out to be impossible because of the return by reference of the   item()  function.
+		//  another solution would be to dump contents of hash to a file then read it, but inefficient
+		//  So, ugly code it is.
+		
+		
+		//setup the priority queue for merge sorting
+		typedef std::pair< int , Type> ptcf; //  id pointer , kmer value
+		struct ptcfcomp { bool operator() (ptcf l,ptcf r) { return ((r.second) < (l.second)); } } ;
+		std::priority_queue< ptcf, std::vector<ptcf>,ptcfcomp > pq;
+
+		//// init all iterators  ////
+		itKmerAbundance->first();
+		for(int ii=0; ii< _tmpCountIterators.size(); ii++)
+		{
+			_tmpCountIterators[ii]->first();
+		}
+		
+		//////   init pq ////
+
+		if(!itKmerAbundance->isDone())
+		{
+			pq.push(ptcf(-1,itKmerAbundance->item().graine) ); // -1  will mean in the  itKmerAbundance
+		}
+		
+		for(int ii=0; ii< _tmpCountIterators.size(); ii++)
+		{
+			if( ! _tmpCountIterators[ii]->isDone())  {
+				abundance_t &ab = _tmpCountIterators[ii]->item();
+				pq.push(ptcf(ii,ab.value) );
+			}
+		}
+		
+		ptcf best_elem;
+		int best_p;
+		int current_ab = 0;
+		int previous_ab = 0;
+		Type current_kmer,previous_kmer;
+		
+	
+	    //now merge the n sorted iterators and merge their kmer counts.
+		if(pq.size() != 0)
+		{
+			//get first pointer
+			best_elem = pq.top() ; pq.pop();
+			best_p = best_elem.first;
+			if(best_p==-1)
+			{
+				previous_ab = itKmerAbundance->item().val;
+			}
+			else
+			{
+				previous_ab = _tmpCountIterators[best_p]->item().abundance;
+			}
+			
+			previous_kmer = best_elem.second;
+
+			//go forward in this list
+
+			if(best_p==-1)
+			{
+				itKmerAbundance->next();
+				if (! itKmerAbundance->isDone())
+				{
+					pq.push(ptcf(-1,itKmerAbundance->item().graine) );
+				}
+			}
+			else
+			{
+				_tmpCountIterators[best_p]->next();
+				if (! _tmpCountIterators[best_p]->isDone())
+				{
+					pq.push(ptcf( best_p,_tmpCountIterators[best_p]->item().value) );
+				}
+			}
+			
+			while (pq.size() != 0)
+			{
+				
+				//get  first pointer
+				best_elem = pq.top() ; pq.pop();
+				best_p = best_elem.first;
+				
+				if(best_p==-1)
+				{
+					current_ab = itKmerAbundance->item().val;
+				}
+				else
+				{
+					current_ab = _tmpCountIterators[best_p]->item().abundance;
+				}
+				current_kmer = best_elem.second;
+				
+				//go forward in this list
+				if(best_p==-1)
+				{
+					itKmerAbundance->next();
+					if (! itKmerAbundance->isDone())
+					{
+						pq.push(ptcf(-1,itKmerAbundance->item().graine) );
+					}
+				}
+				else
+				{
+					_tmpCountIterators[best_p]->next();
+					if (! _tmpCountIterators[best_p]->isDone())
+					{
+						pq.push(ptcf( best_p,_tmpCountIterators[best_p]->item().value) );
+					}
+				}
+
+				if(current_kmer != previous_kmer)
+				{
+					//output previous kmer
+					solidCounter.set (previous_ab);
+					this->insert (previous_kmer, solidCounter);
+					previous_kmer = current_kmer;
+					previous_ab = current_ab;
+				}
+				else
+				{
+					//merge counter
+					previous_ab += current_ab;
+				}
+				
+			}
+
+			//output last one
+			solidCounter.set (previous_ab);
+			this->insert (previous_kmer, solidCounter);
+		}
+		
+
+		//cleanup
+		for(int ii=0; ii< _tmpCountIterators.size(); ii++)
+		{
+			delete _tmpCountIterators[ii];
+		}
+		
+		
+		//erase sub files
+		for(int ii=0; ii< _tmpCountFileNames.size(); ii++)
+		{
+			std::string fname = _tmpCountFileNames[ii];
+			system::impl::System::file().remove(fname);
+		}
+		
+	}
+	else // no merging needed, just iterate the hash table and output kmer counts
+	{
+		for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
+		{
+			
+			cell_t & cell = itKmerAbundance->item();
+			solidCounter.set (cell.val);
+			this->insert (cell.graine, solidCounter);
+		}
+	}
 
 	
-	LOCAL (itKmerAbundance);
 
-	for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
-	{
-	    /** Shortcut. */
-	  //  Abundance<Type>& current = itKmerAbundance->item();
-		
-	    /** We update the solid counter. */
-	    //solidCounter.set (current.getAbundance());
+	
+	this->_superKstorage->closeFile(this->_parti_num);
 
-		/** We may add this kmer to the solid kmers bag. */
-	    //this->insert (current.getValue(), solidCounter);
-		
-		cell_t & cell = itKmerAbundance->item();
-		solidCounter.set (cell.val);
-		this->insert (cell.graine, solidCounter);
-
-
-	}
 	
 	this->_progress->inc (this->_pInfo.getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
-
-    this->_processor->endPart (this->_pass_num, this->_parti_num);
+	
+	this->_processor->endPart (this->_pass_num, this->_parti_num);
 };
 
 /*********************************************************************
@@ -461,7 +872,7 @@ private :
 /** in this scheme we count k-mers in a partition by sorting a vector*/
 template<size_t span>
 PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
-    Iterable<Type>&     partition,
+  //  Iterable<Type>&     partition,
     CountProcessor*     processor,
     size_t              cacheSize,
     IteratorListener*   progress,
@@ -475,7 +886,7 @@ PartitionsByVectorCommand<span>:: PartitionsByVectorCommand (
     vector<size_t>&     offsets,
 	tools::storage::impl::SuperKmerBinFiles* 		superKstorage
 )
-    : PartitionsCommand<span> (partition, processor, cacheSize,  progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool,superKstorage),
+    : PartitionsCommand<span> ( processor, cacheSize,  progress, timeInfo, pInfo, passi, parti,nbCores,kmerSize,pool,superKstorage),
         _radix_kmers (0), _bankIdMatrix(0), _radix_sizes(0), _r_idx(0), _nbItemsPerBankPerPart(offsets)
 {
     _dispatcher = new Dispatcher (this->_nbCores);
@@ -510,7 +921,6 @@ void PartitionsByVectorCommand<span>::execute ()
 
     /** We check that we got something. */
     //if (this->_partition.getNbItems() == 0)  {  return;  }
-
 	if (this->_superKstorage->getNbItems(this->_parti_num) == 0)  {  return;  }
 
     /** We configure tables. */
@@ -801,6 +1211,8 @@ void PartitionsByVectorCommand<span>::executeRead ()
 {
     TIME_INFO (this->_timeInfo, "1.read");
 
+	this->_superKstorage->openFile("r",this->_parti_num);
+
     /** Recall that the attribute _offsets has a size equals to the number of banks + 1 as input
      * and for each bank, it holds the number of items found for the currently processed partition.
      *
@@ -844,14 +1256,16 @@ void PartitionsByVectorCommand<span>::executeRead ()
          */
         if (_bankIdMatrix)
         {
-            for (size_t xx=0; xx< (KX+1); xx++)
-            {
-                for (int ii=0; ii< 256; ii++)
-                {
-                    size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
-                    _bankIdMatrix [IX(xx,ii)] = (bank::BankIdType*) this->_pool.pool_malloc (nbKmers * sizeof(bank::BankIdType), "bank ids alloc");
-                }
-            }
+			throw system::ExceptionNotImplemented ();
+
+//            for (size_t xx=0; xx< (KX+1); xx++)
+//            {
+//                for (int ii=0; ii< 256; ii++)
+//                {
+//                    size_t nbKmers = this->_pInfo.getNbKmer(this->_parti_num,ii,xx);
+//                    _bankIdMatrix [IX(xx,ii)] = (bank::BankIdType*) this->_pool.pool_malloc (nbKmers * sizeof(bank::BankIdType), "bank ids alloc");
+//                }
+//            }
         }
     }
 
@@ -868,29 +1282,32 @@ void PartitionsByVectorCommand<span>::executeRead ()
 
     if (_bankIdMatrix)
     {
-        /** We create an iterator over all the items. */
-        Iterator<Type>* itGlobal = this->_partition.iterator();
-        LOCAL (itGlobal);
-
-        /** We iterate the banks. */
-        for (size_t b=0; b<_nbItemsPerBankPerPart.size(); b++)
-        {
-            /** We truncate the global iterator.
-             * NB : we initialize (ie call 'first') the global iterator only at first call (for b==0). */
-            Iterator<Type>* itLocal = new TruncateIterator<Type> (*itGlobal, _nbItemsPerBankPerPart[b], b==0 ? true : false);
-            LOCAL (itLocal);
-
-            /** We iterate this local iterator. */
-            _dispatcher->iterate (itLocal, SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, _bankIdMatrix, b), 10000); //must be even , reading by pairs
-        }
-
-        /** We check that the global iterator is finished. */
-        if (itGlobal->isDone() == false)  { throw Exception ("PartitionsByVectorCommand: iteration should be finished"); }
+		
+		 throw system::ExceptionNotImplemented ();
+		
+//        /** We create an iterator over all the items. */
+//        Iterator<Type>* itGlobal = this->_partition.iterator();
+//        LOCAL (itGlobal);
+//
+//        /** We iterate the banks. */
+//        for (size_t b=0; b<_nbItemsPerBankPerPart.size(); b++)
+//        {
+//            /** We truncate the global iterator.
+//             * NB : we initialize (ie call 'first') the global iterator only at first call (for b==0). */
+//            Iterator<Type>* itLocal = new TruncateIterator<Type> (*itGlobal, _nbItemsPerBankPerPart[b], b==0 ? true : false);
+//            LOCAL (itLocal);
+//
+//            /** We iterate this local iterator. */
+//            _dispatcher->iterate (itLocal, SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, _bankIdMatrix, b), 10000); //must be even , reading by pairs
+//        }
+//
+//        /** We check that the global iterator is finished. */
+//        if (itGlobal->isDone() == false)  { throw Exception ("PartitionsByVectorCommand: iteration should be finished"); }
     }
     else
     {
         /** We iterate the superkmers. */
-        _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, 0, 0), 10000); //must be even , reading by pairs
+      //  _dispatcher->iterate (this->_partition.iterator(), SuperKReader<span>  (this->_kmerSize, _r_idx, _radix_kmers, _radix_sizes, 0, 0), 10000); //must be even , reading by pairs
 		
 		
 		vector<ICommand*> cmds;
@@ -909,6 +1326,9 @@ void PartitionsByVectorCommand<span>::executeRead ()
 //		printf("-----done ReadSuperKCommand ---\n");
 
     }
+	
+	this->_superKstorage->closeFile(this->_parti_num);
+
 }
 
 
@@ -1294,7 +1714,7 @@ void PartitionsByVectorCommand<span>::executeDump ()
         //merge-scan all 'virtual' arrays and output counts
         while (1)
         {
-            //go forward in this array or in new array of reaches end of this one
+            //go forward in this array or in new array if reaches end of this one
             if (! vec_pointer[best_p]->next())
             {
                 //reaches end of one array

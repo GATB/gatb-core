@@ -135,6 +135,9 @@ public:
         result.add (0, "histogram");
         result.add (1, "cutoff",            "%ld",  _histogram->get_solid_cutoff());
         result.add (1, "nb_ge_cutoff",      "%ld",  _histogram->get_nbsolids_auto());
+		result.add (1, "ratio_weak_volume",      "%.2f",  _histogram->get_ratio_weak());
+		
+		
         // result->add (1, "percent_ge_cutoff", "%.1f", nbSolids > 0 ? 100.0 * (double)_histogram->get_nbsolids_auto() / (double)_bankStats.kmersNbValid : 0);
         result.add (1, "first_peak",         "%ld",  _histogram->get_first_peak());
 

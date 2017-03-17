@@ -54,10 +54,10 @@ template <typename cell>  class Pool
 public:
 
 	/** Default constructor.
-     * \param[in] tai :  2^22  16 M cells *16 o    blocs de 256 Mo
-     * \param[in] N : 2^10  soit 4 G cells max
+     * \param[in] tai :  2^20  1 M cells *16 o    blocs de 16 Mo
+     * \param[in] N : 2^12  soit 4 G cells max
      * */
-    Pool (size_t tai=4194304, size_t N=1024) : TAI_POOL(tai), N_POOL(N)
+    Pool (size_t tai=1048576, size_t N=4096) : TAI_POOL(tai), N_POOL(N)
     {
         n_pools = 0; n_cells=0;
         //allocation table de pool :
@@ -80,6 +80,13 @@ public:
         FREE (tab_pool);
     }
 
+	
+	u_int64_t getByteSize()
+	{
+		return ((n_pools-2) * TAI_POOL*sizeof(cell)); // I do not want to count the firs tdefault allocated pool
+	}
+	
+	
     /**  allocate cell, return internal pointer type ( 32bits) */
     cell_ptr_t  allocate_cell()
     {
@@ -87,8 +94,8 @@ public:
         // ncells = nb de cells deja utilisees
         if (n_cells <TAI_POOL)
         {
-            internal_adress  = n_pools -1;    // low 10 bits  : pool number
-            internal_adress |= n_cells << 10; // 22 high bits : cell number in pool
+            internal_adress  = n_pools -1;    // low 12 bits  : pool number
+            internal_adress |= n_cells << 12; // 20 high bits : cell number in pool
             n_cells ++;
 
             return internal_adress;
@@ -105,8 +112,8 @@ public:
             n_pools++;
             n_cells = 1;
 
-            internal_adress = n_pools -1; // low 8 bits  : pool number
-            // 22 high bits are 0
+            internal_adress = n_pools -1;
+            // 20 high bits are 0
 
             return internal_adress;
         }
@@ -115,8 +122,8 @@ public:
     /** */
     cell*  internal_ptr_to_cell_pointer(cell_ptr_t internal_ptr)
     {
-        unsigned int numpool =  internal_ptr & 1023;
-        unsigned int numcell =  internal_ptr >> 10;
+        unsigned int numpool =  internal_ptr & 4095;
+        unsigned int numcell =  internal_ptr >> 12;
 
         return (tab_pool[numpool] + numcell);
     }
@@ -128,12 +135,14 @@ public:
         {
             FREE ( tab_pool[i] );
         }
-
+		memset(tab_pool[1],0,TAI_POOL*sizeof(cell));
+		
         //on repasse sur premiere pool
         pool_courante = tab_pool[1];
         n_cells=0;
         n_pools=2;
     }
+
 
 	
 	//sort the pools according to some comparator
@@ -150,6 +159,7 @@ public:
 		
 		// la pool en cours de remplissage
 		std::sort( tab_pool[n_pools-1],  tab_pool[n_pools-1]  + n_cells, comparator);
+
 	}
 	
 	
@@ -172,7 +182,7 @@ public:
 	public:
 		typedef std::pair<int, cell *> cellpair_t; //id pointer of pool , cell *
 
-		struct sortcellpair { bool operator() (cellpair_t &l,cellpair_t &r) { return (  (* l.second).val <  (* r.second).val );  }  } ;
+		struct sortcellpair { bool operator() (cellpair_t &l,cellpair_t &r) { return !(  (* l.second).graine <=  (* r.second).graine );  }  } ;
 
 		IteratorSorted (Pool<cell>& aRef) : ref(aRef), done(true)  {}
 		
@@ -198,6 +208,8 @@ public:
 			{
 				cellpair_t current_pair = pq.top() ; pq.pop();
 				*this->_item = * (current_pair.second);
+				
+
 				
 				//push the next cell of this list  if any
 				unsigned int cell_number =  current_pair.second   -  ref.tab_pool[current_pair.first] ;

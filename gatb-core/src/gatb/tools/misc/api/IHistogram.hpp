@@ -112,6 +112,11 @@ public:
      * \return number of kmers. */
 	virtual u_int64_t get_nbsolids_auto () = 0;
 
+	
+	/** Get the ratio of weak kmers in total volume
+	 * \return ratio */
+	virtual float get_ratio_weak () = 0;
+	
 	/** Get the x1 value at the first maximum after x0. */
     virtual u_int16_t get_first_peak () = 0;
 

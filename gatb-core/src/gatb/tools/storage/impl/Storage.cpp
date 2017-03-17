@@ -317,6 +317,16 @@ SuperKmerBinFiles::SuperKmerBinFiles(const std::string& path,const std::string& 
 	
 }
 
+void SuperKmerBinFiles::openFile( const char* mode, int fileId)
+{
+	std::stringstream ss;
+	ss << _basefilename << "." << fileId;
+		
+	_files[fileId] = system::impl::System::file().newFile (_path, ss.str(), mode);
+	_synchros[fileId] = system::impl::System::thread().newSynchronizer();
+	_synchros[fileId]->use();
+}
+	
 void SuperKmerBinFiles::openFiles( const char* mode)
 {
 	_files.resize(_nb_files,0);
@@ -336,6 +346,17 @@ void SuperKmerBinFiles::openFiles( const char* mode)
 	}
 }
 
+	
+std::string SuperKmerBinFiles::getFileName(int fileId)
+{
+	
+	std::stringstream ss;
+	ss << _path << "/" <<_basefilename << "." << fileId;
+	
+	return ss.str();
+}
+
+	
 int SuperKmerBinFiles::readBlock(unsigned char ** block, unsigned int* max_block_size, unsigned int* nb_bytes_read, int file_id)
 {
 	_synchros[file_id]->lock();
@@ -440,6 +461,17 @@ void SuperKmerBinFiles::eraseFiles()
 	system::impl::System::file().rmdir(_path);
 
 }
+
+void SuperKmerBinFiles::closeFile(  int fileId)
+{
+	if(_files[fileId]!=0)
+	{
+		delete _files[fileId];
+		_files[fileId] = 0;
+		_synchros[fileId]->forget();
+	}
+}
+
 	
 void SuperKmerBinFiles::closeFiles()
 {

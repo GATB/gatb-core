@@ -226,12 +226,18 @@ protected:
 	////////////////// superkmer storage ///////////////////////
 	////////////////////////////////////////////////////////////
 	
-	
+// Note (guillaume) :  not very nice since it completely ignores GATB bag, bagcache, collection, partition,  etc ..
+// but I do not know how to use gatb classes with a variable size type (the superkmer)
+// so, hell, just recreate an adhoc buffered storage here for superkmers
+// to be used in conjunction with the CacheSuperKmerBinFiles below
+// it does need to be templated for kmer size, superkmers are inserted as u_int8_t*
 
 	
+	
 //block header = 4B = block size
-//puis block = liste de  1B = superk len , superk
-//why not taille, liste superk de cette taille, mais il faudrait bcp de buffer (un par taille superk)
+//puis block = liste de couple  < superk length = 1B  , superkmer = nB  >
+	
+//why not taille, liste superk de cette taille, mais il faudrait bcp trop de buffer (un par taille superk) et ne serait pas bcp plus compact
 class SuperKmerBinFiles
 {
 	
@@ -246,6 +252,8 @@ public:
 	void flushFiles();
 	void eraseFiles();
 	void openFiles(const char* mode);
+	void openFile( const char* mode, int fileId);
+	void closeFile(  int fileId);
 
 	void writeBlock(unsigned char * block, unsigned int block_size, int file_id, int nbkmers);
 	int readBlock(unsigned char ** block, unsigned int* max_block_size, unsigned int* nb_bytes_read, int file_id);
@@ -256,6 +264,8 @@ public:
 	void getFilesStats(u_int64_t & total, u_int64_t & biggest, u_int64_t & smallest, float & mean);
 	u_int64_t getFileSize(int fileId);
 
+	
+	std::string getFileName(int fileId);
 	//todo:  int getNbItems(int fileId)
 private:
 

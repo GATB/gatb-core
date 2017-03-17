@@ -172,6 +172,21 @@ void Histogram::compute_threshold (int min_auto_threshold)
 		_nbsolids += _histogram[i].abundance;
 		
 	}
+	
+	u_int64_t vol_weak=0;
+	u_int64_t volume_total=0;
+	
+	for (size_t i=0; i<_cutoff ; i++)
+	{
+		vol_weak += _histogram[i].abundance *i;
+	}
+	
+	for (size_t i=0; i<_length+1   ; i++)
+	{
+		volume_total += _histogram[i].abundance *i;
+	}
+	_ratio_weak_volume = (float)vol_weak / (float)volume_total;
+
 }
 
 /********************************************************************************/

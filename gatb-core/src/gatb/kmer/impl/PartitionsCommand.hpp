@@ -109,7 +109,7 @@ public:
 
     /** Constructor. */
     PartitionsCommand (
-        gatb::core::tools::collections::Iterable<Type>& partition,
+       // gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,
@@ -130,7 +130,7 @@ public:
     virtual const char* getName() const = 0;
 
 protected:
-    gatb::core::tools::collections::Iterable<Type>&         _partition;
+ //   gatb::core::tools::collections::Iterable<Type>&         _partition;
     gatb::core::tools::dp::IteratorListener*                _progress;
 	PartiInfo<5>&                                           _pInfo;
     int                                                     _pass_num;
@@ -166,7 +166,7 @@ public:
 
     /** Constructor. */
     PartitionsByHashCommand (
-        gatb::core::tools::collections::Iterable<Type>& partition,
+       // gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,
@@ -213,7 +213,7 @@ private:
 public:
     /** Constructor. */
     PartitionsByVectorCommand (
-        gatb::core::tools::collections::Iterable<Type>& partition,
+       // gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,

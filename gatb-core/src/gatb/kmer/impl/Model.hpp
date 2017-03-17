@@ -1046,19 +1046,52 @@ struct Kmer
             has_frequency = false;
         }
 
-        void include_frequency (uint32_t *freq_order) 
+        void include_frequency (uint32_t *freq_order)
         { 
             _freq_order = freq_order;
             has_frequency = true;
         }
 
-        bool operator() (const Type& a_t, const Type& b_t) const { 
+		template<class Model>   Type computeLargest (const Model& model,int mmersize)
+		{
+			Type largest;
+			if(has_frequency)
+			{
+				u_int64_t nbminims_total = ((u_int64_t)1 << (2*mmersize));
+
+				Type  mmer_max;
+				mmer_max.setVal(0);
+				uint32_t _freq_max = _freq_order[mmer_max.getVal()];
+				for(uint32_t ii=0; ii< nbminims_total; ii++)
+				{
+					Type Tii;
+					Tii.setVal(ii);
+					
+					if( ! (*this)(Tii,mmer_max ))
+					{
+						mmer_max.setVal(ii);
+						_freq_max = _freq_order[ii];
+					}
+				}
+				printf("largest freq is %i   for %s\n",_freq_max,mmer_max.toString(mmersize).c_str());
+				largest = mmer_max;
+			}
+			else
+			{
+				largest = model.getKmerMax();
+			}
+			
+			return largest;
+		}
+		
+        bool operator() (const Type& a_t, const Type& b_t) const {
             u_int64_t a = a_t.getVal();
             u_int64_t b = b_t.getVal();
 
             if (has_frequency)
             {
                 //printf("testing freq order of %d %d: %d %d, min is gonna be: %d\n",a,b,_freq_order[a], _freq_order[b], (_freq_order[a] < _freq_order[b]) ? a : b);
+				//printf("freq order %llu %llu        %i %i  %i\n",a,b,_freq_order[a],_freq_order[b], _freq_order[a] > _freq_order[b]);
                 if (_freq_order[a] == _freq_order[b])
                     return a < b;
                 return _freq_order[a] < _freq_order[b];
@@ -1129,7 +1162,7 @@ struct Kmer
              * The value is actually set by the Comparator instance provided as a template of the class. */
             Type tmp;
             _cmp.template init<ModelType> (getMmersModel(), tmp);
-            _minimizerDefault.set (tmp);
+            _minimizerDefault.set (tmp); //////////max value of minim
 			
 			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_minimizerSize));
 			_mmer_lut = (Type *) MALLOC(sizeof(Type) * nbminims_total ); //free that in destructor
@@ -1181,15 +1214,16 @@ struct Kmer
 						_mmer_lut[ii] = mmer;
 					}
 				}
-				else
+				else //if (!_freq_order)
 				{
-					// if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
-					// if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
+
 					
 					if (isModelCanonical)
 					{
 						Type rev_mmer = revcomp(mmer, minimizerSize);
 						if(rev_mmer < mmer) mmer = rev_mmer;
+						//if (_cmp (rev_mmer, mmer ) == true)
+						//	mmer = rev_mmer;
 					}
 					
 					//std:: cout << "ii " << ii << " is allowed " << is_allowed(mmer.getVal(),minimizerSize) <<  " mmer getval " << mmer.getVal() << " is model canonical " << isModelCanonical << std::endl;
@@ -1198,7 +1232,7 @@ struct Kmer
 						mmer = _mask;
 					
 					
-					// with hash to randomize order
+					// testing with hash to randomize order
 					
 //					Type res;
 //					res.setVal(hash1(mmer, 0) & _mask.getVal());
@@ -1206,12 +1240,32 @@ struct Kmer
 
 					_mmer_lut[ii] = mmer;
 				}
+//				else
+//				{
+//					//freq order
+//					Type rev_mmer = revcomp(mmer, minimizerSize);
+//					
+//					// needs to test separately  mmer and its reverse :
+//					// the canonical mmer is not necessarily the smaller
+//					
+//					if (_cmp (rev_mmer, mmer ) == true)
+//						mmer = rev_mmer;
+//
+//						
+//					if (!is_allowed(mmer.getVal(),minimizerSize))
+//						mmer = _mask;
+//					
+//					_mmer_lut[ii] = mmer;
+//
+//				}
 			}
 
 			if(_ukl_set!=0 && !_freq_order)
 				printf("nb in set %llu / %llu \n",cptset,nbminims_total);
             if (freq_order)
                 setMinimizersFrequency(freq_order);
+
+			
         }
 
 
@@ -1326,9 +1380,13 @@ struct Kmer
             justSweepForAA(km.value(0), _nbMinimizers, dummy);
         }
 
+		//return value of larger mmer in the freq order
         void setMinimizersFrequency (uint32_t *freq_order)
         {
             _cmp.include_frequency(freq_order);
+			
+			//Type tmp =_cmp.template computeLargest<ModelType>(getMmersModel(),_minimizerSize);
+			//_minimizerDefault.set (tmp);
         }
 
         // hack to access compare int's, for bcalm, needs to be made cleaner later
@@ -1382,8 +1440,6 @@ struct Kmer
 //				a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
 //				
 //				if(a1 != 0) return false;
-				
-				
 //				return true;
 
 				if (_ukl_set->get(mmer))
@@ -1395,24 +1451,21 @@ struct Kmer
             if (_freq_order) return true; // every minimizer is allowed in freq order
 
 
-			
-
-
             u_int64_t a1 = mmer; //
             a1 =   ~(( a1 )   | (  a1 >>2 ));  //
             a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
 
             if(a1 != 0) return false;
 
-            // if ((mmer & 0x3f) == 0x2a)   return false;   // TTT suffix
-            // if ((mmer & 0x3f) == 0x2e)   return false;   // TGT suffix
-            // if ((mmer & 0x3c) == 0x28)   return false;   // TT* suffix
-            // for (uint32_t j = 0; j < len - 3; ++j)       // AA inside
-            //      if ((mmer & 0xf) == 0)  return false;
-            //      else                    mmer >>= 2;
-            // if (mmer == 0)               return false;   // AAA prefix
-            // if (mmer == 0x04)            return false;   // ACA prefix
-            // if ((mmer & 0xf) == 0)   return false;       // *AA prefix
+//             if ((mmer & 0x3f) == 0x2a)   return false;   // TTT suffix
+//             if ((mmer & 0x3f) == 0x2e)   return false;   // TGT suffix
+//             if ((mmer & 0x3c) == 0x28)   return false;   // TT* suffix
+//             for (uint32_t j = 0; j < len - 3; ++j)       // AA inside
+//                  if ((mmer & 0xf) == 0)  return false;
+//                  else                    mmer >>= 2;
+//             if (mmer == 0)               return false;   // AAA prefix
+//             if (mmer == 0x04)            return false;   // ACA prefix
+//             if ((mmer & 0xf) == 0)   return false;       // *AA prefix
 
             return true;
         }
@@ -1420,6 +1473,7 @@ struct Kmer
         /** Returns the minimizer of the provided vector of mmers. */
         void computeNewMinimizerOriginal(Kmer& kmer) const
         {
+		//	printf("computeNewMinimizerOriginal\n");
             /** We update the attributes of the provided kmer. Note that an invalid minimizer is
              * memorized by convention by a negative minimizer position. */
             kmer._minimizer = this->_minimizerDefault;
@@ -1434,17 +1488,25 @@ struct Kmer
 
             /** We compute each mmer and memorize the minimizer among them. */
 
-            Type kmer_minimizer_value = kmer._minimizer.value();
+            Type kmer_minimizer_value = kmer._minimizer.value(); //init to max value, ok pour lex, mais quid de freq ?
+			//ptet bug pour freq ici, ie si la  freq de _minimizerDefault est la mini, alors pb
             Type val = kmer.value(0);
-            
+		//	printf("init kmer_minimizer_value %s \n",kmer_minimizer_value.toString(8).c_str());
+
             for (int16_t idx=_nbMinimizers-1; idx>=0; idx--)
             {
+				//printf("---idx %i ---  %s    kmer_minimizer_value %s  \n",idx, (val & _mask).toString(8).c_str(),kmer_minimizer_value.toString(8).c_str());
+
                 /** We extract the most left mmer in the kmer. */
                 Type candidate_minim = _mmer_lut[(val & _mask).getVal()];
-            
+				
+			//	printf("candidate minim %s \n",candidate_minim.toString(8).c_str());
+
                 /** We check whether this mmer is the new minimizer. */
                 if (_cmp (candidate_minim, kmer_minimizer_value ) == true)  
-                {  
+                {
+				//	printf("_ _ _ is new mmer \n");
+
                     mmer.set(candidate_minim);
                     kmer._minimizer = mmer;   
                     kmer._position = idx; 
