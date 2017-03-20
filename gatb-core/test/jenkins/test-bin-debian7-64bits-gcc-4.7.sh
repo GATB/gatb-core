@@ -20,7 +20,7 @@ pwd       : `pwd`
 -----------------------------------------
  Jenkins build parameters (user defined)
 -----------------------------------------
-BRANCH_TO_BUILD      : ${BRANCH_TO_BUILD}
+VERSION_TO_TEST      : ${VERSION_TO_TEST}
 INRIA_FORGE_LOGIN    : ${INRIA_FORGE_LOGIN}
 DO_NOT_STOP_AT_ERROR : ${DO_NOT_STOP_AT_ERROR}
 
@@ -66,7 +66,7 @@ cd $BUILD_DIR
 # Upload bin bundle to the forge; source bundle is made by OSX Jenkins task
 if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
    echo "Getting a binary archive... "
-   scp ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria/gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz .
+   scp ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/versions/bin/gatb-core-${VERSION_TO_TEST}-bin-Linux.tar.gz .
 fi
 
 ################################################################
@@ -77,9 +77,9 @@ g++ --version
 
 [ `gcc -dumpversion` = 4.7 ] && { echo "GCC 4.7"; } || { echo "GCC version is not 4.7, we exit"; exit 1; }
 
-gunzip gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz
-tar -xf gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar
-cd gatb-core-${BRANCH_TO_BUILD}-bin-Linux
+gunzip gatb-core-${VERSION_TO_TEST}-bin-Linux.tar.gz
+tar -xf gatb-core-${VERSION_TO_TEST}-bin-Linux.tar
+cd gatb-core-${VERSION_TO_TEST}-bin-Linux
 
 code_snippets=($(find ./examples -name "*1.cpp"))
 for code_snippet in ${code_snippets[*]}
@@ -90,5 +90,5 @@ done
 
 # do some cleanup to save disk space
 cd ..
-rm -rf gatb-core-${BRANCH_TO_BUILD}-bin-Linux*
+rm -rf gatb-core-${VERSION_TO_TEST}-bin-Linux*
 
