@@ -23,7 +23,7 @@ cat $CONFIG_FILE_IN
 
 # clean, compile and package library
 make clean
-make -j8 package  
+make package  
 
 # get back the to official config_sha1.hpp
 git checkout $CONFIG_FILE_IN
