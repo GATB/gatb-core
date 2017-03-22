@@ -44,7 +44,20 @@ namespace gatb { namespace core { namespace system { namespace impl {
 class ThreadLinux : public IThread, public system::SmartPointer
 {
 public:
-    ThreadLinux (void* (mainloop) (void*), void* data)  { pthread_create (&_thread, NULL,  mainloop, data); }
+	ThreadLinux (void* (mainloop) (void*), void* data)  {
+		
+		//set stack size to 8 MB
+		pthread_attr_t tattr;
+		int ret = pthread_attr_init ( &tattr ) ;
+		size_t size = 4096*2000 ; // must be multiple of page size
+		ret = pthread_attr_setstacksize(&tattr, size);
+		
+		pthread_create (&_thread, NULL,  mainloop, data);
+		
+		pthread_attr_destroy(&tattr);
+		
+	}
+	
     ~ThreadLinux ()  { /* pthread_detach (_thread); */  }
     void join ()     { pthread_join   (_thread, NULL);  }
     Id getId () const { return (Id) _thread; }
