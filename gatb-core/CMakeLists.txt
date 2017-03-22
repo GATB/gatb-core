@@ -48,13 +48,12 @@ set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ################################################################################
 include (DefineInteger)
 include (CppUnit)
-include (GetDate)
 
 # We check whether we have native 128 bits integers
 DefineInteger (k)
 
 # We get the current date
-GetCurrentDate (gatb-core-date) 
+string (TIMESTAMP gatb-core-date "%Y-%m-%d/%H:%M:%S")
 
 ################################################################################
 # COMPILER DEFINITIONS

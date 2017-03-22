@@ -11,7 +11,7 @@ IF (NOT CPACK_USER_NAME)
 ENDIF (NOT CPACK_USER_NAME)
 
 # We get the date
-GetCurrentDate (CPACK_DATE) 
+string (TIMESTAMP CPACK_DATE "%Y-%m-%d/%H:%M:%S")
 
 # We may have to set (if not defined) the CPACK_GFORGE_PROJECT_NAME
 IF (NOT CPACK_GFORGE_PROJECT_NAME)
