@@ -175,6 +175,21 @@ std::string Bank::_getType_ (const std::string& uri)
         if (bank != 0)
         {
             result = it->name;
+			if(!result.compare("fasta"))
+			{
+				//distinguish fasta and fastq
+				tools::dp::Iterator<Sequence>* its = bank->iterator(); LOCAL(its);
+				its->first();
+				if(!its->isDone())
+				{
+					std::string qual = its->item().getQuality();
+					if(!qual.empty())
+					{
+						result= "fastq";
+					}
+				}
+			}
+			
             delete bank;
             break;
         }
