@@ -241,19 +241,22 @@ void bcalm2(Storage *storage,
 
         // still uses more memory than i'd like
         // LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
-
-        //LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t> > *bucket_queues=new LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t > > [rg];
-        LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t, uint32_t> > *bucket_queues=new LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t, uint32_t> > [rg]; // graph3<span> switch 
-
         //LockStdVector<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg]; // very inefficient
+        //
+
+        // hmm had a memory leak
+        //LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t> > *bucket_queues=new LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t > > [rg];
+
+        std::vector<SharedQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t>>> bucket_queues(rg);
 
 
         /* lambda function to add a kmer to a bucket */
         auto add_to_bucket_queue = [&active_minimizers, &bucket_queues](uint32_t minimizer, string seq, int abundance, uint32_t leftmin, uint32_t rightmin, int p)
         {
             //std::cout << "adding elt to bucket: " << seq << " "<< minimizer<<std::endl;
-            //bucket_queues[minimizer].enqueue(std::make_tuple(TO_BUCKET_STR(seq),leftmin,rightmin));
-            bucket_queues[minimizer].enqueue(std::make_tuple(TO_BUCKET_STR(seq),leftmin,rightmin,abundance)); // graph3<span> switch
+            //bucket_queues[minimizer].push_back(std::make_tuple(TO_BUCKET_STR(seq),leftmin,rightmin));
+            std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t> t (TO_BUCKET_STR(seq),leftmin,rightmin,abundance);
+            bucket_queues[minimizer].push_back(t); // graph3<span> switch
 
             if (active_minimizers[p].find(minimizer) == active_minimizers[p].end())
             {
@@ -402,7 +405,7 @@ void bcalm2(Storage *storage,
                 
                 // (make sure to change other places labelled "// graph3" and "// graph4" as well)
                 //graph4 g(kmerSize-1,actualMinimizer,minSize); // graph4
-                uint number_elements(bucket_queues[actualMinimizer].size_approx());
+                uint number_elements(bucket_queues[actualMinimizer].size());
                 #ifdef BINSEQ
                 graph4 graphCompactor(kmerSize-1,actualMinimizer,minSize,number_elements);
                 #else
@@ -412,10 +415,9 @@ void bcalm2(Storage *storage,
                 #endif
 
                 /* add nodes to graph */
-                //std::tuple<BUCKET_STR_TYPE,uint,uint> bucket_elt;
                 std::tuple<BUCKET_STR_TYPE,uint,uint,uint> bucket_elt; // graph3<span> switch 
 
-                while (bucket_queues[actualMinimizer].try_dequeue(bucket_elt))
+                while (bucket_queues[actualMinimizer].pop_immediately(bucket_elt))
                 {
                 // for(uint i(0);i<number_elements;++i)
                 // {
@@ -510,12 +512,11 @@ void bcalm2(Storage *storage,
         // check if buckets are indeed empty
         for (unsigned int minimizer = 0; minimizer < rg; minimizer++)
         {
-            if  (bucket_queues[minimizer].size_approx() != 0)
+            if  (bucket_queues[minimizer].size() != 0)
             {
-                printf("WARNING! bucket %d still has non-processed %d elements\n", minimizer, bucket_queues[minimizer].size_approx() );
-                //std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> bucket_elt; 
+                printf("WARNING! bucket %d still has non-processed %d elements\n", minimizer, bucket_queues[minimizer].size() );
                 std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t,uint32_t> bucket_elt; // graph3<span> switch 
-                while (bucket_queues[minimizer].try_dequeue(bucket_elt))
+                while (bucket_queues[minimizer].pop_immediately(bucket_elt))
                 {
                     printf("    %s leftmin %d rightmin %d abundance %d repartleft %d repartright %d repartmin %d\n", FROM_BUCKET_STR(std::get<0>(bucket_elt)).c_str(), std::get<1>(bucket_elt), std::get<2>(bucket_elt), std::get<3>(bucket_elt), repart(std::get<1>(bucket_elt)), repart(std::get<2>(bucket_elt)), repart(minimizer)); // graph3<span> switch 
                 }
@@ -577,7 +578,6 @@ void bcalm2(Storage *storage,
             }
         }
 
-        delete [] bucket_queues;
         memory_usage("Done with partition " + std::to_string(p), verbose);
     } // end iteration superbuckets
 

@@ -23,7 +23,6 @@
 
 #include <assert.h>
 #include <iostream>
-#include <memory>
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
@@ -56,7 +55,8 @@
 
 #include <thread>
 #include <atomic>
-#include "lockstdqueue.h"
+//#include "lockstdqueue.h"
+#include "sharedqueue.hpp"
 
 #include "ThreadPool.h"
 
