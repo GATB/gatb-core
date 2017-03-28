@@ -1065,7 +1065,7 @@ public:
 
         CPPUNIT_ASSERT (Bank::getType(DBPATH("album.txt"))    == "album");
         CPPUNIT_ASSERT (Bank::getType(DBPATH("sample1.fa"))   == "fasta");
-        CPPUNIT_ASSERT (Bank::getType(DBPATH("sample.fastq")) == "fasta");
+        CPPUNIT_ASSERT (Bank::getType(DBPATH("sample.fastq")) == "fastq");
     }
 
     /********************************************************************************/
