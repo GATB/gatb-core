@@ -396,20 +396,31 @@ public: // was private: before, but had many compilation errors during the chang
     void load_unitigs(std::string unitigs_filename);
 
     bool node_in_same_orientation_as_in_unitig(const NodeGU& node) const;
-    
+      
+    // support for 2-bit compression of unitigs
+    std::string internal_get_unitig_sequence(unsigned int unitig_id) const;
+    unsigned int internal_get_unitig_length(unsigned int unitig_id) const;
+    std::string internal_compress_unitig(std::string seq) const;
+
     typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
     typedef typename kmer::impl::Kmer<span>::ModelDirect ModelDirect;
-    
-
-    // don't forget to copy those variables in operator= (and the move operator) !!
+ 
+    // !!!!
+    // don't forget to copy those variables in operator= (and the move operator) 
+    // classic source of bugs but i couldn't find a foolproof way.
+    // !!!!
     Model       *modelK;
     ModelDirect *modelKdirect;
     std::vector<uint64_t> incoming, outcoming, incoming_map, outcoming_map;
     std::vector<std::string> unitigs;
+    std::vector<uint32_t> unitigs_sizes;
     std::vector<float> unitigs_mean_abundance;
     std::vector<bool> unitigs_deleted; // could also be replaced by setting incoming and outcoming to all deleted.
     std::vector<bool> unitigs_traversed;
     uint64_t nb_unitigs, nb_unitigs_extremities;
+    // !!!!
+    // read above
+    // !!!!
 };
 
 /********************************************************************************/

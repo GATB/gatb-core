@@ -212,10 +212,6 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (bank::IBank* bank, tools::misc
     BaseGraph::setVariant (BaseGraph::_variant, BaseGraph::_kmerSize, integerPrecision);
     string unitigs_filename = "dummy.unitigs.fa"; // because there's already a bank, but we don't know its name maybe? so just to be safe, i'm setting a dummy unitigs file. anyway, this constructor is only called in tests i think, not by minia for sure.
 
-        /*(params->get(STR_URI_OUTPUT) ?
-            params->getStr(STR_URI_OUTPUT) :                                                                                                                                                                 System::file().getBaseName (input)
-            )+ ".unitigs.fa";   */       
-
     params->setInt(STR_REPARTITION_TYPE, 1);
     params->setInt(STR_MINIMIZER_TYPE, 1);
 
@@ -428,7 +424,8 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         insert_navigational_vector(incoming,  inc,  utig_counter, incoming_map);
         insert_navigational_vector(outcoming, outc, utig_counter, outcoming_map);
 
-        unitigs.push_back(seq);
+        unitigs.push_back(internal_compress_unitig(seq));
+        unitigs_sizes.push_back(seq.size());
         unitigs_mean_abundance.push_back(mean_abundance);
 
         utig_counter++;
@@ -450,7 +447,8 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 
     // an estimation of memory usage
     uint64_t nb_kmers = unitigs.size();
-    uint64_t mem_vec = (unitigs.capacity() * sizeof(string) + nb_utigs_nucl_mem);
+    uint64_t mem_vec       = (unitigs.capacity()       * sizeof(string) + nb_utigs_nucl_mem);
+    uint64_t mem_vec_sizes = (unitigs_sizes.capacity() * sizeof(uint32_t));
     if (verbose)
     {
         std::cout <<  "Memory usage:" << std::endl;
@@ -458,7 +456,8 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
         std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
         std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
-        std::cout <<  "   " <<  mem_vec /1024 /1024 << " MB unitigs nucleotides" << std::endl;
+        std::cout <<  "   " <<  mem_vec /1024 /1024      << " MB unitigs nucleotides" << std::endl;
+        std::cout <<  "   " <<  mem_vec_sizes/1024 /1024 << " MB unitigs lengths" << std::endl;
         std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
         std::cout <<  "   " <<  (2*nb_kmers/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
         std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
@@ -498,10 +497,6 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     
     string input = params->getStr(STR_URI_INPUT);
 
-    string unitigs_filename = (params->get(STR_URI_OUTPUT) ?
-            params->getStr(STR_URI_OUTPUT) :                                                                                                                                                                 System::file().getBaseName (input)
-            )+ ".unitigs.fa";          
-
     // build_visitor_solid has the following defaults:
     // minimizer size of 8. that one is okay
     // the rest needs to be set!
@@ -522,6 +517,21 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     bool load_from_hdf5 = (system::impl::System::file().getExtension(input) == "h5");
     bool load_from_file = (system::impl::System::file().isFolderEndingWith(input,"_gatb"));
     bool load_graph = (load_from_hdf5 || load_from_file);
+
+    string unitigs_filename;
+    if (params->get(STR_URI_OUTPUT))
+        unitigs_filename = params->getStr(STR_URI_OUTPUT);
+    {
+        if (load_from_file)
+        {
+            string input_modified = input;
+            input_modified[input_modified.size()-6] = '.'; // replaces "_gatb" with ".gatb" for the purpose of getBaseName, to harmonize with ".h5"
+            unitigs_filename = System::file().getBaseName (input_modified) + ".unitigs.fa";
+        }
+        else
+            unitigs_filename = System::file().getBaseName (input) + ".unitigs.fa";
+    }
+
     if (load_graph)
     {
         /* it's not a bank, but rather a h5 file (kmercounted or more), let's complete it to a graph */
@@ -637,6 +647,7 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         incoming_map  = graph.incoming_map;
         outcoming_map = graph.outcoming_map;
         unitigs = graph.unitigs;
+        unitigs_sizes = graph.unitigs_sizes;
         unitigs_mean_abundance = graph.unitigs_mean_abundance;
         unitigs_traversed = graph.unitigs_traversed;
         unitigs_deleted = graph.unitigs_deleted;
@@ -679,6 +690,7 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         incoming_map  = std::move(graph.incoming_map);
         outcoming_map = std::move(graph.outcoming_map);
         unitigs = std::move(graph.unitigs);
+        unitigs_sizes = std::move(graph.unitigs_sizes);
         unitigs_mean_abundance = std::move(graph.unitigs_mean_abundance);
         unitigs_traversed = std::move(graph.unitigs_traversed);
         unitigs_deleted = std::move(graph.unitigs_deleted);
@@ -752,7 +764,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     res.resize(0);
     
     unsigned int kmerSize = BaseGraph::_kmerSize;
-    unsigned int seqSize = unitigs[source.unitig].size();
+    unsigned int seqSize = internal_get_unitig_length(source.unitig);
     
     bool same_orientation = node_in_same_orientation_as_in_unitig(source);
     bool pos_begin = source.pos & UNITIG_BEGIN;
@@ -921,8 +933,8 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
     class NodeIterator : public tools::dp::ISmartIterator<NodeGU>
     {
         public:
-            NodeIterator (const std::vector<std::string>& unitigs /* just to get lengths*/, const std::vector<bool>& unitigs_deleted, unsigned int k, unsigned int nb_unitigs_extremities) 
-                :  _nbItems(nb_unitigs_extremities), _rank(0), _isDone(true), unitigs(unitigs), unitigs_deleted(unitigs_deleted), k(k), nb_unitigs(unitigs.size()) {  
+            NodeIterator (const std::vector<uint32_t>& unitigs_sizes, const std::vector<bool>& unitigs_deleted, unsigned int k, unsigned int nb_unitigs_extremities) 
+                :  _nbItems(nb_unitigs_extremities), _rank(0), _isDone(true), unitigs_sizes(unitigs_sizes), unitigs_deleted(unitigs_deleted), k(k), nb_unitigs(unitigs_sizes.size()) {  
                     this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
                 }
 
@@ -955,7 +967,7 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
                 do
                 {
                     it++;
-                    if ((it < 2*nb_unitigs) && unitigs[it/2].size() == k) // takes care of the case where the unitig is just a kmer
+                    if ((it < 2*nb_unitigs) && unitigs_sizes[it/2] == k) // takes care of the case where the unitig is just a kmer
                         it++;
                 } while ((it < 2*nb_unitigs) && unitigs_deleted[it/2]);
                 _isDone = it >= (2*nb_unitigs);
@@ -984,13 +996,13 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
             u_int64_t _nbItems;
             u_int64_t _rank;
             bool      _isDone;
-            const std::vector<std::string>& unitigs;
+            const std::vector<uint32_t>& unitigs_sizes;
             const std::vector<bool>& unitigs_deleted;
             unsigned int k;
             unsigned int nb_unitigs;
     };
 
-    return new NodeIterator(unitigs, unitigs_deleted, BaseGraph::_kmerSize, nb_unitigs_extremities);
+    return new NodeIterator(unitigs_sizes, unitigs_deleted, BaseGraph::_kmerSize, nb_unitigs_extremities);
 }
 
 template<size_t span> 
@@ -1046,7 +1058,7 @@ node_in_same_orientation_as_in_unitig(const NodeGU& node) const
 template<size_t span>
 std::string GraphUnitigsTemplate<span>::toString (const NodeGU& node) const
 {
-    const std::string& seq = unitigs[node.unitig];
+    const std::string& seq = internal_get_unitig_sequence(node.unitig);
     int kmerSize = BaseGraph::_kmerSize;
 
     if (node.pos == UNITIG_INSIDE)
@@ -1069,7 +1081,7 @@ template<size_t span>
 bool GraphUnitigsTemplate<span>::
 isLastNode(const NodeGU& node, Direction dir) const
 {
-    if (unitigs[node.unitig].size() == BaseGraph::_kmerSize) // special case.
+    if (internal_get_unitig_length(node.unitig) == BaseGraph::_kmerSize) // special case.
         return true;
 
     bool same_orientation = node_in_same_orientation_as_in_unitig(node);
@@ -1089,7 +1101,7 @@ bool GraphUnitigsTemplate<span>::
 isFirstNode(const NodeGU& node, Direction dir) const
 {
     // special case
-    if (unitigs[node.unitig].size() == BaseGraph::_kmerSize)
+    if (internal_get_unitig_length(node.unitig) == BaseGraph::_kmerSize)
     {
         return true;
     }
@@ -1142,7 +1154,7 @@ unitigLength            (const NodeGU& node, Direction dir) const
     if (isLastNode(node,dir))
         length = 0;
     else
-        length = unitigs[node.unitig].size() - BaseGraph::_kmerSize;
+        length = internal_get_unitig_length(node.unitig) - BaseGraph::_kmerSize;
     return length;
 }
 
@@ -1150,8 +1162,6 @@ template<size_t span>
 NodeGU GraphUnitigsTemplate<span>::
 unitigLastNode          (const NodeGU& node, Direction dir) const
 {
-    //const std::string& seq = unitigs[node.unitig];
-
     //std::cout << "lastnode" << toString(node) << " dir " << dir  << std::endl;
     
     if (isLastNode(node,dir))
@@ -1223,7 +1233,7 @@ template<size_t span>
 std::string GraphUnitigsTemplate<span>::
 unitigSequence (const NodeGU& node, bool& isolatedLeft, bool& isolatedRight) const
 {
-    const string& seq = unitigs[node.unitig];
+    const string& seq = internal_get_unitig_sequence(node.unitig);
 
     //std::cout << " seq " << seq << " node " << toString(node) << std::endl;
     NodeGU left = NodeGU(node.unitig, UNITIG_BEGIN);
@@ -1258,13 +1268,13 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
     if (!isLastNode(cur_node,dir))
     {
         // first node in unitig may have in-branching, it's fine for a simple path traversal. we'll just go to last node and record the sequence of that unitig
-        int unitigLength = unitigs[node.unitig].size();
+        int unitigLength = internal_get_unitig_length(node.unitig);
 
         bool same_orientation = node_in_same_orientation_as_in_unitig(node);
 
         if (seq != nullptr)
         {
-            string new_seq = unitigs[node.unitig];
+            string new_seq = internal_get_unitig_sequence(node.unitig);
 
             if (!same_orientation)
                 new_seq = revcomp(new_seq);
@@ -1324,13 +1334,13 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
 
         bool same_orientation = node_in_same_orientation_as_in_unitig(neighbors[0].to);
             
-        int unitigLength = unitigs[neighbor_unitig].size();
+        int unitigLength = internal_get_unitig_length(neighbor_unitig);
 
         if (debug)
-            std::cout << "simplePathLongest_avance continues now at a last node = " << toString(cur_node) << " strand " << cur_node.strand << " of unitig " << cur_node.unitig << " length " << unitigs[cur_node.unitig].size() << ", neighbor.to " << toString(neighbors[0].to) << " strand " << neighbors[0].to.strand << " of unitig " << neighbors[0].to.unitig << " new seq length: " << unitigLength << std::endl;
+            std::cout << "simplePathLongest_avance continues now at a last node = " << toString(cur_node) << " strand " << cur_node.strand << " of unitig " << cur_node.unitig << " length " << internal_get_unitig_length(cur_node.unitig) << ", neighbor.to " << toString(neighbors[0].to) << " strand " << neighbors[0].to.strand << " of unitig " << neighbors[0].to.unitig << " new seq length: " << unitigLength << std::endl;
 
         // fix for 1-bit encoded unitig position. That fix could have happened in unitig_parse_header but i didn't want to encode pos in 2 bits. Also, could have happened in NodeGU constructor, but didn't want to waste time checking unitig size there
-        if (unitigs[neighbors[0].to.unitig].size() == kmerSize)
+        if (internal_get_unitig_length(neighbors[0].to.unitig) == kmerSize)
             neighbors[0].to.pos = UNITIG_BOTH;
 
         int npos = neighbors[0].to.pos;
@@ -1386,7 +1396,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         // append the sequence (except the overlap part, of length k-1.
         if (seq != nullptr)
         {
-            string new_seq = unitigs[cur_node.unitig];
+            string new_seq = internal_get_unitig_sequence(cur_node.unitig);
             if (!same_orientation)
                 new_seq = revcomp(new_seq);
 
@@ -1415,7 +1425,7 @@ template<size_t span>
 std::string GraphUnitigsTemplate<span>::
 simplePathBothDirections(const NodeGU& node, bool& isolatedLeft, bool& isolatedRight, bool markDuringTraversal, float &coverage) 
 {
-    string seq = unitigs[node.unitig];
+    string seq = internal_get_unitig_sequence(node.unitig);
     
     int kmerSize = BaseGraph::_kmerSize;
     float midTotalCoverage = unitigMeanAbundance(node) * (seq.size() - kmerSize + 1);
@@ -1469,7 +1479,7 @@ debugPrintAllUnitigs() const
     std::cout << "Debug: printing all graph unitigs and status" << std::endl;
     for (unsigned int i = 0; i < nb_unitigs; i++)
     {
-        std::cout << "unitig " << i << " (length: " << unitigs[i].size() << ") " << (unitigs_deleted[i]?"[deleted]":"") << " links: ";
+        std::cout << "unitig " << i << " (length: " << internal_get_unitig_length(i) << ") " << (unitigs_deleted[i]?"[deleted]":"") << " links: ";
 
 
         for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
@@ -1506,7 +1516,7 @@ debugBuildNode(string startKmer) const
 {
     for (unsigned int i = 0; i < unitigs.size(); i++)
     {
-        string unitig = unitigs[i];
+        string unitig = internal_get_unitig_sequence(i);
         for (int rc = 0; rc < 2; rc++)
         {
             if (rc == 1) 
@@ -1652,8 +1662,33 @@ void GraphUnitigsTemplate<span>::disableNodeState() const
     std::cout << "GraphUnitigs::disableNodeState() not implemented" << std::endl;
 }
 
+/*
+ *
+ * 2-bit compression of unitigs
+ *
+ */
+template<size_t span>
+std::string GraphUnitigsTemplate<span>::internal_get_unitig_sequence(unsigned int id) const
+{
+    return unitigs[id];
+}
 
+template<size_t span>
+unsigned int GraphUnitigsTemplate<span>::internal_get_unitig_length(unsigned int id) const
+{
+    if (unitigs_sizes[id] != unitigs[id].size()) 
+    {
+        std::cout << "error with size "<< id << std::endl;
+        exit(1);
+    }
+    return unitigs[id].size();
+}
 
+template<size_t span>
+std::string GraphUnitigsTemplate<span>::internal_compress_unitig(std::string seq) const
+{
+    return seq;
+}
 
 /*
  *
