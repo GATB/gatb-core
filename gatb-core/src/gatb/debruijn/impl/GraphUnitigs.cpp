@@ -261,8 +261,9 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
     }
     
     bool force_loading_unitigs = false; // debug option
+    bool force_redo_unitigs = false; // debug option
 
-    if (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/)) 
+    if (force_redo_unitigs || (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/)))
     {
         int nb_threads =
             props->getInt(STR_NB_CORES);
