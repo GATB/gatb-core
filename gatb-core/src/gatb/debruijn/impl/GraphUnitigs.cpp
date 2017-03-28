@@ -426,11 +426,13 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 
         unitigs.push_back(internal_compress_unitig(seq));
         unitigs_sizes.push_back(seq.size());
+        //std::cout << "decoded : " << internal_get_unitig_sequence(unitigs.size()-1) << std::endl;
+        //std::cout << "real    : " << seq << std::endl;
         unitigs_mean_abundance.push_back(mean_abundance);
 
         utig_counter++;
-        nb_utigs_nucl += seq.size();
-        nb_utigs_nucl_mem += seq.capacity();
+        nb_utigs_nucl += unitigs[unitigs.size()-1].size();
+        nb_utigs_nucl_mem += unitigs[unitigs.size()-1].capacity();
 
         if (seq.size() == kmerSize)
             nb_unitigs_extremities++;
@@ -446,7 +448,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     unitigs_deleted.resize(unitigs.size(), false); // resize "traversed" bitvector, setting it to zero as well
 
     // an estimation of memory usage
-    uint64_t nb_kmers = unitigs.size();
+    uint64_t nb_unitigs = unitigs.size();
     uint64_t mem_vec       = (unitigs.capacity()       * sizeof(string) + nb_utigs_nucl_mem);
     uint64_t mem_vec_sizes = (unitigs_sizes.capacity() * sizeof(uint32_t));
     if (verbose)
@@ -458,9 +460,10 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
         std::cout <<  "   " <<  mem_vec /1024 /1024      << " MB unitigs nucleotides" << std::endl;
         std::cout <<  "   " <<  mem_vec_sizes/1024 /1024 << " MB unitigs lengths" << std::endl;
-        std::cout <<  "   " <<  (nb_kmers*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
-        std::cout <<  "   " <<  (2*nb_kmers/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
-        std::cout <<  "Estimated total: " <<  (nb_kmers*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec) / 1024 / 1024 << " MB" << std::endl;
+        std::cout <<  "   " <<  (nb_unitigs*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
+        std::cout <<  "   " <<  (2*nb_unitigs/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
+        // summation of all of the above:
+        std::cout <<  "Estimated total: " <<  (nb_unitigs*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec + mem_vec_sizes) / 1024 / 1024 << " MB" << std::endl;
 
         if (nb_utigs_nucl != nb_utigs_nucl_mem)
             std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
@@ -1670,24 +1673,38 @@ void GraphUnitigsTemplate<span>::disableNodeState() const
 template<size_t span>
 std::string GraphUnitigsTemplate<span>::internal_get_unitig_sequence(unsigned int id) const
 {
-    return unitigs[id];
+    int i = unitigs_sizes[id];
+    std::string res(i,'x');
+    for (--i ; i >= 0; i--) {
+        const unsigned char c = (unitigs[id][i/4]);
+        const unsigned char byte = (c >> (2*(i % 4))) & 3;
+        if (byte == 2) 
+            res[i] = 'T';
+        else
+            res[i] = 'A' | (byte << 1);
+    }
+    return res;
 }
 
 template<size_t span>
 unsigned int GraphUnitigsTemplate<span>::internal_get_unitig_length(unsigned int id) const
 {
-    if (unitigs_sizes[id] != unitigs[id].size()) 
-    {
-        std::cout << "error with size "<< id << std::endl;
-        exit(1);
-    }
-    return unitigs[id].size();
+    return unitigs_sizes[id];
 }
 
 template<size_t span>
 std::string GraphUnitigsTemplate<span>::internal_compress_unitig(std::string seq) const
 {
-    return seq;
+    unsigned int n = (seq.size()+3)/4;
+    unsigned char res[n];
+    for (size_t i = 0; i < n; i++)
+        res[i] = 0;
+
+    for (size_t i = 0; i < seq.size(); i++)
+        res[i / 4] |= ((seq[i] >> 1) & 3) << (2*(i % 4));
+    
+    std::string res_str(reinterpret_cast<const char *>(res), n);
+    return res_str;
 }
 
 /*
