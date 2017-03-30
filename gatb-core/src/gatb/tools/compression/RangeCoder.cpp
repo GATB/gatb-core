@@ -184,7 +184,7 @@ RangeDecoder::~RangeDecoder(){
 }
 	
 	
-void RangeDecoder::setInputFile(ifstream* inputFile, bool reversed){
+void RangeDecoder::setInputFile(istream* inputFile, bool reversed){
 	_reversed = reversed;
 	clear();
 	_inputFile = inputFile;

@@ -114,13 +114,13 @@ class RangeDecoder : AbstractRangeCoder
 		RangeDecoder();
 		~RangeDecoder();
 		
-		void setInputFile(ifstream* inputFile, bool reversed=false);
+		void setInputFile(istream* inputFile, bool reversed=false);
 		u_int8_t nextByte(Order0Model& model);
 		void clear();
 		
 	private:
 		
-		ifstream* _inputFile;
+		istream* _inputFile;
 		u_int64_t _code;
 		bool _reversed;
 		
