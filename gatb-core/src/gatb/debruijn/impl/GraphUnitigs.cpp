@@ -347,11 +347,23 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint64_t>& inc,
         
 
 static void
-insert_navigational_vector(std::vector<uint64_t> &v, std::vector<uint64_t>& to_insert, uint64_t utig_counter, std::vector<uint64_t> &v_map)
+insert_navigational_vector(std::vector<uint64_t> &v, std::vector<uint64_t>& to_insert, std::vector<uint64_t> &v_map)
 {
-    v_map[utig_counter] = v.size();
+    v_map.push_back(v.size());
     v.insert(v.end(), to_insert.begin(), to_insert.end());
 }
+
+static void
+insert_compressed_navigational_vector(std::vector<uint64_t> &v, std::vector<uint64_t>& to_insert, dag::dag_vector &v_map)
+{
+    v_map.push_back(to_insert.size());
+    v.insert(v.end(), to_insert.begin(), to_insert.end());
+    /*for (auto x: to_insert) // that was for when v was a dag_vector
+    {
+        v.push_back(x);
+    }*/
+}
+
 
 //http://stackoverflow.com/questions/30540101/iterator-for-a-subset-of-a-vector
 template <class Iter>
@@ -369,6 +381,7 @@ range<typename Container::const_iterator>
 make_range(Container& c, size_t b, size_t e) {
     return range<typename Container::const_iterator> (c.begin()+b, c.begin()+e);
 }
+
 
 /* returns an iterator of all incoming or outcoming edges from an unitig */
 static 
@@ -388,6 +401,27 @@ get_from_navigational_vector(const std::vector<uint64_t> &v, uint64_t utig, cons
 }
 
 
+/* compressed counterpart of the function above */
+static 
+range<std::vector<uint64_t>::const_iterator >
+get_from_compressed_navigational_vector(const std::vector<uint64_t> &v, uint64_t utig, const dag::dag_vector &v_map) 
+{
+    if (utig == v_map.size() /*total number of unitigs*/ - 1)
+    {
+        //std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v.size()) << " last unitig" << std::endl;
+        return make_range(v,v_map.prefix_sum(utig),v.size());
+    }
+    else
+    {
+        if (utig == 0)
+            return make_range(v,0, v_map[0]);
+
+        //std::cout << "get from nav vector " << to_string(utig) << " " << to_string(v_map[utig]) << " " <<  to_string(v_map[utig+1]) << " (utig " << utig << "/" << v_map.size() << ")" << std::endl;
+        uint64_t ps = v_map.prefix_sum(utig);
+        return make_range(v,ps,ps + v_map[utig]);
+    }
+}
+
 
 template<size_t span>
 void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
@@ -402,14 +436,13 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     //ProgressIterator<bank::Sequence> itSeq (*inputBank, "loading unitigs");
     BankFasta::Iterator itSeq (inputBank);
 
- 
-    incoming_map.resize(nb_unitigs);
-    outcoming_map.resize(nb_unitigs);
-
-   unsigned int kmerSize = BaseGraph::_kmerSize;
+    unsigned int kmerSize = BaseGraph::_kmerSize;
+    
+    //compress_navigational_vectors = false;
+    compress_navigational_vectors = true; //only a 10% speed hit but 2x less incoming/outcoming/incoming_map/outcoming_map memory usage, so, quite worth it.
+    pack_unitigs = true;
 
     nb_unitigs_extremities = 0; // will be used by NodeIterator (getNodes)
-    uint64_t utig_counter = 0;
     uint64_t nb_utigs_nucl = 0;
     uint64_t nb_utigs_nucl_mem = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel, maybe, if we used many unordered_map's with a hash on the query kmer (TODO opt)
@@ -421,49 +454,93 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         vector<uint64_t> inc, outc; // incoming and outcoming unitigs
         parse_unitig_header(comment, mean_abundance, inc, outc);
 
-        insert_navigational_vector(incoming,  inc,  utig_counter, incoming_map);
-        insert_navigational_vector(outcoming, outc, utig_counter, outcoming_map);
+        if (compress_navigational_vectors) 
+        {
+            // we won't use dag_incoming and dag_outcoming, there doesnt seem to be any performance gain. a bit surprising, though, because i was storing 64bit ints before. but gamma coding is, after all, 2-optimal and most numbers are close to 32 bits.
+            insert_compressed_navigational_vector(/*dag_incoming*/ incoming,  inc,  dag_incoming_map);
+            insert_compressed_navigational_vector(/*dag_outcoming*/ outcoming, outc, dag_outcoming_map);
 
-        unitigs.push_back(internal_compress_unitig(seq));
+        }
+        else
+        {
+            insert_navigational_vector(incoming,  inc,  incoming_map);
+            insert_navigational_vector(outcoming, outc, outcoming_map);
+        }
+
+        if (pack_unitigs)
+        {
+            packed_unitigs += internal_compress_unitig(seq);
+            packed_unitigs_sizes.push_back((seq.size()+3)/4);
+        }
+        else
+            unitigs.push_back(internal_compress_unitig(seq));
+
         unitigs_sizes.push_back(seq.size());
         //std::cout << "decoded : " << internal_get_unitig_sequence(unitigs.size()-1) << std::endl;
         //std::cout << "real    : " << seq << std::endl;
         unitigs_mean_abundance.push_back(mean_abundance);
 
-        utig_counter++;
-        nb_utigs_nucl += unitigs[unitigs.size()-1].size();
-        nb_utigs_nucl_mem += unitigs[unitigs.size()-1].capacity();
+        if (!pack_unitigs)
+        {
+            nb_utigs_nucl += unitigs[unitigs.size()-1].size();
+            nb_utigs_nucl_mem += unitigs[unitigs.size()-1].capacity();
+        }
 
         if (seq.size() == kmerSize)
             nb_unitigs_extremities++;
         else
             nb_unitigs_extremities+=2;
     }
+    uint64_t nb_unitigs = unitigs_sizes.size();
 
 
     unitigs_traversed.resize(0);
-    unitigs_traversed.resize(unitigs.size(), false); // resize "traversed" bitvector, setting it to zero as well
+    unitigs_traversed.resize(nb_unitigs, false); // resize "traversed" bitvector, setting it to zero as well
 
     unitigs_deleted.resize(0);
-    unitigs_deleted.resize(unitigs.size(), false); // resize "traversed" bitvector, setting it to zero as well
+    unitigs_deleted.resize(nb_unitigs, false); // resize "traversed" bitvector, setting it to zero as well
 
     // an estimation of memory usage
-    uint64_t nb_unitigs = unitigs.size();
-    uint64_t mem_vec       = (unitigs.capacity()       * sizeof(string) + nb_utigs_nucl_mem);
-    uint64_t mem_vec_sizes = (unitigs_sizes.capacity() * sizeof(uint32_t));
     if (verbose)
     {
+        uint64_t mem_vec_sizes = /*unitigs_sizes.get_alloc_byte_num(); // formerly */(unitigs_sizes.capacity() * sizeof(uint32_t));
+
         std::cout <<  "Memory usage:" << std::endl;
-        std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming dict" << std::endl;
-        std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming dict" << std::endl;
-        std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map dict" << std::endl;
-        std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map dict" << std::endl;
-        std::cout <<  "   " <<  mem_vec /1024 /1024      << " MB unitigs nucleotides" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming vector" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming vector" << std::endl;
+        uint64_t inc_out_size = (sizeof(uint64_t) * incoming.size()) + (sizeof(uint64_t) * outcoming.size());
+        if (compress_navigational_vectors)
+        {
+            std::cout <<  "   " << dag_incoming_map.get_alloc_byte_num() / 1024 / 1024 << " MB keys in dag_incoming_map vector" << std::endl;
+            std::cout <<  "   " << dag_outcoming_map.get_alloc_byte_num() / 1024 / 1024 << " MB keys in dag_outcoming_map vector" << std::endl;
+            inc_out_size += dag_incoming_map.get_alloc_byte_num() + dag_outcoming_map.get_alloc_byte_num();
+        }
+        else 
+        {
+            //std::cout <<  "   " << dag_incoming.get_alloc_byte_num() / 1024 / 1024 << " MB keys in incoming vector" << std::endl;
+            //std::cout <<  "   " << dag_outcoming.get_alloc_byte_num() / 1024 / 1024 << " MB keys in outcoming vector" << std::endl;
+            std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map vector" << std::endl;
+            std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map vector" << std::endl;
+            inc_out_size += (sizeof(uint64_t) * incoming_map.size()) + (sizeof(uint64_t) * outcoming_map.size());
+        }
+        uint64_t mem_unitigs;
+        if (pack_unitigs)
+        {
+            uint64_t mem_packed_unitigs = packed_unitigs_sizes.prefix_sum(nb_unitigs) + packed_unitigs_sizes.get_alloc_byte_num();
+            std::cout <<  "   " <<  mem_packed_unitigs /1024 /1024      << " MB packed unitigs (incl. " << packed_unitigs_sizes.get_alloc_byte_num()/1024/1024 << " MB delimiters)"  << std::endl;
+            mem_unitigs = mem_packed_unitigs;
+        }
+        else 
+        {
+            mem_unitigs = (unitigs.capacity()       * sizeof(string) + nb_utigs_nucl_mem);
+            std::cout <<  "   " <<  mem_unitigs /1024 /1024      << " MB unitigs nucleotides (" << unitigs.capacity() << " * " << sizeof(string) << " + " <<  nb_utigs_nucl_mem << ")"  << std::endl;
+        }
         std::cout <<  "   " <<  mem_vec_sizes/1024 /1024 << " MB unitigs lengths" << std::endl;
-        std::cout <<  "   " <<  (nb_unitigs*sizeof(float)) / 1024 / 1024 << " MB unitigs abundances" << std::endl;
+        uint64_t mem_unitig_mean_abundance = /*unitigs_mean_abundance.get_alloc_byte_num()  ; // <- in dag_vector format; in vector<float> format -> */(nb_unitigs*sizeof(float));
+        std::cout <<  "   " <<  mem_unitig_mean_abundance / 1024 / 1024 << " MB unitigs abundances" << std::endl;
         std::cout <<  "   " <<  (2*nb_unitigs/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
         // summation of all of the above:
-        std::cout <<  "Estimated total: " <<  (nb_unitigs*(sizeof(float) + 2.0/8.0) + sizeof(uint64_t) * ( incoming.size() + outcoming.size() + incoming.size() + outcoming_map.size()) + mem_vec + mem_vec_sizes) / 1024 / 1024 << " MB" << std::endl;
+        std::cout <<  "Estimated total: " <<  (mem_unitig_mean_abundance + (nb_unitigs*2.0/8.0) +  inc_out_size + mem_unitigs + mem_vec_sizes) / 1024 / 1024 << " MB" << std::endl;
 
         if (nb_utigs_nucl != nb_utigs_nucl_mem)
             std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
@@ -649,6 +726,14 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         outcoming = graph.outcoming;
         incoming_map  = graph.incoming_map;
         outcoming_map = graph.outcoming_map;
+        dag_incoming  = graph.dag_incoming;
+        dag_outcoming = graph.dag_outcoming;
+        dag_incoming_map  = graph.dag_incoming_map;
+        dag_outcoming_map = graph.dag_outcoming_map;
+        compress_navigational_vectors = graph.compress_navigational_vectors;
+        pack_unitigs = graph.pack_unitigs;
+        packed_unitigs = graph.packed_unitigs;
+        packed_unitigs_sizes = graph.packed_unitigs_sizes;
         unitigs = graph.unitigs;
         unitigs_sizes = graph.unitigs_sizes;
         unitigs_mean_abundance = graph.unitigs_mean_abundance;
@@ -692,6 +777,14 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         outcoming = std::move(graph.outcoming);
         incoming_map  = std::move(graph.incoming_map);
         outcoming_map = std::move(graph.outcoming_map);
+        dag_incoming  = std::move(graph.dag_incoming);
+        dag_outcoming = std::move(graph.dag_outcoming);
+        dag_incoming_map  = std::move(graph.dag_incoming_map);
+        dag_outcoming_map = std::move(graph.dag_outcoming_map);
+        compress_navigational_vectors = std::move(graph.compress_navigational_vectors);
+        pack_unitigs = std::move(graph.pack_unitigs);
+        packed_unitigs = std::move(graph.packed_unitigs);
+        packed_unitigs_sizes = std::move(graph.packed_unitigs_sizes);
         unitigs = std::move(graph.unitigs);
         unitigs_sizes = std::move(graph.unitigs_sizes);
         unitigs_mean_abundance = std::move(graph.unitigs_mean_abundance);
@@ -870,13 +963,19 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     {
         // nodes to the right of a unitig (outcoming)
         Direction dir = same_orientation?DIR_OUTCOMING:DIR_INCOMING;
-        functor(get_from_navigational_vector(outcoming, source.unitig, outcoming_map), dir);
+        if (compress_navigational_vectors) 
+            functor(get_from_compressed_navigational_vector(outcoming, source.unitig, dag_outcoming_map), dir);
+        else
+            functor(get_from_navigational_vector(outcoming, source.unitig, outcoming_map), dir);
     }
     if (pos_begin && (((direction & DIR_INCOMING) && same_orientation) || ( (!same_orientation) && (direction & DIR_OUTCOMING)) ))
     {
         // nodes to the left of a unitig (incoming)
         Direction dir = same_orientation?DIR_INCOMING:DIR_OUTCOMING;
-        functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), dir);
+        if (compress_navigational_vectors) 
+            functor(get_from_compressed_navigational_vector(incoming, source.unitig, dag_incoming_map), dir);
+        else
+            functor(get_from_navigational_vector(incoming, source.unitig, incoming_map), dir);
     }
 
     // sanity check on output, due to limitation on GraphVector nmber of elements
@@ -936,7 +1035,7 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
     class NodeIterator : public tools::dp::ISmartIterator<NodeGU>
     {
         public:
-            NodeIterator (const std::vector<uint32_t>& unitigs_sizes, const std::vector<bool>& unitigs_deleted, unsigned int k, unsigned int nb_unitigs_extremities) 
+            NodeIterator (const /*dag::dag_vector*/ std::vector<uint32_t>& unitigs_sizes, const std::vector<bool>& unitigs_deleted, unsigned int k, unsigned int nb_unitigs_extremities) 
                 :  _nbItems(nb_unitigs_extremities), _rank(0), _isDone(true), unitigs_sizes(unitigs_sizes), unitigs_deleted(unitigs_deleted), k(k), nb_unitigs(unitigs_sizes.size()) {  
                     this->_item->strand = STRAND_FORWARD;  // iterated nodes are always in forward strand.
                 }
@@ -999,7 +1098,7 @@ GraphIterator<NodeGU> GraphUnitigsTemplate<span>::getNodes () const
             u_int64_t _nbItems;
             u_int64_t _rank;
             bool      _isDone;
-            const std::vector<uint32_t>& unitigs_sizes;
+            const /*dag::dag_vector*/ std::vector<uint32_t>& unitigs_sizes;
             const std::vector<bool>& unitigs_deleted;
             unsigned int k;
             unsigned int nb_unitigs;
@@ -1673,10 +1772,23 @@ void GraphUnitigsTemplate<span>::disableNodeState() const
 template<size_t span>
 std::string GraphUnitigsTemplate<span>::internal_get_unitig_sequence(unsigned int id) const
 {
+    std::string unitig_seq;
+    if (pack_unitigs)
+    {
+       if (id == 0)
+           unitig_seq = packed_unitigs.substr(0, packed_unitigs_sizes[0]);
+       else
+       {
+           uint64_t ps = packed_unitigs_sizes.prefix_sum(id);
+           unitig_seq = packed_unitigs.substr(ps, unitigs_sizes[id]);
+       }
+    }
+    else
+       unitig_seq = unitigs[id];
     int i = unitigs_sizes[id];
     std::string res(i,'x');
     for (--i ; i >= 0; i--) {
-        const unsigned char c = (unitigs[id][i/4]);
+        const unsigned char c = (unitig_seq[i/4]);
         const unsigned char byte = (c >> (2*(i % 4))) & 3;
         if (byte == 2) 
             res[i] = 'T';

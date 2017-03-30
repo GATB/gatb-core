@@ -28,6 +28,9 @@
 #include <gatb/debruijn/impl/UnitigsConstructionAlgorithm.hpp>
 #include <gatb/debruijn/impl/ExtremityInfo.hpp>
 
+#include <gatb/debruijn/impl/dag_vector.hpp> // TODO move it to 3rd party
+
+
 /********************************************************************************/
 namespace gatb      {
 namespace core      {
@@ -406,18 +409,26 @@ public: // was private: before, but had many compilation errors during the chang
     typedef typename kmer::impl::Kmer<span>::ModelDirect ModelDirect;
  
     // !!!!
+    // all member variables should be below this point, because i want you to also read this:
     // don't forget to copy those variables in operator= (and the move operator) 
     // classic source of bugs but i couldn't find a foolproof way.
     // !!!!
     Model       *modelK;
     ModelDirect *modelKdirect;
     std::vector<uint64_t> incoming, outcoming, incoming_map, outcoming_map;
+    dag::dag_vector dag_incoming, dag_outcoming, dag_incoming_map, dag_outcoming_map;
     std::vector<std::string> unitigs;
-    std::vector<uint32_t> unitigs_sizes;
+    std::string packed_unitigs;
+    std::vector<uint32_t> unitigs_sizes; 
+    dag::dag_vector packed_unitigs_sizes;
     std::vector<float> unitigs_mean_abundance;
-    std::vector<bool> unitigs_deleted; // could also be replaced by setting incoming and outcoming to all deleted.
+    //dag::dag_vector unitigs_sizes;// perf hit: from 45s to 74s in chr14; that's because unitigs_sizes is queried _a lot_ just to check if a unitig is just of length k. could save that space with a bit vector, and actually, just use packed_unitigs_sizes for the rest. so.. just to keep in mind that this is a "todo opt" in case we really want to save the space of unitigs_sizes
+    //dag::dag_vector unitigs_mean_abundance; // not a big gain and different assembly quality, so i'm keeping it as vector<float>
+    std::vector<bool> unitigs_deleted; // could also be replaced by modifying incoming and outcoming vectors. careful not to affect the prefix sum scheme tho.
     std::vector<bool> unitigs_traversed;
     uint64_t nb_unitigs, nb_unitigs_extremities;
+    bool compress_navigational_vectors;
+    bool pack_unitigs;
     // !!!!
     // read above
     // !!!!
