@@ -50,7 +50,7 @@ Tool::Tool (const std::string& name) : userDisplayHelp(0), _helpTarget(0),userDi
     setOutput (new Properties());
 
     setInfo  (new Properties());
-    _info->add (0, _name);
+   // _info->add (0, _name);
 
     /** We create an options parser. */
     setParser (new OptionsParser(name));

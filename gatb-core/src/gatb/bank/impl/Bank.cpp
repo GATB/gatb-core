@@ -20,6 +20,8 @@
 #include <gatb/bank/impl/Bank.hpp>
 
 #include <gatb/bank/impl/BankFasta.hpp>
+#include <gatb/tools/compression/Leon.hpp>
+
 #include <gatb/bank/impl/BankBinary.hpp>
 #include <gatb/bank/impl/BankAlbum.hpp>
 
@@ -46,6 +48,7 @@ Bank::Bank ()
     /** We register most known factories. */
     _registerFactory_ ("album",  new BankAlbumFactory(),  false);
     _registerFactory_ ("fasta",  new BankFastaFactory(),  false);
+	_registerFactory_ ("leon", new BankLeonFactory(), false);
     _registerFactory_ ("binary", new BankBinaryFactory(), false);
 
     DEBUG (("Bank::Bank,  found %ld factories\n", _factories.size()));
