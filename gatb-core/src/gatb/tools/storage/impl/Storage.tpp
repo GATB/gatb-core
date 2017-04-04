@@ -525,11 +525,11 @@ namespace gatb  {  namespace core  {  namespace tools  {  namespace storage  {  
 
 /*********************************************************************
 *********************************************************************/
-inline Storage* StorageFactory::create (const std::string& name, bool deleteIfExist, bool autoRemove)
+inline Storage* StorageFactory::create (const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension)
 {
     switch (_mode)
     {
-        case STORAGE_HDF5:  return StorageHDF5Factory::createStorage (name, deleteIfExist, autoRemove);
+        case STORAGE_HDF5:  return StorageHDF5Factory::createStorage (name, deleteIfExist, autoRemove,dont_add_extension);
         case STORAGE_FILE:  return StorageFileFactory::createStorage (name, deleteIfExist, autoRemove);
         case STORAGE_GZFILE:  return StorageGzFileFactory::createStorage (name, deleteIfExist, autoRemove);
         case STORAGE_COMPRESSED_FILE:  return StorageSortedFactory::createStorage (name, deleteIfExist, autoRemove);

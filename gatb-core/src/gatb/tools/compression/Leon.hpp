@@ -23,7 +23,7 @@
 
 
 #define LEON_VERSION_MAJOR 1
-#define LEON_VERSION_MINOR 0
+#define LEON_VERSION_MINOR 1
 #define LEON_VERSION_PATCH 0
 
 
@@ -57,8 +57,6 @@ typedef kmer::impl::Kmer<>::Count       kmer_count;
 #include <sstream>
 #include "HeaderCoder.hpp"
 #include "DnaCoder.hpp"
-
-#include "OrderedBlocks.h"
 
 //#include "RangeCoder.hpp"
 
@@ -130,7 +128,11 @@ class Leon : public misc::impl::Tool
 		
 		bool anchorExist(const kmer_type& kmer, u_int32_t* anchorAdress);
 		int findAndInsertAnchor(const vector<kmer_type>& kmers, u_int32_t* anchorAdress);
-		
+		void updateMinMaxSequenceSize(int newMin, int newMax);
+
+		int _minSequenceSize;
+		int _maxSequenceSize;
+	
 		u_int64_t _totalDnaSize;
 		u_int64_t _anchorDictSize;
 		u_int64_t _anchorAdressSize;
@@ -157,7 +159,6 @@ class Leon : public misc::impl::Tool
 	
 		//test dna compression
 		u_int64_t _MCtotal;
-	
 		u_int64_t _MCnoAternative;
 		u_int64_t _MCuniqSolid;
 		u_int64_t _MCuniqNoSolid;
@@ -167,8 +168,8 @@ class Leon : public misc::impl::Tool
 		u_int64_t _blockCount;
 		//u_int64_t _noAnchor_full_N_kmer_count;
 		//u_int64_t _noAnchor_with_N_kmer_count;
-		u_int64_t _readCount;
 		//double _anchorKmerCount;
+		u_int64_t _readCount;
 		u_int64_t _readWithoutAnchorCount;
 		//double _total_kmer_indexed;
 		//double _uniq_mutated_kmer;
@@ -179,14 +180,10 @@ class Leon : public misc::impl::Tool
 		//Hash16<kmer_type>* _kmerAbundance;
 		
 		int   _nb_thread_living;
-		OrderedBlocks * _blockwriter;
-
-		OrderedBlocks * _qualwriter;
 
 		// ProgressSynchro *
 		dp::IteratorListener * _progress_decode;
 	
-		void setBlockWriter (OrderedBlocks* blockwriter) { SP_SETATTR(blockwriter); }
 
 		//DNA decompression
 		kmer_type getAnchor(ifstream* anchorDictFile, u_int32_t adress);
@@ -201,7 +198,7 @@ class Leon : public misc::impl::Tool
 
 		//Utils
 		static int nt2bin(char nt){
-			return nt2binTab[nt];
+			return nt2binTab[(unsigned char)nt];
 			
 		}
 		static int bin2nt(int nt){
@@ -321,6 +318,7 @@ class Leon : public misc::impl::Tool
 	  // 	int _auto_cutoff;
 		pthread_mutex_t findAndInsert_mutex;
 		pthread_mutex_t writeblock_mutex;
+		pthread_mutex_t minmax_mutex;
 
 		//DNA Decompression
 		void decodeBloom();

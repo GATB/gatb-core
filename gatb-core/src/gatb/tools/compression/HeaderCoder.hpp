@@ -160,7 +160,7 @@ class HeaderDecoder : AbstractHeaderCoder
 	tools::storage::impl::Group *  _group;
 
 		RangeDecoder _rangeDecoder;
-		ifstream* _inputFile;
+		//ifstream* _inputFile;
 	tools::storage::impl::Storage::istream *_inputStream;
 
 		//ofstream* _outputFile;
@@ -177,9 +177,7 @@ class HeaderDecoder : AbstractHeaderCoder
 		void decodeDelta2();
 		void decodeZero();
 		
-		//char _prevHeader2[1000];
-		//char _currentHeader2[1000];
-		//int _prevHeaderSize;
+
 		int _sequenceCount;
 		
 };

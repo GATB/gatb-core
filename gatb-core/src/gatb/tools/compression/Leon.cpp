@@ -18,63 +18,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-/*
-TODO
-*  ecrire directement fichier decomp, sans fichier temporatire pour dna, header, qual
-* Header coder:
-* 	Remplacer la méthode strtoul par une methode string to u_int64_t dans CompressionUtils
-* 
-* Dna coder:
-* 	Sécurité pour ne pas saturer la OAHash _anchorKmers, remplacer map par unordered_map
-* 	Le buffer de _anchorRangeEncoder n'est jamais vidé pendant toute l'execution (Solution: utilisé un fichier temporaire) 
-*   Centraliser les méthode codeSeedBin, codeSeedNt, nt2bin, bin2nt...
-* 
-* Optimisation:
-* 	methode anchorExist: 2 acces a la map (key exist, puis operator [])
-* 	Si les reads on tous la même taille, stocker un bit d'info qui contiendrais l'information et ne pas le stocker à chaque fois	
-* 	Compresser le dictionnaire des ancre (codage par dictionnaire, minimizer?)
-* 
-* Remarque API
-* 	Les paramètre du compresseur et decompresseur ne sont pas les même (+ pas besoin de DSK pour le decompresseur)
-* 	Comment retrouvé rapidement le chemin du fichier de sortie de dsk (h5) (acutellement code redondant copier depuis dsk)
-* 
-* Bug:
-* 	OAHash: l'algo de decompression plante si _anchorKmers est une OAHash
-* 	KmerIt: Si read_size < k, alors le itKmer.setData(seq...) conserve la valeur d'une séquence précédente plutot que d'être remis à 0
-* 
-* 
- * */
- 
- 
-/*
- * Compressed file :
- * 		
- * 		Headers data blocks
- * 		Bloom
- * 		Anchor Dict
- * 		Reads data blocks
- * 
- * 		Reads blocks position
- * 		Headers blocks position
- * 		First Header
- * 		Info bytes (kmer size, fats aor fastq...)
- * 
- * 
- */
- //
+
  
 #include "Leon.hpp"
 
 
 using namespace std;
 
-//#define SERIAL //this macro is also define in the execute() method
 //#define PRINT_DEBUG
 //#define PRINT_DEBUG_DECODER
 
 
 
-const u_int64_t ANCHOR_KMERS_HASH_SIZE = 500000000;
+//const u_int64_t ANCHOR_KMERS_HASH_SIZE = 500000000;
 const char* Leon::STR_COMPRESS = "-c";
 const char* Leon::STR_DECOMPRESS = "-d";
 const char* Leon::STR_TEST_DECOMPRESSED_FILE = "-test-file";
@@ -98,21 +54,6 @@ const int Leon::nt2binTab[128] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 	};
 const int Leon::bin2ntTab[5] = {'A', 'C', 'T', 'G', 'N'};
-
-/*
-const char Leon::_nt2bin[128] = {};
-const int Leon::_bin2nt[5] = {};
-
-const char Leon::_nt2bin['A'] = 0;*/
-   /*
-const char Leon::_nt2bin[] = {};
-const char Leon::_nt2bin['A'] = {0};
-const char Leon::_nt2bin['C'] = {1};
-const char Leon::_nt2bin['T'] = {2};
-const char Leon::_nt2bin['G'] = {0};
-const char Leon::_nt2bin['N'] = {0};
-const char Leon::_bin2nt = {'A', 'C', 'T', 'G', 'N'};
-*/
 
 
 template<typename T>
@@ -139,15 +80,16 @@ void readDataset(tools::storage::impl::Group *  group, std::string datasetname, 
 //Leon::Leon ( bool compress, bool decompress) :
 Leon::Leon () :
 Tool("leon"),
-_generalModel(256),// _anchorKmers(ANCHOR_KMERS_HASH_SIZE),
-_anchorDictModel(5),_nb_thread_living(0), _blockwriter(0), //5value: A, C, G, T, N
-_readCount (0), _totalDnaSize(0), _compressedSize(0),_MCtotal(0),_MCnoAternative(0),
-_MCuniqSolid(0),_MCuniqNoSolid(0),_MCmultipleSolid(0),_readWithoutAnchorCount(0),
-_anchorDictSize(0), _anchorAdressSize(0), _anchorPosSize(0), _otherSize(0), _readSizeSize(0), _bifurcationSize(0), _noAnchorSize(0),
-_progress_decode(0), _inputBank(0),_total_nb_quals_smoothed(0),_lossless(false),_input_qualSize(0),_compressed_qualSize(0), _qualwriter(NULL)
-
+_progress_decode(0),_generalModel(256),_inputBank(0),_anchorDictModel(5)
 {
-_isFasta = true;
+	_MCnoAternative = _MCuniqSolid = _MCuniqNoSolid = _totalDnaSize =  _compressedSize = _readCount = _MCtotal = _nb_thread_living = 0;
+	_compressed_qualSize = _anchorDictSize = _MCmultipleSolid = _anchorAdressSize = _readWithoutAnchorCount = _anchorPosSize = 0;
+	_input_qualSize = _total_nb_quals_smoothed = _otherSize =  _readSizeSize =  _bifurcationSize =  _noAnchorSize = 0;
+	_lossless = false;
+	
+	_isFasta = true;
+	_maxSequenceSize = 0;
+	_minSequenceSize = INT_MAX;
 	std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
 
     //_kmerSize(27)
@@ -195,19 +137,16 @@ _isFasta = true;
 
 	pthread_mutex_init(&findAndInsert_mutex, NULL);
 	pthread_mutex_init(&writeblock_mutex, NULL);
+	pthread_mutex_init(&minmax_mutex, NULL);
+
+	
 }
 
 Leon::~Leon ()
 {
-	setBlockWriter(0);
 	setInputBank (0);
 	
-	if(_qualwriter != NULL)
-		delete(_qualwriter);
-	
-//	if(_Qual_outstream != NULL)
-//		delete _Qual_outstream;
-	
+
 	if (_progress_decode)  { delete _progress_decode; }
 }
 
@@ -237,8 +176,8 @@ void Leon::execute()
 
 	//getParser()->displayWarnings(); //pb si ici, affiche warnings apres exec dsk ,et prob option -c -d qui sont pas dans le parser car 'globales'
 	
-    u_int64_t total_nb_solid_kmers_in_reads = 0;
-    int nb_threads_living;
+   // u_int64_t total_nb_solid_kmers_in_reads = 0;
+   // int nb_threads_living;
     _nb_cores = getInput()->getInt(STR_NB_CORES);
     
     
@@ -291,7 +230,7 @@ void Leon::createBloom (){
 	Partition<kmer_count> & solidCollection = storage->root().getGroup("dsk").getPartition<kmer_count> ("solid");
 	
 	/** We get the number of solid kmers. */
-    u_int64_t solidFileSize = solidCollection.getNbItems();
+   // u_int64_t solidFileSize = solidCollection.getNbItems();
 	
 	nb_kmers_infile = solidCollection.getNbItems();
 	//(System::file().getSize(_dskOutputFilename) / sizeof (kmer_count)); //approx total number of kmer
@@ -383,63 +322,6 @@ void Leon::createBloom (){
 
 
 }
-/*
-
-void Leon::createKmerAbundanceHash(){
-	#ifdef PRINT_DEBUG
-		cout << "\tFilling kmer abundance hash" << endl;
-	#endif
-
-	int ithresholds[4] = {200,50,20,10};
-	vector<int> thresholds(ithresholds, ithresholds + sizeof(ithresholds) / sizeof(int));	
-	//u_int64_t size = 0;
-	u_int64_t maxSizeMB = 500;
-	//u_int64_t absoluteMaxSize = (maxSize*3)/4;
-    //_kmerAbundance = new OAHash<kmer_type>(maxSize);
-    _kmerAbundance = new Hash16(maxSizeMB);
-
-
-	
-	
-    KmerModel model(_kmerSize);
-    
-    IteratorFile<kmer_count> it(_dskOutputFilename);
-    
-    for(int i=0; i<thresholds.size()-1; i++){
-		for (it.first(); !it.isDone(); it.next()){
-			kmer_count count = (*it);
-			
-			if(count.abundance >= thresholds[i]){
-				if(i == 0 || count.abundance < thresholds[i-1]){
-					_kmerAbundance->insert(count.value, count.abundance);
-					//size += OAHash<kmer_type>::size_entry();
-					size += sizeof(kmer_type) + sizeof(u_int32_t) + sizeof(int)*2;
-				}
-			}
-	
-			//if(size > maxSize-100000) break;
-			//if(size > absoluteMaxSize) break;
-		}
-		
-		//if(size > absoluteMaxSize) break;
-	}
-
-	#ifdef PRINT_DEBUG
-		cout << "\t\tNeeded memory: " << size << endl;
-		cout << "\t\tAllocated memory: " << _kmerAbundance->memory_usage() << endl;
-	#endif
-}
-*/
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -586,7 +468,7 @@ void Leon::executeCompression(){
 
 //	_outputFile = System::file().newFile(_outputFilename, "wb");
 	
-	_storageH5file = StorageFactory(STORAGE_HDF5).create (_outputFilename, true, false);
+	_storageH5file = StorageFactory(STORAGE_HDF5).create (_outputFilename, true, false,true);
 
 	_groupLeon    = new tools::storage::impl::Group((*_storageH5file)().getGroup      ("leon"));
 	_subgroupInfo = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("metadata"));
@@ -637,10 +519,8 @@ void Leon::executeCompression(){
 		//_FileQualname = baseOutputname + ".qual";
 		//_FileQual = System::file().newFile(_FileQualname, "wb");
 		//_Qual_outstream  =  new tools::storage::impl::Storage::ostream  (*_groupLeon, "qualities");
-		//_qualwriter = new OrderedBlocks( _Qual_outstream , _nb_cores ) ;
 	}
 
-//	setBlockWriter (new OrderedBlocks(_outputFile, _nb_cores ));
 
 	
 
@@ -662,9 +542,7 @@ void Leon::executeCompression(){
 	
 	
 
-	//_blockWrit
-	//setBlockWriter(0);
-	//setBlockWriter (new OrderedBlocks(_outputFile, _nb_cores ));
+
 
 	startDnaCompression();
 	
@@ -676,14 +554,7 @@ void Leon::executeCompression(){
 
 
 void Leon::endQualCompression(){
-	
-	
-	//append blocks info at the end
-	//_FileQual->fwrite(& _qualBlockSizes[0],  sizeof(u_int64_t) , _qualBlockSizes.size());
 
-	//u_int64_t val =  _qualBlockSizes.size();
-	
-	//_FileQual->fwrite(& val,  sizeof(u_int64_t) , 1);
 
 	_qualCompRate = ((double)_compressed_qualSize / _input_qualSize);
 
@@ -693,10 +564,7 @@ void Leon::endQualCompression(){
 
 void Leon::writeBlockLena(u_int8_t* data, u_int64_t size, int encodedSequenceCount,u_int64_t blockID){
 
-	
-	//printf("write block  lena block %i  insize %i \n ",blockID,size);
-	//zlib compression for the quals
-	
+
 	z_stream zs;
 	memset(&zs, 0, sizeof(zs));
 	
@@ -733,11 +601,7 @@ void Leon::writeBlockLena(u_int8_t* data, u_int64_t size, int encodedSequenceCou
 	deflateEnd(&zs);
 	
 	/////////////////
-	
 
-	///_qualwriter->insert((u_int8_t*) outstring.data(), outstring.size() ,blockID);
-	///_qualwriter->incDone(1);
-	
 	
 	pthread_mutex_lock(&writeblock_mutex);
 	
@@ -782,14 +646,6 @@ void Leon::writeBlock(u_int8_t* data, u_int64_t size, int encodedSequenceCount,u
 	//cout << "\tEncoded size (byte): " << size << endl;
 	
 	
-//	{
-//#ifdef SERIAL
-//	_outputFile->fwrite(data, size, 1);
-//#else
-//	_blockwriter->insert(data,size,blockID);
-//	_blockwriter->incDone(1);
-//#endif
-//	}
 	
 	pthread_mutex_lock(&writeblock_mutex);
 
@@ -1025,39 +881,6 @@ void Leon::endHeaderCompression(){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void Leon::startDnaCompression(){
 	#ifdef PRINT_DEBUG
 		cout << endl << "Start reads compression" << endl;
@@ -1126,59 +949,11 @@ void Leon::endDnaCompression(){
 	createDataset(_subgroupDNA,"nb_blocks",_blockSizes.size());
 	
 	
-	
-	////testing interleaved write
-	
-	
-//	tools::storage::impl::Storage::ostream kk1 (*_groupLeon, "kk1");
-//	u_int8_t bbyte=0;
-//	kk1.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk1.flush();
-//	
-//	tools::storage::impl::Storage::ostream kk2 (*_groupLeon, "kk2");
-//	bbyte=1;
-//	kk2.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk2.flush();
-//	
-//	
-//	bbyte=2;
-//	kk1.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk1.flush();
-//	
-//	bbyte=3;
-//	kk2.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk2.flush();
-//	
-//	bbyte=4;
-//	kk1.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk1.flush();
-//	
-//	bbyte=5;
-//	kk2.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk2.flush();
-//	
-//	bbyte=6;
-//	kk1.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk1.flush();
-//	
-//	bbyte=7;
-//	kk2.write (reinterpret_cast<char const*>(&bbyte), sizeof(bbyte));
-//	kk2.flush();
-//	//seems ok  !
-	
-	
 	printf("nb blokcs %i \n",_blockSizes.size());
 	tools::storage::impl::Storage::ostream os (*_subgroupDNA, "blocksizes");
 	os.write (reinterpret_cast<char const*>(_blockSizes.data()), _blockSizes.size()*sizeof(u_int64_t));
 	os.flush();
-	
-	
-//	CompressionUtils::encodeNumeric(_rangeEncoder, _numericModel, _blockSizes.size());
-//	for(int i=0; i<_blockSizes.size(); i++){
-//		//cout << "block size: " << _blockSizes[i] << endl;
-//		CompressionUtils::encodeNumeric(_rangeEncoder, _numericModel, _blockSizes[i]);
-//	}
-	
+
 	_blockSizes.clear();
 	
 	writeBloom();
@@ -1196,6 +971,9 @@ void Leon::endDnaCompression(){
 
 	createDataset(_subgroupInfo,"readcount",_readCount);
 	createDataset(_subgroupInfo,"totalDnaSize",_totalDnaSize);
+	createDataset(_subgroupInfo,"minSequenceSize",_minSequenceSize);
+	createDataset(_subgroupInfo,"maxSequenceSize",_maxSequenceSize);
+	
 	
 	
 	std::cout.precision(4);
@@ -1243,34 +1021,7 @@ void Leon::endDnaCompression(){
 	//cout << endl;
 	//#endif
 	
-	//u_int64_t readWithAnchorCount = _readCount - _readWithoutAnchorCount;
-	
-	//@ anchor kmer
-	//_readWithAnchorSize += ((double)readWithAnchorCount * log2(_anchorKmerCount)) / 8;
-	//_readWithAnchorSize += readWithAnchorCount*2;
-	//_readWithAnchorSize += _readWithAnchorMutationChoicesSize;
-	
-	//anchor dict
-	//_totalDnaCompressedSize += _anchorKmerCount*sizeof(kmer_type);
-	//bloom
-    //_totalDnaCompressedSize += _bloom->getSize();
-	//read without anchor (read_size * 0.375) 3 bit/nt
-	//_totalDnaCompressedSize += _readWithoutAnchorSize;
-	//_totalDnaCompressedSize += _readWithAnchorSize;
-	
-	//#ifdef PRINT_DEBUG
-		//cout << "\tCompression rate: " << ((double)_totalDnaCompressedSize / _totalDnaSize) << "    " << (float)_dnaCompRate << endl;
-		//cout << "\t\tAnchor kmer dictionnary: " << ((System::file().getSize(_outputFilename + ".adtemp")*100) / (double)_totalDnaCompressedSize) << "%" << endl;
-		//cout << "\t\tRead with anchor: " << ((_readWithAnchorSize*100) / (double)_totalDnaCompressedSize) << "%" << endl;
-		//cout << "\t\t\t@anchor: " << (((double)readWithAnchorCount * log2(_anchorKmerCount)*100 / 8) / (double)_readWithAnchorSize) << "%" << endl;
-		//cout << "\t\t\tMutations choices: " << ((_readWithAnchorMutationChoicesSize*100) / (double)_readWithAnchorSize)  << endl;
-		//cout << "\t\t\tOther: " << ((readWithAnchorCount*2*100)/(double)_readWithAnchorSize) << "%" << endl;
-		//cout << "\t\tRead without anchor: " << ((_readWithoutAnchorSize*100) / (double)_totalDnaCompressedSize) << "%" << endl;
-		//cout << endl;
-	//#endif
-	//_anchorKmers.clear();
-	//_anchorKmers->clear();
-	
+
 	delete _anchorKmers;
 	System::file().remove(_dskOutputFilename);
 
@@ -1303,23 +1054,11 @@ void Leon::writeAnchorDict(){
 	//u_int64_t size = _anchorRangeEncoder.getBufferSize();
 	_compressedSize += size;
 	
-	
-	//CompressionUtils::encodeNumeric(_rangeEncoder, _numericModel, size);
-	//Encode anchors count
-	//CompressionUtils::encodeNumeric(_rangeEncoder, _numericModel, _anchorAdress);
-	
+
 	
 	createDataset(_subgroupDict,"size",size);
 	createDataset(_subgroupDict,"anchorAdress",_anchorAdress);
-	
-	
-	
-	
-	
-	//printf("should encode %u anchors \n",_anchorAdress);
-	//cout << "Anchor dict size: " << System::file().getSize(_outputFilename + ".adtemp") << endl;
-	//cout << "\t pos: " << _outputFile->tell() << endl;
-	//cout << "count: " << _anchorKmerCount << endl;
+
 	
 	//_dictAnchorFile->seeko(0, SEEK_SET);
 	//_outputFile->fwrite(_dictAnchorFile, size, 1);
@@ -1354,17 +1093,20 @@ bool Leon::anchorExist(const kmer_type& kmer, u_int32_t* anchorAdress){
 	{
 		return true;
 	}
-	
-//	if(_anchorKmers.find( kmer ) != _anchorKmers.end()){ //avec std map
-//		*anchorAdress = _anchorKmers[kmer];
-//		return true;
-//	}
-	
+
 	return false;
-	//return _anchorKmers.get(kmer, (int*)anchorAdress); //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!changer OAHash in to u_int32_t
-	//u_int32_t anchorAdress;
-	//bool exist = _anchorKmers.get(kmer, &anchorAdress);
-	//return _anchorKmers.has_key(kmer);
+
+}
+
+
+
+void Leon::updateMinMaxSequenceSize(int newMin, int newMax)
+{
+	pthread_mutex_lock(&minmax_mutex);
+	_minSequenceSize = std::min(_minSequenceSize, newMin);
+	_maxSequenceSize = std::max(_maxSequenceSize, newMax);
+	pthread_mutex_unlock(&minmax_mutex);
+
 }
 
 int Leon::findAndInsertAnchor(const vector<kmer_type>& kmers, u_int32_t* anchorAdress){
@@ -1555,15 +1297,6 @@ void * decoder_all_thread(void * args)
 
 
 
-
-
-void * decoder_header_thread(void * args)
-{
-	HeaderDecoder * header_decoder = (HeaderDecoder*) args;
-	//header_decoder->execute();
- 	pthread_exit(0);
-}
-
 void * decoder_dna_thread(void * args)
 {
 	DnaDecoder * dna_decoder = (DnaDecoder*) args;
@@ -1591,8 +1324,7 @@ void Leon::executeDecompression(){
 	if(!_iterator_mode)
 	cout << "\tInput filename: " << _inputFilename << endl;
 	
-	
-	_storageH5file = StorageFactory(STORAGE_HDF5).load (_inputFilename);
+	_storageH5file = StorageFactory(STORAGE_HDF5).create (_inputFilename,false,false,true); //open without adding extension h5
 	_groupLeon = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("leon"));
 	_subgroupInfo = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("metadata"));
 	_subgroupDict = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("leon/anchors"));
@@ -2566,6 +2298,12 @@ void Leon::LeonIterator::estimate(u_int64_t& number, u_int64_t& totalSize, u_int
 {
 	readDataset(_leon._subgroupInfo,"readcount",number);
 	readDataset(_leon._subgroupInfo,"totalDnaSize",totalSize);
+	
+	int maxsizei ;
+
+	readDataset(_leon._subgroupInfo,"maxSequenceSize",maxsizei);
+	maxSize = maxsizei;
+
 }
 
 void Leon::LeonIterator::init()
@@ -2629,6 +2367,12 @@ void BankLeon::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& max
 {
 	readDataset(_leon->_subgroupInfo,"readcount",number);
 	readDataset(_leon->_subgroupInfo,"totalDnaSize",totalSize);
+	
+	int maxsizei ;
+	
+	readDataset(_leon->_subgroupInfo,"maxSequenceSize",maxsizei);
+	maxSize = maxsizei;
+	
 }
 
 
@@ -2643,8 +2387,11 @@ IBank* BankLeonFactory::createBank (const std::string& uri)
 
 	try {
 		isLEON = true;
-		auto storageH5file = StorageFactory(STORAGE_HDF5).load (uri);
-		auto groupLeon = new tools::storage::impl::Group((*storageH5file)().getGroup   ("leon"));
+		
+		auto storageH5file = StorageFactory(STORAGE_HDF5).create (uri,false,false,true); //open without adding extension h5
+
+		
+		//auto groupLeon = new tools::storage::impl::Group((*storageH5file)().getGroup   ("leon"));
 		
 		auto _subgroupInfo = new tools::storage::impl::Group((*storageH5file)().getGroup   ("metadata"));
 

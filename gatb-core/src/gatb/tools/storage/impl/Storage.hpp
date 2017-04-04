@@ -517,7 +517,7 @@ public:
      * \param[in] autoRemove : auto delete the storage from file system during Storage destructor.
      * \return the created Storage instance
      */
-    Storage* create (const std::string& name, bool deleteIfExist, bool autoRemove);
+    Storage* create (const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension = false);
 
     /** Tells whether or not a Storage exists in file system given a name
      * \param[in] name : name of the storage to be checked

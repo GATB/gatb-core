@@ -56,9 +56,9 @@ public:
      * \param[in] autoRemove : auto delete the storage from file system during Storage destructor.
      * \return the created Storage instance
      */
-    static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove)
+    static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension = false)
     {
-        return new StorageHDF5 (STORAGE_HDF5, name, deleteIfExist, autoRemove);
+        return new StorageHDF5 (STORAGE_HDF5, name, deleteIfExist, autoRemove, dont_add_extension);
     }
 
     /** Tells whether or not a Storage exists in file system given a name
@@ -193,14 +193,14 @@ private:
     class StorageHDF5 : public Storage
     {
     public:
-        StorageHDF5 (StorageMode_e mode, const std::string& name, bool deleteIfExist, bool autoRemove)
-            : Storage (mode, name, autoRemove), _fileId(0), _name(name)
+        StorageHDF5 (StorageMode_e mode, const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension = false)
+            : Storage (mode, name, autoRemove), _fileId(0), _name(name), _dont_add_extension(dont_add_extension)
         {
             if (deleteIfExist)  {  system::impl::System::file().remove (getActualName());  }
 
             /** We test the actual name exists in filesystem. */
             bool exists = system::impl::System::file().doesExist(getActualName());
-
+			
             if (exists==true)
             {
                 /** We open the existing file. */
@@ -231,7 +231,8 @@ private:
         hid_t       _fileId;
         std::string _name;
         std::string _actualName;
-
+		bool _dont_add_extension;
+		
         /** */
         std::string getActualName ()
         {
@@ -240,7 +241,7 @@ private:
             {
                 _actualName = _name;
                 /** We check whether the given name has a ".h5" suffix. */
-                if (_name.rfind(".h5") == std::string::npos)  {  _actualName += ".h5";  }
+                if ((_name.rfind(".h5") == std::string::npos) && !_dont_add_extension )  {  _actualName += ".h5";  }
 
             }
             return _actualName;

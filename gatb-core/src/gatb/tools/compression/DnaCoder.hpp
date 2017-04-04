@@ -29,8 +29,6 @@
 
 //#define PRINT_DISTRIB
 
-#include "OrderedBlocks.h"
-
 #ifdef PRINT_DISTRIB
 #include <unordered_set>
 #include <unordered_map>
@@ -212,6 +210,9 @@ class DnaEncoder : AbstractDnaCoder
 		u_int64_t _MCuniqNoSolid;
 		u_int64_t _MCnoAternative;
 		u_int64_t _MCmultipleSolid;
+	
+		int _minSequenceSize;
+		int _maxSequenceSize;
 		//u_int64_t _MCmultipleNoSolid;
 	
 		int _thread_id;
@@ -244,7 +245,7 @@ class DnaDecoder : AbstractDnaCoder
 	
 	
 		RangeDecoder _rangeDecoder;
-		ifstream* _inputFile;
+	//	ifstream* _inputFile;
 		//ofstream* _outputFile;
 		u_int64_t _blockStartPos;
 		u_int64_t _blockSize;
