@@ -103,6 +103,16 @@ namespace dp    {
  *  actual containers) and may be easier to use.
  *
  *  Moreover, we can use our iterator as a basis for other ways for iteration.
+ *
+ *
+ *  note (GR): this iterator system looks like the range of C++11, now that we use C++11, we could switch to range:
+ *
+ *  for ( MyType elem : range )
+ *   {
+ *      // use elem
+ *   }
+ *
+ *   it has the same benefits as the listed benefits of the Iterator class, IMHO
  */
 template <class Item> class Iterator : public system::SmartPointer
 {

@@ -109,7 +109,7 @@ public:
 
     /** Constructor. */
     PartitionsCommand (
-        gatb::core::tools::collections::Iterable<Type>& partition,
+       // gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,
@@ -119,7 +119,8 @@ public:
 		int                                             parti,
 		size_t                                          nbCores,
 		size_t                                          kmerSize,
-		gatb::core::tools::misc::impl::MemAllocator&    pool
+		gatb::core::tools::misc::impl::MemAllocator&    pool,
+		tools::storage::impl::SuperKmerBinFiles* 		superKstorage
     );
 
     /** Destructor. */
@@ -129,7 +130,7 @@ public:
     virtual const char* getName() const = 0;
 
 protected:
-    gatb::core::tools::collections::Iterable<Type>&         _partition;
+ //   gatb::core::tools::collections::Iterable<Type>&         _partition;
     gatb::core::tools::dp::IteratorListener*                _progress;
 	PartiInfo<5>&                                           _pInfo;
     int                                                     _pass_num;
@@ -146,6 +147,9 @@ protected:
 
     CountProcessor* _processor;
     void setProcessor (CountProcessor* processor)  { SP_SETATTR(processor); }
+	
+	tools::storage::impl::SuperKmerBinFiles* 				_superKstorage;
+
 };
 
 /********************************************************************************/
@@ -162,7 +166,7 @@ public:
 
     /** Constructor. */
     PartitionsByHashCommand (
-        gatb::core::tools::collections::Iterable<Type>& partition,
+       // gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,
@@ -173,7 +177,8 @@ public:
         size_t                                          nbCores,
         size_t                                          kmerSize,
         gatb::core::tools::misc::impl::MemAllocator&    pool,
-        u_int64_t                                       hashMemory
+        u_int64_t                                       hashMemory,
+		tools::storage::impl::SuperKmerBinFiles* 		superKstorage
     );
 
     /** Get the class name (for statistics). */
@@ -208,7 +213,7 @@ private:
 public:
     /** Constructor. */
     PartitionsByVectorCommand (
-        gatb::core::tools::collections::Iterable<Type>& partition,
+       // gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,
@@ -219,7 +224,9 @@ public:
         size_t                                          nbCores,
         size_t                                          kmerSize,
         gatb::core::tools::misc::impl::MemAllocator&    pool,
-        std::vector<size_t>&                            offsets
+        std::vector<size_t>&                            offsets,
+		tools::storage::impl::SuperKmerBinFiles* 		superKstorage
+
     );
 
     /** Destructor. */

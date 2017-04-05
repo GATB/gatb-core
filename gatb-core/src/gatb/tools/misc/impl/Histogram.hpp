@@ -99,6 +99,12 @@ public:
     /** \copydoc IHistogram::get_first_peak */
 	u_int16_t get_first_peak ()  { return _firstPeak; }
 
+	
+	/** \copydoc IHistogram::get_ratio_weak */
+	 float get_ratio_weak () { return _ratio_weak_volume; }
+
+	
+	
     /** \copydoc IHistogram::getLength */
     size_t getLength() { return _length; }
 
@@ -110,6 +116,7 @@ private:
     size_t    _length;
 	u_int16_t _cutoff;
 	u_int64_t _nbsolids;
+	float _ratio_weak_volume;
     u_int16_t _firstPeak;
 	
     Entry*  _histogram;
@@ -135,6 +142,9 @@ public:
 
     /** \copydoc IHistogram::get_nbsolids_auto */
 	u_int64_t get_nbsolids_auto () { return 0; }
+
+	/** \copydoc IHistogram::get_ratio_weak */
+	float get_ratio_weak () { return 0; }
 
     /** \copydoc IHistogram::get_first_peak */
 	u_int16_t get_first_peak    () { return 0; }
@@ -190,6 +200,10 @@ public:
     /** \copydoc IHistogram::get_nbsolids_auto */
 	u_int64_t get_nbsolids_auto () {return _ref->get_nbsolids_auto();}
 
+	/** \copydoc IHistogram::get_ratio_weak */
+	float get_ratio_weak()  { return _ref->get_ratio_weak(); }
+	
+	
     /** \copydoc IHistogram::get_first_peak */
     u_int16_t get_first_peak () { return _ref->get_first_peak(); }
 

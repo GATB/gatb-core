@@ -137,6 +137,11 @@ public:
         _memory.memset (datah,0, tai * sizeof(cell_ptr_t));
     }
 	
+	u_int64_t getByteSize()
+	{
+		return storage.getByteSize();
+	}
+	
     /** Destructor */
     ~Hash16()
     {

@@ -58,6 +58,8 @@ public:
     //increases both superk and kmer count
     inline void incSuperKmer_per_minimBin(int numbin, int superksize, u_int64_t val=1)
     {
+		_nb_superk_total+=val;
+		_nb_kmer_total += val*superksize;
         _superk_per_mmer_bin[numbin]+= val ;
         _kmer_per_mmer_bin[numbin]+= val *superksize;
     }
@@ -102,6 +104,10 @@ public:
             __sync_fetch_and_add (_kxmer_per_mmer_bin  + ii, other.getNbKxmer_per_minim     (ii));
         }
 
+		__sync_fetch_and_add(&_nb_superk_total , other._nb_superk_total);
+		__sync_fetch_and_add(&_nb_kmer_total , other._nb_kmer_total);
+		
+		
         return *this;
     }
 
@@ -122,7 +128,16 @@ public:
     {
         return _nb_kxmers_per_parti[numpart];
     }
+	
+	inline  u_int64_t   getNbSuperKmerTotal() const
+	{
+		return _nb_superk_total;
+	}
 
+	inline  u_int64_t   getNbKmerTotal() const
+	{
+		return _nb_kmer_total;
+	}
     /** */
     inline  u_int64_t   getNbSuperKmer_per_minim(int numbin) const
     {
@@ -198,7 +213,8 @@ public:
             Typem cur;
             cur.setVal(np);
 
-            printf("Bin[%5i (%s) ]= %lli    %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
+			if(this->getNbSuperKmer_per_minim(np)!=0 || this->getNbKmer_per_minim(np)  !=0 )
+			   	printf("Bin[%5i (%s) ]= %lli    %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
 
             sumk += this->getNbKmer_per_minim(np);
             sumsuperk +=  this->getNbSuperKmer_per_minim(np);
@@ -211,6 +227,8 @@ public:
     /** Constructor. */
     PartiInfo(int nbpart, int minimsize) : _nbpart(nbpart), _mm(minimsize)
     {
+		_nb_superk_total =0;
+		_nb_kmer_total =0;
         _nb_kmers_per_parti  = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
         _nb_kxmers_per_parti = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
         _num_mm_bins =   1 << (2*_mm);
@@ -234,7 +252,9 @@ public:
         _num_mm_bins = cr._num_mm_bins;
         _nbpart      = cr._nbpart;
         _mm          = cr._mm;
-
+		_nb_superk_total = cr._nb_superk_total;
+		_nb_kmer_total = cr._nb_kmer_total;
+		
         _nb_kmers_per_parti  = (u_int64_t*) CALLOC (_nbpart,      sizeof(u_int64_t));
         _nb_kxmers_per_parti = (u_int64_t*) CALLOC (_nbpart,      sizeof(u_int64_t));
         _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
@@ -272,6 +292,8 @@ private:
     u_int64_t* _nb_kmers_per_parti;
     u_int64_t* _nb_kxmers_per_parti; //now used to store number of kxmers per parti
     u_int64_t* _superk_per_mmer_bin;
+	u_int64_t  _nb_superk_total;
+	u_int64_t  _nb_kmer_total;
     u_int64_t* _kmer_per_mmer_bin;
     u_int64_t* _kxmer_per_mmer_bin;
 

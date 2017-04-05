@@ -337,7 +337,7 @@ void ConfigurationAlgorithm<span>::execute ()
 
     assert (_config._max_disk_space > 0);
 
-    _config._nb_passes = ( (_config._volume/3) / _config._max_disk_space ) + 1; //minim, approx volume /3
+    _config._nb_passes = ( (_config._volume/4) / _config._max_disk_space ) + 1; //minim, approx volume /switched to approx /4 (was/3) because of more efficient superk storage
     //_nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
     //increase it only if ram issue
 

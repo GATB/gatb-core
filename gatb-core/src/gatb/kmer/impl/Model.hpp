@@ -31,7 +31,6 @@
 #include <gatb/system/api/Exception.hpp>
 
 #include <gatb/kmer/api/IModel.hpp>
-
 #include <gatb/tools/collections/api/Bag.hpp>
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
@@ -40,6 +39,8 @@
 #include <gatb/tools/misc/api/Abundance.hpp>
 
 #include <gatb/tools/math/Integer.hpp>
+
+#include <gatb/tools/storage/impl/Storage.hpp>
 
 #include <vector>
 #include <algorithm>
@@ -915,19 +916,52 @@ struct Kmer
             has_frequency = false;
         }
 
-        void include_frequency (uint32_t *freq_order) 
+        void include_frequency (uint32_t *freq_order)
         { 
             _freq_order = freq_order;
             has_frequency = true;
         }
 
-        bool operator() (const Type& a_t, const Type& b_t) const { 
+		template<class Model>   Type computeLargest (const Model& model,int mmersize)
+		{
+			Type largest;
+			if(has_frequency)
+			{
+				u_int64_t nbminims_total = ((u_int64_t)1 << (2*mmersize));
+
+				Type  mmer_max;
+				mmer_max.setVal(0);
+				uint32_t _freq_max = _freq_order[mmer_max.getVal()];
+				for(uint32_t ii=0; ii< nbminims_total; ii++)
+				{
+					Type Tii;
+					Tii.setVal(ii);
+					
+					if( ! (*this)(Tii,mmer_max ))
+					{
+						mmer_max.setVal(ii);
+						_freq_max = _freq_order[ii];
+					}
+				}
+				printf("largest freq is %i   for %s\n",_freq_max,mmer_max.toString(mmersize).c_str());
+				largest = mmer_max;
+			}
+			else
+			{
+				largest = model.getKmerMax();
+			}
+			
+			return largest;
+		}
+		
+        bool operator() (const Type& a_t, const Type& b_t) const {
             u_int64_t a = a_t.getVal();
             u_int64_t b = b_t.getVal();
 
             if (has_frequency)
             {
                 //printf("testing freq order of %d %d: %d %d, min is gonna be: %d\n",a,b,_freq_order[a], _freq_order[b], (_freq_order[a] < _freq_order[b]) ? a : b);
+				//printf("freq order %llu %llu        %i %i  %i\n",a,b,_freq_order[a],_freq_order[b], _freq_order[a] > _freq_order[b]);
                 if (_freq_order[a] == _freq_order[b])
                     return a < b;
                 return _freq_order[a] < _freq_order[b];
@@ -980,7 +1014,7 @@ struct Kmer
             if (kmerSize < minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
             _minimizerSize = minimizerSize;
-
+			
             /** We compute the number of mmers found in a kmer. */
             _nbMinimizers = _kmerModel.getKmerSize() - minimizerSize + 1;
 
@@ -993,7 +1027,7 @@ struct Kmer
              * The value is actually set by the Comparator instance provided as a template of the class. */
             Type tmp;
             _cmp.template init<ModelType> (getMmersModel(), tmp);
-            _minimizerDefault.set (tmp);
+            _minimizerDefault.set (tmp); //////////max value of minim
 			
 			u_int64_t nbminims_total = ((u_int64_t)1 << (2*_minimizerSize));
 			_mmer_lut = (Type *) MALLOC(sizeof(Type) * nbminims_total ); //free that in destructor
@@ -1006,27 +1040,33 @@ struct Kmer
 			for(u_int64_t ii=0; ii< nbminims_total; ii++)
 			{
 				Type mmer;
-                mmer.setVal(ii);
+				mmer.setVal(ii);
 				
-                // if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
-                // if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
-
-                if (isModelCanonical)
-                {
-    				Type rev_mmer = revcomp(mmer, minimizerSize);
-    				if(rev_mmer < mmer) mmer = rev_mmer;
-                }
-
-                //std:: cout << "ii " << ii << " is allowed " << is_allowed(mmer.getVal(),minimizerSize) <<  " mmer getval " << mmer.getVal() << " is model canonical " << isModelCanonical << std::endl;
-
-                if (!is_allowed(mmer.getVal(),minimizerSize)) 
-                    mmer = _mask;
-
+				// if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
+				// if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
+				
+				if (isModelCanonical)
+				{
+					Type rev_mmer = revcomp(mmer, minimizerSize);
+					if(rev_mmer < mmer) mmer = rev_mmer;
+					
+					//may be cleaner with this
+					//if (_cmp (rev_mmer, mmer ) == true)
+					//	mmer = rev_mmer;
+				}
+				
+				//std:: cout << "ii " << ii << " is allowed " << is_allowed(mmer.getVal(),minimizerSize) <<  " mmer getval " << mmer.getVal() << " is model canonical " << isModelCanonical << std::endl;
+				
+				if (!is_allowed(mmer.getVal(),minimizerSize))
+					mmer = _mask;
+				
 				_mmer_lut[ii] = mmer;
 			}
 
             if (freq_order)
                 setMinimizersFrequency(freq_order);
+
+			
         }
 
 
@@ -1141,9 +1181,13 @@ struct Kmer
             justSweepForAA(km.value(0), _nbMinimizers, dummy);
         }
 
+		//return value of larger mmer in the freq order
         void setMinimizersFrequency (uint32_t *freq_order)
         {
             _cmp.include_frequency(freq_order);
+			
+			//Type tmp =_cmp.template computeLargest<ModelType>(getMmersModel(),_minimizerSize);
+			//_minimizerDefault.set (tmp);
         }
 
         // hack to access compare int's, for bcalm, needs to be made cleaner later
@@ -1169,42 +1213,43 @@ struct Kmer
         bool       _defaultFast;
 
         uint32_t *_freq_order;
+		
 
         /** Tells whether a minimizer is valid or not, in order to skip minimizers
          *  that are too frequent. */
         bool is_allowed (uint32_t mmer, uint32_t len)
-        {
-            if (_freq_order) return true; // every minimizer is allowed in freq order
-
-            u_int64_t  _mmask_m1  ;
-            u_int64_t  _mask_0101 ;
-            u_int64_t  _mask_ma1 ;
+		{
+			if (_freq_order) return true; // every minimizer is allowed in freq order
+			
+			u_int64_t  _mmask_m1  ;
+			u_int64_t  _mask_0101 ;
+			u_int64_t  _mask_ma1 ;
 			
 			//code to ban mmer with AA inside except if at the beginnning
 			// A C T G        00   01   10   11
-            _mmask_m1  = (1 << ((len-2)*2)) -1 ; //vire 2 premieres lettres m = 8  donne    00 00 11 11 11 11 11 11
-            _mask_0101 = 0x5555555555555555  ; //         01 01 01 01 01 01 01 01
-            _mask_ma1  = _mask_0101 & _mmask_m1;//        00 00 01 01 01 01 01 01
-
-            u_int64_t a1 = mmer; //
-            a1 =   ~(( a1 )   | (  a1 >>2 ));  //
-            a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
-
-            if(a1 != 0) return false;
-
-            // if ((mmer & 0x3f) == 0x2a)   return false;   // TTT suffix
-            // if ((mmer & 0x3f) == 0x2e)   return false;   // TGT suffix
-            // if ((mmer & 0x3c) == 0x28)   return false;   // TT* suffix
-            // for (uint32_t j = 0; j < len - 3; ++j)       // AA inside
-            //      if ((mmer & 0xf) == 0)  return false;
-            //      else                    mmer >>= 2;
-            // if (mmer == 0)               return false;   // AAA prefix
-            // if (mmer == 0x04)            return false;   // ACA prefix
-            // if ((mmer & 0xf) == 0)   return false;       // *AA prefix
-
-            return true;
-        }
-        
+			_mmask_m1  = (1 << ((len-2)*2)) -1 ; //vire 2 premieres lettres m = 8  donne    00 00 11 11 11 11 11 11
+			_mask_0101 = 0x5555555555555555  ; //         01 01 01 01 01 01 01 01
+			_mask_ma1  = _mask_0101 & _mmask_m1;//        00 00 01 01 01 01 01 01
+			
+			u_int64_t a1 = mmer; //
+			a1 =   ~(( a1 )   | (  a1 >>2 ));  //
+			a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
+			
+			if(a1 != 0) return false;
+			
+			// if ((mmer & 0x3f) == 0x2a)   return false;   // TTT suffix
+			// if ((mmer & 0x3f) == 0x2e)   return false;   // TGT suffix
+			// if ((mmer & 0x3c) == 0x28)   return false;   // TT* suffix
+			// for (uint32_t j = 0; j < len - 3; ++j)       // AA inside
+			//      if ((mmer & 0xf) == 0)  return false;
+			//      else                    mmer >>= 2;
+			// if (mmer == 0)               return false;   // AAA prefix
+			// if (mmer == 0x04)            return false;   // ACA prefix
+			// if ((mmer & 0xf) == 0)   return false;       // *AA prefix
+			
+			return true;
+		}
+		
         /** Returns the minimizer of the provided vector of mmers. */
         void computeNewMinimizerOriginal(Kmer& kmer) const
         {
@@ -1220,15 +1265,17 @@ struct Kmer
 
             Type kmer_minimizer_value = kmer._minimizer.value();
             Type val = kmer.value(0);
-            
+
             for (int16_t idx=_nbMinimizers-1; idx>=0; idx--)
             {
+
                 /** We extract the most left mmer in the kmer. */
                 Type candidate_minim = _mmer_lut[(val & _mask).getVal()];
-            
+				
+
                 /** We check whether this mmer is the new minimizer. */
                 if (_cmp (candidate_minim, kmer_minimizer_value ) == true)  
-                {  
+                {
                     mmer.set(candidate_minim);
                     kmer._minimizer = mmer;   
                     kmer._position = idx; 
@@ -1304,7 +1351,10 @@ struct Kmer
         SuperKmer (size_t kmerSize, size_t miniSize)
             : minimizer(DEFAULT_MINIMIZER), kmerSize(kmerSize), miniSize(miniSize)
         {
+			_max_size_sk = 1000;
 			kmers.clear();
+			_sk_buffer = (u_int8_t *) malloc(_max_size_sk);
+			_sk_buffer_idx=0;
           //  if (kmers.empty())  { kmers.resize(kmerSize); range.second = kmers.size()-1; }
         }
 
@@ -1328,7 +1378,91 @@ struct Kmer
 		void reset()
 		{
 			kmers.clear();
+			//binrep.clear();
+			_sk_buffer_idx =0;
 		}
+		
+		//save superkmer to CacheSuperKmerBinFiles
+		void save(tools::storage::impl::CacheSuperKmerBinFiles  & cacheSuperkFile, int file_id)
+		{
+//			printf("saving superk to file %i \n",file_id);
+//			//debug
+//			for (size_t ii=0 ; ii < kmers.size(); ii++)
+//			{
+//			
+//				printf("%s\n",	(((*this)[ii].forward()).toString(kmerSize)).c_str());
+//
+//			}
+//			//
+			size_t superKmerLen = size();
+
+			
+			int required_bytes = (superKmerLen + kmerSize +3) /4 ;
+			if(required_bytes > _max_size_sk)
+			{
+				_sk_buffer = (u_int8_t *) realloc(_sk_buffer, _max_size_sk);
+				_max_size_sk = required_bytes;
+			}
+			
+			
+			//binrep.clear();
+			_sk_buffer_idx =0;
+			
+			Type basekmer = (*this)[0].forward();
+			
+			int rem_size = kmerSize;
+			u_int8_t newbyte=0;
+			u_int64_t mask4nt  = 255;
+			u_int64_t mask1nt  = 3;
+			
+			while(rem_size>=4)
+			{
+				newbyte = basekmer.getVal() & mask4nt ; // ptet un getVal et cast to u_int8_t
+				rem_size -= 4;
+				basekmer = basekmer >> 8;
+				_sk_buffer[_sk_buffer_idx++]= newbyte;
+				//binrep.push_back(newbyte);
+//				//debug pushing
+//				Type dd; dd.setVal(newbyte);
+//				printf("pushing %s\n",	(dd.toString(4)).c_str());
+//				//
+			}
+			
+			//reste du kmer
+			newbyte = basekmer.getVal() & mask4nt;
+			int uid = rem_size; //uid = nb nt used in this newbyte
+
+			//reste du newbyte avec le superk
+
+			int skid =1;
+			
+			while(true)
+			{
+				while(uid<4 && skid < superKmerLen)
+				{
+					
+					u_int8_t newnt = ((*this)[skid].forward()).getVal() & mask1nt ;
+					
+					newbyte |=  newnt << (uid*2);
+					uid++; skid++;
+				}
+				_sk_buffer[_sk_buffer_idx++]= newbyte;
+				//binrep.push_back(newbyte);
+//				//debug pushing
+//				Type dd; dd.setVal(newbyte);
+//				printf("pushing %s\n",	(dd.toString(4)).c_str());
+//				//
+				
+				if(skid >= superKmerLen) break;
+				
+				newbyte=0; uid=0;
+			}
+			
+		//	cacheSuperkFile.insertSuperkmer(binrep.data(), binrep.size(), kmers.size(),  file_id);
+			cacheSuperkFile.insertSuperkmer(_sk_buffer, _sk_buffer_idx, kmers.size(),  file_id);
+			
+		}
+		
 		
         /** */
         void save (tools::collections::Bag<Type>& bag)
@@ -1399,10 +1533,19 @@ struct Kmer
         }
 #endif
 
+		~SuperKmer()
+		{
+			free(_sk_buffer);
+		}
+		
     private:
         size_t              kmerSize;
         size_t              miniSize;
         std::vector<Kmer>  kmers;
+		//std::vector<u_int8_t> binrep;
+		u_int8_t * _sk_buffer;
+		int _sk_buffer_idx;
+		int _max_size_sk;
     };
 
     /************************************************************/

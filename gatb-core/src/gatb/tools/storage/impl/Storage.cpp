@@ -301,7 +301,292 @@ Storage::istream::~istream ()
 {
     delete rdbuf();
 }
+	
+	
+///////////////////////////////////////
+////////// SuperKmerBinFiles //////////
+///////////////////////////////////////
+	
+SuperKmerBinFiles::SuperKmerBinFiles(const std::string& path,const std::string& name, size_t nb_files) : _basefilename(name), _path(path),_nb_files(nb_files)
+{
+	_nbKmerperFile.resize(_nb_files,0);
+	_FileSize.resize(_nb_files,0);
+	
+	openFiles("wb"); //at construction will open file for writing
+	// then use close() and openFiles() to open for reading
+	
+}
 
+void SuperKmerBinFiles::openFile( const char* mode, int fileId)
+{
+	std::stringstream ss;
+	ss << _basefilename << "." << fileId;
+		
+	_files[fileId] = system::impl::System::file().newFile (_path, ss.str(), mode);
+	_synchros[fileId] = system::impl::System::thread().newSynchronizer();
+	_synchros[fileId]->use();
+}
+	
+void SuperKmerBinFiles::openFiles( const char* mode)
+{
+	_files.resize(_nb_files,0);
+	_synchros.resize(_nb_files,0);
+	
+	system::impl::System::file().mkdir(_path, 0755);
+
+	for(int ii=0;ii<_files.size();ii++)
+	{
+		std::stringstream ss;
+		ss << _basefilename << "." << ii;
+		
+		_files[ii] = system::impl::System::file().newFile (_path, ss.str(), mode);
+		_synchros[ii] = system::impl::System::thread().newSynchronizer();
+		_synchros[ii]->use();
+
+	}
+}
+
+	
+std::string SuperKmerBinFiles::getFileName(int fileId)
+{
+	
+	std::stringstream ss;
+	ss << _path << "/" <<_basefilename << "." << fileId;
+	
+	return ss.str();
+}
+
+	
+int SuperKmerBinFiles::readBlock(unsigned char ** block, unsigned int* max_block_size, unsigned int* nb_bytes_read, int file_id)
+{
+	_synchros[file_id]->lock();
+	
+	//block header
+	int nbr = _files[file_id]->fread(nb_bytes_read, sizeof(*max_block_size),1);
+
+	if(nbr == 0)
+	{
+		//printf("__ end of file %i __\n",file_id);
+		_synchros[file_id]->unlock();
+		return 0;
+	}
+	
+	if(*nb_bytes_read > *max_block_size)
+	{
+		*block = (unsigned char *) realloc(*block, *nb_bytes_read);
+		*max_block_size = *nb_bytes_read;
+	}
+	
+	//block
+	_files[file_id]->fread(*block, sizeof(unsigned char),*nb_bytes_read);
+	
+	_synchros[file_id]->unlock();
+	
+	return *nb_bytes_read;
+}
+
+int SuperKmerBinFiles::getNbItems(int fileId)
+{
+	return _nbKmerperFile[fileId];
+}
+	
+	
+u_int64_t SuperKmerBinFiles::getFileSize(int fileId)
+{
+
+	return _FileSize[fileId];
+}
+
+void SuperKmerBinFiles::getFilesStats(u_int64_t & total, u_int64_t & biggest, u_int64_t & smallest, float & mean)
+{
+	total =0;
+	smallest = ~0;
+	biggest  = 0;
+	mean=0;
+	for(int ii=0;ii<_FileSize.size();ii++)
+	{
+		smallest = std::min (smallest, _FileSize[ii]);
+		biggest  = std::max (biggest,  _FileSize[ii]);
+		total+=_FileSize[ii];
+	}
+	if(_FileSize.size()!=0)
+		mean= total/_FileSize.size();
+	
+}
+	
+	
+void SuperKmerBinFiles::writeBlock(unsigned char * block, unsigned int block_size, int file_id, int nbkmers)
+{
+
+	_synchros[file_id]->lock();
+	
+	_nbKmerperFile[file_id]+=nbkmers;
+	_FileSize[file_id] += block_size+sizeof(block_size);
+	//block header
+	_files[file_id]->fwrite(&block_size, sizeof(block_size),1);
+
+	//block
+	_files[file_id]->fwrite(block, sizeof(unsigned char),block_size);
+	
+	_synchros[file_id]->unlock();
+
+}
+	
+void SuperKmerBinFiles::flushFiles()
+{
+	for(int ii=0;ii<_files.size();ii++)
+	{
+		_synchros[ii]->lock();
+
+		if(_files[ii]!=0)
+		{
+			_files[ii]->flush();
+		}
+		
+		_synchros[ii]->unlock();
+
+	}
+}
+
+void SuperKmerBinFiles::eraseFiles()
+{
+	for(int ii=0;ii<_files.size();ii++)
+	{
+		std::stringstream ss;
+		ss << _path << "/" <<_basefilename << "." << ii;
+		system::impl::System::file().remove(ss.str());
+	}
+	system::impl::System::file().rmdir(_path);
+
+}
+
+void SuperKmerBinFiles::closeFile(  int fileId)
+{
+	if(_files[fileId]!=0)
+	{
+		delete _files[fileId];
+		_files[fileId] = 0;
+		_synchros[fileId]->forget();
+	}
+}
+
+	
+void SuperKmerBinFiles::closeFiles()
+{
+	for(int ii=0;ii<_files.size();ii++)
+	{
+		if(_files[ii]!=0)
+		{
+			delete _files[ii];
+			_files[ii] = 0;
+			_synchros[ii]->forget();
+		}
+	}
+}
+	
+SuperKmerBinFiles::~SuperKmerBinFiles()
+{
+	this->closeFiles();
+	this->eraseFiles();
+}
+	
+int SuperKmerBinFiles::nbFiles()
+{
+	return _files.size();
+}
+
+////////////////////////////////////////////
+//////////  CacheSuperKmerBinFiles /////////
+////////////////////////////////////////////
+
+
+
+	
+CacheSuperKmerBinFiles::CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buffsize )
+{
+	_ref = ref;
+
+	_nb_files = _ref->nbFiles();
+	_nbKmerperFile.resize(_nb_files,0);
+
+	_buffer_max_capacity = buffsize; // this is per file, per thread
+	//printf("buffsize %i per file per thread \n",_buffer_max_capacity);
+
+	_max_superksize= 255; // this is extra size from regular kmer; ie total max superksize is kmersize +  _max_superksize
+	
+	_buffers.resize(_nb_files);
+	_buffers_idx.resize(_nb_files,0);
+	
+	for(int ii=0; ii<_buffers.size();ii++ )
+	{
+		_buffers[ii] = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _buffer_max_capacity);
+	}
+	
+}
+	
+//copy construc : alloc own buffer for new object
+CacheSuperKmerBinFiles::CacheSuperKmerBinFiles (const CacheSuperKmerBinFiles& p)
+{
+	_ref = p._ref;
+	_nb_files= p._nb_files;
+	_buffer_max_capacity= p._buffer_max_capacity;
+	_max_superksize= p._max_superksize;
+	_nbKmerperFile.resize(_nb_files,0);
+
+	_buffers.resize(_nb_files);
+	_buffers_idx.resize(_nb_files,0);
+	
+	for(int ii=0; ii<_buffers.size();ii++ )
+	{
+		_buffers[ii] = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _buffer_max_capacity);
+	}
+}
+	
+void CacheSuperKmerBinFiles::flushAll()
+{
+	//printf("flush all buffers\n");
+	for(int ii=0; ii<_buffers.size();ii++ )
+	{
+		flush(ii);
+	}
+}
+	
+	
+void CacheSuperKmerBinFiles::flush(int file_id)
+{
+	if(_buffers_idx[file_id]!=0)
+	{
+		_ref->writeBlock(_buffers[file_id],_buffers_idx[file_id],file_id,_nbKmerperFile[file_id]);
+		
+		_buffers_idx[file_id]=0;
+		_nbKmerperFile[file_id] = 0;
+	}
+}
+	
+	
+void CacheSuperKmerBinFiles::insertSuperkmer(u_int8_t* superk, int nb_bytes, u_int8_t nbk, int file_id)
+{
+	if( (_buffers_idx[file_id]+nb_bytes+1) > _buffer_max_capacity)
+	{
+		flush(file_id);
+	}
+	
+	_buffers[file_id][_buffers_idx[file_id]++] = nbk;
+	
+	memcpy(_buffers[file_id] + _buffers_idx[file_id]  , superk,nb_bytes);
+	_buffers_idx[file_id] += nb_bytes;
+	_nbKmerperFile[file_id]+=nbk;
+	
+}
+	
+CacheSuperKmerBinFiles::~CacheSuperKmerBinFiles()
+{
+	this->flushAll();
+	for(int ii=0; ii<_buffers.size();ii++ )
+	{
+		FREE (_buffers[ii]);
+	}
+}
 /********************************************************************************/
 } } } } } /* end of namespaces. */
 /********************************************************************************/

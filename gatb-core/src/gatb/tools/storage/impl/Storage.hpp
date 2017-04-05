@@ -220,6 +220,102 @@ protected:
     std::vector<Group*> _groups;
 };
 
+	
+	
+	////////////////////////////////////////////////////////////
+	////////////////// superkmer storage ///////////////////////
+	////////////////////////////////////////////////////////////
+	
+//this class manages the set of temporary files needed to store superkmers
+//to be used in conjunction with the CacheSuperKmerBinFiles below for buffered IO
+
+	
+// Note (guillaume) :  not very GATB-friendly  since it completely ignores GATB bag, bagcache, collection, partition, iterableFile,   etc ..
+// but I do not know how to use gatb classes with a variable size type (the superkmer)
+// and anyway the gatb storage complex hierarchy is error-prone (personal opinion)
+// so, hell, just recreate an adhoc buffered storage here for superkmers
+// it does need to be templated for kmer size, superkmers are inserted as u_int8_t*
+
+	
+	
+//block header = 4B = block size
+//puis block = liste de couple  < superk length = 1B  , superkmer = nB  >
+//the  block structure makes it easier for buffered read,
+//otherwise we would not know how to read a big chunk without stopping in the middle of superkmer
+
+class SuperKmerBinFiles
+{
+	
+public:
+	
+	//construtor will open the files for writing
+	//use closeFiles to close them all then openFiles to open in different mode
+	SuperKmerBinFiles(const std::string& path,const std::string& name, size_t nb_files);
+	
+	~SuperKmerBinFiles();
+
+	void closeFiles();
+	void flushFiles();
+	void eraseFiles();
+	void openFiles(const char* mode);
+	void openFile( const char* mode, int fileId);
+	void closeFile(  int fileId);
+
+	//read/write block of superkmers to filefile_id
+	//readBlock will re-allocate the block buffer if needed (current size passed by max_block_size)
+	int readBlock(unsigned char ** block, unsigned int* max_block_size, unsigned int* nb_bytes_read, int file_id);
+	void writeBlock(unsigned char * block, unsigned int block_size, int file_id, int nbkmers);
+
+	int nbFiles();
+	int getNbItems(int fileId);
+	
+	void getFilesStats(u_int64_t & total, u_int64_t & biggest, u_int64_t & smallest, float & mean);
+	u_int64_t getFileSize(int fileId);
+
+	
+	std::string getFileName(int fileId);
+private:
+
+	std::string _basefilename;
+	std::string _path;
+	
+	std::vector<int> _nbKmerperFile;
+	std::vector<u_int64_t> _FileSize;
+
+	std::vector<system::IFile* > _files;
+	std::vector <system::ISynchronizer*> _synchros;
+	int _nb_files;
+};
+
+
+
+//encapsulate SuperKmerBinFiles I/O with a buffer
+class CacheSuperKmerBinFiles
+{
+	public:
+	CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buffsize);
+	
+	CacheSuperKmerBinFiles (const CacheSuperKmerBinFiles& p);
+
+	void insertSuperkmer(u_int8_t* superk, int nb_bytes, u_int8_t nbk, int file_id);
+	void flushAll();
+	void flush(int file_id);
+	~CacheSuperKmerBinFiles();
+
+private:
+	SuperKmerBinFiles * _ref;
+	int _max_superksize;
+	int _buffer_max_capacity;
+	int _nb_files;
+	
+	std::vector< u_int8_t* > _buffers;
+	std::vector<int> _buffers_idx;
+	std::vector<int> _nbKmerperFile;
+
+};
+	
+	
+	
 /**********************************************************************
 ######      #     ######   #######  ###  #######  ###  #######  #     #
 #     #    # #    #     #     #      #      #      #   #     #  ##    #

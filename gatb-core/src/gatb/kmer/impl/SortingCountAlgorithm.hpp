@@ -229,17 +229,18 @@ private:
     /** Handle on the count processor object. */
     std::vector<CountProcessor*> _processors;
 
+	
     /** Handle on the progress information. */
     gatb::core::tools::dp::IteratorListener* _progress;
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
 
     /** Temporary partitions management. */
-    tools::storage::impl::Storage* _tmpPartitionsStorage;
-    void setPartitionsStorage (tools::storage::impl::Storage* tmpPartitionsStorage)  {  SP_SETATTR(tmpPartitionsStorage);  }
+   // tools::storage::impl::Storage* _tmpPartitionsStorage;
+    //void setPartitionsStorage (tools::storage::impl::Storage* tmpPartitionsStorage)  {  SP_SETATTR(tmpPartitionsStorage);  }
 
     /** Temporary partitions management. */
-    tools::storage::impl::Partition<Type>* _tmpPartitions;
-    void setPartitions (tools::storage::impl::Partition<Type>* tmpPartitions)  {  SP_SETATTR(tmpPartitions);  }
+    //tools::storage::impl::Partition<Type>* _tmpPartitions;
+    //void setPartitions (tools::storage::impl::Partition<Type>* tmpPartitions)  {  SP_SETATTR(tmpPartitions);  }
 
     /** Get the memory size (in bytes) to be used by each item.
      * IMPORTANT : we may have to count both the size of Type and the size for the bank id. */
@@ -254,6 +255,11 @@ private:
     tools::storage::impl::StorageMode_e _storage_type;
     tools::storage::impl::Storage* _storage;
     void setStorage (tools::storage::impl::Storage* storage)  { SP_SETATTR(storage); }
+	
+	
+	//superkmer efficient storage
+	tools::storage::impl::SuperKmerBinFiles* _superKstorage;
+	std::string _tmpStorageName_superK;
 };
 
 /********************************************************************************/

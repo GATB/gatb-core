@@ -89,8 +89,11 @@ public:
 		
 		void operator() (const KType& kmer, size_t idx)  {
 			
+			//kmer.toString(_kmerSize)
 		 if (kmer.isValid() == false)
 		 {
+			// printf("non valid kmer %s \n", kmer.value().toString(31).c_str());
+			 //caller->_model.toString(kmer)
 			 // on invalid kmer : output previous superk utput prev
 			 caller->processSuperkmer (superKmer);
 			 superKmer.reset();
@@ -106,6 +109,12 @@ public:
 			
 			/** We get the value of the current minimizer. */
 			u_int64_t h = kmer.minimizer().value().getVal();
+			
+			if(DEFAULT_MINIMIZER == h)
+			{
+				printf("__ non valid kmer %s \n", kmer.value().toString(31).c_str());
+
+			}
 			
 			/** We have to set minimizer value if not defined. */
 			if (superKmer.isValid() == false)  {  superKmer.minimizer = h;  }
