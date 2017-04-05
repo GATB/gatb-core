@@ -169,7 +169,7 @@ public:
      */
     IterableFile (const std::string& filename, size_t cacheItemsNb=10000)
         :   _filename(filename), _cacheItemsNb (cacheItemsNb), 
-        _file(0)  // hacking my own iterator, for getItems, separate from IteratorFile. dirty, but nothing used to work at all
+        _file(0)  // hacking my own iterator, for getItems, separate from IteratorFile. dirty, but nothing used to work at all. _file is used in getItems() only
     {
         // if the file doesn't exist (meaning that BagFile hasn't created it yet), let's create it just for the sake of it. but then we'll open it just for reading
         if (!system::impl::System::file().doesExist(filename))
@@ -177,8 +177,9 @@ public:
                 auto   _file2 = system::impl::System::file().newFile (filename, "wb");
                 delete _file2;
             }
-
-        _file    = system::impl::System::file().newFile (filename, "rb"); 
+        /* _file should be initialized here but actually, the iterator() method will also create its own file.
+         * so, instead of opening _file here, let's wait until getItems() is actually called (sometimes it won't).
+         */
     }
 
     /** Destructor. */
@@ -211,7 +212,8 @@ public:
     */
     size_t getItems (Item*& buffer, size_t start, size_t nb)
     {
-        if (_file == 0) {std::cout << "cannot call getItems when _file is null" << std::endl; exit(1); }
+        if (_file == 0) 
+            _file = system::impl::System::file().newFile (_filename, "rb"); 
         DEBUG_ITERATORFILE(std::cout << "want to read " << nb << " elements of size " << sizeof(Item) << " at position " << _file->tell() << " file size " << _file->getSize() /*<< " then write them to buffer at position " << (sizeof(Item) * start) << std::endl*/;)
         size_t n = _file->fread (buffer /*+ sizeof(Item) * start*/, sizeof(Item), nb);
         DEBUG_ITERATORFILE(std::cout << "read " << n << " elements" << std::endl;)
