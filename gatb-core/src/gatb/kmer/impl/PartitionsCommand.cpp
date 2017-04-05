@@ -333,7 +333,7 @@ void PartitionsByHashCommand<span>:: execute ()
 	/** We need a map for storing part of solid kmers. */
 	//OAHash<Type> hash (_hashMemory);
 	
-	Hash16<Type> hash16 (_hashMemory/MBYTE); // now use hash 16 to ensure always finish
+	Hash16<Type> hash16 (_hashMemory/MBYTE); // now use hash 16 to ensure always finish. needs more ram than OAHash but seems faster
 	
 	/** We directly fill the vector from the current partition file. */
 	
@@ -448,6 +448,8 @@ void PartitionsByHashCommand<span>:: execute ()
 			//now go to next superk of this block, ptr should point to beginning of next superk
 		}
 		
+		//check if hashtable is getting too big : in that case dump it disk and resume with the emptied hashtable
+		//at the end merge-sort all the dumped files with the content of hash table
 		if(hash16.getByteSize() > _hashMemory) // to be improved (can be slightly larger than maxmemory by a block size)
 		//if(_tmpCountFileNames.size()<20) //force  dumps for testing
 		{
@@ -502,8 +504,8 @@ void PartitionsByHashCommand<span>:: execute ()
 
 		std::vector<Iterator<abundance_t>*> _tmpCountIterators;
 
-		//how to make sure there are not too many subpart files ?  and that we'll not reach the max limit ?
-		//we *could* merge  only some of them at a time ..  todo ?  --> done with TempCountFileMerger
+		//how to make sure there are not too many subpart files ?  and that we'll not reach the max open files limit ?
+		//we *could* merge  only some of them at a time ..  todo ?  --> done with TempCountFileMerger above
 		for(int ii=0; ii< _tmpCountFileNames.size(); ii++)
 		{
 			std::string fname = _tmpCountFileNames[ii];
@@ -517,8 +519,8 @@ void PartitionsByHashCommand<span>:: execute ()
 		// 		struct cell2AbAdaptor  {  abundance_t operator() (cell_t& c)  { return abundance_t(c.graine,c.val) ; }  };
 		//Iterator<abundance_t>*   hashAbundance  = new IteratorAdaptor<cell_t,abundance_t,cell2AbAdaptor> (itKmerAbundance);
 	    //	but it turns out to be impossible because of the return by reference of the   item()  function.
-		//  another solution would be to dump contents of hash to a file then read it, but inefficient
-		//  So, ugly code it is.
+		//  Another solution would be to dump contents of hash to a file then read it, but inefficient
+		//  So, ugly code it is.  (see all the if(best_p==-1) below)
 		
 		
 		//setup the priority queue for merge sorting
@@ -663,7 +665,7 @@ void PartitionsByHashCommand<span>:: execute ()
 		}
 		
 	}
-	else // no merging needed, just iterate the hash table and output kmer counts
+	else // in that case no merging needed, just iterate the hash table and output kmer counts
 	{
 		for (itKmerAbundance->first(); !itKmerAbundance->isDone(); itKmerAbundance->next())
 		{
@@ -675,10 +677,7 @@ void PartitionsByHashCommand<span>:: execute ()
 	}
 
 	
-
-	
 	this->_superKstorage->closeFile(this->_parti_num);
-
 	
 	this->_progress->inc (this->_pInfo.getNbKmer(this->_parti_num) ); // this->_pInfo->getNbKmer(this->_parti_num)  kmers.size()
 	
@@ -949,8 +948,9 @@ void PartitionsByVectorCommand<span>::execute ()
     this->_processor->endPart (this->_pass_num, this->_parti_num);
 };
 
+	
 	//pour l'instant marchera que en mode comptage simple, pas en multi jeu separes
-	//car le jeu separe necessite de passer un cpt de separatio ndes banques, a verifier, et il faut que les buffer conservent l'ordre d'entree, a verifier aussi
+	//car le jeu separe necessite de passer un cpt de separation des banques, a verifier, et il faut que les buffer conservent l'ordre d'entree, a verifier aussi
 	//readcommand pour lecture parallele des parti superkmers
 template<size_t span>
 class ReadSuperKCommand : public gatb::core::tools::dp::ICommand, public system::SmartPointer
@@ -976,10 +976,8 @@ public:
 	void execute ()
 	{
 		unsigned int nb_bytes_read;
-	//	printf("execute read parti %i %p\n",_fileId,_superKstorage);
 		while(_superKstorage->readBlock(&_buffer, &_buffer_size, &nb_bytes_read, _fileId))
 		{
-	//		printf("read block %i parti %i\n",nb_bytes_read,_fileId);
 			//decode block and iterate through its superkmers
 			unsigned char * ptr = _buffer;
 			u_int8_t nbK; //number of kmers in the superkmer
@@ -1004,9 +1002,6 @@ public:
 
 					
 					_seedk =  _seedk  |  (Tnewbyte  << (8*nbr)) ;
-//					//debug read
-//					printf("popping %s       seedk %s\n",	(Tnewbyte.toString(4)).c_str(), _seedk.toString(31).c_str());
-//					//
 					rem_size -= 4; nbr++;
 				}
 				
@@ -1019,9 +1014,6 @@ public:
 					Tnewbyte.setVal(newbyte);
 
 					_seedk = ( _seedk  |  (Tnewbyte  << (8*nbr)) ) ;
-//					//debug read
-//					printf("rr popping %s       seedk %s\n",	(Tnewbyte.toString(4)).c_str(), _seedk.toString(31).c_str());
-//					//
 					uid = rem_size;
 				}
 				_seedk = _seedk & _kmerMask;
@@ -1029,6 +1021,7 @@ public:
 
 				//std::string pt = _seedk.toString(_kmerSize);
 				//printf("seedk \n%s \n",pt.c_str());
+				
 				///////////////////////// seedk should be ready here , now parse kx-mers ////////////////////////////////
 						  
 						  u_int8_t rem = nbK;
@@ -1113,16 +1106,8 @@ public:
 							  }
 
 							  newnt = (Tnewbyte >> (2*uid))& 3; uid++;
-							  
-							 // printf("newnt %s \n",newnt.toString(1).c_str());
-
+							
 							  temp = ((temp << 2 ) |  newnt   ) & _kmerMask;
-							  
-							  /////
-							  //std::string pt = temp.toString(_kmerSize);
-							  //printf("%s \n",pt.c_str());
-							  ///////
-							  
 							  
 							  newnt.setVal(comp_NT[newnt.getVal()]) ;
 							  rev_temp = ((rev_temp >> 2 ) |  (newnt << _shift) ) & _kmerMask;
@@ -1156,7 +1141,6 @@ public:
 
 						  
 						  
-				//printf("going to next superk \n");
 
 						  //////////////////////////////////////////////////////////
 				//ptr+=nb_bytes_superk;
@@ -1321,7 +1305,7 @@ void PartitionsByVectorCommand<span>::executeRead ()
 												  )
 						   );
 		}
-//		printf("\nReadSuperKCommand parti %i\n",this->_parti_num);
+
 		_dispatcher->dispatchCommands (cmds, 0);
 //		printf("-----done ReadSuperKCommand ---\n");
 

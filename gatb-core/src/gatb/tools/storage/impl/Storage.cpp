@@ -363,8 +363,7 @@ int SuperKmerBinFiles::readBlock(unsigned char ** block, unsigned int* max_block
 	
 	//block header
 	int nbr = _files[file_id]->fread(nb_bytes_read, sizeof(*max_block_size),1);
-	//printf("header %i fid %i nbr %i\n",*nb_bytes_read,file_id,nbr);
-	//_files[file_id]->fwrite(&superklen, sizeof(superklen),1);
+
 	if(nbr == 0)
 	{
 		//printf("__ end of file %i __\n",file_id);
@@ -418,14 +417,13 @@ void SuperKmerBinFiles::getFilesStats(u_int64_t & total, u_int64_t & biggest, u_
 	
 void SuperKmerBinFiles::writeBlock(unsigned char * block, unsigned int block_size, int file_id, int nbkmers)
 {
-	//printf("writeblock bs %i fid %i\n",block_size,file_id);
+
 	_synchros[file_id]->lock();
 	
 	_nbKmerperFile[file_id]+=nbkmers;
 	_FileSize[file_id] += block_size+sizeof(block_size);
 	//block header
 	_files[file_id]->fwrite(&block_size, sizeof(block_size),1);
-	//_files[file_id]->fwrite(&superklen, sizeof(superklen),1);
 
 	//block
 	_files[file_id]->fwrite(block, sizeof(unsigned char),block_size);
@@ -526,7 +524,7 @@ CacheSuperKmerBinFiles::CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buff
 	
 }
 	
-//copy construc : alloc own buffer for the copy
+//copy construc : alloc own buffer for new object
 CacheSuperKmerBinFiles::CacheSuperKmerBinFiles (const CacheSuperKmerBinFiles& p)
 {
 	_ref = p._ref;

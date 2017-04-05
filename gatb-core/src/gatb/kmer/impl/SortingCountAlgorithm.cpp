@@ -886,9 +886,6 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 	_superKstorage->flushFiles();
 	_superKstorage->closeFiles();
 
-	
-	
-	printf("done\n");
 
 }
 
@@ -962,8 +959,6 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
     /** We update the message of the progress bar. */
     _progress->setMessage (Stringify::format (progressFormat2, pass+1, _config._nb_passes));
 
-	
-	//_superKstorage->openFiles("r");
 
     /** We retrieve the list of cores number for dispatching N partitions in N threads.
      *  We need to know these numbers for allocating the N maps according to the maximum allowed memory.

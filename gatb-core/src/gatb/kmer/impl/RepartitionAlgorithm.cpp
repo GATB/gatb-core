@@ -316,73 +316,75 @@ void RepartitorAlgorithm<span>::execute ()
 *********************************************************************/
 template<size_t span>
 void RepartitorAlgorithm<span>::computeFrequencies (Repartitor& repartitor)
-{
-    DEBUG (("RepartitorAlgorithm<span>::computeFrequencies\n"));
-
-    u_int64_t estimateSeqNb;
-    u_int64_t estimateSeqTotalSize;
-    u_int64_t estimateSeqMaxSize;
-
-    _bank->estimate (estimateSeqNb, estimateSeqTotalSize, estimateSeqMaxSize);
-
-    u_int64_t nbseq_sample = std::max ( u_int64_t (estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
-
-    u_int64_t rg = ((u_int64_t)1 << (2*_config._minim_size));
-    //cout << "\nAllocating " << ((rg*sizeof(uint32_t))/1024) << " KB for " << _minim_size <<"-mers frequency counting (" << rg << " elements total)" << endl;
-    uint32_t *m_mer_counts = new uint32_t[rg];
-
-    Model model (_config._kmerSize, _config._minim_size);
-
-    CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(_bank->iterator()));
-    LOCAL(cancellable_it);
-
-    /** We create a sequence iterator and give it a progress message */
-    Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
-            cancellable_it,
-            _bank->getNbItems(),
-             "Approximating frequencies of minimizers"
-            );
-    LOCAL (it_all_reads);
-
-    /** We compute an estimation of minimizers frequencies from a part of the bank. */
-    
-    SerialDispatcher serialDispatcher;
-    serialDispatcher.iterate (it_all_reads,  MmersFrequency<span> (
-        _config._minim_size, 0 /*_progress*/, m_mer_counts, 
-        nbseq_sample,
-        &(cancellable_it->_cancel))// will be set to true when iteration needs to be stopped
-    );
-
-    // single threaded, for debugging
-    /*MmersFrequency<span> mmersfrequency(model, _progress, bstatsDummy, m_mer_counts);
-    it_sample->iterate(mmersfrequency);*/
-
-    /* sort frequencies */
-    for (u_int64_t i(0); i < rg; i++)
-    {
-        if (m_mer_counts[i] > 0)
-            _counts.push_back(make_pair(m_mer_counts[i],i));
-    }
-    delete[] m_mer_counts;
-
-    sort (_counts.begin(), _counts.end());
-
-    /* assign frequency to minimizers */
-    _freq_order = new uint32_t[rg];
-
-    for (u_int64_t i = 0; i < rg ; i++)
-        _freq_order[i] = rg; // set everything not seen to highest value (not a minimizer)
-
-    for (unsigned int i = 0; i < _counts.size(); i++)
-    {
-        _freq_order[_counts[i].second] = i;
-    }
-
-    // small but necessary trick: the largest minimizer has to have largest rank, as it's used as the default "largest" value
-    _freq_order[rg-1] = rg-1;
-
-    repartitor.setMinimizerFrequencies (_freq_order);
-}
+	{
+		DEBUG (("RepartitorAlgorithm<span>::computeFrequencies\n"));
+		
+		u_int64_t estimateSeqNb;
+		u_int64_t estimateSeqTotalSize;
+		u_int64_t estimateSeqMaxSize;
+		
+		_bank->estimate (estimateSeqNb, estimateSeqTotalSize, estimateSeqMaxSize);
+		
+		u_int64_t nbseq_sample = std::max ( u_int64_t (estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
+		
+		u_int64_t rg = ((u_int64_t)1 << (2*_config._minim_size));
+		//cout << "\nAllocating " << ((rg*sizeof(uint32_t))/1024) << " KB for " << _minim_size <<"-mers frequency counting (" << rg << " elements total)" << endl;
+		uint32_t *m_mer_counts = new uint32_t[rg];
+		
+		Model model (_config._kmerSize, _config._minim_size);
+		
+		Iterator<Sequence>* bank_it = _bank->iterator();
+		LOCAL(bank_it);
+		CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*bank_it);
+		LOCAL(cancellable_it);
+		
+		/** We create a sequence iterator and give it a progress message */
+		Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
+																	 cancellable_it,
+																	 _bank->getNbItems(),
+																	 "Approximating frequencies of minimizers"
+																	 );
+		LOCAL (it_all_reads);
+		
+		/** We compute an estimation of minimizers frequencies from a part of the bank. */
+		
+		SerialDispatcher serialDispatcher;
+		serialDispatcher.iterate (it_all_reads,  MmersFrequency<span> (
+																	   _config._minim_size, 0 /*_progress*/, m_mer_counts,
+																	   nbseq_sample,
+																	   &(cancellable_it->_cancel))// will be set to true when iteration needs to be stopped
+								  );
+		
+		// single threaded, for debugging
+		/*MmersFrequency<span> mmersfrequency(model, _progress, bstatsDummy, m_mer_counts);
+		 it_sample->iterate(mmersfrequency);*/
+		
+		/* sort frequencies */
+		for (u_int64_t i(0); i < rg; i++)
+		{
+			if (m_mer_counts[i] > 0)
+				_counts.push_back(make_pair(m_mer_counts[i],i));
+		}
+		delete[] m_mer_counts;
+		
+		sort (_counts.begin(), _counts.end());
+		
+		/* assign frequency to minimizers */
+		_freq_order = new uint32_t[rg];
+		
+		for (u_int64_t i = 0; i < rg ; i++)
+			_freq_order[i] = rg; // set everything not seen to highest value (not a minimizer)
+		
+		for (unsigned int i = 0; i < _counts.size(); i++)
+		{
+			_freq_order[_counts[i].second] = i;
+		}
+		
+		// small but necessary trick: the largest minimizer has to have largest rank, as it's used as the default "largest" value
+		_freq_order[rg-1] = rg-1;
+		
+		repartitor.setMinimizerFrequencies (_freq_order);
+	}
 
 /*********************************************************************
 ** METHOD  :
@@ -503,8 +505,6 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 
 
 		BankStats bstatsDummy;
-
-		size_t  currentPass = 0;
 
 		/** We compute a distribution of Superkmers from a part of the bank. */
 		SerialDispatcher serialDispatcher;

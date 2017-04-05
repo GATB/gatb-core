@@ -31,8 +31,6 @@
 #include <gatb/system/api/Exception.hpp>
 
 #include <gatb/kmer/api/IModel.hpp>
-#include <gatb/kmer/impl/Ukl_loader.hpp>
-
 #include <gatb/tools/collections/api/Bag.hpp>
 
 #include <gatb/tools/designpattern/api/Iterator.hpp>
@@ -1139,16 +1137,11 @@ struct Kmer
          */
         ModelMinimizer (size_t kmerSize, size_t minimizerSize, Comparator cmp=Comparator(), uint32_t *freq_order=NULL)
             : ModelAbstract <ModelMinimizer<ModelType,Comparator>, Kmer > (kmerSize),
-              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp), _freq_order(freq_order),_ukl_set(0)
+              _kmerModel(kmerSize), _miniModel(minimizerSize), _cmp(cmp), _freq_order(freq_order)
         {
             if (kmerSize < minimizerSize)  { throw system::Exception ("Bad values for kmer %d and minimizer %d", kmerSize, minimizerSize); }
 
             _minimizerSize = minimizerSize;
-
-			if(minimizerSize==8 && kmerSize >=30 && _freq_order==0) //trying ukl, todo adjsut range
-			{
-				_ukl_set = _ukl_loader.loadSetFromFile(kmerSize,minimizerSize);
-			}
 			
             /** We compute the number of mmers found in a kmer. */
             _nbMinimizers = _kmerModel.getKmerSize() - minimizerSize + 1;
@@ -1176,92 +1169,29 @@ struct Kmer
 			for(u_int64_t ii=0; ii< nbminims_total; ii++)
 			{
 				Type mmer;
-                mmer.setVal(ii);
+				mmer.setVal(ii);
 				
-				//UKL
-				if(_ukl_set!=0 && !_freq_order)
+				// if(!is_allowed(mmer.getVal(),minimizerSize)) mmer = _mask;
+				// if(!is_allowed(rev_mmer.getVal(),minimizerSize)) rev_mmer = _mask;
+				
+				if (isModelCanonical)
 				{
-					if (is_allowed(mmer.getVal(),minimizerSize))
-						cptset++;
+					Type rev_mmer = revcomp(mmer, minimizerSize);
+					if(rev_mmer < mmer) mmer = rev_mmer;
 					
-					if (isModelCanonical)
-					{
-						Type rev_mmer = revcomp(mmer, minimizerSize);
-						
-						//with UKL, needs to test separately  mmer and its reverse :
-						// the canonical mmer is not necessarily the smaller, if it's not in the ukl
-						if (!is_allowed(rev_mmer.getVal(),minimizerSize))
-							rev_mmer = _mask;
-						
-						if (!is_allowed(mmer.getVal(),minimizerSize))
-							mmer = _mask;
-						
-						
-						if(rev_mmer < mmer) mmer = rev_mmer;
-
-						
-//						Type res;
-//						res.setVal(hash1(mmer, 0) & _mask.getVal());
-//						_mmer_lut[ii] = res;
-						_mmer_lut[ii] = mmer;
-
-					}
-					else
-					{
-						if (!is_allowed(mmer.getVal(),minimizerSize))
-							mmer = _mask;
-						
-						_mmer_lut[ii] = mmer;
-					}
+					//may be cleaner with this
+					//if (_cmp (rev_mmer, mmer ) == true)
+					//	mmer = rev_mmer;
 				}
-				else //if (!_freq_order)
-				{
-
-					
-					if (isModelCanonical)
-					{
-						Type rev_mmer = revcomp(mmer, minimizerSize);
-						if(rev_mmer < mmer) mmer = rev_mmer;
-						//if (_cmp (rev_mmer, mmer ) == true)
-						//	mmer = rev_mmer;
-					}
-					
-					//std:: cout << "ii " << ii << " is allowed " << is_allowed(mmer.getVal(),minimizerSize) <<  " mmer getval " << mmer.getVal() << " is model canonical " << isModelCanonical << std::endl;
-					
-					if (!is_allowed(mmer.getVal(),minimizerSize))
-						mmer = _mask;
-					
-					
-					// testing with hash to randomize order
-					
-//					Type res;
-//					res.setVal(hash1(mmer, 0) & _mask.getVal());
-//					_mmer_lut[ii] = res;
-
-					_mmer_lut[ii] = mmer;
-				}
-//				else
-//				{
-//					//freq order
-//					Type rev_mmer = revcomp(mmer, minimizerSize);
-//					
-//					// needs to test separately  mmer and its reverse :
-//					// the canonical mmer is not necessarily the smaller
-//					
-//					if (_cmp (rev_mmer, mmer ) == true)
-//						mmer = rev_mmer;
-//
-//						
-//					if (!is_allowed(mmer.getVal(),minimizerSize))
-//						mmer = _mask;
-//					
-//					_mmer_lut[ii] = mmer;
-//
-//				}
+				
+				//std:: cout << "ii " << ii << " is allowed " << is_allowed(mmer.getVal(),minimizerSize) <<  " mmer getval " << mmer.getVal() << " is model canonical " << isModelCanonical << std::endl;
+				
+				if (!is_allowed(mmer.getVal(),minimizerSize))
+					mmer = _mask;
+				
+				_mmer_lut[ii] = mmer;
 			}
 
-			if(_ukl_set!=0 && !_freq_order)
-				printf("nb in set %llu / %llu \n",cptset,nbminims_total);
             if (freq_order)
                 setMinimizersFrequency(freq_order);
 
@@ -1413,63 +1343,42 @@ struct Kmer
 
         uint32_t *_freq_order;
 		
-		kmer::impl::simpleBitArray * _ukl_set;
-		kmer::impl::UKL_loader _ukl_loader;
 
         /** Tells whether a minimizer is valid or not, in order to skip minimizers
          *  that are too frequent. */
         bool is_allowed (uint32_t mmer, uint32_t len)
-        {
-			//return true;
+		{
+			if (_freq_order) return true; // every minimizer is allowed in freq order
+			
 			u_int64_t  _mmask_m1  ;
 			u_int64_t  _mask_0101 ;
 			u_int64_t  _mask_ma1 ;
+			
 			//code to ban mmer with AA inside except if at the beginnning
 			// A C T G        00   01   10   11
 			_mmask_m1  = (1 << ((len-2)*2)) -1 ; //vire 2 premieres lettres m = 8  donne    00 00 11 11 11 11 11 11
 			_mask_0101 = 0x5555555555555555  ; //         01 01 01 01 01 01 01 01
 			_mask_ma1  = _mask_0101 & _mmask_m1;//        00 00 01 01 01 01 01 01
 			
+			u_int64_t a1 = mmer; //
+			a1 =   ~(( a1 )   | (  a1 >>2 ));  //
+			a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
 			
-			//UKL
-			if(_ukl_set!=0 && !_freq_order)
-			{
-				//if(mmer ==0) return false;
-//				u_int64_t a1 = mmer; //
-//				a1 =   ~(( a1 )   | (  a1 >>2 ));  //
-//				a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
-//				
-//				if(a1 != 0) return false;
-//				return true;
-
-				if (_ukl_set->get(mmer))
-					return true;
-				else
-					return false;
-			}
+			if(a1 != 0) return false;
 			
-            if (_freq_order) return true; // every minimizer is allowed in freq order
-
-
-            u_int64_t a1 = mmer; //
-            a1 =   ~(( a1 )   | (  a1 >>2 ));  //
-            a1 =((a1 >>1) & a1) & _mask_ma1 ;  //
-
-            if(a1 != 0) return false;
-
-//             if ((mmer & 0x3f) == 0x2a)   return false;   // TTT suffix
-//             if ((mmer & 0x3f) == 0x2e)   return false;   // TGT suffix
-//             if ((mmer & 0x3c) == 0x28)   return false;   // TT* suffix
-//             for (uint32_t j = 0; j < len - 3; ++j)       // AA inside
-//                  if ((mmer & 0xf) == 0)  return false;
-//                  else                    mmer >>= 2;
-//             if (mmer == 0)               return false;   // AAA prefix
-//             if (mmer == 0x04)            return false;   // ACA prefix
-//             if ((mmer & 0xf) == 0)   return false;       // *AA prefix
-
-            return true;
-        }
-        
+			// if ((mmer & 0x3f) == 0x2a)   return false;   // TTT suffix
+			// if ((mmer & 0x3f) == 0x2e)   return false;   // TGT suffix
+			// if ((mmer & 0x3c) == 0x28)   return false;   // TT* suffix
+			// for (uint32_t j = 0; j < len - 3; ++j)       // AA inside
+			//      if ((mmer & 0xf) == 0)  return false;
+			//      else                    mmer >>= 2;
+			// if (mmer == 0)               return false;   // AAA prefix
+			// if (mmer == 0x04)            return false;   // ACA prefix
+			// if ((mmer & 0xf) == 0)   return false;       // *AA prefix
+			
+			return true;
+		}
+		
         /** Returns the minimizer of the provided vector of mmers. */
         void computeNewMinimizerOriginal(Kmer& kmer) const
         {
