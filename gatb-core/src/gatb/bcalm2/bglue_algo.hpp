@@ -33,9 +33,10 @@
 #include <iostream> // for time (and maybe other things?)
 #include <iomanip> // for cout mods
 #include "ThreadPool.h"
-#include "ctpl_stl.h" // alternative to threadpool
-#include "buffer_allocator.h" // memory pool
+/*#include "ctpl_stl.h" // alternative to threadpool // https://github.com/vit-vit/CTPL/blob/master/ctpl_stl.h // didn't commit because didnt use
+#include "buffer_allocator.h" // memory pool from https://github.com/vincetse/allocator, didn't commit the files because didnt use
 #include "buffer_manager.h" // memory pool
+*/
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
 

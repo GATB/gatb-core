@@ -2,8 +2,8 @@
 - no more than 2^(32-1) sequences to glue together (should be ok for spruce)
 */
 #include "bglue_algo.hpp"
-#include "buffer_allocator.tcc"
-#include "buffer_manager.tcc"
+/*#include "buffer_allocator.tcc"
+#include "buffer_manager.tcc"*/
 #include <sstream>
 #include <iomanip>
 
