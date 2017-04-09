@@ -1629,9 +1629,11 @@ template<size_t span>
 NodeGU GraphUnitigsTemplate<span>::
 debugBuildNode(string startKmer) const
 {
-    for (unsigned int i = 0; i < unitigs.size(); i++)
+    bool debug=false;
+    for (unsigned int i = 0; i < nb_unitigs; i++)
     {
         string unitig = internal_get_unitig_sequence(i);
+        if (debug) std::cout << "debugBuildNode, testing unitig " << i << "/" << nb_unitigs << " : "  << unitig << std::endl;
         for (int rc = 0; rc < 2; rc++)
         {
             if (rc == 1) 

@@ -56,7 +56,7 @@ public:
      * \param[in] length : maximum value for the X axis
      * \param[in] bag : bag where the values can be saved. */
     Histogram (size_t length)
-        : _length(length), _cutoff(0), _nbsolids(0), _firstPeak(0),
+        : _length(length), _cutoff(0), _nbsolids(0), _ratio_weak_volume(0), _firstPeak(0),
           _histogram(0), _histogram_smoothed(0)
     {
         _histogram = (Entry*) CALLOC (_length + 1, sizeof (Entry));

@@ -256,7 +256,7 @@ void bcalm2(Storage *storage,
     {
         uint32_t p = it_parts->item(); /* partition index */
 
-        bool verbose_partition = (p % ((nb_partitions+9)/10)) == 0; // only print verbose information 10 times at most
+        bool verbose_partition = verbose && ((p % ((nb_partitions+9)/10)) == 0); // only print verbose information 10 times at most
 
         size_t k = kmerSize;
 

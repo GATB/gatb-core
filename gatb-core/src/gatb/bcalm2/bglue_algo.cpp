@@ -343,7 +343,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
  */
 static void glue_sequences(vector<uint32_t> &chain, std::vector<std::string> &sequences, std::vector<std::string> &abundances, int kmerSize, string &res_seq, string &res_abundances)
 {
-    bool debug=true;
+    bool debug=false;
 
     string previous_kmer = "";
     unsigned int k = kmerSize;
@@ -385,7 +385,6 @@ static void glue_sequences(vector<uint32_t> &chain, std::vector<std::string> &se
 
 static void output(const string &seq, gatb::core::debruijn::impl::BufferedFasta &out, const string comment = "")
 {
-    std::cout << "output " << seq << std::endl;
     out.insert(seq, comment);
     // BufferedFasta takes care of the flush
 }
@@ -1023,7 +1022,7 @@ void bglue(Storage *storage,
 
     logging("end");
 
-    bool debug_keep_glue_files = true; // for debugging
+    bool debug_keep_glue_files = false; // for debugging
     if (debug_keep_glue_files)
     {
         std::cout << "debug: not deleting glue files" << std::endl;

@@ -284,6 +284,7 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
     s.getData().setRef ((char*)seq.c_str(), seq.size());
     s._comment = comment + " " + cur_links;
     out->insert(s);
+    nb_unitigs++;
 
     //for (int pass = 0; pass < nb_passes; pass++)
     //    system::impl::System::file().remove (unitigs_filename + ".links." + to_string(pass));
