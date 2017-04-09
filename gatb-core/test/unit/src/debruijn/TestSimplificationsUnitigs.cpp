@@ -77,7 +77,7 @@ using namespace gatb::core::tools::storage::impl;
 
 extern std::string DBPATH (const string& a);
 
-#define DEBUGprint(a) a
+#define DEBUGprint(a) //a
 
 /********************************************************************************/
 namespace gatb  {  namespace tests  {
