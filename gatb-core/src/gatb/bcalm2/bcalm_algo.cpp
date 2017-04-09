@@ -213,6 +213,37 @@ void bcalm2(Storage *storage,
                 nb_partitions/100);
     it_parts->addObserver (listener);
     LOCAL(it_parts);
+        
+    /* so let me tell you a story:
+     * i was initializing this bucket_queues object inside the loop below but then i noticed that it takes too much time.
+     * and more problematic: turns out the memory wasn't freed after this function.
+     * (sometimes memory was freed , sometimes not)
+     * doesn't matter if i initialize with "new" or not
+     * turns out: it was the std::queue inside the SharedQueue (or SharedVectorQueue) that was the culprit
+     * memor wasn't freed. i perhaps should've used shrink_to_fit on the queue but didn't. anyway using vectors now, is much better.
+     * but actually problem doesn't seem to be fully solved
+     */
+    memory_usage("prior to queues allocation", verbose);
+    // create many queues in place of Buckets
+    SharedVectorQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t>> bucket_queues(rg);   
+
+    // at this point i think that all the memory concerns in the comments below are due to the problem std::deque memory free problem, or fragmentation, or something else entirely that i've no clue about.
+
+    // this implementation is supposedly efficient, but:
+    // - as fast as the lockbasedqueue below
+    // - uses much more memory
+    //moodycamel::ConcurrentQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
+
+    // another queue system, very simple, with locks
+    // it's fine but uses a linked list, so more memory than I'd like
+    //LockBasedQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
+
+    // still uses more memory than i'd like
+    // LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
+    //LockStdVector<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg]; // very inefficient
+
+
+    memory_usage("Starting BCALM2", verbose);
 
     /*
      *
@@ -225,30 +256,9 @@ void bcalm2(Storage *storage,
     {
         uint32_t p = it_parts->item(); /* partition index */
 
+        bool verbose_partition = (p % ((nb_partitions+9)/10)) == 0; // only print verbose information 10 times at most
+
         size_t k = kmerSize;
-
-        // create many queues in place of Buckets
-        // (this code used to be outside the partition loop, but I think it's a good idea to reinit the queues after each superbucket(=partition) to avoid queues leaking memory
-
-        // this implementation is supposedly efficient, but:
-        // - as fast as the lockbasedqueue below
-        // - uses much more memory
-        //moodycamel::ConcurrentQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
-
-        // another queue system, very simple, with locks
-        // it's fine but uses a linked list, so more memory than I'd like
-        //LockBasedQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
-
-        // still uses more memory than i'd like
-        // LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
-        //LockStdVector<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg]; // very inefficient
-        //
-
-        // hmm had a memory leak
-        //LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t> > *bucket_queues=new LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t > > [rg];
-
-        std::vector<SharedQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t>>> bucket_queues(rg);
-
 
         /* lambda function to add a kmer to a bucket */
         auto add_to_bucket_queue = [&active_minimizers, &bucket_queues](uint32_t minimizer, string seq, int abundance, uint32_t leftmin, uint32_t rightmin, int p)
@@ -256,7 +266,7 @@ void bcalm2(Storage *storage,
             //std::cout << "adding elt to bucket: " << seq << " "<< minimizer<<std::endl;
             //bucket_queues[minimizer].push_back(std::make_tuple(TO_BUCKET_STR(seq),leftmin,rightmin));
             std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t> t (TO_BUCKET_STR(seq),leftmin,rightmin,abundance);
-            bucket_queues[minimizer].push_back(t); // graph3<span> switch
+            bucket_queues.push_back(minimizer, t); // graph3<span> switch
 
             if (active_minimizers[p].find(minimizer) == active_minimizers[p].end())
             {
@@ -321,17 +331,16 @@ void bcalm2(Storage *storage,
 
                     // sanity check
                     if (repart(max_minimizer) < repart(min_minimizer))
-                    {                printf("wtf? traveller kmer = %s, min_minimizer=%d max_minimizer=%d, repart(min_minimizer)=%d, repart(max_minimizer)=%d\n", seq.c_str(), min_minimizer, max_minimizer, repart(min_minimizer), repart(max_minimizer));                exit(1);            }
+                    {                printf("unexpected problem: traveller kmer = %s, min_minimizer=%d max_minimizer=%d, repart(min_minimizer)=%d, repart(max_minimizer)=%d\n", seq.c_str(), min_minimizer, max_minimizer, repart(min_minimizer), repart(max_minimizer));                exit(1);            }
                 }
             }
 
             // sanity check
             if (repart(leftMin) != p && repart(rightMin) != p)
-            {                printf("wtf? repart bucket\n");                exit(1);            }
+            {                printf("unexpected problem: repart bucket\n");                exit(1);            }
 
         };
         
-
         auto start_createbucket_t=get_wtime();
 
         /* MAIN FIRST LOOP: expand a superbucket by inserting kmers into queues. this creates buckets */
@@ -345,7 +354,7 @@ void bcalm2(Storage *storage,
             dispatcher.iterate (it_kmers, insertIntoQueues);
         }
 
-        if (verbose) 
+        if (verbose_partition) 
             cout << endl << "Iterated " << nb_kmers_in_partition << " kmers, among them " << nb_left_min_diff_right_min << " were doubled" << endl;
 
         // also add traveller kmers that were saved to disk from a previous superbucket
@@ -379,12 +388,11 @@ void bcalm2(Storage *storage,
                 add_to_bucket_queue(max_minimizer, seq, abundance, leftMin, rightMin, p);
                 nb_traveller_kmers_loaded++;
             }
-            if (verbose) 
+            if (verbose_partition) 
                 std::cout << "Loaded " << nb_traveller_kmers_loaded << " doubled kmers for partition " << p << endl;
             traveller_kmers_bank.finalize();
             System::file().remove (traveller_kmers_file);
         }
-        
 
         auto end_createbucket_t=get_wtime();
         atomic_double_add(global_wtime_create_buckets, diff_wtime(start_createbucket_t, end_createbucket_t));
@@ -405,7 +413,7 @@ void bcalm2(Storage *storage,
                 
                 // (make sure to change other places labelled "// graph3" and "// graph4" as well)
                 //graph4 g(kmerSize-1,actualMinimizer,minSize); // graph4
-                uint number_elements(bucket_queues[actualMinimizer].size());
+                uint number_elements(bucket_queues.size(actualMinimizer));
                 #ifdef BINSEQ
                 graph4 graphCompactor(kmerSize-1,actualMinimizer,minSize,number_elements);
                 #else
@@ -417,7 +425,7 @@ void bcalm2(Storage *storage,
                 /* add nodes to graph */
                 std::tuple<BUCKET_STR_TYPE,uint,uint,uint> bucket_elt; // graph3<span> switch 
 
-                while (bucket_queues[actualMinimizer].pop_immediately(bucket_elt))
+                while (bucket_queues.pop_immediately(actualMinimizer,bucket_elt))
                 {
                 // for(uint i(0);i<number_elements;++i)
                 // {
@@ -512,11 +520,13 @@ void bcalm2(Storage *storage,
         // check if buckets are indeed empty
         for (unsigned int minimizer = 0; minimizer < rg; minimizer++)
         {
-            if  (bucket_queues[minimizer].size() != 0)
+            if  (bucket_queues.size(minimizer) != 0)
             {
-                printf("WARNING! bucket %d still has non-processed %d elements\n", minimizer, bucket_queues[minimizer].size() );
+                if (minimizer >= ((u_int64_t)1 << (2*minSize-1))) std::cout << "oh! a large minimizer: " << minimizer << std::endl; // TODO remove this check if it never shows up
+
+                printf("WARNING! bucket %d still has non-processed %d elements\n", minimizer, bucket_queues.size(minimizer) );
                 std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t,uint32_t> bucket_elt; // graph3<span> switch 
-                while (bucket_queues[minimizer].pop_immediately(bucket_elt))
+                while (bucket_queues.pop_immediately(minimizer,bucket_elt))
                 {
                     printf("    %s leftmin %d rightmin %d abundance %d repartleft %d repartright %d repartmin %d\n", FROM_BUCKET_STR(std::get<0>(bucket_elt)).c_str(), std::get<1>(bucket_elt), std::get<2>(bucket_elt), std::get<3>(bucket_elt), repart(std::get<1>(bucket_elt)), repart(std::get<2>(bucket_elt)), repart(minimizer)); // graph3<span> switch 
                 }
@@ -547,7 +557,7 @@ void bcalm2(Storage *storage,
 
                 double longest_lambda = lambda_timings.front();
 
-                if (verbose) 
+                if (verbose_partition)
                 {
                     cout <<"\nIn this superbucket (containing " << active_minimizers.size() << " active minimizers)," <<endl;
                     cout <<"                  sum of time spent in lambda's: "<< global_wtime_lambda / 1000000 <<" msecs" <<endl;
@@ -558,7 +568,7 @@ void bcalm2(Storage *storage,
                 double best_theoretical_speedup =  global_wtime_lambda  / longest_lambda;
                 double actual_theoretical_speedup =  global_wtime_lambda  / tot_time_best_sched_lambda;
 
-                if (verbose) 
+                if (verbose_partition)
                 {
                     cout <<"                       best theoretical speedup: "<<  best_theoretical_speedup << "x" <<endl;
                     if (nb_threads_simulate > 1)
@@ -578,12 +588,9 @@ void bcalm2(Storage *storage,
             }
         }
 
-        memory_usage("Done with partition " + std::to_string(p), verbose);
+        memory_usage("Done with partition " + std::to_string(p), verbose_partition);
     } // end iteration superbuckets
-
-
-        // FIXME there may be a memory leak here, test it (saw it on spruce)
-
+    
     /*
      *
      * Finishing up

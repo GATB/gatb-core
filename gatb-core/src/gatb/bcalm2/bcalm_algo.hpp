@@ -57,6 +57,7 @@
 #include <atomic>
 //#include "lockstdqueue.h"
 #include "sharedqueue.hpp"
+#include "sharedvectorqueue.hpp"
 
 #include "ThreadPool.h"
 

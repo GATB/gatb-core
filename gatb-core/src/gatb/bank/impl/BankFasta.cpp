@@ -654,10 +654,10 @@ void BankFasta::Iterator::init ()
         /** We check that we can open the file. */
         if ((*bf)->stream == NULL)
         {
-            /** We first try do do some cleanup. */
-            finalize (); // GR:  cannot finalize here because finalize returns if (_isInitialized == false) which is the case here
-
+            // there used to be some cleanup here but what's the point, we're going to throw an exception anyway
+        
 			//GR : dunno why this exception does not show up, adding a message here
+            //RC: the exceptino doesn't even trigger, or there is an exception but the message doesn't show?
 			fprintf(stderr,"unable to open file %s  : %s \n",fname,strerror(errno));
 			
             /** We launch an exception. */

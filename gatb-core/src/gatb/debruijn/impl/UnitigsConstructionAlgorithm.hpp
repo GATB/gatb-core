@@ -80,11 +80,17 @@ public:
     // structure that links each kmer to an unitig
     // also used to enumerate kmers
     typedef typename std::unordered_map<Type, std::vector<uint64_t>> NodeLinksMap;
+    //typedef std::unordered_map<int,std::string> links_type;
+    typedef std::vector<std::string> links_type;
 
-    NodeLinksMap utigs_links_map;
+    void link_unitigs(std::string unitigs_filename, bool verbose);
+    bool is_in_pass (const std::string &seq, int pass, Unitig_pos p) const;
+    /* due to the implementation of normalized_smallmer, doesn't support more than 8 passes */
+    static constexpr int nb_passes = 8;
+    int kmerSize;
+    void write_final_output(const std::string& unitigs_filename, bool verbose, BankFasta* out);
+    void link_unitigs_pass(const std::string unitigs_filename, bool verbose, int pass);
 
-    void link_unitigs(std::string unitigs_filename, int kmerSize, bool verbose);
-    
     uint64_t nb_unitigs;
 
 private:

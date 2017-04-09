@@ -111,7 +111,7 @@ template<size_t span>
 GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (bank::IBank* bank, const char* fmt, ...)
 {
     IOptionsParser* parser = BaseGraph::getOptionsParser (false);   LOCAL(parser);
-
+    
     /** We build the command line from the format and the ellipsis. */
     va_list args;
     va_start (args, fmt);
@@ -136,13 +136,13 @@ GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (bank::IBank* ban
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS : some massive code duplication with above here
 *********************************************************************/
 template<size_t span>
 GraphUnitigsTemplate<span>  GraphUnitigsTemplate<span>::create (const char* fmt, ...)
 {
     IOptionsParser* parser = BaseGraph::getOptionsParser (true);   LOCAL (parser);
-
+    
     /** We build the command line from the format and the ellipsis. */
     va_list args;
     va_start (args, fmt);
@@ -174,6 +174,8 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (size_t kmerSize)
 {
     // will call Graph's constructor for (kmerSize), no big deal
     //std::cout << "kmersize graphUtemplate constructor" << std::endl;
+    modelK=nullptr;
+    modelKdirect=nullptr;
 }
 
 /*********************************************************************
@@ -257,7 +259,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
     }
     
     bool force_loading_unitigs = false; // debug option
-    bool force_redo_unitigs = false; // debug option
+    bool force_redo_unitigs = true; // debug option
 
     if (force_redo_unitigs || (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/)))
     {
@@ -688,6 +690,8 @@ template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate ()
     : GraphTemplate<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>()
 {
+    modelK=nullptr;
+    modelKdirect=nullptr;
 }
 
 template<size_t span>
@@ -696,7 +700,7 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (const GraphUnitigsTemplate<spa
 {
     // will call Graph's constructor
     std::cout << "GraphU copy-constructor called" << std::endl;
-
+    // doesn't it need other stuff to be copied tho? like all that's in operator=. so weird.
 }
 
 /*********************************************************************
@@ -811,6 +815,12 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
 template<size_t span>
 GraphUnitigsTemplate<span>::~GraphUnitigsTemplate<span> ()
 {
+    /*
+    if (modelK)
+    delete modelK;
+    if (modelKdirect)
+    delete modelKdirect;
+    */ // dunno why this code segfaults. anyhow, no big deal for now.
     // base deleter already called
     //std::cout <<"unitigs graph destructor called" << std::endl;
 }
