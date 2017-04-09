@@ -355,6 +355,8 @@ bool Simplifications<GraphType,Node,Edge>::satisfyRCTC(double pathAbundance, Nod
  * for CAMI we were more loose than SPAdes: topological tip had no cov criterion, wherehas it should have had rctc (like spades)
  * and long tc_lb10 tips should have the auto coverage bound, but instead they had rctc 2. 
  *
+ * here we also keep that philosophy: topological tips (<=3.5*k) do not need a coverage criterium to be removed (no rctc)
+ *
  * so TODO: make it more strict. but for now I'm focusing on EC.
  */
 template<typename GraphType, typename Node, typename Edge>
@@ -504,6 +506,8 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
                 // special case: only a single tip node, check if it's not isolated
                 isConnected |=  (_graph.indegree(node) != 0 || _graph.outdegree(node) != 0); 
             }
+
+            // TODO would be worth it to check if the node where the tip is connected to, is also connected to the tip and something else. i.e existence of a V-shaped pattern.
 
             bool isTopologicalShortTip = isShortTopological && isConnected; 
             bool isMaybeRCTCTip = isShortRCTC && isConnected;

@@ -424,6 +424,12 @@ get_from_compressed_navigational_vector(const std::vector<uint64_t> &v, uint64_t
     }
 }
 
+static 
+bool filter_out_short_tips(float& mean_abundance, vector<uint64_t>& inc, vector<uint64_t>& outc)
+{
+    return (inc.size() == 0 && outc.size() > 1) || (inc.size() > 0 && outc.size() == 0); // actually there is no coverage criterion
+}
+
 
 template<size_t span>
 void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
@@ -455,6 +461,11 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         float mean_abundance;
         vector<uint64_t> inc, outc; // incoming and outcoming unitigs
         parse_unitig_header(comment, mean_abundance, inc, outc);
+
+        // do not load short tips, they will be deleted by tips removal algorithm anyway
+        bool skip  = filter_out_short_tips(mean_abundance, inc, outc);
+        if (skip)
+            continue;
 
         if (compress_navigational_vectors) 
         {
