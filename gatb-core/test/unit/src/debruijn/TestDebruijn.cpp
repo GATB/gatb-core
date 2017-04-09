@@ -91,7 +91,7 @@ class TestDebruijn : public Test
         CPPUNIT_TEST_GATB (debruijn_deletenode);
         //CPPUNIT_TEST_GATB (debruijn_checksum); // FIXME removed it because it's a damn long test
         CPPUNIT_TEST_GATB (debruijn_test2);
-        CPPUNIT_TEST_GATB (debruijn_test3); // it's a long one too
+        CPPUNIT_TEST_GATB (debruijn_test3); // that one is long when compiled in debug, fast in release
         CPPUNIT_TEST_GATB (debruijn_test4);
         CPPUNIT_TEST_GATB (debruijn_test5);
         CPPUNIT_TEST_GATB (debruijn_test6);
