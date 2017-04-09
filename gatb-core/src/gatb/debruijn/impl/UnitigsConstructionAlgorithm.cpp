@@ -218,7 +218,7 @@ static void get_link_from_file(std::ifstream& input, std::string &link, uint64_t
 template<size_t span>                                                                                                                                                                                void UnitigsConstructionAlgorithm<span>::
 write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
 {
-    std::ifstream inputLinks[nb_passes];
+    std::ifstream* inputLinks[nb_passes];
 
     bitset<nb_passes> finished;
     typedef std::tuple<uint64_t /*unitig id*/, int /*pass*/, std::string /*links */> pq_elt_t;
@@ -234,9 +234,9 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
     for (int pass = 0; pass < nb_passes; pass++)
     {
         string link; uint64_t unitig;
-        std::ifstream(unitigs_filename+ ".links." + to_string(pass)).swap(inputLinks[pass]);
+        inputLinks[pass] = new std::ifstream(unitigs_filename+ ".links." + to_string(pass));
         bool f = false;
-        get_link_from_file(inputLinks[pass], link, unitig, f);
+        get_link_from_file(*inputLinks[pass], link, unitig, f);
         finished[pass] = f;
         pq.emplace(make_tuple(unitig, pass, link));
     }
@@ -274,7 +274,7 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
             continue;
         bool f = finished[pass];
         string link;
-        get_link_from_file(inputLinks[pass], link, unitig, f);
+        get_link_from_file(*inputLinks[pass], link, unitig, f);
         finished[pass] = f;
         if (!f)
             pq.emplace(make_tuple(unitig, pass, link));
@@ -286,8 +286,11 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
     out->insert(s);
     nb_unitigs++;
 
-    //for (int pass = 0; pass < nb_passes; pass++)
-    //    system::impl::System::file().remove (unitigs_filename + ".links." + to_string(pass));
+    for (int pass = 0; pass < nb_passes; pass++)
+    {
+        system::impl::System::file().remove (unitigs_filename + ".links." + to_string(pass));
+        delete inputLinks[pass];
+    }
 }
 
 static void record_links(uint64_t utig_id, int pass, const string &link, std::ofstream &links_file)

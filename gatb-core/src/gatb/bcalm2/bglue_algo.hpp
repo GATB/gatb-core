@@ -144,19 +144,19 @@ class BufferedFasta
 // not using BankFasta because I suspect that it does some funky memory fragmentation. so this one is unbuffered
 class UnbufferedFastaIterator 
 {
-        std::ifstream input;
+        std::ifstream *input;
     public:
         UnbufferedFastaIterator(const std::string &filename)
         {
-            std::ifstream(filename).swap(input);
+            input = new std::ifstream(filename);
         }
 
-        ~UnbufferedFastaIterator() {}
+        ~UnbufferedFastaIterator() { delete input;}
 
         bool read(std::string &seq, std::string &comment)
         {
             std::string line;
-            if (std::getline(input, line))
+            if (std::getline(*input, line))
             {
                 if (line.empty())
                     return false;
@@ -165,7 +165,7 @@ class UnbufferedFastaIterator
             }
             else 
                 return false;
-            if (std::getline(input, line))
+            if (std::getline(*input, line))
             {
                 if (line.empty())
                 {
@@ -180,8 +180,8 @@ class UnbufferedFastaIterator
 
         void restart()
         {
-            input.clear();
-            input.seekg(0);
+            input->clear();
+            input->seekg(0);
         }
 
 };
