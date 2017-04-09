@@ -940,6 +940,10 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
             auto edge_packed = *it;
             ExtremityInfo li(edge_packed);
 
+            if (li.unitig > unitigs_deleted.size())
+            {
+                std::cout << "unexpected error: li.unitig=" <<li.unitig<< ", unitig_deleted.size()=" << unitigs_deleted.size() << std::endl; exit(1);
+            }
             if (unitigs_deleted[li.unitig]) 
             {
                 if (debug)

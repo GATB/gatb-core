@@ -343,14 +343,16 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
  */
 static void glue_sequences(vector<uint32_t> &chain, std::vector<std::string> &sequences, std::vector<std::string> &abundances, int kmerSize, string &res_seq, string &res_abundances)
 {
+    bool debug=true;
+
     string previous_kmer = "";
     unsigned int k = kmerSize;
-
+    
+    if (debug) std::cout << "glueing new chain: ";
     for (auto it = chain.begin(); it != chain.end(); it++)
     {
         uint32_t idx = *it;
 
-        //std::cout << "index" << no_rev_index(idx) << " size " << abundances.size() << std::endl; 
         string seq = sequences[no_rev_index(idx)];
         string abs = abundances[no_rev_index(idx)];
 
@@ -371,15 +373,19 @@ static void glue_sequences(vector<uint32_t> &chain, std::vector<std::string> &se
             res_seq += seq.substr(k);
             res_abundances += skip_first_abundance(abs);
         }
+    
+        if (debug) std::cout << seq << " ";
 
         previous_kmer = seq.substr(seq.size() - k);
         assert(previous_kmer.size() == k);
     }
+     if (debug) std::cout << std::endl;
 }
 
 
 static void output(const string &seq, gatb::core::debruijn::impl::BufferedFasta &out, const string comment = "")
 {
+    std::cout << "output " << seq << std::endl;
     out.insert(seq, comment);
     // BufferedFasta takes care of the flush
 }
@@ -844,7 +850,7 @@ void bglue(Storage *storage,
         }
 
         int index = ufclass % nbGluePartitions;
-        //stringstream ss1; // to save partition later in the comment. (later: why? probably to avoid recomputing it)
+        //stringstream ss1; // to save partition later in the comment. [why? probably to avoid recomputing it]
         //ss1 << blabla;
 
         output(seq, *gluePartitions[index], comment);
@@ -900,10 +906,10 @@ void bglue(Storage *storage,
             string partitionFile = gluePartition_prefix + std::to_string(partition);
             BankFasta partitionBank (partitionFile); // BankFasta
             BankFasta::Iterator it (partitionBank); // BankFasta
-            //UnbufferedFastaIterator partitionBank (partitionFile); // UnbufferedFastaIterator // TODO try bankfasta again
+            //UnbufferedFastaIterator partitionBank (partitionFile); // UnbufferedFastaIterator // let it be a lession. it was super slow when i used unbufferedfastaiterator and became fast with bankfasta.
 
             outLock.lock(); // should use a printlock..
-            //if (partition % 20 == 0) // sparse printing
+            if (partition % 20 == 0) // sparse printing
             {
                 string message = "Gluing partition " +to_string(partition) + " (size: " +to_string(System::file().getSize(partitionFile)/1024/1024) + " MB)";
                 logging(message);
@@ -1000,7 +1006,7 @@ void bglue(Storage *storage,
             free_memory_vector(ordered_sequences_idxs);
 
 
-            //partitionBank.finalize(); // BankFasta
+            partitionBank.finalize(); // BankFasta
             // nothing to do for UnbufferedFastaIterator
 
             System::file().remove (partitionFile);
@@ -1012,10 +1018,12 @@ void bglue(Storage *storage,
     }
 
     pool.join();
+   
+   out.flush();
 
     logging("end");
 
-    bool debug_keep_glue_files = false; // for debugging
+    bool debug_keep_glue_files = true; // for debugging
     if (debug_keep_glue_files)
     {
         std::cout << "debug: not deleting glue files" << std::endl;

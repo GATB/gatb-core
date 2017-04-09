@@ -107,6 +107,7 @@ class BufferedFasta
             threadsafe = true;
             buffer_length = 0;
             _insertHandle = fopen (filename.c_str(), "w");
+            if (!_insertHandle) { std::cout << "error opening " << filename << " for writing." << std::endl; exit(1);}
             buffer.reserve(max_buffer+1000/*security*/);
         }
 
@@ -132,7 +133,8 @@ class BufferedFasta
 
         void flush()
         {
-            fprintf (_insertHandle, "%s", buffer.c_str());
+            unsigned int res = fprintf (_insertHandle, "%s", buffer.c_str());
+            if (res != buffer.size())            {  std::cout << "couldn't flush, written " << res << " out of " << buffer.size() << std::endl; exit(1);}
             if (_insertHandle    != 0)  { fflush  (_insertHandle);              }
             buffer_length = 0;
             buffer.clear();

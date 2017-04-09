@@ -142,7 +142,7 @@ void UnitigsConstructionAlgorithm<span>::
 link_unitigs(string unitigs_filename, bool verbose)
 {
     BankFasta* out = new BankFasta(unitigs_filename+".indexed");
- 
+    if (kmerSize < 4) { std::cout << "error, recent optimizations (specifically link_unitigs) don't support k<5 for now" << std::endl; exit(1); }
 
     for (int pass = 0; pass < nb_passes; pass++)
         link_unitigs_pass(unitigs_filename, verbose, pass);
@@ -192,8 +192,11 @@ is_in_pass (const std::string &seq, int pass, Unitig_pos p) const
 {
     int e = 0;
     if (p == UNITIG_END)
-        e = seq.size()-kmerSize;
-    return (normalized_smallmer(seq[e],seq[e+1],seq[e+kmerSize-3],seq[e+kmerSize-2]) % nb_passes) == pass;
+        e = seq.size()-(kmerSize-1);
+    // x = 0123456789
+    // k = 5, k-1=4
+    // seq.size()-1-(k-1) = 10-4 = 6
+    return (normalized_smallmer(seq[e],seq[e+1],seq[e+kmerSize-1-1-1],seq[e+kmerSize-1-1]) % nb_passes) == pass;
 }
 
 static void get_link_from_file(std::ifstream& input, std::string &link, uint64_t &unitig_id, bool &finished)
@@ -242,7 +245,7 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
     nb_unitigs = 0; // class variable
 
     // nb_passes-way merge sort
-    while (!finished.all())
+    while ((!finished.all()) || pq.size() > 0)
     {
         pq_elt_t cur = pq.top(); pq.pop();
         int pass = get<1>(cur);
@@ -276,12 +279,17 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
         if (!f)
             pq.emplace(make_tuple(unitig, pass, link));
     }
+    // write the last element
+    Sequence s (Data::ASCII);
+    s.getData().setRef ((char*)seq.c_str(), seq.size());
+    s._comment = comment + " " + cur_links;
+    out->insert(s);
 
-    for (int pass = 0; pass < nb_passes; pass++)
-        system::impl::System::file().remove (unitigs_filename + ".links." + to_string(pass));
+    //for (int pass = 0; pass < nb_passes; pass++)
+    //    system::impl::System::file().remove (unitigs_filename + ".links." + to_string(pass));
 }
 
-void record_links(uint64_t utig_id, int pass, const string &link, std::ofstream &links_file)
+static void record_links(uint64_t utig_id, int pass, const string &link, std::ofstream &links_file)
 {
     links_file << to_string(utig_id) << "\n";
     links_file << link << "\n";
@@ -321,6 +329,7 @@ link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)
 
         if (is_in_pass(seq, pass, UNITIG_BEGIN))
         { 
+            if (debug) std::cout << "pass " << pass << " examining beginning" << std::endl;
             typename Model::Kmer kmerBegin = modelKminusOne.codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
             bool beginInSameOrientation = modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1);
             ExtremityInfo eBegin(utig_counter, !beginInSameOrientation /* because we record rc*/, UNITIG_BEGIN);
@@ -328,6 +337,7 @@ link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)
         }
         if (is_in_pass(seq, pass, UNITIG_END))
         {
+            if (debug) std::cout << "pass " << pass << " examining end" << std::endl;
             typename Model::Kmer kmerEnd = modelKminusOne.codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
             bool endInSameOrientation = modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
             ExtremityInfo eEnd(  utig_counter, !endInSameOrientation,                             UNITIG_END);
@@ -357,6 +367,7 @@ link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)
  
         if (is_in_pass(seq, pass, UNITIG_BEGIN))
         {
+            if (debug) std::cout << "pass " << pass << " examining beginning" << std::endl;
             typename Model::Kmer kmerBegin = modelKminusOne.codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
             bool beginInSameOrientation =  modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1); // that could be optimized, revcomp was already computed during codeSeed
             // treat special palindromic kmer cases
@@ -406,6 +417,7 @@ link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)
 
         if (is_in_pass(seq, pass, UNITIG_END))
         {
+            if (debug) std::cout << "pass " << pass << " examining end" << std::endl;
             typename Model::Kmer kmerEnd = modelKminusOne.codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
             bool endInSameOrientation =  modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
 
