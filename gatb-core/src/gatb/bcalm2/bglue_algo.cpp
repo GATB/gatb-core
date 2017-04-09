@@ -1015,7 +1015,7 @@ void bglue(Storage *storage,
 
     logging("end");
 
-    bool debug_keep_glue_files = true; // for debugging
+    bool debug_keep_glue_files = false; // for debugging
     if (debug_keep_glue_files)
     {
         std::cout << "debug: not deleting glue files" << std::endl;
