@@ -18,9 +18,14 @@
 *****************************************************************************/
 
 #include <gatb/debruijn/impl/UnitigsConstructionAlgorithm.hpp>
+#include <gatb/kmer/impl/Configuration.hpp>
+#include <gatb/kmer/impl/PartiInfo.hpp>
 #include <gatb/system/impl/System.hpp>
 #include <gatb/tools/designpattern/impl/Command.hpp>
 #include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/Banks.hpp>
+#include <gatb/bank/impl/BankHelpers.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/bcalm2/bcalm_algo.hpp>
 #include <gatb/bcalm2/bglue_algo.hpp>
@@ -40,6 +45,8 @@ using namespace gatb::core::tools::collections::impl;
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 
+using namespace gatb::core::bank;
+using namespace gatb::core::bank::impl;
 using namespace gatb::core::tools::math;
 
 #define DEBUG(a)  //printf a

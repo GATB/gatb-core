@@ -22,11 +22,13 @@
 
 /********************************************************************************/
 
+#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/Banks.hpp>
+#include <gatb/bank/impl/BankHelpers.hpp>
 #include <gatb/tools/misc/impl/Algorithm.hpp>
+#include <gatb/kmer/impl/Model.hpp> // for KMER_DEFAULT_SPAN and so on
+
 #include <gatb/bank/api/IBank.hpp>                                                                                                                                                                                
-#include <gatb/kmer/impl/Model.hpp>                                                                                                                                                                               
-#include <gatb/kmer/impl/Configuration.hpp>                                                                                                                                                                       
-#include <gatb/kmer/impl/PartiInfo.hpp>                                                                                                                                                                           
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/bcalm2/bcalm_algo.hpp>
 #include <gatb/debruijn/impl/ExtremityInfo.hpp>
@@ -91,7 +93,7 @@ public:
     /* due to the implementation of normalized_smallmer, doesn't support more than 8 passes */
     static constexpr int nb_passes = 8;
     int kmerSize;
-    void write_final_output(const std::string& unitigs_filename, bool verbose, BankFasta* out);
+    void write_final_output(const std::string& unitigs_filename, bool verbose, gatb::core::bank::impl::BankFasta* out);
     void link_unitigs_pass(const std::string unitigs_filename, bool verbose, int pass);
 
     uint64_t nb_unitigs;
