@@ -24,6 +24,7 @@
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <gatb/bcalm2/bcalm_algo.hpp>
 #include <gatb/bcalm2/bglue_algo.hpp>
+#include <gatb/bcalm2/logging.hpp>
 
 #include <queue>
 
@@ -151,8 +152,10 @@ template<size_t span>
 void UnitigsConstructionAlgorithm<span>::
 link_unitigs(string unitigs_filename, bool verbose)
 {
+    bcalm_logging = verbose;
     BankFasta* out = new BankFasta(unitigs_filename+".indexed");
     if (kmerSize < 4) { std::cout << "error, recent optimizations (specifically link_unitigs) don't support k<5 for now" << std::endl; exit(1); }
+    logging("Finding links between unitigs");
 
     for (int pass = 0; pass < nb_passes; pass++)
         link_unitigs_pass(unitigs_filename, verbose, pass);
@@ -163,8 +166,7 @@ link_unitigs(string unitigs_filename, bool verbose)
     system::impl::System::file().remove (unitigs_filename);
     system::impl::System::file().rename (unitigs_filename+".indexed", unitigs_filename);
 
-    if (verbose)
-        std::cout << "Done finding links between unitigs, mem current/maxRSS: " << system::impl::System::info().getMemorySelfUsed() / 1024 << "/" << system::impl::System::info().getMemorySelfMaxUsed() / 1024  << std::endl;
+    logging("Done finding links between unitigs");
 }
 
 
@@ -233,6 +235,7 @@ static void get_link_from_file(std::ifstream& input, std::string &link, uint64_t
 template<size_t span>                                                                                                                                                                                void UnitigsConstructionAlgorithm<span>::
 write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
 {
+    logging("gathering links from disk");
     std::ifstream* inputLinks[nb_passes];
 
     bitset<nb_passes> finished;
@@ -310,6 +313,7 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
 
 static void record_links(uint64_t utig_id, int pass, const string &link, std::ofstream &links_file)
 {
+    // maybe do a buffered thing here but it's not clear if it is bottleneck. in CAMI-medium it took 6 mins without if i don't write the links_file and 8 mins if i do..
     links_file << to_string(utig_id) << "\n";
     links_file << link << "\n";
 }
@@ -329,8 +333,7 @@ link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)
     
     NodeLinksMap utigs_links_map;
 
-    if (verbose)
-        std::cout << "Finding links between unitigs, step 1 pass " << pass << ",  mem current/maxRSS: " << system::impl::System::info().getMemorySelfUsed() / 1024 << "/" << system::impl::System::info().getMemorySelfMaxUsed() / 1024  << std::endl;
+    logging("step 1 pass " + to_string(pass));
 
     // this is the memory-limiting step, but can be lowered with larger nb_pass
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
@@ -360,14 +363,10 @@ link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)
 
     std::ofstream links_file(unitigs_filename+".links." +to_string(pass));
 
-   if (verbose)
-   {
-        uint64_t nb_hashed_entries = 0;
-        for (auto v : utigs_links_map)
-            nb_hashed_entries += v.second.size(); 
-        std::cout << "Finding links between unitigs, step 2 (" << utigs_links_map.size() << "kmers/" << nb_hashed_entries << "extremities) pass " << pass << ",  mem current/maxRSS: " << system::impl::System::info().getMemorySelfUsed() / 1024 << "/" << system::impl::System::info().getMemorySelfMaxUsed() / 1024  << std::endl;
-    }
-
+    uint64_t nb_hashed_entries = 0;
+    for (auto v : utigs_links_map)
+        nb_hashed_entries += v.second.size(); 
+    logging("step 2 (" + to_string(utigs_links_map.size()) + "kmers/" + to_string(nb_hashed_entries) + "extremities)");
 
     utig_counter = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
@@ -475,10 +474,6 @@ link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)
         }
 
         utig_counter++;
-    }
-    if (verbose)
-    {
-        std::cout << "Finding links between unitigs, end pass " << pass << ",  mem current/maxRSS: " << system::impl::System::info().getMemorySelfUsed() / 1024 << "/" << system::impl::System::info().getMemorySelfMaxUsed() / 1024  << std::endl;
     }
 }
 

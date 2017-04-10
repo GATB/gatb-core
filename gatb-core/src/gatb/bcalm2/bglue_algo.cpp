@@ -2,14 +2,76 @@
 - no more than 2^(32-1) sequences to glue together (should be ok for spruce)
 */
 #include "bglue_algo.hpp"
+
+#include <unordered_map>
+#include "unionFind.hpp"
+#include <BooPHF/BooPHF.h>
+#include "ThreadPool.h"
+
+#include "logging.hpp"
 /*#include "buffer_allocator.tcc"
 #include "buffer_manager.tcc"*/
 #include <sstream>
 #include <iomanip>
 
+/*#include "ctpl_stl.h" // alternative to threadpool // https://github.com/vit-vit/CTPL/blob/master/ctpl_stl.h // didn't commit because didnt use
+#include "buffer_allocator.h" // memory pool from https://github.com/vincetse/allocator, didn't commit the files because didnt use
+#include "buffer_manager.h" // memory pool
+*/
+
+#include <gatb/tools/designpattern/impl/Command.hpp>
+
+#include <gatb/system/impl/System.hpp>
+#include <gatb/tools/misc/impl/Property.hpp>
+
+#include <gatb/tools/storage/impl/Storage.hpp>
+#include <gatb/tools/storage/impl/StorageTools.hpp>
+
+#include <gatb/tools/math/NativeInt64.hpp>
+#include <gatb/tools/math/NativeInt128.hpp>
+#include <gatb/tools/math/LargeInt.hpp>
+
+#include <gatb/bank/impl/Banks.hpp>
+#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/BankHelpers.hpp>
+#include <gatb/bank/impl/BankConverterAlgorithm.hpp>
+
+#include <gatb/kmer/impl/Model.hpp>
+
+#include <gatb/kmer/impl/PartiInfo.hpp>   // for repartitor 
+#include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+#include <gatb/tools/collections/impl/BooPHF.hpp>
+
+
+//heh at this point I could have maybe just included gatb_core.hpp but well, no circular dependencies, this file is part of gatb-core now.
+
+using namespace gatb::core::system;
+using namespace gatb::core::system::impl;
+
+using namespace gatb::core::bank;
+using namespace gatb::core::bank::impl;
+
+using namespace gatb::core::kmer;
+using namespace gatb::core::kmer::impl;
+
+using namespace gatb::core::tools::storage;
+using namespace gatb::core::tools::storage::impl;
+using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::misc::impl;
+using namespace gatb::core::tools::dp;
+using namespace gatb::core::tools::dp::impl;
+using namespace gatb::core::tools::collections;
+using namespace gatb::core::tools::collections::impl;
+
+
+
 using namespace std;
 
-template <typename T>
+
+namespace gatb { namespace core { namespace debruijn { namespace impl  {
+
+    template <typename T>
 std::string to_string_with_precision(const T a_value, const int n = 1)
 {
         std::ostringstream out;
@@ -41,34 +103,6 @@ void free_memory_vector(std::vector<T> &vec)
     vector<T>().swap(vec); // it's a trick to properly free the memory, as clear() doesn't cut it (http://stackoverflow.com/questions/3477715/c-vectorclear)
 }
 
-
-static bool logging_bglue_verbose = true;
-static unsigned long logging(string message="")
-{
-    time_t t = time(0);   // get time now
-    struct tm * now = localtime( & t );
-    if (logging_bglue_verbose) 
-    {
-    cout << setiosflags(ios::right);
-    cout << resetiosflags(ios::left);
-    cout << setw(40) << left << message << "      ";
-    }
-    char tmp[128];
-    snprintf (tmp, sizeof(tmp), "  %02d:%02d:%02d  ",
-            now->tm_hour, now->tm_min, now->tm_sec);
-    if (logging_bglue_verbose) 
-    cout << tmp ;
-
-    // using Progress.cpp of gatb-core
-    u_int64_t mem = System::info().getMemorySelfUsed() / 1024;
-    u_int64_t memMaxProcess = System::info().getMemorySelfMaxUsed() / 1024;
-    snprintf (tmp, sizeof(tmp), "   memory [current, maxRSS]: [%4lu, %4lu] MB ",
-            mem, memMaxProcess);
-
-    if (logging_bglue_verbose) 
-    cout << tmp << std::endl;
-    return mem;
-}
 
 static 
 char rc /*cheap desambiguation compared to GraphUnitigs because TemplateSpecialization8 complains */(char s) {
@@ -609,7 +643,6 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, in
 
 }
 
-namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
 /* main */
 template<size_t SPAN>
@@ -621,7 +654,7 @@ void bglue(Storage *storage,
         )
 {
     //std::cout << "bglue_algo params, prefix:" << prefix << " k:" << kmerSize << " threads:" << nb_threads << std::endl;
-    logging_bglue_verbose = verbose;
+    bcalm_logging = verbose;
     size_t k = kmerSize;
     int nbGluePartitions=200; // TODO autodetect it or set it as a parameter.
     bool debug_uf_stats = false; // formerly cmdline parameter
@@ -917,7 +950,7 @@ void bglue(Storage *storage,
     }
     partial_sort( vx.begin(), vx.begin()+top_n_glue_partition, vx.end(), Comp<unsigned long>(copy_nb_seqs_in_partition) );
 
-    if (logging_bglue_verbose)
+    if (verbose)
     {
         std::cout << "Top 10 glue partitions by size:" << std::endl;
         for (int i = 0; i < top_n_glue_partition; i++)
