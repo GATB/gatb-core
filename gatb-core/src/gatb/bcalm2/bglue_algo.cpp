@@ -160,15 +160,17 @@ static string skip_first_abundance(const string& list)
 }
 
 
+template<int SPAN>
 struct markedSeq
 {
     // there used to be "string seq; string abundance" but i noticed that i did not need that info for determining the chain of glues. not much space saved though (like 10-20%). I suppose the biggest memory-hog is the ks/ke unordered_map
     uint64_t index;
     bool rc;
     bool lmark, rmark;
-    string ks, ke; // [start,end] kmers of seq, in canonical form (redundant information with seq, but helpful)
+    typedef typename Kmer<SPAN>::Type Type;
+    Type ks, ke; // [start,end] kmers of seq, in canonical form (redundant information with seq, but helpful)
 
-    markedSeq(uint64_t index, bool lmark, bool rmark, string ks, string ke) : index(index), rc(false), lmark(lmark), rmark(rmark), ks(ks), ke(ke) {};
+    markedSeq(uint64_t index, bool lmark, bool rmark, const Type &ks, const Type &ke) : index(index), rc(false), lmark(lmark), rmark(rmark), ks(ks), ke(ke) {};
 
     void revcomp()
     {
@@ -202,10 +204,12 @@ static uint32_t no_rev_index(uint32_t index)
 //typedef lazy::memory::buffer_allocator<markedSeq> custom_allocator_t;
 //typedef std::allocator<markedSeq> custom_allocator_t;
 
-static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq> &markedSequences, int kmerSize)
+template<int SPAN>
+static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize)
 {
+    typedef typename Kmer<SPAN>::Type Type;
     bool debug = false;
-    unordered_map<string, set<uint32_t> > kmerIndex; // TODO mem opt: take inspiration from UnitigsConstructionAlgorithm to do a unordered_map<Type, ..> rather!! will save memory here i'm sure.
+    unordered_map<Type, set<uint32_t> > kmerIndex; // TODO mem opt: take inspiration from UnitigsConstructionAlgorithm to do a unordered_map<Type, ..> rather!! will save memory here i'm sure.
     set<uint32_t> usedSeq;
     unsigned int nb_chained = 0;
 
@@ -216,7 +220,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
         kmerIndex[markedSequences[i].ke].insert(i);
     }
 
-    auto glue_from_extremity = [&](markedSeq current, uint32_t chain_index, uint32_t markedSequence_index)
+    auto glue_from_extremity = [&](markedSeq<SPAN> current, uint32_t chain_index, uint32_t markedSequence_index)
     {
         vector<uint32_t> chain;
         chain.push_back(chain_index);
@@ -239,7 +243,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
             uint32_t successor_index = *candidateSuccessors.begin(); // pop()
             assert(successor_index != markedSequence_index);
-            markedSeq successor = markedSequences[successor_index];
+            markedSeq<SPAN> successor = markedSequences[successor_index];
 
             chain_index = markedSequences[successor_index].index;
 
@@ -252,7 +256,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
             // some checks
             {
                 if (debug)
-                    std::cout << "successor " << successor_index << " successor ks ke "  << successor.ks << " "<< successor.ke << " markings: " << successor.lmark << successor.rmark << std::endl;
+                    std::cout << "successor " << successor_index /*<<" successor ks ke "  << successor.ks << " "<< successor.ke*/ /* need to convert Type to string to print, didn't bother writing that code yet */ << " markings: " << successor.lmark << successor.rmark << std::endl;
                 assert(successor.lmark);
                 assert(successor.ks == current.ke);
                 // edge case where the seq to be glued starts and ends with itself. 
@@ -284,7 +288,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
     for (unsigned int i = 0; i < markedSequences.size(); i++)
     {
-        markedSeq current = markedSequences[i];
+        markedSeq<SPAN> current = markedSequences[i];
         if (usedSeq.find(i) != usedSeq.end())
         {
             if (debug)
@@ -601,7 +605,7 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, in
     
     free_memory_vector(uf_hashes_vectors);
 
-    logging("pass " + to_string(pass+1) + "/" + to_string(nb_passes) + ", put unique UF elements (" + std::to_string(nb_elts) + ") into file of size " + to_string(nb_elts* sizeof(partition_t) / 1024/1024) + " MB");
+    logging("pass " + to_string(pass+1) + "/" + to_string(nb_passes) + ", " + std::to_string(nb_elts) + " unique hashes written to disk, size " + to_string(nb_elts* sizeof(partition_t) / 1024/1024) + " MB");
 
 }
 
@@ -946,7 +950,7 @@ void bglue(Storage *storage,
 
             //markedSeq buffer[10000];
             //custom_allocator_t custom_allocator(buffer, sizeof(buffer));
-            unordered_map<int, vector< markedSeq >> msInPart;
+            unordered_map<int, vector< markedSeq<SPAN> >> msInPart;
             uint64_t seq_index = 0;
 
             /* // UnbufferedFastaIterator
@@ -982,9 +986,10 @@ void bglue(Storage *storage,
                 if (!rmark)
                     kmmerEnd = modelCanon.codeSeed(kmerEnd.c_str(), Data::ASCII);
 
-                string ks = modelCanon.toString(kmmerBegin.value());
+                /*string ks = modelCanon.toString(kmmerBegin.value());
                 string ke = modelCanon.toString(kmmerEnd  .value());
-                markedSeq ms(seq_index, lmark, rmark, ks, ke);
+                */
+                markedSeq<SPAN> ms(seq_index, lmark, rmark, kmmerBegin.value(), kmmerEnd.value());
 
                 msInPart[ufclass].push_back(ms);
                 seq_index++;
@@ -995,13 +1000,13 @@ void bglue(Storage *storage,
             for (auto it = msInPart.begin(); it != msInPart.end(); it++)
             {
                 //std::cout << "1.processing partition " << it->first << std::endl;
-                determine_order_sequences(ordered_sequences_idxs, it->second, kmerSize); // return indices of markedSeq's inside it->second
+                determine_order_sequences<SPAN>(ordered_sequences_idxs, it->second, kmerSize); // return indices of markedSeq's inside it->second
                 //std::cout << "2.processing partition " << it->first << " nb ordered sequences: " << ordered_sequences.size() << std::endl;
                 free_memory_vector(it->second);
             }
 
             msInPart.clear();
-            unordered_map<int,vector<markedSeq>>().swap(msInPart); // free msInPart
+            unordered_map<int,vector<markedSeq<SPAN>>>().swap(msInPart); // free msInPart
             
             vector<string> sequences;
             vector<string> abundances;
@@ -1047,7 +1052,7 @@ void bglue(Storage *storage,
 
     pool.join();
    
-   out.flush();
+   out.flush(); // not sure if necessary
 
     logging("end");
 
