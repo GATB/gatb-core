@@ -60,9 +60,13 @@ UnitigsConstructionAlgorithm<span>::UnitigsConstructionAlgorithm (
     tools::storage::impl::Storage& storage,
     std::string                 unitigs_filename,
     size_t                      nb_cores,
-    tools::misc::IProperties*   options
+    tools::misc::IProperties*   options,
+    bool do_bcalm,
+    bool do_bglue,
+    bool do_links
 )
-    : Algorithm("bcalm2-wrapper", nb_cores, options), _storage(storage), unitigs_filename(unitigs_filename)
+    : Algorithm("bcalm2-wrapper", nb_cores, options), _storage(storage), unitigs_filename(unitigs_filename),
+    do_bcalm(do_bcalm), do_bglue(do_bglue), do_links(do_links)
 {
 }
 
@@ -96,9 +100,7 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     int minimizer_type =
         getInput()->getInt(STR_MINIMIZER_TYPE);
     bool verbose = getInput()->getInt(STR_VERBOSE);
-    bool skip_bglue = getInput()->get("-skip-bglue");
-    bool skip_bcalm = getInput()->get("-skip-bcalm");
-        
+    
     unsigned int nbThreads = this->getDispatcher()->getExecutionUnitsNumber();
     if ((unsigned int)nb_threads > nbThreads)
     {
@@ -106,11 +108,9 @@ void UnitigsConstructionAlgorithm<span>::execute ()
 
     }
 
-    if (!skip_bcalm) // debug
-    bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type, verbose); 
-    if (!skip_bglue) // debug
-    bglue<span> (&_storage, unitigs_filename, kmerSize,                            nbThreads,                  verbose);
-    link_unitigs(unitigs_filename, verbose);
+    if (do_bcalm) bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type, verbose); 
+    if (do_bglue) bglue<span> (&_storage, unitigs_filename, kmerSize,                           nbThreads,                 verbose);
+    if (do_links) link_unitigs(unitigs_filename, verbose);
 
     /** We gather some statistics. */
     //getInfo()->add (1, "stats");
@@ -137,6 +137,16 @@ static uint64_t sizeof_string_vector(std::vector<std::string>& v)
              + sum;
 }
 
+/* this procedure finds the overlaps between unitigs, using a hash table of all extremity (k-1)-mers
+ *
+ * I guess it's like AdjList in ABySS. It's also like contigs_to_fastg in MEGAHIT.
+ * 
+ * could be optimized by keeping edges during the BCALM step and tracking kmers in unitigs, but it's not the case for now, because would need to modify ograph 
+ *
+ * it uses the disk to store the links for extremities until they're merged into the final unitigs file. 
+ *
+ * so the memory usage is just that of the hash tables that record kmers, not of the links
+ */
 template<size_t span>
 void UnitigsConstructionAlgorithm<span>::
 link_unitigs(string unitigs_filename, bool verbose)
@@ -215,6 +225,11 @@ static void get_link_from_file(std::ifstream& input, std::string &link, uint64_t
         finished = true;
 }
 
+/*
+ * takes all the prefix.links.* files, sorted by unitigs.
+ * do a n-way merge to gather the links for each unitig in unitig order
+ * (single-threaded)
+ */
 template<size_t span>                                                                                                                                                                                void UnitigsConstructionAlgorithm<span>::
 write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
 {
@@ -300,14 +315,6 @@ static void record_links(uint64_t utig_id, int pass, const string &link, std::of
 }
 
 
-/* this procedure finds the overlaps between unitigs, using a hash table of all extremity (k-1)-mers
- *
- * I guess it's like AdjList in ABySS. It's also like contigs_to_fastg in MEGAHIT.
- * 
- * could be optimized by keeping edges during the BCALM step and tracking kmers in unitigs, but it's not the case for now, because would need to modify ograph 
- *
- * it uses the disk to store the links for extremities until they're merged into the final unitigs file
- */
 template<size_t span>
 void UnitigsConstructionAlgorithm<span>::
 link_unitigs_pass(const string unitigs_filename, bool verbose, int pass)

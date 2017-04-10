@@ -258,10 +258,19 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers.");
     }
     
-    bool force_loading_unitigs = false; // debug option
+    bool force_loading_unitigs = false; // debug option /* if unitigs are made but the h5 didn't register it, stupid h5*/
     bool force_redo_unitigs = false; // debug option
 
-    if (force_redo_unitigs || (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs /* for debug, if unitigs are made but the h5 didn't register it, stupid h5*/)))
+    bool redo_bcalm = props->get("-redo-bcalm");
+    bool redo_bglue = props->get("-redo-bglue");
+    bool redo_links = props->get("-redo-links");
+
+    bool do_unitigs = force_redo_unitigs || (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs));
+    bool do_bcalm = redo_bcalm || do_unitigs;
+    bool do_bglue = redo_bglue|| do_unitigs;
+    bool do_links = redo_links || do_unitigs;
+
+    if (do_unitigs || do_bcalm || do_bglue || do_links)
     {
         int nb_threads =
             props->getInt(STR_NB_CORES);
@@ -273,20 +282,20 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         props->setInt(STR_KMER_SIZE, kmerSize);
 
 
-        UnitigsConstructionAlgorithm<span> unitigs_algo(BaseGraph::getStorage(), unitigs_filename, nb_threads, props);
+        UnitigsConstructionAlgorithm<span> unitigs_algo(BaseGraph::getStorage(), unitigs_filename, nb_threads, props, do_bcalm, do_bglue, do_links);
 
         BaseGraph::executeAlgorithm(unitigs_algo, &BaseGraph::getStorage(), props, BaseGraph::_info);
     
         nb_unitigs = unitigs_algo.nb_unitigs;
+        BaseGraph::getGroup().setProperty ("nb_unitigs",     Stringify::format("%d", nb_unitigs));
         
         setState(STATE_BCALM2_DONE);
     }
-    else
-        nb_unitigs = atol (BaseGraph::getGroup().getProperty ("nb_unitigs").c_str());
+        
+    nb_unitigs = atol (BaseGraph::getGroup().getProperty ("nb_unitigs").c_str());
 
     /** We save the state at storage root level. */
     BaseGraph::getGroup().setProperty ("state",          Stringify::format("%d", BaseGraph::_state));
-    BaseGraph::getGroup().setProperty ("nb_unitigs",     Stringify::format("%d", nb_unitigs));
 }
 
 static void

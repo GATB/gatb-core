@@ -651,8 +651,9 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     parserGeneral->push_front (new OptionNoParam  (STR_CONFIG_ONLY,       "dump config only"));
 
     // those are only valid for GraphUnitigs, but GraphUnitigs doesn't have custom options (yet) so i'm adding here
-    parser->push_front (new OptionNoParam  ("-skip-bcalm",       "developer debug function"));
-    parser->push_front (new OptionNoParam  ("-skip-bglue",       "developer debug function"));
+    parser->push_front (new OptionNoParam  ("-redo-bcalm",       "debug function, redo the bcalm algo"));
+    parser->push_front (new OptionNoParam  ("-redo-bglue",       "debug function, redo the bglue algo"));
+    parser->push_front (new OptionNoParam  ("-redo-links",       "debug function, redo the links algo"));
  
     /** We add it to the root parser. */
     parser->push_back  (parserGeneral);

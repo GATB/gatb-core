@@ -205,7 +205,7 @@ static uint32_t no_rev_index(uint32_t index)
 static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq> &markedSequences, int kmerSize)
 {
     bool debug = false;
-    unordered_map<string, set<uint32_t> > kmerIndex;
+    unordered_map<string, set<uint32_t> > kmerIndex; // TODO mem opt: take inspiration from UnitigsConstructionAlgorithm to do a unordered_map<Type, ..> rather!! will save memory here i'm sure.
     set<uint32_t> usedSeq;
     unsigned int nb_chained = 0;
 
@@ -427,7 +427,7 @@ class hasher_t
 typedef uint64_t partition_t;
 
 template <int SPAN>
-void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, vector<partition_t > &uf_hashes)
+void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, int pass, int nb_passes)
 {
     // some code duplication
     typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
@@ -446,7 +446,7 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, ve
     std::mutex global_lock;
 
     // create the set of keys that will be later be inserted into the UF
-    auto populate_keys = [k, &nb_hashes, &modelCanon, &uf_hashes, &global_lock,\
+    auto populate_keys = [k, &nb_hashes, &modelCanon, &global_lock, pass, nb_passes, \
         &populate, &uf_hashes_mutexes, &uf_hashes_vectors, &hasher, nb_uf_hashes_vectors, &nb_marked_extremities, &nb_unmarked_extremities](const Sequence& sequence)
     {
         const string seq = sequence.toString(); 
@@ -461,19 +461,22 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, ve
             // UF of canonical kmers in ModelCanon form, then hashed
             const typename ModelCanon::Kmer kmmerBegin = modelCanon.codeSeed(kmerBegin.c_str(), Data::ASCII);
             const uint64_t h1 = hasher(kmmerBegin);
-            uf_hashes_mutexes[h1%nb_uf_hashes_vectors].lock();
-            if (populate)
+            if (h1 % (uint64_t)nb_passes == (uint64_t)pass)
             {
-                uf_hashes_vectors[h1%nb_uf_hashes_vectors].push_back(h1);
-                /*global_lock.lock();
-                uf_hashes.insert(h1);
+                uf_hashes_mutexes[h1%nb_uf_hashes_vectors].lock();
+                if (populate)
+                {
+                    uf_hashes_vectors[h1%nb_uf_hashes_vectors].push_back(h1);
+                    /*global_lock.lock();
+                    uf_hashes.insert(h1);
                 global_lock.unlock();*/
+                }
+                else
+                    nb_hashes[h1%nb_uf_hashes_vectors]++;
+                uf_hashes_mutexes[h1%nb_uf_hashes_vectors].unlock();
+                if (populate)
+                    nb_marked_extremities++;
             }
-            else
-                nb_hashes[h1%nb_uf_hashes_vectors]++;
-            uf_hashes_mutexes[h1%nb_uf_hashes_vectors].unlock();
-            if (populate)
-                nb_marked_extremities++;
         }
         else 
             if (populate)
@@ -485,20 +488,23 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, ve
             const typename ModelCanon::Kmer kmmerEnd = modelCanon.codeSeed(kmerEnd.c_str(), Data::ASCII);
             const uint64_t h2 = hasher(kmmerEnd);
 
-            uf_hashes_mutexes[h2%nb_uf_hashes_vectors].lock();
-            if (populate)
+            if (h2 % (uint64_t)nb_passes == (uint64_t)pass)
             {
-                uf_hashes_vectors[h2%nb_uf_hashes_vectors].push_back(h2);
-                /*global_lock.lock();
-                uf_hashes.insert(h2);
-                global_lock.unlock();*/
+                uf_hashes_mutexes[h2%nb_uf_hashes_vectors].lock();
+                if (populate)
+                {
+                    uf_hashes_vectors[h2%nb_uf_hashes_vectors].push_back(h2);
+                    /*global_lock.lock();
+                      uf_hashes.insert(h2);
+                      global_lock.unlock();*/
+                }
+                else 
+                    nb_hashes[h2%nb_uf_hashes_vectors]++;
+                uf_hashes_mutexes[h2%nb_uf_hashes_vectors].unlock();
+
+                if (populate)
+                    nb_marked_extremities++;
             }
-            else 
-                nb_hashes[h2%nb_uf_hashes_vectors]++;
-            uf_hashes_mutexes[h2%nb_uf_hashes_vectors].unlock();
-    
-            if (populate)
-                nb_marked_extremities++;
         }
         else
             if (populate)
@@ -554,23 +560,31 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, ve
         temp_set[i].reserve(nb_hashes[0]*1);
 */
     // uniquify UF vectors (from uf_hashes_vector) and merge them into the uf_hashes vector
+	BagFile<uint64_t> * bagf = new BagFile<uint64_t>( prefix+".glue.hashes."+ to_string(pass)); LOCAL(bagf); 
+	Bag<uint64_t> * currentbag =  new BagCache<uint64_t> (  bagf, 10000 ); LOCAL(currentbag);// really? we have to through these hoops to do a simple binary file in gatb? gotta change this.
     std::mutex mergeLock;
+    uint64_t nb_elts = 0;
     for (int i = 0; i < nb_uf_hashes_vectors; i++)
     {
 
-        auto uniquify = [&mergeLock, /*&temp_set, */&uf_hashes_vectors, &uf_hashes, i] (int thread_id)
+        auto uniquify = [&nb_elts, &currentbag, &mergeLock, /*&temp_set, */&uf_hashes_vectors,  i] (int thread_id)
         {
             std::vector<partition_t> &vec = uf_hashes_vectors[i];
-            //http://stackoverflow.com/questions/1041620/whats-the-most-efficient-way-to-erase-duplicates-and-sort-a-vector
-            set<partition_t> temp_set( vec.begin(), vec.end() );
+            set<partition_t> temp_set( vec.begin(), vec.end() ); //http://stackoverflow.com/questions/1041620/whats-the-most-efficient-way-to-erase-duplicates-and-sort-a-vector
             /* // in case i wanted to prealloc the sets for sorting
             temp_set[thread_id].clear();
             for (auto v: vec)
                temp_set[thread_id].insert(v);
             */
+            
             mergeLock.lock(); 
             //uf_hashes.insert( uf_hashes.end(), temp_set[thread_id].begin(), temp_set[thread_id].end()); // in case i wanted to prealloc sets
-            uf_hashes.insert( uf_hashes.end(), temp_set.begin(), temp_set.end());
+            //uf_hashes.insert( uf_hashes.end(), temp_set.begin(), temp_set.end()); // in case i wanted to write to uf_hashes directly
+            
+            for (auto v: temp_set) // write to file instead of populating uf_hashes directly
+                currentbag->insert(v);
+            nb_elts += temp_set.size();
+
             free_memory_vector(uf_hashes_vectors[i]);
             mergeLock.unlock();
 
@@ -583,12 +597,11 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, ve
     uf_merge_pool.join(); // ThreadPool
     //uf_merge_pool.stop(true); // ctpl 
     
+    currentbag->flush();
+    
     free_memory_vector(uf_hashes_vectors);
 
-    logging("sorted and unique UF elements (" + std::to_string(uf_hashes.size()) + ") into a single vector of size " + to_string(uf_hashes.size()* sizeof(partition_t) / 1024/1024) + " MB");
-
-    if (uf_hashes.size() == 0) // prevent an edge case when there's nothing to glue, boophf doesn't like it
-        uf_hashes.push_back(0);
+    logging("pass " + to_string(pass+1) + "/" + to_string(nb_passes) + ", put unique UF elements (" + std::to_string(nb_elts) + ") into file of size " + to_string(nb_elts* sizeof(partition_t) / 1024/1024) + " MB");
 
 }
 
@@ -632,10 +645,26 @@ void bglue(Storage *storage,
     LOCAL(in);
 
     /*
-     * big task, tried to put it in separate function in the hope of controlling memory usage
+     * puts all the uf hashes in disk.
      */
-    prepare_uf<SPAN>(prefix, in, nb_threads, kmerSize, uf_hashes);
+    int nb_prepare_passes = 3;
+    for (int pass = 0; pass < nb_prepare_passes; pass++)
+        prepare_uf<SPAN>(prefix, in, nb_threads, kmerSize, pass, nb_prepare_passes);
+
+    // load uf hashes from disk
+    for (int pass = 0; pass < nb_prepare_passes; pass++)
+    {
+        IteratorFile<uint64_t> file(prefix+".glue.hashes." + to_string(pass));
+        for (file.first(); !file.isDone(); file.next())
+            uf_hashes.push_back(file.item());
+    }
+    if (uf_hashes.size() == 0) // prevent an edge case when there's nothing to glue, boophf doesn't like it
+        uf_hashes.push_back(0);
+    for (int pass = 0; pass < nb_prepare_passes; pass++)
+        System::file().remove (prefix+".glue.hashes." + to_string(pass));
+
     unsigned long nb_uf_keys = uf_hashes.size();
+    logging("loaded all unique UF elements (" + std::to_string(nb_uf_keys) + ") into a single file vector of size " + to_string(nb_uf_keys* sizeof(partition_t) / 1024/1024) + " MB");
 
     int gamma = 3; // make it even faster.
 
@@ -1022,7 +1051,7 @@ void bglue(Storage *storage,
 
     logging("end");
 
-    bool debug_keep_glue_files = false; // for debugging
+    bool debug_keep_glue_files = true; // for debugging // TODO enable it if -redo-bglue param was provided (need some info from UnitigsConstructionAlgorithm). 
     if (debug_keep_glue_files)
     {
         std::cout << "debug: not deleting glue files" << std::endl;

@@ -63,7 +63,10 @@ public:
         tools::storage::impl::Storage& storage,
         std::string                 unitigs_filename,
         size_t                      nb_cores = 0,
-        tools::misc::IProperties*   options  = 0
+        tools::misc::IProperties*   options  = 0,
+        bool do_bcalm = true,
+        bool do_bglue = true,
+        bool do_links = true
     );
     
     /** Destructor. */
@@ -97,6 +100,7 @@ private:
 
     tools::storage::impl::Storage& _storage;
     std::string unitigs_filename;
+    bool do_bcalm, do_bglue, do_links;
 };
 
 /********************************************************************************/
