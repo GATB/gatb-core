@@ -11,7 +11,7 @@
     public:
         SharedVectorQueue(int nb_elts) : nb_elts(nb_elts) {
         
-            std::vector<std::mutex>(/*nb_elts*/ 1).swap(mutex_);
+            std::vector<std::mutex>(nb_elts).swap(mutex_);
 
             queue_.resize(nb_elts);
         };
@@ -48,14 +48,14 @@
 
         void push_back(int i, const T& item)
         {
-            std::unique_lock<std::mutex> mlock(mutex_[0]);
+            std::unique_lock<std::mutex> mlock(mutex_[i]);
             queue_[i].push_back(item);
             mlock.unlock();     // unlock before notificiation to minimize mutex con
 
         }
         void push_back(int i, T&& item)
         {
-            std::unique_lock<std::mutex> mlock(mutex_[0]);
+            std::unique_lock<std::mutex> mlock(mutex_[i]);
             queue_[i].push_back(std::move(item));
             mlock.unlock();     // unlock before notificiation to minimize mutex con
         }
@@ -63,7 +63,7 @@
 
         int size(int i)
         {
-            std::unique_lock<std::mutex> mlock(mutex_[0]);
+            std::unique_lock<std::mutex> mlock(mutex_[i]);
             int size = queue_[i].size();
             mlock.unlock();
             return size;
