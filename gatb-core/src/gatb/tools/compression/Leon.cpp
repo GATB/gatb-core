@@ -2362,6 +2362,18 @@ BankLeon::~BankLeon ()
 	
 }
 
+u_int64_t BankLeon::getSize ()
+{
+	return System::file().getSize (_fname);
+}
+
+int64_t BankLeon::getNbItems () {
+	u_int64_t number;
+	readDataset(_leon->_subgroupInfo,"readcount",number);
+	return number;
+}
+
+
 
 void BankLeon::estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize)
 {

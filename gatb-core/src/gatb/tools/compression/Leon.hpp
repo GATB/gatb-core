@@ -439,7 +439,7 @@ public:
 	tools::dp::Iterator<Sequence>* iterator ()  { return new Leon::LeonIterator (*_leon); }
 	
 	/** */
-	int64_t getNbItems () { return -1; }
+	int64_t getNbItems () ;
 	
 	/** \copydoc IBank::insert */
 	void insert (const Sequence& item) {}
@@ -448,7 +448,7 @@ public:
 	void flush ()  {}
 	
 	/** \copydoc IBank::getSize */
-	u_int64_t getSize ()  { return 0; }
+	u_int64_t getSize ();
 	
 	/** \copydoc IBank::estimate */
 	void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
