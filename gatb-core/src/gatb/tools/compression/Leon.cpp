@@ -762,6 +762,12 @@ void Leon::endCompression(){
 	printf("\tSpeed: %.2f mo/s\n", (System::file().getSize(_inputFilename)/1000000.0) / (  _wfin_leon - _wdebut_leon) );
 
 	
+	if(_storageH5file !=0)
+	{
+		delete _storageH5file;
+		_storageH5file =0;
+	}
+	
 	//printf("\tTime: %.2fs\n", (double)(clock() - _time)/CLOCKS_PER_SEC);
 	//printf("\tSpeed: %.2f mo/s\n", (System::file().getSize(_inputFilename)/1000000.0) / ((double)(clock() - _time)/CLOCKS_PER_SEC));
 }
