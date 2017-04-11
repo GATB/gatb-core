@@ -11,13 +11,9 @@
     public:
         SharedVectorQueue(int nb_elts) : nb_elts(nb_elts) {
         
-            std::vector<std::mutex> list(nb_elts);
-            mutex_.swap(list);
+            std::vector<std::mutex>(nb_elts).swap(mutex_);
 
             queue_.resize(nb_elts);
-
-            std::vector<std::condition_variable> cond_2(nb_elts);
-            cond_.swap(cond_2);
         };
 
         ~SharedVectorQueue(){
@@ -26,14 +22,17 @@
                 //std::deque<T>().swap(queue_[i]); 
                 std::vector<T>().swap(queue_[i]); 
             }
+            std::vector<std::vector<T>>().swap(queue_); 
+            std::vector<std::mutex>().swap(mutex_); 
         };
+
         SharedVectorQueue(const SharedVectorQueue&) = delete;
 
         bool pop_immediately(int i, T& item)
         {
             if (queue_[i].empty())
             {
-                queue_[i].shrink_to_fit();
+                queue_[i].shrink_to_fit(); // prevents higher mem usage, huh
                 return false;
             }
              // std::vector queue
@@ -52,7 +51,6 @@
             std::unique_lock<std::mutex> mlock(mutex_[i]);
             queue_[i].push_back(item);
             mlock.unlock();     // unlock before notificiation to minimize mutex con
-            cond_[i].notify_one(); // notify one waiting thread
 
         }
         void push_back(int i, T&& item)
@@ -60,8 +58,6 @@
             std::unique_lock<std::mutex> mlock(mutex_[i]);
             queue_[i].push_back(std::move(item));
             mlock.unlock();     // unlock before notificiation to minimize mutex con
-            cond_[i].notify_one(); // notify one waiting thread
-
         }
 
 

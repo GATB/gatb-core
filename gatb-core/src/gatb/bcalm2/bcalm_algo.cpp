@@ -1,5 +1,98 @@
 #include "bcalm_algo.hpp"
+
 #include <libgen.h> // for basename()
+#include "logging.hpp"
+#include "ograph.h"
+
+#include <assert.h>
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
+#include <chrono>
+#include <tuple>
+
+#include <gatb/tools/designpattern/impl/Command.hpp>
+
+
+#include <atomic>
+#include <thread>
+//#include "lockstdqueue.h"
+#include "sharedqueue.hpp"
+#include "sharedvectorqueue.hpp"
+
+#include "ThreadPool.h"
+
+#include <gatb/system/impl/System.hpp>
+#include <gatb/tools/misc/impl/Property.hpp>
+
+#include <gatb/tools/storage/impl/Storage.hpp>
+#include <gatb/tools/storage/impl/StorageTools.hpp>
+
+#include <gatb/tools/math/NativeInt64.hpp>
+#include <gatb/tools/math/NativeInt128.hpp>
+#include <gatb/tools/math/LargeInt.hpp>
+
+#include <gatb/bank/impl/Banks.hpp>
+#include <gatb/bank/impl/Bank.hpp>
+#include <gatb/bank/impl/BankHelpers.hpp>
+#include <gatb/bank/impl/BankConverterAlgorithm.hpp>
+
+#include <gatb/kmer/impl/Model.hpp>
+
+#include <gatb/kmer/impl/PartiInfo.hpp>   // for repartitor 
+#include <gatb/tools/misc/impl/Progress.hpp>
+#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+
+#define get_wtime() chrono::system_clock::now()
+#ifndef diff_wtime
+#define diff_wtime(x,y) chrono::duration_cast<chrono::nanoseconds>(y - x).count()
+#endif
+
+//#define BINSEQ // "graph4 is not ready" according to antoine. also, initBinSeq provokes segfault at end of bcalm
+
+#ifdef BINSEQ
+#include "binSeq.h"
+#define BUCKET_STR_TYPE binSeq
+#define TO_BUCKET_STR(x) binSeq(x)
+#define FROM_BUCKET_STR(x) (x.str())
+#else
+#define BUCKET_STR_TYPE string
+#define TO_BUCKET_STR(x) x
+#define FROM_BUCKET_STR(x) x
+#endif
+
+
+// timing-related variables
+
+#define THREAD_SAFE_TIMING
+#ifdef THREAD_SAFE_TIMING
+typedef std::atomic<double> atomic_double;
+#else
+#define atomic_double_add(d1,d2) d1 += d2;
+typedef double atomic_double;
+#endif
+
+
+using namespace gatb::core::system;
+using namespace gatb::core::system::impl;
+
+using namespace gatb::core::bank;
+using namespace gatb::core::bank::impl;
+
+using namespace gatb::core::kmer;
+using namespace gatb::core::kmer::impl;
+
+using namespace gatb::core::tools::storage;
+using namespace gatb::core::tools::storage::impl;
+using namespace gatb::core::tools::misc;
+using namespace gatb::core::tools::misc::impl;
+using namespace gatb::core::tools::dp;
+using namespace gatb::core::tools::dp::impl;
+
+
+
+
+
 
 /*
  * some notes: this code could be further optimized.
@@ -21,22 +114,6 @@ static atomic_double global_wtime_compactions (0), global_wtime_cdistribution (0
 static bool time_lambdas = true;
 static std::mutex lambda_timing_mutex, active_minimizers_mutex;
 static size_t nb_threads_simulate=1; // this is somewhat a legacy parameter, i should get rid of (and replace by nb_threads)
-
-
-static unsigned long memory_usage(string message="", bool verbose=true)
-{
-    // using Progress.cpp of gatb-core
-    u_int64_t mem = System::info().getMemorySelfUsed() / 1024;
-    u_int64_t memMaxProcess = System::info().getMemorySelfMaxUsed() / 1024;
-    char tmp[128];
-    snprintf (tmp, sizeof(tmp), "  --  memory [current, maximum (maxRSS)]: [%4lu, %4lu] MB ",
-            mem, memMaxProcess);
-    if (verbose)
-    {        
-        std::cout << message << " " << tmp << std::endl;
-    }
-    return mem;
-}
 
 
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
@@ -223,7 +300,8 @@ void bcalm2(Storage *storage,
      * memor wasn't freed. i perhaps should've used shrink_to_fit on the queue but didn't. anyway using vectors now, is much better.
      * but actually problem doesn't seem to be fully solved
      */
-    memory_usage("prior to queues allocation", verbose);
+    bcalm_logging = verbose;
+    logging("prior to queues allocation");
     // create many queues in place of Buckets
     SharedVectorQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t>> bucket_queues(rg);   
 
@@ -243,7 +321,7 @@ void bcalm2(Storage *storage,
     //LockStdVector<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg]; // very inefficient
 
 
-    memory_usage("Starting BCALM2", verbose);
+    logging("Starting BCALM2");
 
     /*
      *
@@ -436,8 +514,8 @@ void bcalm2(Storage *storage,
                     if (debug) 
                         std::cout << " (debug) adding to graph: " << std::get<0>(bucket_elt) << std::endl;
                     graphCompactor.addtuple(bucket_elt);
-                   
                 }
+
                 // cout<<"endaddtuple"<<endl;
                 auto end_nodes_t=get_wtime();
                 atomic_double_add(global_wtime_add_nodes, diff_wtime(start_nodes_t, end_nodes_t));
@@ -588,7 +666,8 @@ void bcalm2(Storage *storage,
             }
         }
 
-        memory_usage("Done with partition " + std::to_string(p), verbose_partition);
+        if (verbose_partition)
+            logging("Done with partition " + std::to_string(p));
     } // end iteration superbuckets
     
     /*
@@ -662,9 +741,10 @@ void bcalm2(Storage *storage,
     for (unsigned int i = 0; i < nb_partitions; i++)
         delete traveller_kmers_files[i];
  
-    memory_usage("Done with all compactions", verbose);
+    logging("Done with all compactions");
 
     //delete storage; exit(0); // to stop after bcalm, before bglue
 }
+
 
 }}}}

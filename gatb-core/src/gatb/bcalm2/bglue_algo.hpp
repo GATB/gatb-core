@@ -21,71 +21,18 @@
 #ifndef _GATB_CORE_BGLUE_ALGO_HPP_
 #define _GATB_CORE_BGLUE_ALGO_HPP_
 
-#include "unionFind.hpp"
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <atomic>
 #include <set>
 #include <vector>
 #include <string>
 #include <mutex>
-#include <unordered_map>
-#include <BooPHF/BooPHF.h>
-#include <ctime> // for time
-#include <iostream> // for time (and maybe other things?)
-#include <iomanip> // for cout mods
-#include "ThreadPool.h"
-/*#include "ctpl_stl.h" // alternative to threadpool // https://github.com/vit-vit/CTPL/blob/master/ctpl_stl.h // didn't commit because didnt use
-#include "buffer_allocator.h" // memory pool from https://github.com/vincetse/allocator, didn't commit the files because didnt use
-#include "buffer_manager.h" // memory pool
-*/
-
-#include <gatb/tools/designpattern/impl/Command.hpp>
-
-#include <gatb/system/impl/System.hpp>
-#include <gatb/tools/misc/impl/Property.hpp>
-
 #include <gatb/tools/storage/impl/Storage.hpp>
-#include <gatb/tools/storage/impl/StorageTools.hpp>
-
-#include <gatb/tools/math/NativeInt64.hpp>
-#include <gatb/tools/math/NativeInt128.hpp>
-#include <gatb/tools/math/LargeInt.hpp>
-
-#include <gatb/bank/impl/Banks.hpp>
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankHelpers.hpp>
-#include <gatb/bank/impl/BankConverterAlgorithm.hpp>
-
-#include <gatb/kmer/impl/Model.hpp>
-
-#include <gatb/kmer/impl/PartiInfo.hpp>   // for repartitor 
-#include <gatb/tools/misc/impl/Progress.hpp>
-#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
-#include <gatb/tools/collections/impl/BooPHF.hpp>
-
-
-//heh at this point I could have maybe just included gatb_core.hpp but well, no circular dependencies, this file is part of gatb-core now.
-
-using namespace gatb::core::system;
-using namespace gatb::core::system::impl;
-
-using namespace gatb::core::bank;
-using namespace gatb::core::bank::impl;
-
-using namespace gatb::core::kmer;
-using namespace gatb::core::kmer::impl;
-
-using namespace gatb::core::tools::storage;
-using namespace gatb::core::tools::storage::impl;
-using namespace gatb::core::tools::misc;
-using namespace gatb::core::tools::misc::impl;
-using namespace gatb::core::tools::dp;
-using namespace gatb::core::tools::dp::impl;
-using namespace gatb::core::tools::collections;
-using namespace gatb::core::tools::collections::impl;
-
-
 
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
+
 
 // buffered and also thread-safe thank to a lock
 // not using BankFasta because I dont want to be recording variable-length strings in a std::vector<>, potential memory fragmentation
@@ -187,7 +134,7 @@ class UnbufferedFastaIterator
 };
 
     template<size_t SPAN>
-void bglue(Storage* storage, 
+void bglue(gatb::core::tools::storage::impl::Storage* storage, 
         std::string prefix,
         int kmerSize, 
         int nb_threads, 
