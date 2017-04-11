@@ -222,12 +222,34 @@ void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
 
         if (swf)
         {
-            char* found = strstr (seq.getDataBuffer(), R.c_str());
+
+	    /*  old version            
+	    char* found = strstr (seq.getDataBuffer(), R.c_str());
             if (found != NULL  &&  ksd.depth > (int)sizeKmer)
             {
                 INFO (("swf STOP \n"));
                 break;
             }
+ */
+        	// Apr 2017 : new version for MindTheGap fill with contigs
+        	//target can be the concatenation of several target kmers, checks for all the target kmers, if one found stop extending this contig but continue other branches
+        	std::string subseed;
+        	std::string target= R.c_str();
+        	bool stopExtend= false;
+        	for (unsigned i = 0; i < target.length(); i += sizeKmer)
+        	{
+        		subseed=target.substr(i, sizeKmer);
+        		char* found = strstr (seq.getDataBuffer(), R.c_str());
+
+        		if (found != NULL  &&  ksd.depth > (int)sizeKmer)
+        		{
+        			stopExtend=true;
+        			break;
+        		}
+
+        	}
+        	if (stopExtend) continue; //one of the targets was found, stop this extension but keep extending other branches
+
         }
 
         if (nbNodes > max_nodes) //GR stop when too complex  huum when to stop ?
