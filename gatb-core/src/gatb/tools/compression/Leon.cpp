@@ -86,6 +86,7 @@ _progress_decode(0),_generalModel(256),_inputBank(0),_anchorDictModel(5)
 	_compressed_qualSize = _anchorDictSize = _MCmultipleSolid = _anchorAdressSize = _readWithoutAnchorCount = _anchorPosSize = 0;
 	_input_qualSize = _total_nb_quals_smoothed = _otherSize =  _readSizeSize =  _bifurcationSize =  _noAnchorSize = 0;
 	_lossless = false;
+	_storageH5file =0;
 	
 	_isFasta = true;
 	_maxSequenceSize = 0;
@@ -146,7 +147,9 @@ Leon::~Leon ()
 {
 	setInputBank (0);
 	
-
+	if(_storageH5file !=0)
+		delete _storageH5file;
+	
 	if (_progress_decode)  { delete _progress_decode; }
 }
 
