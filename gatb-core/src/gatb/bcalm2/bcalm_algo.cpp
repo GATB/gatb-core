@@ -13,12 +13,8 @@
 
 #include <gatb/tools/designpattern/impl/Command.hpp>
 
-
 #include <atomic>
 #include <thread>
-//#include "lockstdqueue.h"
-#include "sharedqueue.hpp"
-#include "sharedvectorqueue.hpp"
 
 #include "ThreadPool.h"
 
@@ -112,11 +108,139 @@ static void atomic_double_add(std::atomic<double> &d1, double d2) {
 static atomic_double global_wtime_compactions (0), global_wtime_cdistribution (0), global_wtime_add_nodes (0), global_wtime_create_buckets (0), global_wtime_foreach_bucket (0), global_wtime_lambda (0), global_wtime_parallel (0), global_wtime_longest_lambda (0), global_wtime_best_sched(0);
 
 static bool time_lambdas = true;
-static std::mutex lambda_timing_mutex, active_minimizers_mutex;
+static std::mutex lambda_timing_mutex;
 static size_t nb_threads_simulate=1; // this is somewhat a legacy parameter, i should get rid of (and replace by nb_threads)
 
 
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
+
+    /* formerly lambda function inside bcalm but needed it in InsertIntoQueues also. no choice here  unless I wanted to typedef Model again*/
+    #define minimizerMin(a,b) ((model.compareIntMinimizers(a,b)) ? a : b)
+    #define minimizerMax(a,b) ((model.compareIntMinimizers(a,b)) ? b : a)
+
+    /* class (formerly a simple lambda function) to process a kmer and decide which bucket(s) it should go to */
+    /* needed to make it a class because i want it to remember its thread index */
+    template <int SPAN>
+    class InsertIntoQueues
+    {
+        typedef typename Kmer<SPAN>::Type  Type;
+        typedef typename Kmer<SPAN>::Count Count;
+        typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
+        typedef typename Kmer<SPAN>::template ModelMinimizer <ModelCanon> Model;
+        
+        // new version, no longer using a queue-type object.
+        typedef std::tuple<uint32_t, Type, uint32_t, uint32_t, uint32_t> tuple_t;
+        typedef vector<tuple_t> flat_vector_queue_t;
+
+        unsigned int p, k, abundance_threshold, nb_threads;
+        Model &model, &modelK1;
+        std::atomic<unsigned long>  &nb_left_min_diff_right_min, &nb_kmers_in_partition;
+        Repartitor &repart;
+        int _currentThreadIndex;
+        std::vector<BankFasta*> &traveller_kmers_files;
+        vector<std::mutex> &traveller_kmers_save_mutex;
+
+        // saving traveller kmers in plain ASCII in files: a bit wasteful, but went to the easy solution
+        void save_traveller_kmer (uint32_t minimizer, const string& seq, int abundance, uint32_t leftmin, uint32_t rightmin, int p) {
+            Sequence s (Data::ASCII);
+            s.getData().setRef ((char*)seq.c_str(), seq.size());
+            s._comment = to_string(abundance); //abundance in comment
+            traveller_kmers_save_mutex[p].lock();
+            traveller_kmers_files[p]->insert(s);
+            traveller_kmers_save_mutex[p].unlock();
+        }
+
+        public: 
+        vector<flat_vector_queue_t> &flat_bucket_queues;
+
+        /* function to add a kmer to a bucket */
+        void add_to_bucket_queue(uint32_t minimizer, /*  string seq, */ Type &kmer, uint32_t abundance, uint32_t leftmin, uint32_t rightmin)
+        {
+            //bucket_queues.push_back(minimizer,std::make_tuple(TO_BUCKET_STR(seq),leftmin,rightmin,abundance));
+            flat_bucket_queues[getThreadIndex()].push_back(std::make_tuple(minimizer, kmer, abundance, leftmin, rightmin));
+        }
+
+        /* boilerplate */
+        InsertIntoQueues(vector<flat_vector_queue_t> &flat_bucket_queues, 
+                Model &model,
+                Model &modelK1, 
+                unsigned int p, unsigned int k, unsigned int nb_threads,
+                int abundance_threshold,
+                Repartitor &repart,
+                std::atomic<unsigned long> &nb_left_min_diff_right_min,
+                std::atomic<unsigned long> &nb_kmers_in_partition,
+                std::vector<BankFasta*> &traveller_kmers_files,
+                vector<std::mutex> &traveller_kmers_save_mutex
+                ) : 
+            p(p), k(k), abundance_threshold(abundance_threshold), nb_threads(nb_threads),
+            model(model), modelK1(modelK1),
+        nb_left_min_diff_right_min(nb_left_min_diff_right_min), nb_kmers_in_partition(nb_kmers_in_partition),
+        repart(repart), _currentThreadIndex(-1), traveller_kmers_files(traveller_kmers_files),
+        traveller_kmers_save_mutex(traveller_kmers_save_mutex),  flat_bucket_queues(flat_bucket_queues) {}
+
+        /* does the actual work of processing a kmer, computing its minimizers, saving it to the right queue (basically the queue corresponding to its thread) */
+        void operator()     (Count& item) {
+            // if the abundance threshold is higher than the h5 abundance,
+            // filter out this kmer (useful when you want to re-use same .h5 but with higher "-abundance" parameter)
+            size_t abundance = item.abundance;
+            if (abundance < (size_t)abundance_threshold)
+                return;
+
+            Type current = item.value;
+            uint32_t leftMin(modelK1.getMinimizerValue(current >> 2));
+            uint32_t rightMin(modelK1.getMinimizerValue(current));
+
+            ++nb_kmers_in_partition;
+
+            if (repart(leftMin) == p)
+                add_to_bucket_queue(leftMin, current, abundance, leftMin, rightMin);
+
+            if (leftMin != rightMin)
+            {
+                nb_left_min_diff_right_min ++;
+
+                if (repart(rightMin) == p)
+                    add_to_bucket_queue(rightMin, current, abundance, leftMin, rightMin);
+
+                // handle "traveller kmers"
+                uint32_t max_minimizer = minimizerMax(leftMin, rightMin);
+                uint32_t min_minimizer = minimizerMin(leftMin, rightMin);
+                if (repart(max_minimizer) != repart(min_minimizer))
+                {
+                    string seq = model.toString(current);
+                    save_traveller_kmer(max_minimizer, seq, abundance, leftMin, rightMin, repart(max_minimizer));
+                    //add_to_bucket_queue(max_minimizer, seq, leftMin, rightMin, repart(max_minimizer)); // no longer saved into the queue, but to a file instead
+
+                    // sanity check
+                    if (repart(max_minimizer) < repart(min_minimizer))
+                    {                printf("unexpected problem: traveller kmer = %s, min_minimizer=%d max_minimizer=%d, repart(min_minimizer)=%d, repart(max_minimizer)=%d\n", seq.c_str(), min_minimizer, max_minimizer, repart(min_minimizer), repart(max_minimizer));                exit(1);            }
+                }
+            }
+
+            // sanity check
+            if (repart(leftMin) != p && repart(rightMin) != p)
+            {                printf("unexpected problem: repart bucket\n");                exit(1);            }
+        }
+
+        /* neat trick taken from erwan's later work in gatb to find the thread id of a dispatched function */
+        int getThreadIndex()
+        {
+            if (_currentThreadIndex < 0)
+            {
+                std::pair<IThread*,size_t> info;
+                if (ThreadGroup::findThreadInfo (System::thread().getThreadSelf(), info) == true)
+                {
+                    _currentThreadIndex = info.second;
+                }
+                else
+                {
+                    throw Exception("Unable to find thread index during InsertIntoQueues");
+                }
+            }
+            return _currentThreadIndex;
+        }
+
+    };
 
 template<size_t SPAN>
 void bcalm2(Storage *storage, 
@@ -204,24 +328,14 @@ void bcalm2(Storage *storage,
     Model model(kmerSize, minSize, typename Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
     Model modelK1(kmerSize-1, minSize,  typename Kmer<SPAN>::ComparatorMinimizerFrequencyOrLex(), freq_order);
 
-    auto minimizerMin = [&repart, &model] (uint32_t a, uint32_t b)
-    {
-        return (model.compareIntMinimizers(a,b)) ? a : b;
-    };
-
-    auto minimizerMax = [&repart, &model] (uint32_t a, uint32_t b)
-    {
-        return (model.compareIntMinimizers(a,b)) ? b : a;
-    };
-
     std::vector<BankFasta*> out_to_glue(nb_threads); // each thread will write to its own glue file, to avoid locks
     
     // remove potential old glue files
     for (unsigned int i = 0; i < 10000 /* there cannot be more than 10000 threads, right? unsure if i'll pay for that asumption someday*/; i++)
+    {
         if (System::file().doesExist(prefix + ".glue." + std::to_string(i)))
-        {
            System::file().remove (prefix + ".glue." + std::to_string(i)); 
-        }
+    }
 
     unsigned long *nb_seqs_in_glue = new unsigned long[nb_threads];
 
@@ -242,33 +356,17 @@ void bcalm2(Storage *storage,
 
     auto start_buckets=chrono::system_clock::now();
 
-    std::vector<std::set<uint32_t>> active_minimizers;
-    active_minimizers.resize(nb_partitions);
-
-     /* now our vocabulary is: a "DSK partition" == a "partition" == a "super-bucket" */
+    /* now our vocabulary is: a "DSK partition" == a "partition" == a "super-bucket" */
     /* buckets remain what they are in bcalm-original */
     /* a travelling kmer is one that goes to two buckets from different superbuckets */
 
     // I used to save traveller kmers into bucket_queues, but this would be a memory hog. Let's use files instead. Total volume will be small (a few gigs for human), but that's memory saved
     std::vector<BankFasta*> traveller_kmers_files(nb_partitions);
+    vector<std::mutex> traveller_kmers_save_mutex(nb_partitions);
     std::string traveller_kmers_prefix = prefix + ".doubledKmers.";
-    std::mutex *traveller_kmers_save_mutex = new std::mutex[nb_partitions];
     for (unsigned int i = 0; i < nb_partitions; i++)
         traveller_kmers_files[i] = new BankFasta(traveller_kmers_prefix + std::to_string(i));
-
-    auto save_traveller_kmer = [&traveller_kmers_files, &traveller_kmers_save_mutex]
-        (uint32_t minimizer, string seq, int abundance, uint32_t leftmin, uint32_t rightmin, int p) {
-            // saving traveller kmers in plain ASCII in files: a bit wasteful, but went to the easy solution
-            Sequence s (Data::ASCII);
-            s.getData().setRef ((char*)seq.c_str(), seq.size());
-            s._comment = to_string(abundance); //abundance in comment
-            traveller_kmers_save_mutex[p].lock();
-            traveller_kmers_files[p]->insert(s);
-            traveller_kmers_files[p]->flush();
-            traveller_kmers_save_mutex[p].unlock();
-
-        };
-    
+   
     Dispatcher dispatcher (nb_threads); // setting up a multi-threaded dispatcher, so I guess we can say that things are getting pretty serious now
 
     // i want to do this but i'm not inside an Algorithm object:
@@ -277,8 +375,7 @@ void bcalm2(Storage *storage,
             );*/
 
     // copied from createIterator in Algorithm.hpp
-            //  We create some listener to be notified every 1000 iterations and attach it to the iterator.
-
+    //  We create some listener to be notified every 1000 iterations and attach it to the iterator.
     IteratorListener* listener;
     if (verbose)
         listener = new ProgressTimer(nb_partitions, "Iterating DSK partitions");
@@ -290,37 +387,15 @@ void bcalm2(Storage *storage,
                 nb_partitions/100);
     it_parts->addObserver (listener);
     LOCAL(it_parts);
-        
-    /* so let me tell you a story:
-     * i was initializing this bucket_queues object inside the loop below but then i noticed that it takes too much time.
-     * and more problematic: turns out the memory wasn't freed after this function.
-     * (sometimes memory was freed , sometimes not)
-     * doesn't matter if i initialize with "new" or not
-     * turns out: it was the std::queue inside the SharedQueue (or SharedVectorQueue) that was the culprit
-     * memor wasn't freed. i perhaps should've used shrink_to_fit on the queue but didn't. anyway using vectors now, is much better.
-     * but actually problem doesn't seem to be fully solved
-     */
+    
     bcalm_logging = verbose;
     logging("prior to queues allocation");
-    // create many queues in place of Buckets
-    SharedVectorQueue<std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t>> bucket_queues(rg);   
-
-    // at this point i think that all the memory concerns in the comments below are due to the problem std::deque memory free problem, or fragmentation, or something else entirely that i've no clue about.
-
-    // this implementation is supposedly efficient, but:
-    // - as fast as the lockbasedqueue below
-    // - uses much more memory
-    //moodycamel::ConcurrentQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
-
-    // another queue system, very simple, with locks
-    // it's fine but uses a linked list, so more memory than I'd like
-    //LockBasedQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
-
-    // still uses more memory than i'd like
-    // LockStdQueue<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg];
-    //LockStdVector<std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t> > bucket_queues[rg]; // very inefficient
-
-
+ 
+    // new version, no longer using a queue-type object.
+    typedef std::tuple<uint32_t, Type, uint32_t, uint32_t, uint32_t> tuple_t;
+    typedef vector<tuple_t> flat_vector_queue_t;
+    vector<flat_vector_queue_t> flat_bucket_queues(nb_threads);
+       
     logging("Starting BCALM2");
 
     /*
@@ -338,88 +413,14 @@ void bcalm2(Storage *storage,
 
         size_t k = kmerSize;
 
-        /* lambda function to add a kmer to a bucket */
-        auto add_to_bucket_queue = [&active_minimizers, &bucket_queues](uint32_t minimizer, string seq, int abundance, uint32_t leftmin, uint32_t rightmin, int p)
-        {
-            //std::cout << "adding elt to bucket: " << seq << " "<< minimizer<<std::endl;
-            //bucket_queues[minimizer].push_back(std::make_tuple(TO_BUCKET_STR(seq),leftmin,rightmin));
-            std::tuple<BUCKET_STR_TYPE,uint32_t, uint32_t, uint32_t> t (TO_BUCKET_STR(seq),leftmin,rightmin,abundance);
-            bucket_queues.push_back(minimizer, t); // graph3<span> switch
-
-            if (active_minimizers[p].find(minimizer) == active_minimizers[p].end())
-            {
-                active_minimizers_mutex.lock();
-                active_minimizers[p].insert(minimizer);
-                active_minimizers_mutex.unlock();
-            }
-        };
-
         std::atomic<unsigned long> nb_left_min_diff_right_min;
         std::atomic<unsigned long> nb_kmers_in_partition;
         nb_kmers_in_partition = 0;
         nb_left_min_diff_right_min = 0;
-        std::atomic<uint32_t> kmerInGraph;
-        kmerInGraph = 0;
-
-        /* lambda function to process a kmer and decide which bucket(s) it should go to */
-        auto insertIntoQueues = [p, &minimizerMax, &minimizerMin, &add_to_bucket_queue,
-                    &bucket_queues, &modelK1, &k, &repart, &nb_left_min_diff_right_min,
-                    &kmerInGraph, &model, &save_traveller_kmer, abundance_threshold,
-                    &nb_kmers_in_partition]
-                (Count& item) {
-            
-            // if the abundance threshold is higher than the h5 abundance,
-            // filter out this kmer (useful when you want to re-use same .h5 but with higher "-abundance" parameter)
-            size_t abundance = item.abundance;
-            if (abundance < (size_t)abundance_threshold)
-                return;
-
-            Type current = item.value;
-
-            string seq = model.toString(current);
-            typename Model::Kmer kmmerBegin = modelK1.codeSeed(seq.substr(0, k - 1).c_str(), Data::ASCII);
-            uint32_t leftMin(modelK1.getMinimizerValue(kmmerBegin.value()));
-            typename Model::Kmer kmmerEnd = modelK1.codeSeed(seq.substr(seq.size() - k + 1, k - 1).c_str(), Data::ASCII);
-            uint32_t rightMin(modelK1.getMinimizerValue(kmmerEnd.value()));
-            // string seq;
-            // uint32_t leftMin(0);
-            // uint32_t rightMin(0);
-
-            ++kmerInGraph;
-            ++nb_kmers_in_partition;
-            
-            if (repart(leftMin) == p)
-                add_to_bucket_queue(leftMin, seq, abundance, leftMin, rightMin, p);
-
-            if (leftMin != rightMin)
-            {
-                nb_left_min_diff_right_min ++;
-
-                if (repart(rightMin) == p)
-                    add_to_bucket_queue(rightMin, seq, abundance, leftMin, rightMin, p);
-
-                // handle traveller kmers
-                uint32_t max_minimizer = minimizerMax(leftMin, rightMin);
-                uint32_t min_minimizer = minimizerMin(leftMin, rightMin);
-                if (repart(max_minimizer) != repart(min_minimizer))
-                {
-                    /* I call that a "traveller kmer" */
-                    save_traveller_kmer(max_minimizer, seq, abundance, leftMin, rightMin, repart(max_minimizer));
-                    //add_to_bucket_queue(max_minimizer, seq, leftMin, rightMin, repart(max_minimizer)); // no longer saved into the queue, but to a file instead
-
-                    // sanity check
-                    if (repart(max_minimizer) < repart(min_minimizer))
-                    {                printf("unexpected problem: traveller kmer = %s, min_minimizer=%d max_minimizer=%d, repart(min_minimizer)=%d, repart(max_minimizer)=%d\n", seq.c_str(), min_minimizer, max_minimizer, repart(min_minimizer), repart(max_minimizer));                exit(1);            }
-                }
-            }
-
-            // sanity check
-            if (repart(leftMin) != p && repart(rightMin) != p)
-            {                printf("unexpected problem: repart bucket\n");                exit(1);            }
-
-        };
         
         auto start_createbucket_t=get_wtime();
+        
+        InsertIntoQueues<SPAN> insertIntoQueues(flat_bucket_queues, model, modelK1, p, k, nb_threads, abundance_threshold, repart, nb_left_min_diff_right_min, nb_kmers_in_partition, traveller_kmers_files, traveller_kmers_save_mutex);
 
         /* MAIN FIRST LOOP: expand a superbucket by inserting kmers into queues. this creates buckets */
         // do it for all passes (because the union of passes correspond to a partition)
@@ -429,7 +430,14 @@ void bcalm2(Storage *storage,
             unsigned long interm_partition_index = p + pass_index * nb_partitions;
             Iterator<Count>* it_kmers = partition[interm_partition_index].iterator();
             LOCAL (it_kmers);
+
+            if (pass_index == 0) // the first time, 
+                for (int i = 0; i < nb_threads; i++) // resize approximately the bucket queues
+                flat_bucket_queues[i].reserve(partition[interm_partition_index].getNbItems()/nb_threads);
+
             dispatcher.iterate (it_kmers, insertIntoQueues);
+            /*for (it_kmers->first (); !it_kmers->isDone(); it_kmers->next()) // non-dispatcher version
+                insertIntoQueues(it_kmers->item());*/
         }
 
         if (verbose_partition) 
@@ -438,40 +446,126 @@ void bcalm2(Storage *storage,
         // also add traveller kmers that were saved to disk from a previous superbucket
         // but why don't we need to examine other partitions for potential traveller kmers?
         // no, because we iterate partitions in minimizer order.
-        // but then you might again something else:
+        // but then you might say again something else:
         // "i thought bcalm1 needed to iterate partitions in minimizer order, but not bcalm2"
         // -> indeed, bcalm2 algorithm doesn't, but in the implementation i still choose to iterate in minimizer order.
         // because it seemed like a good idea at the time, when handling traveller kmers.
         // looking back, it might be a good idea to not do that anymore.
         // this could enable loading multiple partitions at once (and more parallelization)
+        traveller_kmers_files[p]->flush();
         string traveller_kmers_file = traveller_kmers_prefix + std::to_string(p);
-        unsigned long nb_traveller_kmers_loaded = 0;
+        std::atomic<unsigned long> nb_traveller_kmers_loaded;
+        nb_traveller_kmers_loaded = 0;
+
         if (System::file().doesExist(traveller_kmers_file)) // for some partitions, there may be no traveller kmers
         {
+
             BankFasta traveller_kmers_bank (traveller_kmers_file);
             BankFasta::Iterator it (traveller_kmers_bank);
-            for (it.first(); !it.isDone(); it.next())
+       
+            class InsertTravellerKmer
             {
-                string seq = it->toString();
-                string comment = it->getComment();
-                int abundance = atoi(comment.c_str());
+                int _currentThreadIndex;
+                vector<flat_vector_queue_t> &flat_bucket_queues;
+                Model &model, &modelK1;
+                int k;
+                std::atomic<unsigned long> &nb_traveller_kmers_loaded;
 
-                // those could be saved in the BankFasta comment eventually
-                typename Model::Kmer kmmerBegin = modelK1.codeSeed(seq.substr(0, k - 1).c_str(), Data::ASCII);
-                uint32_t leftMin(modelK1.getMinimizerValue(kmmerBegin.value()));
-                typename Model::Kmer kmmerEnd = modelK1.codeSeed(seq.substr(seq.size() - k + 1, k - 1).c_str(), Data::ASCII);
-                uint32_t rightMin(modelK1.getMinimizerValue(kmmerEnd.value()));
+                public:
+                InsertTravellerKmer(vector<flat_vector_queue_t> &flat_bucket_queues, Model& model, Model &modelK1, int k, std::atomic<unsigned long> &nb_traveller_kmers_loaded) 
+                    : _currentThreadIndex(-1), flat_bucket_queues(flat_bucket_queues), model(model), modelK1(modelK1), k(k), nb_traveller_kmers_loaded(nb_traveller_kmers_loaded) {}
 
-                uint32_t max_minimizer = minimizerMax(leftMin, rightMin);
-                add_to_bucket_queue(max_minimizer, seq, abundance, leftMin, rightMin, p);
-                nb_traveller_kmers_loaded++;
-            }
+                int getThreadIndex()
+                {
+                    if (_currentThreadIndex < 0)
+                    {
+                        std::pair<IThread*,size_t> info;
+                        if (ThreadGroup::findThreadInfo (System::thread().getThreadSelf(), info) == true)
+                            _currentThreadIndex = info.second;
+                        else
+                            throw Exception("Unable to find thread index during InsertIntoQueues");
+                    }
+                    return _currentThreadIndex;
+                }
+                void operator () (const Sequence &sequence)
+                {
+                    string seq = sequence.toString();
+                    string comment = sequence.getComment();
+                    uint32_t abundance = atoi(comment.c_str());
+
+                    // those could be saved in the BankFasta comment eventually
+                    typename Model::Kmer kmmerBegin = modelK1.codeSeed(seq.substr(0, k - 1).c_str(), Data::ASCII);
+                    uint32_t leftMin(modelK1.getMinimizerValue(kmmerBegin.value()));
+                    typename Model::Kmer kmmerEnd = modelK1.codeSeed(seq.substr(seq.size() - k + 1, k - 1).c_str(), Data::ASCII);
+                    uint32_t rightMin(modelK1.getMinimizerValue(kmmerEnd.value()));
+                    typename Model::Kmer current = model.codeSeed(seq.c_str(), Data::ASCII);
+                    Type kmer = current.value();
+
+                    uint32_t max_minimizer = minimizerMax(leftMin, rightMin);
+                    //add_to_bucket_queue(max_minimizer, seq, abundance, leftMin, rightMin, p);
+                    flat_bucket_queues[getThreadIndex()].push_back(std::make_tuple(max_minimizer, kmer, abundance, leftMin, rightMin));
+                    nb_traveller_kmers_loaded++;
+                }
+            };
+            InsertTravellerKmer insertTravellerKmer(flat_bucket_queues, model, modelK1, k, nb_traveller_kmers_loaded);
+
+            dispatcher.iterate(it,insertTravellerKmer);
+
             if (verbose_partition) 
                 std::cout << "Loaded " << nb_traveller_kmers_loaded << " doubled kmers for partition " << p << endl;
             traveller_kmers_bank.finalize();
             System::file().remove (traveller_kmers_file);
         }
 
+        /* now that we have computed flat_bucket_queues' by each thread,
+         * sort them by minimizer */
+
+        //logging("begin sorting bucket queues");
+        ThreadPool pool_sort(nb_threads);
+        for (int thread = 0; thread < nb_threads; thread++)
+        {
+            // todo check si  les minimiseurs sont pas deja quasiment triés dans un sens ou un autre, ca faciliterait le tri ici
+            auto sort_bucket = [&flat_bucket_queues, thread] (int thread_id) 
+            {std::sort(flat_bucket_queues[thread].begin(), flat_bucket_queues[thread].end(), [] (const tuple_t &a, const tuple_t &b) -> bool { return get<0>(a) < get<0>(b); });};
+
+            if (nb_threads > 1)
+                pool_sort.enqueue(sort_bucket);
+            else
+                sort_bucket(0);
+        }
+        pool_sort.join();
+        //logging("end sorting bucket queues");
+
+        /* remember which minimizer occurs in flat_bucket_queues' and its start position */
+        set<uint32_t> set_minimizers;
+        vector<uint64_t> nb_kmers_per_minimizer(rg);
+        
+        for (uint64_t i = 0; i < rg; i++)
+            nb_kmers_per_minimizer[i] = 0;
+
+        vector<vector<uint64_t>> start_minimizers(nb_threads);
+        for (int thread = 0; thread < nb_threads; thread++)
+        {
+            // should be done in parallel possibly, if it takes time.
+            set<uint32_t> set_minimizers_thread;
+            start_minimizers[thread].resize(rg);
+            uint64_t pos=0;
+            //std:: cout << "iterating flat bucket queues  for thread " << thread << " elts: " << flat_bucket_queues[thread].size() << std::endl;
+            for (auto v: flat_bucket_queues[thread])
+            {
+                uint32_t minimizer = get<0>(v);
+                if (set_minimizers_thread.find(minimizer) == set_minimizers_thread.end())
+                {
+                    set_minimizers.insert(minimizer);
+                    set_minimizers_thread.insert(minimizer);
+                    start_minimizers[thread][minimizer] = pos;
+                }
+                nb_kmers_per_minimizer[minimizer]++;
+                pos++;
+            }
+        }
+
+        
         auto end_createbucket_t=get_wtime();
         atomic_double_add(global_wtime_create_buckets, diff_wtime(start_createbucket_t, end_createbucket_t));
 
@@ -481,17 +575,16 @@ void bcalm2(Storage *storage,
         auto start_foreach_bucket_t=get_wtime();
 
         /**FOREACH BUCKET **/
-        for(auto actualMinimizer : active_minimizers[p])
+        for(auto actualMinimizer : set_minimizers)
         {
-            auto lambdaCompact = [&bucket_queues, actualMinimizer,
-                &maxBucket, &lambda_timings, &repart, &modelK1, &out_to_glue, &nb_seqs_in_glue, kmerSize, minSize](int thread_id) {
+            auto lambdaCompact = [&nb_kmers_per_minimizer, actualMinimizer, &model,
+                &maxBucket, &lambda_timings, &repart, &modelK1, &out_to_glue, &nb_seqs_in_glue, kmerSize, minSize,
+                nb_threads, &start_minimizers, &flat_bucket_queues](int thread_id) {
                 auto start_nodes_t=get_wtime();
 
-                bool debug = false;
-                
                 // (make sure to change other places labelled "// graph3" and "// graph4" as well)
                 //graph4 g(kmerSize-1,actualMinimizer,minSize); // graph4
-                uint number_elements(bucket_queues.size(actualMinimizer));
+                uint number_elements(nb_kmers_per_minimizer[actualMinimizer]);
                 #ifdef BINSEQ
                 graph4 graphCompactor(kmerSize-1,actualMinimizer,minSize,number_elements);
                 #else
@@ -501,20 +594,34 @@ void bcalm2(Storage *storage,
                 #endif
 
                 /* add nodes to graph */
-                std::tuple<BUCKET_STR_TYPE,uint,uint,uint> bucket_elt; // graph3<span> switch 
+                //while (bucket_queues.pop_immediately(actualMinimizer,bucket_elt))
 
-                while (bucket_queues.pop_immediately(actualMinimizer,bucket_elt))
+                /* go through all the flat_bucket_queues's that were constructed by each thread,
+                     * and iterate a certain minimizer. i dont even need a priority queue! */
+                // used to be in a lambda outside of that lambda, there was a bug, decided to put it here but didnt even solve the bug, fuck me
+                for (int thread = 0; thread < nb_threads; thread++)
                 {
-                // for(uint i(0);i<number_elements;++i)
-                // {
-                //     bucket_queues[actualMinimizer].try_dequeue(bucket_elt);
-                    // g.addleftmin(std::get<1>(bucket_elt));
-                    // g.addrightmin(std::get<2>(bucket_elt));
-                    // g.addvertex(FROM_BUCKET_STR(std::get<0>(bucket_elt)));
-                    if (debug) 
-                        std::cout << " (debug) adding to graph: " << std::get<0>(bucket_elt) << std::endl;
-                    graphCompactor.addtuple(bucket_elt);
+                    uint64_t pos = start_minimizers[thread][actualMinimizer];
+                    unsigned int size = flat_bucket_queues[thread].size();
+                    if (pos == size) continue;
+                    while (actualMinimizer == get<0>(flat_bucket_queues[thread][pos]))
+                    {
+                        auto tupl = flat_bucket_queues[thread][pos]; // the tuple format in flat_bucket_queues is: (minimizer, seq, abundance, leftmin, rightmin)
+                        std::tuple<BUCKET_STR_TYPE,uint,uint,uint> bucket_elt; // graph3<span> switch 
+                        // g.addleftmin(std::get<1>(bucket_elt));
+                        // g.addrightmin(std::get<2>(bucket_elt));
+                        // g.addvertex(FROM_BUCKET_STR(std::get<0>(bucket_elt)));
+                        string seq = model.toString(get<1>(tupl));
+                        uint32_t a = get<2>(tupl), b = get<3>(tupl), c = get<4>(tupl);
+                        bucket_elt = make_tuple(seq,b,c,a);
+                        //std::cout << " (debug) adding to graph: " << std::get<0>(bucket_elt) << std::endl;
+                        graphCompactor.addtuple(bucket_elt); // addtuple wants that tuple: (seq, leftmin, rightmin, abundance)
+
+                        pos++;
+                        if (pos == size) break;
+                    }
                 }
+
 
                 // cout<<"endaddtuple"<<endl;
                 auto end_nodes_t=get_wtime();
@@ -539,8 +646,7 @@ void bcalm2(Storage *storage,
                         //std::vector<unsigned int> abundances ; // graph3 
                         std::vector<unsigned int>& abundances = graphCompactor.unitigs_abundances[i]; // graph3 // graph3<span> switch 
                         #endif
-                        if (debug)
-                        std::cout << " (debug) got from compacted graph: " << seq << std::endl;
+                        //std::cout << " (debug) got from compacted graph: " << seq << std::endl;
 
                         typename Model::Kmer kmmerBegin = modelK1.codeSeed(seq.substr(0, kmerSize - 1).c_str(), Data::ASCII);
                         uint leftMin(modelK1.getMinimizerValue(kmmerBegin.value()));
@@ -584,34 +690,17 @@ void bcalm2(Storage *storage,
         } // end for each bucket
 
         pool.join();
-
-        // flush glues
-        for (unsigned int thread_id = 0; thread_id < (unsigned int)nb_threads; thread_id++)
+        //logging("done compactions");
+            
+        // flush glues, clear flat_bucket_queues
+        for (int thread_id = 0; thread_id < nb_threads; thread_id++)
         {
+            flat_bucket_queues[thread_id].clear();
             out_to_glue[thread_id]->flush (); 
         }
 
-
         if (partition[p].getNbItems() == 0)
             continue; // no stats to print here
-
-        // check if buckets are indeed empty
-        for (unsigned int minimizer = 0; minimizer < rg; minimizer++)
-        {
-            if  (bucket_queues.size(minimizer) != 0)
-            {
-                if (minimizer >= ((u_int64_t)1 << (2*minSize-1))) std::cout << "oh! a large minimizer: " << minimizer << std::endl; // TODO remove this check if it never shows up
-
-                printf("WARNING! bucket %d still has non-processed %d elements\n", minimizer, bucket_queues.size(minimizer) );
-                std::tuple<BUCKET_STR_TYPE,uint32_t,uint32_t,uint32_t> bucket_elt; // graph3<span> switch 
-                while (bucket_queues.pop_immediately(minimizer,bucket_elt))
-                {
-                    printf("    %s leftmin %d rightmin %d abundance %d repartleft %d repartright %d repartmin %d\n", FROM_BUCKET_STR(std::get<0>(bucket_elt)).c_str(), std::get<1>(bucket_elt), std::get<2>(bucket_elt), std::get<3>(bucket_elt), repart(std::get<1>(bucket_elt)), repart(std::get<2>(bucket_elt)), repart(minimizer)); // graph3<span> switch 
-                }
-
-            }
-        }
-
 
         /* compute and print timings */
         {
@@ -637,7 +726,7 @@ void bcalm2(Storage *storage,
 
                 if (verbose_partition)
                 {
-                    cout <<"\nIn this superbucket (containing " << active_minimizers.size() << " active minimizers)," <<endl;
+                    cout <<"\nIn this superbucket (containing " << set_minimizers.size() << " active minimizers)," <<endl;
                     cout <<"                  sum of time spent in lambda's: "<< global_wtime_lambda / 1000000 <<" msecs" <<endl;
                     cout <<"                                 longest lambda: "<< longest_lambda / 1000000 <<" msecs" <<endl;
                     cout <<"         tot time of best scheduling of lambdas: "<< tot_time_best_sched_lambda / 1000000 <<" msecs" <<endl;
@@ -737,10 +826,9 @@ void bcalm2(Storage *storage,
     delete[] nb_seqs_in_glue;
     for (unsigned int i = 0; i < (unsigned int)nb_threads; i++)
         delete out_to_glue[i];
-    delete[] traveller_kmers_save_mutex;
     for (unsigned int i = 0; i < nb_partitions; i++)
         delete traveller_kmers_files[i];
- 
+
     logging("Done with all compactions");
 
     //delete storage; exit(0); // to stop after bcalm, before bglue

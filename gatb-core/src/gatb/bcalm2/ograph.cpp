@@ -238,7 +238,10 @@ bool graph3<span>::output(uint i){return !isNumber(unitigs[i][0]);}
 
 
 template<size_t span>
-bool graph3<span>::clear(){delete [] unitigs; delete [] unitigs_abundances; return true;}
+bool graph3<span>::clear(){delete [] unitigs; delete [] unitigs_abundances; 
+    /* // nah, not needed. it wasn't the cause of the memory fragmentation, because even when the graph isn't constructed it still happens
+    left.clear(); right.clear(); left.shrink_to_fit(); right.shrink_to_fit(); */
+    return true;}
 
 
 template<size_t span>
@@ -247,7 +250,7 @@ uint graph3<span>::size(){return indiceUnitigs;};
 
 template<size_t span>
 void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
-	unitigs[indiceUnitigs]=move(get<0>(tuple));
+	unitigs[indiceUnitigs]=get<0>(tuple);
 	unitigs_abundances[indiceUnitigs].push_back(get<3>(tuple));
 	if(minimizer==(get<1>(tuple))){
 		typename graph3<span>::kmerType kmer1(beg2int128(unitigs[indiceUnitigs]));

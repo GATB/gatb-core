@@ -370,7 +370,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
     */
     if (nb_chained < markedSequences.size())
     {
-        std::cout << " WARNING: " << markedSequences.size() - nb_chained << " sequence chunks not returned in output unitigs (likely small circular contigs)" << std::endl;
+        std::cout << " Note: " << markedSequences.size() - nb_chained << " sequence chunks not returned in output unitigs (likely small circular contigs)" << std::endl;
     }
     // assert(sequences.size() == nb_chained); // make sure we've scheduled to glue all sequences in this partition
 }

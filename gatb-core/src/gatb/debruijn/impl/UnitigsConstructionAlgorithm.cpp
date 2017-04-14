@@ -218,7 +218,8 @@ is_in_pass (const std::string &seq, int pass, Unitig_pos p) const
     return (normalized_smallmer(seq[e],seq[e+1],seq[e+kmerSize-1-1-1],seq[e+kmerSize-1-1]) % nb_passes) == pass;
 }
 
-static void get_link_from_file(std::ifstream& input, std::string &link, uint64_t &unitig_id, bool &finished)
+/* returns true if it has read an element, false otherwise */
+static bool get_link_from_file(std::ifstream& input, std::string &link, uint64_t &unitig_id)
 {
     string line;
     if (std::getline(input, line))
@@ -226,12 +227,13 @@ static void get_link_from_file(std::ifstream& input, std::string &link, uint64_t
         unitig_id = stoull(line);
     }
     else
-        finished = true;
+        return false;
     if (std::getline(input, link))
     {
     }
     else
-        finished = true;
+        return false;
+    return true;
 }
 
 /*
@@ -260,10 +262,11 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
     {
         string link; uint64_t unitig;
         inputLinks[pass] = new std::ifstream(unitigs_filename+ ".links." + to_string(pass));
-        bool f = false;
-        get_link_from_file(*inputLinks[pass], link, unitig, f);
-        finished[pass] = f;
-        pq.emplace(make_tuple(unitig, pass, link));
+        // prime the pq with the first element in the file
+        if (get_link_from_file(*inputLinks[pass], link, unitig))
+            pq.emplace(make_tuple(unitig, pass, link));
+        else
+            finished[pass] = true;
     }
 
     uint64_t last_unitig = 0;
@@ -297,12 +300,12 @@ write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out)
         // read next entry in the inputLinks[pass] file that we just popped
         if (finished[pass])
             continue;
-        bool f = finished[pass];
         string link;
-        get_link_from_file(*inputLinks[pass], link, unitig, f);
-        finished[pass] = f;
-        if (!f)
+        if (get_link_from_file(*inputLinks[pass], link, unitig))
             pq.emplace(make_tuple(unitig, pass, link));
+        else
+            finished[pass] = true;
+
     }
     // write the last element
     Sequence s (Data::ASCII);
