@@ -160,7 +160,7 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
             flat_bucket_queues[getThreadIndex()].push_back(std::make_tuple(minimizer, kmer, abundance, leftmin, rightmin));
         }
 
-        /* boilerplate */
+        /* boilerplate constructor */
         InsertIntoQueues(vector<flat_vector_queue_t> &flat_bucket_queues, 
                 Model &model,
                 Model &modelK1, 

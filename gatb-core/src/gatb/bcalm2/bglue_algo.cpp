@@ -465,7 +465,7 @@ class hasher_t
 typedef uint64_t partition_t;
 
 template <int SPAN>
-void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, int pass, int nb_passes)
+void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, int pass, int nb_passes, uint64_t &nb_elts)
 {
     // some code duplication
     typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
@@ -601,7 +601,6 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, in
 	BagFile<uint64_t> * bagf = new BagFile<uint64_t>( prefix+".glue.hashes."+ to_string(pass)); LOCAL(bagf); 
 	Bag<uint64_t> * currentbag =  new BagCache<uint64_t> (  bagf, 10000 ); LOCAL(currentbag);// really? we have to through these hoops to do a simple binary file in gatb? gotta change this.
     std::mutex mergeLock;
-    uint64_t nb_elts = 0;
     for (int i = 0; i < nb_uf_hashes_vectors; i++)
     {
 
@@ -685,10 +684,12 @@ void bglue(Storage *storage,
      * puts all the uf hashes in disk.
      */
     int nb_prepare_passes = 3;
+    uint64_t nb_elts = 0;
     for (int pass = 0; pass < nb_prepare_passes; pass++)
-        prepare_uf<SPAN>(prefix, in, nb_threads, kmerSize, pass, nb_prepare_passes);
+        prepare_uf<SPAN>(prefix, in, nb_threads, kmerSize, pass, nb_prepare_passes, nb_elts);
 
     // load uf hashes from disk
+    uf_hashes.reserve(nb_elts);
     for (int pass = 0; pass < nb_prepare_passes; pass++)
     {
         IteratorFile<uint64_t> file(prefix+".glue.hashes." + to_string(pass));
@@ -811,15 +812,17 @@ void bglue(Storage *storage,
 
     /* now we're mirroring the UF to a vector of uint32_t's, it will take less space, and strictly same information
      * this is to get rid of the rank (one uint32) per element in the current UF implementation */
+    // could dump to disk if we wanted to save mem
     std::vector<uint32_t > ufkmers_vector(nb_uf_keys);
     for (unsigned long i = 0; i < nb_uf_keys; i++)
         ufkmers_vector[i] = ufkmers.find(i);
 
-    logging("UF to vector done");
-    
+    logging("UF to vector (" + to_string(nb_uf_keys*sizeof(uint32_t)/1024/1024) + " MB) done");
+   
+    uint64_t size_mdata = sizeof(std::atomic<uint64_t>) * ufkmers.mData.size();
     free_memory_vector(ufkmers.mData);
 
-    logging("freed original UF");
+    logging("freed original UF (" + to_string(size_mdata/1024/1024) + " MB)");
 
 
     // setup output file
