@@ -510,14 +510,15 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, in
                 global_lock.unlock();*/
                 }
                 else
+                {
                     nb_hashes[h1%nb_uf_hashes_vectors]++;
-                uf_hashes_mutexes[h1%nb_uf_hashes_vectors].unlock();
-                if (populate)
                     nb_marked_extremities++;
+                }
+                uf_hashes_mutexes[h1%nb_uf_hashes_vectors].unlock();
             }
         }
         else 
-            if (populate)
+            if (!populate)
                 nb_unmarked_extremities++;
 
         if (rmark)
@@ -537,15 +538,15 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, in
                       global_lock.unlock();*/
                 }
                 else 
+                {
                     nb_hashes[h2%nb_uf_hashes_vectors]++;
-                uf_hashes_mutexes[h2%nb_uf_hashes_vectors].unlock();
-
-                if (populate)
                     nb_marked_extremities++;
+                }
+                uf_hashes_mutexes[h2%nb_uf_hashes_vectors].unlock();
             }
         }
         else
-            if (populate)
+            if (!populate)
                 nb_unmarked_extremities++;
     };
 
@@ -564,6 +565,7 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, in
         }
         //uf_hashes.reserve(sum_nb_hashes);
     }
+    logging( std::to_string(nb_marked_extremities.load()) + " marked kmers, " + std::to_string(nb_unmarked_extremities.load()) + " unmarked kmers");
     populate = true;
     dispatcher.iterate (in->iterator(), populate_keys);
 
@@ -586,7 +588,6 @@ void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, in
     for (it->first (); !it->isDone(); it->next())
         prepareUF(it->item());*/
 
-    logging( std::to_string(nb_marked_extremities.load()) + " marked kmers, " + std::to_string(nb_unmarked_extremities.load()) + " unmarked kmers");
     logging("created vector of hashes, size approx " + std::to_string( sizeof(partition_t)*nb_marked_extremities.load()/1024/1024) + " MB)");
     ThreadPool uf_merge_pool(nb_threads); // ThreadPool
   //  ctpl::thread_pool uf_merge_pool(nb_threads);
