@@ -455,6 +455,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     nb_unitigs_extremities = 0; // will be used by NodeIterator (getNodes)
     uint64_t nb_utigs_nucl = 0;
     uint64_t nb_utigs_nucl_mem = 0;
+    uint64_t avg_incoming_size = 0, avg_outcoming_size = 0, total_unitigs_size = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel, maybe, if we used many unordered_map's with a hash on the query kmer (TODO opt)
     {
         const string& seq = itSeq->toString();
@@ -463,6 +464,9 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         float mean_abundance;
         vector<uint64_t> inc, outc; // incoming and outcoming unitigs
         parse_unitig_header(comment, mean_abundance, inc, outc);
+
+        avg_incoming_size += inc.size();
+        avg_outcoming_size += outc.size();
 
         if (compress_navigational_vectors) 
         {
@@ -486,9 +490,11 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
             unitigs.push_back(internal_compress_unitig(seq));
 
         unitigs_sizes.push_back(seq.size());
+        total_unitigs_size += seq.size();
+        unitigs_mean_abundance.push_back(mean_abundance);
+
         //std::cout << "decoded : " << internal_get_unitig_sequence(unitigs.size()-1) << std::endl;
         //std::cout << "real    : " << seq << std::endl;
-        unitigs_mean_abundance.push_back(mean_abundance);
 
         if (!pack_unitigs)
         {
@@ -515,6 +521,11 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     {
         uint64_t mem_vec_sizes = /*unitigs_sizes.get_alloc_byte_num(); // formerly */(unitigs_sizes.capacity() * sizeof(uint32_t));
 
+        std::cout <<  "Stats:"  << std::endl;
+        std::cout <<  "Number of unitigs: " << nb_unitigs << std::endl;
+        std::cout <<  "Average number of incoming/outcoming neighbors: " << avg_incoming_size/(float)nb_unitigs << "/" <<  avg_outcoming_size/(float)nb_unitigs  << std::endl;
+        std::cout <<  "Total number of nucleotides in unitigs: " << total_unitigs_size << std::endl;
+        std::cout << std::endl;
         std::cout <<  "Memory usage:" << std::endl;
         std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming vector" << std::endl;
         std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming vector" << std::endl;
