@@ -450,8 +450,13 @@ void bcalm2(Storage *storage,
         // "i thought bcalm1 needed to iterate partitions in minimizer order, but not bcalm2"
         // -> indeed, bcalm2 algorithm doesn't, but in the implementation i still choose to iterate in minimizer order.
         // because it seemed like a good idea at the time, when handling traveller kmers.
-        // looking back, it might be a good idea to not do that anymore.
-        // this could enable loading multiple partitions at once (and more parallelization)
+        // an alternative possibility would be to revert to minimizer-type 0 and repartition-type 0
+        // advantages:
+        // - this could enable loading multiple partitions at once (and more parallelization)
+        // - faster kmer counting (16 mins vs 18 mins for cami medium, 1B distinct kmers)
+        // but so far, I have not seen the need to load multiple partitions and the gain for dsk isnt big
+        // disadvantages:
+        // - would need to do a pass to write all traveller kmers to disk at first
         traveller_kmers_files[p]->flush();
         string traveller_kmers_file = traveller_kmers_prefix + std::to_string(p);
         std::atomic<unsigned long> nb_traveller_kmers_loaded;

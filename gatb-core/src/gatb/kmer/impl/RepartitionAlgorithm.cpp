@@ -329,7 +329,7 @@ void RepartitorAlgorithm<span>::computeFrequencies (Repartitor& repartitor)
 
     _bank->estimate (estimateSeqNb, estimateSeqTotalSize, estimateSeqMaxSize);
 
-    u_int64_t nbseq_sample = std::max ( u_int64_t (estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
+    u_int64_t nbseq_sample = std::min ( u_int64_t (estimateSeqNb * 0.05) ,u_int64_t( 50000000ULL) ) ;
 
     u_int64_t rg = ((u_int64_t)1 << (2*_config._minim_size));
     //cout << "\nAllocating " << ((rg*sizeof(uint32_t))/1024) << " KB for " << _minim_size <<"-mers frequency counting (" << rg << " elements total)" << endl;
