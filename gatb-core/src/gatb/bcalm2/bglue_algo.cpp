@@ -656,9 +656,14 @@ void bglue(Storage *storage,
     //std::cout << "bglue_algo params, prefix:" << prefix << " k:" << kmerSize << " threads:" << nb_threads << std::endl;
     bcalm_logging = verbose;
     size_t k = kmerSize;
-    int nbGluePartitions=200; // TODO autodetect it or set it as a parameter.
     bool debug_uf_stats = false; // formerly cmdline parameter
     bool only_uf = false; // idem
+
+    //int nbGluePartitions=200; // TODO autodetect it or set it as a parameter.
+    // autodetecting number of partitions
+    int max_open_files = System::file().getMaxFilesNumber() / 2;
+    int nbGluePartitions = std::min(2000, max_open_files); // ceil it at 2000 anyhow
+
     
     std::vector<partition_t> uf_hashes;
     //set<partition_t> uf_hashes;
