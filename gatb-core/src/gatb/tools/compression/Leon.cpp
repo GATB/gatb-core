@@ -86,7 +86,8 @@ _progress_decode(0),_generalModel(256),_inputBank(0),_anchorDictModel(5)
 	_compressed_qualSize = _anchorDictSize = _MCmultipleSolid = _anchorAdressSize = _readWithoutAnchorCount = _anchorPosSize = 0;
 	_input_qualSize = _total_nb_quals_smoothed = _otherSize =  _readSizeSize =  _bifurcationSize =  _noAnchorSize = 0;
 	_lossless = false;
-	_storageH5file =0;
+	_storageH5file = 0;
+	_bloom = 0;
 	
 	_isFasta = true;
 	_maxSequenceSize = 0;
@@ -210,8 +211,11 @@ void Leon::execute()
     
     if(_decompress){
 	//	delete _inputFile;
-		delete _outputFile;
-		if(! _isFasta) delete _inputFileQual;
+		if(! _iterator_mode)
+		{
+			delete _outputFile;
+		}
+		//if(! _isFasta) delete _inputFileQual;
 		delete _bloom;
 	}
     
@@ -1446,7 +1450,8 @@ void Leon::executeDecompression(){
 		_outputFilename += ".fastq.d";
 	}
 	
-	_outputFile = System::file().newFile(_outputFilename, "wb");
+	if(!_iterator_mode)
+		_outputFile = System::file().newFile(_outputFilename, "wb");
 	
 	//Get kmer size
 	//_kmerSize = CompressionUtils::decodeNumeric(_rangeDecoder, _numericModel);

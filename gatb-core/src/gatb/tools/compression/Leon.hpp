@@ -275,7 +275,7 @@ class Leon : public misc::impl::Tool
 		RangeDecoder _rangeDecoder;
 		//ifstream* _inputFile;
 		ifstream* _inputFile;
-		ifstream* _inputFileQual;
+		//ifstream* _inputFileQual;
 
 		u_int64_t _filePos;
 	
