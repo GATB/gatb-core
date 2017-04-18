@@ -131,7 +131,8 @@ _progress_decode(0),_generalModel(256),_inputBank(0),_anchorDictModel(5)
     decompressionParser->push_back (new OptionNoParam (Leon::STR_TEST_DECOMPRESSED_FILE, "check if decompressed file is the same as original file (both files must be in the same folder)", false));
 	
 
-	_groupLeon = _subgroupQual = _subgroupInfo = _subgroupDict = _subgroupDNA =  _subgroupHeader = NULL;
+	_subgroupInfoCollection = NULL;
+	 _groupLeon = _subgroupQual = _subgroupInfo = _subgroupDict = _subgroupDNA =  _subgroupHeader = NULL;
 
 	
     getParser()->push_back (compressionParser);
@@ -511,14 +512,18 @@ void Leon::executeCompression(){
 	_subgroupInfoCollection->addProperty ("version",leonversion);
 
 	
-	tools::storage::impl::Storage::ostream osInfo (*_subgroupInfo, "infobyte");
-	osInfo.write (reinterpret_cast<char const*>(&infoByte), sizeof(infoByte));
-	osInfo.flush();
-
-	
-	tools::storage::impl::Storage::ostream osk (*_subgroupInfo, "kmerSize");
-	osk.write (reinterpret_cast<char const*>(&_kmerSize), sizeof(_kmerSize));
-	osk.flush();
+	//making a block here so that ostream is immediately destroyed
+	//otherwise bug since the referred to _subgroupInfo is destroyed in endcommpression
+	//(I do not want to destroy _subgroupInfo in leon destructor, otherwise  compression will not be flushed until leon object is destroyed, bad behavior whan compression used within code)
+	{
+		tools::storage::impl::Storage::ostream osInfo (*_subgroupInfo, "infobyte");
+		osInfo.write (reinterpret_cast<char const*>(&infoByte), sizeof(infoByte));
+		osInfo.flush();
+		
+		tools::storage::impl::Storage::ostream osk (*_subgroupInfo, "kmerSize");
+		osk.write (reinterpret_cast<char const*>(&_kmerSize), sizeof(_kmerSize));
+		osk.flush();
+	}
 	
 	
 	if(! _isFasta)
@@ -766,11 +771,23 @@ void Leon::endCompression(){
 	printf("\tSpeed: %.2f mo/s\n", (System::file().getSize(_inputFilename)/1000000.0) / (  _wfin_leon - _wdebut_leon) );
 
 	
+	delete  _groupLeon;
+	delete  _subgroupInfo;
+	delete _subgroupDict;
+	delete _subgroupDNA;
+	if(! _isFasta)
+		delete _subgroupQual;
+	delete _subgroupHeader;
+	
 	if(_storageH5file !=0)
 	{
 		delete _storageH5file;
 		_storageH5file =0;
 	}
+	
+
+	
+	
 	
 	//printf("\tTime: %.2fs\n", (double)(clock() - _time)/CLOCKS_PER_SEC);
 	//printf("\tSpeed: %.2f mo/s\n", (System::file().getSize(_inputFilename)/1000000.0) / ((double)(clock() - _time)/CLOCKS_PER_SEC));
