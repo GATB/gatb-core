@@ -239,7 +239,7 @@ AbstractHeaderCoder(NULL), _totalHeaderSize(0),_seqId(0)
 HeaderEncoder::~HeaderEncoder(){
 	
 	
-	if( _thread_id!=0 && (_seqId+1) % Leon::READ_PER_BLOCK != 0 ){
+	if( _thread_id!=0 && (_seqId+1) % _leon->getReadPerBlock() != 0 ){
 		writeBlock();
 	}
 //	int nb_remaining =
@@ -266,7 +266,7 @@ void HeaderEncoder::operator()(Sequence& sequence){
 	processNextHeader();
 	
 	
-	if(_processedSequenceCount >= Leon::READ_PER_BLOCK ){
+	if(_processedSequenceCount >= _leon->getReadPerBlock() ){
 		
 		writeBlock();
 		startBlock();
@@ -279,7 +279,7 @@ void HeaderEncoder::writeBlock(){
 		_rangeEncoder.flush();
 	}
 	
-	int blockId = (  _seqId / Leon::READ_PER_BLOCK)   ;
+	int blockId = (  _seqId / _leon->getReadPerBlock())   ;
 
 	//printf("\nheader coder writeblock   bid %i   tid %i \n",blockId, _thread_id);
 	

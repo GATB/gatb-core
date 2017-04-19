@@ -107,6 +107,7 @@ _progress_decode(0),_generalModel(256),_inputBank(0),_anchorDictModel(5)
     getParser()->push_back (new OptionOneParam (STR_NB_CORES, "number of cores (default is the available number of cores)", false, "0"));
     getParser()->push_back (new OptionOneParam (STR_VERBOSE,  "verbosity level",                                            false, "1", false));
 
+    getParser()->push_back (new OptionOneParam ("-reads",     "number of reads per block (default is 50000)",               false, "50000", false));
 	
 	getParser()->push_back (new OptionNoParam  ("-lossless", "switch to lossless compression for qualities (default is lossy. lossy has much higher compression rate, and the loss is in fact a gain. lossy is better!)",   false));
 
@@ -169,7 +170,6 @@ void Leon::execute()
 	if(getParser()->saw ("-lossless"))
 		_lossless = true;
 		
-
     _compress = false;
     _decompress = false;
     if(getParser()->saw (Leon::STR_COMPRESS)) _compress = true;
@@ -185,6 +185,7 @@ void Leon::execute()
    // int nb_threads_living;
     _nb_cores = getInput()->getInt(STR_NB_CORES);
     
+    setReadPerBlock(getInput()->getInt("-reads"));
     
 	//setup global
 	for(int i=0; i<CompressionUtils::NB_MODELS_PER_NUMERIC; i++){
@@ -341,7 +342,7 @@ void Leon::executeCompression(){
 	#ifdef PRINT_DEBUG
 		cout << "Start compression" << endl;
 	#endif
-	
+
     _kmerSize      = getInput()->getInt (STR_KMER_SIZE);
     _nks      = getInput()->get(STR_KMER_ABUNDANCE) ? getInput()->getInt(STR_KMER_ABUNDANCE) : 3;
 	//_nks           = getInput()->getInt (STR_KMER_ABUNDANCE);
@@ -865,7 +866,7 @@ void Leon::startHeaderCompression(){
 	#endif
 
 	//getDispatcher()->iterate (itSeq,  HeaderEncoder(this, &nb_threads_living), 10000);
-	getDispatcher()->iterate (itSeq,  HeaderEncoder(this), READ_PER_BLOCK);
+	getDispatcher()->iterate (itSeq,  HeaderEncoder(this), this->getReadPerBlock());
 	endHeaderCompression();
 }
 
@@ -962,7 +963,7 @@ void Leon::startDnaCompression(){
 	#endif
 
 	//getDispatcher()->iterate (itSeq,  HeaderEncoder(this, &nb_threads_living), 10000);
-	getDispatcher()->iterate (itSeq,  DnaEncoder(this), READ_PER_BLOCK);
+	getDispatcher()->iterate (itSeq,  DnaEncoder(this), this->getReadPerBlock());
 	
 	endDnaCompression();
 	
@@ -1787,7 +1788,7 @@ void Leon::startDecompressionAllStreams(){
 			std::string line;
 			std::string output_buff;
 
-			output_buff.reserve(READ_PER_BLOCK * 500);
+			output_buff.reserve(this->getReadPerBlock() * 500);
 			
 			bool reading = true;
 			

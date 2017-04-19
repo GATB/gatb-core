@@ -169,7 +169,7 @@ _MCuniqSolid (0), _MCuniqNoSolid(0), _MCnoAternative(0), _MCmultipleSolid(0)//, 
 	_max_read_size = 10000;
 	_nb_solids = (int *) malloc(_max_read_size * sizeof(int) );
 	_qualseq = (char *) malloc(_max_read_size*sizeof(char ));
-	_bufferQuals_size = Leon::READ_PER_BLOCK* 200;
+	_bufferQuals_size = _leon->getReadPerBlock()* 200;
 	_bufferQuals = (char *) malloc(_bufferQuals_size * sizeof(char ));
 	_bufferQuals_idx=0;
 	
@@ -203,7 +203,7 @@ _MCuniqSolid (0), _MCuniqNoSolid(0), _MCnoAternative(0), _MCmultipleSolid(0)//, 
 	_max_read_size = 10000;
 	_nb_solids = (int *) malloc(_max_read_size * sizeof(int) );
 	_qualseq = (char *) malloc(_max_read_size*sizeof(char ));
-	_bufferQuals_size = Leon::READ_PER_BLOCK* 200;
+	_bufferQuals_size = _leon->getReadPerBlock()* 200;
 	_bufferQuals = (char *) malloc(_bufferQuals_size * sizeof(char ));
 	//printf("initial buffer qual size %i \n",_bufferQuals_size );
 
@@ -228,7 +228,7 @@ _MCuniqSolid (0), _MCuniqNoSolid(0), _MCnoAternative(0), _MCmultipleSolid(0)//, 
 
 DnaEncoder::~DnaEncoder(){
 
-	if(_thread_id!=0 && (_seqId+1) % Leon::READ_PER_BLOCK != 0 ){
+	if(_thread_id!=0 && (_seqId+1) % _leon->getReadPerBlock() != 0 ){
 		writeBlock();
 	}
 	//int nb_remaining =
@@ -308,7 +308,7 @@ void DnaEncoder::operator()(Sequence& sequence){
 	_sequences.insert(_sequences.begin(), _sequence);
 #endif
 
-	if(_processedSequenceCount >= Leon::READ_PER_BLOCK ){
+	if(_processedSequenceCount >= _leon->getReadPerBlock() ){
 		
 		writeBlock();
 		startBlock();
@@ -323,7 +323,7 @@ void DnaEncoder::writeBlock(){
 		_rangeEncoder.flush();
 	}
 	
-	int blockId = (  _seqId / Leon::READ_PER_BLOCK)   ;
+	int blockId = (  _seqId / _leon->getReadPerBlock())   ;
 	//printf("\nTid %i  WB :  blockid %i sid %llu     size: %llu  _processedSequenceCount %i\n",_thread_id, blockId, _seqId, _rangeEncoder.getBufferSize(),_processedSequenceCount );
 
 	//_leon->_realDnaCompressedSize += _rangeEncoder.getBufferSize();

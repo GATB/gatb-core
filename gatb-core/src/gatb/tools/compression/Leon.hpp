@@ -105,7 +105,7 @@ class Leon : public misc::impl::Tool
 	
 		size_t          _kmerSize;
 		string     _dskOutputFilename;
-		static const int READ_PER_BLOCK = 50000;
+		//static const int READ_PER_BLOCK = 50000;
 		int _nb_cores;
 		
 		bool _compress, _decompress;
@@ -205,10 +205,18 @@ class Leon : public misc::impl::Tool
 			return bin2ntTab[nt];
 		}
 		
+		void setReadPerBlock(int value){
+			_read_per_block = value;
+		}
 	
+		int getReadPerBlock(){
+			return _read_per_block;
+		}
+
 	private:
 
-	
+    int _read_per_block;
+
 	//hdf5 stuff
 	Storage* _storageH5file;
 
