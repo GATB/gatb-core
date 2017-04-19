@@ -605,7 +605,6 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
     uint64_t nb_elts_pass = 0;
 
     priority_queue<std::tuple<uint64_t,int>, std::vector<std::tuple<uint64_t,int>>, std::greater<std::tuple<uint64_t,int>> > pq; // http://stackoverflow.com/questions/2439283/how-can-i-create-min-stl-priority-queue
-    vector<bool> finished(nb_threads);
     vector<uint64_t> hash_vector_idx(nb_threads);
     vector<uint64_t> hash_vector_size(nb_threads);
 
@@ -614,13 +613,12 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
     {
         hash_vector_idx[i] = 0;
         hash_vector_size[i] = uf_hashes_vectors[i].size();
-        finished[i] = hash_vector_idx[i] == hash_vector_size[i];
-        pq.emplace(make_tuple(uf_hashes_vectors[i][hash_vector_idx[i]++], i));
+        if (hash_vector_size[i] > 0)
+            pq.emplace(make_tuple(uf_hashes_vectors[i][hash_vector_idx[i]++], i));
     }
 
     uint64_t prev = 0;
-    bool all_finished = false;
-    while (!(all_finished) || pq.size() > 0)
+    while (pq.size() > 0)
     {
         std::tuple<uint64_t, int> elt = pq.top(); pq.pop();
         uint64_t cur = get<0>(elt);
@@ -631,26 +629,10 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
             nb_elts_pass ++;
         }
         prev = cur;
+        
         int i = get<1>(elt);
-        if (finished[i])
-                continue;
         if (hash_vector_idx[i] < hash_vector_size[i])
             pq.emplace(make_tuple(uf_hashes_vectors[i][hash_vector_idx[i]++], i));
-        
-        if (hash_vector_idx[i] == hash_vector_size[i])
-        {
-            finished[i] = true;
-
-            all_finished = true;
-            for (int j = 0; j < nb_threads; j++)
-            {
-                if (!finished[j])
-                {
-                    all_finished = false;
-                    break;
-                }
-            }
-        }
     }
 
     for (int i = 0; i < nb_threads; i++)
