@@ -1179,7 +1179,13 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
  * spades pops bulges based on something like the ratio between most examined simple path and a more covered path is (whether it is above 1.1).
  * so i'm actually doing just that. I recall checking spades source code to implement this. this was during CAMI.
  *
- * In SPAdes' source, a simple path isn't a non-branching one, it is rather the wikipedia definition: one where nodes aren't repeated (and also here, no node is its own reverse-complement). This makes me think that GATB's simplePath function is a bit of a misnomer, should be called nonBranchingPath.
+ * Small apparte about simple paths: in SPAdes' source, a simple path isn't a non-branching one, it is rather the wikipedia definition: one where nodes aren't repeated (and also here, no node is its own reverse-complement). This makes me think that GATB's simplePath function is a bit of a misnomer, should be called nonBranchingPath.
+ *
+ * so.. this is what we did for CAMI and how the code was up to 2017.
+ * but, here's the twist, it turns out that this code doesn't remove any SNPs. 
+ * kinda embarassing. metagenomes don't have SNPs so that's why i never noticed so far.
+ * (maybe should have noticed that my human genomes assemblies were so bad)
+ *
  */ 
 template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
@@ -1400,7 +1406,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                     double simplePathCoverage = _graph.simplePathMeanAbundance(simplePathStart, simplePathDir);
     
-                    bool isBulge =  simplePathCoverage * 1.1  <=  mean_abundance_most_covered;
+                    bool isBulge =  simplePathCoverage <=  mean_abundance_most_covered * 1.1;
     
                     DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage << " (path: " << _graph.toString(simplePathStart) << " vs most covered:" <<  mean_abundance_most_covered  << endl);
     
