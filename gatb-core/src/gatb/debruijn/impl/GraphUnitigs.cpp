@@ -258,17 +258,18 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
         throw system::Exception ("Graph construction failure during build_visitor_postsolid, the input h5 file needs to contain at least solid kmers.");
     }
     
-    bool force_loading_unitigs = false; // debug option /* if unitigs are made but the h5 didn't register it, stupid h5*/
-    bool force_redo_unitigs = false; // debug option
-
     bool redo_bcalm = props->get("-redo-bcalm");
     bool redo_bglue = props->get("-redo-bglue");
     bool redo_links = props->get("-redo-links");
 
-    bool do_unitigs = force_redo_unitigs || (!checkState(STATE_BCALM2_DONE) && (!force_loading_unitigs));
-    bool do_bcalm = redo_bcalm || do_unitigs;
-    bool do_bglue = redo_bglue|| do_unitigs;
-    bool do_links = redo_links || do_unitigs;
+    bool skip_bcalm = props->get("-skip-bcalm");
+    bool skip_bglue = props->get("-skip-bglue");
+    bool skip_links = props->get("-skip-links");
+
+    bool do_unitigs = !checkState(STATE_BCALM2_DONE);
+    bool do_bcalm = (redo_bcalm || do_unitigs) && (!skip_bcalm);
+    bool do_bglue = (redo_bglue || do_unitigs) && (!skip_bglue);
+    bool do_links = (redo_links || do_unitigs) && (!skip_links);
 
     if (do_unitigs || do_bcalm || do_bglue || do_links)
     {
