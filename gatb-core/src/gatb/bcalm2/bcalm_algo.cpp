@@ -787,11 +787,23 @@ void bcalm2(Storage *storage,
     }
     list_of_glues.close();
 
-    /* printing some timing stats */
+    // gather some stats
+    uint64_t nbSeqsInGlue = 0;
+    for (int thread_id = 0; thread_id < nb_threads; thread_id++)
+        nbSeqsInGlue += nb_seqs_in_glue[thread_id];
+
     auto end_t=chrono::system_clock::now();
+    float wtime = chrono::duration_cast<chrono::nanoseconds>(end_t - start_buckets).count() / unit;
+
+    Group& bcalmGroup = storage->getGroup("bcalm");
+    bcalmGroup.setProperty ("nb_sequences_in_glue",     Stringify::format("%ld", nbSeqsInGlue));
+    bcalmGroup.setProperty ("wtime_compactions",     Stringify::format("%f", wtime));
+
+    /* printing some timing stats */
     if (verbose) 
     {
-        cout<<"Buckets compaction and gluing           : "<<chrono::duration_cast<chrono::nanoseconds>(end_t - start_buckets).count() / unit<<" secs"<<endl;
+        cout <<"Number of sequences in glue: "<< nbSeqsInGlue << std::endl;
+        cout<<"Buckets compaction and gluing           : "<< wtime <<" secs"<<endl;
         cout<<"Within that, \n";
         cout <<"                                 creating buckets from superbuckets: "<< global_wtime_create_buckets / unit <<" secs"<<endl;
         cout <<"                      bucket compaction (wall-clock during threads): "<< global_wtime_foreach_bucket / unit <<" secs" <<endl;

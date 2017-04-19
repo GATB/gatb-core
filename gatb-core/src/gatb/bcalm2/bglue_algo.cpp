@@ -43,6 +43,8 @@
 #include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
 #include <gatb/tools/collections/impl/BooPHF.hpp>
 
+#include <queue> // for priority_queue
+
 
 //heh at this point I could have maybe just included gatb_core.hpp but well, no circular dependencies, this file is part of gatb-core now.
 
@@ -464,183 +466,204 @@ class hasher_t
     
 typedef uint64_t partition_t;
 
+/* computes and uniquifies the hashes of marked kmers at extremities of all to-be-glued sequences */
 template <int SPAN>
-void prepare_uf(std::string prefix, IBank *in, int nb_threads, int& kmerSize, int pass, int nb_passes, uint64_t &nb_elts)
+void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSize, int pass, int nb_passes, uint64_t &nb_elts, uint64_t estimated_nb_glue_sequences)
 {
-    // some code duplication
-    typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
-    ModelCanon modelCanon(kmerSize);
-    Hasher_T<ModelCanon> hasher(modelCanon);
-   
+  
     std::atomic<unsigned long> nb_marked_extremities, nb_unmarked_extremities; 
     nb_marked_extremities = 0; nb_unmarked_extremities = 0;
 
-    constexpr int nb_uf_hashes_vectors = 1000;
-    std::vector<std::vector<partition_t >> uf_hashes_vectors(nb_uf_hashes_vectors);
-    std::vector<std::mutex> uf_hashes_mutexes(nb_uf_hashes_vectors);
-    size_t k = kmerSize;
-    std::vector<unsigned int> nb_hashes(nb_uf_hashes_vectors);
-    bool populate = false;
-    std::mutex global_lock;
+    std::vector<std::vector<partition_t >> uf_hashes_vectors(nb_threads);
+    
+    // relatively accurate number of sequences to be inserted
+    for (int i = 0; i < nb_threads; i++)
+        uf_hashes_vectors[i].reserve(estimated_nb_glue_sequences/(nb_passes*nb_threads));
 
-    // create the set of keys that will be later be inserted into the UF
-    auto populate_keys = [k, &nb_hashes, &modelCanon, &global_lock, pass, nb_passes, \
-        &populate, &uf_hashes_mutexes, &uf_hashes_vectors, &hasher, nb_uf_hashes_vectors, &nb_marked_extremities, &nb_unmarked_extremities](const Sequence& sequence)
+    /* class (formerly a simple lambda function) to process a kmer and decide which bucket(s) it should go to */
+    /* needed to make it a class because i want it to remember its thread index */
+    class UniquifyKeys 
     {
-        const string seq = sequence.toString(); 
-        const string comment = sequence.getComment();
+        typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
+        
+        int k;
+        int pass, nb_passes, nb_threads;
+        ModelCanon modelCanon;
+        Hasher_T<ModelCanon> hasher;
+        std::atomic<unsigned long> &nb_marked_extremities, &nb_unmarked_extremities; 
+        std::vector<std::vector<partition_t >> &uf_hashes_vectors;
+        int _currentThreadIndex;
 
-        const bool lmark = comment[0] == '1';
-        const bool rmark = comment[1] == '1';
+        public: 
+        UniquifyKeys(int k, int pass, int nb_passes, int nb_threads,
+                     std::atomic<unsigned long> &nb_marked_extremities, std::atomic<unsigned long> & nb_unmarked_extremities,
+                    std::vector<std::vector<partition_t >> &uf_hashes_vectors
+                     ) : k(k), pass(pass), nb_passes(nb_passes), nb_threads(nb_threads), modelCanon(k), hasher(modelCanon),
+                        nb_marked_extremities(nb_marked_extremities), nb_unmarked_extremities(nb_unmarked_extremities),
+                         uf_hashes_vectors(uf_hashes_vectors), _currentThreadIndex(-1)
+        {}
+ 
+        void operator()     (Sequence& sequence) {
+            const string seq = sequence.toString(); 
+            const string comment = sequence.getComment();
 
-        if (lmark)
-        {
-            const string kmerBegin = seq.substr(0, k );
-            // UF of canonical kmers in ModelCanon form, then hashed
-            const typename ModelCanon::Kmer kmmerBegin = modelCanon.codeSeed(kmerBegin.c_str(), Data::ASCII);
-            const uint64_t h1 = hasher(kmmerBegin);
-            if (h1 % (uint64_t)nb_passes == (uint64_t)pass)
+            const bool lmark = comment[0] == '1';
+            const bool rmark = comment[1] == '1';
+            int thread = getThreadIndex();
+
+            if (lmark)
             {
-                uf_hashes_mutexes[h1%nb_uf_hashes_vectors].lock();
-                if (populate)
+                const string kmerBegin = seq.substr(0, k );
+                // UF of canonical kmers in ModelCanon form, then hashed
+                const typename ModelCanon::Kmer kmmerBegin = modelCanon.codeSeed(kmerBegin.c_str(), Data::ASCII);
+                const uint64_t h1 = hasher(kmmerBegin);
+                if (h1 % (uint64_t)nb_passes == (uint64_t)pass)
                 {
-                    uf_hashes_vectors[h1%nb_uf_hashes_vectors].push_back(h1);
-                    /*global_lock.lock();
-                    uf_hashes.insert(h1);
-                global_lock.unlock();*/
+                    uf_hashes_vectors[thread].push_back(h1);
+                    nb_marked_extremities++;
+                }
+            }
+            else 
+                nb_unmarked_extremities++;
+
+            if (rmark)
+            {
+                const string kmerEnd = seq.substr(seq.size() - k , k );
+                const typename ModelCanon::Kmer kmmerEnd = modelCanon.codeSeed(kmerEnd.c_str(), Data::ASCII);
+                const uint64_t h2 = hasher(kmmerEnd);
+
+                if (h2 % (uint64_t)nb_passes == (uint64_t)pass)
+                {
+                    uf_hashes_vectors[thread].push_back(h2);
+                    nb_marked_extremities++;
+                }
+            }
+            else
+                nb_unmarked_extremities++;
+        }
+
+        /* neat trick taken from erwan's later work in gatb to find the thread id of a dispatched function */
+        int getThreadIndex()
+        {
+            if (_currentThreadIndex < 0)
+            {
+                std::pair<IThread*,size_t> info;
+                if (ThreadGroup::findThreadInfo (System::thread().getThreadSelf(), info) == true)
+                {
+                    _currentThreadIndex = info.second;
                 }
                 else
                 {
-                    nb_hashes[h1%nb_uf_hashes_vectors]++;
-                    nb_marked_extremities++;
+                    throw Exception("Unable to find thread index during InsertIntoQueues");
                 }
-                uf_hashes_mutexes[h1%nb_uf_hashes_vectors].unlock();
             }
+            return _currentThreadIndex;
         }
-        else 
-            if (!populate)
-                nb_unmarked_extremities++;
-
-        if (rmark)
-        {
-            const string kmerEnd = seq.substr(seq.size() - k , k );
-            const typename ModelCanon::Kmer kmmerEnd = modelCanon.codeSeed(kmerEnd.c_str(), Data::ASCII);
-            const uint64_t h2 = hasher(kmmerEnd);
-
-            if (h2 % (uint64_t)nb_passes == (uint64_t)pass)
-            {
-                uf_hashes_mutexes[h2%nb_uf_hashes_vectors].lock();
-                if (populate)
-                {
-                    uf_hashes_vectors[h2%nb_uf_hashes_vectors].push_back(h2);
-                    /*global_lock.lock();
-                      uf_hashes.insert(h2);
-                      global_lock.unlock();*/
-                }
-                else 
-                {
-                    nb_hashes[h2%nb_uf_hashes_vectors]++;
-                    nb_marked_extremities++;
-                }
-                uf_hashes_mutexes[h2%nb_uf_hashes_vectors].unlock();
-            }
-        }
-        else
-            if (!populate)
-                nb_unmarked_extremities++;
     };
+
 
     Dispatcher dispatcher (nb_threads);
 
-    // prevents memory fragmentation. yeah, really. try setting it to false if you dare
-    bool prevent_memory_fragmentation = true;
-    if (prevent_memory_fragmentation)
-    {
-        dispatcher.iterate (in->iterator(), populate_keys);
-        uint64_t sum_nb_hashes = 0;
-        for (int i = 0; i < nb_uf_hashes_vectors; i++)
-        {
-            uf_hashes_vectors[i].reserve(nb_hashes[i]);
-            sum_nb_hashes+=nb_hashes[i];
-        }
-        //uf_hashes.reserve(sum_nb_hashes);
-    }
+    UniquifyKeys uniquifyKeys(kmerSize, pass, nb_passes, nb_threads,
+                              nb_marked_extremities, nb_unmarked_extremities,
+                              uf_hashes_vectors);
+    dispatcher.iterate (in->iterator(), uniquifyKeys);
     logging( std::to_string(nb_marked_extremities.load()) + " marked kmers, " + std::to_string(nb_unmarked_extremities.load()) + " unmarked kmers");
-    populate = true;
-    dispatcher.iterate (in->iterator(), populate_keys);
 
-    /*
-    if (uf_hashes.size() == 0) // prevent an edge case when there's nothing to glue, boophf doesn't like it
-        uf_hashes.insert(0);
-    std::cout << "done inserting keys in uf hasshes: " << uf_hashes.size() << std::endl;
-    return;*/
 
     //
     // single-threaded version
-    // auto it = in->iterator();    
-    /* // in case wanted to prealloc the vectors
+    /* auto it = in->iterator();    
      for (it->first (); !it->isDone(); it->next())
-        prepareUF(it->item());
-    for (int i = 0; i < nb_uf_hashes_vectors; i++)
-        uf_hashes_vectors[i].reserve(nb_hashes[i]);
-    uf_hashes.reserve(nb_marked_extremities/2);
-    populate = true;
-    for (it->first (); !it->isDone(); it->next())
         prepareUF(it->item());*/
 
+
     logging("created vector of hashes, size approx " + std::to_string( sizeof(partition_t)*nb_marked_extremities.load()/1024/1024) + " MB)");
-    ThreadPool uf_merge_pool(nb_threads); // ThreadPool
+    ThreadPool uf_sort_pool(nb_threads); // ThreadPool
   //  ctpl::thread_pool uf_merge_pool(nb_threads);
 
-/*  // in case I wanted to prealloc the sets for sorting. 
- *  nb_threads=1;
-    vector<unordered_set<partition_t>> temp_set(nb_threads); 
+    // sort and uniquify UF vectors (from uf_hashes_vector). the uniquify is actually optional but doesn't cost much
     for (int i = 0; i < nb_threads; i++)
-        temp_set[i].reserve(nb_hashes[0]*1);
-*/
-    // uniquify UF vectors (from uf_hashes_vector) and merge them into the uf_hashes vector
-	BagFile<uint64_t> * bagf = new BagFile<uint64_t>( prefix+".glue.hashes."+ to_string(pass)); LOCAL(bagf); 
-	Bag<uint64_t> * currentbag =  new BagCache<uint64_t> (  bagf, 10000 ); LOCAL(currentbag);// really? we have to through these hoops to do a simple binary file in gatb? gotta change this.
-    std::mutex mergeLock;
-    for (int i = 0; i < nb_uf_hashes_vectors; i++)
     {
-
-        auto uniquify = [&nb_elts, &currentbag, &mergeLock, /*&temp_set, */&uf_hashes_vectors,  i] (int thread_id)
+        auto sortuniq = [&uf_hashes_vectors, i] (int thread_id)
         {
             std::vector<partition_t> &vec = uf_hashes_vectors[i];
-            set<partition_t> temp_set( vec.begin(), vec.end() ); //http://stackoverflow.com/questions/1041620/whats-the-most-efficient-way-to-erase-duplicates-and-sort-a-vector
-            /* // in case i wanted to prealloc the sets for sorting
-            temp_set[thread_id].clear();
-            for (auto v: vec)
-               temp_set[thread_id].insert(v);
-            */
-            
-            mergeLock.lock(); 
-            //uf_hashes.insert( uf_hashes.end(), temp_set[thread_id].begin(), temp_set[thread_id].end()); // in case i wanted to prealloc sets
-            //uf_hashes.insert( uf_hashes.end(), temp_set.begin(), temp_set.end()); // in case i wanted to write to uf_hashes directly
-            
-            for (auto v: temp_set) // write to file instead of populating uf_hashes directly
-                currentbag->insert(v);
-            nb_elts += temp_set.size();
-
-            free_memory_vector(uf_hashes_vectors[i]);
-            mergeLock.unlock();
-
+            sort( vec.begin(), vec.end() );
+            vec.erase( unique( vec.begin(), vec.end() ), vec.end() );
         };
-        uf_merge_pool.enqueue(uniquify);  // ThreadPool
-        //uf_merge_pool.push(uniquify);  // ctpl
-        //uniquify(0); // single-threaded
+        uf_sort_pool.enqueue(sortuniq);  // ThreadPool
+        //uf_sort_pool.push(sortuniq);  // ctpl
+        //sortuniq(0); // single-threaded
     }
 
-    uf_merge_pool.join(); // ThreadPool
-    //uf_merge_pool.stop(true); // ctpl 
+    uf_sort_pool.join(); // ThreadPool
+    
+    
+    // a single-threaded merge and write to file before they're loaded again in bglue
+    BagFile<uint64_t> * bagf = new BagFile<uint64_t>( prefix+".glue.hashes."+ to_string(pass)); LOCAL(bagf); 
+	Bag<uint64_t> * currentbag =  new BagCache<uint64_t> (  bagf, 10000 ); LOCAL(currentbag);// really? we have to through these hoops to do a simple binary file in gatb? gotta change this.
+    uint64_t nb_elts_pass = 0;
+
+    priority_queue<std::tuple<uint64_t,int>, std::vector<std::tuple<uint64_t,int>>, std::greater<std::tuple<uint64_t,int>> > pq; // http://stackoverflow.com/questions/2439283/how-can-i-create-min-stl-priority-queue
+    vector<bool> finished(nb_threads);
+    vector<uint64_t> hash_vector_idx(nb_threads);
+    vector<uint64_t> hash_vector_size(nb_threads);
+
+    // prime the pq
+    for (int i = 0; i < nb_threads; i++)
+    {
+        hash_vector_idx[i] = 0;
+        hash_vector_size[i] = uf_hashes_vectors[i].size();
+        finished[i] = hash_vector_idx[i] == hash_vector_size[i];
+        pq.emplace(make_tuple(uf_hashes_vectors[i][hash_vector_idx[i]++], i));
+    }
+
+    uint64_t prev = 0;
+    bool all_finished = false;
+    while (!(all_finished) || pq.size() > 0)
+    {
+        std::tuple<uint64_t, int> elt = pq.top(); pq.pop();
+        uint64_t cur = get<0>(elt);
+        //std::cout << "got " << cur << " queue " << get<1>(elt) << std::endl;
+        if (cur != prev)
+        {
+            currentbag->insert(cur);
+            nb_elts_pass ++;
+        }
+        prev = cur;
+        int i = get<1>(elt);
+        if (finished[i])
+                continue;
+        if (hash_vector_idx[i] < hash_vector_size[i])
+            pq.emplace(make_tuple(uf_hashes_vectors[i][hash_vector_idx[i]++], i));
+        
+        if (hash_vector_idx[i] == hash_vector_size[i])
+        {
+            finished[i] = true;
+
+            all_finished = true;
+            for (int j = 0; j < nb_threads; j++)
+            {
+                if (!finished[j])
+                {
+                    all_finished = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < nb_threads; i++)
+    free_memory_vector(uf_hashes_vectors[i]);
+
     
     currentbag->flush();
     
     free_memory_vector(uf_hashes_vectors);
 
-    logging("pass " + to_string(pass+1) + "/" + to_string(nb_passes) + ", " + std::to_string(nb_elts) + " unique hashes written to disk, size " + to_string(nb_elts* sizeof(partition_t) / 1024/1024) + " MB");
+    logging("pass " + to_string(pass+1) + "/" + to_string(nb_passes) + ", " + std::to_string(nb_elts_pass) + " unique hashes written to disk, size " + to_string(nb_elts_pass* sizeof(partition_t) / 1024/1024) + " MB");
 
+    nb_elts += nb_elts_pass;
 }
 
 
@@ -653,28 +676,29 @@ void bglue(Storage *storage,
         bool verbose
         )
 {
+    auto start_t=chrono::system_clock::now();
+    double unit = 1000000000;
+    cout.setf(ios_base::fixed);
+    cout.precision(1);
+
+
     //std::cout << "bglue_algo params, prefix:" << prefix << " k:" << kmerSize << " threads:" << nb_threads << std::endl;
     bcalm_logging = verbose;
     size_t k = kmerSize;
     bool debug_uf_stats = false; // formerly cmdline parameter
     bool only_uf = false; // idem
 
-    //int nbGluePartitions=200; // TODO autodetect it or set it as a parameter.
+    //int nbGluePartitions=200; // no longer fixed 
     // autodetecting number of partitions
     int max_open_files = System::file().getMaxFilesNumber() / 2;
     int nbGluePartitions = std::min(2000, max_open_files); // ceil it at 2000 anyhow
 
-    
-    std::vector<partition_t> uf_hashes;
-    //set<partition_t> uf_hashes;
-     
     logging("Starting bglue with " + std::to_string( nb_threads) + " threads");
 
     // create a hasher for UF
     typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
     ModelCanon modelCanon(kmerSize); // i'm a bit lost with those models.. I think GATB could be made more simple here.
     Hasher_T<ModelCanon> hasher(modelCanon);
-
 
     ifstream f((prefix + ".glue").c_str());
     if (f.peek() == std::ifstream::traits_type::eof())
@@ -685,6 +709,17 @@ void bglue(Storage *storage,
 
     IBank *in = Bank::open (prefix + ".glue");
     LOCAL(in);
+    
+    Group& bcalmGroup = storage->getGroup("bcalm");
+    
+    uint64_t nb_glue_sequences = atol(bcalmGroup.getProperty ("nb_sequences_in_glue").c_str());
+    if (nb_glue_sequences == 0)
+    {
+        uint64_t estimated_nb_glue_sequences = in->estimateNbItems();
+        logging("estimating number of sequences to be glued (couldn't find true number)");
+        nb_glue_sequences = estimated_nb_glue_sequences;
+    }
+    logging("number of sequences to be glued: "  + to_string(nb_glue_sequences) );
 
     /*
      * puts all the uf hashes in disk.
@@ -692,9 +727,10 @@ void bglue(Storage *storage,
     int nb_prepare_passes = 3;
     uint64_t nb_elts = 0;
     for (int pass = 0; pass < nb_prepare_passes; pass++)
-        prepare_uf<SPAN>(prefix, in, nb_threads, kmerSize, pass, nb_prepare_passes, nb_elts);
+        prepare_uf<SPAN>(prefix, in, nb_threads, kmerSize, pass, nb_prepare_passes, nb_elts, nb_glue_sequences);
 
     // load uf hashes from disk
+    std::vector<partition_t> uf_hashes;
     uf_hashes.reserve(nb_elts);
     for (int pass = 0; pass < nb_prepare_passes; pass++)
     {
@@ -980,7 +1016,6 @@ void bglue(Storage *storage,
             string partitionFile = gluePartition_prefix + std::to_string(partition);
             BankFasta partitionBank (partitionFile); // BankFasta
             BankFasta::Iterator it (partitionBank); // BankFasta
-            //UnbufferedFastaIterator partitionBank (partitionFile); // UnbufferedFastaIterator // let it be a lession. it was super slow when i used unbufferedfastaiterator and became fast with bankfasta.
 
             outLock.lock(); // should use a printlock..
             if (partition % 20 == 0) // sparse printing
@@ -990,16 +1025,9 @@ void bglue(Storage *storage,
             }
             outLock.unlock();
 
-            //markedSeq buffer[10000];
-            //custom_allocator_t custom_allocator(buffer, sizeof(buffer));
             unordered_map<int, vector< markedSeq<SPAN> >> msInPart;
             uint64_t seq_index = 0;
 
-            /* // UnbufferedFastaIterator
-            string seq, comment; seq.reserve(100000); comment.reserve(1000);
-            while (partitionBank.read(seq,comment))
-            {
-            */
             for (it.first(); !it.isDone(); it.next()) // BankFasta
             {
                 const string seq = it->toString();
@@ -1028,9 +1056,6 @@ void bglue(Storage *storage,
                 if (!rmark)
                     kmmerEnd = modelCanon.codeSeed(kmerEnd.c_str(), Data::ASCII);
 
-                /*string ks = modelCanon.toString(kmmerBegin.value());
-                string ke = modelCanon.toString(kmmerEnd  .value());
-                */
                 markedSeq<SPAN> ms(seq_index, lmark, rmark, kmmerBegin.value(), kmmerEnd.value());
 
                 msInPart[ufclass].push_back(ms);
@@ -1055,11 +1080,6 @@ void bglue(Storage *storage,
             sequences.reserve(copy_nb_seqs_in_partition[partition]);
             abundances.reserve(copy_nb_seqs_in_partition[partition]);
             
-            /* // UnbufferedFastaIterator
-            partitionBank.restart();
-            while (partitionBank.read(seq,comment))
-            {*/
-
             for (it.first(); !it.isDone(); it.next()) // BankFasta
             {
                 const string seq = it->toString();
@@ -1080,9 +1100,7 @@ void bglue(Storage *storage,
                 
             free_memory_vector(ordered_sequences_idxs);
 
-
             partitionBank.finalize(); // BankFasta
-            // nothing to do for UnbufferedFastaIterator
 
             System::file().remove (partitionFile);
 
@@ -1115,6 +1133,9 @@ void bglue(Storage *storage,
         infile.close();
         System::file().remove (prefix + ".glue");
     }
+    auto end_t=chrono::system_clock::now();
+    float wtime = chrono::duration_cast<chrono::nanoseconds>(end_t - start_t).count() / unit;
+    bcalmGroup.setProperty ("wtime_glue",     Stringify::format("%f", wtime));
 }
 
 }}}}

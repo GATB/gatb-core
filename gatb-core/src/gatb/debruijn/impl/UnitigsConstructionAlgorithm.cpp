@@ -207,7 +207,7 @@ static void free_memory_vector(std::vector<T> &vec)
 
 template<size_t span>
 bool UnitigsConstructionAlgorithm<span>::
-is_in_pass (const std::string &seq, int pass, Unitig_pos p) const
+is_in_pass (const std::string &seq, int pass, Unitig_pos p) const // TODO this is so un-even. should do more proper hashing..
 {
     int e = 0;
     if (p == UNITIG_END)
