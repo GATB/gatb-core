@@ -61,15 +61,15 @@ class TestLeon : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestLeon);
 
-    CPPUNIT_TEST_GATB(bank_checkLeon1);
+    /*CPPUNIT_TEST_GATB(bank_checkLeon1);
     CPPUNIT_TEST_GATB(bank_checkLeon2);
     CPPUNIT_TEST_GATB(bank_checkLeon3);
-
     CPPUNIT_TEST_GATB(bank_checkLeon4);
     CPPUNIT_TEST_GATB(bank_checkLeon5);
     CPPUNIT_TEST_GATB(bank_checkLeon6);
+    CPPUNIT_TEST_GATB(bank_checkLeon7);*/
+    CPPUNIT_TEST_GATB(bank_checkLeon8);
 
-    CPPUNIT_TEST_GATB(bank_checkLeon7);
     CPPUNIT_TEST_SUITE_GATB_END();
 
 public:
@@ -163,8 +163,9 @@ public:
     /**
      * Run Leon compress on a FastQ file.
      *
-     * Parameter 'mode' is one of: 0, 1, 2 (-noqual, -noheader
-     * or -seq-only, respectively).
+     * Parameter 'mode' is one of: 0, 1, 2 (for -noqual, -noheader
+     * or -seq-only, respectively) or 3 (-reads 1000; used to test
+     * parallel compression).
      */
     void run_leon_compressor(std::string& fastqFile, int mode){
 		// we prepare the Leon command-line
@@ -176,8 +177,9 @@ public:
 				"-verbose","0",
 				"-kmer-size", "31",
 				"-abundance", "1",
-
-    	};
+    	}; // do NOT anymore modify this list (unless you also update
+    	   // reference files). If you need to add other Leon args, see
+    	   // switch() below.
     	switch (mode){
     	case 0:
     		data.push_back("-noqual");
@@ -187,6 +189,11 @@ public:
     		break;
     	case 2:
     		data.push_back("-seq-only");
+    		break;
+    	case 3:
+    		data.push_back("-lossless");
+    		data.push_back("-reads");
+    		data.push_back("1000");
     		break;
     	}
 
@@ -390,6 +397,29 @@ public:
 				DBPATH("NIST7035_TAAGGCGA_L001_R1_001_5OK.fastq.gz"),
 				DBPATH("NIST7035_TAAGGCGA_L001_R1_001_5OK.fastq.leon")
 				);
+	}
+
+    /*******************************************************************************
+	 * Test Leon parallel compression/decompression.
+	 *
+	 * */
+	void bank_checkLeon8 ()
+	{
+    	// The existing FastQ reference file (contains 50K reads)
+		std::string fileName =  DBPATH("NIST7035_TAAGGCGA_L001_R1_001_5OK.fastq");
+		std::string fastqFile = fileName + ".gz";
+    	// The Leon file to create (WILL BE compressed NOW using -reads 1000)
+		string leonFile = fileName + ".leon";
+    	// The Leon reference file (WAS compressed using -reads 50000)
+		string leonRefFile = leonFile+"-ref";
+
+		// STEP 1: compress the Fastq file ('mode=3' means use '-reads 1000')
+		run_leon_compressor(fastqFile, 3);
+
+		// STEP 2: compare reference and compressed version
+        IBank* leonRefBank = Bank::open (leonRefFile);
+		IBank* leonBank = Bank::open (leonFile);
+		bank_compare_banks_equality(leonRefBank, leonBank);
 	}
 };
 
