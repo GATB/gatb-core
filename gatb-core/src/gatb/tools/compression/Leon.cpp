@@ -105,9 +105,9 @@ _progress_decode(0),_generalModel(256),_inputBank(0),_anchorDictModel(5)
     getParser()->push_back (new OptionNoParam  ("-c", "compression",   false));
     getParser()->push_back (new OptionNoParam  ("-d", "decompression", false));
     getParser()->push_back (new OptionOneParam (STR_NB_CORES, "number of cores (default is the available number of cores)", false, "0"));
-    getParser()->push_back (new OptionOneParam (STR_VERBOSE,  "verbosity level",                                            false, "1", false));
+    getParser()->push_back (new OptionOneParam (STR_VERBOSE,  "verbosity level",                                            false, "1", false),0,false);
 
-    getParser()->push_back (new OptionOneParam ("-reads",     "number of reads per block (default is 50000)",               false, "50000", false));
+    getParser()->push_back (new OptionOneParam ("-reads",     "number of reads per block (default is 50000)",               false, "50000", false),0,false);
 	
 	getParser()->push_back (new OptionNoParam  ("-lossless", "switch to lossless compression for qualities (default is lossy. lossy has much higher compression rate, and the loss is in fact a gain. lossy is better!)",   false));
 
