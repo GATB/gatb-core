@@ -1170,6 +1170,46 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
     return;
 }
 
+class DebugBR
+{
+    string start;
+    struct InfoNeighbor
+    {
+        int idx;
+        string neighbor;
+        string dir;
+        string lastNode;
+        int pathLen;
+        int out_degree_lastNode;
+        string branchTo;
+        bool isTopologicalBulge;
+    };
+    vector<InfoNeighbor> neighbors;
+   
+    public: 
+    DebugBR(string node, int nb_neighbors) : start(node), neighbors(nb_neighbors) { 
+        // std::cout << "new candidate bulge: " << node << std::endl;
+    }
+    
+    void infoNeighbor(int neighbor_idx, string neighbor, string direction, string lastNode, int pathLen, int nb_outneighbors, string branchTo, bool isTopologicalBulge)
+    {   
+        InfoNeighbor info{neighbor_idx, neighbor, direction, lastNode, pathLen, nb_outneighbors, branchTo, isTopologicalBulge};
+        neighbors[neighbor_idx] = info;
+        //cout << "last node of simple path: "<< lastNode << " and " << nb_outneighbors << " neighbors in bubble direction" << endl;
+        //cout << "endNode: " << branchTo << endl);
+        //cout << "pathlen: " << pathLen << " istopobulge: " << isTopologicalBulge << endl);
+    }
+
+    void draw()
+    {
+       cout << start << " candidate bulge" << std::endl;;
+       for (unsigned int i = 0; i < neighbors.size(); i++)
+       {
+            const InfoNeighbor &nfo = neighbors[i];
+            std::cout << " --> " << nfo.neighbor << "(" << nfo.dir << ") ...[len=" << nfo.pathLen << "]... " << nfo.lastNode << " [neighbors: " << nfo.out_degree_lastNode << "] -> " << nfo.branchTo << " istopobulge: " << nfo.isTopologicalBulge << std::endl;
+       }
+    }
+};
 
 /* bulge removal algorithm. mimics spades, which doesnt remove bubbles, but only bulges. looks as effective.
  * it's slow to do heuristic_find_most_covered path so i'm testing it with no backtracking
@@ -1273,10 +1313,11 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
             TIME(auto start_various_overhead_t=get_wtime());
     
-                DEBUG_BULGES(cout << "putative bulge node: " << _graph.toString (node) << endl);
-
                 /** We follow the outgoing simple paths to get their length and last neighbor */
                 GraphVector<Edge> neighbors = _graph.neighborsEdge(node, dir);
+                
+                DEBUG_BULGES(DebugBR debugBR(_graph.toString(node), neighbors.size()););
+
 
             TIME(auto end_various_overhead_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
@@ -1306,7 +1347,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
                 __sync_fetch_and_add(&nbSimplePaths, 1);
 
-                DEBUG_BULGES(cout <<  "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                 bool isShort = true;
 
                 if (k + pathLen >= maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
@@ -1325,7 +1365,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 
                     Node lastNode = _graph.simplePathLastNode(simplePathStart,simplePathDir);
                     GraphVector<Edge> outneighbors = _graph.neighborsEdge(lastNode, dir);
-                    DEBUG_BULGES(cout << "last node of simple path: "<< _graph.toString(lastNode) << " has indegree/outdegree: " <<_graph.indegree(lastNode) << "/" << _graph.outdegree(lastNode) << " and " << outneighbors.size() << " neighbors in bubble direction" << endl);
     
                     if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                         continue;
@@ -1333,7 +1372,6 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     // TODO: so here is a hidden assumption: maybe outneighbors is of size more than 1, why do we care about just one of the nodes after. it doesn't matter much, in the sense that just some bulges might remain
 
                     Node endNode = outneighbors[0].to;
-                    DEBUG_BULGES(cout << "endNode: " << _graph.toString(endNode) << endl);
     
                     // at this point, the last node in "nodes" is the last node of a potential Bulge path, and endNode is hopefully a branching node right after.
                     // check if it's connected to something that has in-branching. 
@@ -1341,7 +1379,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     
                     bool isTopologicalBulge = isDoublyConnected;
     
-                    DEBUG_BULGES(cout << "pathlen: " << pathLen << " istopobulge: " << isTopologicalBulge << endl);
+                    DEBUG_BULGES(debugBR.infoNeighbor(i, _graph.toString(neighbors[i].to), DIR2STR(dir), _graph.toString(lastNode), pathLen, outneighbors.size(), _graph.toString(endNode), isTopologicalBulge););
 
                 TIME(end_various_overhead_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
@@ -1408,7 +1446,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     
                     bool isBulge =  simplePathCoverage <=  mean_abundance_most_covered * 1.1;
     
-                    DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage << " (path: " << _graph.toString(simplePathStart) << " vs most covered:" <<  mean_abundance_most_covered  << endl);
+                    DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage << " (path: " << _graph.toString(simplePathStart) << ") vs most covered:" <<  mean_abundance_most_covered  << endl);
     
                     if (!isBulge)
                     {
@@ -1430,7 +1468,11 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 TIME(auto end_post_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
 
+                break; // quite important to break here: don't try to remove the other neighbor (which might also satisfy the bulge condition)
+
             } // for neighbors
+
+            DEBUG_BULGES(debugBR.draw(););
         } // if outdegree
       } // for direction
         TIME(auto end_thread_t=get_wtime());
