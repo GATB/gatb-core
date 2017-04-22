@@ -503,7 +503,7 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
                          uf_hashes_vectors(uf_hashes_vectors), _currentThreadIndex(-1)
         {}
  
-        void operator()     (Sequence& sequence) {
+        void operator()     (const Sequence& sequence) {
             const string seq = sequence.toString(); 
             const string comment = sequence.getComment();
 
@@ -730,7 +730,7 @@ void bglue(Storage *storage,
 
     int gamma = 3; // make it even faster.
 
-    boomphf::mphf<partition_t , hasher_t< partition_t> > uf_mphf(nb_uf_keys, uf_hashes, nb_threads, gamma, verbose);
+    boomphf::mphf<partition_t , /*TODO we don't need hasher_t here now that we're not hashing kmers, but I forgot to change*/ hasher_t< partition_t> > uf_mphf(nb_uf_keys, uf_hashes, nb_threads, gamma, verbose);
 
     free_memory_vector(uf_hashes);
 

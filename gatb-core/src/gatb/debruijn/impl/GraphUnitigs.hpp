@@ -285,7 +285,7 @@ public:
     NodeGU             unitigLastNode          (const NodeGU& node, Direction dir) const;
     NodeGU         simplePathLastNode          (const NodeGU& node, Direction dir) ; /* cannot be const becuse it called Longuest_avance that is sometimes not const.. grr. */
     unsigned int     unitigLength            (const NodeGU& node, Direction dir) const;
-    unsigned int simplePathLength            (const NodeGU& node, Direction dir) ; /* same reason as above*/;
+    unsigned int simplePathLength            (const NodeGU& node, Direction dir) ; /* same reason as above*/ /* NOTE: return number of traversed kmers, so (nucleotide length-k)*/
     double           unitigMeanAbundance     (const NodeGU& node) const;
     double       simplePathMeanAbundance     (const NodeGU& node, Direction dir) ;
     void             unitigDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter);

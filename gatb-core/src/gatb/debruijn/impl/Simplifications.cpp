@@ -646,6 +646,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
     unsigned long nbCalls = 0;
     mean_abundance = 0;
 
+    // so i've disabled the kmer version, see comment on hmcp_old() function below
 #if 0
     if (kmer_version)
     {
@@ -983,13 +984,14 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         bool most_covered, unsigned long &nbCalls)
 {
     bool debug = false;
-    nbCalls++;
     
     if (traversal_depth < -1)
     {
         success = HMCP_DIDNT_FIND_END;
         return;
     }
+    
+    nbCalls++;
 
     Node current_node = startNode;
     if (debug)
@@ -1005,7 +1007,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
     set<Node>& traversedNodes (usedNode);
     int extra_depth = 1;
 
-    auto processNode = [&](Node &node)
+    auto processNode = [&unitigs_lengths, &unitigs_abundances, &endNode, &current_node, &success, &mean_abundance, &traversedNodes](Node &node)
     {
         current_node = node;
         if (current_node == endNode)
@@ -1036,7 +1038,6 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
 
         Node&     simplePathStart = current_node;
         Direction simplePathDir   = dir;
-        Node lastNode           = _graph.simplePathLastNode     (simplePathStart,simplePathDir);
         unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
         if (pathLen > 0)
         { 
@@ -1047,7 +1048,8 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
 
             nbCalls += pathLen + 1;
             extra_depth += pathLen + 1; 
-
+        
+            Node lastNode           = _graph.simplePathLastNode     (simplePathStart,simplePathDir);
             if (processNode(lastNode)) // verify whether we're done
                 return;
 
@@ -1059,7 +1061,10 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         else
         {
             if (debug)
-                std::cout << "HMCP last node was equal to first node: " << _graph.toString(lastNode) << " " << _graph.toString(current_node) << std::endl;;
+            {
+                Node lastNode           = _graph.simplePathLastNode     (simplePathStart,simplePathDir);
+                std::cout << "HMCP last node was equal to first node: " << _graph.toString(lastNode) << " " << _graph.toString(current_node) << std::endl;
+            }
         }
 
         // end of simple path, yet no out-branching? means there is in-branching
@@ -1212,7 +1217,6 @@ class DebugBR
 };
 
 /* bulge removal algorithm. mimics spades, which doesnt remove bubbles, but only bulges. looks as effective.
- * it's slow to do heuristic_find_most_covered path so i'm testing it with no backtracking
  *
  * see a-b-c here for an explanation of bulge removal: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3791033/figure/f4/
  *
@@ -1226,6 +1230,17 @@ class DebugBR
  * kinda embarassing. metagenomes don't have SNPs so that's why i never noticed so far.
  * (maybe should have noticed that my human genomes assemblies were so bad)
  *
+ * let me write the analysis of spades that i should have written earlier:
+ *
+ * in bulge_removed.hpp, 
+ *
+ * if bulgecov > 1000, fail (i didn't implement this)
+ *
+ * delta = CountMaxDifference(max_delta_, g_.length(e), max_relative_delta_); 
+ * means that delta is set to max(bulgelen*0.1, 3)
+ *
+ * so we're looking for alternative paths which are of length [bulgelen-delta;bulgelen+delta]
+ *
  */ 
 template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
@@ -1235,7 +1250,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     unsigned int additive_coeff = 100;
     unsigned int maxBulgeLength = std::max((unsigned int)((double)k * coeff), (unsigned int)(k + additive_coeff)); // SPAdes, exactly
 
-    unsigned int backtrackingLimit = k+20;//maxBulgeLength; // arbitrary, but if too high it will take much time;
+    unsigned int backtrackingLimit = k+50;//maxBulgeLength; // arbitrary, but if too high it will take much time; // with unitigs, no reason that it has to depend on k, but for some reason, setting it to just "k" doesnt remove nearly as many bulges as k=20. todo investigate that someday.
 
     // stats
     //
@@ -1338,7 +1353,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 TIME(auto end_various_overhead_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
 
-
+                /* that's the putative bulge*/
                 TIME(auto start_simplepath_t=get_wtime());
                 Node&     simplePathStart = neighbors[i].to;
                 Direction simplePathDir   = dir;
@@ -1369,7 +1384,11 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                         continue;
    
-                    // TODO: so here is a hidden assumption: maybe outneighbors is of size more than 1, why do we care about just one of the nodes after. it doesn't matter much, in the sense that just some bulges might remain
+                    // so here is a hidden assumption: maybe outneighbors is of size more than 1, we used to care about the first noed after.
+                    // i could decide to enforce bulge popping only if the outneighbor has size 1. 
+                    //if (outneighbors.size() != 1) 
+                    //    continue;
+                    //  but i'm decided to do without for now. TODO: explore all the end nodes, not just the first once
 
                     Node endNode = outneighbors[0].to;
     
@@ -1391,7 +1410,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 __sync_fetch_and_add(&nbTopologicalBulges, 1);
 
-                unsigned int depth = std::max((unsigned int)(pathLen * 1.1),(unsigned int) 3); // following SPAdes
+                unsigned int maxlen = std::max((unsigned int)(pathLen * 1.1),(unsigned int) (pathLen + 3)); // following SPAdes
                 double mean_abundance_most_covered;
                 int success;
                 Node startNode = node;
@@ -1401,7 +1420,9 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 Path_t<Node>  heuristic_p_most; // actually won't be used.. (it's just for debug) so would be nice to get rid of it someday, but i don't want to deal with pointers.
 
                 /* startNode is branching, because we want to find alternative paths, except the one that go through (neighbors[i].to)*/
-                this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,
+                this->heuristic_most_covered_path(dir, startNode, endNode, 
+                            maxlen, 
+                            success, mean_abundance_most_covered,
                             heuristic_p_most,
                             backtrackingLimit, // avoid too much backtracking
                             &(neighbors[i].to), // avoid that node
@@ -1417,7 +1438,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     DEBUG_BULGES(cout << "HMCP failed: " << hmcpstatus2ascii(success) << endl);
                     TIME(__sync_fetch_and_add(&timeFailedPathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
                     TIME(if (diff_wtime(start_pathfinding_t,end_pathfinding_t) > timeLongestFailure) { timeLongestFailure = diff_wtime(start_pathfinding_t,end_pathfinding_t); });
-                    longestFailureDepth = depth;
+                    longestFailureDepth = maxlen;
 
                     if (success == HMCP_LOOP)
                         __sync_fetch_and_add(&nbNoAltPathBulgesLoop, 1);
@@ -1436,8 +1457,8 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                         double mean_abundance_least_covered;
                         Path_t<Node> heuristic_p_least, heuristic_p_most;
-                        this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_most_covered,  heuristic_p_most,  backtrackingLimit, &(neighbors[i].to),  true, true /* old version */);
-                        this->heuristic_most_covered_path(dir, startNode, endNode, depth+2, success, mean_abundance_least_covered, heuristic_p_least, backtrackingLimit, &(neighbors[i].to), false,  true /* old version */);
+                        this->heuristic_most_covered_path(dir, startNode, endNode, maxlen, success, mean_abundance_most_covered,  heuristic_p_most,  backtrackingLimit, &(neighbors[i].to),  true, true /* old version */);
+                        this->heuristic_most_covered_path(dir, startNode, endNode, maxlen, success, mean_abundance_least_covered, heuristic_p_least, backtrackingLimit, &(neighbors[i].to), false,  true /* old version */);
                         cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl;
                         DEBUG_BULGES(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
                     }

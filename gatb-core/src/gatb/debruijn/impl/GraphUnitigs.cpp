@@ -1383,7 +1383,7 @@ unitigSequence (const NodeGU& node, bool& isolatedLeft, bool& isolatedRight) con
 // keep traversing unitigs as far as we can.
 /* arguments:
  * starting node 
- * output sequence length (will be reset if previously set)
+ * output sequence length (will be reset if previously set), NOTE: is the number of traversed kmers, so (sequencelength-k). there might be a +-1 length issue here.
  * output end degree
  * whether to mark during traversal
  * total coverage of simple path (NOT normalized!)
