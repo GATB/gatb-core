@@ -22,18 +22,11 @@
 
 /********************************************************************************/
 
-#include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/Banks.hpp>
-#include <gatb/bank/impl/BankHelpers.hpp>
 #include <gatb/tools/misc/impl/Algorithm.hpp>
 #include <gatb/kmer/impl/Model.hpp> // for KMER_DEFAULT_SPAN and so on
-
-#include <gatb/bank/api/IBank.hpp>                                                                                                                                                                                
+                                                                                                                                                                                
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/bcalm2/bcalm_algo.hpp>
-#include <gatb/debruijn/impl/ExtremityInfo.hpp>
-
-#include <unordered_map>
 
 
 /********************************************************************************/
@@ -50,12 +43,6 @@ template <size_t span=KMER_DEFAULT_SPAN>
 class UnitigsConstructionAlgorithm : public gatb::core::tools::misc::impl::Algorithm
 {
 public:
-
-    /** Shortcuts. */
-    typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
-    typedef typename kmer::impl::Kmer<span>::Type           Type;
-    typedef typename kmer::impl::Kmer<span>::Count          Count;
-
     /** Constructor.
      * \param[in] graph : graph from which we look for branching nodes
      * \param[in] nb_cores : number of cores to be used; 0 means all available cores
@@ -82,19 +69,7 @@ public:
     /** \copydoc tools::misc::impl::Algorithm::execute */
     void execute ();
     
-    // structure that links each kmer to an unitig
-    // also used to enumerate kmers
-    typedef typename std::unordered_map<Type, std::vector<uint64_t>> NodeLinksMap;
-    //typedef std::unordered_map<int,std::string> links_type;
-    typedef std::vector<std::string> links_type;
-
-    void link_unitigs(std::string unitigs_filename, bool verbose);
-    bool is_in_pass (const std::string &seq, int pass, Unitig_pos p) const;
-    /* due to the implementation of normalized_smallmer, doesn't support more than 8 passes */
-    static constexpr int nb_passes = 8;
     int kmerSize;
-    void write_final_output(const std::string& unitigs_filename, bool verbose, gatb::core::bank::impl::BankFasta* out);
-    void link_unitigs_pass(const std::string unitigs_filename, bool verbose, int pass);
 
     uint64_t nb_unitigs;
 
