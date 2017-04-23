@@ -30,9 +30,10 @@ using namespace gatb::core::system::impl;
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
     static constexpr int nb_passes = 8;
+    static void write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out, uint64_t &nb_unitigs);
+    static bool get_link_from_file(std::ifstream& input, std::string &link, uint64_t &unitig_id);
 
 /* this procedure finds the overlaps between unitigs, using a hash table of all extremity (k-1)-mers
- *
  * I guess it's like AdjList in ABySS. It's also like contigs_to_fastg in MEGAHIT.
  * 
  * could be optimized by keeping edges during the BCALM step and tracking kmers in unitigs, but it's not the case for now, because would need to modify ograph 
@@ -62,62 +63,14 @@ void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &
 }
 
 
-// well well, some potential code duplication with Model.hpp in here (or rather, specialization), but sshh
-static inline int nt2int(char nt)
-{
-    if (nt=='A') return 0;
-    if (nt=='C') return 1;
-    if (nt=='T') return 2;
-    if (nt=='G') return 3;
-    return 0;
-}
-
-/* that code doesn't support more than 8 passes*/
-static int normalized_smallmer(const unsigned char c1, const unsigned char c2, const unsigned char c3, const unsigned char c4)
-{
-    unsigned char smallmer = (nt2int(c1)<<6) + (nt2int(c2)<<4) + (nt2int(c3)<<2) + nt2int(c4);
-    const unsigned char rev = revcomp_4NT[smallmer];
-    if (rev < smallmer)
-        smallmer = rev;
-    return smallmer;
-}
-
-bool
-is_in_pass (const std::string &seq, int pass, Unitig_pos p, int kmerSize) // TODO this is so un-even. should do more proper hashing..
-{
-    int e = 0;
-    if (p == UNITIG_END)
-        e = seq.size()-(kmerSize-1);
-    // x = 0123456789
-    // k = 5, k-1=4
-    // seq.size()-1-(k-1) = 10-4 = 6
-    return (normalized_smallmer(seq[e],seq[e+1],seq[e+kmerSize-1-1-1],seq[e+kmerSize-1-1]) % nb_passes) == pass;
-}
-
-/* returns true if it has read an element, false otherwise */
-static bool get_link_from_file(std::ifstream& input, std::string &link, uint64_t &unitig_id)
-{
-    string line;
-    if (std::getline(input, line))
-    {
-        unitig_id = stoull(line);
-    }
-    else
-        return false;
-    if (std::getline(input, link))
-    {
-    }
-    else
-        return false;
-    return true;
-}
-
 /*
  * takes all the prefix.links.* files, sorted by unitigs.
  * do a n-way merge to gather the links for each unitig in unitig order
  * (single-threaded)
  */
-void write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out, uint64_t &nb_unitigs)
+
+
+static void write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out, uint64_t &nb_unitigs)
 {
     logging("gathering links from disk");
     std::ifstream* inputLinks[nb_passes];
@@ -195,6 +148,58 @@ void write_final_output(const string& unitigs_filename, bool verbose, BankFasta*
         delete inputLinks[pass];
     }
 }
+
+
+// well well, some potential code duplication with Model.hpp in here (or rather, specialization), but sshh
+static inline int nt2int(char nt)
+{
+    if (nt=='A') return 0;
+    if (nt=='C') return 1;
+    if (nt=='T') return 2;
+    if (nt=='G') return 3;
+    return 0;
+}
+
+/* that code doesn't support more than 8 passes*/
+static int normalized_smallmer(const unsigned char c1, const unsigned char c2, const unsigned char c3, const unsigned char c4)
+{
+    unsigned char smallmer = (nt2int(c1)<<6) + (nt2int(c2)<<4) + (nt2int(c3)<<2) + nt2int(c4);
+    const unsigned char rev = revcomp_4NT[smallmer];
+    if (rev < smallmer)
+        smallmer = rev;
+    return smallmer;
+}
+
+static bool
+is_in_pass (const std::string &seq, int pass, Unitig_pos p, int kmerSize) // TODO this is so un-even. should do more proper hashing..
+{
+    int e = 0;
+    if (p == UNITIG_END)
+        e = seq.size()-(kmerSize-1);
+    // x = 0123456789
+    // k = 5, k-1=4
+    // seq.size()-1-(k-1) = 10-4 = 6
+    return (normalized_smallmer(seq[e],seq[e+1],seq[e+kmerSize-1-1-1],seq[e+kmerSize-1-1]) % nb_passes) == pass;
+}
+
+/* returns true if it has read an element, false otherwise */
+static bool get_link_from_file(std::ifstream& input, std::string &link, uint64_t &unitig_id)
+{
+    string line;
+    if (std::getline(input, line))
+    {
+        unitig_id = stoull(line);
+    }
+    else
+        return false;
+    if (std::getline(input, link))
+    {
+    }
+    else
+        return false;
+    return true;
+}
+
 
 static void record_links(uint64_t utig_id, int pass, const string &link, std::ofstream &links_file)
 {

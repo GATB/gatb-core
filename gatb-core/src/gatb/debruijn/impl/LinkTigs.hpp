@@ -41,8 +41,6 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
     template<size_t span>
     void link_unitigs_pass(const std::string unitigs_filename, bool verbose, const int pass, const int kmerSize);
     
-    void write_final_output(const std::string& unitigs_filename, bool verbose, gatb::core::bank::impl::BankFasta* out, uint64_t &nb_unitigs);
-
 }}}}
 
 #endif
