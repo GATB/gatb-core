@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <string.h>
 #include <errno.h>
-#include "../../../../../thirdparty/zlib/zlib.h" // Added by Pierre Peterlongo on 02/08/2012.
+#include "../../../../thirdparty/zlib/zlib.h" // Added by Pierre Peterlongo on 02/08/2012.
 
 using namespace std;
 using namespace gatb::core::tools::dp;

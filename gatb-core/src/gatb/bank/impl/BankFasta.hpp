@@ -27,7 +27,7 @@
 #define _GATB_CORE_BANK_IMPL_BANK_FASTA_HPP_
 
 /********************************************************************************/
-#include "../../../../../thirdparty/zlib/zlib.h"
+#include "../../../../thirdparty/zlib/zlib.h"
 
 #include <gatb/bank/impl/AbstractBank.hpp>
 
