@@ -34,7 +34,7 @@
 
 #include <string>
 #include <vector>
-#include <zlib.h>
+#include "../../../../thirdparty/zlib/zlib.h"
 
 /********************************************************************************/
 namespace gatb          {
