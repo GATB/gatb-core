@@ -33,7 +33,7 @@
 
 #include <string>
 
-#include "../../../../thirdparty/zlib/zlib.h"
+#include "../../../../../thirdparty/zlib/zlib.h"
 
 
 /********************************************************************************/
