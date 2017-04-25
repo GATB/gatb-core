@@ -601,7 +601,7 @@ struct Kmer
             /** Set the data to be iterated.
              * \param[in] d : the data as information source for the iterator
              */
-            void setData (tools::misc::Data& d)
+            void setData (tools::misc::Data& d) // TODO: should this be const? I feel like it should
             {
                 /** We fill the vector with the items to be iterated. */
                 _ref.build (d, this->_items);

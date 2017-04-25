@@ -81,7 +81,10 @@
 #include <gatb/debruijn/impl/Frontline.hpp>
 #include <gatb/debruijn/impl/IterativeExtensions.hpp>
 #include <gatb/debruijn/impl/BranchingAlgorithm.hpp>
-
+#include <gatb/debruijn/impl/LinkTigs.hpp>
+#include <gatb/debruijn/impl/ExtremityInfo.hpp>
+#include <gatb/bcalm2/bcalm_algo.hpp>
+#include <gatb/bcalm2/bglue_algo.hpp>
 
 #include <gatb/tools/compression/RangeCoder.hpp>
 #include <gatb/tools/compression/CompressionUtils.hpp>

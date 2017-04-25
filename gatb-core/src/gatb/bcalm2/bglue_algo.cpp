@@ -835,18 +835,32 @@ void bglue(Storage *storage,
         return;
 
     /* now we're mirroring the UF to a vector of uint32_t's, it will take less space, and strictly same information
-     * this is to get rid of the rank (one uint32) per element in the current UF implementation */
-    // could dump to disk if we wanted to save mem
-    std::vector<uint32_t > ufkmers_vector(nb_uf_keys);
-    for (unsigned long i = 0; i < nb_uf_keys; i++)
-        ufkmers_vector[i] = ufkmers.find(i);
+     * this is to get rid of the rank (one uint32) per element in the current UF implementation 
+     * we're using the disk to save space of populating one vector from the other in memory. */
+    
+    BagFile<uint64_t> *ufkmers_bagf = new BagFile<uint64_t>(prefix+".glue.uf");  LOCAL(ufkmers_bagf);
+	BagCache<uint64_t> *ufkmers_bag = new BagCache<uint64_t>(  ufkmers_bagf, 10000 );   LOCAL(ufkmers_bag);
 
-    logging("UF to vector (" + to_string(nb_uf_keys*sizeof(uint32_t)/1024/1024) + " MB) done");
-   
+    for (unsigned long i = 0; i < nb_uf_keys; i++)
+        //ufkmers_vector[i] = ufkmers.find(i); // just in-memory without the disk
+        ufkmers_bag->insert(ufkmers.find(i));
+
     uint64_t size_mdata = sizeof(std::atomic<uint64_t>) * ufkmers.mData.size();
     free_memory_vector(ufkmers.mData);
 
     logging("freed original UF (" + to_string(size_mdata/1024/1024) + " MB)");
+
+    ufkmers_bag->flush();
+
+    std::vector<uint32_t > ufkmers_vector(nb_uf_keys);
+    IteratorFile<uint64_t> ufkmers_file(prefix+".glue.uf");
+    for (ufkmers_file.first(); !ufkmers_file.isDone(); ufkmers_file.next())
+            ufkmers_vector.push_back(ufkmers_file.item());
+
+    System::file().remove (prefix+".glue.uf");
+    
+    logging("loaded 32-bit UF (" + to_string(nb_uf_keys*sizeof(uint32_t)/1024/1024) + " MB)");
+  
 
 
     // setup output file
