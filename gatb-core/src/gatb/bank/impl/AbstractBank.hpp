@@ -50,7 +50,7 @@ class AbstractBank : public IBank, public system::SmartPointer
 public:
 
     /** Constructor. */
-    AbstractBank () : _estimateThreshold(5000) {}
+    AbstractBank () : _estimateThreshold(50000) {}
 
 	
 	std::string getIdNb (int i)  { return std::string("not_a_compo_bank"); }
