@@ -854,15 +854,14 @@ void bglue(Storage *storage,
 
     std::vector<uint32_t > ufkmers_vector(nb_uf_keys);
     IteratorFile<uint64_t> ufkmers_file(prefix+".glue.uf");
+    unsigned long i = 0;
     for (ufkmers_file.first(); !ufkmers_file.isDone(); ufkmers_file.next())
-            ufkmers_vector.push_back(ufkmers_file.item());
+            ufkmers_vector[i++] = ufkmers_file.item();
 
     System::file().remove (prefix+".glue.uf");
     
     logging("loaded 32-bit UF (" + to_string(nb_uf_keys*sizeof(uint32_t)/1024/1024) + " MB)");
   
-
-
     // setup output file
     string output_prefix = prefix;
     std::atomic<unsigned long> out_id; // identified for output sequences
