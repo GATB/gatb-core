@@ -99,6 +99,8 @@ class Leon : public misc::impl::Tool
 		static const char* STR_NOHEADER;
 		static const char* STR_NOQUAL;
 		static const char* STR_INIT_ITER;
+		static const char* STR_PRINT_META;
+
 
 	static const char* STR_DATA_INFO;
 
@@ -339,7 +341,8 @@ class Leon : public misc::impl::Tool
 		
 		//Global decompression
 		void endDecompression();
-		
+	void printMetaInfo();
+	
 		//IFile* _outputFile;
 	
 	void startDecompression_setup();
