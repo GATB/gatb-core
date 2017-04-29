@@ -529,9 +529,11 @@ void bcalm2(Storage *storage,
         ThreadPool pool_sort(nb_threads);
         for (int thread = 0; thread < nb_threads; thread++)
         {
-            // todo check si  les minimiseurs sont pas deja quasiment triés dans un sens ou un autre, ca faciliterait le tri ici
-            auto sort_bucket = [&flat_bucket_queues, thread] (int thread_id) 
-            {std::sort(flat_bucket_queues[thread].begin(), flat_bucket_queues[thread].end(), [] (const tuple_t &a, const tuple_t &b) -> bool { return get<0>(a) < get<0>(b); });};
+            auto sort_cmp = [] (tuple_t const &a, tuple_t const &b) -> bool { return get<0>(a) < get<0>(b); };
+
+	    // todo check si  les minimiseurs sont pas deja quasiment triés dans un sens ou un autre, ca faciliterait le tri ici
+            auto sort_bucket = [&sort_cmp, &flat_bucket_queues, thread] (int thread_id) 
+            {std::sort(flat_bucket_queues[thread].begin(), flat_bucket_queues[thread].end(), sort_cmp);};
 
             if (nb_threads > 1)
                 pool_sort.enqueue(sort_bucket);
