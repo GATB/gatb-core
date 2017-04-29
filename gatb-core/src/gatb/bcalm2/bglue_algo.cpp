@@ -685,16 +685,21 @@ void bglue(Storage *storage,
     ifstream f((prefix + ".glue").c_str());
     if (f.peek() == std::ifstream::traits_type::eof())
     {
-        std::cout << "Empty glue file (no unitigs), abort." << std::endl;
-        exit(1);
+        std::cout << "Empty glue file (no sequences)." << std::endl;
+        return;
     }
 
     IBank *in = Bank::open (prefix + ".glue");
     LOCAL(in);
     
-    Group& bcalmGroup = storage->getGroup("bcalm");
+    uint64_t nb_glue_sequences = 0;
     
-    uint64_t nb_glue_sequences = atol(bcalmGroup.getProperty ("nb_sequences_in_glue").c_str());
+    if (storage != nullptr)
+    {
+        Group& bcalmGroup = storage->getGroup("bcalm"); 
+        nb_glue_sequences = atol(bcalmGroup.getProperty ("nb_sequences_in_glue").c_str());
+    }
+
     if (nb_glue_sequences == 0)
     {
         uint64_t estimated_nb_glue_sequences = in->estimateNbItems();
@@ -1130,7 +1135,12 @@ void bglue(Storage *storage,
     }
     auto end_t=chrono::system_clock::now();
     float wtime = chrono::duration_cast<chrono::nanoseconds>(end_t - start_t).count() / unit;
-    bcalmGroup.setProperty ("wtime_glue",     Stringify::format("%f", wtime));
+
+    if (storage != nullptr)
+    {
+        Group& bcalmGroup = storage->getGroup("bcalm"); 
+        bcalmGroup.setProperty ("wtime_glue",     Stringify::format("%f", wtime));
+    }
 }
 
 }}}}
