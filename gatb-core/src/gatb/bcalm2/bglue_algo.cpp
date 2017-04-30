@@ -240,16 +240,19 @@ static uint32_t no_rev_index(uint32_t index)
 //typedef lazy::memory::buffer_allocator<markedSeq> custom_allocator_t;
 //typedef std::allocator<markedSeq> custom_allocator_t;
 
+/* input: markedSequences, list of sequences in a partition
+ * output: res, a list of lists of sequences that will be glued together
+ */
 template<int SPAN>
-static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize)
+static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize, bool debug=false)
 {
     typedef typename Kmer<SPAN>::Type Type;
-    bool debug = false;
-    unordered_map<Type, set<uint32_t> > kmerIndex; // TODO mem opt: take inspiration from UnitigsConstructionAlgorithm to do a unordered_map<Type, ..> rather!! will save memory here i'm sure.
+    unordered_map<Type, set<uint32_t> > kmerIndex;
     set<uint32_t> usedSeq;
     unsigned int nb_chained = 0;
 
     // index kmers to their seq
+    // kmerIndex associates a kmer extremity to its index in markedSequences
     for (uint32_t i = 0; i < markedSequences.size(); i++)
     {
         kmerIndex[markedSequences[i].ks].insert(i);
@@ -322,6 +325,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
     };
 
+    // iterated markedSequences, and picks extremities of a chain
     for (unsigned int i = 0; i < markedSequences.size(); i++)
     {
         markedSeq<SPAN> current = markedSequences[i];
@@ -1058,17 +1062,19 @@ void bglue(Storage *storage,
 
                 markedSeq<SPAN> ms(seq_index, lmark, rmark, kmmerBegin.value(), kmmerEnd.value());
 
+                //if (ufclass == 2818) std::cout << " ufclass " << ufclass << " seq " << seq << " seq index " << seq_index << " " << lmark << rmark << " ks " << kmmerBegin.value() << " ke " << kmmerEnd.value() << std::endl; // debug specific partition
                 msInPart[ufclass].push_back(ms);
                 seq_index++;
             }
 
-            // now iterates all sequences in a partition to glue them in clever order (avoid intermediate gluing)
+            // now iterates all sequences in a partition to determine the order in which they're going to be glues (avoid intermediate gluing)
             vector<vector<uint32_t>> ordered_sequences_idxs ;
             for (auto it = msInPart.begin(); it != msInPart.end(); it++)
             {
+                bool debug = false; //debug = it->first == 2818; // debug specific partition
                 //std::cout << "1.processing partition " << it->first << std::endl;
-                determine_order_sequences<SPAN>(ordered_sequences_idxs, it->second, kmerSize); // return indices of markedSeq's inside it->second
-                //std::cout << "2.processing partition " << it->first << " nb ordered sequences: " << ordered_sequences.size() << std::endl;
+                determine_order_sequences<SPAN>(ordered_sequences_idxs, it->second, kmerSize, debug); // return indices of markedSeq's inside it->second
+                //std::cout << "2.processing partition " << it->first << " nb ordered sequences: " << ordered_sequences_idxs.size() << std::endl;
                 free_memory_vector(it->second);
             }
 

@@ -42,6 +42,10 @@ namespace impl      {
             if ((int)pos > 2) { std::cout << "incorrect encoding for pos in packed ExtremityInfo: " << (int)pos << std::endl; exit(1); }
             return (pos-1) + (rc << 1) + (unitig << 2);
         }
+        uint64_t pack_norc() // possibly used in "merci.cpp"
+        {
+            return (pos-1) + ( 0 << 1) + (unitig << 2);
+        }
         void unpack(uint64_t val)
         {
             
