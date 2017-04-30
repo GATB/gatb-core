@@ -1062,7 +1062,7 @@ void bglue(Storage *storage,
 
                 markedSeq<SPAN> ms(seq_index, lmark, rmark, kmmerBegin.value(), kmmerEnd.value());
 
-                //if (ufclass == 2818) std::cout << " ufclass " << ufclass << " seq " << seq << " seq index " << seq_index << " " << lmark << rmark << " ks " << kmmerBegin.value() << " ke " << kmmerEnd.value() << std::endl; // debug specific partition
+                //if (ufclass == 38145) std::cout << " ufclass " << ufclass << " seq " << seq << " seq index " << seq_index << " " << lmark << rmark << " ks " << kmmerBegin.value() << " ke " << kmmerEnd.value() << std::endl; // debug specific partition
                 msInPart[ufclass].push_back(ms);
                 seq_index++;
             }
@@ -1071,7 +1071,7 @@ void bglue(Storage *storage,
             vector<vector<uint32_t>> ordered_sequences_idxs ;
             for (auto it = msInPart.begin(); it != msInPart.end(); it++)
             {
-                bool debug = false; //debug = it->first == 2818; // debug specific partition
+                bool debug = false; //debug = it->first == 38145; // debug specific partition
                 //std::cout << "1.processing partition " << it->first << std::endl;
                 determine_order_sequences<SPAN>(ordered_sequences_idxs, it->second, kmerSize, debug); // return indices of markedSeq's inside it->second
                 //std::cout << "2.processing partition " << it->first << " nb ordered sequences: " << ordered_sequences_idxs.size() << std::endl;
