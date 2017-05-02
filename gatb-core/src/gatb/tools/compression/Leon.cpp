@@ -319,12 +319,17 @@ void Leon::createBloom (){
     //cout << "ESTIMATED:" << estimatedBloomSize << endl;
     //_bloomSize = estimatedBloomSize;
 	
-	if(_auto_cutoff)
-		cout << "Abundance threshold: " << _auto_cutoff << " (auto)    (nb solid kmers: " << nbs << ")"<< endl;
-		//printf("\tauto cutoff: %i   (total solids %lli)\n",_auto_cutoff,nbs);
-	else
-		cout << "Abundance threshold: " << _nks << "    (nb solid kmers: " << nbs << ")"<< endl;
-	
+    if(_auto_cutoff){
+		    getInfo()->add (0, "Abundance threshold");
+        getInfo()->add (1, "cut-off (auto)", "%d", _auto_cutoff);
+        getInfo()->add (1, "nb solid kmers", "%d", nbs);
+    }
+    else{
+        getInfo()->add (0, "Abundance threshold");
+        getInfo()->add (1, "cut-off", "%d", _nks);
+        getInfo()->add (1, "nb solid kmers", "%d", nbs);
+    }
+    	
 	//modif ici pour virer les kmers < auto cutoff
     BloomBuilder<> builder (estimatedBloomSize, 7,_kmerSize,tools::misc::BLOOM_NEIGHBOR,getInput()->getInt(STR_NB_CORES),_auto_cutoff);
     _bloom = builder.build (itKmers); // BLOOM_NEIGHBOR // BLOOM_CACHE
@@ -396,15 +401,15 @@ void Leon::executeCompression(){
 	
       if(_inputFilename.find(".fq") !=  string::npos || _inputFilename.find(".fastq") !=  string::npos)
 	{
-		cout << "\tInput format: Fastq";
+		getInfo()->add (0, "Input format: FastQ");
 		
 		if(! getParser()->saw (Leon::STR_DNA_ONLY) && ! getParser()->saw (Leon::STR_NOQUAL))
 		{
 			
 			if (_lossless)
-				cout << ", compressing qualities in lossless mode" << endl;
-			else
-				cout << ", compressing qualities in lossy mode (use -lossless for lossless compression)"<< endl;
+          getInfo()->add (0, "Quality compression: LOSSLESS mode");
+       else
+          getInfo()->add (0, "Quality compression: lossy mode (use '-lossless' for lossless compression)");
 			
 			_isFasta = false;
 			
@@ -414,16 +419,14 @@ void Leon::executeCompression(){
 	}
 	//attentio a l ordre, ".fa" est aussi present dans .fastq
 	else if (_inputFilename.find(".fa") !=  string::npos || _inputFilename.find(".fasta") !=  string::npos) {
-		//#ifdef PRINT_DEBUG
-		cout << "\tInput format: Fasta" << endl;
-		//#endif
+		getInfo()->add (0, "Input format: FastA");
 		infoByte |= 0x01;
 		_isFasta = true;
 		
 	}
 	else
 	{
-		cout << "\tUnknown input extension. Input extension must be one among fasta (.fa, .fasta) or fastq (.fq, .fastq)" << endl;
+		getInfo()->add (0, "Input format: unknown. Input extension must be one among fasta (.fa, .fasta) or fastq (.fq, .fastq)");
 		return;
 	}
 	
@@ -721,56 +724,47 @@ void Leon::endCompression(){
 //	_outputFile->flush();
 	
 	u_int64_t inputFileSize = System::file().getSize(_inputFilename.c_str());
-	cout << "End compression" << endl;
+    getInfo()->add(0, "End compression");
+    getInfo()->add(1, "Input file");
+    getInfo()->add(2, "name", "%s", _inputFilename.c_str());
+    getInfo()->add(2, "size", "%d bytes (%ld Mb)", inputFileSize, inputFileSize/1024LL/1024LL);
 	
-	cout << "\tInput: " << endl;
-	cout << "\t\tFilename: " << _inputFilename << endl;
-	cout << "\t\tSize: " << inputFileSize <<  "  (" <<  inputFileSize/1024LL/1024LL  << " MB)"<< endl;
+	u_int64_t outputFileSize = System::file().getSize(_outputFilename.c_str());
 	
-	u_int64_t outputFileSize = System::file().getSize(_outputFilename);
+    getInfo()->add(1, "Output file");
+	getInfo()->add(2, "name", "%s", _outputFilename.c_str());
+    getInfo()->add(2, "size", "%d bytes (%ld Mb)", outputFileSize, outputFileSize/1024LL/1024LL);
 	
-	//if(! _isFasta)
-	//{
-	//	outputFileSize += System::file().getSize(_FileQualname) ;
-	//}
-	
-	cout << "\tOutput: " << endl;
-	cout << "\t\tFilename: " << _outputFilename << endl;
-//	if(! _isFasta)
-//		cout << "\t\tqualities in : " << _FileQualname << endl;
-	
-	cout << "\t\tTotal Size: " << outputFileSize <<  "  (" <<  outputFileSize/1024LL/1024LL  << " MB)"<< endl;
-	std::cout.precision(4);
-	cout << "\tOverall Compression rate: " << (float)((double)outputFileSize / (double)inputFileSize) << " (" << (float)((double)inputFileSize / (double)outputFileSize ) << ")"<< endl;
+    getInfo()->add(1, "Compression");
+    gettimeofday(&_tim, NULL);
+    _wfin_leon  = _tim.tv_sec +(_tim.tv_usec/1000000.0);
+    
+    getInfo()->add(2, "Time:",  "%.2f seconds", (  _wfin_leon - _wdebut_leon) );
+    getInfo()->add(2, "Speed:",  "%.2f Mb/seconds", (System::file().getSize(_inputFilename)/1000000.0) / (  _wfin_leon - _wdebut_leon) );
+    getInfo()->add(2, "Rates");
+    getInfo()->add(3, "overall", "%.4f (%.4f)",
+                   (float)((double)outputFileSize / (double)inputFileSize),
+                   (float)((double)inputFileSize / (double)outputFileSize ));
 	if(! _noHeader)
 	{
-		cout << "\t\tHeader: " << (float)_headerCompRate << " (" << (float) (1/_headerCompRate) << ")" << endl;
+        getInfo()->add(3, "header only", "%.4f (%.4f)",
+                       (float)_headerCompRate,
+                       (float) ((double)1/_headerCompRate));
 	}
 	else
 	{
-		cout << "\t\tHeader completely discarded, in '-seq-only' mode "  << endl;
+		getInfo()->add(3, "header completely discarded in '-seq-only' mode");
 	}
-	cout << "\t\tDna: " << (float)_dnaCompRate << " (" << (float)(1/_dnaCompRate) << ")" << endl ;
-	if( _isFasta) cout << endl;
-	else
+    getInfo()->add(3, "Sequence only", "%.4f (%.4f)",
+                   (float)_dnaCompRate,
+                   (float)((double)1/_dnaCompRate));
+	if( ! _isFasta)
 	{
-		cout << "\t\tQual: " << (float)_qualCompRate ;
-	
-		if(_lossless)
-			cout << " (in lossless mode) " << endl  << endl;
-		else
-			cout << " (in lossy mode) " << endl  << endl;
+        getInfo()->add(3, "Quality only", "%.4f (%.4f) [%s mode]",
+                       (float)_qualCompRate,
+                       (float)((double)1/_qualCompRate),
+                       _lossless?"lossless":"lossy");
 	}
-
-	
-	
-	
-	gettimeofday(&_tim, NULL);
-	_wfin_leon  = _tim.tv_sec +(_tim.tv_usec/1000000.0);
-	std::cout.precision(2);
-	printf("\tTime: %.2fs\n", (  _wfin_leon - _wdebut_leon) );
-	printf("\tSpeed: %.2f mo/s\n", (System::file().getSize(_inputFilename)/1000000.0) / (  _wfin_leon - _wdebut_leon) );
-
 	
 	delete  _groupLeon;
 	delete  _subgroupInfo;
@@ -886,7 +880,8 @@ void Leon::endHeaderCompression(){
 
 	createDataset(_subgroupHeader,"nb_blocks",_blockSizes.size());
 
-	printf("nb blocks header %i \n",_blockSizes.size());
+	getInfo()->add(0, "End Header compression");
+  getInfo()->add(1, "# blocks", "%i", _blockSizes.size());
 	tools::storage::impl::Storage::ostream os (*_subgroupHeader, "blocksizes");
 	os.write (reinterpret_cast<char const*>(_blockSizes.data()), _blockSizes.size()*sizeof(u_int64_t));
 	os.flush();
@@ -895,20 +890,13 @@ void Leon::endHeaderCompression(){
 		
 	_headerCompRate = ((double)_compressedSize / _totalHeaderSize);
 	
-	//#ifdef PRINT_DEBUG
-	cout << "\tEnd header compression" << endl;
 	//cout << "\t\tData blocks count: " << _blockSizes.size() << endl;
 	//cout << "\tBlock data size: " << _rangeEncoder.getBufferSize() << endl;
-	cout << "\t\tHeaders size: " << _totalHeaderSize << endl;
-	cout << "\t\tHeaders compressed size: " << _compressedSize << endl;
-	std::cout.precision(4);
-	cout << "\t\tCompression rate: " << (float)(_headerCompRate) << endl;
-		
-
-	//#endif
+  getInfo()->add(1, "headers size", "%u", _totalHeaderSize);
+  getInfo()->add(1, "headers compressed size", "%u", _compressedSize);
+  getInfo()->add(1, "compression rate", "%.4f", (float)(_headerCompRate));
 	//_rangeEncoder.clear();
 	_blockSizes.clear();
-	//printf("end endHeaderCompression \n");
 }
 
 
@@ -979,8 +967,8 @@ void Leon::endDnaCompression(){
 	
 	createDataset(_subgroupDNA,"nb_blocks",_blockSizes.size());
 	
-	
-	printf("nb blokcs %i \n",_blockSizes.size());
+  getInfo()->add(0, "End Sequence compression");
+  getInfo()->add(1, "# blocks", "%u", _blockSizes.size());
 	tools::storage::impl::Storage::ostream os (*_subgroupDNA, "blocksizes");
 	os.write (reinterpret_cast<char const*>(_blockSizes.data()), _blockSizes.size()*sizeof(u_int64_t));
 	os.flush();
@@ -992,65 +980,39 @@ void Leon::endDnaCompression(){
 	
 	_dnaCompRate = ((double)_compressedSize / _totalDnaSize);
 	
-	//#ifdef PRINT_DEBUG
-	//	cout << endl;
-	//	cout << endl;
-	cout << "\tEnd reads compression" << endl;
-	cout << "\t\tReads count: " << _readCount << endl;
-	cout << "\t\tReads size: " << _totalDnaSize << endl;
-	
+  getInfo()->add(1, "# sequences", "%u", _readCount);
+  getInfo()->add(1, "# nucleotides", "%u", _totalDnaSize);
 
 	createDataset(_subgroupInfo,"readcount",_readCount);
 	createDataset(_subgroupInfo,"totalDnaSize",_totalDnaSize);
 	createDataset(_subgroupInfo,"minSequenceSize",_minSequenceSize);
 	createDataset(_subgroupInfo,"maxSequenceSize",_maxSequenceSize);
 	
-	
-	
-	std::cout.precision(4);
-	cout << "\t\tCompression rate: " << (float)_dnaCompRate << "  (" << _compressedSize << ")"<< endl;
-	std::cout.precision(2);
-	cout << "\t\t\tBloom: " << ((_bloom->getSize()*100) / (double)_compressedSize) << "  (" << _bloom->getSize() << ")"<< endl;
-	cout << "\t\t\tAnchors dict: " << ((_anchorDictSize*100) / (double)_compressedSize) << "  (" << _anchorDictSize << ")    (" << _anchorAdress << " entries)" << endl;
-	u_int64_t readsSize = _anchorAdressSize+_anchorPosSize+_readSizeSize+_bifurcationSize+_otherSize;
-	cout << "\t\t\tReads: " << ((readsSize*100) / (double)_compressedSize) << "  (" << readsSize<< ")"<< endl;
-	cout << "\t\t\t\tAnchor adress: " << ((_anchorAdressSize*100) / (double)_compressedSize) << "  (" << _anchorAdressSize << ")" << endl;
-	cout << "\t\t\t\tAnchor pos: " << ((_anchorPosSize*100) / (double)_compressedSize) << "  (" << _anchorPosSize << ") "<< endl;
-	cout << "\t\t\t\tRead size: " << ((_readSizeSize*100) / (double)_compressedSize) << "  (" << _readSizeSize << ")"<< endl;
-	cout << "\t\t\t\tBifurcation: " << ((_bifurcationSize*100) / (double)_compressedSize) << "  (" << _bifurcationSize << ")"<< endl;
-	cout << "\t\t\t\tOther (N, error, infoBits): " << ((_otherSize*100) / (double)_compressedSize) << "  (" << _otherSize << ")"<< endl;
-	cout << "\t\t\tRead without anchor: " << ((_noAnchorSize*100) / (double)_compressedSize) << "  (" << _noAnchorSize << ")"<< endl;
-		
-		
-		
-	//cout << "\t\tReads stats" << endl;
-	//cout << System::file().getBaseName(getInput()->getStr(STR_URI_FILE)) << endl;
-	if(_anchorAdress!=0)
-		cout << "\t\tReads per anchor: " << _readCount / _anchorAdress << endl;
-	//cout << "\tBit per anchor: " << log2(_anchorKmerCount) << endl;
-	//cout << "\tAnchor count: " << _anchorKmerCount << endl;
-	//cout << endl;
-	cout << "\t\tRead without anchor: " << ((double)_readWithoutAnchorCount*100) / _readCount << endl;
-	cout << "\t\tDe Bruijn graph" << endl;
-	
-	//cout << "\t\t\t\tTotal encoded nt: " << _MCtotal << endl;
-	//cout << "\t\t\t\tTotal _MCmultipleNoSolid nt: " << _MCmultipleNoSolid << endl;
+  getInfo()->add(1, "Compression rates");
+  getInfo()->add(2, "overall", "%.4f (%u)", (float)_dnaCompRate, _compressedSize);
 
-	cout << "\t\t\tSimple path: " << ((_MCuniqSolid*100)/ (double)_MCtotal) << endl;
-	cout << "\t\t\tBifurcation: " << ((_MCmultipleSolid*100)/(double)_MCtotal) << endl;
-	cout << "\t\t\tBreak: " << ((_MCnoAternative*100)/(double)_MCtotal) << endl;
-	cout << "\t\t\tError: " << ((_MCuniqNoSolid*100)/(double)_MCtotal) << endl;
-	//cout << "\t\t\tOther: " << ((_MCmultipleNoSolid*100)/(double)_MCtotal) << endl;
+  getInfo()->add(2, "Bloom", "%.2f (%u)", ((_bloom->getSize()*100) / (double)_compressedSize), _bloom->getSize());
+  getInfo()->add(2, "Anchors dict", "%.2f (%u) (%u entries)", ((_anchorDictSize*100) / (double)_compressedSize), _anchorDictSize, _anchorAdress);
+
+  u_int64_t readsSize = _anchorAdressSize+_anchorPosSize+_readSizeSize+_bifurcationSize+_otherSize;
+  getInfo()->add(2, "Reads", "%.2f (%u)", ((readsSize*100) / (double)_compressedSize), readsSize);
+  getInfo()->add(3, "Anchor adress", "%.2f (%u)", ((_anchorAdressSize*100) / (double)_compressedSize), _anchorAdressSize);
+  getInfo()->add(3, "Anchor pos", "%.2f (%u)", ((_anchorPosSize*100) / (double)_compressedSize), _anchorPosSize);
+  getInfo()->add(3, "Read size", "%.2f (%u)", ((_readSizeSize*100) / (double)_compressedSize), _readSizeSize);
+  getInfo()->add(3, "Bifurcation", "%.2f (%u)", ((_bifurcationSize*100) / (double)_compressedSize), _bifurcationSize);
+  getInfo()->add(3, "Other (N, error, infoBits)", "%.2f (%u)", ((_otherSize*100) / (double)_compressedSize), _otherSize);
+  getInfo()->add(2, "Read without anchor", "%.2f (%u)", ((_noAnchorSize*100) / (double)_compressedSize), _noAnchorSize);
+  
+  if(_anchorAdress!=0){
+  getInfo()->add(1, "Reads per anchor", "%u",  _readCount / _anchorAdress);
+  }
+  getInfo()->add(1, "Read without anchor", "%.2f", ((double)_readWithoutAnchorCount*100) / _readCount);
+  getInfo()->add(1, "De Bruijn graph");
 	
-	//cout << "\t\tWith N: " << (_noAnchor_with_N_kmer_count*100) / _readWithoutAnchorCount << "%" << endl;
-	//cout << "\t\tFull N: " << (_noAnchor_full_N_kmer_count*100) / _readWithoutAnchorCount << "%" << endl;
-	//cout << "\tAnchor hash size: " << _anchorKmerCount*(sizeof(kmer_type)+sizeof(int)) << endl;
-	//cout << "Total kmer: " <<  _leon->_total_kmer << endl;
-	//cout << "Kmer in bloom:  " << (_leon->_total_kmer_indexed*100) / _leon->_total_kmer << "%" << endl;
-	//cout << "Uniq mutated kmer: " << (_leon->_uniq_mutated_kmer*100) / _leon->_total_kmer << "%" << endl;
-	//cout << "anchor Hash:   memory_usage: " << _anchorKmers.memory_usage() << "    memory_needed: " << _anchorKmers.size_entry ()*_anchorKmerCount << " (" << (_anchorKmers.size_entry ()*_leon->_anchorKmerCount*100) / _anchorKmers.memory_usage() << "%)" << endl;
-	//cout << endl;
-	//#endif
+	getInfo()->add(2, "Simple path", "%.2f", ((_MCuniqSolid*100)/ (double)_MCtotal));
+	getInfo()->add(2, "Bifurcation", "%.2f", ((_MCmultipleSolid*100)/(double)_MCtotal));
+	getInfo()->add(2, "Break", "%.2f", ((_MCnoAternative*100)/(double)_MCtotal));
+	getInfo()->add(2, "Error", "%.2f", ((_MCuniqNoSolid*100)/(double)_MCtotal));
 	
 
 	delete _anchorKmers;
@@ -1450,26 +1412,31 @@ void Leon::executeDecompression(){
 	//	cout << "\tQual filename: " << _FileQualname << endl;
 	}
 	
-	
+  if(!_iterator_mode){
+    getInfo()->add(0, "Decompression");
+    getInfo()->add(1, "Input filename", "%s", _inputFilename.c_str());
+  }
+
 	if(_noHeader)
 	{
 		if(!_iterator_mode)
-		cout << "Headers were not stored, will number reads \n" << endl;
+        getInfo()->add(1, "Headers were not stored, will number reads.");
 	}
 	
 	if(_isFasta){
 		if(!_iterator_mode)
-		cout << "\tOutput format: Fasta" << endl;
+        getInfo()->add(1, "Output format", "FastA");
 		_outputFilename += ".fasta.d";
 	}
 	else{
 		if(!_iterator_mode)
-		cout << "\tOutput format: Fastq" << endl;
+        getInfo()->add(1, "Output format", "FastQ");
 		_outputFilename += ".fastq.d";
 	}
 	
 	if(!_iterator_mode)
 		_outputFile = System::file().newFile(_outputFilename, "wb");
+	
 	
 	//Get kmer size
 	//_kmerSize = CompressionUtils::decodeNumeric(_rangeDecoder, _numericModel);
@@ -1479,14 +1446,13 @@ void Leon::executeDecompression(){
 	
 	if(!_iterator_mode)
 	{
-	cout << "\tKmer size: " << _kmerSize << endl;
-	cout << endl;
+  	getInfo()->add(1, "Kmer size", "%i", _kmerSize);
 	}
 
 	std::string  leonversion =  _subgroupInfoCollection->getProperty ("version");
 
 	if(!_iterator_mode)
-	cout << "\tInput File was compressed with leon version " << leonversion  << endl;
+	  getInfo()->add(1, "Input File compressed with Leon", "%s", leonversion.c_str());
 
 	//cout << "\tInput File was compressed with leon version " << version_major << "."  << version_minor << "."  << version_patch  << endl;
 	
@@ -1729,7 +1695,7 @@ void Leon::startDecompressionAllStreams(){
 	}
 	
 	
-	cout << "\tBlock count: " << _blockCount/2 << endl;
+	getInfo()->add(1, "Block count", "%u", _blockCount/2);
 
 
 //	delete _progress_decode;
@@ -2043,19 +2009,19 @@ kmer_type Leon::getAnchor(ifstream* anchorDictFile, u_int32_t adress){
 
 void Leon::endDecompression(){
 	
-	cout << "\tOutput filename: " << _outputFile->getPath() << endl;
+	getInfo()->add(1, "Output filename", "%s", _outputFile->getPath().c_str());
 
 	gettimeofday(&_tim, NULL);
 	_wfin_leon  = _tim.tv_sec +(_tim.tv_usec/1000000.0);
 	
-	printf("\tTime: %.2fs\n", (  _wfin_leon - _wdebut_leon) );
-	printf("\tSpeed: %.2f mo/s\n", (System::file().getSize(_outputFilename)/1000000.0) / (  _wfin_leon - _wdebut_leon) );
+	getInfo()->add(1, "Time", "%.2f seconds", (  _wfin_leon - _wdebut_leon) );
+	getInfo()->add(1, "Speed", "%.2f Mo/seconds", (System::file().getSize(_outputFilename)/1000000.0) / (  _wfin_leon - _wdebut_leon) );
 	
 	
 	//Test decompressed file against original reads file (decompressed and original read file must be in the same dir)
 	if(getParser()->saw (Leon::STR_TEST_DECOMPRESSED_FILE)){
 		
-		cout << endl << "\tChecking decompressed file" << endl;
+		getInfo()->add(1, "Checking decompressed file");
 		
 		string dir = System::file().getDirectory(_inputFilename);
 
@@ -2078,8 +2044,8 @@ void Leon::endDecompression(){
 			originalFilename = dir + "/" + prefix + ".fastq";
 		
 		
-		cout << "\t\tOriginal file: " << originalFilename << endl;
-		cout << "\t\tNew file: " << _outputFile->getPath() << endl;
+		getInfo()->add(2, "Original file", "%s", originalFilename.c_str());
+		getInfo()->add(2, "New file", "%s",  _outputFile->getPath().c_str());
 		
 		originalBank = Bank::open(originalFilename);
 		originalBankIt = originalBank->iterator();
@@ -2093,16 +2059,16 @@ void Leon::endDecompression(){
 		while(true){
 			if(newBankIt->isDone()){
 				if(originalBankIt->isDone())
-					cout << "\tOK" << endl;
+					getInfo()->add(1, "OK");
 				else
-					cout << "\tDecompressed file end but not the original file" << endl;
+					getInfo()->add(1, "Decompressed file end but not the original file");
 				break;
 			}
 			if(originalBankIt->isDone()){
 				if(newBankIt->isDone())
-					cout << "\tOK" << endl;
+					getInfo()->add(1, "OK");
 				else
-					cout << "\tOriginal file end but not the decomrpessed file" << endl;
+					getInfo()->add(1, "Original file end but not the decomrpessed file");
 				break;
 			}
 			
@@ -2114,16 +2080,16 @@ void Leon::endDecompression(){
 			string newDna = (string((*newBankIt)->getDataBuffer())).substr(0, (*newBankIt)->getDataSize());
 			
 			if(originalHeader != newHeader){
-				cout << "\tSeq " << (*newBankIt)->getIndex() << "    Header different" << endl;
-				cout << "\t\t" << originalHeader << endl;
-				cout << "\t\t" << newHeader << endl;
+				getInfo()->add(1, "Sequence with a different header", "%i", (*newBankIt)->getIndex());
+                getInfo()->add(2, "original", "%s", originalHeader.c_str());
+                getInfo()->add(2, "new", "%s", newHeader.c_str());
 				break;
 			}
 			
 			if(originalDna != newDna){
-				cout << "\tSeq " << (*newBankIt)->getIndex() << "    Dna different" << endl;
-				cout << "\t\t" << originalDna << endl;
-				cout << "\t\t" << newDna << endl;
+                getInfo()->add(1, "Sequence with a different DNA", "%i", (*newBankIt)->getIndex());
+                getInfo()->add(2, "original", "%s", originalDna.c_str());
+                getInfo()->add(2, "new", "%s", newDna.c_str());
 				break;
 			}
 			
