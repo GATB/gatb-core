@@ -40,7 +40,6 @@ const char* Leon::STR_NOQUAL = "-noqual";
 
 const char* Leon::STR_DATA_INFO = "Info";
 const char* Leon::STR_INIT_ITER = "-init-iterator";
-const char* Leon::STR_PRINT_META = "-print-metadata";
 
 const int Leon::nt2binTab[128] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
@@ -122,10 +121,7 @@ _progress_decode(0),_generalModel(256),_inputBank(0),_anchorDictModel(5)
     if (IOptionsParser* input = compressionParser->getParser (STR_KMER_SIZE))  {  input->setVisible (true);  }
 
     compressionParser->push_back (new OptionOneParam(STR_KMER_ABUNDANCE, "abundance threshold for solid kmers (default inferred)", false));
-	compressionParser->push_back (new OptionNoParam  (STR_INIT_ITER, "init iterator for ibank mode", false),0,false);
-	compressionParser->push_back (new OptionNoParam  (STR_PRINT_META, "print metadata of leon file", false),0,false);
-	
-	
+	compressionParser->push_back (new OptionNoParam  (STR_INIT_ITER, "init iterator for ibank mode", false));
 
 	compressionParser->push_back (new OptionNoParam (Leon::STR_DNA_ONLY, "store dna seq only, header and quals are discarded, will decompress to fasta (same as -noheader -noqual)", false));
 
@@ -178,9 +174,6 @@ void Leon::execute()
     _decompress = false;
     if(getParser()->saw (Leon::STR_COMPRESS)) _compress = true;
     if(getParser()->saw (Leon::STR_DECOMPRESS)) _decompress = true;
-	if(getParser()->saw (Leon::STR_PRINT_META)) _decompress = true;
-	
-	
 	if((_compress && _decompress) || (!_compress && !_decompress)){
 		cout << "Choose one option among -c (compress) or -d (decompress)" << endl << endl;
 		return;
@@ -225,24 +218,7 @@ void Leon::execute()
 			delete _outputFile;
 		}
 		//if(! _isFasta) delete _inputFileQual;
-		if( _bloom!=0)
-			delete _bloom;
-		
-		
-		delete  _groupLeon;
-		delete  _subgroupInfo;
-		delete _subgroupDict;
-		delete _subgroupDNA;
-		if(! _isFasta)
-			delete _subgroupQual;
-		delete _subgroupHeader;
-		
-		if(_storageH5file !=0)
-		{
-			delete _storageH5file;
-			_storageH5file =0;
-		}
-		
+		delete _bloom;
 	}
     
 }
@@ -1371,7 +1347,7 @@ void Leon::executeDecompression(){
 
 	_filePos = 0;
 	
-	if(!_iterator_mode && !getParser()->saw (Leon::STR_PRINT_META))
+	if(!_iterator_mode)
 	cout << "Start decompression" << endl;
 	_inputFilename = getInput()->getStr(STR_URI_FILE);
 	//string inputFilename = prefix + ".txt"; //".leon"
@@ -1462,15 +1438,6 @@ void Leon::executeDecompression(){
 
 	_subgroupHeader  = new tools::storage::impl::Group((*_storageH5file)().getGroup    ("leon/header"));
 
-	
-	if(getParser()->saw (Leon::STR_PRINT_META))
-	{
-	
-		printMetaInfo();
-		
-		return;
-	}
-	
 	
 	
 	//printf("info byte %i  _noHeader %i  _isFasta %i \n",infoByte,_noHeader,_isFasta);
@@ -1777,8 +1744,7 @@ void Leon::startDecompressionAllStreams(){
 
 	int i = 0;
 	int livingThreadCount = 0;
-	u_int64_t readid=0;
-
+	
 	
 	
 	while(i < _dnaBlockSizes.size()){
@@ -1828,6 +1794,7 @@ void Leon::startDecompressionAllStreams(){
 			
 			
 			
+			u_int64_t readid=0;
 			while(reading){
 				
 				stringstream sint;
@@ -1846,25 +1813,23 @@ void Leon::startDecompressionAllStreams(){
 					else
 						reading = false;
 				}
+				else
+				{
+					if(_isFasta)
+						output_buff += "> " + sint.str() + '\n';
+					else
+						output_buff += "@ " + sint.str() + '\n';
+					
+					readid++;
+				}
+				 
 				
 				
 				if(getline(*stream_dna, line)){
-					if(_noHeader)
-					{
-						if(_isFasta)
-							output_buff += "> " + sint.str() + '\n';
-						else
-							output_buff += "@ " + sint.str() + '\n';
-						
-						readid++;
-					}
-					
-					
 					output_buff +=  line + '\n';
 				}
 				else
 					reading = false;
-				
 				
 				
 				if( ! _isFasta)
@@ -2076,32 +2041,6 @@ kmer_type Leon::getAnchor(ifstream* anchorDictFile, u_int32_t adress){
 	//return _kmerModel->codeSeed(buffer, Data::ASCII);
 }
 
-
-
-void Leon::printMetaInfo()
-{
-	u_int64_t number;
-	u_int64_t totalSize;
-	int maxsizei ;
-
-	
-	readDataset(_subgroupInfo,"readcount",number);
-	readDataset(_subgroupInfo,"totalDnaSize",totalSize);
-	readDataset(_subgroupInfo,"maxSequenceSize",maxsizei);
-	
-	
-	std::string  leonversion =  _subgroupInfoCollection->getProperty ("version");
-	
-
-	printf("Input filename      : %s \n",_inputFilename.c_str());
-	printf("NB reads            : %llu \n",number);
-	printf("total DNA size      : %llu \n",totalSize);
-	printf("max read size       : %i \n",maxsizei);
-	printf("leon format version : %s\n",leonversion.c_str());
-	
-	
-}
-
 void Leon::endDecompression(){
 	
 	cout << "\tOutput filename: " << _outputFile->getPath() << endl;
@@ -2112,7 +2051,7 @@ void Leon::endDecompression(){
 	printf("\tTime: %.2fs\n", (  _wfin_leon - _wdebut_leon) );
 	printf("\tSpeed: %.2f mo/s\n", (System::file().getSize(_outputFilename)/1000000.0) / (  _wfin_leon - _wdebut_leon) );
 	
-
+	
 	//Test decompressed file against original reads file (decompressed and original read file must be in the same dir)
 	if(getParser()->saw (Leon::STR_TEST_DECOMPRESSED_FILE)){
 		
@@ -2196,8 +2135,6 @@ void Leon::endDecompression(){
 			//if(i > 20) return;
 		}
 	}
-	
-
 }
 
 
