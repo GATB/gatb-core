@@ -26,12 +26,13 @@ int main (int argc, char* argv[])
     // We declare a Bank instance.
     IBank* bank = Bank::open (filename);
     LOCAL (bank);
-
-    // IN A NEAR FUTURE, WE WILL HAVE STL LIKE ITERATORS.
-#if 0
-    for (BankFasta::iterator it = bank->begin(); it != bank->end(); ++it)
+    Iterator<Sequence>* it = bank->iterator();
+    LOCAL (it);
+    
+    // We loop over sequences.
+    for (it->first(); !it->isDone(); it->next())
     {
-        Sequence& seq = *it;
+        Sequence& seq = it->item();
 
         Data& data = seq.getData();
 
@@ -40,10 +41,9 @@ int main (int argc, char* argv[])
         if (data.size() < seqMinSize)  { seqMinSize = data.size(); }
         dataSize += data.size ();
     }
-#endif
 
-    std::cout << "data size         : " << dataSize     << std::endl;
-    std::cout << "sequence number   : " << nbSequences  << std::endl;
+    std::cout << "# letters         : " << dataSize     << std::endl;
+    std::cout << "# sequences       : " << nbSequences  << std::endl;
     std::cout << "sequence max size : " << seqMaxSize   << std::endl;
     std::cout << "sequence min size : " << seqMinSize   << std::endl;
 }
