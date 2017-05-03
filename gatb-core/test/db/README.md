@@ -17,4 +17,6 @@ This folder contains data set used by GATB-Core CPPUnit test codes.
 
     ftp://ftp-trace.ncbi.nih.gov/giab/ftp/data/AshkenazimTrio/HG002_NA24385_son/CORNELL_Oxford_Nanopore/giab.hg002.2D.fastq
 
+* Note: loading files from ftp server can be none as follows:
 
+    curl --user anonymous:YOUR-EMAIL ftp://ftp-trace.../.../NIST7035.fastq.gz -o NIST7035.fastq.gz
