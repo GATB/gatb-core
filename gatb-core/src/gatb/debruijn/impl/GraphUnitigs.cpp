@@ -620,19 +620,23 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     bool load_from_file = (system::impl::System::file().isFolderEndingWith(input,"_gatb"));
     bool load_graph = (load_from_hdf5 || load_from_file);
 
-    string unitigs_filename;
+    string unitigs_filename, prefix;
+
     if (params->get(STR_URI_OUTPUT))
-        unitigs_filename = params->getStr(STR_URI_OUTPUT);
+        prefix = params->getStr(STR_URI_OUTPUT);
+    else
     {
         if (load_from_file)
         {
             string input_modified = input;
             input_modified[input_modified.size()-6] = '.'; // replaces "_gatb" with ".gatb" for the purpose of getBaseName, to harmonize with ".h5"
-            unitigs_filename = System::file().getBaseName (input_modified) + ".unitigs.fa";
+            prefix = System::file().getBaseName (input_modified);
         }
         else
-            unitigs_filename = System::file().getBaseName (input) + ".unitigs.fa";
+            prefix = System::file().getBaseName (input) + prefix;
     }
+
+    unitigs_filename = prefix  + ".unitigs.fa";
 
     if (load_graph)
     {

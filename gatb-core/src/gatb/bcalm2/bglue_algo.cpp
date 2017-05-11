@@ -668,7 +668,7 @@ void bglue(Storage *storage,
     cout.precision(1);
 
 
-    //std::cout << "bglue_algo params, prefix:" << prefix << " k:" << kmerSize << " threads:" << nb_threads << std::endl;
+    std::cout << "bglue_algo params, prefix:" << prefix << " k:" << kmerSize << " threads:" << nb_threads << std::endl;
     bcalm_logging = verbose;
     size_t k = kmerSize;
     bool debug_uf_stats = false; // formerly cmdline parameter

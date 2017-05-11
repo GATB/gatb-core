@@ -105,9 +105,7 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     
     unsigned int nbThreads = this->getDispatcher()->getExecutionUnitsNumber();
     if ((unsigned int)nb_threads > nbThreads)
-    {
         std::cout << "Uh. Unitigs graph construction called with nb_threads " << nb_threads << " but dispatcher has nbThreads " << nbThreads << std::endl;
-    }
 
     if (do_bcalm) bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type, verbose); 
     if (do_bglue) bglue<span> (&_storage, unitigs_filename, kmerSize,                           nbThreads,                 verbose);
