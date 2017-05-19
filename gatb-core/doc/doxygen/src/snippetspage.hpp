@@ -92,12 +92,15 @@
  *
  * A directory named <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">examples</a> holds some snippets that show how to use services provided by the library.
  *
- * In order to compile them, you will first need to compile the library.
+ * In order to compile them, you will first need to compile the full library (see above).
  *
  * A simple way to generate the snippets is to type:
  * \code
+ * cmake -D CMAKE_BUILD_TYPE=Debug ..   [1]
  * make examples
  * \endcode
+ *
+ * [1] some code snippets use assert(), so it is required to compile in Debug mode.
  *
  * Then, you can have a look at the header of each snippet source file to review how
  * to use them. You can also have a look at <a href="https://github.com/GATB/gatb-core/blob/master/gatb-core/test/jenkins/test-snippets-debian7-64bits-gcc-4.7.sh">this script</a> we used on a Jenkins platform
