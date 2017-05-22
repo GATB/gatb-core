@@ -9,8 +9,8 @@
  * to prepare a compiled version of this snippet, please uncomment
  * these lines (otherwise assert() calls won't be executed):
  */
-// #undef NDEBUG
-// #include <assert.h>
+#undef NDEBUG
+#include <assert.h>
 
 /********************************************************************************/
 /*                    Compare two banks for equality                            */
