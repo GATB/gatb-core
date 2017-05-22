@@ -28,6 +28,10 @@
 
 /********************************************************************************/
 
+#if !defined(__CYGWIN__) && !defined(_GNU_SOURCE) // following https://github.com/cliffordwolf/icestorm/issues/50
+#define _GNU_SOURCE // for vasprintf
+#endif
+
 #include <string>
 #include <iostream>
 #include <stdarg.h>

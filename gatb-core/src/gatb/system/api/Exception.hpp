@@ -137,7 +137,13 @@ namespace system    {
         {
             *buffer = 0;
 
+#ifdef __CYGWIN__
+            // strerror_r doesnt seem to be declared in cygwin
+            // "The strerror_r() function is similar to strerror(), but is thread safe."
+            strerror (errno, buffer, BUFSIZ);
+#else
             strerror_r (errno, buffer, BUFSIZ);
+#endif
             {  _message += std::string(" (") + std::string(buffer) + std::string(")");  }
             free(buffer);
         }
