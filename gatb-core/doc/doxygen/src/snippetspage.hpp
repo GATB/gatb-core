@@ -543,6 +543,17 @@
  * \n
  *
  **************************************************************************************
+ * \section snippets_bank_snippet7b Filter sequences using Phred quality
+ *
+ * This snippet shows how to parse a FastQ file and filtering out reads by Phred quality.
+ *
+ * Code is from example bank24.cpp:
+ *\snippet bank24.cpp  snippet1
+ * [go back to \ref snippets_bank "top"]
+ *
+ * \n
+ *
+ **************************************************************************************
  * \section snippets_bank_snippet8 Conversion of a FASTA bank to a binary format
  *
  * This snippet shows how to parse a nucleic bank and convert it to a binary format.
