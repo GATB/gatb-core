@@ -57,7 +57,7 @@ public:
     u_int64_t tell ()  { return (isOpen() ? ftello64 (_handle) : 0); }
 
 	/** \copydoc IFile::seeko */
-    int seeko (u_int64_t offset, int whence)  {  return (isOpen() ? fseeko64 (_handle, offset, whence) : -1);  }
+    int seeko (u_int64_t offset, int whence)  {  return (isOpen() ?  fseek /* cygwin doesnt like fseeko and fseek/fseeko seems similar */(_handle, offset, whence) : -1);  }
 };
 
 /*********************************************************************

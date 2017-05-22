@@ -544,7 +544,7 @@ void  BankBinary::Iterator::estimate (u_int64_t& number, u_int64_t& totalSize, u
             u_int64_t current = ftell (file);
 
             // we go to the end of the file
-            fseeko (file, 0, SEEK_END);
+            fseek (file, 0, SEEK_END); /* cygwin doesnt like fseeko and fseek/fseeko seems similar */ 
 
             // we keep the current location in the file
             u_int64_t end = ftell (file);
