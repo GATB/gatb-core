@@ -92,12 +92,15 @@
  *
  * A directory named <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">examples</a> holds some snippets that show how to use services provided by the library.
  *
- * In order to compile them, you will first need to compile the library.
+ * In order to compile them, you will first need to compile the full library (see above).
  *
  * A simple way to generate the snippets is to type:
  * \code
+ * cmake -D CMAKE_BUILD_TYPE=Debug ..   [1]
  * make examples
  * \endcode
+ *
+ * [1] some code snippets use assert(), so it is required to compile in Debug mode.
  *
  * Then, you can have a look at the header of each snippet source file to review how
  * to use them. You can also have a look at <a href="https://github.com/GATB/gatb-core/blob/master/gatb-core/test/jenkins/test-snippets-debian7-64bits-gcc-4.7.sh">this script</a> we used on a Jenkins platform
@@ -105,15 +108,16 @@
  * they are started (i.e. what is the command-line to use).
  *
  ************************************************************************************
- * \section use_eclipse Use Eclipse c++ IDE to work with GATB-Core
+ * \section use_eclipse Use Eclipse c++ IDE or Xcode IDEto work with GATB-Core
  *
  * If you are interested in using an IDE to develop c++ source codes relying on the
  * GATB-Core library, we have written this manual to explain how to setup Eclipse
- * c++ framework:
+ * c++ framework or Xcode one:
  *
  * <a href="https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/">https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/</a>
+ * <a href="https://gatb.inria.fr/use-xcode-to-develop-gatb-core-softwares/">https://gatb.inria.fr/use-xcode-to-develop-gatb-core-softwares/</a>
  *
- * You also have the opportunity to easily work on <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">code snippets</a> directly from Eclipse. Please, refer to the above link.
+ * You also have the opportunity to easily work on <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">code snippets</a> directly from Eclipse/Xcode. Please, refer to the above link.
  *
  *************************************************************************************
  * \page new_project Quick project creation

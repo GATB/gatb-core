@@ -3,6 +3,15 @@
 #include <gatb/gatb_core.hpp>
 #include <iostream>
 
+/* WARNING:
+ * If you DO NOT have used 'cmake' with Debug mode set to on as follows:
+ *   cmake -D CMAKE_BUILD_TYPE=Debug ..
+ * to prepare a compiled version of this snippet, please uncomment
+ * these lines (otherwise assert() calls won't be executed):
+ */
+// #undef NDEBUG
+// #include <assert.h>
+
 /********************************************************************************/
 /*                    Compare two banks for equality                            */
 /*                                                                              */
