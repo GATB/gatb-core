@@ -50,7 +50,7 @@ int main (int argc, char* argv[])
             if (data.size() < kmerSize)    { nbSmallSequences++; }
             dataSize += data.size ();
         }
-        printf("%u %u %u %u %u %u", dataSize, nbSequences, seqMaxSize, seqMinSize, nbSmallSequences);
+        printf("%u %u %u %u %u", dataSize, nbSequences, seqMaxSize, seqMinSize, nbSmallSequences);
     }
     catch (OptionFailure& e)
     {
