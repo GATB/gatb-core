@@ -17,7 +17,7 @@ this task runs in the row the following scripts:
 * then: ```tool-leon-functional-tests-test.sh``` to run Leon on 15 SRA files
     totalizing more than 50 Gb of gzipped reads data.
 
-# Retrievind data files
+# Retrieving data files
 
 NCBI SRA files have to be retrieved from Genocluster computing nodes 
 using the following script: ```download.sh```. That script can be used from 
