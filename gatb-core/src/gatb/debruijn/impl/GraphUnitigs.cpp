@@ -356,7 +356,6 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint64_t>& inc,
         }
     }
 }
-        
 
 static void
 insert_navigational_vector(std::vector<uint64_t> &v, std::vector<uint64_t>& to_insert, std::vector<uint64_t> &v_map)
@@ -457,7 +456,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     uint64_t nb_utigs_nucl = 0;
     uint64_t nb_utigs_nucl_mem = 0;
     uint64_t avg_incoming_size = 0, avg_outcoming_size = 0, total_unitigs_size = 0;
-    for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel, maybe, if we used many unordered_map's with a hash on the query kmer (TODO opt)
+    for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel, maybe, if we used many unordered_map's with a hash on the query kmer (the same opt could be done for LinkTigs)
     {
         const string& seq = itSeq->toString();
         const string& comment = itSeq->getComment();
