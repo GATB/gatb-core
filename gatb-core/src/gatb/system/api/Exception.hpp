@@ -142,7 +142,6 @@ namespace system    {
             // "The strerror_r() function is similar to strerror(), but is thread safe."
             strerror (errno, buffer, BUFSIZ);
 #else
-            strerror_r (errno, buffer, BUFSIZ);
 
 #if !defined(__linux__) || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !defined(_GNU_SOURCE)) || !defined(__GLIBC__) // XSI-Compliant strerror_r
             int ret_code = strerror_r (errno, buffer, BUFSIZ);
@@ -151,6 +150,7 @@ namespace system    {
 #else // GNU's strerror_r might return a static string instead of filling buffer
                 const char* ret_buffer = strerror_r (errno, buffer, BUFSIZ);
             if (ret_buffer != NULL)
+#endif
 #endif
 
             {  _message += std::string(" (") + std::string(ret_buffer) + std::string(")");  }
