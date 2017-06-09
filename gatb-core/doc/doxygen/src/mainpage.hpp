@@ -44,7 +44,7 @@
  * gatb::core is a high-performance and low memory footprint C++ library.
  *
  * It supports the following operations natively:
- *  - FASTA/FASTQ parsing
+ *  - FASTA/FASTQ parsing and writing; support of plain text and gzipped files
  *  - K-mer counting
  *  - Minimizer computation of k-mers, partitioning of datasets by minimizers
  *  - de Bruijn graph construction
@@ -56,6 +56,14 @@
  * So, one can say that GATB-CORE library provides means to build and use De Bruijn graphs with a low memory footprint,
  * which comes initially from the <a href="https://project.inria.fr/gatb/software/minia/">minia</a> assembly tool.
  *
+ * However, in addition to the de Bruijn graph data structure, GATB-Core provides several
+ * other ones that can be of interest for general purpose developments. These are:
+ *
+ *  - Open-Addressing Hash Table
+ *  - Linked-List Hash Table
+ *  - Bloom Filters. There are several flavors: basic, cache-optimized, optimized for k-mer neighbours; accessible through BloomFactory.
+ *  - Minimal Perfect Hash Function (BBHash)
+ * 
  * The documentation you are reading is the official documentation of the gatb::core reference API. The
  * audience is therefore developers interested in creating bioinformatics softwares.
  *
