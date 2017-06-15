@@ -1325,6 +1325,11 @@ void Leon::executeDecompression(){
     }
     #endif
 
+    if (!System::file().doesExist(_inputFilename)){
+        std::stringstream ss;
+        ss << "File not found: " << _inputFilename;
+        throw Exception (ss.str().c_str());
+    }
     _storageH5file = StorageFactory(STORAGE_HDF5).create (_inputFilename,false,false,true); //open without adding extension h5
 	_groupLeon = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("leon"));
 	_subgroupInfo = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("metadata"));
