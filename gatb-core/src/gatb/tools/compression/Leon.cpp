@@ -1309,15 +1309,23 @@ void Leon::executeDecompression(){
 
 	_filePos = 0;
 	
-	if(!_iterator_mode)
-	cout << "Start decompression" << endl;
-	_inputFilename = getInput()->getStr(STR_URI_FILE);
+	#ifdef PRINT_DEBUG
+    if(!_iterator_mode){
+	  cout << "Start decompression" << endl;
+    }
+    #endif
+    
+    _inputFilename = getInput()->getStr(STR_URI_FILE);
 	//string inputFilename = prefix + ".txt"; //".leon"
 	//_outputFile = System::file().newFile(outputFilename, "wb");
-	if(!_iterator_mode)
-	cout << "\tInput filename: " << _inputFilename << endl;
-	
-	_storageH5file = StorageFactory(STORAGE_HDF5).create (_inputFilename,false,false,true); //open without adding extension h5
+    
+    #ifdef PRINT_DEBUG
+    if(!_iterator_mode){
+	  cout << "\tInput filename: " << _inputFilename << endl;
+    }
+    #endif
+
+    _storageH5file = StorageFactory(STORAGE_HDF5).create (_inputFilename,false,false,true); //open without adding extension h5
 	_groupLeon = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("leon"));
 	_subgroupInfo = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("metadata"));
 	_subgroupDict = new tools::storage::impl::Group((*_storageH5file)().getGroup   ("leon/anchors"));
