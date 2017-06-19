@@ -108,7 +108,7 @@
  * they are started (i.e. what is the command-line to use).
  *
  ************************************************************************************
- * \section use_eclipse Use Eclipse c++ IDE or Xcode IDEto work with GATB-Core
+ * \section use_eclipse Use Eclipse c++ IDE or Xcode IDE to work with GATB-Core
  *
  * If you are interested in using an IDE to develop c++ source codes relying on the
  * GATB-Core library, we have written this manual to explain how to setup Eclipse
@@ -117,7 +117,7 @@
  * <a href="https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/">https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/</a>
  * <a href="https://gatb.inria.fr/use-xcode-to-develop-gatb-core-softwares/">https://gatb.inria.fr/use-xcode-to-develop-gatb-core-softwares/</a>
  *
- * You also have the opportunity to easily work on <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">code snippets</a> directly from Eclipse/Xcode. Please, refer to the above link.
+ * You also have the opportunity to easily work on <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">code snippets</a> directly from Eclipse/Xcode. Please, refer to the above links.
  *
  *************************************************************************************
  * \page new_project Quick project creation
