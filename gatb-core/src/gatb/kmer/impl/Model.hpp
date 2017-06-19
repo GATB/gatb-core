@@ -1438,6 +1438,8 @@ struct Kmer
 			
 			while(true)
 			{
+				if(skid >= superKmerLen) break;
+
 				while(uid<4 && skid < superKmerLen)
 				{
 					
@@ -1453,7 +1455,6 @@ struct Kmer
 //				printf("pushing %s\n",	(dd.toString(4)).c_str());
 //				//
 				
-				if(skid >= superKmerLen) break;
 				
 				newbyte=0; uid=0;
 			}
