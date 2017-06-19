@@ -1438,7 +1438,6 @@ struct Kmer
 			
 			while(true)
 			{
-				if(skid >= superKmerLen) break;
 
 				while(uid<4 && skid < superKmerLen)
 				{
@@ -1448,16 +1447,23 @@ struct Kmer
 					newbyte |=  newnt << (uid*2);
 					uid++; skid++;
 				}
-				_sk_buffer[_sk_buffer_idx++]= newbyte;
+				
+				if(uid > 0)
+					_sk_buffer[_sk_buffer_idx++]= newbyte;
+				
 				//binrep.push_back(newbyte);
 //				//debug pushing
 //				Type dd; dd.setVal(newbyte);
 //				printf("pushing %s\n",	(dd.toString(4)).c_str());
 //				//
 				
-				
+				if(skid >= superKmerLen) break;
+
 				newbyte=0; uid=0;
 			}
+			
+			
+			//printf("insert superK %i  _sk_buffer_idx %i \n",kmers.size(),_sk_buffer_idx);
 			
 		//	cacheSuperkFile.insertSuperkmer(binrep.data(), binrep.size(), kmers.size(),  file_id);
 			cacheSuperkFile.insertSuperkmer(_sk_buffer, _sk_buffer_idx, kmers.size(),  file_id);
