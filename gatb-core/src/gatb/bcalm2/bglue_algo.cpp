@@ -819,7 +819,7 @@ void bglue(Storage *storage,
     };
 
     //setDispatcher (new SerialDispatcher()); // force single thread
-    Dispatcher dispatcher (1/*nb_threads*/);
+    Dispatcher dispatcher (nb_threads);
     dispatcher.iterate (in->iterator(), createUF);
 
 #if 0
@@ -1009,7 +1009,7 @@ void bglue(Storage *storage,
     logging("Glueing partitions");
 
     // glue all partitions using a thread pool
-    ThreadPool pool(1/*nb_threads*/);
+    ThreadPool pool(nb_threads);
     for (int partition = 0; partition < nbGluePartitions; partition++)
     {
         auto glue_partition = [&modelCanon, &ufkmers, partition, &gluePartition_prefix, nbGluePartitions, &copy_nb_seqs_in_partition,
