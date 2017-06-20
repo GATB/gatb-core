@@ -155,6 +155,122 @@ private:
 
 /********************************************************************************/
 } } } /* end of namespaces. */
+
+#include <gatb/tools/designpattern/impl/IteratorHelpers.hpp>
+
+//specialization of composite iterator for Sequence, so that the sequence index is correctly computed
+namespace gatb  {
+	namespace core  {
+		namespace tools {
+			namespace dp    {
+				namespace impl  {
+					
+template <>
+class CompositeIterator <bank::Sequence> : public Iterator <bank::Sequence>
+{
+public:
+	
+	/** Constructor.
+	 * \param[in] iterators : the iterators vector
+	 */
+	CompositeIterator (std::vector <Iterator<bank::Sequence>*>&  iterators)
+	: _iterators(iterators), _currentIdx(0), _currentIt(0), _isDone(true)
+	{
+		for (size_t i=0; i<_iterators.size(); i++)  { _iterators[i]->use(); }
+		
+		_currentIt = _iterators[_currentIdx];
+	}
+	
+	/** Destructor. */
+	virtual ~CompositeIterator ()
+	{
+		for (size_t i=0; i<_iterators.size(); i++)  { _iterators[i]->forget(); }
+	}
+	
+	/** \copydoc Iterator::first */
+	void first()
+	{
+		_seqIndex = 0;
+		/** We initialize attributes. */
+		_currentIdx = 0;
+		_isDone     = true;
+		
+		/** We look for the first non finished iterator. */
+		update (true);
+		
+		if (_isDone==false) { _currentIt->item().setIndex(_seqIndex); }
+
+	}
+	
+	/** \copydoc Iterator::next */
+	void next()
+	{
+		_currentIt->next();
+		_isDone = _currentIt->isDone();
+		
+		if (_isDone == true)  {  update (false);  }
+		_seqIndex++;
+		
+		if (_isDone==false) { _currentIt->item().setIndex(_seqIndex); }
+
+	}
+	
+	/** \copydoc Iterator::isDone */
+	bool isDone() { return _isDone; }
+	
+	/** \copydoc Iterator::item */
+	bank::Sequence& item ()  {  return _currentIt->item(); }
+	
+	/** IMPORTANT : the Item argument provided to 'setItem' must be the object to be modified by
+	 * one of the delegate iterator AND NOT the current item of CompositeIterator. Therefore,
+	 * we make point the delegate current item to this provided Item argument. */
+	void setItem (bank::Sequence& i)  {  _currentIt->setItem (i);  }
+	
+	/** Get a vector holding the composite structure of the iterator. */
+	virtual std::vector<Iterator<bank::Sequence>*> getComposition() { return _iterators; }
+	
+private:
+	size_t _seqIndex;
+
+	std::vector <Iterator<bank::Sequence>*>  _iterators;
+	
+	size_t          _currentIdx;
+	Iterator<bank::Sequence>* _currentIt;
+	
+	bool _isDone;
+	
+	void update (bool isFirst)
+	{
+		if (_currentIdx >= _iterators.size()) { _isDone=true;  return; }
+		
+		if (!isFirst)  { _currentIdx++; }
+		
+		while ((int)_currentIdx<(int)_iterators.size() && _isDone == true)
+		{
+			Iterator<bank::Sequence>* previous = _currentIt;
+			
+			/** We get the next iterator. */
+			_currentIt = _iterators[_currentIdx];
+			assert (_currentIt != 0);
+			
+			/** We have to take the reference of the previous iterator. */
+			_currentIt->setItem (previous->item());
+			
+			/** We have to "first" this iterator. */
+			_currentIt->first();
+			
+			/** We update the 'isDone' status. */
+			_isDone = _currentIt->isDone();
+			
+			if (_isDone==true) { _currentIdx++; }
+			
+			/** We can finish the previous item (only if not first call). */
+			if (!isFirst) { previous->finalize(); }
+		}
+	}
+};
+
+				}}}}} //end of namespace
 /********************************************************************************/
 
 #endif /* _GATB_CORE_BANK_SEQUENCE_HPP_ */

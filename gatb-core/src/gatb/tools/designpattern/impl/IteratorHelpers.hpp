@@ -978,6 +978,7 @@ private:
     }
 };
 
+	
 /********************************************************************************/
 /** \brief Iterator adaptation from one type to another one
  */
