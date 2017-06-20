@@ -33,7 +33,7 @@ option (HDF5_ENABLE_Z_LIB_SUPPORT "Enable Zlib Filters" OFF)
 if (HDF5_ENABLE_Z_LIB_SUPPORT)
   if (NOT H5_ZLIB_HEADER)
     if (NOT ZLIB_USE_EXTERNAL)
-      find_package (ZLIB NAMES ${ZLIB_PACKAGE_NAME}${HDF_PACKAGE_EXT} COMPONENTS static shared)
+        find_package (ZLIB QUIET NAMES ${ZLIB_PACKAGE_NAME}${HDF_PACKAGE_EXT} COMPONENTS static shared)
       if (NOT ZLIB_FOUND)
         find_package (ZLIB) # Legacy find
         if (ZLIB_FOUND)
