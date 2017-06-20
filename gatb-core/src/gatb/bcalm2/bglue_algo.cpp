@@ -667,7 +667,6 @@ void bglue(Storage *storage,
     cout.setf(ios_base::fixed);
     cout.precision(1);
 
-
     std::cout << "bglue_algo params, prefix:" << prefix << " k:" << kmerSize << " threads:" << nb_threads << std::endl;
     bcalm_logging = verbose;
     size_t k = kmerSize;
@@ -820,7 +819,7 @@ void bglue(Storage *storage,
     };
 
     //setDispatcher (new SerialDispatcher()); // force single thread
-    Dispatcher dispatcher (nb_threads);
+    Dispatcher dispatcher (1/*nb_threads*/);
     dispatcher.iterate (in->iterator(), createUF);
 
 #if 0
@@ -958,7 +957,8 @@ void bglue(Storage *storage,
             const string abundances = comment.substr(3);
             float mean_abundance = get_mean_abundance(abundances);
             uint32_t sum_abundances = get_sum_abundance(abundances);
-            output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " KM:f:" + to_string_with_precision(mean_abundance)); 
+            output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
+            // km is not a standard GFA field so i'm putting it in lower case as per the spec
             // maybe could optimize by writing to disk using queues, if that's ever a bottleneck
             return;
         }
@@ -1009,7 +1009,7 @@ void bglue(Storage *storage,
     logging("Glueing partitions");
 
     // glue all partitions using a thread pool
-    ThreadPool pool(nb_threads);
+    ThreadPool pool(1/*nb_threads*/);
     for (int partition = 0; partition < nbGluePartitions; partition++)
     {
         auto glue_partition = [&modelCanon, &ufkmers, partition, &gluePartition_prefix, nbGluePartitions, &copy_nb_seqs_in_partition,
@@ -1101,7 +1101,7 @@ void bglue(Storage *storage,
 
                 float mean_abundance = get_mean_abundance(abs);
                 uint32_t sum_abundances = get_sum_abundance(abs);
-                output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " KM:f:" + to_string_with_precision(mean_abundance)); 
+                output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
             }
                 
             free_memory_vector(ordered_sequences_idxs);
