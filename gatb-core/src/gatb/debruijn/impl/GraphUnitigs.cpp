@@ -46,6 +46,11 @@
 
 #include <gatb/debruijn/impl/Simplifications.hpp>
 
+// for trim()
+#include <functional> 
+#include <cctype>
+#include <locale>
+
 using namespace std;
 
 using namespace gatb::core::system::impl;
@@ -174,8 +179,6 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (size_t kmerSize)
 {
     // will call Graph's constructor for (kmerSize), no big deal
     //std::cout << "kmersize graphUtemplate constructor" << std::endl;
-    modelK=nullptr;
-    modelKdirect=nullptr;
 }
 
 /*********************************************************************
@@ -198,17 +201,14 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (const std::string& uri)
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+** REMARKS :  quick hack,  not supposed to be used outside of tests
 *********************************************************************/
 template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate (bank::IBank* bank, tools::misc::IProperties* params)
 {
-    // quick hack,  not supposed to be used outside o tests
     
     /** We get the kmer size from the user parameters. */
     BaseGraph::_kmerSize = params->getInt (STR_KMER_SIZE);
-    modelK = new Model(BaseGraph::_kmerSize);
-    modelKdirect= new ModelDirect(BaseGraph::_kmerSize);
     size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
     /** We configure the data variant according to the provided kmer size. */
     BaseGraph::setVariant (BaseGraph::_variant, BaseGraph::_kmerSize, integerPrecision);
@@ -347,7 +347,7 @@ parse_unitig_header(string header, float& mean_abundance, vector<uint64_t>& inc,
         }
         else
         {
-            if (field == "KM")
+            if (field == "km")
             {
                 mean_abundance = atof(tok.substr(tok.find_last_of(':')+1).c_str());
                 //std::cout << "unitig " << header << " mean abundance " << mean_abundance << std::endl;
@@ -433,6 +433,60 @@ get_from_compressed_navigational_vector(const std::vector<uint64_t> &v, uint64_t
     }
 }
 
+
+template<size_t span>
+void GraphUnitigsTemplate<span>::print_unitigs_mem_stats(uint64_t avg_incoming_size, uint64_t avg_outcoming_size, uint64_t total_unitigs_size, uint64_t nb_utigs_nucl, uint64_t nb_utigs_nucl_mem)
+{
+    uint64_t mem_vec_sizes = /*unitigs_sizes.get_alloc_byte_num(); // formerly */(unitigs_sizes.capacity() * sizeof(uint32_t));
+
+    std::cout <<  "Stats:"  << std::endl;
+    std::cout <<  "Number of unitigs: " << nb_unitigs << std::endl;
+    std::cout <<  "Average number of incoming/outcoming neighbors: " << avg_incoming_size/(float)nb_unitigs << "/" <<  avg_outcoming_size/(float)nb_unitigs  << std::endl;
+    std::cout <<  "Total number of nucleotides in unitigs: " << total_unitigs_size << std::endl;
+    std::cout << std::endl;
+    std::cout <<  "Memory usage:" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming vector" << std::endl;
+    std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming vector" << std::endl;
+    uint64_t inc_out_size = (sizeof(uint64_t) * incoming.size()) + (sizeof(uint64_t) * outcoming.size());
+    if (compress_navigational_vectors)
+    {
+        std::cout <<  "   " << dag_incoming_map.get_alloc_byte_num() / 1024 / 1024 << " MB keys in dag_incoming_map vector" << std::endl;
+        std::cout <<  "   " << dag_outcoming_map.get_alloc_byte_num() / 1024 / 1024 << " MB keys in dag_outcoming_map vector" << std::endl;
+        inc_out_size += dag_incoming_map.get_alloc_byte_num() + dag_outcoming_map.get_alloc_byte_num();
+    }
+    else 
+    {
+        //std::cout <<  "   " << dag_incoming.get_alloc_byte_num() / 1024 / 1024 << " MB keys in incoming vector" << std::endl;
+        //std::cout <<  "   " << dag_outcoming.get_alloc_byte_num() / 1024 / 1024 << " MB keys in outcoming vector" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map vector" << std::endl;
+        std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map vector" << std::endl;
+        inc_out_size += (sizeof(uint64_t) * incoming_map.size()) + (sizeof(uint64_t) * outcoming_map.size());
+    }
+    uint64_t mem_unitigs;
+    if (pack_unitigs)
+    {
+        uint64_t mem_packed_unitigs = packed_unitigs_sizes.prefix_sum(nb_unitigs) + packed_unitigs_sizes.get_alloc_byte_num();
+        std::cout <<  "   " <<  mem_packed_unitigs /1024 /1024      << " MB packed unitigs (incl. " << packed_unitigs_sizes.get_alloc_byte_num()/1024/1024 << " MB delimiters)"  << std::endl;
+        mem_unitigs = mem_packed_unitigs;
+    }
+    else 
+    {
+        mem_unitigs = (unitigs.capacity()       * sizeof(string) + nb_utigs_nucl_mem);
+        std::cout <<  "   " <<  mem_unitigs /1024 /1024      << " MB unitigs nucleotides (" << unitigs.capacity() << " * " << sizeof(string) << " + " <<  nb_utigs_nucl_mem << ")"  << std::endl;
+    }
+    std::cout <<  "   " <<  mem_vec_sizes/1024 /1024 << " MB unitigs lengths" << std::endl;
+    uint64_t mem_unitig_mean_abundance = /*unitigs_mean_abundance.get_alloc_byte_num()  ; // <- in dag_vector format; in vector<float> format -> */(nb_unitigs*sizeof(float));
+    std::cout <<  "   " <<  mem_unitig_mean_abundance / 1024 / 1024 << " MB unitigs abundances" << std::endl;
+    std::cout <<  "   " <<  (2*nb_unitigs/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
+    // summation of all of the above:
+    std::cout <<  "Estimated total: " <<  (mem_unitig_mean_abundance + (nb_unitigs*2.0/8.0) +  inc_out_size + mem_unitigs + mem_vec_sizes) / 1024 / 1024 << " MB" << std::endl;
+
+    if (nb_utigs_nucl != nb_utigs_nucl_mem)
+        std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
+
+}
+
+
 template<size_t span>
 void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 {
@@ -477,7 +531,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         }
         else
         {
-            insert_navigational_vector(incoming,  inc,  incoming_map);
+            insert_navigational_vector(incoming,  inc,  incoming_map); // "incoming_map" records the number of incoming links for an unitig. "incoming" records links explicitly
             insert_navigational_vector(outcoming, outc, outcoming_map);
         }
 
@@ -507,7 +561,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         else
             nb_unitigs_extremities+=2;
     }
-    uint64_t nb_unitigs = unitigs_sizes.size();
+    nb_unitigs = unitigs_sizes.size();
 
 
     unitigs_traversed.resize(0);
@@ -518,61 +572,197 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 
     // an estimation of memory usage
     if (verbose)
-    {
-        uint64_t mem_vec_sizes = /*unitigs_sizes.get_alloc_byte_num(); // formerly */(unitigs_sizes.capacity() * sizeof(uint32_t));
-
-        std::cout <<  "Stats:"  << std::endl;
-        std::cout <<  "Number of unitigs: " << nb_unitigs << std::endl;
-        std::cout <<  "Average number of incoming/outcoming neighbors: " << avg_incoming_size/(float)nb_unitigs << "/" <<  avg_outcoming_size/(float)nb_unitigs  << std::endl;
-        std::cout <<  "Total number of nucleotides in unitigs: " << total_unitigs_size << std::endl;
-        std::cout << std::endl;
-        std::cout <<  "Memory usage:" << std::endl;
-        std::cout <<  "   " << (sizeof(uint64_t) * incoming.size()) / 1024 / 1024 << " MB keys in incoming vector" << std::endl;
-        std::cout <<  "   " << (sizeof(uint64_t) * outcoming.size()) / 1024 / 1024 << " MB keys in outcoming vector" << std::endl;
-        uint64_t inc_out_size = (sizeof(uint64_t) * incoming.size()) + (sizeof(uint64_t) * outcoming.size());
-        if (compress_navigational_vectors)
-        {
-            std::cout <<  "   " << dag_incoming_map.get_alloc_byte_num() / 1024 / 1024 << " MB keys in dag_incoming_map vector" << std::endl;
-            std::cout <<  "   " << dag_outcoming_map.get_alloc_byte_num() / 1024 / 1024 << " MB keys in dag_outcoming_map vector" << std::endl;
-            inc_out_size += dag_incoming_map.get_alloc_byte_num() + dag_outcoming_map.get_alloc_byte_num();
-        }
-        else 
-        {
-            //std::cout <<  "   " << dag_incoming.get_alloc_byte_num() / 1024 / 1024 << " MB keys in incoming vector" << std::endl;
-            //std::cout <<  "   " << dag_outcoming.get_alloc_byte_num() / 1024 / 1024 << " MB keys in outcoming vector" << std::endl;
-            std::cout <<  "   " << (sizeof(uint64_t) * incoming_map.size()) / 1024 / 1024 << " MB keys in incoming_map vector" << std::endl;
-            std::cout <<  "   " << (sizeof(uint64_t) * outcoming_map.size()) / 1024 / 1024 << " MB keys in outcoming_map vector" << std::endl;
-            inc_out_size += (sizeof(uint64_t) * incoming_map.size()) + (sizeof(uint64_t) * outcoming_map.size());
-        }
-        uint64_t mem_unitigs;
-        if (pack_unitigs)
-        {
-            uint64_t mem_packed_unitigs = packed_unitigs_sizes.prefix_sum(nb_unitigs) + packed_unitigs_sizes.get_alloc_byte_num();
-            std::cout <<  "   " <<  mem_packed_unitigs /1024 /1024      << " MB packed unitigs (incl. " << packed_unitigs_sizes.get_alloc_byte_num()/1024/1024 << " MB delimiters)"  << std::endl;
-            mem_unitigs = mem_packed_unitigs;
-        }
-        else 
-        {
-            mem_unitigs = (unitigs.capacity()       * sizeof(string) + nb_utigs_nucl_mem);
-            std::cout <<  "   " <<  mem_unitigs /1024 /1024      << " MB unitigs nucleotides (" << unitigs.capacity() << " * " << sizeof(string) << " + " <<  nb_utigs_nucl_mem << ")"  << std::endl;
-        }
-        std::cout <<  "   " <<  mem_vec_sizes/1024 /1024 << " MB unitigs lengths" << std::endl;
-        uint64_t mem_unitig_mean_abundance = /*unitigs_mean_abundance.get_alloc_byte_num()  ; // <- in dag_vector format; in vector<float> format -> */(nb_unitigs*sizeof(float));
-        std::cout <<  "   " <<  mem_unitig_mean_abundance / 1024 / 1024 << " MB unitigs abundances" << std::endl;
-        std::cout <<  "   " <<  (2*nb_unitigs/8) / 1024 / 1024 << " MB deleted/visited bitvectors" << std::endl;
-        // summation of all of the above:
-        std::cout <<  "Estimated total: " <<  (mem_unitig_mean_abundance + (nb_unitigs*2.0/8.0) +  inc_out_size + mem_unitigs + mem_vec_sizes) / 1024 / 1024 << " MB" << std::endl;
-
-        if (nb_utigs_nucl != nb_utigs_nucl_mem)
-            std::cout << "unitigs strings size " << nb_utigs_nucl << " vs capacity " << nb_utigs_nucl_mem << std::endl;
-    }
+        print_unitigs_mem_stats(avg_incoming_size, avg_outcoming_size, total_unitigs_size, nb_utigs_nucl, nb_utigs_nucl_mem);
 }
+
+//https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
+// trim from start
+static inline std::string &ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
+
+// trim from end
+static inline std::string &rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+    return ltrim(rtrim(s));
+}
+
+//http://stackoverflow.com/questions/236129/split-a-string-in-c
+static vector<string> string_split(string s, char delim){
+	vector<string> ret;
+	stringstream sstream(s);
+	string temp;
+	while(getline(sstream, temp, delim)){
+		ret.push_back(trim(temp));
+	}
+	return ret;
+}
+
+
+// some code duplication with load_unitigs but nothing too major
+// inspired by gfakluge (https://github.com/edawson/gfakluge/blob/master/src/gfakluge.cpp), but quite limited compared to what kluge parses
+// Warning:
+// several assumptions are implicitly made about the GFA file, and they are not checked. so the code is not robust
+// - GFA has to be symmetric: (default of convertToGFA from bcalm), i.e. each link also has its symmetrical link
+// - segments identifiers need to be 0...|nb_unitigs|
+
+template<size_t span>
+void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsigned int& kmerSize)
+{
+    // in load_unitigs these two are optional. but not here, i didn't make that function flexible
+    compress_navigational_vectors = false; // i dont think i can do random inserts in a dag_vector, so, wont use them
+    pack_unitigs = true;
+	bool verbose = true;
+    
+	uint64_t avg_incoming_size = 0, avg_outcoming_size = 0, total_unitigs_size = 0;
+
+	ifstream gfi;
+	gfi.open(gfa_filename.c_str(), std::ifstream::in);
+	if (!gfi.good()){
+		cerr << "Cannot open GFA file. Exiting." << endl;
+        exit(1);
+	}
+    
+	string line;
+	vector<string> line_tokens;
+    vector<uint64_t> inc, outc; // incoming and outcoming unitigs
+	bool missing_mean_abundance = false;
+	while (getline(gfi, line)){
+
+		vector<string> tokens = string_split(line, '\t');
+		if (tokens[0] == "H"){
+			if (tokens.size() < 3 || tokens[2].substr(0,1).compare("k") != 0)
+			{
+				std::cout << "unsupported GFA format - the header needs to contain the k-mer size (e.g. K:i:31)" << std::endl;
+				std::cout << "header: " << line << std::endl;
+				std::cout << "tokens[2]: " << string_split(tokens[2],':')[0] << std::endl;
+				exit(1);
+			}
+			line_tokens = string_split(tokens[2], ':'); // we expect k-mer to be at 2nd position of gfa header [SPECIFIC TO BCALM2 GFA FORMAT]
+			kmerSize = atoi(line_tokens[2].c_str());
+		}
+		else if (tokens[0] ==  "S"){
+			std::cout << " line: " << line << std::endl;
+
+			if (inc.size() > 0 || outc.size() > 0)
+				// insert the previous unitig
+			{
+		        avg_incoming_size += inc.size();
+		        avg_outcoming_size += outc.size();
+
+        		insert_compressed_navigational_vector(incoming,  inc,  dag_incoming_map);
+				insert_compressed_navigational_vector(outcoming, outc, dag_outcoming_map);
+			}
+
+        	float mean_abundance = 0;
+			for (unsigned int i = 0; i < tokens.size(); i++){
+				if (tokens[i].substr(0,2).compare("km") == 0)
+					mean_abundance = atof(string_split(tokens[i],':')[2].c_str());
+			}
+			if (mean_abundance == 0)
+				missing_mean_abundance = true;
+
+			string seq = tokens[1];
+			
+			packed_unitigs += internal_compress_unitig(seq);
+			packed_unitigs_sizes.push_back((seq.size()+3)/4);
+
+			unitigs_sizes.push_back(seq.size());
+			total_unitigs_size += seq.size();
+			unitigs_mean_abundance.push_back(mean_abundance);
+
+			if (seq.size() == kmerSize)
+				nb_unitigs_extremities++;
+			else
+				nb_unitigs_extremities+=2;
+
+			inc.resize(0);
+			outc.resize(0);
+		}
+		else if (tokens[0] ==  "L"){ // do a first pass to get the number of in/out links for each unitig
+			bool in = tokens[2] == "-";
+            uint64_t unitig = atoi(tokens[3].c_str());
+			if (incoming_map.size() < unitig)
+			{
+				incoming_map.resize(unitig+100000,0); // resize and set new values to zero; linear increases
+				outcoming_map.resize(unitig+100000,0);
+			}
+			if (in)
+				incoming_map[unitig]++;
+			else
+				outcoming_map[unitig]++;
+		}
+	}
+
+	if (missing_mean_abundance)
+		std::cout << "NOTE: no segment abundance information was found in the GFA file (missing KM field in segment)" << std::endl;
+
+	// in this second pass we actually load the links
+	for 
+	gfi.close();
+	gfi.open(gfa_filename.c_str(), std::ifstream::in);
+	while (getline(gfi, line)){
+		vector<string> tokens = string_split(line, '\t');
+		if (tokens[0] ==  "L"){ 
+			bool in = tokens[2] == "-";
+			
+            bool rc = tokens[4] == "-";
+            uint64_t unitig = atoi(tokens[3].c_str());
+			// see load_unitigs for comments on that code
+            Unitig_pos pos = (rc)?UNITIG_END:UNITIG_BEGIN;
+            if (in)
+                rc = !rc;
+            ExtremityInfo li(unitig, rc, pos);
+            if (in)
+                inc.push_back(li.pack());
+            else
+                outc.push_back(li.pack());
+
+
+			insert_navigational_vector(incoming,  inc,  incoming_map);
+			insert_navigational_vector(outcoming, outc, outcoming_map);
+		}
+	}		    
+
+	// insert links for the last unitig
+	avg_incoming_size += inc.size();
+	avg_outcoming_size += outc.size();
+	insert_compressed_navigational_vector(incoming,  inc,  dag_incoming_map);
+	insert_compressed_navigational_vector(outcoming, outc, dag_outcoming_map);
+
+
+	// code dupl
+	nb_unitigs = unitigs_sizes.size();
+    unitigs_traversed.resize(0);
+    unitigs_traversed.resize(nb_unitigs, false); // resize "traversed" bitvector, setting it to zero as well
+    unitigs_deleted.resize(0);
+    unitigs_deleted.resize(nb_unitigs, false); // resize "traversed" bitvector, setting it to zero as well
+
+	// fix size of incoming_map which was a bit overestimated    
+	incoming_map.resize(nb_unitigs);
+	outcoming_map.resize(nb_unitigs);
+
+	if (verbose)
+        print_unitigs_mem_stats(avg_incoming_size, avg_outcoming_size, total_unitigs_size);
+}
+
 
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE : creates or completes a graph from parsed command line arguments.
 ** INPUT   : a bank or a h5 file 
-** remarks: this function looks similar to the one in Graph; there is some code duplication here
+** remarks: this function contains similar things to the one in Graph; there is some code duplication here. but not entirely
+SETS: the following variables are set:
+    BaseGraph::_kmerSize
+    BaseGraph::_state 
 *********************************************************************/
 template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* params, bool load_unitigs_after) 
@@ -614,6 +804,18 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         params->setInt(STR_MINIMIZER_TYPE, 1);
         //std::cout << "setting repartition type to 1" << std::endl;;
     }
+
+    bool load_from_gfa = (system::impl::System::file().getExtension(input) == "gfa");
+
+    if (load_from_gfa)
+    {
+        // basically shortcut everything, we've got a badass gfa over here
+        unsigned int k = 0;
+        load_unitigs_from_gfa(input, k); // will set the kmer size
+        BaseGraph::_kmerSize = k;
+        return;
+    }
+
 
     bool load_from_hdf5 = (system::impl::System::file().getExtension(input) == "h5");
     bool load_from_file = (system::impl::System::file().isFolderEndingWith(input,"_gatb"));
@@ -659,9 +861,6 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         if (BaseGraph::_kmerSize == 0) /* try the dsk group -> maybe it's a dsk h5 file, not a minia one */
             BaseGraph::_kmerSize  =    atol (BaseGraph::getGroup("dsk").getProperty ("kmer_size").c_str());
         
-        modelK = new Model(BaseGraph::_kmerSize);
-        modelKdirect= new ModelDirect(BaseGraph::_kmerSize);
-
         // also assume kmer counting is done
         setState(GraphUnitigsTemplate<span>::STATE_SORTING_COUNT_DONE);
         
@@ -689,8 +888,6 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
     {
         /** We get the kmer size from the user parameters. */
         BaseGraph::_kmerSize = params->getInt (STR_KMER_SIZE);
-        modelK = new Model(BaseGraph::_kmerSize);
-        modelKdirect= new ModelDirect(BaseGraph::_kmerSize);
         size_t integerPrecision = params->getInt (STR_INTEGER_PRECISION);
 
         /** We configure the data variant according to the provided kmer size. */
@@ -713,8 +910,6 @@ template<size_t span>
 GraphUnitigsTemplate<span>::GraphUnitigsTemplate ()
     : GraphTemplate<NodeFast<span>,EdgeFast<span>,GraphDataVariantFast<span>>()
 {
-    modelK=nullptr;
-    modelKdirect=nullptr;
 }
 
 template<size_t span>
@@ -766,8 +961,6 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         unitigs_mean_abundance = graph.unitigs_mean_abundance;
         unitigs_traversed = graph.unitigs_traversed;
         unitigs_deleted = graph.unitigs_deleted;
-        modelK = graph.modelK;
-        modelKdirect = graph.modelKdirect;
         nb_unitigs = graph.nb_unitigs;
         nb_unitigs_extremities = graph.nb_unitigs_extremities;
         
@@ -817,8 +1010,6 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
         unitigs_mean_abundance = std::move(graph.unitigs_mean_abundance);
         unitigs_traversed = std::move(graph.unitigs_traversed);
         unitigs_deleted = std::move(graph.unitigs_deleted);
-        modelK = std::move(graph.modelK);
-        modelKdirect = std::move(graph.modelKdirect);
         nb_unitigs = std::move(graph.nb_unitigs);
         nb_unitigs_extremities = std::move(graph.nb_unitigs_extremities);
         
@@ -838,12 +1029,6 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
 template<size_t span>
 GraphUnitigsTemplate<span>::~GraphUnitigsTemplate<span> ()
 {
-    /*
-    if (modelK)
-    delete modelK;
-    if (modelKdirect)
-    delete modelKdirect;
-    */ // dunno why this code segfaults. anyhow, no big deal for now.
     // base deleter already called
     //std::cout <<"unitigs graph destructor called" << std::endl;
 }
@@ -905,6 +1090,7 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
         exit(1);
     }
 
+	// these cases are to handle getEdges() for nodes that are inside unitigs. I don't think we use them at all.
     if ((unsigned int)seqSize > (unsigned int)kmerSize)
     {
         // unitig: [kmer]-------

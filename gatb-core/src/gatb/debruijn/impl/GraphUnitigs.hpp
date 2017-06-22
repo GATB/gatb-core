@@ -398,6 +398,9 @@ public: // was private: before, but had many compilation errors during the chang
     void build_unitigs_postsolid(std::string unitigs_filename, tools::misc::IProperties* props);
     void load_unitigs(std::string unitigs_filename);
 
+    void load_unitigs_from_gfa(std::string gfa_filename, unsigned int& kmerSize);
+    void print_unitigs_mem_stats(uint64_t avg_incoming_size, uint64_t avg_outcoming_size, uint64_t total_unitigs_size, uint64_t nb_utigs_nucl = 0, uint64_t nb_utigs_nucl_mem = 0);
+
     bool node_in_same_orientation_as_in_unitig(const NodeGU& node) const;
       
     // support for 2-bit compression of unitigs
@@ -413,8 +416,6 @@ public: // was private: before, but had many compilation errors during the chang
     // don't forget to copy those variables in operator= (and the move operator) 
     // classic source of bugs but i couldn't find a foolproof way.
     // !!!!
-    Model       *modelK;
-    ModelDirect *modelKdirect;
     std::vector<uint64_t> incoming, outcoming, incoming_map, outcoming_map;
     dag::dag_vector dag_incoming, dag_outcoming, dag_incoming_map, dag_outcoming_map;
     std::vector<std::string> unitigs;
