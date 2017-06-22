@@ -532,11 +532,18 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 
             if (isTip)
             {
-                // delete it
-                _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
+                if (nodesDeleter.get(simplePathStart))
+                    {
+                        // not double-counting that delete
+                    }
+                else
+                {
+                    // delete it
+                    _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
 
-                __sync_fetch_and_add(&nbTipsRemoved, 1);
-                DEBUG_TIPS(cout << endl << "TIP FOUND, deleting node : " << _graph.toString(simplePathStart) << endl);
+                    __sync_fetch_and_add(&nbTipsRemoved, 1);
+                    DEBUG_TIPS(cout << endl << "TIP FOUND, deleting node : " << _graph.toString(simplePathStart) << endl);
+                }
             } // end if isTip
 
             TIME(auto end_tip_processing_t=get_wtime());
@@ -1479,12 +1486,19 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                         continue;
                     }
 
-                    // delete the bulge
-                    //
-                    DEBUG_BULGES(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (simplePathStart) << endl);
-                    _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
+                    if (nodesDeleter.get(simplePathStart))
+                    {
+                        // not double-counting that delete
+                    }
+                    else
+                    {
+                        // delete the bulge
+                        //
+                        DEBUG_BULGES(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (simplePathStart) << endl);
+                        _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
 
-                    __sync_fetch_and_add(&nbBulgesRemoved, 1);
+                        __sync_fetch_and_add(&nbBulgesRemoved, 1);
+                    }
 
                 TIME(auto end_post_t=get_wtime());
                 TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
@@ -1732,12 +1746,19 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                             if (isEC)
                             {
-                                // delete it
-                                //
-                                _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
-                                DEBUG_EC(cout << endl << "EC of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
+                                if (nodesDeleter.get(simplePathStart))
+                                {
+                                    // not double-counting that delete
+                                }
+                                else
+                                {
+                                    // delete it
+                                    //
+                                    _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
+                                    DEBUG_EC(cout << endl << "EC of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
 
-                                __sync_fetch_and_add(&nbECRemoved, 1);
+                                    __sync_fetch_and_add(&nbECRemoved, 1);
+                                }
 
                             }
                             TIME(auto end_ec_processing_t=get_wtime());
