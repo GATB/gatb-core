@@ -82,8 +82,16 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nb
     // (before, the previous system was to do a fixed amount of passes)
 
     cutoffEvents = std::max((uint64_t)(nbNodes / 10000), (uint64_t)1); 
+    // maybe todo: estimate better and illustrate on sample genomes
+    
+    
+    // set some default parameters for aggressive graph simplifications (minia)
+    unsigned int k = graph.getKmerSize();
+    _maxTipLengthTopological = (unsigned int)((float)k * (3.5 - 1.0)); // aggressive with SPAdes length threshold, but no coverage criterion
+    _maxTipLengthRCTC = (unsigned int)(k * 10); // experimental, SPAdes-like
+    _tipRCTCcutoff = 2; // SPAdes-like
 
-    // TODO: estimate better and illustrate on sample genomes
+
 }
 
 
@@ -363,10 +371,6 @@ template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 {
     unsigned int k = _graph.getKmerSize();
-    
-    unsigned int maxTipLengthTopological = (unsigned int)((float)k * (3.5 - 1.0)); // aggressive with SPAdes length threshold, but no coverage criterion
-    unsigned int maxTipLengthRCTC = (unsigned int)(k * 10); // experimental, SPAdes-like
-    double RCTCcutoff = 2; // SPAdes-like
 
     unsigned long nbTipsRemoved = 0;
 
@@ -473,9 +477,9 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             TIME(auto end_simplepath_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
             
-            if (k + pathLen >= maxTipLengthTopological) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+            if (k + pathLen >= _maxTipLengthTopological) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
                isShortTopological = false;
-            if (k + pathLen >= maxTipLengthRCTC) 
+            if (k + pathLen >= _maxTipLengthRCTC) 
                isShortRCTC = false;
 
             if (isShortTopological)
@@ -519,7 +523,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             bool isRCTCTip = false;
             if (!isTopologicalShortTip && isMaybeRCTCTip)
             {
-                isRCTCTip = this->satisfyRCTC(pathMeanAbundance, lastNode, RCTCcutoff, simplePathDir); 
+                isRCTCTip = this->satisfyRCTC(pathMeanAbundance, lastNode, _tipRCTCcutoff, simplePathDir); 
                 /* fun fact: not putting "this->" crashes gcc 4.7; was fun to debug :\ */
             }
 

@@ -57,7 +57,12 @@ public:
     
     std::string tipRemoval, bubbleRemoval, ECRemoval;
     bool _doTipRemoval, _doBulgeRemoval, _doECRemoval;
-    
+   
+    /* now exposing some parameters */
+    unsigned int _maxTipLengthTopological;
+    unsigned int _maxTipLengthRCTC;
+    double _tipRCTCcutoff;
+
 protected:
     /*const*/ GraphType &  _graph;
     int _nbCores;
