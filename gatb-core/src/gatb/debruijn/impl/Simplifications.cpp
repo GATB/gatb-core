@@ -28,7 +28,7 @@
 #define DEBUG(a)    //a
 #define DEBUG_TIPS(a)    //a
 #define DEBUG_BULGES(a)    //a
-#define DEBUG_EC(a)    //a
+#define DEBUG_EC(a)   //a
 
 // the only time when you don't want to define this, is when debugging with gdb, because can't debug lambda's
 #define SIMPLIFICATION_LAMBDAS 
@@ -1713,7 +1713,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                         double pathMeanAbundance = _graph.simplePathMeanAbundance(simplePathStart,simplePathDir);
 
                         GraphVector<Edge> outneighbors = _graph.neighborsEdge(lastNode, dir);
-                        DEBUG_EC(cout << "last simple path node: "<< _graph.toString(lastNode) << " has " << outneighbors.size() << " outneighbors" << endl);
+                        DEBUG_EC(cout << "last simple path node: "<< _graph.toString(lastNode) << " has " << outneighbors.size() << " outneighbors; mean abundance: " << pathMeanAbundance << endl);
 
                         if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
                             continue;
@@ -1746,6 +1746,8 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                             bool isEC = isRCTC;
                         
+                            DEBUG_EC(cout << "isRCTC:" << isRCTC << endl);
+
                             TIME(auto start_ec_processing_t=get_wtime());
 
                             if (isEC)

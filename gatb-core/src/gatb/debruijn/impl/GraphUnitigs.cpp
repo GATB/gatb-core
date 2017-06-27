@@ -706,7 +706,8 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
 		std::cout << "NOTE: no segment abundance information was found in the GFA file (missing KM field in segment)" << std::endl;
 
 	// in this second pass we actually load the links
-	for 
+	//for  // TODO
+
 	gfi.close();
 	gfi.open(gfa_filename.c_str(), std::ifstream::in);
 	while (getline(gfi, line)){
@@ -1202,7 +1203,6 @@ GraphVector<EdgeGU> GraphUnitigsTemplate<span>::getEdges (const NodeGU& source, 
     }
 
     // sanity check on output, due to limitation on GraphVector nmber of elements
-    // TODO address that. i don't like the potential performance hit here.
     if (res.size() > 16)
     { 
         std::cout << "Error : more than 16 edges (" << res.size() << ") out of node, not supported (already more than 8 is strange)" << std::endl; 
@@ -1444,7 +1444,7 @@ simplePathMeanAbundance     (const NodeGU& node, Direction dir)
             return 0;
         else // single-k-mer unitig
             return unitigMeanAbundance(node);
-        }
+    }
 
     float coverage = 0;
     int endDegree;
@@ -1453,6 +1453,9 @@ simplePathMeanAbundance     (const NodeGU& node, Direction dir)
     return coverage / (float)seqLength;
 }
 
+/* return the unitig's mean abundance as given by bcalm
+ * so, it's the mean abundance of all kmers inside that unitig
+ */
 template<size_t span>
 double GraphUnitigsTemplate<span>::
 unitigMeanAbundance     (const NodeGU& node) const
@@ -1585,7 +1588,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
 {
     bool debug = false;
     if (debug)
-        std::cout << "simplePathLongest_avance called, node " << toString(node) << " dir " << dir << std::endl;
+        std::cout << "simplePathLongest_avance called, node " << toString(node) << " strand " << node.strand << " dir " << dir << std::endl;
 
     seqLength = 0;
     unsigned int kmerSize = BaseGraph::_kmerSize;
@@ -1616,7 +1619,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         coverage += unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1);
        
         if (debug)
-            std::cout << "simplePathLongest_avance was at a first node = " << toString(cur_node) << " strand " << cur_node.strand << " so traversed unitig of length " << unitigLength << std::endl;
+            std::cout << "simplePathLongest_avance was at a first node = " << toString(cur_node) << " strand " << cur_node.strand << " so traversed unitig of length " << unitigLength << " mean abundance: " << unitigMeanAbundance(cur_node) << ")" << std::endl;
 
         cur_node = unitigLastNode(node,dir);       
         
@@ -1733,6 +1736,8 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
 
         seqLength += unitigLength - (kmerSize-1);
         coverage += unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1); // here too, coverage is computed according to whole unitig
+        
+        //if (debug) std::cout << "seqlength add " << (unitigLength - (kmerSize-1)) << " added cov " << (unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1)) << " mean ab " << unitigMeanAbundance(cur_node) << std::endl;
 
         if (markDuringTraversal&& unitigIsMarked(cur_node)) // just a debug, can be removed
         {
