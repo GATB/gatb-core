@@ -129,10 +129,16 @@ More about GATB-CORE code compiling instruction is available [here](http://gatb-
 
 Read [this documentation](https://gatb.inria.fr/use-eclipse-to-develop-gatb-core-softwares/).
 
+# Work on GATB-Core code using Xcode
 
-# GATB-Core programming tutorial
+Read [this documentation](https://gatb.inria.fr/use-xcode-to-develop-gatb-core-softwares/).
+
+
+# Learning GATB-Core: tutorial
 
 You can follow [this link](https://gatb.inria.fr/gatb-programming-tutorial/) to start the GATB-Core Online Tutorial trail.
+
+The project also contains many [code examples](https://github.com/GATB/gatb-core/tree/master/gatb-core/examples) that can be easily compiled and executed to review how to use GATB-Core APIs.
 
 # Documentation
 
