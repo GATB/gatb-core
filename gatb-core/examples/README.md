@@ -24,7 +24,7 @@ If not already done:
 	cd <some_directory>/gatb-core/gatb-core
 	mkdir build
 	cd build
-	cmake -DCMAKE_BUILD_TYPE=Debug .. 
+	cmake -DGATB_CORE_INCLUDE_EXAMPLES=True -DCMAKE_BUILD_TYPE=Debug .. 
 	make -j8 examples
 
 ### Compile a particular snippet

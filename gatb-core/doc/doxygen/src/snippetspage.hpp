@@ -96,16 +96,23 @@
  *
  * A simple way to generate the snippets is to type:
  * \code
- * cmake -D CMAKE_BUILD_TYPE=Debug ..   [1]
+ * cmake -DGATB_CORE_INCLUDE_EXAMPLES=True -DCMAKE_BUILD_TYPE=Debug ..   [1]
  * make examples
  * \endcode
  *
  * [1] some code snippets use assert(), so it is required to compile in Debug mode.
  *
+ * You can also compile a single snippet using its name, such as:
+ * \code
+ * make bank1
+ * \endcode
+ *
  * Then, you can have a look at the header of each snippet source file to review how
  * to use them. You can also have a look at <a href="https://github.com/GATB/gatb-core/blob/master/gatb-core/test/jenkins/test-snippets-debian7-64bits-gcc-4.7.sh">this script</a> we used on a Jenkins platform
  * to automatically run and test all these snippets; in that script, you'll see how
  * they are started (i.e. what is the command-line to use).
+ *
+ * Some documentation about these code snippets is also available <a href="https://github.com/GATB/gatb-core/tree/master/gatb-core/examples">here</a>.
  *
  ************************************************************************************
  * \section use_eclipse Use Eclipse c++ IDE or Xcode IDE to work with GATB-Core

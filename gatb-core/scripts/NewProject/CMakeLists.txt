@@ -1,9 +1,9 @@
 project(XXX)
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.1.0)
 
 ################################################################################
-# The version number.
+# The version number of YOUR tool.
 ################################################################################
 SET (gatb-tool_VERSION_MAJOR 1)
 SET (gatb-tool_VERSION_MINOR 0)
@@ -41,7 +41,7 @@ SET (CMAKE_MODULE_PATH ${GATB_CORE_HOME}/cmake)
 # We don't want to install some GATB-CORE artifacts
 SET (GATB_CORE_EXCLUDE_TOOLS     1)
 SET (GATB_CORE_EXCLUDE_TESTS     1)
-SET (GATB_CORE_EXCLUDE_EXAMPLES  1)
+SET (GATB_CORE_INCLUDE_EXAMPLES  0)
 
 # GATB CORE
 include (GatbCore)
