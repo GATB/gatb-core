@@ -649,17 +649,21 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
     parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
     parserGeneral->push_front (new OptionNoParam  (STR_CONFIG_ONLY,       "dump config only"));
+    
+    parser->push_back  (parserGeneral);
+
+    OptionsParser* parserDebug = new OptionsParser ("debug ");
 
     // those are only valid for GraphUnitigs, but GraphUnitigs doesn't have custom options (yet) so i'm adding here
-    parser->push_front (new OptionNoParam  ("-redo-bcalm",       "debug function, redo the bcalm algo"));
-    parser->push_front (new OptionNoParam  ("-skip-bcalm",       "same, but       skip     bcalm"));
-    parser->push_front (new OptionNoParam  ("-redo-bglue",       "same, but       redo     bglue     "));
-    parser->push_front (new OptionNoParam  ("-skip-bglue",       "same, but       skip     bglue"));
-    parser->push_front (new OptionNoParam  ("-redo-links",       "same, but       redo     links"));
-    parser->push_front (new OptionNoParam  ("-skip-links",       "same, but       skip     links"));
+    parserDebug->push_front (new OptionNoParam  ("-skip-links",       "same, but       skip     links"));
+    parserDebug->push_front (new OptionNoParam  ("-redo-links",       "same, but       redo     links"));
+    parserDebug->push_front (new OptionNoParam  ("-skip-bglue",       "same, but       skip     bglue"));
+    parserDebug->push_front (new OptionNoParam  ("-redo-bglue",       "same, but       redo     bglue     "));
+    parserDebug->push_front (new OptionNoParam  ("-skip-bcalm",       "same, but       skip     bcalm"));
+    parserDebug->push_front (new OptionNoParam  ("-redo-bcalm",       "debug function, redo the bcalm algo"));
 
     /** We add it to the root parser. */
-    parser->push_back  (parserGeneral);
+    parser->push_back  (parserDebug);
 
     return parser;
 }

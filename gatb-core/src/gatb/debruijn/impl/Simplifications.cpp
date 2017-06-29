@@ -86,12 +86,20 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nb
     
     
     // set some default parameters for aggressive graph simplifications (minia)
-    unsigned int k = graph.getKmerSize();
-    _maxTipLengthTopological = (unsigned int)((float)k * (3.5 - 1.0)); // aggressive with SPAdes length threshold, but no coverage criterion
-    _maxTipLengthRCTC = (unsigned int)(k * 10); // experimental, SPAdes-like
+
+    //  tips
+    _tipLen_Topo_kMult = 2.5;
+    _tipLen_RCTC_kMult = 10;
     _tipRCTCcutoff = 2; // SPAdes-like
+    
+    // bulges
+    _bulgeLen_kMult = 3; 
+    _bulgeLen_kAdd = 100;
+    _bulgeAltPath_kAdd = 50;
 
-
+    // EC
+    _ecLen_kMult = 9;
+    _ecRCTCcutoff = 4;
 }
 
 
@@ -371,6 +379,8 @@ template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 {
     unsigned int k = _graph.getKmerSize();
+    unsigned int _maxTipLengthTopological = (unsigned int)((float)k * _tipLen_Topo_kMult); // aggressive with SPAdes length threshold, but no coverage criterion
+    unsigned int _maxTipLengthRCTC = (unsigned int)(k * _tipLen_RCTC_kMult); // experimental, SPAdes-like
 
     unsigned long nbTipsRemoved = 0;
 
@@ -1257,11 +1267,8 @@ template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 {
     unsigned int k = _graph.getKmerSize();
-    unsigned int coeff = 3;
-    unsigned int additive_coeff = 100;
-    unsigned int maxBulgeLength = std::max((unsigned int)((double)k * coeff), (unsigned int)(k + additive_coeff)); // SPAdes, exactly
-
-    unsigned int backtrackingLimit = k+50;//maxBulgeLength; // arbitrary, but if too high it will take much time; // with unitigs, no reason that it has to depend on k, but for some reason, setting it to just "k" doesnt remove nearly as many bulges as k=20. todo investigate that someday.
+    unsigned int maxBulgeLength = std::max((unsigned int)((double)k * _bulgeLen_kMult), (unsigned int)(k + _bulgeLen_kAdd)); // SPAdes, exactly
+    unsigned int backtrackingLimit = k+_bulgeAltPath_kAdd;//maxBulgeLength; // arbitrary, but if too high it will take much time; // with unitigs, no reason that it has to depend on k, but for some reason, setting it to just "k" doesnt remove nearly as many bulges as k=20. todo investigate that someday.
 
     // stats
     //
@@ -1588,8 +1595,8 @@ template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 {
     unsigned int k = _graph.getKmerSize();
-    unsigned int maxECLength = (unsigned int)((float)k * (10 - 1.0)) ;  // SPAdes mode 
-    double RCTCcutoff = 4.0;
+    unsigned int maxECLength = (unsigned int)((float)k * (_ecLen_kMult - 1.0)) ;  // SPAdes mode 
+    double RCTCcutoff = _ecRCTCcutoff;
 
     unsigned long nbSimplePaths = 0;
     unsigned long nbLongSimplePaths = 0;

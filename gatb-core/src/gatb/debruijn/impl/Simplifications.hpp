@@ -59,9 +59,16 @@ public:
     bool _doTipRemoval, _doBulgeRemoval, _doECRemoval;
    
     /* now exposing some parameters */
-    unsigned int _maxTipLengthTopological;
-    unsigned int _maxTipLengthRCTC;
+    double _tipLen_Topo_kMult;
+    double _tipLen_RCTC_kMult;
     double _tipRCTCcutoff;
+
+    double       _bulgeLen_kMult;
+    unsigned int _bulgeLen_kAdd;
+    unsigned int _bulgeAltPath_kAdd;
+
+    double _ecLen_kMult;
+    double _ecRCTCcutoff;
 
 protected:
     /*const*/ GraphType &  _graph;
