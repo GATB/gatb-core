@@ -1595,7 +1595,7 @@ template<typename GraphType, typename Node, typename Edge>
 unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 {
     unsigned int k = _graph.getKmerSize();
-    unsigned int maxECLength = (unsigned int)((float)k * (_ecLen_kMult - 1.0)) ;  // SPAdes mode 
+    unsigned int maxECLength = (unsigned int)((float)k * _ecLen_kMult) ;  // SPAdes mode 
     double RCTCcutoff = _ecRCTCcutoff;
 
     unsigned long nbSimplePaths = 0;
