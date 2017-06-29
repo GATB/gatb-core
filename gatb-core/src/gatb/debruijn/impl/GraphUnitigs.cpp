@@ -375,6 +375,31 @@ insert_compressed_navigational_vector(std::vector<uint64_t> &v, std::vector<uint
     }*/
 }
 
+// here we dynamically insert at the next open space in the vector after the position indicated by the v_map (pos variable)
+// since we precomputed v_map, we know that there is no way to overflow
+static void
+insert_navigational_vector_gfa(std::vector<uint64_t> &v, uint64_t to_insert, uint64_t pos)
+{
+    bool inserted = false;
+    uint64_t v_size = v.size();
+    for (uint i = 0 ; i < 16; i ++) // 16 is just some upper bound
+    {
+        if (pos+i < v_size && v[pos+i] == 0)
+        {
+            v[pos+i] = to_insert;
+            inserted = true;
+            break;
+        }
+    }
+    if (!inserted)
+    {
+        std::cout << "bad navigational vector insert at position " << pos << " / " << v_size << "! could not find a spot to insert. some debug: " << std::endl;
+        std::cout << v[pos] << " " << v[pos+1] << " " << v[pos+2] << std::endl;
+        exit(1);
+    }
+}
+
+
 
 //http://stackoverflow.com/questions/30540101/iterator-for-a-subset-of-a-vector
 template <class Iter>
@@ -435,13 +460,13 @@ get_from_compressed_navigational_vector(const std::vector<uint64_t> &v, uint64_t
 
 
 template<size_t span>
-void GraphUnitigsTemplate<span>::print_unitigs_mem_stats(uint64_t avg_incoming_size, uint64_t avg_outcoming_size, uint64_t total_unitigs_size, uint64_t nb_utigs_nucl, uint64_t nb_utigs_nucl_mem)
+void GraphUnitigsTemplate<span>::print_unitigs_mem_stats(uint64_t incoming_size, uint64_t outcoming_size, uint64_t total_unitigs_size, uint64_t nb_utigs_nucl, uint64_t nb_utigs_nucl_mem)
 {
     uint64_t mem_vec_sizes = /*unitigs_sizes.get_alloc_byte_num(); // formerly */(unitigs_sizes.capacity() * sizeof(uint32_t));
 
     std::cout <<  "Stats:"  << std::endl;
     std::cout <<  "Number of unitigs: " << nb_unitigs << std::endl;
-    std::cout <<  "Average number of incoming/outcoming neighbors: " << avg_incoming_size/(float)nb_unitigs << "/" <<  avg_outcoming_size/(float)nb_unitigs  << std::endl;
+    std::cout <<  "Average number of incoming/outcoming neighbors: " << incoming_size/(float)nb_unitigs << "/" <<  outcoming_size/(float)nb_unitigs  << std::endl;
     std::cout <<  "Total number of nucleotides in unitigs: " << total_unitigs_size << std::endl;
     std::cout << std::endl;
     std::cout <<  "Memory usage:" << std::endl;
@@ -509,7 +534,8 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
     nb_unitigs_extremities = 0; // will be used by NodeIterator (getNodes)
     uint64_t nb_utigs_nucl = 0;
     uint64_t nb_utigs_nucl_mem = 0;
-    uint64_t avg_incoming_size = 0, avg_outcoming_size = 0, total_unitigs_size = 0;
+    uint64_t total_unitigs_size = 0;
+    float incoming_size = 0, outcoming_size = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) // could be done in parallel, maybe, if we used many unordered_map's with a hash on the query kmer (the same opt could be done for LinkTigs)
     {
         const string& seq = itSeq->toString();
@@ -519,8 +545,8 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
         vector<uint64_t> inc, outc; // incoming and outcoming unitigs
         parse_unitig_header(comment, mean_abundance, inc, outc);
 
-        avg_incoming_size += inc.size();
-        avg_outcoming_size += outc.size();
+        incoming_size += inc.size();
+        outcoming_size += outc.size();
 
         if (compress_navigational_vectors) 
         {
@@ -572,7 +598,7 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 
     // an estimation of memory usage
     if (verbose)
-        print_unitigs_mem_stats(avg_incoming_size, avg_outcoming_size, total_unitigs_size, nb_utigs_nucl, nb_utigs_nucl_mem);
+        print_unitigs_mem_stats(incoming_size, outcoming_size, total_unitigs_size, nb_utigs_nucl, nb_utigs_nucl_mem);
 }
 
 //https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
@@ -622,7 +648,7 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
     pack_unitigs = true;
 	bool verbose = true;
     
-	uint64_t avg_incoming_size = 0, avg_outcoming_size = 0, total_unitigs_size = 0;
+	uint64_t incoming_size = 0, outcoming_size = 0, total_unitigs_size = 0;
 
 	ifstream gfi;
 	gfi.open(gfa_filename.c_str(), std::ifstream::in);
@@ -630,18 +656,21 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
 		cerr << "Cannot open GFA file. Exiting." << endl;
         exit(1);
 	}
-    
+   
 	string line;
 	vector<string> line_tokens;
     vector<uint64_t> inc, outc; // incoming and outcoming unitigs
 	bool missing_mean_abundance = false;
+
+    nb_unitigs = 0; // we'll increase number of unitigs as we see them, the following loop
+    unordered_map<uint32_t, uint32_t> unitig_id_corresp; // correspondence between unitig id's seen in the GFA, and the mapping 0,...,|nb_unitigs| that we store in, e.g., the unitig_sizes array
 	while (getline(gfi, line)){
 
 		vector<string> tokens = string_split(line, '\t');
 		if (tokens[0] == "H"){
 			if (tokens.size() < 3 || tokens[2].substr(0,1).compare("k") != 0)
 			{
-				std::cout << "unsupported GFA format - the header needs to contain the k-mer size (e.g. K:i:31)" << std::endl;
+				std::cout << "unsupported GFA format - the header needs to contain the k-mer size (e.g. k:i:31)" << std::endl;
 				std::cout << "header: " << line << std::endl;
 				std::cout << "tokens[2]: " << string_split(tokens[2],':')[0] << std::endl;
 				exit(1);
@@ -650,17 +679,7 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
 			kmerSize = atoi(line_tokens[2].c_str());
 		}
 		else if (tokens[0] ==  "S"){
-			std::cout << " line: " << line << std::endl;
-
-			if (inc.size() > 0 || outc.size() > 0)
-				// insert the previous unitig
-			{
-		        avg_incoming_size += inc.size();
-		        avg_outcoming_size += outc.size();
-
-        		insert_compressed_navigational_vector(incoming,  inc,  dag_incoming_map);
-				insert_compressed_navigational_vector(outcoming, outc, dag_outcoming_map);
-			}
+			//std::cout << " line: " << line << std::endl;
 
         	float mean_abundance = 0;
 			for (unsigned int i = 0; i < tokens.size(); i++){
@@ -670,10 +689,14 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
 			if (mean_abundance == 0)
 				missing_mean_abundance = true;
 
-			string seq = tokens[1];
+			string seq = tokens[2];
+			uint32_t unitig_id = atoi(tokens[1].c_str());
+            //std::cout << "seq: " << seq << " id: " << unitig_id << std::endl;
 			
 			packed_unitigs += internal_compress_unitig(seq);
 			packed_unitigs_sizes.push_back((seq.size()+3)/4);
+
+            unitig_id_corresp[unitig_id] = (nb_unitigs++);
 
 			unitigs_sizes.push_back(seq.size());
 			total_unitigs_size += seq.size();
@@ -687,72 +710,84 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
 			inc.resize(0);
 			outc.resize(0);
 		}
-		else if (tokens[0] ==  "L"){ // do a first pass to get the number of in/out links for each unitig
+		else if (tokens[0] ==  "L"){ // do a first pass to get the number of in/out links
 			bool in = tokens[2] == "-";
-            uint64_t unitig = atoi(tokens[3].c_str());
-			if (incoming_map.size() < unitig)
-			{
-				incoming_map.resize(unitig+100000,0); // resize and set new values to zero; linear increases
-				outcoming_map.resize(unitig+100000,0);
-			}
+            uint64_t unitig_id = atoi(tokens[1].c_str());
+
+            // strong assumption, we never see a link from a node before its S definition (unitig is in unitig_id_corresp)
+            // to make it more general: do another pass, that first pass only loads nodes
+            if (unitig_id_corresp.find(unitig_id) == unitig_id_corresp.end())
+            {
+                std::cout << "Unsupported GFA file: L line from a certain node should always be after the S line of that node" << std::endl;
+                exit(1);
+            }
+
+            if (incoming_map.size() < unitig_id_corresp[unitig_id])
+            {
+                // linear resizing
+                incoming_map.resize(unitig_id_corresp[unitig_id]+100000);
+                outcoming_map.resize(unitig_id_corresp[unitig_id]+100000);
+            }
+
 			if (in)
-				incoming_map[unitig]++;
+            {
+                incoming_map[unitig_id_corresp[unitig_id]+1]++;  // the +1 is to make the later prefix sum correct
+                incoming_size++;
+            }
 			else
-				outcoming_map[unitig]++;
+            {
+                outcoming_map[unitig_id_corresp[unitig_id]+1]++;
+                outcoming_size++;
+            }
 		}
 	}
 
 	if (missing_mean_abundance)
-		std::cout << "NOTE: no segment abundance information was found in the GFA file (missing KM field in segment)" << std::endl;
+		std::cout << "NOTE: no segment abundance information was found in the GFA file (missing 'km' field in segment)" << std::endl;
+
+    incoming_map.resize(nb_unitigs); // fix size
+    outcoming_map.resize(nb_unitigs);
+    incoming.resize(incoming_size); // set size
+    outcoming.resize(outcoming_size);
+
+    // compute proper prefix sums
+	for (uint64_t i = 1; i < nb_unitigs; i++)
+    {
+        incoming_map[i] += incoming_map[i-1];
+        outcoming_map[i] += outcoming_map[i-1];
+    }
 
 	// in this second pass we actually load the links
-	//for  // TODO
-
 	gfi.close();
 	gfi.open(gfa_filename.c_str(), std::ifstream::in);
 	while (getline(gfi, line)){
 		vector<string> tokens = string_split(line, '\t');
 		if (tokens[0] ==  "L"){ 
 			bool in = tokens[2] == "-";
-			
             bool rc = tokens[4] == "-";
-            uint64_t unitig = atoi(tokens[3].c_str());
-			// see load_unitigs for comments on that code
-            Unitig_pos pos = (rc)?UNITIG_END:UNITIG_BEGIN;
+            uint64_t from_unitig_id = atoi(tokens[1].c_str());
+            uint64_t to_unitig_id = atoi(tokens[3].c_str());
+            Unitig_pos pos = (rc)?UNITIG_END:UNITIG_BEGIN; // see load_unitigs for comments on that part
             if (in)
                 rc = !rc;
-            ExtremityInfo li(unitig, rc, pos);
+            ExtremityInfo li(to_unitig_id, rc, pos);
             if (in)
-                inc.push_back(li.pack());
+                insert_navigational_vector_gfa(incoming, li.pack(), incoming_map[unitig_id_corresp[from_unitig_id]]);
             else
-                outc.push_back(li.pack());
-
-
-			insert_navigational_vector(incoming,  inc,  incoming_map);
-			insert_navigational_vector(outcoming, outc, outcoming_map);
+                insert_navigational_vector_gfa(outcoming, li.pack(), outcoming_map[unitig_id_corresp[from_unitig_id]]);
 		}
 	}		    
 
-	// insert links for the last unitig
-	avg_incoming_size += inc.size();
-	avg_outcoming_size += outc.size();
-	insert_compressed_navigational_vector(incoming,  inc,  dag_incoming_map);
-	insert_compressed_navigational_vector(outcoming, outc, dag_outcoming_map);
-
-
-	// code dupl
-	nb_unitigs = unitigs_sizes.size();
+	assert(nb_unitigs == unitigs_sizes.size()); // not sure if this is enforced
+	
+    // code dupl
     unitigs_traversed.resize(0);
     unitigs_traversed.resize(nb_unitigs, false); // resize "traversed" bitvector, setting it to zero as well
     unitigs_deleted.resize(0);
     unitigs_deleted.resize(nb_unitigs, false); // resize "traversed" bitvector, setting it to zero as well
 
-	// fix size of incoming_map which was a bit overestimated    
-	incoming_map.resize(nb_unitigs);
-	outcoming_map.resize(nb_unitigs);
-
 	if (verbose)
-        print_unitigs_mem_stats(avg_incoming_size, avg_outcoming_size, total_unitigs_size);
+        print_unitigs_mem_stats(incoming_size, outcoming_size, total_unitigs_size);
 }
 
 
