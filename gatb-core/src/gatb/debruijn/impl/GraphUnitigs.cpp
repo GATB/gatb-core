@@ -637,6 +637,7 @@ static vector<string> string_split(string s, char delim){
 // inspired by gfakluge (https://github.com/edawson/gfakluge/blob/master/src/gfakluge.cpp), but quite limited compared to what kluge parses
 // Warning:
 // several assumptions are implicitly made about the GFA file, and they are not checked. so the code is not robust
+// - needs to have "k:i:[k value]" in header
 // - GFA has to be symmetric: (default of convertToGFA from bcalm), i.e. each link also has its symmetrical link
 // - segments identifiers need to be 0...|nb_unitigs|
 
