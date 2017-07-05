@@ -362,6 +362,7 @@ void DnaEncoder::execute(){
 	
 	if(_readSize < _kmerSize){
 		encodeNoAnchorRead();
+		smoothQuals();
 		endRead();
 		return;
 	}
@@ -425,7 +426,7 @@ void DnaEncoder::smoothQuals()
 {
 	strcpy (_qualseq, _sequence->getQuality().c_str());  // copy the qual sequence of this read in _qualseq
 
-	if(! _leon->_lossless)
+	if(! _leon->_lossless &&  _readSize >= _kmerSize)
 	{
 		for (int ii=0; ii< _readSize; ii++)
 		{
