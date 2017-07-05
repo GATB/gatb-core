@@ -96,6 +96,7 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nb
     _bulgeLen_kMult = 3; 
     _bulgeLen_kAdd = 100;
     _bulgeAltPath_kAdd = 50;
+    _bulgeAltPath_covMult = 1.1;
 
     // EC
     _ecLen_kMult = 9;
@@ -1269,6 +1270,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     unsigned int k = _graph.getKmerSize();
     unsigned int maxBulgeLength = std::max((unsigned int)((double)k * _bulgeLen_kMult), (unsigned int)(k + _bulgeLen_kAdd)); // SPAdes, exactly
     unsigned int backtrackingLimit = k+_bulgeAltPath_kAdd;//maxBulgeLength; // arbitrary, but if too high it will take much time; // with unitigs, no reason that it has to depend on k, but for some reason, setting it to just "k" doesnt remove nearly as many bulges as k=20. todo investigate that someday.
+    unsigned int altPathCovMult = _bulgeAltPath_covMult;
 
     // stats
     //
@@ -1483,7 +1485,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                     double simplePathCoverage = _graph.simplePathMeanAbundance(simplePathStart, simplePathDir);
     
-                    bool isBulge =  simplePathCoverage <=  mean_abundance_most_covered * 1.1;
+                    bool isBulge =  simplePathCoverage <=  mean_abundance_most_covered * altPathCovMult /*typically 1.1 in genome assembly, SPAdes*/;
     
                     DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage << " (path: " << _graph.toString(simplePathStart) << ") vs most covered:" <<  mean_abundance_most_covered  << endl);
     
