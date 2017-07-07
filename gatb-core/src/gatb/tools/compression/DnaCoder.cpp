@@ -293,8 +293,8 @@ void DnaEncoder::operator()(Sequence& sequence){
 	_totalDnaSize += _readSize ;
 	
 	
-	_minSequenceSize = std::min(_minSequenceSize, _readSize);
-	_maxSequenceSize = std::max(_maxSequenceSize, _readSize);
+	_minSequenceSize = std::min(_minSequenceSize, (int) _readSize);
+	_maxSequenceSize = std::max(_maxSequenceSize, (int)_readSize);
 	
 	
 	//_lastSequenceIndex = sequence->getIndex();
@@ -426,7 +426,7 @@ void DnaEncoder::smoothQuals()
 {
 	strcpy (_qualseq, _sequence->getQuality().c_str());  // copy the qual sequence of this read in _qualseq
 
-	if(! _leon->_lossless &&  _readSize >= _kmerSize)
+	if(! _leon->_lossless && _readSize >= _kmerSize)
 	{
 		for (int ii=0; ii< _readSize; ii++)
 		{
@@ -497,14 +497,14 @@ void DnaEncoder::storeSolidCoverageInfo()
 	}
 	memset(_nb_solids,0,_max_read_size * sizeof(int) );
 
-	for(int ii=0; ii<_kmers.size(); ii++){
+	for(unsigned int ii=0; ii<_kmers.size(); ii++){
 		kmer = _kmers[ii];
 		kmerMin = min(kmer, revcomp(kmer, _kmerSize));
 
 		if(_bloom->contains(kmerMin))
 		{
 			//increments all pos covered by the solid kmer
-			for (int jj=0; jj< _kmerSize ; jj++)
+			for (unsigned int jj=0; jj< _kmerSize ; jj++)
 			{
 				_nb_solids[ii+jj] ++ ;
 			}
@@ -562,7 +562,7 @@ int DnaEncoder::findExistingAnchor(u_int32_t* anchorAddress){
 	kmer_type kmer, kmerMin;
 
 	
-	for(int i=0; i<_kmers.size(); i++){
+	for(unsigned int i=0; i<_kmers.size(); i++){
 		kmer = _kmers[i];
 		kmerMin = min(kmer, revcomp(kmer, _kmerSize));
 		if(_leon->anchorExist(kmerMin, anchorAddress)){
@@ -576,7 +576,7 @@ bool DnaEncoder::isReadAnchorable(){
 	int nbKmerSolid = 0;
 	kmer_type kmer, kmerMin;
 
-	for(int i=0; i<_kmers.size(); i++){
+	for(unsigned int i=0; i<_kmers.size(); i++){
 
 		kmer = _kmers[i];
 		kmerMin = min(kmer, revcomp(kmer, _kmerSize));
@@ -701,7 +701,7 @@ void DnaEncoder::encodeAnchorRead(int anchorPos, u_int32_t anchorAddress){
 		CompressionUtils::encodeNumeric(_rangeEncoder6, _numericModel, _Npos.size());
 	#endif
 	CompressionUtils::encodeNumeric(_rangeEncoder, _numericModel, _Npos.size());
-	for(int i=0; i<_Npos.size(); i++){
+	for(unsigned int i=0; i<_Npos.size(); i++){
 		//deltaType = CompressionUtils::getDeltaValue(_Npos[i], _prevNpos, &deltaValue);
 		//_rangeEncoder.encode(_NposDeltaTypeModel, deltaType);
 		#ifdef LEON_PRINT_STAT
@@ -717,7 +717,7 @@ void DnaEncoder::encodeAnchorRead(int anchorPos, u_int32_t anchorAddress){
 	CompressionUtils::encodeNumeric(_rangeEncoder, _leftErrorModel, _leftErrorPos.size());
 	sort(_leftErrorPos.begin(), _leftErrorPos.end());
 	_prevErrorPos = 0;
-	for(int i=0; i<_leftErrorPos.size(); i++){
+	for(unsigned int i=0; i<_leftErrorPos.size(); i++){
 		#ifdef LEON_PRINT_STAT
 			CompressionUtils::encodeNumeric(_rangeEncoder6, _leftErrorPosModel, _leftErrorPos[i]-_prevErrorPos);
 		#endif
@@ -729,7 +729,7 @@ void DnaEncoder::encodeAnchorRead(int anchorPos, u_int32_t anchorAddress){
 	u_int64_t bifType0 = 0;
 	u_int64_t bifType1 = 0;
 	//cout << _bifurcationTypes.size() << " " << _bifurcations.size() << " " << _binaryBifurcations.size() << endl;
-	for(int i=0; i<_bifurcationTypes.size(); i++){
+	for(unsigned int i=0; i<_bifurcationTypes.size(); i++){
 		u_int8_t type = _bifurcationTypes[i];
 		if(type == 0){
 			#ifdef LEON_PRINT_STAT
@@ -1159,7 +1159,7 @@ void DnaEncoder::encodeNoAnchorRead(){
 
 	//printf("encode no anchor read \n");
 	//Reinsert N because they can be encoded by the coder
-	for(int i=0; i<_Npos.size(); i++){
+	for(unsigned int i=0; i<_Npos.size(); i++){
 		_readseq[_Npos[i]] = 'N';
 	}
 	
@@ -1508,7 +1508,7 @@ void DnaDecoder::decodeAnchorRead(){
 	//Decode N pos
 	_prevNpos = 0;
 	u_int64_t NposCount = CompressionUtils::decodeNumeric(_rangeDecoder, _numericModel);
-	for(int i=0; i<NposCount; i++){
+	for(unsigned int i=0; i<NposCount; i++){
 		//deltaType = _rangeDecoder.nextByte(_NposDeltaTypeModel);
 		//deltaValue = CompressionUtils::decodeNumeric(_rangeDecoder, _NposModel);
 		//u_int64_t nPos = CompressionUtils::getValueFromDelta(deltaType, _prevNpos, deltaValue);
@@ -1522,7 +1522,7 @@ void DnaDecoder::decodeAnchorRead(){
 	//Decode error pos
 	u_int64_t nbLeftError = CompressionUtils::decodeNumeric(_rangeDecoder, _leftErrorModel);
 	_prevErrorPos = 0;
-	for(int i=0; i<nbLeftError; i++){
+	for(unsigned int i=0; i<nbLeftError; i++){
 		u_int64_t errorPos = CompressionUtils::decodeNumeric(_rangeDecoder, _leftErrorPosModel) + _prevErrorPos;
 		addErrorPos(errorPos, true);
 		_prevErrorPos = errorPos;
@@ -1571,7 +1571,7 @@ void DnaDecoder::decodeAnchorRead(){
 	
 	//Inject N in the decoded read sequence
 	//printf("npos s %i currseq %s \n",_Npos.size(),_currentSeq.c_str());
-	for(int i=0; i<_Npos.size(); i++){
+	for(unsigned int i=0; i<_Npos.size(); i++){
 		_currentSeq[_Npos[i]] = 'N';
 	}
 }

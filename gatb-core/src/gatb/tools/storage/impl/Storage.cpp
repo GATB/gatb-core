@@ -334,7 +334,7 @@ void SuperKmerBinFiles::openFiles( const char* mode)
 	
 	system::impl::System::file().mkdir(_path, 0755);
 
-	for(int ii=0;ii<_files.size();ii++)
+	for(unsigned int ii=0;ii<_files.size();ii++)
 	{
 		std::stringstream ss;
 		ss << _basefilename << "." << ii;
@@ -403,7 +403,7 @@ void SuperKmerBinFiles::getFilesStats(u_int64_t & total, u_int64_t & biggest, u_
 	smallest = ~0;
 	biggest  = 0;
 	mean=0;
-	for(int ii=0;ii<_FileSize.size();ii++)
+	for(unsigned int ii=0;ii<_FileSize.size();ii++)
 	{
 		smallest = std::min (smallest, _FileSize[ii]);
 		biggest  = std::max (biggest,  _FileSize[ii]);
@@ -434,7 +434,7 @@ void SuperKmerBinFiles::writeBlock(unsigned char * block, unsigned int block_siz
 	
 void SuperKmerBinFiles::flushFiles()
 {
-	for(int ii=0;ii<_files.size();ii++)
+	for(unsigned int ii=0;ii<_files.size();ii++)
 	{
 		_synchros[ii]->lock();
 
@@ -450,7 +450,7 @@ void SuperKmerBinFiles::flushFiles()
 
 void SuperKmerBinFiles::eraseFiles()
 {
-	for(int ii=0;ii<_files.size();ii++)
+	for(unsigned int ii=0;ii<_files.size();ii++)
 	{
 		std::stringstream ss;
 		ss << _path << "/" <<_basefilename << "." << ii;
@@ -473,7 +473,7 @@ void SuperKmerBinFiles::closeFile(  int fileId)
 	
 void SuperKmerBinFiles::closeFiles()
 {
-	for(int ii=0;ii<_files.size();ii++)
+	for(unsigned int ii=0;ii<_files.size();ii++)
 	{
 		if(_files[ii]!=0)
 		{
@@ -517,7 +517,7 @@ CacheSuperKmerBinFiles::CacheSuperKmerBinFiles(SuperKmerBinFiles * ref, int buff
 	_buffers.resize(_nb_files);
 	_buffers_idx.resize(_nb_files,0);
 	
-	for(int ii=0; ii<_buffers.size();ii++ )
+	for(unsigned int ii=0; ii<_buffers.size();ii++ )
 	{
 		_buffers[ii] = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _buffer_max_capacity);
 	}
@@ -536,7 +536,7 @@ CacheSuperKmerBinFiles::CacheSuperKmerBinFiles (const CacheSuperKmerBinFiles& p)
 	_buffers.resize(_nb_files);
 	_buffers_idx.resize(_nb_files,0);
 	
-	for(int ii=0; ii<_buffers.size();ii++ )
+	for(unsigned int ii=0; ii<_buffers.size();ii++ )
 	{
 		_buffers[ii] = (u_int8_t*) MALLOC (sizeof(u_int8_t) * _buffer_max_capacity);
 	}
@@ -545,7 +545,7 @@ CacheSuperKmerBinFiles::CacheSuperKmerBinFiles (const CacheSuperKmerBinFiles& p)
 void CacheSuperKmerBinFiles::flushAll()
 {
 	//printf("flush all buffers\n");
-	for(int ii=0; ii<_buffers.size();ii++ )
+	for(unsigned int ii=0; ii<_buffers.size();ii++ )
 	{
 		flush(ii);
 	}
@@ -582,7 +582,7 @@ void CacheSuperKmerBinFiles::insertSuperkmer(u_int8_t* superk, int nb_bytes, u_i
 CacheSuperKmerBinFiles::~CacheSuperKmerBinFiles()
 {
 	this->flushAll();
-	for(int ii=0; ii<_buffers.size();ii++ )
+	for(unsigned int ii=0; ii<_buffers.size();ii++ )
 	{
 		FREE (_buffers[ii]);
 	}

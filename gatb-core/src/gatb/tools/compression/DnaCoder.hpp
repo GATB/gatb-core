@@ -89,7 +89,7 @@ class AbstractDnaCoder
 		vector<Order0Model> _noAnchorReadSizeValueModel;
 		
 		size_t _kmerSize;
-		int _readSize;
+		unsigned int _readSize;
 	
 		vector<int> _leftErrorPos;
 		vector<int> _rightErrorPos;

@@ -353,7 +353,7 @@ class Leon : public misc::impl::Tool
 	pthread_t * _tab_threads;
 	
 	thread_arg_decoder *  _targ;
-	void decompressionDecodeBlocks(int & idx, int & livingThreadCount);
+	void decompressionDecodeBlocks(unsigned int & idx, int & livingThreadCount);
 	
 	void testing_iter();
 	
@@ -405,7 +405,7 @@ class Leon : public misc::impl::Tool
 
 		void readNextThreadBock();
 		
-		int _idxB;
+		unsigned int _idxB;
 		int _livingThreadCount;
 		int _currentTID;
 		

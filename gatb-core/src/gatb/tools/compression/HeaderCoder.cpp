@@ -87,7 +87,7 @@ void AbstractHeaderCoder::splitHeader(){
 	bool digitOnly;
 	int lastCharType = typeOfChar(_currentHeader[0], &digitOnly);
 	
-	for(_currentPos=0; _currentPos<_currentHeader.size(); _currentPos++){
+	for(_currentPos=0; (unsigned)_currentPos<_currentHeader.size(); _currentPos++){
 		c = _currentHeader[_currentPos];
 		
 		digitOnly = true;
@@ -189,7 +189,7 @@ void AbstractHeaderCoder::startBlock(){
 
 	_currentHeader = _leon->_firstHeader;
 	
-	for(int i=0; i<_typeModel.size(); i++){
+	for(int i=0; (unsigned)i<_typeModel.size(); i++){
 		_typeModel[i].clear();
 		_fieldIndexModel[i].clear();
 		_fieldColumnModel[i].clear();

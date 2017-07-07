@@ -1172,7 +1172,7 @@ int Leon::findAndInsertAnchor(const vector<kmer_type>& kmers, u_int32_t* anchorA
 
 
 		if(maxAbundance == -1){
-			for(int i=iMax; i<kmers.size(); i++){
+			for(unsigned int i=iMax; i<kmers.size(); i++){
 				kmer = kmers[i];
 				kmerMin = min(kmer, revcomp(kmer, _kmerSize));
 
@@ -1248,7 +1248,7 @@ void Leon::encodeInsertedAnchor(const kmer_type& kmer){
 	
 	string kmerStr = kmer.toString(_kmerSize);
 
-	for(int i=0; i<kmerStr.size(); i++){
+	for(unsigned int i=0; i<kmerStr.size(); i++){
 		_anchorRangeEncoder.encode(_anchorDictModel, Leon::nt2bin(kmerStr[i]));
 	}
 	//i+= 1;
@@ -1548,7 +1548,7 @@ void Leon::startDecompression_setup(){
 	/////// dna setup ////////////
 	
 	//need to init _filePosDna here
-	for(int ii=0; ii<_headerBlockSizes.size(); ii+=2 )
+	for(unsigned int ii=0; ii<_headerBlockSizes.size(); ii+=2 )
 	{
 		_filePosDna += _headerBlockSizes[ii];
 	}
@@ -1612,23 +1612,23 @@ void Leon::decoders_setup(){
 
 void Leon::decoders_cleanup(){
 	
-	for(int i=0; i<_dnadecoders.size(); i++){
+	for(unsigned int i=0; i<_dnadecoders.size(); i++){
 		delete _dnadecoders[i];
 	}
 	_dnadecoders.clear();
 	
-	for(int i=0; i<_headerdecoders.size(); i++){
+	for(unsigned int i=0; i<_headerdecoders.size(); i++){
 		delete _headerdecoders[i];
 	}
 	_headerdecoders.clear();
 	
-	for(int i=0; i<_qualdecoders.size(); i++){
+	for(unsigned int i=0; i<_qualdecoders.size(); i++){
 		delete _qualdecoders[i];
 	}
 	_qualdecoders.clear();
 }
 
-void Leon::decompressionDecodeBlocks(int & idx, int & livingThreadCount){
+void Leon::decompressionDecodeBlocks(unsigned int & idx, int & livingThreadCount){
 
 
 	for(int j=0; j<_nb_cores; j++){
@@ -1721,7 +1721,7 @@ void Leon::startDecompressionAllStreams(){
 	decoders_setup();
 	
 
-	int i = 0;
+	unsigned int i = 0;
 	int livingThreadCount = 0;
 	
 	
@@ -1840,17 +1840,17 @@ void Leon::startDecompressionAllStreams(){
 	
 	_outputFile->flush();
 
-	for(int i=0; i<_dnadecoders.size(); i++){
+	for(unsigned int i=0; i<_dnadecoders.size(); i++){
 		delete _dnadecoders[i];
 	}
 	_dnadecoders.clear();
 	
-	for(int i=0; i<_headerdecoders.size(); i++){
+	for(unsigned int i=0; i<_headerdecoders.size(); i++){
 		delete _headerdecoders[i];
 	}
 	_headerdecoders.clear();
 	
-	for(int i=0; i<_qualdecoders.size(); i++){
+	for(unsigned int i=0; i<_qualdecoders.size(); i++){
 		delete _qualdecoders[i];
 	}
 	_qualdecoders.clear();
@@ -1879,7 +1879,7 @@ void Leon::setupNextComponent( 		vector<u_int64_t>   & blockSizes    ){
 	//u_int64_t size = 0;
 	
 	_blockCount = CompressionUtils::decodeNumeric(_rangeDecoder, _numericModel);
-	for(int i=0; i<_blockCount; i++){
+	for(unsigned int i=0; i<_blockCount; i++){
 		u_int64_t blockSize = CompressionUtils::decodeNumeric(_rangeDecoder, _numericModel);
 		blockSizes.push_back(blockSize);
 		//size += blockSize;
