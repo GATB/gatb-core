@@ -148,8 +148,8 @@ class DnaEncoder : AbstractDnaCoder
 	char char2phred(char c);
 
 	char * _bufferQuals;
-	int _bufferQuals_idx;
-	int _bufferQuals_size;
+	unsigned int _bufferQuals_idx;
+	unsigned int _bufferQuals_size;
 	
 #ifdef PRINT_DISTRIB
 	vector<Sequence*> _sequences;

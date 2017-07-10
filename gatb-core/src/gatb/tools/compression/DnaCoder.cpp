@@ -428,7 +428,7 @@ void DnaEncoder::smoothQuals()
 
 	if(! _leon->_lossless && _readSize >= _kmerSize)
 	{
-		for (int ii=0; ii< _readSize; ii++)
+		for (unsigned int ii=0; ii< _readSize; ii++)
 		{
 			if ((_nb_solids[ii]>= _smoothing_threshold) || (((int) _qualseq[ii] > (int) '@') && _trunc_mode ))
 			{
@@ -517,7 +517,7 @@ void DnaEncoder::buildKmers(){
 
 	
 	
-	for(int i=0; i<_readSize; i++){
+	for(unsigned int i=0; i<_readSize; i++){
 		if(_readseq[i] == 'N'){
 			_Npos.push_back(i);
 			_readseq[i] = 'A';
@@ -686,7 +686,7 @@ void DnaEncoder::encodeAnchorRead(int anchorPos, u_int32_t anchorAddress){
 	}
 
 	kmer = anchor;
-	for(int i=anchorPos+_kmerSize; i<_readSize; i++){
+	for(unsigned int i=anchorPos+_kmerSize; i<_readSize; i++){
 		//cout << "Pos: " << i << endl;
 		kmer = buildBifurcationList(i, kmer, true);
 		//i = buildBifurcationList(i, true);
@@ -971,7 +971,7 @@ int DnaEncoder::getBestPath(int pos, kmer_type& kmer, bitset<4>& initRes4, bool 
 
 	char ntInRead = 0;
 	if(rightExtend){
-		if(pos+1 < _readSize){
+		if((unsigned)(pos+1) < _readSize){
 			ntInRead = _readseq[pos+1];
 		}
 	}
@@ -1196,7 +1196,7 @@ void DnaEncoder::encodeNoAnchorRead(){
 	CompressionUtils::encodeNumeric(_rangeEncoder, _noAnchorReadSizeValueModel, _readSize);
 	
 			
-	for(int i=0; i<_readSize; i++){
+	for(unsigned int i=0; i<_readSize; i++){
 		
 		#ifdef LEON_PRINT_STAT
 			_rangeEncoder5.encode(_noAnchorReadModel, Leon::nt2bin(_readseq[i]));
@@ -1564,7 +1564,7 @@ void DnaDecoder::decodeAnchorRead(){
 	
 	//Extend anchor to the right
 	kmer = anchor;
-	for(int i=anchorPos+_kmerSize; i<_readSize; i++){
+	for(unsigned int i=anchorPos+_kmerSize; i<_readSize; i++){
 		kmer = extendAnchor(kmer, i, true);
 		//cout << "\t" << kmer.toString(_kmerSize) << endl;
 	}
@@ -1761,7 +1761,7 @@ void DnaDecoder::decodeNoAnchorRead(){
 	
 	_readSize = CompressionUtils::decodeNumeric(_rangeDecoder, _noAnchorReadSizeValueModel);
 	//cout << "\tRead size: " << _readSize << endl;
-	for(int i=0; i<_readSize; i++){
+	for(unsigned int i=0; i<_readSize; i++){
 		_currentSeq += Leon::bin2nt(_rangeDecoder.nextByte(_noAnchorReadModel));
 	}
 	//endSeq();
