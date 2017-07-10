@@ -43,9 +43,22 @@ std::string DBPATH (const string& a)
 /********************************************************************************/
 int main (int argc, char **argv)
 {
-    /** We may launch only one test. */
-    char* testname = strdup (argc >=2 ? argv[1] : "All Tests");
-
+    if (argc==1){
+        std::cout << "Use: gatb-core-cppunit [<test-name>] [<path-to-test/db>]\n" << std::endl;
+        std::cout << "     where: <test-name>: comma separated list of unit test names." << std::endl;
+        std::cout << "                         e.g.: 'TestLeon,TestBank'. Default: 'all'." << std::endl;
+        std::cout << "                         Test names are case sensitivie." << std::endl;
+        std::cout << "            <path-to-test/db>: path to directory containing GATB-Core test files." << std::endl;
+        std::cout << "                               Default: ../test/db \n" << std::endl;
+        std::cout << "By default, tests are executed in silent mode. Use CPPUNIT_VERBOSE=1 to switch to verbose mode."<< std::endl;
+        return 0;
+    }
+    /** We may launch only selected test(s). */
+    char* testname = strdup (argc >=2 ? argv[1] : "all");
+    if (strcmp(testname, "all")==0){//shortcut to run All tests
+        testname = strdup("All Tests");
+    }
+    
     /** We set the directory where the db are. */
     dbprefix = (argc >=3 ? argv[2] : "../test/db");
 
@@ -59,10 +72,13 @@ int main (int argc, char **argv)
     TestResultCollector collectedresults;
     testresult.addListener (&collectedresults);
 
-#if 1
     BriefTestProgressListener progress;
-    if (getenv ("CPPUNIT_VERBOSE")) {  testresult.addListener (&progress);  }
-#endif
+    if (getenv ("CPPUNIT_VERBOSE")) {
+        testresult.addListener (&progress);
+    }
+    else {
+        std::cout << "Tests executed in silent mode.\n  -> Use CPPUNIT_VERBOSE=1 to switch to verbose mode.\n"<< std::endl;
+    }
 
     TextTestRunner runner;
 
