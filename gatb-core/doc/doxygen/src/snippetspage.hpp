@@ -64,16 +64,12 @@
  *
  * If CppUnit is installed, a unit tests binary should be generated; you can launch it with
  * \code
- * cd <some_directory>/gatb-core/gatb-core/build
+ * cd <some_directory>/gatb-core/gatb-core/build/bin
  * 
  * export CPPUNIT_VERBOSE=1
  *
- * # Copy database for unit tests
- * cp -r ../test/db $BUILD_DIR/test/
- *
  * # Launch the full test suite
- * cd bin
- * ./gatb-core-cppunit
+ * ./gatb-core-cppunit all  <gatb-core-home>/gatb-core/test/db
  * \endcode
  * You can use the exit status code of the command to know the success status (0 for success).
  *
