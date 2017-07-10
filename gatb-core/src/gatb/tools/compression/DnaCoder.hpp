@@ -137,7 +137,7 @@ class DnaEncoder : AbstractDnaCoder
 	char * _qualseq;
 	int * _nb_solids;
 	int _smoothing_threshold;
-	int _max_read_size;
+	unsigned int _max_read_size;
 	bool _trunc_mode;
 	
 	void storeSolidCoverageInfo();
