@@ -73,6 +73,13 @@
  * \endcode
  * You can use the exit status code of the command to know the success status (0 for success).
  *
+ * Use
+ * \code
+ * ./gatb-core-cppunit -h
+ * \endcode
+ *
+ * to get more information on how to use this testing program.
+ *
  * Note that one may set the environment variable CPPUNIT_VERBOSE to 1 to known which tests pass.
  *
  * By default, gatb::core supports kmer sizes up to 128. In fact, it has 4 different implementations

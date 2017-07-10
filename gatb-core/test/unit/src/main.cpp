@@ -43,7 +43,7 @@ std::string DBPATH (const string& a)
 /********************************************************************************/
 int main (int argc, char **argv)
 {
-    if (argc==1){
+    if (argc==2 && strcmp(argv[1], "-h")==0){
         std::cout << "Use: gatb-core-cppunit [<test-name>] [<path-to-test/db>]\n" << std::endl;
         std::cout << "     where: <test-name>: comma separated list of unit test names." << std::endl;
         std::cout << "                         e.g.: 'TestLeon,TestBank'. Default: 'all'." << std::endl;
