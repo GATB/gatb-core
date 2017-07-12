@@ -134,12 +134,12 @@ namespace gatb        {
 							
 							
 							
-							
+							/*
 							for(int ii=0; ii<_abundanceDiscretization.size(); ii++ )
 							{
 								printf("disc[%i] = %i \n", ii,_abundanceDiscretization[ii] );
 							}
-							
+							*/
 							
 						}
 						
