@@ -152,11 +152,12 @@ public:
 
         Kmer kmer = model.codeSeed ("ACCATGTATAA", Data::ASCII);
 
-        theMap[kmer.value()] = 4;
+		
+        theMap.at(kmer.value()) = 4;
 
-        if (theMap[kmer.value()] != 4)
+        if (theMap.at(kmer.value()) != 4)
             std::cout << "bad map value " << theMap[kmer.value()]  << " != 4"  << std::endl;
-        CPPUNIT_ASSERT (theMap[kmer.value()] == 4);
+        CPPUNIT_ASSERT (theMap.at(kmer.value()) == 4);
     }
 
     /********************************************************************************/

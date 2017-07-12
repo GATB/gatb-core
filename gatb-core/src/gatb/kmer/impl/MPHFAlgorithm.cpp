@@ -68,7 +68,7 @@ static const char* messages[] = {
  *      => http://stackoverflow.com/questions/2738435/using-numeric-limitsmax-in-constant-expressions
  */
 template<size_t span, typename Abundance_t, typename NodeState_t>
-const Abundance_t MPHFAlgorithm<span,Abundance_t,NodeState_t>::MAX_ABUNDANCE = std::numeric_limits<Abundance_t>::max();
+	const Abundance_t MPHFAlgorithm<span,Abundance_t,NodeState_t>::MAX_ABUNDANCE =  std::numeric_limits<Abundance_t>::max();
 
 /*********************************************************************
 ** METHOD  :
@@ -233,6 +233,8 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
 
     // TODO parallize that
 
+	std::vector<int> & _abundanceDiscretization =  _abundanceMap->_abundanceDiscretization ;
+	int max_abundance_discrete = _abundanceDiscretization[_abundanceDiscretization.size()-2];
     // set counts and at the same time, test the mphf
     for (itKmers->first(); !itKmers->isDone(); itKmers->next())
     {
@@ -247,14 +249,18 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
         /** We get the abundance of the current kmer. */
         int abundance = itKmers->item().abundance;
 
-        if (abundance > MAX_ABUNDANCE)
+        if (abundance > max_abundance_discrete)
         {
             _nb_abundances_above_precision++;
-            abundance = MAX_ABUNDANCE;
+            abundance = max_abundance_discrete;
         }
 
+		//get first cell strictly greater than abundance
+		std::vector<int>::iterator  up = std::upper_bound(_abundanceDiscretization.begin(), _abundanceDiscretization.end(), abundance);
+		up--; // get previous cell
+		int idx = up- _abundanceDiscretization.begin() ;
         /** We set the abundance of the current kmer. */
-        _abundanceMap->at (h) = abundance;
+        _abundanceMap->at (h) = idx;
 
         nb_iterated ++;
     }

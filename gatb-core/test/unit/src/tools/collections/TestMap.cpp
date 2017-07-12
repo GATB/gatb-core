@@ -167,7 +167,7 @@ public:
         for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
         {
             /** We change the value for the current key. */
-            map1[itKeys->item()] = val;
+            map1.at(itKeys->item()) = val;
         }
 
         /** We check the values. */
@@ -175,7 +175,7 @@ public:
         for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
         {
             /** We check the value for the current key. */
-            CPPUNIT_ASSERT (map1[itKeys->item()] == val);
+            CPPUNIT_ASSERT (map1.at(itKeys->item()) == val);
         }
 
         /** We create a storage object. */
@@ -198,7 +198,7 @@ public:
         for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
         {
             /** We change the value for the current key. */
-            map2[itKeys->item()] = val;
+            map2.at(itKeys->item()) = val;
         }
 
         /** We check the values. */
@@ -206,14 +206,14 @@ public:
         for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
         {
             /** We check the value for the current key. */
-            CPPUNIT_ASSERT (map2[itKeys->item()] == val);
+            CPPUNIT_ASSERT (map2.at(itKeys->item()) == val);
         }
 
         /** We compare the values of the two maps. */
         for (itKeys->first(); !itKeys->isDone(); itKeys->next(), val++)
         {
             /** We check the value for the current key. */
-            CPPUNIT_ASSERT (map1[itKeys->item()] == map2[itKeys->item()]);
+            CPPUNIT_ASSERT (map1.at(itKeys->item()) == map2.at(itKeys->item()));
         }
 
         /** We compare the values of the two maps (index iteration) */
