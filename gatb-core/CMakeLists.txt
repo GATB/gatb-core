@@ -274,6 +274,8 @@ IF (EXISTS "${PROJECT_SOURCE_DIR}/examples")
         ADD_SUBDIRECTORY(examples)
     ENDIF()
 ENDIF()
+# add example snippets into binary archive (use by CPack directive)
+INSTALL(DIRECTORY "${PROJECT_SOURCE_DIR}/examples/" DESTINATION "examples")
 
 ################################################################################
 #  INSTALL 
