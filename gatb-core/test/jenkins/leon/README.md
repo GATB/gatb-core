@@ -5,6 +5,10 @@ by means of Jenkins tasks.
 
 It is intended to be used by Genscale team.
 
+| **Functional tests** |
+|----------------------|
+| [![Build Status](https://ci.inria.fr/gatb-core/view/Leon/job/tool-leon-functional-tests/badge/icon)](https://ci.inria.fr/gatb-core/view/Leon/job/tool-leon-functional-tests/) |
+
 # Scripts
 
 Tests are actually run by 'tool-leon-functional-tests' Jenkins task
