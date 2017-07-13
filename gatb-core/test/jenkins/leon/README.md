@@ -1,13 +1,13 @@
+| **Functional tests** |
+|----------------------|
+| [![Build Status](https://ci.inria.fr/gatb-core/view/Leon/job/tool-leon-functional-tests/badge/icon)](https://ci.inria.fr/gatb-core/view/Leon/job/tool-leon-functional-tests/) |
+
 # Introduction
 
 This directory contains reference material used to test Leon compressor
 by means of Jenkins tasks.
 
 It is intended to be used by Genscale team.
-
-| **Functional tests** |
-|----------------------|
-| [![Build Status](https://ci.inria.fr/gatb-core/view/Leon/job/tool-leon-functional-tests/badge/icon)](https://ci.inria.fr/gatb-core/view/Leon/job/tool-leon-functional-tests/) |
 
 # Scripts
 
