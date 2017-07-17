@@ -80,6 +80,19 @@ namespace gatb        {
 						}
 						
 						
+						
+						// discretization scheme to store abundance values from 0 to 50000 on 8 bits
+						// with maximum 5% error
+						// from 0     to 70     :   step = 1              (70 buckets)
+						// from 0     to 100    :   step = 2              (15 buckets)
+						// from 100   to 500    :   step = 10             (40 buckets)
+						// from 500   to 1000   :   step = 20             (25 buckets)
+						// from 1000  to 5000   :   step = 100            (40 buckets)
+						// from 5000  to 10000  :   step = 200            (25 buckets)
+						// from 10000 to 50000  :   step = 1000           (40 buckets)
+						//
+						//to change discretization scheme, change the values in _abundanceDiscretization below
+					
 						void initDiscretizationScheme()
 						{
 							_abundanceDiscretization.resize(257);
