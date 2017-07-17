@@ -175,6 +175,7 @@ namespace gatb        {
 							/** We resize the vector of Value objects. */
 							data.resize (nbKeys);
 							clearData();
+							initDiscretizationScheme();
 						}
 						
 						/** Get the value for a given key
