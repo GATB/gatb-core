@@ -1045,7 +1045,6 @@ void bglue(Storage *storage,
 
                 bool lmark = comment[0] == '1';
                 bool rmark = comment[1] == '1';
-                const string abundances = comment.substr(3);
 
                 // todo speed improvement: get partition id from sequence header (so, save it previously)
 
@@ -1090,8 +1089,9 @@ void bglue(Storage *storage,
             {
                 const string seq = it->toString();
                 const string comment = it->getComment();
+                const string abundance_str = comment.substr(3);
                 sequences.push_back(seq);
-                abundances.push_back(comment);
+                abundances.push_back(abundance_str);
             }
 
             for (auto itO = ordered_sequences_idxs.begin(); itO != ordered_sequences_idxs.end(); itO++)
