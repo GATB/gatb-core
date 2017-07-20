@@ -194,7 +194,7 @@ namespace gatb        {
 						/** Get the value for a given key
 						 * \param[in] key : the key
 						 * \return the value associated to the key. */
-						Value operator[] (const Key& key)  {
+						int operator[] (const Key& key)  {
 							return floorf((_abundanceDiscretization [data[hash(key)]]  +  _abundanceDiscretization [data[hash(key)]+1])/2.0);
 							//return data[hash(key)];
 						}
