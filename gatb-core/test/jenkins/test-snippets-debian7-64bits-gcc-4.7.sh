@@ -62,10 +62,10 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 #---------------------------------------------------------------
-cmake -Wno-dev $GIT_DIR
+cmake -DGATB_CORE_INCLUDE_EXAMPLES=True -Wno-dev $GIT_DIR
 
 #---------------------------------------------------------------
-make -j 2 examples
+make -j examples
 
 #>>>>>>>>>>>>>>>>>>>>>
 #fi
