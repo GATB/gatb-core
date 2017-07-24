@@ -121,7 +121,6 @@ std::string SystemInfoCommon::getBuildSystem () const { return STR_OPERATING_SYS
 #include <unistd.h>
 #include <sys/resource.h>
 #include <sys/times.h>
-#include <sys/vtimes.h>
 
 /********************************************************************************/
 size_t SystemInfoLinux::getNbCores () const
