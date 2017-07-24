@@ -65,7 +65,7 @@ cd $BUILD_DIR
 cmake -DGATB_CORE_INCLUDE_EXAMPLES=True -Wno-dev $GIT_DIR
 
 #---------------------------------------------------------------
-make -j examples
+make -j2 examples
 
 #>>>>>>>>>>>>>>>>>>>>>
 #fi
