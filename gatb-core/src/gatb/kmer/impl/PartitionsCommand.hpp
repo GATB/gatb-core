@@ -96,6 +96,14 @@ private:
     CountVector _abundancePerBank;
 };
 
+	
+	                // not really nice, but right now two implems co-exists, old one with multi-bank support, new one with more efficient disk usage
+	
+	//not really nice but temporary solution :
+	// -- one implem with the new efficient superkmer storage
+	// -- another implem with the old storage (2 kmer per superKmer) that supports multi-bank counting
+	//todo : multi bank kmer counting with new storage or do multi-bank couting externally (merge results like in simka)
+	
 /********************************************************************************/
 template<size_t span>
 class PartitionsCommand : public gatb::core::tools::dp::ICommand, public system::SmartPointer
@@ -109,7 +117,7 @@ public:
 
     /** Constructor. */
     PartitionsCommand (
-       // gatb::core::tools::collections::Iterable<Type>& partition,
+      //  gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,
@@ -166,7 +174,7 @@ public:
 
     /** Constructor. */
     PartitionsByHashCommand (
-       // gatb::core::tools::collections::Iterable<Type>& partition,
+    //    gatb::core::tools::collections::Iterable<Type>& partition,
         CountProcessor*                                 processor,
         size_t                                          cacheSize,
         gatb::core::tools::dp::IteratorListener*        progress,
@@ -193,67 +201,192 @@ private:
 		
 /********************************************************************************/
 /** */
+	
+	
+	
+	
+	
+
 template<size_t span>
 class PartitionsByVectorCommand : public PartitionsCommand<span>
 {
 public:
-
-    /** Shortcut. */ /* R: don't know how to avoid this code duplication */
-    typedef typename Kmer<span>::Type           Type;
-    typedef typename Kmer<span>::Count          Count;
-    typedef ICountProcessor<span> CountProcessor;
-
-    static const size_t KX = 4 ;
-
+	
+	/** Shortcut. */ /* R: don't know how to avoid this code duplication */
+	typedef typename Kmer<span>::Type           Type;
+	typedef typename Kmer<span>::Count          Count;
+	typedef ICountProcessor<span> CountProcessor;
+	
+	static const size_t KX = 4 ;
+	
 private:
-    //used for the priority queue
-    typedef std::pair<int, Type> kxp; //id pointer in vec_pointer , value
-    struct kxpcomp { bool operator() (kxp l,kxp r) { return ((r.second) < (l.second)); } } ;
-
+	//used for the priority queue
+	typedef std::pair<int, Type> kxp; //id pointer in vec_pointer , value
+	struct kxpcomp { bool operator() (kxp l,kxp r) { return ((r.second) < (l.second)); } } ;
+	
 public:
-    /** Constructor. */
-    PartitionsByVectorCommand (
-       // gatb::core::tools::collections::Iterable<Type>& partition,
-        CountProcessor*                                 processor,
-        size_t                                          cacheSize,
-        gatb::core::tools::dp::IteratorListener*        progress,
-        tools::misc::impl::TimeInfo&                    timeInfo,
-        PartiInfo<5>&                                   pInfo,
-        int                                             passi,
-        int                                             parti,
-        size_t                                          nbCores,
-        size_t                                          kmerSize,
-        gatb::core::tools::misc::impl::MemAllocator&    pool,
-        std::vector<size_t>&                            offsets,
-		tools::storage::impl::SuperKmerBinFiles* 		superKstorage
-
-    );
-
-    /** Destructor. */
-    ~PartitionsByVectorCommand ();
-
-    /** Get the class name (for statistics). */
-    const char* getName() const { return "vector"; }
-
-    /** */
-    void execute ();
-
+	/** Constructor. */
+	PartitionsByVectorCommand (
+							//   gatb::core::tools::collections::Iterable<Type>& partition,
+							   CountProcessor*                                 processor,
+							   size_t                                          cacheSize,
+							   gatb::core::tools::dp::IteratorListener*        progress,
+							   tools::misc::impl::TimeInfo&                    timeInfo,
+							   PartiInfo<5>&                                   pInfo,
+							   int                                             passi,
+							   int                                             parti,
+							   size_t                                          nbCores,
+							   size_t                                          kmerSize,
+							   gatb::core::tools::misc::impl::MemAllocator&    pool,
+							   std::vector<size_t>&                            offsets,
+							   tools::storage::impl::SuperKmerBinFiles* 		superKstorage
+							   
+							   );
+	
+	/** Destructor. */
+	~PartitionsByVectorCommand ();
+	
+	/** Get the class name (for statistics). */
+	const char* getName() const { return "vector"; }
+	
+	/** */
+	void execute ();
+	
 private:
-
-    Type**     	       _radix_kmers;
-    bank::BankIdType** _bankIdMatrix;
+	
+	Type**     	       _radix_kmers;
+	bank::BankIdType** _bankIdMatrix;
 	uint64_t*          _radix_sizes;
 	uint64_t*          _r_idx;
-
-    tools::dp::IDispatcher* _dispatcher;
-
+	
+	tools::dp::IDispatcher* _dispatcher;
+	
 	void executeRead   ();
-    void executeSort   ();
-    void executeDump   ();
-
-    std::vector<size_t> _nbItemsPerBankPerPart;
+	void executeSort   ();
+	void executeDump   ();
+	
+	std::vector<size_t> _nbItemsPerBankPerPart;
 };
 
+
+	
+////// ugly duplicated code below  to keep support for multi-bank counting
+// it is a temporary solution
+// todo : support multi-bank with either
+// -- multi-bank support within the new efficient superkmer storage
+// -- "external" multi-bank support through result merging (a la simka)
+
+
+template<size_t span>
+class PartitionsCommand_multibank : public gatb::core::tools::dp::ICommand, public system::SmartPointer
+{
+public:
+	
+	/** Shortcut. */
+	typedef typename Kmer<span>::Type           Type;
+	typedef typename Kmer<span>::Count          Count;
+	typedef ICountProcessor<span> CountProcessor;
+	
+	/** Constructor. */
+	PartitionsCommand_multibank (
+								 gatb::core::tools::collections::Iterable<Type>& partition,
+								 CountProcessor*                                 processor,
+								 size_t                                          cacheSize,
+								 gatb::core::tools::dp::IteratorListener*        progress,
+								 tools::misc::impl::TimeInfo&                    timeInfo,
+								 PartiInfo<5>&                                   pInfo,
+								 int                                             passi,
+								 int                                             parti,
+								 size_t                                          nbCores,
+								 size_t                                          kmerSize,
+								 gatb::core::tools::misc::impl::MemAllocator&    pool
+								 );
+	
+	/** Destructor. */
+	~PartitionsCommand_multibank();
+	
+	/** Get the class name (for statistics). */
+	virtual const char* getName() const = 0;
+	
+protected:
+	gatb::core::tools::collections::Iterable<Type>&         _partition;
+	gatb::core::tools::dp::IteratorListener*                _progress;
+	PartiInfo<5>&                                           _pInfo;
+	int                                                     _pass_num;
+	int                                                     _parti_num;
+	size_t                                                  _nbCores;
+	size_t                                                  _kmerSize;
+	size_t                                                  _cacheSize;
+	gatb::core::tools::misc::impl::MemAllocator&            _pool;
+	
+	void insert (const Type& kmer, const CounterBuilder& count);
+	
+	tools::misc::impl::TimeInfo& _globalTimeInfo;
+	tools::misc::impl::TimeInfo  _timeInfo;
+	
+	CountProcessor* _processor;
+	void setProcessor (CountProcessor* processor)  { SP_SETATTR(processor); }
+};
+
+
+template<size_t span>
+class PartitionsByVectorCommand_multibank : public PartitionsCommand_multibank<span>
+{
+public:
+	
+	/** Shortcut. */ /* R: don't know how to avoid this code duplication */
+	typedef typename Kmer<span>::Type           Type;
+	typedef typename Kmer<span>::Count          Count;
+	typedef ICountProcessor<span> CountProcessor;
+	
+	static const size_t KX = 4 ;
+	
+private:
+	//used for the priority queue
+	typedef std::pair<int, Type> kxp; //id pointer in vec_pointer , value
+	struct kxpcomp { bool operator() (kxp l,kxp r) { return ((r.second) < (l.second)); } } ;
+	
+public:
+	/** Constructor. */
+	PartitionsByVectorCommand_multibank (
+										 gatb::core::tools::collections::Iterable<Type>& partition,
+										 CountProcessor*                                 processor,
+										 size_t                                          cacheSize,
+										 gatb::core::tools::dp::IteratorListener*        progress,
+										 tools::misc::impl::TimeInfo&                    timeInfo,
+										 PartiInfo<5>&                                   pInfo,
+										 int                                             passi,
+										 int                                             parti,
+										 size_t                                          nbCores,
+										 size_t                                          kmerSize,
+										 gatb::core::tools::misc::impl::MemAllocator&    pool,
+										 std::vector<size_t>&                            offsets
+										 );
+	
+	/** Destructor. */
+	~PartitionsByVectorCommand_multibank ();
+	
+	/** Get the class name (for statistics). */
+	const char* getName() const { return "vector"; }
+	
+	/** */
+	void execute ();
+	
+private:
+	
+	Type**     	       _radix_kmers;
+	bank::BankIdType** _bankIdMatrix;
+	uint64_t*          _radix_sizes;
+	uint64_t*          _r_idx;
+	
+	tools::dp::IDispatcher* _dispatcher;
+	
+	void executeRead   ();
+	void executeSort   ();
+	void executeDump   ();
+	
+	std::vector<size_t> _nbItemsPerBankPerPart;
+};
 /********************************************************************************/
 } } } } /* end of namespaces. */
 /********************************************************************************/

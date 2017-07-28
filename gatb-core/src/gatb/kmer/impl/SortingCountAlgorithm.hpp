@@ -235,12 +235,12 @@ private:
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
 
     /** Temporary partitions management. */
-   // tools::storage::impl::Storage* _tmpPartitionsStorage;
-    //void setPartitionsStorage (tools::storage::impl::Storage* tmpPartitionsStorage)  {  SP_SETATTR(tmpPartitionsStorage);  }
+    tools::storage::impl::Storage* _tmpPartitionsStorage;
+    void setPartitionsStorage (tools::storage::impl::Storage* tmpPartitionsStorage)  {  SP_SETATTR(tmpPartitionsStorage);  }
 
     /** Temporary partitions management. */
-    //tools::storage::impl::Partition<Type>* _tmpPartitions;
-    //void setPartitions (tools::storage::impl::Partition<Type>* tmpPartitions)  {  SP_SETATTR(tmpPartitions);  }
+    tools::storage::impl::Partition<Type>* _tmpPartitions;
+    void setPartitions (tools::storage::impl::Partition<Type>* tmpPartitions)  {  SP_SETATTR(tmpPartitions);  }
 
     /** Get the memory size (in bytes) to be used by each item.
      * IMPORTANT : we may have to count both the size of Type and the size for the bank id. */

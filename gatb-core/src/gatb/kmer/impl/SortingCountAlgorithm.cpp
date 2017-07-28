@@ -95,7 +95,7 @@ template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (IProperties* params)
   : Algorithm("dsk", -1, params),
     _bank(0), _repartitor(0),
-    _progress (0), _storage(0),_superKstorage(0)
+    _progress (0), _tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0),_superKstorage(0)
 {
 }
 
@@ -111,7 +111,7 @@ template<size_t span>
 SortingCountAlgorithm<span>::SortingCountAlgorithm (IBank* bank, IProperties* params)
   : Algorithm("dsk", -1, params),
     _bank(0), _repartitor(0),
-    _progress (0), _storage(0),_superKstorage(0)
+    _progress (0),_tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0),_superKstorage(0)
 {
     setBank (bank);
 }
@@ -135,7 +135,7 @@ SortingCountAlgorithm<span>::SortingCountAlgorithm (
 )
   : Algorithm("dsk", config._nbCores, params),
     _config(config), _bank(0), _repartitor(0),
-    _progress (0), _storage(0),_superKstorage(0)
+    _progress (0),_tmpPartitionsStorage(0), _tmpPartitions(0), _storage(0),_superKstorage(0)
 {
     setBank       (bank);
     setRepartitor (repartitor);
@@ -182,8 +182,8 @@ SortingCountAlgorithm<span>& SortingCountAlgorithm<span>::operator= (const Sorti
         setBank                 (s._bank);
         setRepartitor           (s._repartitor);
         setProgress             (s._progress);
-     //   setPartitionsStorage    (s._tmpPartitionsStorage);
-	 //  setPartitions           (s._tmpPartitions);
+        setPartitionsStorage    (s._tmpPartitionsStorage);
+	    setPartitions           (s._tmpPartitions);
 		_superKstorage = s._superKstorage;
         setStorage              (s._storage);
     }
@@ -568,11 +568,13 @@ void SortingCountAlgorithm<span>::execute ()
 	
 
     /** We want to remove physically the partitions. */
-   // _tmpPartitions->remove ();
+	if(_config._solidityKind != KMER_SOLIDITY_SUM)
+     _tmpPartitions->remove ();
 
 	u_int64_t totaltmp, biggesttmp, smallesttmp;
 	float meantmp;
-	_superKstorage->getFilesStats(totaltmp,biggesttmp,smallesttmp, meantmp);
+	if(_config._solidityKind == KMER_SOLIDITY_SUM)
+		_superKstorage->getFilesStats(totaltmp,biggesttmp,smallesttmp, meantmp);
 
 
 	if(_superKstorage!=0)
@@ -617,11 +619,13 @@ void SortingCountAlgorithm<span>::execute ()
 	getInfo()->add (3, "avg superk length ","%.2f",(nbtotalk/(float) nbtotalsuperk));
 	getInfo()->add (3, "minimizer density ","%.2f",(nbtotalsuperk/(float)nbtotalk)*(_config._kmerSize - _config._minim_size +2));
 	
-	getInfo()->add (3, "total size (MB)","%lld",totaltmp/1024LL/1024LL);
-	getInfo()->add (3, "tmp file biggest (MB)","%lld",biggesttmp/1024LL/1024LL);
-	getInfo()->add (3, "tmp file smallest (MB)","%lld",smallesttmp/1024LL/1024LL);
-	getInfo()->add (3, "tmp file mean (MB)","%.1f",meantmp/1024LL/1024LL);
-
+	if(_config._solidityKind == KMER_SOLIDITY_SUM)
+	{
+		getInfo()->add (3, "total size (MB)","%lld",totaltmp/1024LL/1024LL);
+		getInfo()->add (3, "tmp file biggest (MB)","%lld",biggesttmp/1024LL/1024LL);
+		getInfo()->add (3, "tmp file smallest (MB)","%lld",smallesttmp/1024LL/1024LL);
+		getInfo()->add (3, "tmp file mean (MB)","%.1f",meantmp/1024LL/1024LL);
+	}
     /** We dump information about count processors. */
     if (_processors.size()==1)  {  getInfo()->add (2, _processors[0]->getProperties()); }
     else
@@ -648,8 +652,149 @@ void SortingCountAlgorithm<span>::execute ()
  * a lookup table that has computed the minimizers distribution on a subset of the
  * processed bank.
  */
-template<size_t span>
+	
+template<size_t span, bool newSuperKmerStorage=true> //
 class FillPartitions : public Sequence2SuperKmer<span>
+{
+public:
+	/** Shortcut. */
+	typedef typename Sequence2SuperKmer<span>::Type            Type;
+	typedef typename Sequence2SuperKmer<span>::Model           Model;
+	typedef typename Model::Kmer                          KmerType;
+	typedef typename Kmer<span>::SuperKmer                SuperKmer;
+	
+	/** */
+	void processSuperkmer (SuperKmer& superKmer)
+	{
+		if ((superKmer.minimizer % this->_nbPass) == this->_pass && superKmer.isValid()) //check if falls into pass
+		{
+			/** We get the hash code for the current miminizer.
+			 * => this will give us the partition where to dump the superkmer. */
+			size_t p = this->_repartition (superKmer.minimizer);
+			
+			/** We save the superkmer into the right partition. */
+			if(newSuperKmerStorage)
+				superKmer.save (_superkmerFiles,p);
+			else
+				superKmer.save ((this->_partition)[p]);
+			
+			
+			//for debug purposes
+			_local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmer.size()); //tocheck
+			
+			/*********************************************/
+			/** Now, we compute statistics about kxmers. */
+			/*********************************************/
+			
+			Type radix_kxmer_forward ,radix_kxmer ;
+			bool prev_which = superKmer[0].which();
+			size_t kx_size =0;
+			
+			radix_kxmer_forward = getHeavyWeight (superKmer[0].value());
+			
+			for (size_t ii=1 ; ii < superKmer.size(); ii++)
+			{
+				//compute here stats on  kx mer
+				//tant que tai <= xmer et which kmer[ii] == which kmer [ii-1] --> cest un kxmer
+				//do the same in sampling : gives ram estimation
+				if (superKmer[ii].which() != prev_which || kx_size >= this->_kx) // kxmer_size = 1 //cost should diminish with larger kxmer
+				{
+					//output kxmer size kx_size,radix_kxmer
+					//kx mer is composed of _superKp[ii-1] _superKp[ii-2] .. _superKp[ii-n] with nb elems  n  == kxmer_size +1  (un seul kmer ==k+0)
+					if(prev_which)
+					{
+						radix_kxmer = radix_kxmer_forward;
+					}
+					else // si revcomp, le radix du kxmer est le debut du dernier kmer
+					{
+						radix_kxmer = getHeavyWeight (superKmer[ii-1].value());
+					}
+					
+					this->_local_pInfo.incKmer_and_rad (p, radix_kxmer.getVal(), kx_size); //nb of superkmer per x per parti per radix
+					
+					radix_kxmer_forward =  getHeavyWeight (superKmer[ii].value());
+					kx_size =0;
+				}
+				else
+				{
+					kx_size++;
+				}
+				
+				prev_which = superKmer[ii].which() ;
+			}
+			
+			//record last kx mer
+			if(prev_which)
+			{
+				radix_kxmer = radix_kxmer_forward;
+			}
+			else // si revcomp, le radix du kxmer est le debut du dernier kmer
+			{
+				radix_kxmer =  getHeavyWeight (superKmer[superKmer.size()-1].value());
+			}
+			
+			this->_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
+			
+			/** We update progression information. */
+			this->_nbWrittenKmers += superKmer.size();
+		}
+	}
+	
+	/** Constructor. */
+	FillPartitions (
+					Model&             model,
+					size_t             nbPasses,
+					size_t             currentPass,
+					size_t             nbPartitions,
+					size_t             nbCacheItems,
+					IteratorListener*  progress,
+					BankStats&         bankStats,
+					Partition<Type>*   partition,
+					Repartitor&        repartition,
+					PartiInfo<5>&      pInfo,
+					SuperKmerBinFiles* superKstorage
+					)
+	:   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
+	_kx(4),
+	_extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
+	_repartition (repartition)
+	,_partition (*partition, nbCacheItems, 0), _superkmerFiles(superKstorage,nbCacheItems* sizeof(Type))
+	{
+		_mask_radix.setVal((int64_t) 255);
+		_mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
+	}
+	
+	
+	/** Destructor. */
+	~FillPartitions ()
+	{
+		//printf("destruc fillparti _superkmerFiles %p \n",_superkmerFiles);
+		
+		//add to global parti_info
+		_extern_pInfo += _local_pInfo;
+	}
+	
+private:
+	
+	size_t        _kx;
+	PartiInfo<5>& _extern_pInfo;
+	PartiInfo<5>  _local_pInfo;
+	Type          _mask_radix;
+	Repartitor&   _repartition;
+	
+	/** Shared resources (must support concurrent accesses). */
+	PartitionCacheType <Type> _partition;
+		CacheSuperKmerBinFiles _superkmerFiles;
+	
+	
+	
+	Type getHeavyWeight (const Type& kmer) const  {  return (kmer & this->_mask_radix) >> ((this->_kmersize - 4)*2);  }
+};
+	
+	
+//specialization when newSuperKmerStorage = false
+template<size_t span>
+class FillPartitions <span, false>: public Sequence2SuperKmer<span>
 {
 public:
     /** Shortcut. */
@@ -668,12 +813,14 @@ public:
             size_t p = this->_repartition (superKmer.minimizer);
 
             /** We save the superkmer into the right partition. */
-            //superKmer.save (this->_partition[p]);
-			superKmer.save (_superkmerFiles,p);
+//			if(newSuperKmerStorage)
+//				superKmer.save (_superkmerFiles,p);
+//			else
+				superKmer.save ((this->_partition)[p]);
 
-			
+	
 			//for debug purposes
-			_local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmer.size());
+			_local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmer.size()); //tocheck
 
             /*********************************************/
             /** Now, we compute statistics about kxmers. */
@@ -742,7 +889,7 @@ public:
         size_t             nbCacheItems,
         IteratorListener*  progress,
         BankStats&         bankStats,
-      //  Partition<Type>*   partition,
+        Partition<Type>*   partition,
         Repartitor&        repartition,
         PartiInfo<5>&      pInfo,
 		SuperKmerBinFiles* superKstorage
@@ -750,18 +897,21 @@ public:
     :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
         _kx(4),
         _extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
-        _repartition (repartition)/*, _partition (*partition, nbCacheItems, 0)*/, _superkmerFiles(superKstorage,nbCacheItems* sizeof(Type))
+        _repartition (repartition)
+	    ,_partition (*partition, nbCacheItems, 0)/*, _superkmerFiles(superKstorage,nbCacheItems* sizeof(Type))*/
     {
         _mask_radix.setVal((int64_t) 255);
         _mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
     }
 
+
     /** Destructor. */
     ~FillPartitions ()
     {
+		//printf("destruc fillparti _superkmerFiles %p \n",_superkmerFiles);
+
         //add to global parti_info
         _extern_pInfo += _local_pInfo;
-		
     }
 
 private:
@@ -771,15 +921,152 @@ private:
     PartiInfo<5>  _local_pInfo;
     Type          _mask_radix;
     Repartitor&   _repartition;
-
+	
     /** Shared resources (must support concurrent accesses). */
- //   PartitionCacheType <Type> _partition;
-	CacheSuperKmerBinFiles _superkmerFiles;
+    PartitionCacheType <Type> _partition;
+//	CacheSuperKmerBinFiles _superkmerFiles;
+	
 	
 
     Type getHeavyWeight (const Type& kmer) const  {  return (kmer & this->_mask_radix) >> ((this->_kmersize - 4)*2);  }
 };
 
+	
+	//specialization when newSuperKmerStorage = true
+	template<size_t span>
+	class FillPartitions<span, true> : public Sequence2SuperKmer<span>
+	{
+	public:
+		/** Shortcut. */
+		typedef typename Sequence2SuperKmer<span>::Type            Type;
+		typedef typename Sequence2SuperKmer<span>::Model           Model;
+		typedef typename Model::Kmer                          KmerType;
+		typedef typename Kmer<span>::SuperKmer                SuperKmer;
+		
+		/** */
+		void processSuperkmer (SuperKmer& superKmer)
+		{
+			if ((superKmer.minimizer % this->_nbPass) == this->_pass && superKmer.isValid()) //check if falls into pass
+			{
+				/** We get the hash code for the current miminizer.
+				 * => this will give us the partition where to dump the superkmer. */
+				size_t p = this->_repartition (superKmer.minimizer);
+				
+				/** We save the superkmer into the right partition. */
+				superKmer.save (_superkmerFiles,p);
+
+				//for debug purposes
+				_local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmer.size()); //tocheck
+				
+				/*********************************************/
+				/** Now, we compute statistics about kxmers. */
+				/*********************************************/
+				
+				Type radix_kxmer_forward ,radix_kxmer ;
+				bool prev_which = superKmer[0].which();
+				size_t kx_size =0;
+				
+				radix_kxmer_forward = getHeavyWeight (superKmer[0].value());
+				
+				for (size_t ii=1 ; ii < superKmer.size(); ii++)
+				{
+					//compute here stats on  kx mer
+					//tant que tai <= xmer et which kmer[ii] == which kmer [ii-1] --> cest un kxmer
+					//do the same in sampling : gives ram estimation
+					if (superKmer[ii].which() != prev_which || kx_size >= this->_kx) // kxmer_size = 1 //cost should diminish with larger kxmer
+					{
+						//output kxmer size kx_size,radix_kxmer
+						//kx mer is composed of _superKp[ii-1] _superKp[ii-2] .. _superKp[ii-n] with nb elems  n  == kxmer_size +1  (un seul kmer ==k+0)
+						if(prev_which)
+						{
+							radix_kxmer = radix_kxmer_forward;
+						}
+						else // si revcomp, le radix du kxmer est le debut du dernier kmer
+						{
+							radix_kxmer = getHeavyWeight (superKmer[ii-1].value());
+						}
+						
+						this->_local_pInfo.incKmer_and_rad (p, radix_kxmer.getVal(), kx_size); //nb of superkmer per x per parti per radix
+						
+						radix_kxmer_forward =  getHeavyWeight (superKmer[ii].value());
+						kx_size =0;
+					}
+					else
+					{
+						kx_size++;
+					}
+					
+					prev_which = superKmer[ii].which() ;
+				}
+				
+				//record last kx mer
+				if(prev_which)
+				{
+					radix_kxmer = radix_kxmer_forward;
+				}
+				else // si revcomp, le radix du kxmer est le debut du dernier kmer
+				{
+					radix_kxmer =  getHeavyWeight (superKmer[superKmer.size()-1].value());
+				}
+				
+				this->_local_pInfo.incKmer_and_rad(p, radix_kxmer.getVal(),kx_size );
+				
+				/** We update progression information. */
+				this->_nbWrittenKmers += superKmer.size();
+			}
+		}
+		
+		/** Constructor. */
+		FillPartitions (
+						Model&             model,
+						size_t             nbPasses,
+						size_t             currentPass,
+						size_t             nbPartitions,
+						size_t             nbCacheItems,
+						IteratorListener*  progress,
+						BankStats&         bankStats,
+						Partition<Type>*   partition,
+						Repartitor&        repartition,
+						PartiInfo<5>&      pInfo,
+						SuperKmerBinFiles* superKstorage
+						)
+		:   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats),
+		_kx(4),
+		_extern_pInfo(pInfo) , _local_pInfo(nbPartitions,model.getMmersModel().getKmerSize()),
+		_repartition (repartition)
+		,/*_partition (*partition, nbCacheItems, 0),*/ _superkmerFiles(superKstorage,nbCacheItems* sizeof(Type))
+		{
+			_mask_radix.setVal((int64_t) 255);
+			_mask_radix = _mask_radix << ((this->_kmersize - 4)*2); //get first 4 nt  of the kmers (heavy weight)
+		}
+		
+		
+		/** Destructor. */
+		~FillPartitions ()
+		{
+			//printf("destruc fillparti _superkmerFiles %p \n",_superkmerFiles);
+			
+			//add to global parti_info
+			_extern_pInfo += _local_pInfo;
+		}
+		
+	private:
+		
+		size_t        _kx;
+		PartiInfo<5>& _extern_pInfo;
+		PartiInfo<5>  _local_pInfo;
+		Type          _mask_radix;
+		Repartitor&   _repartition;
+		
+		/** Shared resources (must support concurrent accesses). */
+		//PartitionCacheType <Type> _partition;
+		CacheSuperKmerBinFiles _superkmerFiles;
+		
+		
+		
+		Type getHeavyWeight (const Type& kmer) const  {  return (kmer & this->_mask_radix) >> ((this->_kmersize - 4)*2);  }
+	};
+	
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -790,102 +1077,121 @@ private:
 *********************************************************************/
 template<size_t span>
 void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence>* itSeq, PartiInfo<5>& pInfo)
-{
-    TIME_INFO (getTimeInfo(), "fill_partitions");
-
-    DEBUG (("SortingCountAlgorithm<span>::fillPartitions  _kmerSize=%d _minim_size=%d \n", _config._kmerSize, _config._minim_size));
-
-    /** We delete the previous partitions storage. */
-   // if (_tmpPartitionsStorage)  { _tmpPartitionsStorage->remove (); }
-
-    /** We build the temporary storage name from the output storage name. */
-    //string tmpStorageName = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("dsk_partitions");
-	//string tmpStorageName =  "./" + System::file().getTemporaryFilename("dsk_partitions");
-	_tmpStorageName_superK = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("superK_partitions");
-
-    /** We create the partition files for the current pass. */
-   // setPartitionsStorage (StorageFactory(STORAGE_TYPE).create (tmpStorageName, true, false));
-   // setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
-   // setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts", _config._nb_partitions));
-
-	
-	if(_superKstorage!=0)
 	{
-		delete _superKstorage;
-		_superKstorage =0;
+		TIME_INFO (getTimeInfo(), "fill_partitions");
+		
+		DEBUG (("SortingCountAlgorithm<span>::fillPartitions  _kmerSize=%d _minim_size=%d \n", _config._kmerSize, _config._minim_size));
+		
+		if(_config._solidityKind != KMER_SOLIDITY_SUM)
+		{
+			/** We delete the previous partitions storage. */
+			if (_tmpPartitionsStorage)  { _tmpPartitionsStorage->remove (); }
+			
+			/** We build the temporary storage name from the output storage name. */
+			string tmpStorageName = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("dsk_partitions");
+			
+			/** We create the partition files for the current pass. */
+			setPartitionsStorage (StorageFactory(STORAGE_TYPE).create (tmpStorageName, true, false));
+			setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
+			setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts", _config._nb_partitions));
+			
+		}
+		else
+		{
+			/** We build the temporary storage name from the output storage name. */
+			_tmpStorageName_superK = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("superK_partitions");
+			
+			
+			if(_superKstorage!=0)
+			{
+				delete _superKstorage;
+				_superKstorage =0;
+			}
+			
+			_superKstorage = new SuperKmerBinFiles(_tmpStorageName_superK,"superKparts", _config._nb_partitions) ;
+			
+		}
+		/** We update the message of the progress bar. */
+		_progress->setMessage (Stringify::format(progressFormat1, pass+1, _config._nb_passes));
+		
+		/** We create a kmer model; using the frequency order if we're in that mode */
+		uint32_t* freq_order = NULL;
+		
+		/** We may have to retrieve the minimizers frequencies computed in the RepartitorAlgorithm. */
+		if (_config._minimizerType == 1)  {  freq_order = _repartitor->getMinimizerFrequencies ();  }
+		
+		Model model( _config._kmerSize, _config._minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequencyOrLex(), freq_order);
+		
+		/** We have to reinit the progress instance since it may have been used by SampleRepart before. */
+		_progress->init();
+		
+		/** We may have several input banks instead of a single one. */
+		std::vector<Iterator<Sequence>*> itBanks =  itSeq->getComposition();
+		
+		/** We first reset the vector holding the kmers number for each partition and for each bank.
+		 * It can be seen as the following matrix:
+		 *
+		 *           part0  part1  part2 ... partJ
+		 *   bank0    xxx    xxx    xxx       xxx
+		 *   bank1    xxx    xxx    xxx       xxx
+		 *    ...
+		 *   bankI    xxx    xxx    xxx       xxx
+		 *
+		 *   Here xxx is the number of items found for the bank I in the partition J
+		 */
+		_nbKmersPerPartitionPerBank.clear();
+		
+		/** We launch the iteration of the sequences iterator with the created functors. */
+		for (size_t i=0; i<itBanks.size(); i++)
+		{
+			size_t groupSize   = 1000;
+			bool deleteSynchro = true;
+			
+			/** We fill the partitions. Each thread will read synchronously and will call FillPartitions
+			 * in a synchronous way (in order to have global BanksStats correctly computed). */
+			
+			if(_config._solidityKind == KMER_SOLIDITY_SUM)
+			{
+				getDispatcher()->iterate (itBanks[i], FillPartitions<span,true> (
+																			model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo,_superKstorage
+																			), groupSize, deleteSynchro);
+			}
+			else
+			{
+				getDispatcher()->iterate (itBanks[i], FillPartitions<span,false> (
+																				 model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo,_superKstorage
+																				 ), groupSize, deleteSynchro);
+			}
+			
+			
+			/** We flush the partitions in order to be sure to have the exact number of items per partition. */
+			if(_config._solidityKind != KMER_SOLIDITY_SUM)
+			{
+				_tmpPartitions->flush();
+				
+				/** We get a snapshot of items number in each partition. */
+				vector<size_t> nbItems;
+				for (size_t p=0; p<_config._nb_partitions; p++)
+				{
+				 nbItems.push_back ((*_tmpPartitions)[p].getNbItems()); //todo for multi count
+				}
+				
+				/** We add the current number of kmers in each partition for the reached ith bank. */
+				_nbKmersPerPartitionPerBank.push_back (nbItems);
+			}
+			
+			//GR: close the input bank here with call to finalize
+			itBanks[i]->finalize();
+		}
+		
+		if(_config._solidityKind == KMER_SOLIDITY_SUM)
+		{
+			_superKstorage->flushFiles();
+			_superKstorage->closeFiles();
+		}
+		
+		
 	}
-	
-	_superKstorage = new SuperKmerBinFiles(_tmpStorageName_superK,"superKparts", _config._nb_partitions) ;
-	
-    /** We update the message of the progress bar. */
-    _progress->setMessage (Stringify::format(progressFormat1, pass+1, _config._nb_passes));
-
-    /** We create a kmer model; using the frequency order if we're in that mode */
-    uint32_t* freq_order = NULL;
-
-    /** We may have to retrieve the minimizers frequencies computed in the RepartitorAlgorithm. */
-    if (_config._minimizerType == 1)  {  freq_order = _repartitor->getMinimizerFrequencies ();  }
-
-    Model model( _config._kmerSize, _config._minim_size, typename kmer::impl::Kmer<span>::ComparatorMinimizerFrequencyOrLex(), freq_order);
-
-	/** We have to reinit the progress instance since it may have been used by SampleRepart before. */
-    _progress->init();
-
-    /** We may have several input banks instead of a single one. */
-    std::vector<Iterator<Sequence>*> itBanks =  itSeq->getComposition();
-
-    /** We first reset the vector holding the kmers number for each partition and for each bank.
-     * It can be seen as the following matrix:
-     *
-     *           part0  part1  part2 ... partJ
-     *   bank0    xxx    xxx    xxx       xxx
-     *   bank1    xxx    xxx    xxx       xxx
-     *    ...
-     *   bankI    xxx    xxx    xxx       xxx
-     *
-     *   Here xxx is the number of items found for the bank I in the partition J
-     */
-    _nbKmersPerPartitionPerBank.clear();
-
-    /** We launch the iteration of the sequences iterator with the created functors. */
-    for (size_t i=0; i<itBanks.size(); i++)
-    {
-        size_t groupSize   = 1000;
-        bool deleteSynchro = true;
-    
-        /** We fill the partitions. Each thread will read synchronously and will call FillPartitions
-         * in a synchronous way (in order to have global BanksStats correctly computed). */
-
-	
-        getDispatcher()->iterate (itBanks[i], FillPartitions<span> (
-            model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, *_repartitor, pInfo,_superKstorage
-        ), groupSize, deleteSynchro);
-
-
-        /** We flush the partitions in order to be sure to have the exact number of items per partition. */
-       // _tmpPartitions->flush();
-
-        /** We get a snapshot of items number in each partition. */
-        vector<size_t> nbItems;
-        for (size_t p=0; p<_config._nb_partitions; p++)
-        {
-           // nbItems.push_back ((*_tmpPartitions)[p].getNbItems()); //todo for multi count
-        }
-
-        /** We add the current number of kmers in each partition for the reached ith bank. */
-        _nbKmersPerPartitionPerBank.push_back (nbItems);
-		
-		
-		//GR: close the input bank here with call to finalize 
-		itBanks[i]->finalize();
-    }
-	
-
-	_superKstorage->flushFiles();
-	_superKstorage->closeFiles();
-
-
-}
 
 /*********************************************************************
 ** METHOD  :
@@ -1029,11 +1335,11 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
             {
                 if (pool.getCapacity() != 0)  {  pool.reserve(0);  }
 
-                // also allow to use mem pool for oahash ? ou pas la peine
-                cmd = new PartitionsByHashCommand<span>   (
-                     processorClone, cacheSize, _progress, _fillTimeInfo,
-                    pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, mem,_superKstorage
-                );
+
+					cmd = new PartitionsByHashCommand<span>   (
+															   processorClone, cacheSize, _progress, _fillTimeInfo,
+															   pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, mem,_superKstorage
+															   );
             }
             else
             {
@@ -1104,10 +1410,21 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
                     }
                 }
 
-                cmd = new PartitionsByVectorCommand<span> (
-                     processorClone, cacheSize, _progress, _fillTimeInfo,
-                    pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, nbItemsPerBankPerPart,_superKstorage
-                );
+				if ( _config._solidityKind == KMER_SOLIDITY_SUM)
+				{
+					cmd = new PartitionsByVectorCommand<span> (
+															   processorClone, cacheSize, _progress, _fillTimeInfo,
+															   pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, nbItemsPerBankPerPart,_superKstorage
+															   );
+				}
+				else
+				{
+					cmd = new PartitionsByVectorCommand_multibank<span> (
+															   (*_tmpPartitions)[p], processorClone, cacheSize, _progress, _fillTimeInfo,
+															   pInfo, pass, p, _config._nbCores_per_partition, _config._kmerSize, pool, nbItemsPerBankPerPart
+															   );
+				}
+
             }
 
             cmds.push_back (cmd);
@@ -1128,7 +1445,9 @@ void SortingCountAlgorithm<span>::fillSolidKmers_aux (ICountProcessor<span>* pro
         pool.free_all();
     }
 	
-	_superKstorage->closeFiles();
+	
+	if(_config._solidityKind == KMER_SOLIDITY_SUM)
+		_superKstorage->closeFiles();
 
 }
 
