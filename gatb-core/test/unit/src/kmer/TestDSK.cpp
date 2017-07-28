@@ -98,14 +98,11 @@ class TestDSK : public Test
         CPPUNIT_TEST_GATB (DSK_check1);
         CPPUNIT_TEST_GATB (DSK_check2);
         CPPUNIT_TEST_GATB (DSK_check3);
-
-        /*
-         * disabled multi-bank DSK testing, since DSK3 does not support it anymore
         CPPUNIT_TEST_GATB (DSK_perBank1);
         CPPUNIT_TEST_GATB (DSK_perBank2);
         CPPUNIT_TEST_GATB (DSK_perBankKmer);
         CPPUNIT_TEST_GATB (DSK_multibank);
-        */
+		 
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
