@@ -56,9 +56,9 @@ public:
      * \param[in] autoRemove : auto delete the storage from file system during Storage destructor.
      * \return the created Storage instance
      */
-    static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension = false)
+    static Storage* createStorage (const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension = false, bool append = false)
     {
-        return new StorageHDF5 (STORAGE_HDF5, name, deleteIfExist, autoRemove, dont_add_extension);
+        return new StorageHDF5 (STORAGE_HDF5, name, deleteIfExist, autoRemove, dont_add_extension, append);
     }
 
     /** Tells whether or not a Storage exists in file system given a name
@@ -193,7 +193,7 @@ private:
     class StorageHDF5 : public Storage
     {
     public:
-        StorageHDF5 (StorageMode_e mode, const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension = false)
+        StorageHDF5 (StorageMode_e mode, const std::string& name, bool deleteIfExist, bool autoRemove, bool dont_add_extension = false, bool append = false)
             : Storage (mode, name, autoRemove), _fileId(0), _name(name), _dont_add_extension(dont_add_extension)
         {
             if (deleteIfExist)  {  system::impl::System::file().remove (getActualName());  }
@@ -204,7 +204,10 @@ private:
             if (exists==true)
             {
                 /** We open the existing file. */
-                _fileId = H5Fopen (getActualName().c_str(), H5F_ACC_RDWR, H5P_DEFAULT); /* FIXME: now all files are opened as read/write because I need that in Graph.cpp for opening exiting h5 files this needs better interface */
+                if (append)
+                    _fileId = H5Fopen (getActualName().c_str(), H5F_ACC_RDWR, H5P_DEFAULT); /* opened as read/write. Used in Graph.cpp, for opening exiting h5 files (e.g. created by DSK) and adding graph stuff to them (eg bloom, mphf) */
+                else
+                    _fileId = H5Fopen (getActualName().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
             }
             else
             {
