@@ -55,8 +55,24 @@ lstopo
 ################################################################
 
 JENKINS_TASK=${JOB_NAME}
-GIT_DIR=/home/ci-gatb/workspace/$JENKINS_TASK/gatb-core
-BUILD_DIR=/home/ci-gatb/scratchdir/$JENKINS_TASK/gatb-core/build
+
+MACHINE="`hostname`"
+case $MACHINE in
+koriscale*)
+  echo $MACHINE
+  GIT_DIR=/home/ci-gatb/workspace/$JENKINS_TASK/gatb-core
+  BUILD_DIR=/home/ci-gatb/scratchdir/$JENKINS_TASK/gatb-core/build
+  ;;
+gatb-core-ubuntu16-docker)
+  echo $MACHINE
+  GIT_DIR=/builds/workspace/$JENKINS_TASK/gatb-core
+  BUILD_DIR=/scratchdir/$JENKINS_TASK/gatb-core/build
+  ;;
+*)
+  echo Erreur
+  exit 1
+  ;;
+esac
 
 rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
