@@ -155,12 +155,13 @@ RUN add-apt-repository "deb http://apt.llvm.org/jessie/ llvm-toolchain-jessie-${
 #     install cmake since we have to control which version we use.
 #     Cmake install procedure: https://cmake.org/install/
 #
+ENV CC=/usr/bin/clang-${CLANG_VERSION} \
+    CXX=/usr/bin/clang++-${CLANG_VERSION}
+
 RUN cd /opt \
     && export CMAKE_URL="http://cmake.org/files/v${CMAKE_SERIES}/cmake-${CMAKE_VERSION}.tar.gz" \
     && wget --no-check-certificate ${CMAKE_URL} -O - | tar xzf - \
     && cd cmake-${CMAKE_VERSION} \
-    && export CC=/usr/bin/clang-${CLANG_VERSION} \
-    && export CXX=/usr/bin/clang++-${CLANG_VERSION} \
     && ./bootstrap && make && make install && cd /opt && rm -rf cmake-${CMAKE_VERSION} 
 
 # ###
