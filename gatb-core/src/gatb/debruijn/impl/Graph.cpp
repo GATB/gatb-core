@@ -472,8 +472,9 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
     Group& dskGroup = (*solidStorage)("dsk"); 
     Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
 
-    /** We create an instance of the MPHF Algorithm class (why is that a class, and not a function?) and execute it. */
-    if ((!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)))
+    /** We create an instance of the MPHF Algorithm class (I was wondering: why is that a class, and not a function?) and execute it. */
+    bool  noMphf = props->get("-no-mphf") != 0;
+    if ((!noMphf) && (!graph.checkState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_MPHF_DONE)))
     {
         DEBUG ((cout << "build_visitor : MPHFAlgorithm BEGIN\n"));
 
@@ -642,6 +643,7 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     parser->push_back (SortingCountAlgorithm<>::getOptionsParser(includeMandatory));
     parser->push_back (DebloomAlgorithm<>::getOptionsParser());
     parser->push_back (BranchingAlgorithm<>::getOptionsParser());
+    parser->push_front (new OptionNoParam  ("-no-mphf",       "don't construct the MPHF"));
 
     /** We create a "general options" parser. */
     IOptionsParser* parserGeneral  = new OptionsParser ("general");
