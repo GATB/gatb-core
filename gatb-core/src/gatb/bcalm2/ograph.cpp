@@ -138,7 +138,9 @@ void graph3<span>::compaction(uint iL,  uint iR){
 		if(beg1==end2){
 			unitigs[iR]+=(unitigs[iL].substr(k));
 			unitigs[iL]=to_string(iR);
-            
+
+            indexed_right[iR]=indexed_right[iL];
+            connected_right[iR]=connected_right[iL];
             compact_abundances(iR,iL);
 			return;
 		}
@@ -147,9 +149,14 @@ void graph3<span>::compaction(uint iL,  uint iR){
         endrc2.setVal(beg2int128rc(unitigs[iR])); 
 		if(beg1==endrc2){
 			reverseinplace2(unitigs[iR]);
+            indexed_left[iR]=indexed_right[iR];
+            connected_left[iR]=connected_right[iR];
+
 			unitigs[iR]+=(unitigs[iL].substr(k));
 			unitigs[iL]=to_string(iR);
             
+            indexed_right[iR]=indexed_right[iL];
+            connected_right[iR]=connected_right[iL];
             compact_abundances(iR,iL,true,false);
 			return;
 		}
@@ -162,6 +169,8 @@ void graph3<span>::compaction(uint iL,  uint iR){
 			unitigs[iL]+=(unitigs[iR].substr(k));
 			unitigs[iR]=to_string(iL);
 
+            indexed_right[iL]=indexed_right[iR];
+            connected_right[iL]=connected_right[iR];
             compact_abundances(iL,iR);
 			return;
 		}
@@ -175,6 +184,8 @@ void graph3<span>::compaction(uint iL,  uint iR){
 			unitigs[iL]+=(reverseinplace(unitigs[iR]).substr(k));
 			unitigs[iR]=to_string(iL);
 
+            indexed_right[iL]=indexed_left[iR];
+            connected_right[iL]=connected_left[iR];
             compact_abundances(iL,iR, false, true);
 			return;
 		}
@@ -197,44 +208,113 @@ void graph3<span>::compact_abundances(uint i1, uint i2, bool reverse_first, bool
 }
 
 template<size_t span>
+inline void graph3<span>::update_connected(kmerIndiceT<span> &ki)
+{
+    if (ki.position == SEQ_LEFT)
+        connected_left[ki.indice] = true;
+    else
+        connected_right[ki.indice] = true;
+}
+
+/*
+ * this function is the core one that decides what compactions need to be made
+ */
+template<size_t span>
 void graph3<span>::debruijn(){
 	sort(left.begin(),left.end(),comparator<span>());
 	sort(right.begin(),right.end(),comparator<span>());
 	uint iL(0),iR(0),sizeLeft(left.size()),sizeRight(right.size());
     typename graph3<span>::kmerType minusone;
     minusone.setVal(-1);
-	left.push_back({0,minusone});
-	right.push_back({0,minusone});
+	left.push_back({0,minusone, SEQ_LEFT}); // dummy kmer so that we dont need to check bounds.. clever..
+	right.push_back({0,minusone, SEQ_LEFT});
+    uint debug_index = 0;
 
-	kmerIndiceT<span> kL,kR;
-	while(iL!=sizeLeft and iR!=sizeRight){
+    for (uint32_t i = 0; i< indiceUnitigs; i++)
+    {
+        connected_left[i]  = false;
+        connected_right[i] = false;
+    }
+    
+    kmerIndiceT<span> kL,kR;
+    std::vector<std::pair<uint,uint>> to_compact;
+    // in this pass we just flag the pairs to compact. 
+    // before, we used to compact on the fly, but now i want to have proper connection info for all unitigs prior to compaction
+	while(iL < sizeLeft && iR < sizeRight){
 		kL=left[iL];
 		kR=right[iR];
+        if (debug_index > 0) if (kL.indice == debug_index || kR.indice == debug_index ) std::cout << " kl / kR " << kL.indice << " " << kR.indice << " " << kL.kmmer << " " << kR.kmmer << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << std::endl;
 		if(kL.kmmer==kR.kmmer){
+            if (debug_index > 0) if (kL.indice == debug_index || kR.indice == debug_index ) std::cout << " identical, kl / kR " << kL.indice << " " << kR.indice << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << " positions "  << kL.position << " " << kR.position << std::endl;
+            update_connected(kL);
+            update_connected(kR);
+
+            // found the same (k-1)-mer in the left and right array, it means that two sequences end with those and could be potentially compacted
 			bool go(true);
-			++iL;++iR;
-				if(left[iL].kmmer==kL.kmmer){
-					go=false;
-					while(left[++iL].kmmer==kL.kmmer){}
-				}
-				if(right[iR].kmmer==kL.kmmer){
-					go=false;
-					while(right[++iR].kmmer==kR.kmmer){}
-				}
-			if(go){compaction(kL.indice,kR.indice);}
+            // unless there are more sequences ending with those (k-1)-mers, then definitely not compact
+            while(left[++iL].kmmer==kL.kmmer){
+                go=false;
+                update_connected(left[iL]);
+                if (debug_index > 0) if (left[iL].indice == debug_index ) std::cout << " while in iter:" << left[iL].kmmer << " unitig " << unitigs[left[iL].indice] << " position " << left[iL].position << std::endl;
+            }
+            while(right[++iR].kmmer==kL.kmmer){
+                go=false;
+                update_connected(right[iR]);
+                if (debug_index > 0) if (right[iR].indice == debug_index ) std::cout << " while in iter:" << right[iR].kmmer << " unitig " << unitigs[right[iR].indice] << " position " << right[iR].position << std::endl;
+            }
+            if(go){
+                // don't compact right now. wait 
+                to_compact.push_back(std::make_pair(kL.indice,kR.indice));
+                //compaction(kL.indice,kR.indice);// what previous code looked like
+            } 
 		}else{
 			if(kL.kmmer<kR.kmmer){
-				while(left[++iL].kmmer==kL.kmmer){}
+				while(left[++iL].kmmer==kL.kmmer){
+                    if (debug_index > 0) if (left[iL].indice == debug_index ) std::cout << " while in non-identical iter:" << left[iL].kmmer << " unitig " << unitigs[left[iL].indice] << std::endl;
+                }
 			}else{
-				while(right[++iR].kmmer==kR.kmmer){}
+				while(right[++iR].kmmer==kR.kmmer){
+                     if (debug_index > 0) if (right[iR].indice == debug_index) std::cout << " while in non-identical iter:" << right[iR].kmmer << " unitig " << unitigs[right[iR].indice] << std::endl;
+                }
 			}
 		}
+        //std::cout << "il ir " << iL << " " << iR << " sizes " << sizeLeft << " " << sizeRight << std::endl;
 	}
+
+    for (auto p: to_compact)
+    {        
+        compaction(std::get<0>(p),std::get<1>(p));
+    }
+    //std::cout << "end of compactions" << std::endl;
 }
 
 
 template<size_t span>
-bool graph3<span>::output(uint i){return !isNumber(unitigs[i][0]);}
+bool graph3<span>::output(uint i){
+    if (isNumber(unitigs[i][0]))
+        return false;
+
+    if (pre_tip_cleaning)
+    {
+        if (indexed_left[i] && indexed_right[i])
+        {
+            if ((connected_left[i] && (!connected_right[i])) ||
+                (connected_right[i] && (!connected_left[i])))
+            {
+                
+                if (unitigs[i].size() < 3*(k+1)) // the spades tip length convention, to be tuned
+                {
+                    nb_pretips++;
+                    //std::cout << "filtering tip " << unitigs[i] << " indexing l/r " << indexed_left[i] << " " << indexed_right[i] << " connected l/r " << connected_left[i] << " " << connected_right[i] << std::endl;
+                    return false;
+                }
+            }
+        }
+    }
+
+    //std::cout << "returning seq " << unitigs[i] << " indexing l/r " << indexed_left[i] << " " << indexed_right[i] << " connected l/r " << connected_left[i] << " " << connected_right[i] << std::endl;
+    return true;
+}
 
 
 template<size_t span>
@@ -248,29 +328,58 @@ template<size_t span>
 uint graph3<span>::size(){return indiceUnitigs;};
 
 
+/* this function inserts sequences into the structure
+ * while the code uses the term "unitigs", initially these sequences are just kmers (but later they will be unitigs)
+ * sequences and their abundances are stored in a plain list
+ * the index consists of two lists: left and right
+ * both indices store tuples of the form (sequence index, canonical kmer)
+ * the left index corresponds to kmers that are seen at the left of input sequence in forward strand, or on the right of unitigs in reverse strand 
+ * the right index is, well, the other ones. useful schema:
+ *
+ *    l                    r
+ *   --->                --->
+ *   ------------------------ input sequence (possibly a k-mer)
+ *   <---                <---
+ *     r                   l
+ */
 template<size_t span>
 void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
+    // input tuple: <unitigs string, left minimizer, right minimizer, abundance>
 	unitigs[indiceUnitigs]=get<0>(tuple);
 	unitigs_abundances[indiceUnitigs].push_back(get<3>(tuple));
+    string debug_kmer = "GTTTTTTAGATTCTGAGTGGAACGATGAATG";
 	if(minimizer==(get<1>(tuple))){
+        indexed_left.push_back(true);
 		typename graph3<span>::kmerType kmer1(beg2int128(unitigs[indiceUnitigs]));
 		typename graph3<span>::kmerType kmer2(rcb(kmer1));
 		if(kmer1<kmer2){
-			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1});
+            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", left kmer1 is " << kmer1 << " index " << indiceUnitigs << std::endl;
+			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1, SEQ_LEFT});
 		}else{
-			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2});
+            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", left kmer2 is " << kmer1 << " index " << indiceUnitigs << std::endl;
+			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2, SEQ_LEFT});
 		}
+        // TODO probably to handle kmers that are their own reerse compelment, do:
+        //  if (kmer2 < kmer1) instead of the "else"
+        //  but i didnt test it yet, was chasing another bug, so let's implement that later
 	}
+    else
+        indexed_left.push_back(false);
 	if(minimizer==get<2>(tuple)){
+        indexed_right.push_back(true);
 		typename graph3<span>::kmerType kmer1(end2int128(unitigs[indiceUnitigs]));
 		typename graph3<span>::kmerType kmer2(rcb(kmer1));
 
 		if(kmer1<kmer2){
-			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1});
+            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", right kmer1 is " << kmer1 << " index " << indiceUnitigs << std::endl;
+			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1, SEQ_RIGHT});
 		}else{
-			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2});
+            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", right kmer2 is " << kmer2 << std::endl;
+			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2, SEQ_RIGHT});
 		}
 	}
+    else
+        indexed_right.push_back(false);
 	++indiceUnitigs;
 }
 

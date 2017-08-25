@@ -186,8 +186,8 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
             if (abundance < (size_t)abundance_threshold)
                 return;
 
-            Type current = item.value;
-            uint32_t leftMin(modelK1.getMinimizerValue(current >> 2));
+            Type current = item.value; // current is a canonical kmer (i checked)
+            uint32_t leftMin(modelK1.getMinimizerValue(current >> 2)); // that's because the lowest bit in the gatb kmer representation are the rightmost sequence nucleotides
             uint32_t rightMin(modelK1.getMinimizerValue(current));
 
             ++nb_kmers_in_partition;
@@ -338,6 +338,7 @@ void bcalm2(Storage *storage,
     }
 
     unsigned long *nb_seqs_in_glue = new unsigned long[nb_threads];
+    unsigned long *nb_pretips = new unsigned long[nb_threads];
 
     // another system could have been to send all sequences in a queue, and a thread responsible for writing to glue would dequeue (might be faster)
     for (unsigned int i = 0; i < (unsigned int)nb_threads; i++)
@@ -345,6 +346,7 @@ void bcalm2(Storage *storage,
         string glue_file = prefix + ".glue." + std::to_string(i);
         out_to_glue[i] = new BankFasta(glue_file);
         nb_seqs_in_glue[i] = 0;
+        nb_pretips[i] = 0;
     }
 
     double weighted_best_theoretical_speedup_cumul = 0;
@@ -499,12 +501,10 @@ void bcalm2(Storage *storage,
                     uint32_t abundance = atoi(comment.c_str());
 
                     // those could be saved in the BankFasta comment eventually
-                    typename Model::Kmer kmmerBegin = modelK1.codeSeed(seq.substr(0, k - 1).c_str(), Data::ASCII);
-                    uint32_t leftMin(modelK1.getMinimizerValue(kmmerBegin.value()));
-                    typename Model::Kmer kmmerEnd = modelK1.codeSeed(seq.substr(seq.size() - k + 1, k - 1).c_str(), Data::ASCII);
-                    uint32_t rightMin(modelK1.getMinimizerValue(kmmerEnd.value()));
                     typename Model::Kmer current = model.codeSeed(seq.c_str(), Data::ASCII);
                     Type kmer = current.value();
+                    uint32_t leftMin(modelK1.getMinimizerValue(kmer >> 2));
+                    uint32_t rightMin(modelK1.getMinimizerValue(kmer));
 
                     uint32_t max_minimizer = minimizerMax(leftMin, rightMin);
                     //add_to_bucket_queue(max_minimizer, seq, abundance, leftMin, rightMin, p);
@@ -585,7 +585,7 @@ void bcalm2(Storage *storage,
         for(auto actualMinimizer : set_minimizers)
         {
             auto lambdaCompact = [&nb_kmers_per_minimizer, actualMinimizer, &model,
-                &maxBucket, &lambda_timings, &repart, &modelK1, &out_to_glue, &nb_seqs_in_glue, kmerSize, minSize,
+                &maxBucket, &lambda_timings, &repart, &modelK1, &out_to_glue, &nb_seqs_in_glue, &nb_pretips, kmerSize, minSize,
                 nb_threads, &start_minimizers, &flat_bucket_queues](int thread_id) {
                 auto start_nodes_t=get_wtime();
 
@@ -598,6 +598,8 @@ void bcalm2(Storage *storage,
                 // cout<<"here"<<endl;
                 //graph3 graphCompactor(kmerSize-1,actualMinimizer,minSize,number_elements);
                 graph3<SPAN> graphCompactor(kmerSize-1,actualMinimizer,minSize,number_elements); // graph3<span> switch 
+                graphCompactor.pre_tip_cleaning = false; // this is the actual trigger for bcalm pre-tip simplifications. 
+                                                        // i'm leaving it off for now because the gains do not seem that big
                 #endif
 
                 /* add nodes to graph */
@@ -605,7 +607,8 @@ void bcalm2(Storage *storage,
 
                 /* go through all the flat_bucket_queues's that were constructed by each thread,
                      * and iterate a certain minimizer. i dont even need a priority queue! */
-                // used to be in a lambda outside of that lambda, there was a bug, decided to put it here but didnt even solve the bug, fuck me
+
+                // used to be in a lambda outside of that lambda, there was a bug, decided to put it here but didnt even solve the bug, hmm. i should have been more explicit whether the bug still happens or not, i dunno now.
                 for (int thread = 0; thread < nb_threads; thread++)
                 {
                     uint64_t pos = start_minimizers[thread][actualMinimizer];
@@ -672,6 +675,8 @@ void bcalm2(Storage *storage,
                         nb_seqs_in_glue[thread_id]++;
                     }
                 }
+                nb_pretips[thread_id] += graphCompactor.nb_pretips;
+                graphCompactor.nb_pretips = 0;
                 graphCompactor.clear(); // frees memory allocated during graph3 constructor (sort of a destructor, if you will)
                 auto end_cdistribution_t=get_wtime();
                 atomic_double_add(global_wtime_cdistribution, diff_wtime(start_cdistribution_t, end_cdistribution_t));
@@ -791,13 +796,18 @@ void bcalm2(Storage *storage,
 
     // gather some stats
     uint64_t nbSeqsInGlue = 0;
+    uint64_t nbPretips = 0;
     for (int thread_id = 0; thread_id < nb_threads; thread_id++)
-        nbSeqsInGlue += nb_seqs_in_glue[thread_id];
+    {
+       nbSeqsInGlue += nb_seqs_in_glue[thread_id];
+       nbPretips += nb_pretips[thread_id];
+    }
 
     auto end_t=chrono::system_clock::now();
     float wtime = chrono::duration_cast<chrono::nanoseconds>(end_t - start_buckets).count() / unit;
 
     Group& bcalmGroup = storage->getGroup("bcalm");
+    bcalmGroup.setProperty ("nb_pretips_removed",     Stringify::format("%ld", nb_pretips));
     bcalmGroup.setProperty ("nb_sequences_in_glue",     Stringify::format("%ld", nbSeqsInGlue));
     bcalmGroup.setProperty ("wtime_compactions",     Stringify::format("%f", wtime));
 
@@ -805,6 +815,7 @@ void bcalm2(Storage *storage,
     if (verbose) 
     {
         cout <<"Number of sequences in glue: "<< nbSeqsInGlue << std::endl;
+        cout <<"Number of pre-tips removed : "<< nbPretips << std::endl;
         cout<<"Buckets compaction and gluing           : "<< wtime <<" secs"<<endl;
         cout<<"Within that, \n";
         cout <<"                                 creating buckets from superbuckets: "<< global_wtime_create_buckets / unit <<" secs"<<endl;
@@ -843,6 +854,7 @@ void bcalm2(Storage *storage,
     if (minimizer_type == 1)
         delete[] freq_order;
     delete[] nb_seqs_in_glue;
+    delete[] nb_pretips;
     for (unsigned int i = 0; i < (unsigned int)nb_threads; i++)
         delete out_to_glue[i];
     for (unsigned int i = 0; i < nb_partitions; i++)

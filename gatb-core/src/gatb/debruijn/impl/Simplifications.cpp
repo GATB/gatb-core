@@ -417,7 +417,8 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 
     dispatcher.iterate (*itNode, [&] (Node& node)
     {
-         /* just a quick note. It was observed in the context of flagging some node as uninteresting (not used anymore).
+         /* just a quick note, which was observed in the context of flagging some node as uninteresting (not used anymore).
+          * property: "a tip (detected at some point after some rounds of simplifications) is not necessarily a branching node initially in the original graph"
          * here a strange dbg motif:
          *
          *  
