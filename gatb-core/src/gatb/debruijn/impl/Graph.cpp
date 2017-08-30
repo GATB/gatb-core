@@ -866,7 +866,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
         /* (this is actually loading, not creating, the storage at "uri") */
         _storageMode = load_from_hdf5 ? STORAGE_HDF5 : STORAGE_FILE;
         bool append = true; // special storagehdf5 which will open the hdf5 file as read&write
-        setStorage (StorageFactory(_storageMode).create (input, false, false, append));
+        setStorage (StorageFactory(_storageMode).create (input, false, false, false, append));
     
         /** We get some properties. */
         _state     = (typename GraphTemplate<Node, Edge, GraphDataVariant>::StateMask) atol (getGroup().getProperty ("state").c_str());
