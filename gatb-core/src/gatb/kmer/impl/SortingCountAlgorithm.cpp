@@ -614,17 +614,17 @@ void SortingCountAlgorithm<span>::execute ()
 	
     getInfo()->add (1, "stats");
 	
-	getInfo()->add (2, "temp files");
-	getInfo()->add (3, "nb superkmers ","%lld",nbtotalsuperk);
-	getInfo()->add (3, "avg superk length ","%.2f",(nbtotalk/(float) nbtotalsuperk));
-	getInfo()->add (3, "minimizer density ","%.2f",(nbtotalsuperk/(float)nbtotalk)*(_config._kmerSize - _config._minim_size +2));
+	getInfo()->add (2, "temp_files");
+	getInfo()->add (3, "nb_superkmers","%lld",nbtotalsuperk);
+	getInfo()->add (3, "avg_superk_length","%.2f",(nbtotalk/(float) nbtotalsuperk));
+	getInfo()->add (3, "minimizer_density","%.2f",(nbtotalsuperk/(float)nbtotalk)*(_config._kmerSize - _config._minim_size +2));
 	
 	if(_config._solidityKind == KMER_SOLIDITY_SUM)
 	{
-		getInfo()->add (3, "total size (MB)","%lld",totaltmp/1024LL/1024LL);
-		getInfo()->add (3, "tmp file biggest (MB)","%lld",biggesttmp/1024LL/1024LL);
-		getInfo()->add (3, "tmp file smallest (MB)","%lld",smallesttmp/1024LL/1024LL);
-		getInfo()->add (3, "tmp file mean (MB)","%.1f",meantmp/1024LL/1024LL);
+		getInfo()->add (3, "total_size_(MB)","%lld",totaltmp/1024LL/1024LL);
+		getInfo()->add (3, "tmp_file_biggest_(MB)","%lld",biggesttmp/1024LL/1024LL);
+		getInfo()->add (3, "tmp_file_smallest_(MB)","%lld",smallesttmp/1024LL/1024LL);
+		getInfo()->add (3, "tmp_file_mean_(MB)","%.1f",meantmp/1024LL/1024LL);
 	}
     /** We dump information about count processors. */
     if (_processors.size()==1)  {  getInfo()->add (2, _processors[0]->getProperties()); }
