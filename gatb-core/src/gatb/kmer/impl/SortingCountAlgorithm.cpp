@@ -480,7 +480,7 @@ void SortingCountAlgorithm<span>::configure ()
     }
 
 	/** We check that the processor is ok, otherwise we build one. */
-    if (_processors.size() == 0)  {  addProcessor (getDefaultProcessor(getInput(), storage));  };
+    if (_processors.size() == 0)  { _processors = getDefaultProcessorVector(_config, getInput(), storage, storage);  };
 
     DEBUG (("SortingCountAlgorithm<span>::configure  END  _bank=%p  _config.isComputed=%d  _repartitor=%p  storage=%p\n",
         _bank, _config._isComputed, _repartitor, storage

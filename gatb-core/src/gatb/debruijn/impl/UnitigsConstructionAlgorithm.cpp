@@ -94,7 +94,7 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     kmerSize =
             getInput()->getInt(STR_KMER_SIZE);
     int abundance = 
-            getInput()->getInt(STR_KMER_ABUNDANCE_MIN);
+            getInput()->getInt(STR_KMER_ABUNDANCE_MIN); // note: doesn't work when it's "auto"
     int minimizerSize =
         getInput()->getInt(STR_MINIMIZER_SIZE);
     int nb_threads =
