@@ -123,43 +123,48 @@ typename graph3<span>::kmerType graph3<span>::rcb(typename graph3<span>::kmerTyp
 
 
 template<size_t span>
-void graph3<span>::compaction(uint iL,  uint iR){
+void graph3<span>::compaction(uint iL,  uint iR,typename graph3<span>::kmerType kmmer){
 	if(iR!=iL){
+		typename graph3<span>::kmerType RC=rcb(kmmer);
 		uint s1(unitigs[iL].size()),s2(unitigs[iR].size());
 		bool b1(isNumber(unitigs[iL][0])),b2(isNumber(unitigs[iR][0]));
-		if(b1 and b2){return compaction(stoi(unitigs[iL]),stoi(unitigs[iR]));}
-		if(b1){return compaction(stoi(unitigs[iL]),iR);}
-		if(b2){return compaction(iL,stoi(unitigs[iR]));}
-
+		if(b1 and b2){return compaction(stoi(unitigs[iL]),stoi(unitigs[iR]),kmmer);}
+		if(b1){return compaction(stoi(unitigs[iL]),iR,kmmer);}
+		if(b2){return compaction(iL,stoi(unitigs[iR]),kmmer);}
+		//~ cout<<unitigs[iR]<<"\n";
+		//~ cout<<unitigs[iL]<<"\n";
 		typename graph3<span>::kmerType beg1;//(beg2int128(unitigs[iL])); // that kind of initialization isn't supported in LargeInt.
-        beg1.setVal(beg2int128(unitigs[iL])); 
+        beg1.setVal(beg2int128(unitigs[iL]));
 		typename graph3<span>::kmerType end2;//(end2int128(unitigs[iR]));
-        end2.setVal(end2int128(unitigs[iR])); 
+        end2.setVal(end2int128(unitigs[iR]));
 
-		if(beg1==end2){
+		if(beg1==end2 and (end2==kmmer or end2==RC)){
+		//~ if(beg1==end2 ){
 			unitigs[iR]+=(unitigs[iL].substr(k));
 			unitigs[iL]=to_string(iR);
-            
+
             compact_abundances(iR,iL);
 			return;
 		}
 
 		typename graph3<span>::kmerType endrc2;//(beg2int128rc(unitigs[iR]));
-        endrc2.setVal(beg2int128rc(unitigs[iR])); 
-		if(beg1==endrc2){
+        endrc2.setVal(beg2int128rc(unitigs[iR]));
+		if(beg1==endrc2 and (beg1==kmmer or beg1==RC)){
+		//~ if(beg1==endrc2 ){
 			reverseinplace2(unitigs[iR]);
 			unitigs[iR]+=(unitigs[iL].substr(k));
 			unitigs[iL]=to_string(iR);
-            
+
             compact_abundances(iR,iL,true,false);
 			return;
 		}
 
 		typename graph3<span>::kmerType beg2;//(rcb(endrc2));
-        beg2.setVal(rcb(endrc2)); 
+        beg2.setVal(rcb(endrc2));
 		typename graph3<span>::kmerType end1;//(end2int128(unitigs[iL]));
         end1.setVal(end2int128(unitigs[iL]));
-		if(end1==beg2){
+		if(end1==beg2 and (end1==kmmer or end1==RC)){
+		//~ if(end1==beg2 ){
 			unitigs[iL]+=(unitigs[iR].substr(k));
 			unitigs[iR]=to_string(iL);
 
@@ -172,7 +177,8 @@ void graph3<span>::compaction(uint iL,  uint iR){
 /*            std::cout << "a : " << rcb(end2).toString(31) << std::endl;
             std::cout << "a=b: " << begrc2.toString(31) << std::endl;*/ // manifestation of a bug when LargeInt constructors are removed
 
-		if(end1==begrc2){
+		if(end1==begrc2 and (end1==kmmer or end1==RC)){
+		//~ if(end1==begrc2 ){
 			unitigs[iL]+=(reverseinplace(unitigs[iR]).substr(k));
 			unitigs[iR]=to_string(iL);
 
@@ -214,20 +220,23 @@ void graph3<span>::debruijn(){
 		if(kL.kmmer==kR.kmmer){
 			bool go(true);
 			++iL;++iR;
-				if(left[iL].kmmer==kL.kmmer){
-					go=false;
-					while(left[++iL].kmmer==kL.kmmer){}
+			if(left[iL].kmmer==kL.kmmer){
+				go=false;
+				while(left[++iL].kmmer<=kR.kmmer ){if(iL==sizeLeft){return;}}
+			}
+			if(right[iR].kmmer==kL.kmmer){
+				go=false;
+				while(right[++iR].kmmer<=kL.kmmer ){if(iR==sizeRight){return;}}
+			}
+			if(go){
+				compaction(kL.indice,kR.indice,kL.kmmer);
 				}
-				if(right[iR].kmmer==kL.kmmer){
-					go=false;
-					while(right[++iR].kmmer==kR.kmmer){}
-				}
-			if(go){compaction(kL.indice,kR.indice);}
+
 		}else{
 			if(kL.kmmer<kR.kmmer){
-				while(left[++iL].kmmer==kL.kmmer){}
+				while(left[++iL].kmmer<kR.kmmer){}
 			}else{
-				while(right[++iR].kmmer==kR.kmmer){}
+				while(right[++iR].kmmer<kL.kmmer){}
 			}
 		}
 	}
@@ -253,9 +262,10 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
 	if(minimizer==(get<1>(tuple))){
 		typename graph3<span>::kmerType kmer1(beg2int128(unitigs[indiceUnitigs]));
 		typename graph3<span>::kmerType kmer2(rcb(kmer1));
-		if(kmer1<kmer2){
+		if(kmer1<=kmer2 ){
 			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1});
-		}else{
+		}
+		if(kmer2<=kmer1 ){
 			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2});
 		}
 	}
@@ -263,9 +273,10 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
 		typename graph3<span>::kmerType kmer1(end2int128(unitigs[indiceUnitigs]));
 		typename graph3<span>::kmerType kmer2(rcb(kmer1));
 
-		if(kmer1<kmer2){
+		if(kmer1<=kmer2 ){
 			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1});
-		}else{
+		}
+		if(kmer2<=kmer1){
 			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2});
 		}
 	}
@@ -273,143 +284,5 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
 }
 
 
-// void compareUnitigs(const string& fileFa,const string& fileDot){
-// 	uint a(0),b(0),c(0),d(0);
-// 	unordered_set<string> setFa,setDot;
-// 	ifstream streamFa(fileFa),streamDot(fileDot);
-// 	string seq;
-// 	getline(streamFa,seq);
-// 	while (!streamFa.eof()) {
-// 		getline(streamFa,seq,'>');
-// 		seq=seq.substr(0,seq.size()-1);
-// 		setFa.insert(seq);
-// 		// cout<<seq<<endl;
-// 		// cin.get();
-// 		getline(streamFa,seq);
-// 		++c;
-// 	}
-// 	cout<<1<<endl;
-// 	while (!streamDot.eof()){
-// 		getline(streamDot,seq);
-// 		transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
-// 		seq=seq.substr(0,seq.size()-1);
-// 		setDot.insert(seq);
-// 		// cout<<seq<<endl;
-// 		// cin.get();
-// 		++d;
-// 	}
-// 	cout<<2<<endl;
-// 	for(auto it(setFa.begin());it!=setFa.end();++it){
-// 		if(setDot.count(*it)==0){
-// 			++a;
-// 		}
-// 	}
-// 	cout<<3<<endl;
-// 	for(auto it(setDot.begin());it!=setDot.end();++it){
-// 		if(setFa.count(*it)==0){
-// 			++a;
-// 		}
-// 	}
-// 	cout<<a<<" "<<b<<endl;
-// 	cout<<c<<" "<<d<<endl;
-// }
-//
-//
-// void compareKmers(const string& fileFa,const string& fileDot){
-// 	uint k(31);
-// 	string kmer;
-// 	uint a(0),b(0),c(0),d(0);
-// 	unordered_set<string> setFa,setDot;
-// 	ifstream streamFa(fileFa),streamDot(fileDot);
-// 	string seq,inter,nimp;
-//
-//
-//
-// 	// cout<<1<<endl;
-// 	while (!streamFa.eof()) {
-// 		getline(streamFa,nimp);
-// 		// cout<<"nimp"<<nimp<<endl;
-// 		getline(streamFa,seq);
-// 		// cout<<"seq"<<seq<<endl;
-// 		point:
-// 		char c=streamFa.peek();
-// 		if(c=='>'){
-// 			point2:
-// 			// seq=seq.substr(0,seq.size());
-// 			// for(uint j(0);(j)<seq.size();++j){
-// 			// 	if(seq[j]!='A' and seq[j]!='C' and seq[j]!='T' and seq[j]!='G'){
-// 			// 		cout<<seq<<endl;
-// 			// 		cout<<"lol"<<endl;
-// 			// 		exit(0);
-// 			// 	}
-// 			// }
-// 			for (uint i = 0; i+k <=seq.size(); ++i) {
-// 				kmer=seq.substr(i,k);
-// 				// cout<<kmer<<endl;
-// 				kmer=getRepresent(kmer);
-// 				// if(setDot.count(kmer)==0){
-// 				// 	++a;
-// 				// }
-// 				setFa.insert(kmer);
-// 			}
-// 		}else{
-// 			if(!streamFa.eof()){
-// 				// cout<<"inter"<<endl;
-// 				// cout<<seq<<endl;
-// 				getline(streamFa,inter);
-// 				// cout<<inter<<endl;
-// 				seq+=inter;
-// 				goto point;
-// 			}else{
-// 				// cout<<"lol2"<<endl;
-// 				goto point2;
-// 			}
-// 		}
-// 	}
-// 	cout<<2<<endl;
-//
-// 	while (!streamDot.eof()){
-// 		getline(streamDot,seq);
-// 		seq=seq.substr(0,k);
-// 		// cout<<seq<<endl;
-// 		// cin.get();
-// 		if(setFa.count(getRepresent(seq))==0){
-// 			cout<<seq<<endl;
-// 			++a;
-// 		}
-// 	}
-//
-// 	// while (!streamDot.eof()){
-// 	// 	getline(streamDot,seq);
-// 	// 	transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
-// 	// 	seq=seq.substr(0,seq.size()-1);
-// 	// 	// cout<<seq<<endl;
-// 	// 	for (uint i = 0; i+k <=seq.size(); ++i) {
-// 	// 		kmer=seq.substr(i,k);
-// 	// 		// cout<<kmer<<endl;
-// 	// 		kmer=getRepresent(kmer);
-// 	// 		// setDot.insert(kmer);
-// 	// 		if(setFa.count(kmer)==0){
-// 	// 			++b;
-// 	// 		}
-// 	// 	}
-// 	// 	// cout<<seq<<endl;
-// 	// 	// cin.get();
-// 	// 	// ++d;
-// 	// }
-// 	// for(auto it(setFa.begin());it!=setFa.end();++it){
-// 	// 	if(setDot.count(*it)==0){
-// 	// 		++a;
-// 	// 	}
-// 	// }
-// 	cout<<3<<endl;
-// 	// for(auto it(setDot.begin());it!=setDot.end();++it){
-// 	// 	if(setFa.count(*it)==0){
-// 	// 		++b;
-// 	// 	}
-// 	// }
-// 	cout<<a<<" "<<b<<endl;
-// 	cout<<c<<" "<<d<<endl;
-// }
 
 }}}}
