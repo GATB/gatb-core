@@ -67,7 +67,7 @@ class graph3{
         kmerType beg2int128rc(const std::string& str);
         kmerType beg2int128(const std::string& str);
         kmerType rcb(kmerType min);
-		void compaction(uint iR, uint iL);
+		void compaction(uint iR, uint iL, kmerType kmmer);
 		void compact_abundances(uint i1, uint i2, bool reverse_first=false, bool reverse_second=false);
 		uint size();
         bool output(uint i);
