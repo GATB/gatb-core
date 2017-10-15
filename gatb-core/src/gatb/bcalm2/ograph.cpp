@@ -348,17 +348,20 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
     // input tuple: <unitigs string, left minimizer, right minimizer, abundance>
 	unitigs[indiceUnitigs]=get<0>(tuple);
 	unitigs_abundances[indiceUnitigs].push_back(get<3>(tuple));
+    
+    bool debug = false;
     string debug_kmer = "GTTTTTTAGATTCTGAGTGGAACGATGAATG";
+
 	if(minimizer==(get<1>(tuple))){
         indexed_left.push_back(true);
 		typename graph3<span>::kmerType kmer1(beg2int128(unitigs[indiceUnitigs]));
 		typename graph3<span>::kmerType kmer2(rcb(kmer1));
 		if(kmer1<=kmer2){
-            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", left kmer1 is " << kmer1 << " index " << indiceUnitigs << std::endl;
+            if (debug) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", left kmer1 is " << kmer1 << " index " << indiceUnitigs << std::endl;
 			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1, SEQ_LEFT});
 		}
 		if(kmer2<=kmer1){
-            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", left kmer2 is " << kmer1 << " index " << indiceUnitigs << std::endl;
+            if (debug) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", left kmer2 is " << kmer1 << " index " << indiceUnitigs << std::endl;
 			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2, SEQ_LEFT});
 
 		}
@@ -374,11 +377,11 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
 		typename graph3<span>::kmerType kmer2(rcb(kmer1));
 
 		if(kmer1<=kmer2){
-            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", right kmer1 is " << kmer1 << " index " << indiceUnitigs << std::endl;
+            if (debug) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", right kmer1 is " << kmer1 << " index " << indiceUnitigs << std::endl;
 			right.push_back(kmerIndiceT<span>{indiceUnitigs,kmer1, SEQ_RIGHT});
 		}
 		if(kmer2<=kmer1){
-            if (debug_kmer.size() > 0) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", right kmer2 is " << kmer2 << std::endl;
+            if (debug) if (unitigs[indiceUnitigs].compare(debug_kmer) == 0) std::cout << "for that seq " << unitigs[indiceUnitigs] << ", right kmer2 is " << kmer2 << std::endl;
 			left.push_back(kmerIndiceT<span>{indiceUnitigs,kmer2, SEQ_RIGHT});
 
 		}

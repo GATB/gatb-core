@@ -282,6 +282,7 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
             string in_links = " "; // necessary placeholder to indicate we have links for that unitig
 
             // in-neighbors
+            // so, the current kmer is kmerBegin, and we're iterating all potential in-neighbors as e_in objects
             for (auto in_packed : utigs_links_map[kmerBegin.value()])
             {
                 ExtremityInfo e_in(in_packed);
@@ -294,21 +295,29 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
                 //  [begin diff orientation]---- -> [begin same orientation]----
                 //  ------[end diff orientation] -> [begin diff orientation]----
                 //  [begin same orientation]---- -> [begin diff orientation]----
-                if ((((beginInSameOrientation)  &&  (e_in.pos == UNITIG_END  ) && (e_in.rc == false)) ||
-                            ((beginInSameOrientation) &&  (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
+                if ((       ((beginInSameOrientation) &&    (e_in.pos == UNITIG_END  ) && (e_in.rc == false)) ||
+                            ((beginInSameOrientation) &&    (e_in.pos == UNITIG_BEGIN) && (e_in.rc == true)) ||
                             (((!beginInSameOrientation)) && (e_in.pos == UNITIG_END  ) && (e_in.rc == true)) ||
                             (((!beginInSameOrientation)) && (e_in.pos == UNITIG_BEGIN) && (e_in.rc == false)))
                         || nevermindInOrientation)
                 {
-                    if (nevermindInOrientation && (e_in.unitig == utig_counter)) continue; // don't consider the same extremity
-
+                    
                     // this was for when i was wanting to save space while storing links in memory. now storing on disk
                     //LinkInfo li(e_in.unitig, e_in.rc ^ beginInSameOrientation);
                     //incoming[utig_number].push_back(li.pack());
-                    bool rc = e_in.rc ^ (!beginInSameOrientation);
-                    in_links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"+":"-") + " "; /* invert-reverse because of incoming orientation. it's very subtle and i'm still not sure i got it right */
-                    if (nevermindInOrientation)
-                       in_links += "L:-:" + to_string(e_in.unitig) + ":" + ((!rc)?"+":"-") + " "; /* in that case, there is also another link with the reverse direction*/
+
+                    //bool rc = e_in.rc ^ (!beginInSameOrientation); // "rc" sets the destination strand // i don't think it's the right formula because of k-1-mers that are their self revcomp. see the mikko bug in the test folder, that provides a nice illustration of that 
+                    bool rc = e_in.pos == UNITIG_END; // a better way to determine the rc flag is just looking at position of e_in k-1-mer 
+
+                    in_links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"-":"+") + " "; 
+
+                    /* what to do when kmerBegin is same as forward and reverse?
+                     used to have this:
+                        if (nevermindInOrientation)
+                          in_links += "L:-:" + to_string(e_in.unitig) + ":" + ((!rc)?"+":"-") + " "; // in that case, there is also another link with the reverse direction
+                     but it's bogus, because the reverse direction of the other sequence won't have the same start k-1-mer, even if it is just k-long
+                     so there isn't anything to do actually. the case is handled by the "|| nevermindInOrientation )" in the if above */
+                     
 
                     if (debug) std::cout << " [valid] ";
                 }
@@ -350,15 +359,13 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
                             (((!endInSameOrientation)) && (e_out.pos == UNITIG_END  ) && (e_out.rc == false)))
                         ||nevermindOutOrientation)
                 {
-                    if (nevermindOutOrientation && (e_out.unitig == utig_counter)) continue; // don't consider the same extremity
 
                     //LinkInfo li(e_out.unitig, e_out.rc ^ endInSameOrientation);
                     //outcoming[utig_number].push_back(li.pack());
-                    bool rc = e_out.rc ^ (!endInSameOrientation);
-                    out_links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+") + " "; /* logically this is going to be opposite of the line above */ 
+                    
+                    bool rc = e_out.pos == UNITIG_END; // a better way to determine the rc flag is just looking at position of e_in k-1-mer 
 
-                    if (nevermindOutOrientation)
-                        out_links += "L:+:" + to_string(e_out.unitig) + ":" + ((!rc)?"-":"+") + " "; /* in that case, there is also another link with the reverse direction*/
+                    out_links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+") + " "; 
 
                     if (debug) std::cout << " [valid] ";
                 }
