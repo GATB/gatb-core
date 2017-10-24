@@ -39,6 +39,10 @@ simply do:
 
 to compile snippet "bank15.cpp". Apply the same recipe to compile any other code snippets.
 
+### Simple Makefile
+
+Alternatively, you can use the provided "makefile" script to compile a single example. It needs to be modified to point to the correct path of the GATB-core library.
+
 ### Run a compiled code snippet
 
 Have a look at the begining of each c++ source code: you'll see how to use the example programs.
