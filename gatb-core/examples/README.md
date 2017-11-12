@@ -41,7 +41,13 @@ to compile snippet "bank15.cpp". Apply the same recipe to compile any other code
 
 ### Simple Makefile
 
-Alternatively, you can use the provided "makefile" script to compile a single example. It needs to be modified to point to the correct path of the GATB-core library.
+Alternatively, you can use the provided "makefile" script to compile a single example. It needs to be modified to point to the correct path of the GATB-core library. Maybe it will need some tweaking (try removing the "-static" flag if compilation fails).
+
+Try it, from this folder:
+
+   make bank/bank1
+
+should compile the first bank1.cpp example
 
 ### Run a compiled code snippet
 

@@ -2,14 +2,13 @@
 
 .PHONY: all clean
 
-CC=g++
-
-GATB=/tmp/gatb-core/gatb-core/
+# change this to the folder where gatb-core is
+GATB=$(shell pwd)/../
 
 GATB_LIB=$(GATB)/build/lib
 
-CXXFLAGS =  -std=c++0x -O3  -I$(GATB)/src  -I$(GATB)/build/include -I$(GATB)/thirdparty
-LDFLAGS=   -L$(GATB_LIB) -lgatbcore  -lpthread -lz -lhdf5 -std=c++0x -ldl
+CXXFLAGS =  -std=c++0x -O3  -I$(GATB)/src  -I$(GATB)/build/include -I$(GATB)/thirdparty 
+LDFLAGS=   -L$(GATB_LIB) -lgatbcore  -lpthread -lz -lhdf5 -std=c++0x -ldl -static
 
 
 SRCS = $(wildcard *.cpp)
