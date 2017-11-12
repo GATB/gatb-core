@@ -168,7 +168,7 @@ public:
         size_t i=0;
         for (i=0; i<current.size(); i++)
         {
-            setItem (current[i]);
+            setItem (current[i]); /* Rayan's comment: this is a weird mechanism where actually, first() and next() will be responsible for populating the vector. setItem merely points the iterator item's to a vector element and does NOT set current[i] to the current item. There must be a good reason why Erwan went for this. */
 
             if (_isRunning == IDDLE)  { first ();  _isRunning=STARTED; }
             else                      { next  ();                      }

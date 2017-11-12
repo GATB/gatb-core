@@ -75,6 +75,8 @@ public:
  *  may still be more efficient to have two loops. The CartesianIterator is just here
  *  for easing the product iteration on small sets.
  *
+ * NOTE: most likely it doesn't work in combination with Dispatcher, see PairedIterator for how to fix
+ *
  * Example:
  * \snippet iterators2.cpp  snippet1
  */
@@ -102,6 +104,16 @@ public:
          *  This is merely an optimization in order not to call too often the "isDone" method
          *  on the two iterators.  */
         _isDone = false;
+
+        /* to make it work with dispatcher the fix should be something like:
+             if (!isDone)
+             {
+             std::pair<T1,T2> t;
+             t.first = _it1->item();
+             t.second = _it2->item();
+             *(this->_item) = t;
+            }
+            */
     }
 
     /** \copydoc Iterator::next */
@@ -127,6 +139,15 @@ public:
                 _isDone = true;
             }
         }
+        /* to make it work with dispatcher the fix should e something like:
+             if (!isDone)
+             {
+             std::pair<T1,T2> t;
+             t.first = _it1->item();
+             t.second = _it2->item();
+             *(this->_item) = t;
+            }
+            */
     }
 
     /** \copydoc Iterator::isDone */
@@ -191,12 +212,15 @@ public:
         _it2->first();
 
         _isDone = _it1->isDone() || _it2->isDone();
+        
+        // due to the way Dispatcher works, we need to update _item, not just _current
+        if (_isDone == false)  { 
+            std::pair<T1,T2> t;
+            t.first = _it1->item();
+            t.second = _it2->item();
+            *(this->_item) = t;
+         }
 
-        if (_isDone==false)
-        {
-            _current.first  = _it1->item();
-            _current.second = _it2->item();
-        }
     }
 
     /** \copydoc Iterator::next */
@@ -205,18 +229,27 @@ public:
         _it1->next ();  _it2->next ();
 
         _isDone = _it1->isDone() || _it2->isDone();
-        if (_isDone==false)
-        {
-            _current.first  = _it1->item();
-            _current.second = _it2->item();
-        }
+        if (_isDone == false)  {  
+            std::pair<T1,T2> t;
+            t.first = _it1->item();
+            t.second = _it2->item();
+            *(this->_item) = t;
+         }
+
     }
 
     /** \copydoc Iterator::isDone */
     bool isDone() { return _isDone;  }
 
     /** \copydoc Iterator::item */
-    std::pair<T1,T2>& item () { return _current; }
+    std::pair<T1,T2>& item () {
+        std::pair<T1,T2> t;
+        t.first = _it1->item();
+        t.second = _it2->item();
+        *(this->_item) = t;
+
+        return t;
+ }
 
 private:
 
@@ -231,8 +264,6 @@ private:
     /** Finish status. */
     bool _isDone;
 
-    /** Current item in the iteration. */
-    std::pair<T1,T2> _current;
 };
 
 /********************************************************************************/
@@ -587,7 +618,7 @@ public:
          * pointer (in case of usage of Dispatcher for instance where a buffer of items is kept
          * and could be wrong if the referred items doesn't exist any more when accessing the
          * buffer).
-         * TODO doc: I get it, but why is it done only in this iterator and not other iterators like FilterIterator?*/
+         */
         if (!_isDone)  { *(this->_item) = _ref.item(); }
     }
 
