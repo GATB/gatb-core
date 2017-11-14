@@ -243,12 +243,12 @@ public:
 
     /** \copydoc Iterator::item */
     std::pair<T1,T2>& item () {
-        std::pair<T1,T2> t;
-        t.first = _it1->item();
-        t.second = _it2->item();
-        *(this->_item) = t;
+        //std::pair<T1,T2> t; // can't do a temporary object because apparently it'll be destructed, eh
+        _current.first  = _it1->item();
+        _current.second = _it2->item();
+        *(this->_item) = _current; // not sure if this is essential but i'm keeping it
 
-        return t;
+        return _current;
  }
 
 private:
@@ -263,6 +263,8 @@ private:
 
     /** Finish status. */
     bool _isDone;
+
+    std::pair<T1,T2> _current;
 
 };
 
