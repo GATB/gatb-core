@@ -66,7 +66,7 @@ int main (int argc, char* argv[])
         Graph graph = Graph::create (props);
 
         /** We may have to check the result. */
-        if (props->get (STR_CHECK) > 0)  {  nbErrors = checkResult (graph, props);  }
+        if (props->get (STR_CHECK) != 0)  {  nbErrors = checkResult (graph, props);  }
 
         /** We dump some information about the graph. */
         if (props->getInt(STR_VERBOSE) > 0)  {  std::cout << graph.getInfo() << std::endl;  }
