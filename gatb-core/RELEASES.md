@@ -1,4 +1,84 @@
 --------------------------------------------------------------------------------
+# RELEASE 1.4.0
+
+* Integration of Leon compressor into GATB-Core :
+    * It means that the Leon file format can now be handled natively by all softwares relying upon GATB-Core. In other words, you can apply data processing on reads without decompression of the Leon file.
+    * more details at https://github.com/GATB/gatb-core/wiki/Using-GATB-Core-integrated-Leon-compressor
+    * unit tests + large-scale test suite of Leon compressor; cf. https://ci.inria.fr/gatb-core/view/Leon/job/tool-leon-functional-tests/lastBuild/console
+
+* Parameterizable graph simplifications steps (see `Graph.hpp`)
+
+* Faster k-mer counting (inspired by KMC3)
+
+* More efficient graph representation using compressed vectors (in `GraphUnitigs.cpp`)
+
+* Faster unitigs compaction algorithm (improvements in BCALM engineering)
+
+* Preliminary support for loading GFA1 unitigs files (using `GraphUnitigs=`)
+
+* New compact encoding scheme to load the abundance values in memory (encoded on 8 bits, value range = 0 to 50k with 5% max error)
+
+* Added a simple makefile to compile a GATB tool without CMake (see examples/Makefile)
+ 
+* Added support for Docker; i.e. we provide a "system-independent" GATB-Core c++ compiler
+
+* 2 new ways to compile example codes snippets :
+    * `cmake -DGATB_CORE_INCLUDE_EXAMPLES=True ..`  
+        or
+    * `cd example ; make [folder]/[examplename.cpp]` for instance, `make kmer/kmer2` will compile `kmer2.cpp`
+
+* Various bugfixes
+
+
+--------------------------------------------------------------------------------
+# RELEASE 1.3.0
+
+## Summary
+
+* A new graph object is introduced: GraphUnitigs, optimized to traverse unitigs but not to query individual kmers. 
+* A few graph API functions changed. 
+* Updated MPHF and HDF5. 
+* This releases now requires your compiler to be C++11-compatible.
+
+## Details
+
+* Tech notice
+
+    * Compiling GATB-Core library now requires c++/11 capable compilers.
+
+    * CMake 3.1.0 is the minimum release of CMake required to compile GATB-Core.
+
+    * HDF5 library (use for data storage) upgraded to latest release [1.8.18](https://support.hdfgroup.org/HDF5/release/obtain518.html)
+
+    * Parameters "-mphf none", "-mphf emphf" and "-mphf boophf" and variable WITH_MPHF are deprecated. Please remove them from your applications (e.g. in Graph::create()). BooPHF is now the default MPHF object and it is always compiled. Emphf has been removed from the library.
+
+    * Debug compilation is now done using standard Cmake rule "-DCMAKE_BUILD_TYPE=Debug", instead of "-Ddebug=1".
+
+* API changes
+
+    * Developers, please pay attention to these breaking changes:
+
+        * `Graph::Vector` is now ``GraphVector`  
+        * `Graph::Iterator` is now `GraphIterator`  
+        * `Graph::create()` does not accept anymore '-mphf ...' (see Tech Notice, above)  
+
+* New features
+
+    * New GraphUnitigs class that offers a de Bruijn graph representation based on unitigs (created by BCALM2) loaded in memory. It has the same API as the Graph class although some functions aren't implemented, as accessing a node that is not an extremity of a unitig isn't supported in this representation. The representation is designed to traverse unitigs quickly, skipping over all non-branching nodes. This representation doesn't use the Bloom filter nor the MPHF. To use this representation, have a look at Minia's code: https://github.com/GATB/minia/blob/ee00a34f1a49a1fcdd757e0bdaf7d03190896322/src/Minia.cpp#L116
+
+    * New functions to traverse the graph have been added . See `simplePath*` in Graph.hpp. These functions are mostly designed to take advantage of GraphUnitigs and they have the same API in Graph too. They also will replace the Traversal class. Partial compatibility with the original Graph class has been implemented so far.
+
+    * [BooPHF](https://github.com/rizkg/BBHash) is now the default MPHF object used by GATB-Core
+
+    * In addition to HDF5, we introduce a new experimental support for raw file format. It was made for two reasons: avoid potential memory leaks due to hdf5 (unclear at this point), and avoid hdf5 file corruption (whenever a job is interrupted after kmer counting, sometimes the h5 file containing the kmer counts cannot be re-opened). The format is experimental, so use at your own risks. The file format is basically the same content as the previous HDF5 format but with each dataset being into its own file. Also, JSON is used instead of XML for structured configuration. To enable this format, pass "-storage-type file" in your configuration string (e.g. Graph::create()).
+
+--------------------------------------------------------------------------------
+# RELEASE 1.2.2
+
+#### This is a bug-fix release :
+* fixed a compilation issue with old version of clang compilers (prior to clang 4.3 on mac). This gatb-core release is the last one to officially support clang version older than 4.3 on mac and 3.2 on linux.
+
+--------------------------------------------------------------------------------
 # RELEASE 1.2.1
 
 * bug fixes when MPHF is queried on a false positive node.
