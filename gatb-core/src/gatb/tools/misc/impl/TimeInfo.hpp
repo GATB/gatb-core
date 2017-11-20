@@ -30,6 +30,7 @@
 
 #include <gatb/tools/misc/api/IProperty.hpp>
 #include <gatb/system/api/ITime.hpp>
+#include <gatb/system/impl/System.hpp>
 
 #include <map>
 
@@ -74,6 +75,8 @@ public:
 
     /** Default constructor. */
     TimeInfo ();
+
+	~TimeInfo();
 
     /** Constructor taking a time factory.
      * \param[in] aTime : the time factory to be used.
@@ -126,6 +129,7 @@ private:
     system::ITime&  _time;
     std::map <std::string, u_int32_t>  _entriesT0;
     std::map <std::string, u_int32_t>  _entries;
+	gatb::core::system::ISynchronizer* _synchro;
 };
 
 /********************************************************************************/

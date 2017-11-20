@@ -62,14 +62,13 @@ class TestLeon : public Test
     CPPUNIT_TEST_SUITE_GATB (TestLeon);
 
     CPPUNIT_TEST_GATB(bank_checkLeon1);
-	/*
     CPPUNIT_TEST_GATB(bank_checkLeon2);
     CPPUNIT_TEST_GATB(bank_checkLeon3);
     CPPUNIT_TEST_GATB(bank_checkLeon4);
     CPPUNIT_TEST_GATB(bank_checkLeon5);
     CPPUNIT_TEST_GATB(bank_checkLeon6);
     CPPUNIT_TEST_GATB(bank_checkLeon7);
-    CPPUNIT_TEST_GATB(bank_checkLeon8);*/
+    CPPUNIT_TEST_GATB(bank_checkLeon8);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
@@ -155,10 +154,12 @@ public:
 		// STEP 2: compare reference and compressed version
 
 		// we open the files in read mode
+		
         IBank* fasBank = Bank::open (fastqFile); //BankFasta
 		IBank* leonBank = Bank::open (leonFile); //BankLeon
 
 		bank_compare_banks_equality(fasBank, leonBank);
+		 
     }
 
     /**

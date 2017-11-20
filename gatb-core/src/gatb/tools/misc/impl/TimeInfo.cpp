@@ -41,6 +41,7 @@ namespace gatb {  namespace core { namespace tools {  namespace misc {  namespac
 *********************************************************************/
 TimeInfo::TimeInfo () : _time(system::impl::System::time())
 {
+	_synchro = System::thread().newSynchronizer();
 }
 
 /*********************************************************************
@@ -53,6 +54,7 @@ TimeInfo::TimeInfo () : _time(system::impl::System::time())
 *********************************************************************/
 TimeInfo::TimeInfo (system::ITime& aTime) : _time(aTime)
 {
+	_synchro = System::thread().newSynchronizer();
 }
 
 /*********************************************************************
@@ -68,6 +70,16 @@ void TimeInfo::start (const char* name)
     _entriesT0 [name] = _time.getTimeStamp();
 }
 
+	
+//destructor
+TimeInfo::~TimeInfo()
+{
+	if(_synchro)
+	{
+		delete _synchro;
+		_synchro = 0;
+	}
+}
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -87,17 +99,21 @@ void TimeInfo::stop (const char* name)
 ** INPUT   :
 ** OUTPUT  :
 ** RETURN  :
-** REMARKS :
+ ** REMARKS :
+ GR: this must be thread safe ! because multiple threads may call this on the same TimeInfo object at the same time !
 *********************************************************************/
 TimeInfo& TimeInfo::operator+= (TimeInfo& ti)
 {
-    const std::map <std::string, u_int32_t>& entries = ti.getEntries();
+	_synchro->lock();
+
+	const std::map <std::string, u_int32_t>& entries = ti.getEntries();
 
     for (map <string, u_int32_t>::const_iterator it = entries.begin(); it != ti.getEntries().end(); ++it)
     {
         _entries[it->first] += it->second;
     }
 
+	_synchro->unlock();
     return *this;
 }
 
@@ -108,14 +124,18 @@ TimeInfo& TimeInfo::operator+= (TimeInfo& ti)
 ** OUTPUT  :
 ** RETURN  :
 ** REMARKS :
+ GR: this must be thread safe ! because multiple threads may call this on the same TimeInfo object at the same time !
 *********************************************************************/
 TimeInfo& TimeInfo::operator/= (size_t nb)
 {
+	_synchro->lock();
+
     for (map <string, u_int32_t>::const_iterator it = _entries.begin(); it != _entries.end(); ++it)
     {
         _entries[it->first] = (u_int32_t)  ((float)it->second / (float)nb);
     }
-
+	
+	_synchro->unlock();
     return *this;
 }
 
