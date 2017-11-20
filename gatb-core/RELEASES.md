@@ -24,7 +24,7 @@
 
     * Added a simple makefile to compile a GATB tool without CMake (see `examples/Makefile`)
  
-    * Added support for Docker, see `docker/Dockerfile`. The docker image provides a "system-independent" compiler for GATB-core.
+    * Added support for Docker. Using `docker/Dockerfile` one can build a docker image containing GATB-core.
 
     * 2 new ways to compile example codes snippets :
         * `cmake -DGATB_CORE_INCLUDE_EXAMPLES=True ..`  
