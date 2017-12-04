@@ -35,9 +35,11 @@
 #include <gatb/tools/collections/impl/IteratorFile.hpp>
 #include <gatb/tools/collections/impl/CollectionAbstract.hpp>
 #include <gatb/system/impl/System.hpp>
+#include <json/json.hpp>
 
 #include <string>
 #include <vector>
+#include <fstream>
 
 /********************************************************************************/
 namespace gatb      {
@@ -63,18 +65,76 @@ public:
              /* Note (Rayan): this isn't very clean. Two files objectss are opened, one by BagFile (in write mode) and one in IterableFile (in read mode).
               * With Clang/OSX, turns out the IterableFile was created before BagFile, causing some troubles.
               * Also this is opening the file twice, not nice. Anyway until I think of a better system, it's kept as it is, and IterableFile does a small hack*/
-          ),  _name(filename)
+          ),  _name(filename), _propertiesName(filename+".props")
     {}
 
     /** Destructor. */
     virtual ~CollectionFile() {}
 
     /** \copydoc tools::collections::Collection::remove */
-    void remove ()  {  gatb::core::system::impl::System::file().remove (_name);  }
+    void remove ()  {  
+        gatb::core::system::impl::System::file().remove (_name);  
+        gatb::core::system::impl::System::file().remove (_propertiesName);  
+    }
+
+
+    /* R: some code duplication with GroupFile, but it's the same in the HDF5 case. not the best design.
+     * so, collections can hold properties, so can groups.. */
+
+    /** \copydoc tools::collections::Collection::addProperty */
+    void addProperty (const std::string& key, const std::string value)
+    {
+        //std::cout << "CollectionFile addProperty called, key=" << key << " value=" << value<< std::endl;
+        std::ifstream myfile (_propertiesName);
+        std::string data, line;
+        if (myfile.is_open())
+        {
+            while ( getline (myfile,line) )
+                data += line;
+            myfile.close();
+        }
+        json::JSON j;
+        if (data.size() > 0)
+            j = json::LoadJson(data);
+        // otherwise json is empty and we create it
+        
+        j[key] = value;
+
+        std::string s = j.dump();
+        std::ofstream myfile2;
+        myfile2.open (_propertiesName);
+        myfile2 << s;
+        myfile2.close();
+    }
+
+    /** \copydoc tools::collections::Collection::getProperty */
+    std::string getProperty (const std::string& key)
+    {
+        //std::cout << "CollectionFile getProperty called, key=" << key << std::endl;
+        std::string result;
+
+        std::ifstream myfile (_propertiesName);
+        std::string data, line;
+        if (myfile.is_open())
+        {
+            while ( getline (myfile,line) )
+                data += line;
+            myfile.close();
+        }
+        json::JSON j;
+        if (data.size() > 0)
+        {
+            j = json::LoadJson(data);
+            result = j[key].ToString();
+        }
+
+        return result;
+    }
 
 private:
 
     std::string _name;
+    std::string _propertiesName;
 };
 
 /********************************************************************************/

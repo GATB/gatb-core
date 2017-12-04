@@ -113,7 +113,9 @@ public:
     void flush ()  { _bag->flush(); }
 
     /** \copydoc Collection::addProperty */
-    void addProperty (const std::string& key, const std::string value)  {}
+    void addProperty (const std::string& key, const std::string value)  {
+        std::cout << "warning: collectionAbstract.addProperty() called without an implementation (notify a developer)" << std::endl;
+    }
 
     /** \copydoc Collection::addProperty */
     void addProperty (const std::string& key, const char* format ...)

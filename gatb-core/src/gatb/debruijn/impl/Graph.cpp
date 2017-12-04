@@ -309,7 +309,6 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
 
     DEBUG ((cout << "builGraph for bank '" << bank->getId() << "'"
                 << " kmerSize=" << kmerSize
-                << " nksMin=" << nksMin
                 << " output='" << output << "'"
                 << endl
            ));

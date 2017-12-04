@@ -118,6 +118,7 @@ public:
         bloomCollection->addProperty ("nb_hash",   ss2.str());
         bloomCollection->addProperty ("type",      bloom->getName());
         bloomCollection->addProperty ("kmer_size", ss3.str());
+        bloomCollection->flush (); // R: wasn't there before but I guess this can't hurt
     }
 
     /** Load a Bloom filter from a group
