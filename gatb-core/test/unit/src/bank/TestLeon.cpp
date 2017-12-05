@@ -67,8 +67,10 @@ class TestLeon : public Test
     CPPUNIT_TEST_GATB(bank_checkLeon4);
     CPPUNIT_TEST_GATB(bank_checkLeon5);
     CPPUNIT_TEST_GATB(bank_checkLeon6);
-    CPPUNIT_TEST_GATB(bank_checkLeon7);
-    CPPUNIT_TEST_GATB(bank_checkLeon8);
+	
+	//removed some large files from distrib
+   // CPPUNIT_TEST_GATB(bank_checkLeon7);
+   // CPPUNIT_TEST_GATB(bank_checkLeon8);
 
     CPPUNIT_TEST_SUITE_GATB_END();
 
