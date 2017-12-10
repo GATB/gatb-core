@@ -221,7 +221,7 @@ public:
 
         std::string filename = file_folder + parent->getFullId('.') + std::string(".") + name;
         std::string folder = system::impl::System::file().getDirectory(filename);
-        std::string prefix = system::impl::System::file().getBaseName(filename);
+        std::string prefix = system::impl::System::file().getBaseName(filename) + std::string(".") + name; // because gatb's getBaseName is stupid and cuts after the last dot
 
         if (nb == 0)
         {   // if nb is 0, it means we're opening partitions and not creating them, thus we need to get the number of partitions.
