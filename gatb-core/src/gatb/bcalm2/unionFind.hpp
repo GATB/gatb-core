@@ -5,6 +5,7 @@
 #include <set>
 #include <atomic>
 #include <iostream>
+#include <fstream>
 #include <unordered_map>
 
 /**
@@ -130,6 +131,15 @@ public:
         std::cout << "raw space of UF hash data: " << ( 2*getNumKeys * sizeof(T)  ) /1024/1024 << " MB" << std::endl; // 2x because each key of type T is associated to a value of type T
     }
 
+    // debug function
+    void dumpUF(std::string file)
+    {
+        std::ofstream dumpfile;
+        dumpfile.open (file);
+        for (uint32_t i=0; i<size(); ++i)
+            dumpfile << i << " " << mData[i]  << std::endl;
+        dumpfile.close();
+    }
 
 
     mutable std::vector<std::atomic<uint64_t>> mData;

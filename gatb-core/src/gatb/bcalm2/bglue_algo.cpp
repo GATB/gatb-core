@@ -791,7 +791,10 @@ void bglue(Storage *storage,
         const typename ModelCanon::Kmer kmmerBegin = modelCanon.codeSeed(kmerBegin.c_str(), Data::ASCII);
         const typename ModelCanon::Kmer kmmerEnd = modelCanon.codeSeed(kmerEnd.c_str(), Data::ASCII);
 
-        ufkmers.union_(uf_mphf.lookup(hasher(kmmerBegin)), uf_mphf.lookup(hasher(kmmerEnd)));
+        uint32_t v1 = uf_mphf.lookup(hasher(kmmerBegin));
+        uint32_t v2 = uf_mphf.lookup(hasher(kmmerEnd));
+
+        ufkmers.union_(v1,v2);
         //ufkmers.union_((hasher(kmmerBegin)), (hasher(kmmerEnd)));
 
 #if 0
@@ -818,10 +821,9 @@ void bglue(Storage *storage,
 
     };
 
-    //setDispatcher (new SerialDispatcher()); // force single thread
     Dispatcher dispatcher (nb_threads);
     dispatcher.iterate (in->iterator(), createUF);
-
+    
 #if 0
     ufmin.printStats("uf minimizers");
 
@@ -836,6 +838,7 @@ void bglue(Storage *storage,
     if (debug_uf_stats) // for debugging
     {
         ufkmers.printStats("uf kmers");
+        //ufkmers.dumpUF("uf.dump");
         logging("after computing UF stats");
     }
 
@@ -929,6 +932,7 @@ void bglue(Storage *storage,
 
     logging( "Allowed " + to_string((max_buffer * nbGluePartitions) /1024 /1024) + " MB memory for buffers");
 
+
     // partition the glue into many files, à la dsk
     auto partitionGlue = [k, &modelCanon /* crashes if copied!*/, \
         &get_UFclass, &gluePartitions,
@@ -983,7 +987,7 @@ void bglue(Storage *storage,
         delete gluePartitions[i]; // takes care of the final flush (this doesn't delete the file, just closes it)
     free_memory_vector(gluePartitions);
     out.flush();
-
+ 
 
     logging("Done disk partitioning of glue");
 
@@ -1010,10 +1014,11 @@ void bglue(Storage *storage,
 
     // glue all partitions using a thread pool
     ThreadPool pool(nb_threads);
+    std::mutex mtx; // lock to avoid a nasty bug when calling output()
     for (int partition = 0; partition < nbGluePartitions; partition++)
     {
         auto glue_partition = [&modelCanon, &ufkmers, partition, &gluePartition_prefix, nbGluePartitions, &copy_nb_seqs_in_partition,
-        &get_UFclass, &out, &outLock, &out_id, kmerSize]( int thread_id)
+        &get_UFclass, &out, &outLock, &out_id, kmerSize, &mtx]( int thread_id)
         {
             int k = kmerSize;
 
@@ -1101,7 +1106,12 @@ void bglue(Storage *storage,
 
                 float mean_abundance = get_mean_abundance(abs);
                 uint32_t sum_abundances = get_sum_abundance(abs);
-                output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
+                {
+                    // for some reason i do need that lock_guard here.. even though output is itself lock guarded. maybe some lazyness in the evauation of the to_string(out_id++)? who kon
+                    // anyway this fixes the problem, i'll understand it some other time.
+                    std::lock_guard<std::mutex> lock(mtx);
+                    output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
+                }
             }
                 
             free_memory_vector(ordered_sequences_idxs);
