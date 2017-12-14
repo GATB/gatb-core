@@ -1,4 +1,12 @@
 --------------------------------------------------------------------------------
+# RELEASE 1.4.1
+
+* This is a bugfix release
+	* fixed a segfault in some multi-threaded situations
+	* removed some spurious large files in the distrib
+	* fixed a bug with the -storate-type file option
+
+--------------------------------------------------------------------------------
 # RELEASE 1.4.0
 
 * Integration of Leon compressor into GATB-Core :
