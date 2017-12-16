@@ -74,7 +74,7 @@ public:
 
 
     /********************************************************************************/
-    void bcalm_test1 () // i wanna test de UF because it was buggy in multithreads
+    void bcalm_test1 () // i wanna test de UF because there was a weird behavior in bcalm
     {
         int nb_uf_elts = 3000000;
         unionFind<uint32_t> uf(nb_uf_elts);
@@ -90,9 +90,11 @@ public:
 
         };
 
-        //doJoins(0,nb_uf_elts/2);
-        //doJoins(nb_uf_elts/2,nb_uf_elts-1);
-        //
+        doJoins(nb_uf_elts/2,nb_uf_elts-1);
+        doJoins(0,nb_uf_elts/2);
+        
+        // what if it's not a multithread bug but an order of operations bug, somehow
+        /* // threaded
         std::thread first(doJoins,0,nb_uf_elts/3);
         std::thread second(doJoins,nb_uf_elts/3,2*(nb_uf_elts/3));
         std::thread third(doJoins,2*(nb_uf_elts/3),nb_uf_elts-1);
@@ -100,6 +102,7 @@ public:
         first.join();
         second.join();
         third.join();
+        */
 
         int foundclass = uf.find(0); // not always 0, depends which thread starts first
         for (int i = 1; i < nb_uf_elts; i++)
