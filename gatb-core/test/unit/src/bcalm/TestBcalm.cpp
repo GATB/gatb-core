@@ -74,7 +74,7 @@ public:
 
 
     /********************************************************************************/
-    void bcalm_test1 () // i wanna test de UF because there was a weird behavior in bcalm
+    void bcalm_test1 () // i wanna test de UF because there was a weird behavior in bcalm. turns out: it wasn't the UF that was faulty, but let's keep this test.
     {
         int nb_uf_elts = 3000000;
         unionFind<uint32_t> uf(nb_uf_elts);
