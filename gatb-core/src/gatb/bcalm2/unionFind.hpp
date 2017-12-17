@@ -133,7 +133,7 @@ public:
 
     // normalize the UF first: the class id is the element of the smallest id
     // added to make the UF deterministic when populated by multiple threads
-    // makes the UF triple in size
+    // requires 3xUF memory while doing this operation, so i'm not enabling it by default
     void normalize()
     {
         std::vector<uint32_t> smallest_elt_in_class(size());
