@@ -27,14 +27,8 @@
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/storage/impl/StorageTools.hpp>
 
-#include <gatb/tools/math/NativeInt64.hpp>
-#include <gatb/tools/math/NativeInt128.hpp>
-#include <gatb/tools/math/LargeInt.hpp>
-
-#include <gatb/bank/impl/Banks.hpp>
 #include <gatb/bank/impl/Bank.hpp>
-#include <gatb/bank/impl/BankHelpers.hpp>
-#include <gatb/bank/impl/BankConverterAlgorithm.hpp>
+#include <gatb/bank/impl/Banks.hpp>
 
 #include <gatb/kmer/impl/Model.hpp>
 
@@ -764,9 +758,15 @@ void bglue(Storage *storage,
     // actually, in the current implementation, partition_t is not used, but values are indeed hardcoded in 32 bits (the UF implementation uses a 64 bits hash table for internal stuff)
 
     // We loop over sequences.
-    /*for (it.first(); !it.isDone(); it.next())
+
+    /* // uncomment for non-dispatcher version
+    auto it = in->iterator();
+    for (it->first(); !it->isDone(); it->next())
     {
-        string seq = it->toString();*/
+        const string seq = (*it)->toString();
+        const string comment = (*it)->getComment();
+    */
+    
     auto createUF = [k, &modelCanon, \
         &uf_mphf, &ufkmers, &hasher](const Sequence& sequence)
     {
@@ -838,7 +838,7 @@ void bglue(Storage *storage,
     if (debug_uf_stats) // for debugging
     {
         ufkmers.printStats("uf kmers");
-        //ufkmers.dumpUF("uf.dump");
+        //ufkmers.dump("uf.dump");
         logging("after computing UF stats");
     }
 
@@ -934,9 +934,10 @@ void bglue(Storage *storage,
 
 
     // partition the glue into many files, à la dsk
+    std::mutex mtx; // lock to avoid a nasty bug when calling output()
     auto partitionGlue = [k, &modelCanon /* crashes if copied!*/, \
         &get_UFclass, &gluePartitions,
-        &out, &outLock, &nb_seqs_in_partition, &out_id, nbGluePartitions]
+        &out, &outLock, &nb_seqs_in_partition, &out_id, nbGluePartitions, &mtx]
             (const Sequence& sequence)
     {
         const string &seq = sequence.toString();
@@ -961,6 +962,10 @@ void bglue(Storage *storage,
             const string abundances = comment.substr(3);
             float mean_abundance = get_mean_abundance(abundances);
             uint32_t sum_abundances = get_sum_abundance(abundances);
+            
+            // for some reason i do need that lock_guard here.. even though output is itself lock guarded. maybe some lazyness in the evauation of the to_string(out_id++)? who kon
+            // anyway this fixes the problem, i'll understand it some other time.
+            std::lock_guard<std::mutex> lock(mtx);
             output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
             // km is not a standard GFA field so i'm putting it in lower case as per the spec
             // maybe could optimize by writing to disk using queues, if that's ever a bottleneck
@@ -1014,7 +1019,6 @@ void bglue(Storage *storage,
 
     // glue all partitions using a thread pool
     ThreadPool pool(nb_threads);
-    std::mutex mtx; // lock to avoid a nasty bug when calling output()
     for (int partition = 0; partition < nbGluePartitions; partition++)
     {
         auto glue_partition = [&modelCanon, &ufkmers, partition, &gluePartition_prefix, nbGluePartitions, &copy_nb_seqs_in_partition,

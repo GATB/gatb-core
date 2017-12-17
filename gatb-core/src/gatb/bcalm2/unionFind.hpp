@@ -131,15 +131,51 @@ public:
         std::cout << "raw space of UF hash data: " << ( 2*getNumKeys * sizeof(T)  ) /1024/1024 << " MB" << std::endl; // 2x because each key of type T is associated to a value of type T
     }
 
-    // debug function
-    void dumpUF(std::string file)
+    // normalize the UF first: the class id is the element of the smallest id
+    // added to make the UF deterministic when populated by multiple threads
+    // makes the UF triple in size
+    void normalize()
+    {
+        std::vector<uint32_t> smallest_elt_in_class(size());
+        std::vector<uint32_t> mDataMirror(size());
+        for (uint32_t i=0; i<size(); ++i)
+        {
+            smallest_elt_in_class[find(i)] = size();
+            mDataMirror[i] = mData[i]; 
+        }
+        for (uint32_t i=0; i<size(); ++i)
+            smallest_elt_in_class[find(i)] = std::min(smallest_elt_in_class[find(i)],i);
+        for (uint32_t i=0; i<size(); ++i)
+            //mData[i] = smallest_for_class[find(i)]; // this is fishy to modify mData at same time we do the find
+            mDataMirror[i] = smallest_elt_in_class[find(i)]; // this is fishy to modify mData at same time we do the find
+        for (uint32_t i=0; i<size(); ++i)
+            mData[i] = mDataMirror[i];
+    }
+
+    void dump(std::string file)
     {
         std::ofstream dumpfile;
         dumpfile.open (file);
+        dumpfile << size()  << std::endl;
         for (uint32_t i=0; i<size(); ++i)
             dumpfile << i << " " << mData[i]  << std::endl;
         dumpfile.close();
     }
+
+    void load(std::string file)
+    {
+        std::ifstream dumpfile(file);
+        uint32_t uf_size;
+        dumpfile >> uf_size;
+        if (size() != uf_size) {std::cout << "error: loading a UF of the wrong size" << std::endl; exit(1);}
+        uint64_t osef, value;
+        for (uint32_t i=0; i<size(); ++i)
+        {
+            dumpfile >> osef >> value;
+            mData[i] = value;
+        }
+    }
+
 
 
     mutable std::vector<std::atomic<uint64_t>> mData;
