@@ -92,6 +92,10 @@ public:
 	 * \return estimation of the number of sequences of sub bank i */
 	virtual int64_t estimateNbItemsBanki (int i) = 0;
 	
+	/** Return the vector of  sub IBank objects (in case of bank composite), or a vector containing only the bank itself
+	 * \return the IBank objects. */
+	virtual const std::vector<IBank*> getBanks() const  = 0;
+	
     /** \copydoc tools::collections::Iterable::iterator */
     virtual tools::dp::Iterator<Sequence>* iterator () = 0;
 

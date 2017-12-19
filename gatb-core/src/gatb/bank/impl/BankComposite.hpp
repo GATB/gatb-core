@@ -157,7 +157,7 @@ public:
 
     /** Return the vector of IBank objects.
      * \return the IBank objects. */
-    const std::vector<IBank*>& getBanks() const { return _banks; }
+    const std::vector<IBank*> getBanks() const { return _banks; }
 
     /** Get the number of referred banks.
      * \return the number of referred banks */

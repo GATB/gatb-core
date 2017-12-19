@@ -29,6 +29,7 @@
 /********************************************************************************/
 
 #include <gatb/bank/api/IBank.hpp>
+#include <vector>
 
 /********************************************************************************/
 namespace gatb      {
@@ -58,7 +59,13 @@ public:
 	
 	int64_t estimateNbItemsBanki (int i)  { return this->estimateNbItems(); }
 
-	
+	/** \copydoc IBank::getBanks */
+	const std::vector<IBank*> getBanks() const  {
+		std::vector<IBank*> _banks;
+		_banks.push_back((IBank *)this);
+		return _banks;
+	};
+
 	
     /** \copydoc IBank::estimateNbItems */
     int64_t estimateNbItems ()
