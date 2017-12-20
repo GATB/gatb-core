@@ -274,8 +274,11 @@ IF (EXISTS "${PROJECT_SOURCE_DIR}/examples")
         ADD_SUBDIRECTORY(examples)
     ENDIF()
 ENDIF()
-# add example snippets into binary archive (use by CPack directive)
-INSTALL(DIRECTORY "${PROJECT_SOURCE_DIR}/examples/" DESTINATION "examples")
+
+IF (NOT DEFINED GATB_CORE_EXCLUDE_EXAMPLES)
+    # add example snippets into binary archive (use by CPack directive)
+    INSTALL(DIRECTORY "${PROJECT_SOURCE_DIR}/examples/" DESTINATION "examples")
+ENDIF()
 
 ################################################################################
 #  INSTALL 
