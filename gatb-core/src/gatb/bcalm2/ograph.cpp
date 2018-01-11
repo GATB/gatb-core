@@ -217,7 +217,7 @@ inline void graph3<span>::update_connected(kmerIndiceT<span> &ki)
 {
     if (ki.position == SEQ_LEFT)
         connected_left[ki.indice] = true;
-    else
+    if (ki.position == SEQ_RIGHT)
         connected_right[ki.indice] = true;
 }
 
@@ -249,25 +249,33 @@ void graph3<span>::debruijn(){
 		kL=left[iL];
 		kR=right[iR];
 
-        if (debug_index > 0) if (kL.indice == debug_index || kR.indice == debug_index ) std::cout << " kl / kR " << kL.indice << " " << kR.indice << " " << kL.kmmer << " " << kR.kmmer << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << std::endl;
+        //~ std::cout << " kl / kR " << kL.indice << " " << kR.indice << " " << kL.kmmer << " " << kR.kmmer << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << std::endl;
 
 		if(kL.kmmer==kR.kmmer){
             if (debug_index > 0) if (kL.indice == debug_index || kR.indice == debug_index ) std::cout << " identical, kl / kR " << kL.indice << " " << kR.indice << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << " positions "  << kL.position << " " << kR.position << std::endl;
-            update_connected(kL);
-            update_connected(kR);
+            if(isNumber (unitigs[kL.indice][0])){
+			}
+            if(not kL.indice==kR.indice){
+				update_connected(kL);
+				update_connected(kR);
+			}
 
             // found the same (k-1)-mer in the left and right array, it means that two sequences end with those and could be potentially compacted
 			bool go(true);
 			++iL;++iR;
 			if(left[iL].kmmer==kL.kmmer){
 				go=false;
-				update_connected(left[iL]);
-				while(left[++iL].kmmer<=kR.kmmer ){if(iL==sizeLeft){return;}}
+				if(not left[iL].indice==right[iR].indice){
+					update_connected(left[iL]);
+				}
+				while(left[++iL].kmmer<=kR.kmmer ){}
 			}
 			if(right[iR].kmmer==kL.kmmer){
 				go=false;
-				update_connected(right[iR]);
-				while(right[++iR].kmmer<=kL.kmmer ){if(iR==sizeRight){return;}}
+				if(not left[iL].indice==right[iR].indice){
+					update_connected(right[iR]);
+				}
+				while(right[++iR].kmmer<=kL.kmmer ){}
 			}
 			if(go){
 				compaction(kL.indice,kR.indice,kL.kmmer);
@@ -348,7 +356,7 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
     // input tuple: <unitigs string, left minimizer, right minimizer, abundance>
 	unitigs[indiceUnitigs]=get<0>(tuple);
 	unitigs_abundances[indiceUnitigs].push_back(get<3>(tuple));
-    
+
     bool debug = false;
     string debug_kmer = "GTTTTTTAGATTCTGAGTGGAACGATGAATG";
 
