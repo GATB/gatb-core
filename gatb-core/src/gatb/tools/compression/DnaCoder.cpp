@@ -362,7 +362,10 @@ void DnaEncoder::execute(){
 	
 	if(_readSize < _kmerSize){
 		encodeNoAnchorRead();
-		smoothQuals();
+		if(! _leon->_isFasta)
+		{
+			smoothQuals();
+		}
 		endRead();
 		return;
 	}
