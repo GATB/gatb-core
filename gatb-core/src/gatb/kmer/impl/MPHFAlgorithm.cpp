@@ -252,7 +252,7 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
         if (abundance > max_abundance_discrete)
         {
             _nb_abundances_above_precision++;
-            std::cout << "found abundance larger than discrete: " << abundance << std::endl;
+            //std::cout << "found abundance larger than discrete: " << abundance << std::endl;
             abundance = max_abundance_discrete;
         }
 
