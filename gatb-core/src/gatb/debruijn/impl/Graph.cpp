@@ -3245,7 +3245,7 @@ struct queryAbundance_visitor : public boost::static_visitor<int>    {
         unsigned long hashIndex = getNodeIndex<span>(data, node);
     	if(hashIndex == ULLONG_MAX) return 0; // node was not found in the mphf 
 
-        unsigned char value = (*(data._abundance)).at(hashIndex);
+        int value = data._abundance->abundanceAt(hashIndex); // uses discretized abundance
 
         return value;
     }

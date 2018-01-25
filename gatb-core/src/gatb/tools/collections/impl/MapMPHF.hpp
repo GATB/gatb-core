@@ -194,9 +194,8 @@ namespace gatb        {
 						/** Get the value for a given key
 						 * \param[in] key : the key
 						 * \return the value associated to the key. */
-						int operator[] (const Key& key)  {
-							return floorf((_abundanceDiscretization [data[hash(key)]]  +  _abundanceDiscretization [data[hash(key)]+1])/2.0);
-							//return data[hash(key)];
+						Value& operator[] (const Key& key)  {
+							return data[hash(key)];
 						}
 						
 						/** Get the value for a given index
@@ -207,11 +206,17 @@ namespace gatb        {
 						
 						}
 						
-						
 						Value& at (const Key& key)  {
 							return data[hash(key)];
 						}
 						
+                        int abundanceAt (const Key& key)  {
+							return floorf((_abundanceDiscretization [data[hash(key)]]  +  _abundanceDiscretization [data[hash(key)]+1])/2.0);
+						}
+	
+                        int abundanceAt (typename Hash::Code code)  {
+							return floorf((_abundanceDiscretization [data[code]]  +  _abundanceDiscretization [data[code]+1])/2.0);
+						}
 						
 						/** Get the hash code of the given key. */
 						typename Hash::Code getCode (const Key& key) { return hash(key); }
