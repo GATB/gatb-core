@@ -652,6 +652,7 @@ template<size_t SPAN>
 void bglue(Storage *storage, 
         std::string prefix,
         int kmerSize, 
+        int nb_glue_partitions, 
         int nb_threads, 
         bool verbose
         )
@@ -667,12 +668,19 @@ void bglue(Storage *storage,
     bool debug_uf_stats = false; // formerly cmdline parameter
     bool only_uf = false; // idem
 
+    logging("Starting bglue with " + std::to_string( nb_threads) + " threads");
+
     //int nbGluePartitions=200; // no longer fixed 
     // autodetecting number of partitions
     int max_open_files = System::file().getMaxFilesNumber() / 2;
     int nbGluePartitions = std::min(2000, max_open_files); // ceil it at 2000 anyhow
 
-    logging("Starting bglue with " + std::to_string( nb_threads) + " threads");
+    if (nb_glue_partitions > 0)
+    {
+        nbGluePartitions = nb_glue_partitions;
+        logging("Using user-defined number of glue partitions: " + std::to_string( nb_glue_partitions));
+    }
+
 
     // create a hasher for UF
     typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;

@@ -137,6 +137,7 @@ class UnbufferedFastaIterator
 void bglue(gatb::core::tools::storage::impl::Storage* storage, 
         std::string prefix,
         int kmerSize, 
+        int nb_glue_partitions, 
         int nb_threads, 
         bool verbose
         );

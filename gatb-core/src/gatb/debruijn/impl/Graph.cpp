@@ -656,10 +656,11 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     OptionsParser* parserDebug = new OptionsParser ("debug ");
 
     // those are only valid for GraphUnitigs, but GraphUnitigs doesn't have custom options (yet) so i'm adding here
+    parserDebug->push_front (new OptionNoParam  ("-nb-glue-partitions",       "number of glue partitions (automatically calculated by default)"));
     parserDebug->push_front (new OptionNoParam  ("-skip-links",       "same, but       skip     links"));
     parserDebug->push_front (new OptionNoParam  ("-redo-links",       "same, but       redo     links"));
     parserDebug->push_front (new OptionNoParam  ("-skip-bglue",       "same, but       skip     bglue"));
-    parserDebug->push_front (new OptionNoParam  ("-redo-bglue",       "same, but       redo     bglue     "));
+    parserDebug->push_front (new OptionNoParam  ("-redo-bglue",       "same, but       redo     bglue"));
     parserDebug->push_front (new OptionNoParam  ("-skip-bcalm",       "same, but       skip     bcalm"));
     parserDebug->push_front (new OptionNoParam  ("-redo-bcalm",       "debug function, redo the bcalm algo"));
 

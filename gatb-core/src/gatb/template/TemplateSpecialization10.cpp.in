@@ -23,6 +23,7 @@ template void bcalm2<${KSIZE}>(Storage* storage,
 template void bglue<${KSIZE}>(Storage* storage, 
         std::string prefix,
         int kmerSize, 
+        int nb_glue_partitions, 
         int nb_threads, 
         bool verbose
         );
