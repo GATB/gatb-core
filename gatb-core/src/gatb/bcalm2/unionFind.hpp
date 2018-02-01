@@ -6,7 +6,7 @@
 #include <atomic>
 #include <iostream>
 #include <fstream>
-#include <unordered_map>
+#include <map>
 
 /**
  * Lock-free parallel disjoint set data structure (aka UNION-FIND)
@@ -345,7 +345,7 @@ public:
     }
 
 
-    mutable std::unordered_map<uint32_t, std::atomic<uint64_t>> mData;
+    mutable std::map<uint32_t, std::atomic<uint64_t>> mData;
 };
 
 #endif /* __UNIONFIND_H */
