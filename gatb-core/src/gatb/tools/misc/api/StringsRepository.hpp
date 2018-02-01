@@ -103,6 +103,7 @@ public:
     const char* uri_output_tmp ()  { return "-out-tmp";        }
     const char* verbose        ()  { return "-verbose";        }
     const char* help           ()  { return "-help";           }
+	const char* help_short     ()  { return "-h";              }
     const char* version        ()  { return "-version";        }
     const char* bloom_type     ()  { return "-bloom";          }
     const char* debloom_type   ()  { return "-debloom";        }
@@ -156,6 +157,7 @@ public:
 #define STR_URI_OUTPUT_TMP      gatb::core::tools::misc::StringRepository::singleton().uri_output_tmp ()
 #define STR_VERBOSE             gatb::core::tools::misc::StringRepository::singleton().verbose ()
 #define STR_HELP                gatb::core::tools::misc::StringRepository::singleton().help ()
+#define STR_HELP_SHORT          gatb::core::tools::misc::StringRepository::singleton().help_short ()
 #define STR_VERSION             gatb::core::tools::misc::StringRepository::singleton().version ()
 #define STR_BLOOM_TYPE          gatb::core::tools::misc::StringRepository::singleton().bloom_type()
 #define STR_DEBLOOM_TYPE        gatb::core::tools::misc::StringRepository::singleton().debloom_type()
