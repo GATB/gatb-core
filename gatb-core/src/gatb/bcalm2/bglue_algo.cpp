@@ -3,7 +3,7 @@
 */
 #include "bglue_algo.hpp"
 
-#include <map>
+#include <unordered_map>
 #include "unionFind.hpp"
 #include <BooPHF/BooPHF.h>
 #include "ThreadPool.h"
@@ -241,7 +241,7 @@ template<int SPAN>
 static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize, bool debug=false)
 {
     typedef typename Kmer<SPAN>::Type Type;
-    map<Type, set<uint32_t> > kmerIndex;
+    unordered_map<Type, set<uint32_t> > kmerIndex;
     set<uint32_t> usedSeq;
     unsigned int nb_chained = 0;
 
@@ -672,7 +672,6 @@ void bglue(Storage *storage,
     int max_open_files = System::file().getMaxFilesNumber() / 2;
     int nbGluePartitions = std::min(2000, max_open_files); // ceil it at 2000 anyhow
 
-    nbGluePartitions = 200; // FIXME
     logging("Starting bglue with " + std::to_string( nb_threads) + " threads");
 
     // create a hasher for UF
@@ -1039,7 +1038,7 @@ void bglue(Storage *storage,
             }
             outLock.unlock();
 
-            map<int, vector< markedSeq<SPAN> >> msInPart;
+            unordered_map<int, vector< markedSeq<SPAN> >> msInPart;
             uint64_t seq_index = 0;
 
             for (it.first(); !it.isDone(); it.next()) // BankFasta
@@ -1088,7 +1087,7 @@ void bglue(Storage *storage,
             }
 
             msInPart.clear();
-            map<int,vector<markedSeq<SPAN>>>().swap(msInPart); // free msInPart
+            unordered_map<int,vector<markedSeq<SPAN>>>().swap(msInPart); // free msInPart
             
             vector<string> sequences;
             vector<string> abundances;
