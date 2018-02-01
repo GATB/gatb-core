@@ -672,6 +672,7 @@ void bglue(Storage *storage,
     int max_open_files = System::file().getMaxFilesNumber() / 2;
     int nbGluePartitions = std::min(2000, max_open_files); // ceil it at 2000 anyhow
 
+    nbGluePartitions = 200; // FIXME
     logging("Starting bglue with " + std::to_string( nb_threads) + " threads");
 
     // create a hasher for UF
