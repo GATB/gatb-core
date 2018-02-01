@@ -3,7 +3,7 @@
 */
 #include "bglue_algo.hpp"
 
-#include <unordered_map>
+#include <ordered_map>
 #include "unionFind.hpp"
 #include <BooPHF/BooPHF.h>
 #include "ThreadPool.h"
@@ -241,7 +241,7 @@ template<int SPAN>
 static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize, bool debug=false)
 {
     typedef typename Kmer<SPAN>::Type Type;
-    unordered_map<Type, set<uint32_t> > kmerIndex;
+    ordered_map<Type, set<uint32_t> > kmerIndex;
     set<uint32_t> usedSeq;
     unsigned int nb_chained = 0;
 
@@ -1038,7 +1038,7 @@ void bglue(Storage *storage,
             }
             outLock.unlock();
 
-            unordered_map<int, vector< markedSeq<SPAN> >> msInPart;
+            ordered_map<int, vector< markedSeq<SPAN> >> msInPart;
             uint64_t seq_index = 0;
 
             for (it.first(); !it.isDone(); it.next()) // BankFasta
@@ -1087,7 +1087,7 @@ void bglue(Storage *storage,
             }
 
             msInPart.clear();
-            unordered_map<int,vector<markedSeq<SPAN>>>().swap(msInPart); // free msInPart
+            ordered_map<int,vector<markedSeq<SPAN>>>().swap(msInPart); // free msInPart
             
             vector<string> sequences;
             vector<string> abundances;
