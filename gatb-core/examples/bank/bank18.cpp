@@ -42,12 +42,16 @@ int main (int argc, char* argv[])
         IBank* bank2 = Bank::open (options->getStr(STR_BANK2));  LOCAL (bank2);
 
         // We iterate the two banks. Note how we provide two iterators from the two banks.
-        PairedIterator<Sequence> itPair (bank1->iterator(), bank2->iterator());
+        PairedIterator<Sequence> *  itPair  = new  PairedIterator<Sequence> (bank1->iterator(), bank2->iterator());
+		LOCAL(itPair);
 
-        for (itPair.first(); !itPair.isDone(); itPair.next())
+		ProgressIterator< std::pair <Sequence, Sequence>> progress_iter (itPair, "coucou la paire", bank1->estimateNbItems());
+		
+
+        for (progress_iter.first(); !progress_iter.isDone(); progress_iter.next())
         {
-            Sequence& s1 = itPair.item().first;
-            Sequence& s2 = itPair.item().second;
+            Sequence& s1 = itPair->item().first;
+            Sequence& s2 = itPair->item().second;
 
             std::cout << "seq1.len=" << s1.getDataSize() << " seq2.len=" << s2.getDataSize() << std::endl;
         }
