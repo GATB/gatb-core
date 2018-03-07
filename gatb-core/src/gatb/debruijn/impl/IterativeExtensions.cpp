@@ -234,12 +234,12 @@ void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
         	// Apr 2017 : new version for MindTheGap fill with contigs
         	//target can be the concatenation of several target kmers, checks for all the target kmers, if one found stop extending this contig but continue other branches
         	std::string subseed;
-        	std::string target= R.c_str();
+        	std::string target= R;
         	bool stopExtend= false;
         	for (unsigned i = 0; i < target.length(); i += sizeKmer)
         	{
         		subseed=target.substr(i, sizeKmer);
-        		char* found = strstr (seq.getDataBuffer(), R.c_str());
+        		char* found = strstr (seq.toString().c_str(), subseed.c_str());
 
         		if (found != NULL  &&  ksd.depth > (int)sizeKmer)
         		{
