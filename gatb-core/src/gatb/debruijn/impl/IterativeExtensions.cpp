@@ -239,7 +239,7 @@ void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
         	for (unsigned i = 0; i < target.length(); i += sizeKmer)
         	{
         		subseed=target.substr(i, sizeKmer);
-        		char* found = strstr (seq.toString().c_str(), subseed.c_str());
+        		const char* found = strstr (seq.toString().c_str(), subseed.c_str());
 
         		if (found != NULL  &&  ksd.depth > (int)sizeKmer)
         		{
