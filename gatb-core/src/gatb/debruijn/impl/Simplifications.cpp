@@ -273,7 +273,7 @@ double Simplifications<GraphType,Node,Edge>::path2abundance(Direction dir, Path_
     for (size_t i = skip_first; i < p.size() - skip_last; i++)
     {
         Node node = _graph.buildNode((char *)(s.c_str()), i);
-        unsigned char abundance = _graph.queryAbundance(node);
+        int abundance = _graph.queryAbundance(node);
         mean_abundance += abundance;
         //std::cout << " " << to_string(abundance);
         //cout << endl << "node: " << _graph.toString (node) << " abundance: "  << to_string(abundance) << endl;

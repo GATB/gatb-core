@@ -821,11 +821,11 @@ Path_t<Node> MonumentTraversalTemplate<Node,Edge,Graph>::most_abundant_consensus
             /* I know that buildNode was supposed to be used for test purpose only,
              * but couldn't find anything else to transform my substring into a kmer */
 
-            unsigned char abundance = this->graph.queryAbundance(node);
+            unsigned int abundance = this->graph.queryAbundance(node);
             mean_abundance += abundance;
         
             if (debug)
-                cout << (unsigned int)abundance << " ";
+                cout << abundance << " ";
         }
         mean_abundance /= p.size();
         

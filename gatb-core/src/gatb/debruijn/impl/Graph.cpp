@@ -657,6 +657,7 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
 
     // those are only valid for GraphUnitigs, but GraphUnitigs doesn't have custom options (yet) so i'm adding here
     parserDebug->push_front (new OptionOneParam ("-nb-glue-partitions",       "number of glue partitions (automatically calculated by default)", false, "0"));
+    //parserDebug->push_front (new OptionNoParam  ("-rebuild-graph",       "rebuild the whole graph starting from counted kmers"));
     parserDebug->push_front (new OptionNoParam  ("-skip-links",       "same, but       skip     links"));
     parserDebug->push_front (new OptionNoParam  ("-redo-links",       "same, but       redo     links"));
     parserDebug->push_front (new OptionNoParam  ("-skip-bglue",       "same, but       skip     bglue"));
@@ -872,11 +873,17 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (tools::misc::IProper
         _state     = (typename GraphTemplate<Node, Edge, GraphDataVariant>::StateMask) atol (getGroup().getProperty ("state").c_str());
         _kmerSize  =                    atol (getGroup().getProperty ("kmer_size").c_str());
 
-        // TODO: code a check that the dsk group exists and put those three lines in, else print an exception
         if (_kmerSize == 0) /* try the dsk group; this assumes kmer counting is done */
             _kmerSize  =    atol (getGroup("dsk").getProperty ("kmer_size").c_str());
         // also assume kmer counting is done
         setState(GraphTemplate<Node, Edge, GraphDataVariant>::STATE_SORTING_COUNT_DONE);
+    
+        
+        /* // doesn't work now with hdf5, because HDF5 attributes already exist and it doesn't like to overwrite them
+        bool debug_rebuild= params->get("-rebuild-graph"); // this is a hidden debug option for now
+        if (debug_rebuild)
+            _state = 7; // init done, configure done, sorting_count done, but that's it
+        */
         
         /** We get library information in the root of the storage. */
         string xmlString = getGroup().getProperty ("xml");
