@@ -23,7 +23,6 @@
  *
  * \author Wenzel Jakob
  */
-template<class T> // but actually we don't care about this type
 class unionFind { 
 public:
     unionFind(uint32_t size) : mData(size) {
@@ -112,7 +111,7 @@ public:
 
     void printStats(std::string prefix) 
     {
-        std::unordered_map<T, std::set<T>> reverseData;
+        std::unordered_map<uint32_t, std::set<uint32_t>> reverseData;
         uint64_t getNumKeys, getNumSets;
         for ( unsigned int i = 0; i < size(); i++ )
             reverseData[find(i)].insert(i); // need to call find, because element isn't necessarily the representant of its equivalence class
@@ -128,7 +127,7 @@ public:
         getNumKeys = mData.size();
         std::cout << prefix + " data structure has " << getNumKeys << " inserted elements, and made " << getNumSets << " partitions." << std::endl;
         std::cout << "mean/max number of elements in partitions: " << mean << "/" << max << std::endl;
-        std::cout << "raw space of UF hash data: " << ( 2*getNumKeys * sizeof(T)  ) /1024/1024 << " MB" << std::endl; // 2x because each key of type T is associated to a value of type T
+        std::cout << "raw space of UF hash data: " << ( 2*getNumKeys * sizeof(uint32_t)  ) /1024/1024 << " MB" << std::endl; // 2x because each key of type T is associated to a value of type T, and here T=uint32_t
     }
 
     // normalize the UF first: the class id is the element of the smallest id
