@@ -59,6 +59,8 @@ public:
         : _length(length), _cutoff(0), _nbsolids(0), _ratio_weak_volume(0), _firstPeak(0),
           _histogram(0), _histogram_smoothed(0)
     {
+		_length_dim2 = 10; // will be max occurences in genome for histo2D
+		
         _histogram = (Entry*) CALLOC (_length + 1, sizeof (Entry));
         memset (_histogram, 0, sizeof(Entry)*(_length + 1));
 
@@ -72,6 +74,10 @@ public:
 
             _histogram[i].abundance = 0;
         }
+		
+		_histogram2D = (u_int64_t *) CALLOC( (_length + 1) *( _length_dim2 +1) , sizeof (u_int64_t));
+
+		
     }
 
     /** Destructor */
@@ -83,6 +89,12 @@ public:
 
     /** \copydoc IHistogram::inc */
     void inc (u_int16_t index)  { _histogram [(index >= _length) ? _length : index].abundance ++; }
+
+	/** \copydoc IHistogram::inc2D */
+	void inc2D (u_int16_t index1, u_int16_t index2)
+	{
+		_histogram2D [   ((index1 >= _length) ? _length : index1)    + (_length+1) *    ((index2 >= _length_dim2) ? _length_dim2 : index2)  ] ++ ;
+	}
 
     /** \copydoc IHistogram::save */
     void save (tools::storage::impl::Group& group);
@@ -108,12 +120,21 @@ public:
     /** \copydoc IHistogram::getLength */
     size_t getLength() { return _length; }
 
+	/** \copydoc IHistogram::getLength2 */
+	size_t getLength2() { return _length_dim2; }
+	
+	
     /** \copydoc IHistogram::get */
     u_int64_t& get (u_int16_t idx)  { return _histogram[idx].abundance; }
 
+	/** \copydoc IHistogram::get2D */
+	u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2)  { return _histogram2D[idx1 + (_length+1)*idx2]; }
+	
 private:
 
     size_t    _length;
+	size_t    _length_dim2; // used for histo 2D
+
 	u_int16_t _cutoff;
 	u_int64_t _nbsolids;
 	float _ratio_weak_volume;
@@ -121,6 +142,9 @@ private:
 	
     Entry*  _histogram;
 	Entry*  _histogram_smoothed;
+	
+	u_int64_t*  _histogram2D;
+
 };
 
 /********************************************************************************/
@@ -134,6 +158,9 @@ public:
     /** \copydoc IHistogram::inc */
     void inc (u_int16_t index) {}
 
+	/** \copydoc IHistogram::inc2D */
+	void inc2D (u_int16_t index1, u_int16_t index2) {}
+	
     /** \copydoc IHistogram::save */
     void save (tools::storage::impl::Group& group)  {}
 	
@@ -155,8 +182,17 @@ public:
     /** \copydoc IHistogram::getLength */
     size_t getLength() { return 0; }
 
+	/** \copydoc IHistogram::getLength2 */
+	size_t getLength2() { return 0; }
+
+	
     /** \copydoc IHistogram::get */
     u_int64_t& get (u_int16_t idx)  { static u_int64_t foo; return foo; }
+	
+	/** \copydoc IHistogram::get2D */
+	u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2) { static u_int64_t foo; return foo;  }
+	
+	
 };
 
 /********************************************************************************/
@@ -182,12 +218,31 @@ public:
     {
         system::LocalSynchronizer ls (_synchro);
         for (size_t cc=1; cc<_localHisto.getLength(); cc++)  {  _ref->get(cc) += _localHisto.get(cc);  }
+		
+		
+		
+		for (size_t cc=0; cc<=_localHisto.getLength(); cc++)  {
+			for (size_t yy=0; yy<=_localHisto.getLength2(); yy++)  {
+				
+				_ref->get2D(cc,yy) += _localHisto.get2D(cc,yy);
+			}
+		}
+		
+		
+		
+		
         setRef (0);
     }
 
     /** \copydoc IHistogram::inc */
     void inc (u_int16_t index)  { _localHisto.inc (index); }
 
+	/** \copydoc IHistogram::inc2D */
+	void inc2D (u_int16_t index1, u_int16_t index2)
+	{
+		 _localHisto.inc2D (index1,index2);
+	}
+	
     /** \copydoc IHistogram::save */
     void save (tools::storage::impl::Group& group)  { return _ref->save(group); }
 
@@ -210,9 +265,17 @@ public:
     /** \copydoc IHistogram::getLength */
     size_t getLength() { return _localHisto.getLength(); }
 
+	/** \copydoc IHistogram::getLength2 */
+	size_t getLength2() { return _localHisto.getLength2(); }
+	
+	
     /** \copydoc IHistogram::get */
     u_int64_t& get (u_int16_t idx)  { return _localHisto.get(idx); }
 
+	/** \copydoc IHistogram::get2D */
+	 u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2) { return _localHisto.get2D(idx1,idx2); }
+
+	
 private:
 
     IHistogram* _ref;

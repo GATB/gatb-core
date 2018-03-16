@@ -94,10 +94,21 @@ public:
      * \return the max X value. */
     virtual size_t getLength() = 0;
 
+	
+	/** Return the maximum allowed for Y in case of 2D histogram.
+	 * \return the max Y value. */
+	virtual size_t getLength2() = 0;
+	
     /** Increase the number of kmers occurring X time
      * \param[in] index : the X value. */
     virtual void inc (u_int16_t index) = 0;
 
+	/** Increase the number of kmers occurring X time in genome and Y times in read
+	 * \param[in] index1 : the X value.
+	 * \param[in] index2 : the Y value. */
+	virtual void inc2D (u_int16_t index1, u_int16_t index2) = 0;
+	
+	
     /** Save the distribution. It is saved into the bag provided at construction. */
     virtual void save (tools::storage::impl::Group& group) = 0;
 
@@ -124,6 +135,15 @@ public:
      * \param[in] idx : x value.
      * \return y(x). */
     virtual u_int64_t& get (u_int16_t idx) = 0;
+	
+	
+	/** Retrieve the value for x and y of histo2D.
+	 * \param[in] idx1 : x value.
+	 * \param[in] idx2 : y value.
+	 * \return cpt(x,y). */
+	virtual u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2) = 0;
+	
+	
 };
 
 /********************************************************************************/
