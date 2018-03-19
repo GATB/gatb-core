@@ -269,10 +269,25 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 	// build histo2D filename
 	if(params->get(STR_HISTO2D))
 	{
-		std::string uri_input = params->getStr(STR_URI_INPUT);
-		std::string delimiter = ",";
-		std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
-		histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + "_histo2D";
+		if(params->get(STR_URI_INPUT))
+		{
+			std::string uri_input = params->getStr(STR_URI_INPUT);
+			std::string delimiter = ",";
+			std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
+			histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + "_histo2D";
+		}
+		else if(params->get(STR_URI_FILE))
+		{
+			std::string uri_input = params->getStr(STR_URI_FILE);
+			std::string delimiter = ",";
+			std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
+			histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + "_histo2D";
+		}
+		else
+		{
+			histo2Dstorage_filename = "histo2D_resultfile";
+		}
+
 	}
 	
     CountProcessor* result = 0;
