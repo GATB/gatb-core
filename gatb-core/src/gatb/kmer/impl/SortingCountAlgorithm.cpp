@@ -265,12 +265,15 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 )
 {
 	
+	std::string histo2Dstorage_filename;
 	// build histo2D filename
-	std::string uri_input = params->getStr(STR_URI_INPUT);
-	std::string delimiter = ",";
-	std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
-	std::string histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + "_histo2D";
-	
+	if(params->get(STR_HISTO2D))
+	{
+		std::string uri_input = params->getStr(STR_URI_INPUT);
+		std::string delimiter = ",";
+		std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
+		histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + "_histo2D";
+	}
 	
     CountProcessor* result = 0;
 
