@@ -637,7 +637,7 @@ static vector<string> string_split(string s, char delim){
 // inspired by gfakluge (https://github.com/edawson/gfakluge/blob/master/src/gfakluge.cpp), but quite limited compared to what kluge parses
 // Warning:
 // several assumptions are implicitly made about the GFA file, and they are not checked. so the code is not robust
-// - needs to have "k:i:[k value]" in header
+// - needs to have "ks:i:[k value]" in header
 // - GFA has to be symmetric: (default of convertToGFA from bcalm), i.e. each link also has its symmetrical link
 // - segments identifiers need to be 0...|nb_unitigs|
 
@@ -671,7 +671,7 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
 		if (tokens[0] == "H"){
 			if (tokens.size() < 3 || tokens[2].substr(0,1).compare("k") != 0)
 			{
-				std::cout << "unsupported GFA format - the header needs to contain the k-mer size (e.g. k:i:31)" << std::endl;
+				std::cout << "unsupported GFA format - the header needs to contain the k-mer size a second field (e.g. 'H\tVN:i:1\tks:i:31')" << std::endl;
 				std::cout << "header: " << line << std::endl;
 				std::cout << "tokens[2]: " << string_split(tokens[2],':')[0] << std::endl;
 				exit(1);
@@ -1965,7 +1965,7 @@ template<size_t span>
 void GraphUnitigsTemplate<span>::simplify(unsigned int nbCores, bool verbose)
 {
         Simplifications<GraphUnitigsTemplate<span>,NodeGU,EdgeGU> 
-            graphSimplifications(*this, nbCores, verbose);
+            graphSimplifications(this, nbCores, verbose);
         graphSimplifications.simplify();
 }
 

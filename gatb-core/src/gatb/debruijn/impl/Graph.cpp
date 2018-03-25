@@ -3736,7 +3736,7 @@ template<typename Node, typename Edge, typename GraphDataVariant>
 void GraphTemplate<Node, Edge, GraphDataVariant>::simplify(unsigned int nbCores, bool verbose)
 {
         Simplifications<GraphTemplate<Node, Edge, GraphDataVariant>,Node,Edge> 
-            graphSimplifications(*this, nbCores, verbose);
+            graphSimplifications(this, nbCores, verbose);
         graphSimplifications.simplify();
 }
 

@@ -67,16 +67,19 @@ static const char* simplprogressFormat3 = "removing ec,      pass %2d ";
 
 
 template<typename GraphType, typename Node, typename Edge>
-Simplifications<GraphType, Node, Edge>::Simplifications(GraphType& graph, int nbCores, bool verbose)
-        : _nbTipRemovalPasses(0), _nbBubbleRemovalPasses(0), _nbBulgeRemovalPasses(0), _nbECRemovalPasses(0), _graph(graph), 
+Simplifications<GraphType, Node, Edge>::Simplifications(GraphType *graph, int nbCores, bool verbose)
+        : _nbTipRemovalPasses(0), _nbBubbleRemovalPasses(0), _nbBulgeRemovalPasses(0), _nbECRemovalPasses(0), _graph(*graph), 
         _nbCores(nbCores), _firstNodeIteration(true), _verbose(verbose)
 {
     // by default; do everything
     _doTipRemoval = _doBulgeRemoval = _doECRemoval = true;
 
-    // the next list is only here to get number of nodes
-    ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> itNode (this->_graph.iterator(), "");
-    nbNodes = itNode.size();
+    if (graph) // may be called with graph==null in order just to get parameters
+    {
+        // this is just to get number of nodes
+        ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> itNode (this->_graph.iterator(), "");
+        nbNodes = itNode.size();
+    }
 
     // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
     // (before, the previous system was to do a fixed amount of passes)
@@ -488,10 +491,10 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
             TIME(auto end_simplepath_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
-            
-            if (k + pathLen >= _maxTipLengthTopological) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+           
+            if (k + pathLen > _maxTipLengthTopological) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
                isShortTopological = false;
-            if (k + pathLen >= _maxTipLengthRCTC) 
+            if (k + pathLen > _maxTipLengthRCTC) 
                isShortRCTC = false;
 
             if (isShortTopological)
@@ -1385,7 +1388,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
                 bool isShort = true;
 
-                if (k + pathLen >= maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+                if (k + pathLen > maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
                 {
                     __sync_fetch_and_add(&nbLongSimplePaths, 1);
                     isShort = false;
@@ -1703,7 +1706,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
                         DEBUG_EC(cout << endl << "neighbors " << i+1 << "/" << neighbors.size() << " from: " << _graph.toString (neighbors[i].to) << " dir: " << DIR2STR(dir) << endl);
                         bool isShort = true;
                         
-                        if (k + pathLen >= maxECLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+                        if (k + pathLen > maxECLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
                         {
                             __sync_fetch_and_add(&nbLongSimplePaths, 1);
                             isShort = false;

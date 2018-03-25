@@ -38,7 +38,7 @@ class Simplifications : public system::SmartPointer
 {
 public:
 
-    Simplifications (/*const, removed because of cacheNonSimpleNodes calling a setStats */ GraphType & graph, int nbCores, bool verbose = false);
+    Simplifications (/*const, removed because of cacheNonSimpleNodes calling a setStats */ GraphType * /* set as a pointer because could be null*/ graph, int nbCores, bool verbose = false);
 
     void simplify(); // perform many rounds of all simplifications, as in Minia
 
