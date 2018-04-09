@@ -305,7 +305,7 @@ void graph3<span>::debruijn(){
 				while(true){
 					++iR;
 					if(iR>=right.size()){break;}
-					if(not (right[++iR].kmmer<kL.kmmer)){break;}
+					if(not (right[iR].kmmer<kL.kmmer)){break;}
 				}
 			}
 		}
