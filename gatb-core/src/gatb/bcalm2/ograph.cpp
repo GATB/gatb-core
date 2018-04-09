@@ -228,7 +228,7 @@ template<size_t span>
 void graph3<span>::debruijn(){
 	sort(left.begin(),left.end(),comparator<span>());
 	sort(right.begin(),right.end(),comparator<span>());
-	uint iL(0),iR(0),sizeLeft(left.size()),sizeRight(right.size());
+	uint64_t iL(0),iR(0),sizeLeft(left.size()),sizeRight(right.size());
     typename graph3<span>::kmerType minusone;
     minusone.setVal(-1);
 	left.push_back({0,minusone, SEQ_LEFT}); // dummy kmer so that we dont need to check bounds.. clever..
@@ -252,9 +252,9 @@ void graph3<span>::debruijn(){
         //~ std::cout << " kl / kR " << kL.indice << " " << kR.indice << " " << kL.kmmer << " " << kR.kmmer << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << std::endl;
 
 		if(kL.kmmer==kR.kmmer){
-            if (debug_index > 0) if (kL.indice == debug_index || kR.indice == debug_index ) std::cout << " identical, kl / kR " << kL.indice << " " << kR.indice << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << " positions "  << kL.position << " " << kR.position << std::endl;
-            if(isNumber (unitigs[kL.indice][0])){
-			}
+            //~ if (debug_index > 0) if (kL.indice == debug_index || kR.indice == debug_index ) std::cout << " identical, kl / kR " << kL.indice << " " << kR.indice << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << " positions "  << kL.position << " " << kR.position << std::endl;
+            //~ if(isNumber (unitigs[kL.indice][0])){
+			//~ }
             if(not kL.indice==kR.indice){
 				update_connected(kL);
 				update_connected(kR);
@@ -268,14 +268,24 @@ void graph3<span>::debruijn(){
 				if(not left[iL].indice==right[iR].indice){
 					update_connected(left[iL]);
 				}
-				while(left[++iL].kmmer<=kR.kmmer ){}
+				//~ while(left[++iL].kmmer<=kR.kmmer ){}
+				while(true){
+					++iL;
+					if(iL>=left.size()){break;}
+					if(not (left[iL].kmmer<=kR.kmmer)){break;}
+				}
 			}
 			if(right[iR].kmmer==kL.kmmer){
 				go=false;
 				if(not left[iL].indice==right[iR].indice){
 					update_connected(right[iR]);
 				}
-				while(right[++iR].kmmer<=kL.kmmer ){}
+				//~ while(right[++iR].kmmer<=kL.kmmer ){}
+				while(true){
+					++iR;
+					if(iR>=right.size()){break;}
+					if(not (right[iR].kmmer<=kL.kmmer)){break;}
+				}
 			}
 			if(go){
 				compaction(kL.indice,kR.indice,kL.kmmer);
@@ -284,9 +294,19 @@ void graph3<span>::debruijn(){
 
 		}else{
 			if(kL.kmmer<kR.kmmer){
-				while(left[++iL].kmmer<kR.kmmer){}
+				//~ while(left[++iL].kmmer<kR.kmmer){}
+				while(true){
+					++iL;
+					if(iL>=left.size()){break;}
+					if(not (left[iL].kmmer<kR.kmmer)){break;}
+				}
 			}else{
-				while(right[++iR].kmmer<kL.kmmer){}
+				//~ while(right[++iR].kmmer<kL.kmmer){}
+				while(true){
+					++iR;
+					if(iR>=right.size()){break;}
+					if(not (right[++iR].kmmer<kL.kmmer)){break;}
+				}
 			}
 		}
 	}
