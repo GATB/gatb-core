@@ -138,6 +138,30 @@ struct Sequence
      * \param[in] qual : quality string of the sequence. */
     void setQuality (const std::string& qual)  { _quality = qual; }
 
+    /** Returns a string that is the reverse complement of the sequence
+     *  The Sequence object needs to be in ASCII Format
+     **/
+    std::string getRevcomp () const {
+        std::string rc;
+        std::string s = toString();
+        for (signed int i = s.length() - 1; i >= 0; i--) {
+            unsigned char c;
+            switch(s[i]){
+                case 'A': c='T';break;
+                case 'C': c='G';break;
+                case 'G': c='C';break;
+                case 'T': c='A';break;
+                case 'a': c='t';break;
+                case 'c': c='g';break;
+                case 'g': c='c';break;
+                case 't': c='a';break;
+                default:  c='X';break;
+            }
+            rc += c;
+        }
+        return rc;
+    }
+
     /** Comment attribute (note: should be private with a setter and getter). */
     std::string _comment;
 
