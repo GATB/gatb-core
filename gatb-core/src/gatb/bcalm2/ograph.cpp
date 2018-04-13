@@ -323,6 +323,14 @@ bool graph3<span>::output(uint i){
     if (isNumber(unitigs[i][0]))
         return false;
 
+    // Rayan: 
+    // I remember thinking that indexed_left/indexed_right/connected_left/connected_right could not be properly set unless we did compactions at the end of the function above, i.e. using the 'to_compact' variable and doing 'for (auto p: to_compact) compaction(..)'.
+    // but now, in the current version of the code, the 'to_compact' scheme is commented out
+    // (due to https://github.com/GATB/gatb-core/commit/a33d9da4628ea18479798720db4207feb61e445b#diff-cd5d56912653ed079fe11a9d7d5ffbbb)
+    // in order to restore the functionality of indexed_left/indexed_right/connected_left/connected_right, i would need to sit down and think again about it for a while. 
+    // for now, just to be safe, i'm disabling pre_tip_cleaning, which wasn't used anyway. i believe this is the only location where indexed_left/indexed_right/connected_left/connected_right are used 
+    // (in principle it could be possible to avoid doing the pass LinkTigs after bcalm/bglue, but it would need bglue to properly update the links. didn't code that.
+#if 0
     if (pre_tip_cleaning)
     {
         if (indexed_left[i] && indexed_right[i])
@@ -340,6 +348,7 @@ bool graph3<span>::output(uint i){
             }
         }
     }
+#endif 
 
     //std::cout << "returning seq " << unitigs[i] << " indexing l/r " << indexed_left[i] << " " << indexed_right[i] << " connected l/r " << connected_left[i] << " " << connected_right[i] << std::endl;
     return true;
