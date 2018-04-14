@@ -82,7 +82,7 @@ template<size_t span> struct debruijn_minim_bench {  void operator ()  (Paramete
     cout.setf(ios_base::fixed);
     cout.precision(3);
 
-    Graph::Iterator<Node> nodes = graph.iterator<Node> ();
+    GraphIterator<Node> nodes = graph.iterator ();
 
     cout << "graph has " << nodes.size() << " nodes" << endl;
 
