@@ -3,6 +3,7 @@
 ################################################################################
 
 FIND_PATH (CPPUNIT_INCLUDE_DIR cppunit/extensions/HelperMacros.h
+  $ENV{HOME}/include
   $ENV{HOME}/.linuxbrew/include
   /local/include
   /usr/include
@@ -18,9 +19,11 @@ FIND_LIBRARY (CPPUNIT_LIBRARY cppunit
 )
 
 # A little hack here... We check whether the static library is reachable too.
-if (NOT EXISTS "${CPPUNIT_INCLUDE_DIR}/../lib/libcppunit.a")
-    message ("-- CppUnit: found headers (in ${CPPUNIT_INCLUDE_DIR}) but not the static library (${CPPUNIT_INCLUDE_DIR}/../lib/libcppunit.a)")
-    SET (CPPUNIT_NO_STATIC_LIB_FOUND 1)   
+IF (EXISTS "${CPPUNIT_INCLUDE_DIR}/cppunit/extensions/HelperMacros.h")
+    if (NOT EXISTS "${CPPUNIT_INCLUDE_DIR}/../lib/libcppunit.a")
+        message ("-- CppUnit: found headers (in ${CPPUNIT_INCLUDE_DIR}) but not the static library (${CPPUNIT_INCLUDE_DIR}/../lib/libcppunit.a)")
+        SET (CPPUNIT_NO_STATIC_LIB_FOUND 1)   
+    endif()
 endif()
 
 IF (CPPUNIT_INCLUDE_DIR)
