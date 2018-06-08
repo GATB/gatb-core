@@ -270,6 +270,12 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 	int using_histo_2D = params->get(STR_HISTO2D) ? params->getInt(STR_HISTO2D) : 0 ;
 	if(using_histo_2D)
 	{
+		if(params->get(STR_URI_OUTPUT))
+		{
+			std::string uri_input = params->getStr(STR_URI_OUTPUT);
+			histo2Dstorage_filename =  uri_input + "_histo2D";
+		}
+		else
 		if(params->get(STR_URI_INPUT))
 		{
 			std::string uri_input = params->getStr(STR_URI_INPUT);
