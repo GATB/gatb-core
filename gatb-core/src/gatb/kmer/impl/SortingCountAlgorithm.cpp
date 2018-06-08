@@ -222,6 +222,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_COMPRESS_LEVEL,    "h5 compression level (0:none, 9:best)",          false, "0"));
     parser->push_back (new OptionOneParam (STR_STORAGE_TYPE,      "storage type of kmer counts ('hdf5' or 'file')", false, "hdf5"  ));
 	parser->push_back (new OptionOneParam (STR_HISTO2D,"compute the 2D histogram (with first file = genome, remaining files = reads)",false,"0"));
+	parser->push_back (new OptionOneParam (STR_HISTO,"output the kmer abundance histogram",false,"0"));
 
     IOptionsParser* devParser = new OptionsParser ("kmer count, advanced performance tweaks");
 
@@ -296,6 +297,39 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 		}
 
 	}
+	//histo1D filename
+	std::string histo1Dstorage_filename;
+
+	int using_histo_1D = params->get(STR_HISTO) ? params->getInt(STR_HISTO) : 0 ;
+	if(using_histo_1D)
+	{
+		if(params->get(STR_URI_OUTPUT))
+		{
+			std::string uri_input = params->getStr(STR_URI_OUTPUT);
+			histo1Dstorage_filename =  uri_input + ".histo";
+		}
+		else
+			if(params->get(STR_URI_INPUT))
+			{
+				std::string uri_input = params->getStr(STR_URI_INPUT);
+				std::string delimiter = ",";
+				std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
+				histo1Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + ".histo";
+			}
+			else if(params->get(STR_URI_FILE))
+			{
+				std::string uri_input = params->getStr(STR_URI_FILE);
+				std::string delimiter = ",";
+				std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
+				histo1Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + ".histo";
+			}
+			else
+			{
+				histo1Dstorage_filename = "histo_resultfile";
+			}
+		
+	}
+	
 	
     CountProcessor* result = 0;
 
@@ -315,7 +349,9 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
             params->getInt(STR_HISTOGRAM_MAX),
             params->getInt(STR_KMER_ABUNDANCE_MIN_THRESHOLD),
 			using_histo_2D,
-			histo2Dstorage_filename
+			using_histo_1D,
+			histo2Dstorage_filename,
+			histo1Dstorage_filename
         ),
 
         CountProcessorSolidityFactory<span>::create (*params),

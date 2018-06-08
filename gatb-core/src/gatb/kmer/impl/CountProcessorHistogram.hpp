@@ -60,9 +60,11 @@ public:
         size_t histoMax                    = 10000,
         size_t min_auto_threshold          = 3,
 		bool   histo2Dmode                 = false,
-		std::string histo2Dfilename = "histo2Dfile"
+		bool   histo1Dmode                 = false,
+		std::string histo2Dfilename = "histo2Dfile",
+		std::string histo1Dfilename = "histo1Dfile"
     )
-        : _group(group), _histogram(0), _min_auto_threshold(min_auto_threshold),_histo2Dmode(histo2Dmode),_histo2Dfilename(histo2Dfilename)
+        : _group(group), _histogram(0), _min_auto_threshold(min_auto_threshold),_histo2Dmode(histo2Dmode),_histo2Dfilename(histo2Dfilename),_histo1Dmode(histo1Dmode),_histo1Dfilename(histo1Dfilename)
     {
 
         setHistogram (new tools::misc::impl::Histogram (histoMax));
@@ -76,10 +78,11 @@ public:
         tools::misc::IHistogram* histogram,
         size_t min_auto_threshold = 3,
 		bool   histo2Dmode = false,
-		std::string histo2Dfilename = "histo2Dfile"
-
+		bool   histo1Dmode = false,
+		std::string histo2Dfilename = "histo2Dfile",
+	    std::string histo1Dfilename = "histo1Dfile"
     )
-        : _group(group), _histogram(0), _min_auto_threshold(min_auto_threshold),_histo2Dmode(histo2Dmode),_histo2Dfilename(histo2Dfilename)
+        : _group(group), _histogram(0), _min_auto_threshold(min_auto_threshold),_histo2Dmode(histo2Dmode),_histo2Dfilename(histo2Dfilename),_histo1Dmode(histo1Dmode),_histo1Dfilename(histo1Dfilename)
     {
 
         setHistogram (histogram);
@@ -109,7 +112,7 @@ public:
 		{
 			FILE * histo2Dfile = fopen (_histo2Dfilename.c_str(),"w");
 			//output 2D histogram now
-			printf("output 2D histo gram to file %s \n",_histo2Dfilename.c_str());
+			//printf("output 2D histo gram to file %s \n",_histo2Dfilename.c_str());
 			
 			for(int ii=0; ii<= _histogram->getLength(); ii++)
 			{
@@ -122,6 +125,20 @@ public:
 			}
 			
 			fclose(histo2Dfile);
+		}
+		
+		if(_histo1Dmode)
+		{
+			FILE * histo1Dfile = fopen (_histo1Dfilename.c_str(),"w");
+			
+			//output 1D histogram now
+			for(int ii=0; ii<= _histogram->getLength(); ii++)
+			{
+				fprintf(histo1Dfile,"%5i:\t%6lli",ii,_histogram->get(ii));
+				fprintf(histo1Dfile,"\n");
+			}
+			
+			fclose(histo1Dfile);
 		}
 		
 		
@@ -145,7 +162,7 @@ public:
     CountProcessorAbstract<span>* clone ()
     {
         /** We encapsulate the histogram with a cache. */
-        return new CountProcessorHistogram (_group, new gatb::core::tools::misc::impl::HistogramCache (_histogram,_synchro),  _min_auto_threshold, _histo2Dmode, _histo2Dfilename);
+        return new CountProcessorHistogram (_group, new gatb::core::tools::misc::impl::HistogramCache (_histogram,_synchro),  _min_auto_threshold, _histo2Dmode,_histo1Dmode, _histo2Dfilename,_histo1Dfilename);
     }
 
     /********************************************************************/
@@ -207,6 +224,8 @@ private:
     size_t _min_auto_threshold;
 	bool _histo2Dmode;
 	std::string _histo2Dfilename;
+	bool _histo1Dmode;
+	std::string _histo1Dfilename;
 };
 
 /********************************************************************************/
