@@ -274,7 +274,7 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 		if(params->get(STR_URI_OUTPUT))
 		{
 			std::string uri_input = params->getStr(STR_URI_OUTPUT);
-			histo2Dstorage_filename =  uri_input + "_histo2D";
+			histo2Dstorage_filename =  uri_input + ".histo2D";
 		}
 		else
 		if(params->get(STR_URI_INPUT))
@@ -282,14 +282,14 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 			std::string uri_input = params->getStr(STR_URI_INPUT);
 			std::string delimiter = ",";
 			std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
-			histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + "_histo2D";
+			histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + ".histo2D";
 		}
 		else if(params->get(STR_URI_FILE))
 		{
 			std::string uri_input = params->getStr(STR_URI_FILE);
 			std::string delimiter = ",";
 			std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
-			histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + "_histo2D";
+			histo2Dstorage_filename =  system::impl::System::file().getBaseName(firstbankname) + ".histo2D";
 		}
 		else
 		{
@@ -555,8 +555,8 @@ void SortingCountAlgorithm<span>::configure ()
 	
 	//out file name for histo2D
 	string output_histo2Dname  = getInput()->get(STR_URI_OUTPUT) ?
-	getInput()->getStr(STR_URI_OUTPUT) + "_histo2D"   :
-	(getInput()->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (_bank->getIdNb(0))) + "_histo2D";
+	getInput()->getStr(STR_URI_OUTPUT) + ".histo2D"   :
+	(getInput()->getStr(STR_URI_OUTPUT_DIR) + "/" + system::impl::System::file().getBaseName (_bank->getIdNb(0))) + ".histo2D";
 	
 	//printf("out histo name %s  \n",output_histo2Dname.c_str());
 

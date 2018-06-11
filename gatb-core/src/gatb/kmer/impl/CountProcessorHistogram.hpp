@@ -132,9 +132,9 @@ public:
 			FILE * histo1Dfile = fopen (_histo1Dfilename.c_str(),"w");
 			
 			//output 1D histogram now
-			for(int ii=0; ii<= _histogram->getLength(); ii++)
+			for(int ii=1; ii<= _histogram->getLength(); ii++)
 			{
-				fprintf(histo1Dfile,"%5i:\t%6lli",ii,_histogram->get(ii));
+				fprintf(histo1Dfile,"%i\t%lli",ii,_histogram->get(ii));
 				fprintf(histo1Dfile,"\n");
 			}
 			
