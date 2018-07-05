@@ -69,10 +69,10 @@ Properties Configuration::getProperties() const
 
 	
     result.add (1, "available_space",   "%ld", _available_space);
-    result.add (1, "sequence_number",   "%ld", _estimateSeqNb);
-    result.add (1, "sequence_volume",   "%ld", _estimateSeqTotalSize / system::MBYTE);
-    result.add (1, "kmers_number",      "%ld", _kmersNb);
-    result.add (1, "kmers_volume",      "%ld", _volume);
+    result.add (1, "estimated_sequence_number",   "%ld", _estimateSeqNb);
+    result.add (1, "estimated_sequence_volume",   "%ld", _estimateSeqTotalSize / system::MBYTE);
+    result.add (1, "estimated_kmers_number",      "%ld", _kmersNb);
+    result.add (1, "estimated_kmers_volume",      "%ld", _volume);
     result.add (1, "max_disk_space",    "%ld", _max_disk_space);
     result.add (1, "max_memory",        "%ld", _max_memory);
     result.add (1, "nb_passes",         "%d",  _nb_passes);
