@@ -107,7 +107,8 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType *graph, int nb
 }
 
 
-/* this is the many rounds of graph simplifications that we perform in Minia */
+/* this functions performs many rounds of all available graph simplifications 
+ * this is what Minia does by default */
 template<typename GraphType, typename Node, typename Edge>
 void Simplifications<GraphType,Node,Edge>::simplify()
 {
@@ -296,7 +297,9 @@ inline string maybe_print(long value, string str)
 }
 
 
-/* gets coverage of the simple path,
+/* the RCTC terms is taken from SPADES and means Relative Coverage Tip Clipping
+ * but here i'm using it loosely to mean "Relative Coverage"
+ * this function gets coverage of the simple path,
    then compares it to coverage of other paths connected to the last node of it. */
 template<typename GraphType, typename Node, typename Edge>
 bool Simplifications<GraphType,Node,Edge>::satisfyRCTC(double pathAbundance, Node& node, double RCTCcutoff, Direction dir)
@@ -348,7 +351,9 @@ bool Simplifications<GraphType,Node,Edge>::satisfyRCTC(double pathAbundance, Nod
     return isRCTC;
 }
 
-/* okay let's analyze SPAdes 3.5 tip clipping conditions, just for fun: (following graph_simplifications.hpp and simplifications.info)
+/* this function removes tips in the graph, using an algorithm designed in SPAdes
+ *
+ * here is an in-depth analysis of SPAdes 3.5 tip clipping conditions: (following graph_simplifications.hpp and simplifications.info)
  *
  * * tc_lb is a coefficient, setting tip length to be max(read length, g*tc_lb) (see simplification_settings.hpp);
  *
@@ -652,7 +657,8 @@ static double unitigs_chain2abundance(vector<int> &unitigs_lengths, vector<int> 
 }
 
 
-/* note: the returned mean abundance does not include start and end nodes */
+/* this function finds the most covered path between start and end node
+ * note: the returned mean abundance does not include start and end nodes */
 // endNode is a node just after the bulge path. it's branching.
 template<typename GraphType, typename Node, typename Edge>
 void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path(
@@ -1574,7 +1580,11 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
 
 
-/* Again, let's see what spades 3.5 does.
+/* this is an algorithm that simplifies the graph, again taken from SPAdes
+ * it removes so-called "erroneous connections" which are Z-shaped motifs in the graph
+ *
+ *
+ * Again, let's see what spades 3.5 does.
  *erroneous connection remover is:
 
  RemoveLowCoverageEdges
