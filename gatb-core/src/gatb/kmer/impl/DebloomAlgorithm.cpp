@@ -413,14 +413,7 @@ void DebloomAlgorithm<span>::end_debloom_partition (
     partition.clear ();
 }
 
-/*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
+/***** this appears unused due to a "#if 0" around the block of code that calls this function ****/
 template<size_t span>
 IBloom <typename Kmer<span>::Type>* DebloomAlgorithm<span>::createBloom (
     tools::collections::Iterable<Count>* solidIterable,
@@ -648,6 +641,8 @@ float DebloomAlgorithm<span>::getNbBitsPerKmer (size_t kmerSize, DebloomKind deb
         nbitsPerKmer = log (16*kmerSize*(lg2*lg2))/(lg2*lg2);
         break;
     }
+
+    if (nbitsPerKmer == 0) nbitsPerKmer = 1;
     return nbitsPerKmer;
 }
 

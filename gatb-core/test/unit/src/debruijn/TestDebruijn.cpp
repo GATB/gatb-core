@@ -87,6 +87,7 @@ class TestDebruijn : public Test
     /********************************************************************************/
     CPPUNIT_TEST_SUITE_GATB (TestDebruijn);
 
+        CPPUNIT_TEST_GATB (debruijn_test_small_kmers);
         CPPUNIT_TEST_GATB (debruijn_large_abundance_query);
         CPPUNIT_TEST_GATB (debruijn_test7); 
         CPPUNIT_TEST_GATB (debruijn_deletenode);
@@ -1280,6 +1281,26 @@ public:
         int abundance = graph.queryAbundance(node);
         //std::cout << graph.toString(node) << " test printing node abundance " << abundance << " expected abundance:" << 1000 << std::endl;
         CPPUNIT_ASSERT (abundance > 600 && abundance < 2000); // allow for imprecision
+    }
+
+    /********************************************************************************/
+    void debruijn_test_small_kmers () // https://github.com/GATB/gatb-core/issues/25
+    {
+        char* seq = (char*) "CTGA";
+        char* rev = (char*) "TCAG";
+
+        /** We create the graph. */
+        Graph graph = Graph::create (new BankStrings ("TCAG", "TCCA", 0), "-kmer-size 4  -abundance-min 1  -verbose 0  -max-memory %d -minimizer-size 2", MAX_MEMORY);
+
+        GraphIterator<Node> it = graph.iterator();  it.first();
+
+        Node n1 = it.item();
+        CPPUNIT_ASSERT (n1.strand == STRAND_FORWARD);
+        CPPUNIT_ASSERT (graph.toString(n1).compare (seq) == 0);
+
+        Node n2 = graph.reverse (n1);
+        CPPUNIT_ASSERT (n2.strand == STRAND_REVCOMP);
+        CPPUNIT_ASSERT (graph.toString(n2).compare (rev) == 0);
     }
 
 
