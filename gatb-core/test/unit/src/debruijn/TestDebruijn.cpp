@@ -1298,7 +1298,7 @@ public:
 
         Node n2 = graph.reverse (n1);
         CPPUNIT_ASSERT (n2.strand == STRAND_REVCOMP);
-        CPPUNIT_ASSERT (graph.toString(n2).compare ("TCAG") == 0 ||  graph.toString(n1).compare ("TGGA") == 0);
+        CPPUNIT_ASSERT (graph.toString(n2).compare ("TCAG") == 0 ||  graph.toString(n2).compare ("TGGA") == 0);
     }
 
 
