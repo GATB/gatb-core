@@ -253,8 +253,9 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
         kmerIndex[markedSequences[i].ke].insert(i);
     }
 
-    auto glue_from_extremity = [&](markedSeq<SPAN> current, uint32_t chain_index, uint32_t markedSequence_index)
+    auto glue_from_extremity = [&](markedSeq<SPAN> current, uint32_t chain_index, uint32_t markedSequence_index, bool expect_circular=false)
     {
+        uint32_t first_index = markedSequence_index;
         vector<uint32_t> chain;
         chain.push_back(chain_index);
 
@@ -308,11 +309,24 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
             current = successor;
             markedSequence_index = successor_index;
+
+            if (expect_circular)
+            {
+                if (usedSeq.find(markedSequence_index) != usedSeq.end())
+                {
+                    assert(markedSequence_index == first_index);
+                    break;
+                }
+            }
+            else
+            {
+               assert((usedSeq.find(markedSequence_index) == usedSeq.end()));
+            }
+
+            usedSeq.insert(markedSequence_index);
             chain.push_back(chain_index);
             rmark = current.rmark;
-            assert((usedSeq.find(markedSequence_index) == usedSeq.end()));
-            usedSeq.insert(markedSequence_index);
-        }
+            }
 
         res.push_back(chain);
         nb_chained += chain.size();
@@ -351,23 +365,26 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
     }
 
-    /* // attempt to fix circular contigs, but I was in a hurry, so not finished
-    while (nb_chained < sequences.size())
+    // special case: a circular unitig, to be glued with multiple sequences all containing doubled kmers at extremities
+    // my fix plan: we pick an extremity at random, and chop the last nucleotide and mark it to not be glued. also find the corresponding kmer in other extremity, and mark it as not to be glued
+    while (nb_chained < markedSequences.size())
     {
-        // there might be a special case: a circular unitig, to be glued with multiple sequences all containing doubled kmers at extremities
-        // my fix plan: we pick an extremity at random, and chop the last nucleotide and mark it to not be glued. also find the corresponding kmer in other extremity, and mark it as not to be glued
-
+        //std::cout << "nb chained " << nb_chained << " markedseq size" << markedSequences.size() << std::endl;
         vector<int> remaining_indices;
         for (uint32_t i = 0; i < markedSequences.size(); i++)
         {
-            if (usedSeq.find(i) != usedSeq.end())
+            if (usedSeq.find(i) == usedSeq.end())
                 remaining_indices.push_back(i);
         }
-        uint32_t chain_index = remaining_indices[0];
-        string kmer = markedSequences[chain_index].substr(0,kmerSize);
-       // markedSequences[chain_index] = // TODO continue
+
+        assert(remaining_indices.size()>0);
+
+        markedSeq<SPAN> current = markedSequences[remaining_indices[0]];
+        uint32_t chain_index = markedSequences[remaining_indices[0]].index;
+        
+        glue_from_extremity(current, chain_index, remaining_indices[0], true);
     }
-    */
+    
     if (nb_chained < markedSequences.size())
     {
         std::cout << " Note: " << markedSequences.size() - nb_chained << " sequence chunks not returned in output unitigs (likely small circular contigs)" << std::endl;
@@ -1082,7 +1099,7 @@ void bglue(Storage *storage,
 
                 markedSeq<SPAN> ms(seq_index, lmark, rmark, kmmerBegin.value(), kmmerEnd.value());
 
-                //if (ufclass == 38145) std::cout << " ufclass " << ufclass << " seq " << seq << " seq index " << seq_index << " " << lmark << rmark << " ks " << kmmerBegin.value() << " ke " << kmmerEnd.value() << std::endl; // debug specific partition
+                //std::cout << " ufclass " << ufclass << " seq " << seq << " seq index " << seq_index << " " << lmark << rmark << " ks " << kmmerBegin.value() << " ke " << kmmerEnd.value() << std::endl; // debug specific partition
                 msInPart[ufclass].push_back(ms);
                 seq_index++;
             }

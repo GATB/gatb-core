@@ -407,7 +407,10 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
         //  but i didnt test it yet, was chasing another bug, so let's implement that later
 	}
     else
+    {
         indexed_left.push_back(false);
+    }
+
 	if(minimizer==get<2>(tuple)){
         indexed_right.push_back(true);
 		typename graph3<span>::kmerType kmer1(end2int128(unitigs[indiceUnitigs]));
@@ -424,7 +427,9 @@ void graph3<span>::addtuple(tuple<string,uint,uint,uint>& tuple){
 		}
 	}
     else
+    {
         indexed_right.push_back(false);
+    }
 	++indiceUnitigs;
 }
 
