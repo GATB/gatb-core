@@ -904,9 +904,7 @@ void bglue(Storage *storage,
   
     // setup output file
     string output_prefix = prefix;
-    std::atomic<unsigned long> out_id; // identified for output sequences
-    out_id = 0;
-    BufferedFasta out (output_prefix, 100000);
+    BufferedFasta out (output_prefix, 100000, true);
 
     auto get_UFclass = [&modelCanon, &ufkmers_vector, &hasher, &uf_mphf]
         (const string &kmerBegin, const string &kmerEnd,
@@ -966,7 +964,7 @@ void bglue(Storage *storage,
     std::mutex mtx; // lock to avoid a nasty bug when calling output()
     auto partitionGlue = [k, &modelCanon /* crashes if copied!*/, \
         &get_UFclass, &gluePartitions,
-        &out, &outLock, &nb_seqs_in_partition, &out_id, nbGluePartitions, &mtx]
+        &out, &outLock, &nb_seqs_in_partition, nbGluePartitions, &mtx]
             (const Sequence& sequence)
     {
         const string &seq = sequence.toString();
@@ -992,12 +990,8 @@ void bglue(Storage *storage,
             float mean_abundance = get_mean_abundance(abundances);
             uint32_t sum_abundances = get_sum_abundance(abundances);
             
-            // for some reason i do need that lock_guard here.. even though output is itself lock guarded. maybe some lazyness in the evauation of the to_string(out_id++)? who kon
-            // anyway this fixes the problem, i'll understand it some other time.
-            std::lock_guard<std::mutex> lock(mtx);
-            output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
             // km is not a standard GFA field so i'm putting it in lower case as per the spec
-            // maybe could optimize by writing to disk using queues, if that's ever a bottleneck
+            output(seq, out, "LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
             return;
         }
 
@@ -1051,7 +1045,7 @@ void bglue(Storage *storage,
     for (int partition = 0; partition < nbGluePartitions; partition++)
     {
         auto glue_partition = [&modelCanon, &ufkmers, partition, &gluePartition_prefix, nbGluePartitions, &copy_nb_seqs_in_partition,
-        &get_UFclass, &out, &outLock, &out_id, kmerSize, &mtx]( int thread_id)
+        &get_UFclass, &out, &outLock, kmerSize, &mtx]( int thread_id)
         {
             int k = kmerSize;
 
@@ -1140,10 +1134,7 @@ void bglue(Storage *storage,
                 float mean_abundance = get_mean_abundance(abs);
                 uint32_t sum_abundances = get_sum_abundance(abs);
                 {
-                    // for some reason i do need that lock_guard here.. even though output is itself lock guarded. maybe some lazyness in the evauation of the to_string(out_id++)? who kon
-                    // anyway this fixes the problem, i'll understand it some other time.
-                    std::lock_guard<std::mutex> lock(mtx);
-                    output(seq, out, std::to_string(out_id++) + " LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
+                    output(seq, out, "LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance));
                 }
             }
                 

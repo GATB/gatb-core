@@ -43,16 +43,21 @@ class BufferedFasta
         std::string buffer;
         unsigned long buffer_length;
         FILE* _insertHandle;
+        bool needs_consecutive_ids;
+        unsigned long consecutive_id;
 
     public:
         unsigned long max_buffer;
         bool threadsafe;
 
-        BufferedFasta(const std::string filename, unsigned long given_max_buffer = 50000)
+        BufferedFasta(const std::string filename, unsigned long given_max_buffer = 50000, bool given_needs_consecutive_ids = false)
         {
             max_buffer = given_max_buffer; // that much of buffering will be written to the file at once (in bytes)
             threadsafe = true;
             buffer_length = 0;
+            consecutive_id = 0;
+            needs_consecutive_ids = given_needs_consecutive_ids;
+            if ((!threadsafe) && needs_consecutive_ids) { std::cout << "error, non-threadsafe bufferedfasta with consecutive ids asked" << std::endl; exit(1);}
             _insertHandle = fopen (filename.c_str(), "w");
             if (!_insertHandle) { std::cout << "error opening " << filename << " for writing." << std::endl; exit(1);}
             buffer.reserve(max_buffer+1000/*security*/);
@@ -73,7 +78,13 @@ class BufferedFasta
             if (buffer_length + insert_size > max_buffer)
                 flush();
             buffer_length += insert_size;
-            buffer += ">" + comment + "\n" + seq + "\n";
+            buffer += ">";
+            if (needs_consecutive_ids)
+            {
+                buffer += std::to_string(consecutive_id) + " "; 
+                consecutive_id++;
+            }
+            buffer += comment + "\n" + seq + "\n";
             if (threadsafe)
                 mtx.unlock();
         }

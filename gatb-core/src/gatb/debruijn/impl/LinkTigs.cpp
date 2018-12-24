@@ -41,6 +41,9 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
  * it uses the disk to store the links for extremities until they're merged into the final unitigs file. 
  *
  * so the memory usage is just that of the hash tables that record kmers, not of the links
+ *
+ * Assumption: FASTA header of unitigs starts with a unique number (unitig ID). 
+ * Normally bcalm outputs consecutive unitig ID's but LinkTigs could also work with non-consecutive, non-sorted IDs
  */
 template<size_t span>
 void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose)
@@ -219,7 +222,6 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
 
     BankFasta inputBank (unitigs_filename);
     BankFasta::Iterator itSeq (inputBank);
-    uint64_t utig_counter = 0;
     
     Model modelKminusOne(kmerSize - 1); // it's canonical (defined in the .hpp file)
     
@@ -235,12 +237,15 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
         const string& seq = itSeq->toString();
         if (debug) std::cout << "unitig: " << seq << std::endl;
 
+        const string& comment = itSeq->getComment();        
+        unsigned long utig_id = std::stoul(comment.substr(0, comment.find(' ')));
+        
         if (is_in_pass(seq, pass, UNITIG_BEGIN, kmerSize))
         { 
             if (debug) std::cout << "pass " << pass << " examining beginning" << std::endl;
             typename Model::Kmer kmerBegin = modelKminusOne.codeSeed(seq.substr(0, kmerSize-1).c_str(), Data::ASCII);
             bool beginInSameOrientation = modelKminusOne.toString(kmerBegin.value()) == seq.substr(0,kmerSize-1);
-            ExtremityInfo eBegin(utig_counter, !beginInSameOrientation /* because we record rc*/, UNITIG_BEGIN);
+            ExtremityInfo eBegin(utig_id, !beginInSameOrientation /* because we record rc*/, UNITIG_BEGIN);
             utigs_links_map[kmerBegin.value()].push_back(eBegin.pack());
         }
         if (is_in_pass(seq, pass, UNITIG_END, kmerSize))
@@ -248,11 +253,10 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
             if (debug) std::cout << "pass " << pass << " examining end" << std::endl;
             typename Model::Kmer kmerEnd = modelKminusOne.codeSeed(seq.substr(seq.size() - kmerSize+1).c_str(), Data::ASCII);
             bool endInSameOrientation = modelKminusOne.toString(kmerEnd.value()) == seq.substr(seq.size() - kmerSize+1);
-            ExtremityInfo eEnd(  utig_counter, !endInSameOrientation,                             UNITIG_END);
+            ExtremityInfo eEnd(  utig_id, !endInSameOrientation,                             UNITIG_END);
             utigs_links_map[kmerEnd.value()].push_back(eEnd.pack());
             // there is no UNITIG_BOTH here because we're taking (k-1)-mers.
         }
-        utig_counter++;
     }
 
     std::ofstream links_file(unitigs_filename+".links." +to_string(pass));
@@ -262,12 +266,13 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
         nb_hashed_entries += v.second.size(); 
     logging("step 2 (" + to_string(utigs_links_map.size()) + "kmers/" + to_string(nb_hashed_entries) + "extremities)");
 
-    utig_counter = 0;
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
     {
         const string& seq = itSeq->toString();
-        
-        if (debug) std::cout << "unitig: " << seq << std::endl;
+        const string& comment = itSeq->getComment();        
+        unsigned long utig_id = std::stoul(comment.substr(0, comment.find(' ')));
+
+        if (debug) std::cout << "unitig "  << std::to_string(utig_id)  << " : " << seq << std::endl;
  
         if (is_in_pass(seq, pass, UNITIG_BEGIN, kmerSize))
         {
@@ -324,7 +329,7 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
                 if (debug) std::cout << std::endl;
             }
             
-            record_links(utig_counter, pass, in_links, links_file);
+            record_links(utig_id, pass, in_links, links_file);
         }
 
 
@@ -371,10 +376,8 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
                 }
                 if (debug) std::cout << std::endl;
             }
-            record_links(utig_counter, pass, out_links, links_file);
+            record_links(utig_id, pass, out_links, links_file);
         }
-
-        utig_counter++;
     }
 }
 
