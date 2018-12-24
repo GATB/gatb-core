@@ -961,10 +961,9 @@ void bglue(Storage *storage,
 
 
     // partition the glue into many files, à la dsk
-    std::mutex mtx; // lock to avoid a nasty bug when calling output()
     auto partitionGlue = [k, &modelCanon /* crashes if copied!*/, \
         &get_UFclass, &gluePartitions,
-        &out, &outLock, &nb_seqs_in_partition, nbGluePartitions, &mtx]
+        &out, &outLock, &nb_seqs_in_partition, nbGluePartitions]
             (const Sequence& sequence)
     {
         const string &seq = sequence.toString();
@@ -1045,7 +1044,7 @@ void bglue(Storage *storage,
     for (int partition = 0; partition < nbGluePartitions; partition++)
     {
         auto glue_partition = [&modelCanon, &ufkmers, partition, &gluePartition_prefix, nbGluePartitions, &copy_nb_seqs_in_partition,
-        &get_UFclass, &out, &outLock, kmerSize, &mtx]( int thread_id)
+        &get_UFclass, &out, &outLock, kmerSize]( int thread_id)
         {
             int k = kmerSize;
 
