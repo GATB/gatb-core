@@ -170,17 +170,30 @@ public:
      *  - second : 0 if valid, 1 if invalid (in case of N character for instance) */
     typedef std::pair<char,char> ConvertChar;
 
-    /** Note for the ASCII conversion: the 4th bit is used to tell whether it is invalid or not.
-     * => it finds out that 'N' character has this 4th bit equals to 1, which is not the case
-     * for 'A', 'C', 'G' and 'T'. */
-    struct ConvertASCII    { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar((buffer[idx]>>1) & 3, (buffer[idx]>>3) & 1); }};
+    /** Used to have the following trick:
+     *   (buffer[idx]>>3)& 1
+     * was equal to 1 for 'A', 'C', 'G' and 'T' (and also the lower case version)
+     * and was equal to 0 for 'N' and 'n' 
+     * but unfortunately it doesn't work for some of the IUPAC codes, like 'R' 
+     * */
+    struct ConvertASCII    { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar((buffer[idx]>>1) & 3, validNucleotide[(unsigned char)(buffer[idx])]); }};
     struct ConvertInteger  { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(buffer[idx],0); }         };
     struct ConvertBinary   { static ConvertChar get (const char* buffer, size_t idx)  { return ConvertChar(((buffer[idx>>2] >> ((3-(idx&3))*2)) & 3),0); } };
 
+    static const unsigned char validNucleotide[];
 private:
 
     /** Encoding scheme of the data instance. */
     Encoding_e  encoding;
+
+    /* generated using:
+     * codes=[1]*256
+     * codes[ord('A')] = codes[ord('a')] = 0;
+     * codes[ord('C')] = codes[ord('c')] = 0;
+     * codes[ord('G')] = codes[ord('g')] = 0;
+     * codes[ord('T')] = codes[ord('t')] = 0;
+     * print(codes)
+     */
 };
 
 /********************************************************************************/
