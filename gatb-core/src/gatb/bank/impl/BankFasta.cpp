@@ -58,7 +58,7 @@ typedef struct
 {
     gzFile stream;
     unsigned char *buffer;
-    int buffer_start, buffer_end;
+    uint64_t buffer_start, buffer_end;
     bool eof;
     char last_char;
 
@@ -79,7 +79,7 @@ struct variable_string_t
      variable_string_t ()  : length(0), max(0), string(0) {}
     ~variable_string_t () { if (string!=0)  { FREE(string); } }
 
-    int length, max;
+    uint64_t length, max;
     char *string;
 };
 
@@ -433,7 +433,7 @@ inline signed int buffered_gets (
     if (bf->buffer_start >= bf->buffer_end && bf->eof) return -1;
     while (1)
     {
-        int i;
+        uint64_t i;
         if (bf->buffer_start >= bf->buffer_end) if (!rebuffer (bf)) break;
         if (allow_spaces)
         {
@@ -452,6 +452,7 @@ inline signed int buffered_gets (
             if (is_power_of_2(s->max))  { s->max ++; }
             nearest_power_of_2(s->max);
             s->string = (char*)  REALLOC (s->string, s->max);
+            //std::cout << "realloc of size " << s->max << " res: " << (uint64_t)(s->string) << std::endl;
         }
          memcpy (s->string + s->length, bf->buffer + bf->buffer_start, i - bf->buffer_start);
         s->length += i - bf->buffer_start;
