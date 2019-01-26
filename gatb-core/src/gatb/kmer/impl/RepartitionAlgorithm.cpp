@@ -332,6 +332,9 @@ void RepartitorAlgorithm<span>::computeFrequencies (Repartitor& repartitor)
     u_int64_t nbseq_sample = std::min ( u_int64_t (estimateSeqNb * 0.05) ,u_int64_t( 50000000ULL) ) ;
     // TODO would be better to just stop estimating minimizer frequency when it becomes stable. not after a fixed number of reads
 
+    if (nbseq_sample == 0)
+        nbseq_sample = 1;
+
     u_int64_t rg = ((u_int64_t)1 << (2*_config._minim_size));
     //cout << "\nAllocating " << ((rg*sizeof(uint32_t))/1024) << " KB for " << _minim_size <<"-mers frequency counting (" << rg << " elements total)" << endl;
     uint32_t *m_mer_counts = new uint32_t[rg];
