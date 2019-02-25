@@ -1,0 +1,15 @@
+includedir=/Users/grizk/Devel/gatb-core/gatb-core/thirdparty/htslib-1.9/include
+libdir=/Users/grizk/Devel/gatb-core/gatb-core/thirdparty/htslib-1.9/lib
+
+# Flags and libraries needed when linking against a static libhts.a
+# (used by manual and semi-manual pkg-config(1)-style enquiries).
+static_ldflags=
+static_libs=-lpthread -lz -lm -lbz2 -llzma -lcurl 
+
+Name: htslib
+Description: C library for high-throughput sequencing data formats
+Version: 1.9
+Cflags: -I${includedir}
+Libs: -L${libdir} -lhts
+Libs.private: -L${libdir}  -lbz2 -lhts -lm -lpthread
+Requires.private: zlib  liblzma

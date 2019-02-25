@@ -20,6 +20,7 @@
 #include <gatb/bank/impl/Bank.hpp>
 
 #include <gatb/bank/impl/BankFasta.hpp>
+#include <gatb/bank/impl/BankBam.hpp>
 #include <gatb/tools/compression/Leon.hpp>
 
 #include <gatb/bank/impl/BankBinary.hpp>
@@ -47,7 +48,8 @@ Bank::Bank ()
 {
     /** We register most known factories. */
     _registerFactory_ ("album",  new BankAlbumFactory(),  false);
-    _registerFactory_ ("fasta",  new BankFastaFactory(),  false);
+	_registerFactory_ ("bam", new BankBamFactory(), false);
+	_registerFactory_ ("fasta",  new BankFastaFactory(),  false); //bankfasta wrongly takes a .bam for a fasta file, so bankbam before
 	_registerFactory_ ("leon", new BankLeonFactory(), false);
     _registerFactory_ ("binary", new BankBinaryFactory(), false);
 

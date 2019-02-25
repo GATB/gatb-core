@@ -208,10 +208,13 @@ set (gatb-core-flags ${LIBRARY_COMPILE_DEFINITIONS})
 
 # We define the include directories used for linking binary based on gatb core
 # Note that we need to add boost include dependency (not working otherwise with clang)
-set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE} ${PROJECT_SOURCE_DIR}/src  ${PROJECT_SOURCE_DIR}/thirdparty ${gatb-core-extra-libraries-inc})
+set (gatb-core-includes ${PROJECT_BINARY_DIR}/include  ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE} ${PROJECT_SOURCE_DIR}/src  ${PROJECT_SOURCE_DIR}/thirdparty ${PROJECT_SOURCE_DIR}/thirdparty/htslib-1.9/build/include/htslib ${gatb-core-extra-libraries-inc})
 
 # We define the libraries used for linking binary based on gatb core
-set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5 ${gatb-core-extra-libraries})
+set (gatb-core-libraries   gatbcore-static  dl  pthread  z hdf5 hts  ${gatb-core-extra-libraries})
+
+set (gatb-core-extra-libraries-path ${PROJECT_SOURCE_DIR}/thirdparty/htslib-1.9/build/lib )
+set (gatb-core-extra-libraries-path ${gatb-core-extra-libraries-path} PARENT_SCOPE)
 
 # We define the directory where to find cmake helpers
 set (gatb-core-cmake  ${CMAKE_MODULE_PATH})
