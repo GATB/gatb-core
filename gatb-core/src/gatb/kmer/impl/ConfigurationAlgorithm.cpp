@@ -256,6 +256,11 @@ void ConfigurationAlgorithm<span>::execute ()
     /** We get the number of sub banks. */
     _config._nb_banks = _bank->getCompositionNb();
 
+	if(_config._nb_banks == 1 )
+	{
+		_config._solidityKind = KMER_SOLIDITY_SUM;
+	}
+	
     /** We memorize the number of abundance min values set by the user.
      * Note that it can be lower than the number of banks. */
     _config._abundanceUserNb = _config._abundance.size();
