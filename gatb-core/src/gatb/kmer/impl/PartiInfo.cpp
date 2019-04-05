@@ -24,7 +24,9 @@
 using namespace std;
 
 #define DEBUG(a) //printf a
-// wanted to debug separately, DEBUG has more output than debug2
+// wanted to debug things separately:
+// now there are many different and mutually exclusive debug messages
+// DEBUG has more output than debug2
 // to see top20 repartitions of bins, uncomment IFDEBUG and DEBUG2
 #define IFDEBUG(a)  //a
 #define DEBUG2(a) //printf a

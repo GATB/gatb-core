@@ -252,6 +252,8 @@ void ConfigurationAlgorithm<span>::execute ()
 
     /** We get some information about the bank. */
     _bank->estimate (_config._estimateSeqNb, _config._estimateSeqTotalSize, _config._estimateSeqMaxSize);
+    
+    //printf("_estimateSeqNb %llu _estimateSeqTotalSize %llu _estimateSeqMaxSize %llu \n", _config._estimateSeqNb, _config._estimateSeqTotalSize, _config._estimateSeqMaxSize);
 
     /** We get the number of sub banks. */
     _config._nb_banks = _bank->getCompositionNb();
@@ -316,11 +318,14 @@ void ConfigurationAlgorithm<span>::execute ()
 
     _config._volume =  _config._kmersNb * sizeof(Type) / MBYTE;  // in MBytes
 
+    //printf("estimated usedSeqLen %llu _estimateSeqNb %llu _kmersNb %llu  _volume %llu  \n", usedSeqLen, _config._estimateSeqNb, kmersNb, _config._volume);
+
     if (_config._volume == 0)   { _config._volume = 1; }    // tiny files fix
 
     u_int64_t volume_minim = _config._volume * 0.5 *1.2  ; //0.5 for using kxmers   1.2 if bad repartition of minimizers ( todo sampling to assert ram usage)
 
     if (volume_minim == 0)   { volume_minim = 1; }    // tiny files fix
+    // volume_minim is used a bit later
 
     /** We get max(75%, 100% - X GB) */
     if (_config._max_disk_space == 0)  { _config._max_disk_space = std::max ((75*_config._available_space)/100, _config._available_space-available_space_min);  }
@@ -346,7 +351,7 @@ void ConfigurationAlgorithm<span>::execute ()
     //_nb_passes = 1; //do not constrain nb passes on disk space anymore (anyway with minim, not very big)
     //increase it only if ram issue
 
-    //printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _volume,volume_minim,_max_disk_space,_nb_passes);
+    //printf("_volume  %lli volume_minim %lli _max_disk_space %lli  _nb_passes init %i  \n", _config._volume,volume_minim, _config._max_disk_space, _config._nb_passes);
     size_t max_open_files = System::file().getMaxFilesNumber() / 2;
 
 
