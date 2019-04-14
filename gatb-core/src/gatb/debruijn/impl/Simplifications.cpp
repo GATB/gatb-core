@@ -1108,7 +1108,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
             current_node = neighbors[0].to;
             if (_graph.degree(current_node, reverse(dir)) <= 1)
             {
-                std::cout << "Weird, there was supposed to be an in-neighbor. Maybe there's a loop. Remove this print if it never happens" << std::endl;
+                std::cout << "Weird, there was supposed to be an in-neighbor. Maybe there's a loop. Remove this print if it never happens" << "in degree " << _graph.degree(current_node, reverse(dir)) << " node" <<  _graph.toString(current_node)  << std::endl;
                 return;
             }
 
