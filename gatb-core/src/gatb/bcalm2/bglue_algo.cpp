@@ -632,7 +632,7 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
             pq.emplace(make_tuple(uf_hashes_vectors[i][hash_vector_idx[i]++], i));
     }
 
-    uint64_t prev = 0;
+    uint64_t prev = -1;
     while (pq.size() > 0)
     {
         std::tuple<uint64_t, int> elt = pq.top(); pq.pop();
