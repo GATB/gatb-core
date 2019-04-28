@@ -49,8 +49,8 @@ template<size_t span>
 void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose)
 {
     bcalm_logging = verbose;
-    BankFasta* out = new BankFasta(unitigs_filename+".indexed");
-    if (kmerSize < 4) { std::cout << "error, recent optimizations (specifically link_unitigs) don't support k<5 for now" << std::endl; exit(1); }
+    BankFasta* out = new BankFasta(unitigs_filename+".linked");
+    if (kmerSize < 4) { std::cout << "error, link_unitigs doesn't support k<5, sorry. Contact a developer if you really need k<4 support (alternatively: construct that tiny dBG using Python :)" << std::endl; exit(1); }
     logging("Finding links between unitigs");
 
     for (int pass = 0; pass < nb_passes; pass++)
@@ -60,10 +60,37 @@ void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &
    
     delete out;
     system::impl::System::file().remove (unitigs_filename);
-    system::impl::System::file().rename (unitigs_filename+".indexed", unitigs_filename);
+    system::impl::System::file().rename (unitigs_filename+".linked", unitigs_filename);
 
     logging("Done finding links between unitigs");
 }
+
+
+/* strip L:'s from a comment line*/
+static string remove_previous_links(string &header)
+{
+    bool debug = false;
+    if (debug) std::cout << "parsing unitig links for " << header << std::endl;
+	string res = "";
+    std::stringstream stream(header);
+    while(1) {
+        string tok;
+        stream >> tok;
+        if(!stream)
+            break;
+
+        string field = tok.substr(0,2);
+
+        if (field != "L:")
+        {
+			res += tok + " ";
+        }
+    }
+    //res =  res.substr(0,res.size()-2);
+    if (debug) std::cout << "returning " << res<< std::endl;
+	return res;
+}
+
 
 
 /*
@@ -88,6 +115,7 @@ static void write_final_output(const string& unitigs_filename, bool verbose, Ban
     string cur_links, seq, comment;
     seq = itSeq->toString();
     comment = itSeq->getComment();
+	comment = remove_previous_links(comment);
  
     for (int pass = 0; pass < nb_passes; pass++)
     {
@@ -102,6 +130,7 @@ static void write_final_output(const string& unitigs_filename, bool verbose, Ban
 
     uint64_t last_unitig = 0;
     nb_unitigs = 0; // passed variable
+    bool first_one = true;
 
     // nb_passes-way merge sort
     while ((!finished.all()) || pq.size() > 0)
@@ -109,6 +138,12 @@ static void write_final_output(const string& unitigs_filename, bool verbose, Ban
         pq_elt_t cur = pq.top(); pq.pop();
         int pass = get<1>(cur);
         uint64_t unitig = get<0>(cur);
+
+        if (first_one) // handles the case where first unitig isn't labeled 0
+        {
+            last_unitig = unitig;
+            first_one = false;
+        }
 
         if (unitig != last_unitig)
         {
@@ -123,6 +158,7 @@ static void write_final_output(const string& unitigs_filename, bool verbose, Ban
             itSeq.next();
             seq = itSeq->toString();
             comment = itSeq->getComment();
+	        comment = remove_previous_links(comment);
         }
             
         cur_links += get<2>(cur);

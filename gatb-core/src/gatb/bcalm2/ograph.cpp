@@ -233,7 +233,7 @@ void graph3<span>::debruijn(){
     minusone.setVal(-1);
 	left.push_back({0,minusone, SEQ_LEFT}); // dummy kmer so that we dont need to check bounds.. clever..
 	right.push_back({0,minusone, SEQ_LEFT});
-    uint debug_index = 0;
+    //uint debug_index = 0;
 
     for (uint32_t i = 0; i< indiceUnitigs; i++)
     {
