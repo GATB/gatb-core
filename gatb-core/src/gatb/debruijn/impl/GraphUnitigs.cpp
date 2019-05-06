@@ -888,7 +888,9 @@ GraphUnitigsTemplate<span>::GraphUnitigsTemplate (tools::misc::IProperties* para
         /** We create a storage instance. */
         /* (this is actually loading, not creating, the storage at "uri") */
         BaseGraph::_storageMode = load_from_hdf5 ? STORAGE_HDF5 : STORAGE_FILE;
-        BaseGraph::setStorage (StorageFactory(BaseGraph::_storageMode).create (input, false, false));
+
+        bool append = true; // in principle we wouldn't need to modify the .h5 file when building unitigs, but at some very rare locations in the code, we do (like nb_unitigs)
+        BaseGraph::setStorage (StorageFactory(BaseGraph::_storageMode).create (input, false, false, false, append));
     
         /** We get some properties. */
         BaseGraph::_state     = (typename GraphUnitigsTemplate<span>::StateMask) atol (BaseGraph::getGroup().getProperty ("state").c_str());
