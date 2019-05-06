@@ -6,12 +6,10 @@
 #
 # This file is part of HDF5.  The full HDF5 copyright notice, including
 # terms governing use, modification, and redistribution, is contained in
-# the files COPYING and Copyright.html.  COPYING can be found at the root
-# of the source code distribution tree; Copyright.html can be found at the
-# root level of an installed copy of the electronic HDF5 document set and
-# is linked from the top-level documents page.  It can also be found at
-# http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have
-# access to either file, you may request a copy from help@hdfgroup.org.
+# the COPYING file, which can be found at the root of the source code
+# distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.
+# If you do not have access to either file, you may request a copy from
+# help@hdfgroup.org.
 
 
 # This file should be sourced into configure if the compiler is the
@@ -72,33 +70,49 @@ if test "X-pgcc" = "X-$cc_vendor"; then
 
     # Production
     case "$cc_vendor-$cc_version" in
+      pgcc-10.6*)
+        PROD_CFLAGS=
+        ;;
+      pgcc-9.*)
+        PROD_CFLAGS=
+        ;;
+      *)
+        PROD_CFLAGS="-fast"
+        ;;
+    esac
+
+    # Debug
+    # NDEBUG is handled explicitly by the configure script
+    DEBUG_CFLAGS="-Mbounds"
+
+    # Symbols
+    SYMBOLS_CFLAGS="-g"
+    NO_SYMBOLS_CFLAGS="-s"
+
+    # Profiling
+    PROFILE_CFLAGS="-Mprof=func,line"
+    # Use this for profiling with gprof
+    #PROFILE_CFLAGS="-pg"
+
+    # Optimization
+    case "$cc_vendor-$cc_version" in
       # Tweak down compiler optimizations for v10.6, it has a bug
       pgcc-10.6*)
-        PROD_CFLAGS="-O1 -s"
+        HIGH_OPT_CFLAGS="-O1"
         ;;
       # Tweak down compiler optimizations for v9.x
       pgcc-9.*)
-        PROD_CFLAGS="-O1 -s"
+        HIGH_OPT_CFLAGS="-O1"
         ;;
       *)
-        PROD_CFLAGS="-fast -s"
+        HIGH_OPT_CFLAGS=
         ;;
     esac
-    PROD_CPPFLAGS=
-
-    # Debug
-    DEBUG_CFLAGS="-g -Mbounds"
-    DEBUG_CPPFLAGS=
-
-    # Profile
-    PROFILE_CFLAGS="-g -Mprof=func,line"
-    # Use this for profiling with gprof
-    #PROFILE_CFLAGS="-g -pg"
-    PROFILE_CPPFLAGS=
+    DEBUG_OPT_CFLAGS=
+    NO_OPT_CFLAGS=
 
     # Flags are set
     cc_flags_set=yes
-
 fi
 
 # Clear cc info if no flags set

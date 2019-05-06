@@ -1434,7 +1434,7 @@ struct Kmer
 
 			//reste du newbyte avec le superk
 
-			int skid =1;
+			uint skid =1;
 			
 			while(true)
 			{

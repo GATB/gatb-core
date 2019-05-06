@@ -5,12 +5,10 @@
  *                                                                           *
  * This file is part of HDF5.  The full HDF5 copyright notice, including     *
  * terms governing use, modification, and redistribution, is contained in    *
- * the files COPYING and Copyright.html.  COPYING can be found at the root   *
- * of the source code distribution tree; Copyright.html can be found at the  *
- * root level of an installed copy of the electronic HDF5 document set and   *
- * is linked from the top-level documents page.  It can also be found at     *
- * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *
- * access to either file, you may request a copy from help@hdfgroup.org.     *
+ * the COPYING file, which can be found at the root of the source code       *
+ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *
+ * If you do not have access to either file, you may request a copy from     *
+ * help@hdfgroup.org.                                                        *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -70,6 +68,7 @@ static h5tool_format_t         ls_dataformat = {
         "{", /*cmpd_pre */
         "}", /*cmpd_suf */
         "", /*cmpd_end */
+        NULL, /* cmpd_listv */
 
         ",", /*vlen_sep */
         "(", /*vlen_pre */
@@ -177,66 +176,65 @@ static herr_t visit_obj(hid_t file, const char *oname, iter_t *iter);
 static void
 usage (void)
 {
-    HDfprintf(rawerrorstream, "\
-usage: %s [OPTIONS] file[/OBJECT] [file[/[OBJECT]...]\n\
-  OPTIONS\n\
-   -h, -?, --help  Print a usage message and exit\n\
-   -a, --address   Print raw data address.  If dataset is contiguous, address\n\
-                   is offset in file of beginning of raw data. If chunked,\n\
-                   returned list of addresses indicates offset of each chunk.\n\
-                   Must be used with -v, --verbose option.\n\
-                   Provides no information for non-dataset objects.\n\
-   -d, --data      Print the values of datasets\n\
-   --enable-error-stack\n\
-                   Prints messages from the HDF5 error stack as they occur.\n\
-   --follow-symlinks\n\
-                   Follow symbolic links (soft links and external links)\n\
-                   to display target object information.\n\
-                   Without this option, h5ls identifies a symbolic link\n\
-                   as a soft link or external link and prints the value\n\
-                   assigned to the symbolic link; it does not provide any\n\
-                   information regarding the target object or determine\n\
-                   whether the link is a dangling link.\n\
-   --no-dangling-links\n\
-                   Must be used with --follow-symlinks option;\n\
-                   otherwise, h5ls shows error message and returns an exit\n\
-                   code of 1. \n\
-                   Check for any symbolic links (soft links or external links)\n\
-                   that do not resolve to an existing object (dataset, group,\n\
-                   or named datatype).\n\
-                   If any dangling link is found, this situation is treated\n\
-                   as an error and h5ls returns an exit code of 1.\n\
-   -f, --full      Print full path names instead of base names\n\
-   -g, --group     Show information about a group, not its contents\n\
-   -l, --label     Label members of compound datasets\n\
-   -r, --recursive List all groups recursively, avoiding cycles\n\
-   -s, --string    Print 1-byte integer datasets as ASCII\n\
-   -S, --simple    Use a machine-readable output format\n\
-   -wN, --width=N  Set the number of columns of output\n\
-   -v, --verbose   Generate more verbose output\n\
-   -V, --version   Print version number and exit\n\
-   --vfd=DRIVER    Use the specified virtual file driver\n\
-   -x, --hexdump   Show raw data in hexadecimal format\n\
-\n\
-  file/OBJECT\n\
-    Each object consists of an HDF5 file name optionally followed by a\n\
-    slash and an object name within the file (if no object is specified\n\
-    within the file then the contents of the root group are displayed).\n\
-    The file name may include a printf(3C) integer format such as\n\
-    \"%%05d\" to open a file family.\n\
-\n\
-  Deprecated Options\n\
-    The following options have been deprecated in HDF5. While they remain\n\
-    available, they have been superseded as indicated and may be removed\n\
-    from HDF5 in the future. Use the indicated replacement option in all\n\
-    new work; where possible, existing scripts, et cetera, should also be\n\
-    updated to use the replacement option.\n\
-\n\
-   -E or --external   Follow external links.\n\
-                      Replaced by --follow-symlinks.\n\
-   -e, --errors       Show all HDF5 error reporting\n\
-                      Replaced by --enable-error-stack.\n",
-     h5tools_getprogname());
+    FLUSHSTREAM(rawoutstream);
+    PRINTVALSTREAM(rawoutstream, "usage: h5ls [OPTIONS] file[/OBJECT] [file[/[OBJECT]...]\n");
+    PRINTVALSTREAM(rawoutstream, "  OPTIONS\n");
+    PRINTVALSTREAM(rawoutstream, "   -h, -?, --help  Print a usage message and exit\n");
+    PRINTVALSTREAM(rawoutstream, "   -a, --address   Print raw data address.  If dataset is contiguous, address\n");
+    PRINTVALSTREAM(rawoutstream, "                   is offset in file of beginning of raw data. If chunked,\n");
+    PRINTVALSTREAM(rawoutstream, "                   returned list of addresses indicates offset of each chunk.\n");
+    PRINTVALSTREAM(rawoutstream, "                   Must be used with -v, --verbose option.\n");
+    PRINTVALSTREAM(rawoutstream, "                   Provides no information for non-dataset objects.\n");
+    PRINTVALSTREAM(rawoutstream, "   -d, --data      Print the values of datasets\n");
+    PRINTVALSTREAM(rawoutstream, "   --enable-error-stack\n");
+    PRINTVALSTREAM(rawoutstream, "                   Prints messages from the HDF5 error stack as they occur.\n");
+    PRINTVALSTREAM(rawoutstream, "   --follow-symlinks\n");
+    PRINTVALSTREAM(rawoutstream, "                   Follow symbolic links (soft links and external links)\n");
+    PRINTVALSTREAM(rawoutstream, "                   to display target object information.\n");
+    PRINTVALSTREAM(rawoutstream, "                   Without this option, h5ls identifies a symbolic link\n");
+    PRINTVALSTREAM(rawoutstream, "                   as a soft link or external link and prints the value\n");
+    PRINTVALSTREAM(rawoutstream, "                   assigned to the symbolic link; it does not provide any\n");
+    PRINTVALSTREAM(rawoutstream, "                   information regarding the target object or determine\n");
+    PRINTVALSTREAM(rawoutstream, "                   whether the link is a dangling link.\n");
+    PRINTVALSTREAM(rawoutstream, "   --no-dangling-links\n");
+    PRINTVALSTREAM(rawoutstream, "                   Must be used with --follow-symlinks option;\n");
+    PRINTVALSTREAM(rawoutstream, "                   otherwise, h5ls shows error message and returns an exit\n");
+    PRINTVALSTREAM(rawoutstream, "                   code of 1. \n");
+    PRINTVALSTREAM(rawoutstream, "                   Check for any symbolic links (soft links or external links)\n");
+    PRINTVALSTREAM(rawoutstream, "                   that do not resolve to an existing object (dataset, group,\n");
+    PRINTVALSTREAM(rawoutstream, "                   or named datatype).\n");
+    PRINTVALSTREAM(rawoutstream, "                   If any dangling link is found, this situation is treated\n");
+    PRINTVALSTREAM(rawoutstream, "                   as an error and h5ls returns an exit code of 1.\n");
+    PRINTVALSTREAM(rawoutstream, "   -f, --full      Print full path names instead of base names\n");
+    PRINTVALSTREAM(rawoutstream, "   -g, --group     Show information about a group, not its contents\n");
+    PRINTVALSTREAM(rawoutstream, "   -l, --label     Label members of compound datasets\n");
+    PRINTVALSTREAM(rawoutstream, "   -r, --recursive List all groups recursively, avoiding cycles\n");
+    PRINTVALSTREAM(rawoutstream, "   -s, --string    Print 1-byte integer datasets as ASCII\n");
+    PRINTVALSTREAM(rawoutstream, "   -S, --simple    Use a machine-readable output format\n");
+    PRINTVALSTREAM(rawoutstream, "   -wN, --width=N  Set the number of columns of output\n");
+    PRINTVALSTREAM(rawoutstream, "   -v, --verbose   Generate more verbose output\n");
+    PRINTVALSTREAM(rawoutstream, "   -V, --version   Print version number and exit\n");
+    PRINTVALSTREAM(rawoutstream, "   --vfd=DRIVER    Use the specified virtual file driver\n");
+    PRINTVALSTREAM(rawoutstream, "   -x, --hexdump   Show raw data in hexadecimal format\n");
+    PRINTVALSTREAM(rawoutstream, "\n");
+    PRINTVALSTREAM(rawoutstream, "  file/OBJECT\n");
+    PRINTVALSTREAM(rawoutstream, "    Each object consists of an HDF5 file name optionally followed by a\n");
+    PRINTVALSTREAM(rawoutstream, "    slash and an object name within the file (if no object is specified\n");
+    PRINTVALSTREAM(rawoutstream, "    within the file then the contents of the root group are displayed).\n");
+    PRINTVALSTREAM(rawoutstream, "    The file name may include a printf(3C) integer format such as\n");
+    PRINTVALSTREAM(rawoutstream, "    \"%%05d\" to open a file family.\n");
+    PRINTVALSTREAM(rawoutstream, "\n");
+    PRINTVALSTREAM(rawoutstream, "  Deprecated Options\n");
+    PRINTVALSTREAM(rawoutstream, "    The following options have been deprecated in HDF5. While they remain\n");
+    PRINTVALSTREAM(rawoutstream, "    available, they have been superseded as indicated and may be removed\n");
+    PRINTVALSTREAM(rawoutstream, "    from HDF5 in the future. Use the indicated replacement option in all\n");
+    PRINTVALSTREAM(rawoutstream, "    new work; where possible, existing scripts, et cetera, should also be\n");
+    PRINTVALSTREAM(rawoutstream, "    updated to use the replacement option.\n");
+    PRINTVALSTREAM(rawoutstream, "\n");
+    PRINTVALSTREAM(rawoutstream, "   -E or --external   Follow external links.\n");
+    PRINTVALSTREAM(rawoutstream, "                      Replaced by --follow-symlinks.\n");
+    PRINTVALSTREAM(rawoutstream, "   -e, --errors       Show all HDF5 error reporting\n");
+    PRINTVALSTREAM(rawoutstream, "                      Replaced by --enable-error-stack.\n");
 }
 
 
@@ -387,7 +385,7 @@ print_obj_name(h5tools_str_t *buffer, const iter_t *iter, const char *oname,
  *-------------------------------------------------------------------------
  */
 static hbool_t
-print_native_type(h5tools_str_t *buffer, hid_t type, int H5_ATTR_UNUSED ind)
+print_native_type(h5tools_str_t *buffer, hid_t type, int ind)
 {
     if(!simple_output_g) {
         if (H5Tequal(type, H5T_NATIVE_SCHAR)==TRUE) {
@@ -509,7 +507,7 @@ print_native_type(h5tools_str_t *buffer, hid_t type, int H5_ATTR_UNUSED ind)
  *-------------------------------------------------------------------------
  */
 static hbool_t
-print_ieee_type(h5tools_str_t *buffer, hid_t type, int H5_ATTR_UNUSED ind)
+print_ieee_type(h5tools_str_t *buffer, hid_t type, int ind)
 {
     if (H5Tequal(type, H5T_IEEE_F32BE)==TRUE) {
         h5tools_str_append(buffer, "IEEE 32-bit big-endian float");
@@ -1322,7 +1320,7 @@ print_type(h5tools_str_t *buffer, hid_t type, int ind)
     if(H5Tcommitted(type)) {
         H5O_info_t  oi;
 
-        if(H5Oget_info(type, &oi) >= 0)
+        if(H5Oget_info2(type, &oi, H5O_INFO_BASIC) >= 0)
             h5tools_str_append(buffer,"shared-%lu:"H5_PRINTF_HADDR_FMT" ",
                     oi.fileno, oi.addr);
         else
@@ -1619,38 +1617,39 @@ list_attr(hid_t obj, const char *attr_name, const H5A_info_t H5_ATTR_UNUSED *ain
 
         info = &outputformat;
 
-        if(hexdump_g)
-           p_type = H5Tcopy(type);
-        else
-           p_type = h5tools_get_native_type(type);
+        if(space_type != H5S_NULL && space_type != H5S_NO_CLASS) {
+            if(hexdump_g)
+                p_type = H5Tcopy(type);
+            else
+                p_type = H5Tget_native_type(type, H5T_DIR_DEFAULT);
 
-        if(p_type >= 0) {
-            /* VL data special information */
-            unsigned int        vl_data = 0; /* contains VL datatypes */
+            if(p_type >= 0) {
+                /* VL data special information */
+                unsigned int        vl_data = 0; /* contains VL datatypes */
 
-            /* Check if we have VL data in the dataset's datatype */
-            if (h5tools_detect_vlen(p_type) == TRUE)
-                vl_data = TRUE;
+                /* Check if we have VL data in the dataset's datatype */
+                if (h5tools_detect_vlen(p_type) == TRUE)
+                    vl_data = TRUE;
 
-            temp_need= nelmts * MAX(H5Tget_size(type), H5Tget_size(p_type));
-            HDassert(temp_need == (hsize_t)((size_t)temp_need));
-            need = (size_t)temp_need;
-            buf = HDmalloc(need);
-            HDassert(buf);
-            if(H5Aread(attr, p_type, buf) >= 0) {
-                ctx.need_prefix = TRUE;
-                ctx.indent_level = 2;
-                ctx.cur_column = (size_t)curr_pos;
-                h5tools_dump_mem(rawoutstream, info, &ctx, attr, p_type, space, buf);
-            }
+                temp_need = nelmts * MAX(H5Tget_size(type), H5Tget_size(p_type));
+                need = (size_t)temp_need;
+                if((buf = HDmalloc(need)) != NULL) {
+                    if(H5Aread(attr, p_type, buf) >= 0) {
+                        ctx.need_prefix = TRUE;
+                        ctx.indent_level = 2;
+                        ctx.cur_column = (size_t)curr_pos;
+                        h5tools_dump_mem(rawoutstream, info, &ctx, attr, p_type, space, buf);
+                    }
 
-            /* Reclaim any VL memory, if necessary */
-            if (vl_data)
-                H5Dvlen_reclaim(p_type, space, H5P_DEFAULT, buf);
+                    /* Reclaim any VL memory, if necessary */
+                    if (vl_data)
+                        H5Dvlen_reclaim(p_type, space, H5P_DEFAULT, buf);
 
-            HDfree(buf);
-            H5Tclose(p_type);
-        } /* end if */
+                    HDfree(buf);
+                }
+                H5Tclose(p_type);
+            } /* end if */
+        }
 
         H5Sclose(space);
         H5Tclose(type);
@@ -1759,7 +1758,6 @@ dataset_list2(hid_t dset, const char H5_ATTR_UNUSED *name)
     size_t      cd_nelmts;      /* filter client number of values */
     size_t      cd_num;         /* filter client data counter */
     char        f_name[256];    /* filter/file name */
-    char        dset_name[256];    /* filter/file name */
     char        s[64];          /* temporary string buffer */
     off_t       f_offset;       /* offset in external file */
     hsize_t     f_size;         /* bytes used in external file */
@@ -1847,8 +1845,36 @@ dataset_list2(hid_t dset, const char H5_ATTR_UNUSED *name)
                     h5tools_str_append(&buffer, "\n");
                 } /* end if */
                 break;
+
+            case H5D_VIRTUAL:
+                {
+                    char dset_name[256];        /* Dataset name */
+                    size_t vmaps;
+
+                    H5Pget_virtual_count(dcpl, &vmaps);
+
+                    if (vmaps) {
+                        size_t next;
+
+                        h5tools_str_append(&buffer, "    %-10s {%ld} Source {\n", "Maps:", vmaps);
+                        for (next = 0; next < (unsigned) vmaps; next++) {
+                            H5Pget_virtual_filename(dcpl, next, f_name, sizeof(f_name));
+                            H5Pget_virtual_dsetname(dcpl, next, dset_name, sizeof(dset_name));
+                            h5tools_str_append(&buffer, "    %-10s        ", " ");
+                            print_string(&buffer, f_name, TRUE);
+                            h5tools_str_append(&buffer, "   ");
+                            print_string(&buffer, dset_name, TRUE);
+                            h5tools_str_append(&buffer, "\n");
+                        }
+                        h5tools_str_append(&buffer, "     %-10s}\n", " ");
+                    }
+                }
+                break;
+
+            case H5D_LAYOUT_ERROR:
+            case H5D_NLAYOUTS:
             default:
-                HDassert(0);
+                h5tools_str_append(&buffer, "layout information not available");
                 break;
         }
         /* Print total raw storage size */
@@ -2360,7 +2386,7 @@ visit_obj(hid_t file, const char *oname, iter_t *iter)
     h5tools_str_reset(&buffer);
 
     /* Retrieve info for object to list */
-    if(H5Oget_info_by_name(file, oname, &oi, H5P_DEFAULT) < 0) {
+    if(H5Oget_info_by_name2(file, oname, &oi, H5O_INFO_BASIC|H5O_INFO_TIME, H5P_DEFAULT) < 0) {
         if(iter->symlink_target) {
             h5tools_str_append(&buffer, "{**NOT FOUND**}\n");
             iter->symlink_target = FALSE;
@@ -2388,7 +2414,7 @@ visit_obj(hid_t file, const char *oname, iter_t *iter)
         iter->name_start = iter->base_len;
 
         /* Specified name is a group. List the complete contents of the group. */
-        h5trav_visit(file, oname, (hbool_t) (display_root_g || iter->symlink_target), recursive_g, list_obj, list_lnk, iter);
+        h5trav_visit(file, oname, (hbool_t) (display_root_g || iter->symlink_target), recursive_g, list_obj, list_lnk, iter, H5O_INFO_BASIC|H5O_INFO_TIME);
 
         /* Close group */
         if(!iter->symlink_target)
@@ -2683,6 +2709,7 @@ main(int argc, const char *argv[])
                     case 'h': /* --help */
                         usage();
                         leave(EXIT_SUCCESS);
+                        break;
 
                     case 'a': /* --address */
                         address_g = TRUE;
@@ -2733,6 +2760,7 @@ main(int argc, const char *argv[])
                     case 'V': /* --version */
                         print_version(h5tools_getprogname());
                         leave(EXIT_SUCCESS);
+                        break;
 
                     case 'x': /* --hexdump */
                         hexdump_g = TRUE;
@@ -2795,9 +2823,8 @@ main(int argc, const char *argv[])
             file = h5tools_fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT, preferred_driver, drivername, sizeof drivername);
 
             if(file >= 0) {
-                if(verbose_g) {
+                if(verbose_g)
                     PRINTSTREAM(rawoutstream, "Opened \"%s\" with %s driver.\n", fname, drivername);
-                }
                 break; /*success*/
             } /* end if */
 

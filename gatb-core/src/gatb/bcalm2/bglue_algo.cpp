@@ -255,7 +255,9 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
     auto glue_from_extremity = [&](markedSeq<SPAN> current, uint32_t chain_index, uint32_t markedSequence_index, bool expect_circular=false)
     {
+#ifndef NDEBUG
         uint32_t first_index = markedSequence_index;
+#endif
         vector<uint32_t> chain;
         chain.push_back(chain_index);
 

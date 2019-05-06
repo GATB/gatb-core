@@ -5,12 +5,10 @@
  *                                                                           *
  * This file is part of HDF5.  The full HDF5 copyright notice, including     *
  * terms governing use, modification, and redistribution, is contained in    *
- * the files COPYING and Copyright.html.  COPYING can be found at the root   *
- * of the source code distribution tree; Copyright.html can be found at the  *
- * root level of an installed copy of the electronic HDF5 document set and   *
- * is linked from the top-level documents page.  It can also be found at     *
- * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *
- * access to either file, you may request a copy from help@hdfgroup.org.     *
+ * the COPYING file, which can be found at the root of the source code       *
+ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *
+ * If you do not have access to either file, you may request a copy from     *
+ * help@hdfgroup.org.                                                        *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #ifndef H5DUMP_DEFINES_H__
 #define H5DUMP_DEFINES_H__
@@ -23,25 +21,25 @@
 #define COL             3
 
 /* Macros for displaying objects */
-#define begin_obj(obj,name,begin)                                                \
-    do {                                                                         \
-        if ((name)) {                                                            \
+#define begin_obj(obj,name,begin)                                           \
+    do {                                                                    \
+        if ((name)) {                                                       \
             PRINTSTREAM(rawoutstream, "%s \"%s\" %s", (obj), (name), (begin));   \
         }                                                                   \
         else {                                                              \
-            PRINTSTREAM(rawoutstream, "%s %s", (obj), (begin));                  \
-        }                                                                        \
+            PRINTSTREAM(rawoutstream, "%s %s", (obj), (begin));             \
+        }                                                                   \
     } while(0);
 
-#define end_obj(obj,end)                               \
-    do {                                               \
-        if(HDstrlen(end)) {                            \
-            PRINTSTREAM(rawoutstream, "%s", end);      \
+#define end_obj(obj,end)                                                    \
+    do {                                                                    \
+        if(HDstrlen(end)) {                                                 \
+            PRINTSTREAM(rawoutstream, "%s", end);                           \
             if(HDstrlen(obj))                                               \
-                PRINTVALSTREAM(rawoutstream, " ");     \
-            }                                          \
+                PRINTVALSTREAM(rawoutstream, " ");                          \
+        }                                                                   \
         if(HDstrlen(obj))                                                   \
-            PRINTSTREAM(rawoutstream, "%s", obj);      \
+            PRINTSTREAM(rawoutstream, "%s", obj);                           \
     } while(0);
 
 

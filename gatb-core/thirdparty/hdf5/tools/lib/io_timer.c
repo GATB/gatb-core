@@ -4,12 +4,10 @@
  *                                                                           *
  * This file is part of HDF5.  The full HDF5 copyright notice, including     *
  * terms governing use, modification, and redistribution, is contained in    *
- * the files COPYING and Copyright.html.  COPYING can be found at the root   *
- * of the source code distribution tree; Copyright.html can be found at the  *
- * root level of an installed copy of the electronic HDF5 document set and   *
- * is linked from the top-level documents page.  It can also be found at     *
- * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *
- * access to either file, you may request a copy from help@hdfgroup.org.     *
+ * the COPYING file, which can be found at the root of the source code       *
+ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *
+ * If you do not have access to either file, you may request a copy from     *
+ * help@hdfgroup.org.                                                        *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* changes:
  * rename pio_timer.c as io_timer.c;
@@ -24,15 +22,8 @@
  * This is a module of useful timing functions for performance testing.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "H5private.h"
 #include "hdf5.h"
-
-#ifdef H5_HAVE_PARALLEL
-#include <mpi.h>
-#endif
 
 #include "io_timer.h"
 
@@ -55,9 +46,9 @@ io_time_t   *timer_g;            /* timer: global for stub functions     */
 static double sub_time(struct timeval* a, struct timeval* b)
 {
     return (((double)a->tv_sec +
-     ((double)a->tv_usec) / MICROSECOND) -
+     ((double)a->tv_usec) / (double)MICROSECOND) -
   ((double)b->tv_sec +
-   ((double)b->tv_usec) / MICROSECOND));
+   ((double)b->tv_usec) / (double)MICROSECOND));
 }
 
 
@@ -169,6 +160,10 @@ set_time(io_time_t *pt, timer_type t, int start_stop)
 		pt->total_time[HDF5_FILE_READ_CLOSE] += pt->mpi_timer[t] - pt->mpi_timer[HDF5_FINE_READ_FIXED_DIMS];
 	}
 	break;
+#else
+    case MPI_CLOCK:
+	    HDfprintf(stderr, "MPI clock set in serial library\n");
+	    return NULL;
 #endif /* H5_HAVE_PARALLEL */
     case SYS_CLOCK:
             if (start_stop == TSTART) {
@@ -197,11 +192,11 @@ set_time(io_time_t *pt, timer_type t, int start_stop)
 
             }
 	break;
+
     default:
-	HDfprintf(stderr, "Unknown time clock type (%d)\n", pt->type);
-	return (NULL);
-	break;
-    }
+	    HDfprintf(stderr, "Unknown time clock type (%d)\n", pt->type);
+	    return NULL;
+    } /* end switch */
 
 #if 0
     /* this does not belong here. Need fix in h5perf code when set_time() is called. -AKC- */
@@ -218,7 +213,7 @@ set_time(io_time_t *pt, timer_type t, int start_stop)
  * Programmer:  Bill Wendling, 01. October 2001
  * Modifications:
  */
-double
+H5_ATTR_PURE double
 get_time(io_time_t *pt, timer_type t)
 {
     return pt->total_time[t];

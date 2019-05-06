@@ -8,7 +8,7 @@ GATB=$(shell pwd)/../
 GATB_LIB=$(GATB)/build/lib
 
 CXXFLAGS =  -std=c++0x -O3  -I$(GATB)/src  -I$(GATB)/build/include -I$(GATB)/thirdparty 
-LDFLAGS=   -L$(GATB_LIB) -lgatbcore  -lpthread -lz -lhdf5 -std=c++0x -ldl -static
+LDFLAGS=   -L$(GATB_LIB) -lgatbcore  -lpthread -lhdf5 -lz -std=c++0x -ldl -static
 
 
 SRCS = $(wildcard *.cpp)

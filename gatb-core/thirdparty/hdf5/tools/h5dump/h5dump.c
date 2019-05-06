@@ -5,15 +5,11 @@
  *                                                                           *
  * This file is part of HDF5.  The full HDF5 copyright notice, including     *
  * terms governing use, modification, and redistribution, is contained in    *
- * the files COPYING and Copyright.html.  COPYING can be found at the root   *
- * of the source code distribution tree; Copyright.html can be found at the  *
- * root level of an installed copy of the electronic HDF5 document set and   *
- * is linked from the top-level documents page.  It can also be found at     *
- * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *
- * access to either file, you may request a copy from help@hdfgroup.org.     *
+ * the COPYING file, which can be found at the root of the source code       *
+ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *
+ * If you do not have access to either file, you may request a copy from     *
+ * help@hdfgroup.org.                                                        *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "h5dump.h"
 #include "h5dump_ddl.h"
@@ -69,9 +65,9 @@ struct handler_t {
  * parameters. The long-named ones can be partially spelled. When
  * adding more, make sure that they don't clash with each other.
  */
-/* The following initialization makes use of C language cancatenating */
+/* The following initialization makes use of C language concatenating */
 /* "xxx" "yyy" into "xxxyyy". */
-static const char *s_opts = "hn*peyBHirVa:c:d:f:g:k:l:t:w:xD:uX:o*b*F:s:S:A*q:z:m:RECM:O*N:";
+static const char *s_opts = "hn*peyBHirVa:c:d:f:g:k:l:t:w:xD:uX:o*b*F:s:S:A*q:z:m:RE*CM:O*N:vG:";
 static struct long_options l_opts[] = {
     { "help", no_arg, 'h' },
     { "hel", no_arg, 'h' },
@@ -185,15 +181,17 @@ static struct long_options l_opts[] = {
     { "sort_order", require_arg, 'z' },
     { "format", require_arg, 'm' },
     { "region", no_arg, 'R' },
-    { "enable-error-stack", no_arg, 'E' },
+    { "enable-error-stack", optional_arg, 'E' },
     { "packed-bits", require_arg, 'M' },
     { "no-compact-subset", no_arg, 'C' },
     { "ddl", optional_arg, 'O' },
     { "any_path", require_arg, 'N' },
+    { "vds-view-first-missing", no_arg, 'v' },
+    { "vds-gap-size", require_arg, 'G' },
     { NULL, 0, '\0' }
 };
 
-
+
 /*-------------------------------------------------------------------------
  * Function:    leave
  *
@@ -216,7 +214,7 @@ leave(int ret)
     HDexit(ret);
 }
 
-
+
 /*-------------------------------------------------------------------------
  * Function:    usage
  *
@@ -256,6 +254,8 @@ usage(const char *prog)
     PRINTVALSTREAM(rawoutstream, "                          P can be the absolute path or just a relative path.\n");
     PRINTVALSTREAM(rawoutstream, "     -A,   --onlyattr     Print the header and value of attributes\n");
     PRINTVALSTREAM(rawoutstream, "                          Optional value 0 suppresses printing attributes.\n");
+    PRINTVALSTREAM(rawoutstream, "     --vds-view-first-missing Set the VDS bounds to first missing mapped elements.\n");
+    PRINTVALSTREAM(rawoutstream, "     --vds-gap-size=N     Set the missing file gap size, N=non-negative integers\n");
     PRINTVALSTREAM(rawoutstream, "--------------- Object Property Options ---------------\n");
     PRINTVALSTREAM(rawoutstream, "     -i,   --object-ids   Print the object ids\n");
     PRINTVALSTREAM(rawoutstream, "     -p,   --properties   Print dataset filters, storage layout and fill value\n");
@@ -273,8 +273,8 @@ usage(const char *prog)
     PRINTVALSTREAM(rawoutstream, "     -m T, --format=T     Set the floating point output format\n");
     PRINTVALSTREAM(rawoutstream, "     -q Q, --sort_by=Q    Sort groups and attributes by index Q\n");
     PRINTVALSTREAM(rawoutstream, "     -z Z, --sort_order=Z Sort groups and attributes by order Z\n");
-    PRINTVALSTREAM(rawoutstream, "     --enable-error-stack Prints messages from the HDF5 error stack as they\n");
-    PRINTVALSTREAM(rawoutstream, "                          occur.\n");
+    PRINTVALSTREAM(rawoutstream, "     --enable-error-stack Prints messages from the HDF5 error stack as they occur.\n");
+    PRINTVALSTREAM(rawoutstream, "                          Optional value 2 also prints file open errors.\n");
     PRINTVALSTREAM(rawoutstream, "     --no-compact-subset  Disable compact form of subsetting and allow the use\n");
     PRINTVALSTREAM(rawoutstream, "                          of \"[\" in dataset names.\n");
     PRINTVALSTREAM(rawoutstream, "     -w N, --width=N      Set the number of columns of output. A value of 0 (zero)\n");
@@ -366,7 +366,7 @@ usage(const char *prog)
     PRINTVALSTREAM(rawoutstream, "\n");
 }
 
-
+
 /*-------------------------------------------------------------------------
  * Function: table_list_add
  *
@@ -419,7 +419,7 @@ table_list_add(hid_t oid, unsigned long file_no)
     return((ssize_t) idx);
 } /* end table_list_add() */
 
-
+
 /*-------------------------------------------------------------------------
  * Function: table_list_visited
  *
@@ -434,7 +434,7 @@ table_list_add(hid_t oid, unsigned long file_no)
  *
  *-------------------------------------------------------------------------
  */
-ssize_t
+H5_ATTR_PURE ssize_t
 table_list_visited(unsigned long file_no)
 {
     size_t u;           /* Local index variable */
@@ -449,7 +449,7 @@ table_list_visited(unsigned long file_no)
     return(-1);
 } /* end table_list_visited() */
 
-
+
 /*-------------------------------------------------------------------------
  * Function: table_list_free
  *
@@ -721,96 +721,103 @@ parse_mask_list(const char *h_list)
     const char        *ptr = NULL;
 
     /* sanity check */
-    HDassert(h_list);
+    if(h_list) {
+        HDmemset(packed_mask,0,sizeof(packed_mask));
 
-    HDmemset(packed_mask,0,sizeof(packed_mask));
-
-    packed_bits_num = 0;
-    /* scan in pair of offset,length separated by commas. */
-    ptr = h_list;
-    while (*ptr) {
-        /* scan for an offset which is an unsigned int */
-        if (!HDisdigit(*ptr)) {
-            error_msg("Bad mask list(%s)\n", h_list);
-            return FAIL;
-        }
-        soffset_value = HDatoi(ptr);
-        offset_value = (unsigned)soffset_value;
-        if (soffset_value < 0 || offset_value >= PACKED_BITS_SIZE_MAX) {
-            error_msg("Packed Bit offset value(%d) must be between 0 and %u\n",
-                    soffset_value, (unsigned)(PACKED_BITS_SIZE_MAX - 1));
-            return FAIL;
-        }
-
-        /* skip to end of integer */
-        while (HDisdigit(*++ptr))
-            ;
-        /* Look for the common separator */
-        if (*ptr++ != ',') {
-            error_msg("Bad mask list(%s), missing expected comma separator.\n", h_list);
-            return FAIL;
-        }
-
-        /* scan for a length which is a positive int */
-        if (!HDisdigit(*ptr)) {
-            error_msg("Bad mask list(%s)\n", h_list);
-            return FAIL;
-        }
-        slength_value = HDatoi(ptr);
-        if (slength_value <= 0) {
-            error_msg("Packed Bit length value(%d) must be positive.\n", slength_value);
-            return FAIL;
-        }
-        length_value = (unsigned)slength_value;
-        if ((offset_value + length_value) > PACKED_BITS_SIZE_MAX) {
-            error_msg("Packed Bit offset+length value(%u) too large. Max is %u\n",
-                       offset_value+length_value, (unsigned)PACKED_BITS_SIZE_MAX);
-            return FAIL;
-        }
-
-        /* skip to end of int */
-        while (HDisdigit(*++ptr))
-            ;
-
-        /* store the offset,length pair */
-        if (packed_bits_num >= PACKED_BITS_MAX) {
-            /* too many requests */
-            error_msg("Too many masks requested (max. %d). Mask list(%s)\n", PACKED_BITS_MAX, h_list);
-            return FAIL;
-        }
-        packed_offset[packed_bits_num] = offset_value;
-        packed_length[packed_bits_num] = length_value;
-        /* create the bit mask by left shift 1's by length, then negate it. */
-        /* After packed_mask is calculated, packed_length is not needed but  */
-        /* keep it for debug purpose. */
-        temp_mask = ~0ULL;
-        if(length_value < (int)(8 *sizeof(unsigned long long))) {
-            temp_mask = temp_mask << length_value;
-            packed_mask[packed_bits_num] = ~temp_mask;
-        }
-        else
-            packed_mask[packed_bits_num] = temp_mask;
-        packed_bits_num++;
-
-        /* skip a possible comma separator */
-        if (*ptr == ',') {
-            if (!(*++ptr)) {
-                /* unexpected end of string */
-                error_msg("Bad mask list(%s), unexpected end of string.\n", h_list);
+        packed_bits_num = 0;
+        /* scan in pair of offset,length separated by commas. */
+        ptr = h_list;
+        while (*ptr) {
+            /* scan for an offset which is an unsigned int */
+            if (!HDisdigit(*ptr)) {
+                error_msg("Bad mask list(%s)\n", h_list);
                 return FAIL;
             }
+            soffset_value = HDatoi(ptr);
+            offset_value = (unsigned)soffset_value;
+            if (soffset_value < 0 || offset_value >= PACKED_BITS_SIZE_MAX) {
+                error_msg("Packed Bit offset value(%d) must be between 0 and %u\n",
+                        soffset_value, (unsigned)(PACKED_BITS_SIZE_MAX - 1));
+                return FAIL;
+            }
+
+            /* skip to end of integer */
+            while (HDisdigit(*++ptr))
+                ;
+            /* Look for the common separator */
+            if (*ptr++ != ',') {
+                error_msg("Bad mask list(%s), missing expected comma separator.\n", h_list);
+                return FAIL;
+            }
+
+            /* scan for a length which is a positive int */
+            if (!HDisdigit(*ptr)) {
+                error_msg("Bad mask list(%s)\n", h_list);
+                return FAIL;
+            }
+            slength_value = HDatoi(ptr);
+            if (slength_value <= 0) {
+                error_msg("Packed Bit length value(%d) must be positive.\n", slength_value);
+                return FAIL;
+            }
+            length_value = (unsigned)slength_value;
+            if ((offset_value + length_value) > PACKED_BITS_SIZE_MAX) {
+                error_msg("Packed Bit offset+length value(%u) too large. Max is %u\n",
+                        offset_value+length_value, (unsigned)PACKED_BITS_SIZE_MAX);
+                return FAIL;
+            }
+
+            /* skip to end of int */
+            while (HDisdigit(*++ptr))
+                ;
+
+            /* store the offset,length pair */
+            if (packed_bits_num >= PACKED_BITS_MAX) {
+                /* too many requests */
+                error_msg("Too many masks requested (max. %d). Mask list(%s)\n", PACKED_BITS_MAX, h_list);
+                return FAIL;
+            }
+            packed_offset[packed_bits_num] = offset_value;
+            packed_length[packed_bits_num] = length_value;
+            /* create the bit mask by left shift 1's by length, then negate it. */
+            /* After packed_mask is calculated, packed_length is not needed but  */
+            /* keep it for debug purpose. */
+            temp_mask = ~0ULL;
+            if(length_value < (int)(8 *sizeof(unsigned long long))) {
+                temp_mask = temp_mask << length_value;
+                packed_mask[packed_bits_num] = ~temp_mask;
+            }
+            else
+                packed_mask[packed_bits_num] = temp_mask;
+            packed_bits_num++;
+
+            /* skip a possible comma separator */
+            if (*ptr == ',') {
+                if (!(*++ptr)) {
+                    /* unexpected end of string */
+                    error_msg("Bad mask list(%s), unexpected end of string.\n", h_list);
+                    return FAIL;
+                }
+            }
         }
+        if(packed_bits_num > PACKED_BITS_MAX) {
+            error_msg("Maximum number of packed bits exceeded\n");
+            return FAIL;
+        }
+        if (packed_bits_num == 0) {
+            /* got no masks! */
+            error_msg("Bad mask list(%s)\n", h_list);
+            return FAIL;
+        }
+        return SUCCEED;
     }
-    HDassert(packed_bits_num <= PACKED_BITS_MAX);
-    if (packed_bits_num == 0) {
-        /* got no masks! */
-        error_msg("Bad mask list(%s)\n", h_list);
+    else  {
+        error_msg("Bad mask list argument\n");
         return FAIL;
     }
-    return SUCCEED;
 }
 
-
+
 /*-------------------------------------------------------------------------
  * Function:    free_handler
  *
@@ -858,7 +865,7 @@ free_handler(struct handler_t *hand, int len)
     }
 }
 
-
+
 /*-------------------------------------------------------------------------
  * Function:    parse_command_line
  *
@@ -913,9 +920,8 @@ parse_start:
         case 'n':
             display_fi = TRUE;
             last_was_dset = FALSE;
-            if ( opt_arg != NULL) {
+            if (opt_arg != NULL)
                 h5trav_set_verbose(HDatoi(opt_arg));
-            }
             break;
         case 'p':
             display_dcpl = TRUE;
@@ -932,8 +938,9 @@ parse_start:
             last_was_dset = FALSE;
             break;
         case 'A':
-            if ( opt_arg != NULL) {
-                if(0 == HDatoi(opt_arg)) include_attrs = FALSE;
+            if (opt_arg != NULL) {
+                if(0 == HDatoi(opt_arg))
+                    include_attrs = FALSE;
             }
             else {
                 display_data = FALSE;
@@ -1052,7 +1059,7 @@ parse_start:
             break;
 
         case 'o':
-            if ( bin_output ) {
+            if (bin_output) {
                 if (h5tools_set_data_output_file(opt_arg, 1) < 0) {
                     usage(h5tools_getprogname());
                     goto error;
@@ -1079,8 +1086,8 @@ parse_start:
             break;
 
         case 'b':
-            if ( opt_arg != NULL) {
-                if ( ( bin_form = set_binary_form(opt_arg)) < 0) {
+            if (opt_arg != NULL) {
+                if ((bin_form = set_binary_form(opt_arg)) < 0) {
                     /* failed to set binary form */
                     usage(h5tools_getprogname());
                     goto error;
@@ -1099,7 +1106,7 @@ parse_start:
             break;
 
         case 'q':
-            if ( ( sort_by = set_sort_by(opt_arg)) < 0) {
+            if ((sort_by = set_sort_by(opt_arg)) < 0) {
                 /* failed to set "sort by" form */
                 usage(h5tools_getprogname());
                 goto error;
@@ -1107,7 +1114,7 @@ parse_start:
             break;
 
         case 'z':
-            if ( ( sort_order = set_sort_order(opt_arg)) < 0) {
+            if ((sort_order = set_sort_order(opt_arg)) < 0) {
                 /* failed to set "sort order" form */
                 usage(h5tools_getprogname());
                 goto error;
@@ -1124,6 +1131,16 @@ parse_start:
                 goto error;
             }
             display_packed_bits = TRUE;
+            break;
+        case 'v':
+            display_vds_first = TRUE;
+            break;
+        case 'G':
+            vds_gap_size = HDatoi(opt_arg);
+            if (vds_gap_size < 0) {
+                usage(h5tools_getprogname());
+                goto error;
+            }
             break;
 
         /** begin XML parameters **/
@@ -1251,7 +1268,10 @@ end_collect:
         /** end subsetting parameters **/
 
         case 'E':
-            enable_error_stack = TRUE;
+            if (opt_arg != NULL)
+                enable_error_stack = HDatoi(opt_arg);
+            else
+                enable_error_stack = 1;
             break;
         case 'C':
             disable_compact_subset = TRUE;
@@ -1289,7 +1309,7 @@ error:
     return hand;
 }
 
-
+
 /*-------------------------------------------------------------------------
  * Function:    main
  *
@@ -1371,7 +1391,7 @@ main(int argc, const char *argv[])
         goto done;
     }
 
-    if (enable_error_stack) {
+    if (enable_error_stack > 0) {
         H5Eset_auto2(H5E_DEFAULT, func, edata);
         H5Eset_auto2(H5tools_ERR_STACK_g, tools_func, tools_edata);
     }
@@ -1462,7 +1482,7 @@ main(int argc, const char *argv[])
         }
 
         /* Get object info for root group */
-        if(H5Oget_info_by_name(fid, "/", &oi, H5P_DEFAULT) < 0) {
+        if(H5Oget_info_by_name2(fid, "/", &oi, H5O_INFO_BASIC, H5P_DEFAULT) < 0) {
             error_msg("internal error (file %s:line %d)\n", __FILE__, __LINE__);
             h5tools_setstatus(EXIT_FAILURE);
             goto done;
@@ -1698,13 +1718,18 @@ h5_fileaccess(void)
         HDmemset(memb_name, 0, sizeof memb_name);
         HDmemset(memb_addr, 0, sizeof memb_addr);
 
-        HDassert(HDstrlen(multi_letters)==H5FD_MEM_NTYPES);
-        for (mt=H5FD_MEM_DEFAULT; mt<H5FD_MEM_NTYPES; H5_INC_ENUM(H5FD_mem_t,mt)) {
-            memb_fapl[mt] = H5P_DEFAULT;
-            memb_map[mt] = mt;
-            sprintf(sv[mt], "%%s-%c.h5", multi_letters[mt]);
-            memb_name[mt] = sv[mt];
-            memb_addr[mt] = (haddr_t)MAX(mt - 1, 0) * (HADDR_MAX / 10);
+        if(HDstrlen(multi_letters)==H5FD_MEM_NTYPES) {
+            for (mt=H5FD_MEM_DEFAULT; mt<H5FD_MEM_NTYPES; H5_INC_ENUM(H5FD_mem_t,mt)) {
+                memb_fapl[mt] = H5P_DEFAULT;
+                memb_map[mt] = mt;
+                sprintf(sv[mt], "%%s-%c.h5", multi_letters[mt]);
+                memb_name[mt] = sv[mt];
+                memb_addr[mt] = (haddr_t)MAX(mt - 1, 0) * (HADDR_MAX / 10);
+            }
+        }
+        else {
+            error_msg("Bad multi_letters list\n");
+            return FAIL;
         }
 
         if (H5Pset_fapl_multi(fapl, memb_map, memb_fapl, memb_name, memb_addr, FALSE) < 0)
@@ -1742,7 +1767,7 @@ h5_fileaccess(void)
     return fapl;
 }
 
-
+
 /*-------------------------------------------------------------------------
  * Function:    init_prefix
  *
@@ -1757,11 +1782,13 @@ h5_fileaccess(void)
 static void
 init_prefix(char **prfx, size_t prfx_len)
 {
-    HDassert(prfx_len > 0);
-    *prfx = (char *)HDcalloc(prfx_len, 1);
+    if(prfx_len > 0)
+        *prfx = (char *)HDcalloc(prfx_len, 1);
+    else
+        error_msg("unable to allocate prefix buffer\n");
 }
 
-
+
 /*-------------------------------------------------------------------------
  * Function:    add_prefix
  *

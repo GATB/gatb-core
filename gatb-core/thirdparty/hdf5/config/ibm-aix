@@ -6,12 +6,10 @@
 #
 # This file is part of HDF5.  The full HDF5 copyright notice, including
 # terms governing use, modification, and redistribution, is contained in
-# the files COPYING and Copyright.html.  COPYING can be found at the root
-# of the source code distribution tree; Copyright.html can be found at the
-# root level of an installed copy of the electronic HDF5 document set and
-# is linked from the top-level documents page.  It can also be found at
-# http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have
-# access to either file, you may request a copy from help@hdfgroup.org.
+# the COPYING file, which can be found at the root of the source code
+# distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.
+# If you do not have access to either file, you may request a copy from
+# help@hdfgroup.org.
 
 # Configuration file for building on the IBM AIX platforms.
 # This file is part of the HDF5 build script.  It is processed shortly
@@ -59,9 +57,25 @@ if test "X-" = "X-$f9x_flags_set"; then
   FCFLAGS="$FCFLAGS ${F9XSUFFIXFLAG}"
   H5_FCFLAGS="$H5_FCFLAGS ${F9XSUFFIXFLAG}"
   FSEARCH_DIRS="-I./ -I../src"
-  DEBUG_FCFLAGS="-g"
-  PROD_FCFLAGS="-O"
-  PROFILE_FCFLAGS="-g -pg"
+
+  # Produciton
+  PROD_FCFLAGS=
+
+  # Debug
+  DEBUG_FCFLAGS=
+
+  # Symbols
+  SYMBOLS_FCFLAGS="-g"
+  NO_SYMBOLS_FCFLAGS=
+
+  # Profiling
+  PROFILE_FCFLAGS="-pg"
+
+  # Optimization
+  HIGH_OPT_FCFLAGS="-O"
+  DEBUG_OPT_FCFLAGS=
+  NO_OPT_FCFLAGS=
+
   f9x_flags_set=yes
 fi
 
@@ -91,13 +105,30 @@ case $CC_BASENAME in
     ;;
 
   *)
+    # Undetermined compiler
+    # Use very generic flags
     H5_CFLAGS="$H5_CFLAGS -ansi"
-    DEBUG_CFLAGS="-g"
-    DEBUG_CPPFLAGS=
-    PROD_CFLAGS="-O"
-    PROD_CPPFLAGS=
+
+    # Produciton
+    PROD_CFLAGS=
+
+    # Debug
+    DEBUG_CFLAGS=
+
+    # Symbols
+    SYMBOLS_CFLAGS="-g"
+    NO_SYMBOLS_CFLAGS=
+
+    # Profiling
     PROFILE_CFLAGS="-pg"
-    PROFILE_CPPFLAGS=
+
+    # Optimization
+    HIGH_OPT_CFLAGS="-O"
+    DEBUG_OPT_CFLAGS=
+    NO_OPT_CFLAGS=
+
+    # Flags are set
+    cc_flags_set=yes
     ;;
 esac
 

@@ -5,12 +5,10 @@
  *                                                                           *
  * This file is part of HDF5.  The full HDF5 copyright notice, including     *
  * terms governing use, modification, and redistribution, is contained in    *
- * the files COPYING and Copyright.html.  COPYING can be found at the root   *
- * of the source code distribution tree; Copyright.html can be found at the  *
- * root level of an installed copy of the electronic HDF5 document set and   *
- * is linked from the top-level documents page.  It can also be found at     *
- * http://hdfgroup.org/HDF5/doc/Copyright.html.  If you do not have          *
- * access to either file, you may request a copy from help@hdfgroup.org.     *
+ * the COPYING file, which can be found at the root of the source code       *
+ * distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.  *
+ * If you do not have access to either file, you may request a copy from     *
+ * help@hdfgroup.org.                                                        *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #ifndef H5TRAV_H__
@@ -136,7 +134,7 @@ extern "C" {
 H5TOOLS_DLL void h5trav_set_index(H5_index_t print_index_by, H5_iter_order_t print_index_order);
 H5TOOLS_DLL int h5trav_visit(hid_t file_id, const char *grp_name, 
     hbool_t visit_start, hbool_t recurse, h5trav_obj_func_t visit_obj, 
-    h5trav_lnk_func_t visit_lnk, void *udata);
+    h5trav_lnk_func_t visit_lnk, void *udata, unsigned fields);
 H5TOOLS_DLL herr_t symlink_visit_add(symlink_trav_t *visited, H5L_type_t type, const char *file, const char *path);
 H5TOOLS_DLL hbool_t symlink_is_visited(symlink_trav_t *visited, H5L_type_t type, const char *file, const char *path);
 
