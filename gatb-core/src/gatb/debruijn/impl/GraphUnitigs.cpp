@@ -1742,6 +1742,10 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         GraphVector<EdgeGU> in_neighbors_vec = this->neighborsEdge (neighbors[0].to, reverse(dir));
         int in_neighbors = in_neighbors_vec.size();
 
+            
+        if (in_neighbors == 0)
+            std:: cout << "simplePathLongest_avance stopped at " << toString(cur_node) << " because of surprising lack of in-neighbor given that we had to come from somewhere" << std::endl;
+
         assert(in_neighbors >= 1);
         /** We check we have no in-branching. */
         if (in_neighbors > 1) 
