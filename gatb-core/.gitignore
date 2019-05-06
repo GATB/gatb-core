@@ -4,4 +4,8 @@ CMakeLists.txt.user
 /.cproject
 *.leon
 .DS_Store
+thirdparty/hdf5/src/H5Edefin.h
+thirdparty/hdf5/src/H5Einit.h
+thirdparty/hdf5/src/H5Epubgen.h
+thirdparty/hdf5/src/H5Eterm.h
 
