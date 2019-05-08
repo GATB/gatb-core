@@ -30,7 +30,7 @@ using namespace gatb::core::system::impl;
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
     static constexpr int nb_passes = 8;
-    static void write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out, uint64_t &nb_unitigs);
+    static void write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out, uint64_t &nb_unitigs, bool renumber_unitigs);
     static bool get_link_from_file(std::ifstream& input, std::string &link, uint64_t &unitig_id);
 
 /* this procedure finds the overlaps between unitigs, using a hash table of all extremity (k-1)-mers
@@ -42,11 +42,17 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
  *
  * so the memory usage is just that of the hash tables that record kmers, not of the links
  *
- * Assumption: FASTA header of unitigs starts with a unique number (unitig ID). 
- * Normally bcalm outputs consecutive unitig ID's but LinkTigs could also work with non-consecutive, non-sorted IDs
+ *  Two modes of operation:
+ *  
+ *  renumber_unitigs == true: FASTA header can be anything. Useful for any program that has removed some unitigs, e.g. merci.
+ *  LinkTigs will take the header and split it into space-separated fields, remove the first field and keep the remaining ones.
+ *  The first field will be replaced by numbered IDs in consecutive order, between 0 and |nb_unitigs|-1. 
+ *
+ *  renumber_unitigs == false: then FASTA headers of unitigs _needs_ to start with a unique number (unitig ID). 
+ *  Normally bcalm outputs consecutive unitig ID's but LinkTigs can also work with non-consecutive, non-sorted IDs
  */
 template<size_t span>
-void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose)
+void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose, bool renumber_unitigs)
 {
     bcalm_logging = verbose;
     BankFasta* out = new BankFasta(unitigs_filename+".linked");
@@ -54,9 +60,9 @@ void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &
     logging("Finding links between unitigs");
 
     for (int pass = 0; pass < nb_passes; pass++)
-        link_unitigs_pass<span>(unitigs_filename, verbose, pass, kmerSize);
+        link_unitigs_pass<span>(unitigs_filename, verbose, pass, kmerSize, renumber_unitigs);
 
-    write_final_output(unitigs_filename, verbose, out, nb_unitigs);
+    write_final_output(unitigs_filename, verbose, out, nb_unitigs, renumber_unitigs);
    
     delete out;
     system::impl::System::file().remove (unitigs_filename);
@@ -91,6 +97,11 @@ static string remove_previous_links(string &header)
 	return res;
 }
 
+/* keep all the comment line except the first field*/
+static string strip_first_field(string &header)
+{
+    return header.substr(header.find(' ')+1);
+}
 
 
 /*
@@ -100,7 +111,7 @@ static string remove_previous_links(string &header)
  */
 
 
-static void write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out, uint64_t &nb_unitigs)
+static void write_final_output(const string& unitigs_filename, bool verbose, BankFasta* out, uint64_t &nb_unitigs, bool renumber_unitigs)
 {
     logging("gathering links from disk");
     std::ifstream* inputLinks[nb_passes];
@@ -116,7 +127,7 @@ static void write_final_output(const string& unitigs_filename, bool verbose, Ban
     seq = itSeq->toString();
     comment = itSeq->getComment();
 	comment = remove_previous_links(comment);
- 
+
     for (int pass = 0; pass < nb_passes; pass++)
     {
         string link; uint64_t unitig;
@@ -131,6 +142,9 @@ static void write_final_output(const string& unitigs_filename, bool verbose, Ban
     uint64_t last_unitig = 0;
     nb_unitigs = 0; // passed variable
     bool first_one = true;
+    if (renumber_unitigs) 
+        comment = to_string(nb_unitigs) + " " + strip_first_field(comment);
+ 
 
     // nb_passes-way merge sort
     while ((!finished.all()) || pq.size() > 0)
@@ -159,6 +173,8 @@ static void write_final_output(const string& unitigs_filename, bool verbose, Ban
             seq = itSeq->toString();
             comment = itSeq->getComment();
 	        comment = remove_previous_links(comment);
+            if (renumber_unitigs) 
+                comment = to_string(nb_unitigs) + " " + strip_first_field(comment);
         }
             
         cur_links += get<2>(cur);
@@ -249,12 +265,13 @@ static void record_links(uint64_t utig_id, int pass, const string &link, std::of
 
 
 template<size_t span>
-void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pass, const int kmerSize)
+void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pass, const int kmerSize, const bool renumber_unitigs)
 {
     typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
     typedef typename kmer::impl::Kmer<span>::Type           Type;
 
     bool debug = false;
+    uint64_t utig_counter = 0;
 
     BankFasta inputBank (unitigs_filename);
     BankFasta::Iterator itSeq (inputBank);
@@ -275,6 +292,8 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
 
         const string& comment = itSeq->getComment();        
         unsigned long utig_id = std::stoul(comment.substr(0, comment.find(' ')));
+
+        if (renumber_unitigs) utig_id = utig_counter;
         
         if (is_in_pass(seq, pass, UNITIG_BEGIN, kmerSize))
         { 
@@ -293,6 +312,8 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
             utigs_links_map[kmerEnd.value()].push_back(eEnd.pack());
             // there is no UNITIG_BOTH here because we're taking (k-1)-mers.
         }
+
+        utig_counter++;
     }
 
     std::ofstream links_file(unitigs_filename+".links." +to_string(pass));
@@ -300,6 +321,9 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
     uint64_t nb_hashed_entries = 0;
     for (auto v : utigs_links_map)
         nb_hashed_entries += v.second.size(); 
+
+    utig_counter = 0;
+
     logging("step 2 (" + to_string(utigs_links_map.size()) + "kmers/" + to_string(nb_hashed_entries) + "extremities)");
 
     for (itSeq.first(); !itSeq.isDone(); itSeq.next()) 
@@ -307,6 +331,8 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
         const string& seq = itSeq->toString();
         const string& comment = itSeq->getComment();        
         unsigned long utig_id = std::stoul(comment.substr(0, comment.find(' ')));
+        
+        if (renumber_unitigs) utig_id = utig_counter;
 
         if (debug) std::cout << "unitig "  << std::to_string(utig_id)  << " : " << seq << std::endl;
  
@@ -414,6 +440,8 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
             }
             record_links(utig_id, pass, out_links, links_file);
         }
+
+        utig_counter++;
     }
 }
 

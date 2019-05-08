@@ -31,9 +31,9 @@ template void bglue<${KSIZE}>(Storage* storage,
 template class graph3<${KSIZE}>; // graph3<span> switch  
 
 template void link_tigs<${KSIZE}>
-    (std::string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose);
+    (std::string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose, bool renumber_unitigs = false);
 
-template void link_unitigs_pass<${KSIZE}>(const std::string unitigs_filename, bool verbose, const int pass, const int kmerSize);
+template void link_unitigs_pass<${KSIZE}>(const std::string unitigs_filename, bool verbose, const int pass, const int kmerSize, const bool renumber_unitigs);
 
 
 /********************************************************************************/

@@ -30,10 +30,10 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
 
     template<size_t SPAN>
-    void link_tigs( std::string prefix, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose);
+    void link_tigs( std::string prefix, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose, bool renumber_unitigs = false);
 
     template<size_t span>
-    void link_unitigs_pass(const std::string unitigs_filename, bool verbose, const int pass, const int kmerSize);
+    void link_unitigs_pass(const std::string unitigs_filename, bool verbose, const int pass, const int kmerSize, const bool renumber_unitigs);
     
 }}}}
 
