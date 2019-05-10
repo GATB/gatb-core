@@ -37,7 +37,7 @@ JOB_NAME             : ${JOB_NAME}
 
 # Make sure, we use the appropriate cmake
 
-export PATH=/home/ci-gatb/cmake-3.7.2-Linux-x86_64/bin:$PATH
+export PATH=/home/ci-gatb/cmake-3.10.0-Linux-x86_64/bin:$PATH
 
 error_code () { [ "$DO_NOT_STOP_AT_ERROR" = "true" ] && { return 0 ; } }
 
