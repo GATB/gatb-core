@@ -249,17 +249,22 @@ void MPHFAlgorithm<span,Abundance_t,NodeState_t>::populate ()
         /** We get the abundance of the current kmer. */
         int abundance = itKmers->item().abundance;
 
-        if (abundance > max_abundance_discrete)
-        {
-            _nb_abundances_above_precision++;
-            //std::cout << "found abundance larger than discrete: " << abundance << std::endl;
-            abundance = max_abundance_discrete;
-        }
+		
+		int idx ;
+		if (abundance >= max_abundance_discrete)
+		{
+			_nb_abundances_above_precision++;
+			//std::cout << "found abundance larger than discrete: " << abundance << std::endl;
+			idx = _abundanceDiscretization.size() -2 ;
+		}
+		else
+		{
+			//get first cell strictly greater than abundance
+			std::vector<int>::iterator  up = std::upper_bound(_abundanceDiscretization.begin(), _abundanceDiscretization.end(), abundance);
+			up--; // get previous cell
+			idx = up- _abundanceDiscretization.begin() ;
+		}
 
-		//get first cell strictly greater than abundance
-		std::vector<int>::iterator  up = std::upper_bound(_abundanceDiscretization.begin(), _abundanceDiscretization.end(), abundance);
-		up--; // get previous cell
-		int idx = up- _abundanceDiscretization.begin() ;
         /** We set the abundance of the current kmer. */
         _abundanceMap->at (h) = idx;
 

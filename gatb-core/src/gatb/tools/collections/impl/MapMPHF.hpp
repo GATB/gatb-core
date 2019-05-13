@@ -141,8 +141,8 @@ namespace gatb        {
 							
 							
 							
-							_abundanceDiscretization[256] = UINT_MAX;
-							
+							_abundanceDiscretization[256] = total;
+
 							
 							
 							
