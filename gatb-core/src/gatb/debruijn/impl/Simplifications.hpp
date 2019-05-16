@@ -66,7 +66,7 @@ public:
     double       _bulgeLen_kMult;
     unsigned int _bulgeLen_kAdd;
     unsigned int _bulgeAltPath_kAdd;
-    unsigned int _bulgeAltPath_covMult;
+    double       _bulgeAltPath_covMult;
 
     double _ecLen_kMult;
     double _ecRCTCcutoff;
