@@ -46,7 +46,7 @@ BranchingTerminatorTemplate<Node,Edge,Graph>::BranchingTerminatorTemplate (const
     : TerminatorTemplate<Node,Edge,Graph> (graph)
 {
     /** We loop over the branching nodes. */
-    GraphIterator<BranchingNode_t<Node> > itBranching = this->_graph.Graph::template iteratorBranching();
+    GraphIterator<BranchingNode_t<Node> > itBranching = this->_graph.iteratorBranching();
     for (itBranching.first(); !itBranching.isDone(); itBranching.next())
     {
         /** We add the current branching node into the map. */
@@ -196,7 +196,7 @@ void BranchingTerminatorTemplate<Node,Edge,Graph>::mark (Node& node)
     }
 
     /** We loop the neighbors edges of the current node. */
-    GraphVector<Edge> neighbors = this->_graph.template neighborsEdge(node.kmer);
+    GraphVector<Edge> neighbors = this->_graph.neighborsEdge(node.kmer);
 
     /** We loop the branching neighbors. */
     for (size_t i=0; i<neighbors.size(); i++)

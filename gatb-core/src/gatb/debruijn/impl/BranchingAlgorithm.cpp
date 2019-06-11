@@ -151,8 +151,8 @@ struct FunctorNodes
     void operator() (Node& node)
     {
         // We get branching nodes neighbors for the current node.
-        GraphVector<Node> successors   = graph->template successors   (node);
-        GraphVector<Node> predecessors = graph->template predecessors (node);
+        GraphVector<Node> successors   = graph->successors   (node);
+        GraphVector<Node> predecessors = graph->predecessors (node);
 
         if ( ! (successors.size()==1 && predecessors.size()==1) )
         {
