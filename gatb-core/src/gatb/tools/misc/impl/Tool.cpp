@@ -57,8 +57,7 @@ Tool::Tool (const std::string& name) : userDisplayHelp(0), _helpTarget(0),userDi
 
     getParser()->push_back (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
     getParser()->push_back (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
-    getParser()->push_back (new OptionOneParam (STR_EDGE_KM_REPRESENTATION,     "edge representation (KM)",      false, "0"  ));
-	
+	getParser()->push_back (new OptionOneParam (STR_EDGE_KM_REPRESENTATION,     "edge representation (KM)",      false, "0"  ));
 	getParser()->push_back (new OptionNoParam (STR_VERSION, "version", false));
 	getParser()->push_back (new OptionNoParam (STR_HELP, "help", false));
 
