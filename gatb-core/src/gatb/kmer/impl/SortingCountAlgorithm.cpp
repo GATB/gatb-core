@@ -1183,6 +1183,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 		
 		DEBUG (("SortingCountAlgorithm<span>::fillPartitions  _kmerSize=%d _minim_size=%d \n", _config._kmerSize, _config._minim_size));
 		
+		_nbKmersPerPartitionPerBank.clear();
 		if(_config._solidityKind != KMER_SOLIDITY_SUM)
 		{
 			/** We delete the previous partitions storage. */
@@ -1226,72 +1227,79 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 		/** We have to reinit the progress instance since it may have been used by SampleRepart before. */
 		_progress->init();
 		
-		/** We may have several input banks instead of a single one. */
-		std::vector<Iterator<Sequence>*> itBanks =  itSeq->getComposition();
-		
-		/** We first reset the vector holding the kmers number for each partition and for each bank.
-		 * It can be seen as the following matrix:
-		 *
-		 *           part0  part1  part2 ... partJ
-		 *   bank0    xxx    xxx    xxx       xxx
-		 *   bank1    xxx    xxx    xxx       xxx
-		 *    ...
-		 *   bankI    xxx    xxx    xxx       xxx
-		 *
-		 *   Here xxx is the number of items found for the bank I in the partition J
-		 */
-		_nbKmersPerPartitionPerBank.clear();
-		
-		/** We launch the iteration of the sequences iterator with the created functors. */
-		for (size_t i=0; i<itBanks.size(); i++)
-		{
-			size_t groupSize   = 1000;
+		if (_config._solidityKind == KMER_SOLIDITY_SUM) {
+			/** We launch the iteration of the sequences iterator with the created
+			 * functors. */
+
+			size_t groupSize = 1000;
 			bool deleteSynchro = true;
-			
-			/** We fill the partitions. Each thread will read synchronously and will call FillPartitions
-			 * in a synchronous way (in order to have global BanksStats correctly computed). */
-			
-			if(_config._solidityKind == KMER_SOLIDITY_SUM)
-			{
-				getDispatcher()->iterate (itBanks[i], FillPartitions<span,true> (
-																			model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo,_superKstorage
-																			), groupSize, deleteSynchro);
-			}
-			else
-			{
-				getDispatcher()->iterate (itBanks[i], FillPartitions<span,false> (
-																				 model, _config._nb_passes, pass, _config._nb_partitions, _config._nb_cached_items_per_core_per_part, _progress, _bankStats, _tmpPartitions, *_repartitor, pInfo,_superKstorage
-																				 ), groupSize, deleteSynchro);
-			}
-			
-			
-			/** We flush the partitions in order to be sure to have the exact number of items per partition. */
-			if(_config._solidityKind != KMER_SOLIDITY_SUM)
-			{
-				_tmpPartitions->flush();
-				
-				/** We get a snapshot of items number in each partition. */
-				vector<size_t> nbItems;
-				for (size_t p=0; p<_config._nb_partitions; p++)
-				{
-				 nbItems.push_back ((*_tmpPartitions)[p].getNbItems()); //todo for multi count
-				}
-				
-				/** We add the current number of kmers in each partition for the reached ith bank. */
-				_nbKmersPerPartitionPerBank.push_back (nbItems);
-			}
-			
-			//GR: close the input bank here with call to finalize
-			itBanks[i]->finalize();
-		}
-		
-		if(_config._solidityKind == KMER_SOLIDITY_SUM)
-		{
+
+			/** We fill the partitions. Each thread will read synchronously and will
+			 * call FillPartitions in a synchronous way (in order to have global
+			 * BanksStats correctly computed). */
+			getDispatcher()->iterate(
+				itSeq,
+				FillPartitions<span, true>(
+				    model, _config._nb_passes, pass, _config._nb_partitions,
+				    _config._nb_cached_items_per_core_per_part, _progress, _bankStats,
+				    _tmpPartitions, *_repartitor, pInfo, _superKstorage),
+				groupSize, deleteSynchro);
+
+			// GR: close the input bank here with call to finalize
+			itSeq->finalize();
+
 			_superKstorage->flushFiles();
 			_superKstorage->closeFiles();
+		} else {
+			/** We may have several input banks instead of a single one. */
+			std::vector<Iterator<Sequence>*> itBanks =  itSeq->getComposition();
+
+			/** We first reset the vector holding the kmers number for each partition and for each bank.
+			 * It can be seen as the following matrix:
+			 *
+			 *           part0  part1  part2 ... partJ
+			 *   bank0    xxx    xxx    xxx       xxx
+			 *   bank1    xxx    xxx    xxx       xxx
+			 *    ...
+			 *   bankI    xxx    xxx    xxx       xxx
+			 *
+			 *   Here xxx is the number of items found for the bank I in the partition J
+			 */
+
+			/** We launch the iteration of the sequences iterator with the created functors. */
+			for (size_t i=0; i<itBanks.size(); i++)
+			{
+				size_t groupSize   = 1000;
+				bool deleteSynchro = true;
+
+				/** We fill the partitions. Each thread will read synchronously and will call FillPartitions
+				 * in a synchronous way (in order to have global BanksStats correctly computed). */
+
+			getDispatcher()->iterate(
+				itBanks[i],
+				FillPartitions<span, false>(
+					model, _config._nb_passes, pass, _config._nb_partitions,
+					_config._nb_cached_items_per_core_per_part, _progress, _bankStats,
+					_tmpPartitions, *_repartitor, pInfo, _superKstorage),
+				groupSize, deleteSynchro);
+
+				/** We flush the partitions in order to be sure to have the exact number of items per partition. */
+					_tmpPartitions->flush();
+
+					/** We get a snapshot of items number in each partition. */
+					vector<size_t> nbItems;
+					for (size_t p=0; p<_config._nb_partitions; p++)
+					{
+					 nbItems.push_back ((*_tmpPartitions)[p].getNbItems()); //todo for multi count
+					}
+
+					/** We add the current number of kmers in each partition for the reached ith bank. */
+					_nbKmersPerPartitionPerBank.push_back (nbItems);
+
+				//GR: close the input bank here with call to finalize
+				itBanks[i]->finalize();
+			}
 		}
-		
-		
 	}
 
 /*********************************************************************
