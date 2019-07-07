@@ -24,6 +24,7 @@
 
 #include <gatb/kmer/impl/Model.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
+#include <mutex>
 #include <queue>
 
 /********************************************************************************/
@@ -42,16 +43,43 @@ namespace impl      {
 template <size_t xmer>
 class PartiInfo
 {
+    struct mmer_bin_record {
+        uint64_t nb_superks, nb_kmers, nb_kxmers;
+        mmer_bin_record& operator+=(const mmer_bin_record& other) {
+            nb_superks += other.nb_superks;
+            nb_kmers += other.nb_kmers;
+            nb_kxmers += other.nb_kxmers;
+            return *this;
+        }
+    };
+
+    struct parti_record {
+        uint64_t nb_kmers, nb_kxmers;
+        uint64_t nbk_per_radix[xmer * 256];
+
+        uint64_t& getNbKmer(int radix, int xx)
+        { return nbk_per_radix[xx * 256 + radix]; }
+
+        parti_record& operator+=(const parti_record& other) {
+            nb_kmers += other.nb_kmers;
+            nb_kxmers += other.nb_kxmers;
+            for(int i = 0 ; i < xmer * 256 ; i++) {
+                nbk_per_radix[i] += other.nbk_per_radix[i];
+            }
+            return *this;
+        }
+    };
+
 public:
 
     inline void incKmer (int numpart, u_int64_t val=1)
     {
-        _nb_kmers_per_parti[numpart]+=val;
+        _parti_records[numpart].nb_kmers+=val;
     }
 
     inline void incKxmer(int numpart, u_int64_t val=1)
     {
-        _nb_kxmers_per_parti[numpart]+=val; //now used to store number of kxmers per parti
+        _parti_records[numpart].nb_kxmers+=val; //now used to store number of kxmers per parti
     }
 
     //superksize in number of kmer inside this superk
@@ -60,73 +88,64 @@ public:
     {
 		_nb_superk_total+=val;
 		_nb_kmer_total += val*superksize;
-        _superk_per_mmer_bin[numbin]+= val ;
-        _kmer_per_mmer_bin[numbin]+= val *superksize;
+        _mmer_bin_records[numbin].nb_superks+= val ;
+        _mmer_bin_records[numbin].nb_kmers+= val *superksize;
     }
 
     //kxmer count (regardless of x size), used for ram
     inline void incKxmer_per_minimBin(int numbin, u_int64_t val=1)
     {
-        _kxmer_per_mmer_bin[numbin]+= val ;
+        _mmer_bin_records[numbin].nb_kxmers+= val ;
     }
 
     //numaprt, radix, size of kx mer
     inline void incKmer_and_rad(int numpart, int radix,int x,  u_int64_t val=1) //appele ds vrai loop
     {
-        _nb_kxmers_per_parti[numpart] += val;            // now used to store number of kxmers per parti
-        _nb_kmers_per_parti [numpart] += (val * (x+1));  // number of  'real' kmers
-        _nbk_per_radix_per_part[x][radix][numpart]+=val; // contains number of kx mer per part per radix per x
+        parti_record& record = _parti_records[numpart];
+        record.nb_kxmers += val;            // now used to store number of kxmers per parti
+        record.nb_kmers += (val * (x+1));  // number of  'real' kmers
+        record.getNbKmer(radix, x)+=val; // contains number of kx mer per part per radix per x
     }
 
-    /** */
-    PartiInfo& operator+=  (const PartiInfo& other)
-    {
-        //add other parti info , synced
-
-        for (int np=0; np<_nbpart; np++)
-        {
-            for (size_t xx=0; xx<xmer; xx++)
-            {
-                for (int rad=0; rad<256; rad++)
-                {
-                    __sync_fetch_and_add( & (_nbk_per_radix_per_part[xx][rad][np]),   other.getNbKmer(np,rad,xx) );
-                }
-            }
-
-            __sync_fetch_and_add (_nb_kmers_per_parti  + np, other.getNbKmer      (np));
-            __sync_fetch_and_add (_nb_kxmers_per_parti + np, other.getNbSuperKmer (np));
+    /** Adds count to *this from other */
+    PartiInfo &add(const PartiInfo &other) {
+        for (int np = 0; np < _nbpart; np++) {
+            _parti_records[np] += other._parti_records[np];
         }
 
-        for (u_int64_t ii=0; ii< _num_mm_bins; ii++)
-        {
-            __sync_fetch_and_add (_superk_per_mmer_bin + ii, other.getNbSuperKmer_per_minim (ii));
-            __sync_fetch_and_add (_kmer_per_mmer_bin   + ii, other.getNbKmer_per_minim      (ii));
-            __sync_fetch_and_add (_kxmer_per_mmer_bin  + ii, other.getNbKxmer_per_minim     (ii));
+        for (int ii = 0; ii < _num_mm_bins; ii++) {
+            _mmer_bin_records[ii] += other._mmer_bin_records[ii];
         }
 
-		__sync_fetch_and_add(&_nb_superk_total , other._nb_superk_total);
-		__sync_fetch_and_add(&_nb_kmer_total , other._nb_kmer_total);
-		
-		
+        _nb_superk_total += other._nb_superk_total;
+        _nb_kmer_total += other._nb_kmer_total;
+
         return *this;
+    }
+
+    /** Adds count to *this from other while preventing concurrent access to *this */
+    PartiInfo &add_sync(const PartiInfo &other) {
+        // Locking is way faster than doing individuals "lock add"s for all the fields
+        std::lock_guard<std::mutex> guard{_mut};
+        return add(other);
     }
 
     /** */
     inline  u_int64_t getNbKmer(int numpart) const
     {
-        return _nb_kmers_per_parti[numpart];
+        return _parti_records[numpart].nb_kmers;
     }
 
     /** Get nbk in bin radix of parti numpart */
     inline  u_int64_t getNbKmer(int numpart, int radix, int xx) const
     {
-        return _nbk_per_radix_per_part[xx][radix][numpart];
+        return _parti_records[numpart].getNbKmer(radix, xx);
     }
 
     /** */
     inline  u_int64_t   getNbSuperKmer(int numpart) const //now used for number of kxmers (indistinctive of xsize)
     {
-        return _nb_kxmers_per_parti[numpart];
+        return _parti_records[numpart].nb_kxmers;
     }
 	
 	inline  u_int64_t   getNbSuperKmerTotal() const
@@ -141,37 +160,26 @@ public:
     /** */
     inline  u_int64_t   getNbSuperKmer_per_minim(int numbin) const
     {
-        return _superk_per_mmer_bin[numbin];
+        return _mmer_bin_records[numbin].nb_superks;
     }
 
     /** */
     inline  u_int64_t   getNbKmer_per_minim(int numbin) const
     {
-        return _kmer_per_mmer_bin[numbin];
+        return _mmer_bin_records[numbin].nb_kmers;
     }
 
     /** */
     inline  u_int64_t   getNbKxmer_per_minim(int numbin) const
     {
-        return _kxmer_per_mmer_bin[numbin];
+        return _mmer_bin_records[numbin].nb_kxmers;
     }
 
     /** */
     void clear()
     {
-        memset (_nb_kmers_per_parti,  0, _nbpart      * sizeof(u_int64_t));
-        memset (_nb_kxmers_per_parti, 0, _nbpart      * sizeof(u_int64_t));
-        memset (_superk_per_mmer_bin, 0, _num_mm_bins * sizeof(u_int64_t));
-        memset (_kmer_per_mmer_bin,   0, _num_mm_bins * sizeof(u_int64_t));
-        memset (_kxmer_per_mmer_bin,  0, _num_mm_bins * sizeof(u_int64_t));
-
-        for (size_t xx=0; xx<xmer; xx++)
-        {
-            for(int ii=0; ii<256; ii++)
-            {
-                memset(_nbk_per_radix_per_part[xx][ii], 0, _nbpart*sizeof(u_int64_t));
-            }
-        }
+        memset (_parti_records,    0, _nbpart      * sizeof(parti_record));
+        memset (_mmer_bin_records, 0, _num_mm_bins * sizeof(mmer_bin_record));
     }
 
     /** */
@@ -209,12 +217,8 @@ public:
 
         for (int np=0; np<_num_mm_bins; np++)
         {
-            typedef typename Kmer<31>::Type           Typem; //should be kmer size
-            Typem cur;
-            cur.setVal(np);
-
 			if(this->getNbSuperKmer_per_minim(np)!=0 || this->getNbKmer_per_minim(np)  !=0 )
-			   	printf("Bin[%5i (%s) ]= %lli    %lli\n",np,cur.toString(_mm).c_str(), this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
+			   	printf("Bin[%5i]= %lli    %lli\n",np, this->getNbSuperKmer_per_minim(np),this->getNbKmer_per_minim(np)    );
 
             sumk += this->getNbKmer_per_minim(np);
             sumsuperk +=  this->getNbSuperKmer_per_minim(np);
@@ -225,25 +229,15 @@ public:
     }
 
     /** Constructor. */
-    PartiInfo(int nbpart, int minimsize) : _nbpart(nbpart), _mm(minimsize)
+    PartiInfo(int nbpart, int minimsize) : _nbpart(nbpart)
     {
 		_nb_superk_total =0;
 		_nb_kmer_total =0;
-        _nb_kmers_per_parti  = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
-        _nb_kxmers_per_parti = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
-        _num_mm_bins =   1 << (2*_mm);
-        _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
-        _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
-        _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
-
-        for(size_t xx=0; xx<xmer; xx++)
-        {
-            for(int ii=0; ii<256; ii++)
-            {
-                _nbk_per_radix_per_part[xx][ii] = (u_int64_t*) CALLOC (nbpart, sizeof(u_int64_t));
-            }
-        }
+        _parti_records = (parti_record*) CALLOC (_nbpart, sizeof(parti_record));
+        _num_mm_bins =   1 << (2*minimsize);
+        _mmer_bin_records = (mmer_bin_record*) CALLOC (_num_mm_bins, sizeof(mmer_bin_record));
     }
+
 
     /** Constructor (copy). Needed for fillparti class. */
     PartiInfo(const PartiInfo& cr)
@@ -251,23 +245,11 @@ public:
     {
         _num_mm_bins = cr._num_mm_bins;
         _nbpart      = cr._nbpart;
-        _mm          = cr._mm;
 		_nb_superk_total = cr._nb_superk_total;
 		_nb_kmer_total = cr._nb_kmer_total;
 		
-        _nb_kmers_per_parti  = (u_int64_t*) CALLOC (_nbpart,      sizeof(u_int64_t));
-        _nb_kxmers_per_parti = (u_int64_t*) CALLOC (_nbpart,      sizeof(u_int64_t));
-        _superk_per_mmer_bin = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
-        _kmer_per_mmer_bin   = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
-        _kxmer_per_mmer_bin  = (u_int64_t*) CALLOC (_num_mm_bins, sizeof(u_int64_t));
-
-        for(size_t xx=0; xx<xmer; xx++)
-        {
-            for(int ii=0; ii<256; ii++)
-            {
-                _nbk_per_radix_per_part[xx][ii] = (u_int64_t  *) CALLOC(_nbpart,sizeof(u_int64_t));
-            }
-        }
+        _parti_records = (parti_record*) CALLOC (_nbpart, sizeof(parti_record));
+        _mmer_bin_records = (mmer_bin_record*) CALLOC (_num_mm_bins, sizeof(mmer_bin_record));
 
         //	printf("PartiInfo copy constr %p  _nb_kmers_per_parti %p \n",this,_nb_kmers_per_parti);
 
@@ -276,32 +258,18 @@ public:
     /** Destructor. */
     ~PartiInfo()
     {
-        FREE (_nb_kmers_per_parti);
-        FREE (_nb_kxmers_per_parti);
-        FREE (_superk_per_mmer_bin);
-        FREE (_kmer_per_mmer_bin);
-        FREE (_kxmer_per_mmer_bin);
-
-        for(size_t xx=0; xx<xmer; xx++)  {  for(int ii=0; ii<256; ii++)  {  FREE(_nbk_per_radix_per_part[xx][ii]);  }  }
-
-        //	printf("print info destroyed %p  _nb_kmers_per_parti %p \n",this,_nb_kmers_per_parti);
+        FREE (_parti_records);
+        FREE (_mmer_bin_records);
     }
 
 private:
-
-    u_int64_t* _nb_kmers_per_parti;
-    u_int64_t* _nb_kxmers_per_parti; //now used to store number of kxmers per parti
-    u_int64_t* _superk_per_mmer_bin;
-	u_int64_t  _nb_superk_total;
-	u_int64_t  _nb_kmer_total;
-    u_int64_t* _kmer_per_mmer_bin;
-    u_int64_t* _kxmer_per_mmer_bin;
-
-    u_int64_t* _nbk_per_radix_per_part[xmer][256];//number of kxmer per parti per rad
+    std::mutex _mut = {}; // Locking for merging with main PartiInfo
+    u_int64_t _nbpart;
     u_int64_t _num_mm_bins;
-
-    int _nbpart;
-    int _mm;
+	u_int64_t _nb_superk_total;
+	u_int64_t _nb_kmer_total;
+    parti_record*  _parti_records;
+    mmer_bin_record*  _mmer_bin_records;
 };
 
 /********************************************************************************/
@@ -331,13 +299,13 @@ public:
     /** Constructor
      * \param[in] nbpart : hash value will be in range [0..nbpart-1]
      * \param[in] minimsize : size of the minimizers. */
-    Repartitor (int nbpart=0, int minimsize=0, int nbPass=1)  : _nbpart(nbpart), _mm(minimsize), _nb_minims(1 << (_mm*2)), _nbPass(nbPass), _freq_order(0)
+    Repartitor (int nbpart=0, int minimsize=0, int nbPass=1)  : _nbpart(nbpart), _nb_minims(1 << (minimsize*2)), _nbPass(nbPass), _freq_order(0)
     {
         if (nbpart <= 0)  { system::Exception("Repartitor: nbpart (%d) should be > 0", nbpart); }
     }
 
     /** Constructor */
-    Repartitor (tools::storage::impl::Group& group)  : _nbpart(0), _mm(0), _nb_minims(0), _nbPass(0), _freq_order(0)   { this->load (group);  }
+    Repartitor (tools::storage::impl::Group& group)  : _nbpart(0), _nb_minims(0), _nbPass(0), _freq_order(0)   { this->load (group);  }
 
     /** Destructor */
     ~Repartitor ()  {  if (_freq_order)  { delete[] _freq_order; } }
@@ -411,7 +379,6 @@ private:
     }
 
     u_int16_t          _nbpart;
-    u_int16_t          _mm;
     u_int64_t          _nb_minims;
     u_int16_t          _nbPass;
     std::vector<Value> _repart_table ;

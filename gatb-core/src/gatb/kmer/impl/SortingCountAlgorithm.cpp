@@ -867,12 +867,12 @@ public:
 	
 	
 	/** Destructor. */
-	~FillPartitions ()
+	virtual ~FillPartitions ()
 	{
 		//printf("destruc fillparti _superkmerFiles %p \n",_superkmerFiles);
 		
 		//add to global parti_info
-		_extern_pInfo += _local_pInfo;
+		_extern_pInfo.add_sync(_local_pInfo);
 	}
 	
 private:
@@ -1007,12 +1007,12 @@ public:
 
 
     /** Destructor. */
-    ~FillPartitions ()
+    virtual ~FillPartitions ()
     {
 		//printf("destruc fillparti _superkmerFiles %p \n",_superkmerFiles);
 
         //add to global parti_info
-        _extern_pInfo += _local_pInfo;
+        _extern_pInfo.add_sync(_local_pInfo);
     }
 
 private:
@@ -1143,12 +1143,12 @@ private:
 		
 		
 		/** Destructor. */
-		~FillPartitions ()
+		virtual ~FillPartitions ()
 		{
 			//printf("destruc fillparti _superkmerFiles %p \n",_superkmerFiles);
 			
 			//add to global parti_info
-			_extern_pInfo += _local_pInfo;
+			_extern_pInfo.add_sync(_local_pInfo);
 		}
 		
 	private:

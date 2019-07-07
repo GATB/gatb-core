@@ -231,12 +231,11 @@ void Repartitor::load (tools::storage::impl::Group& group)
 
     tools::storage::impl::Storage::istream is (group, "minimRepart");
     is.read ((char*)&_nbpart,     sizeof(_nbpart));
-    is.read ((char*)&_mm,         sizeof(_mm));
     is.read ((char*)&_nb_minims,  sizeof(_nb_minims));
     is.read ((char*)&_nbPass,     sizeof(_nbPass));
 
-    DEBUG (("[Repartitor::load] :  _nbpart=%d  _mm=%d  _nb_minims=%d  _nbPass=%d \n",
-        _nbpart, _mm, _nb_minims, _nbPass
+    DEBUG (("[Repartitor::load] :  _nbpart=%d  _nb_minims=%d  _nbPass=%d \n",
+        _nbpart, _nb_minims, _nbPass
     ));
 
     /** We allocate a table whose size is the number of possible minimizers. */
@@ -271,15 +270,14 @@ void Repartitor::load (tools::storage::impl::Group& group)
 *********************************************************************/
 void Repartitor::save (tools::storage::impl::Group& group)
 {
-    DEBUG (("[Repartitor::save] :  _nbpart=%d  _mm=%d  _nb_minims=%d  _nbPass=%d \n",
-        _nbpart, _mm, _nb_minims, _nbPass
+    DEBUG (("[Repartitor::save] :  _nbpart=%d  _nb_minims=%d  _nbPass=%d \n",
+        _nbpart, _nb_minims, _nbPass
     ));
 
     bool hasMinimizerFrequencies = _freq_order != NULL;
 
     tools::storage::impl::Storage::ostream os (group, "minimRepart");
     os.write ((const char*)&_nbpart,                sizeof(_nbpart));
-    os.write ((const char*)&_mm,                    sizeof(_mm));
     os.write ((const char*)&_nb_minims,             sizeof(_nb_minims));
     os.write ((const char*)&_nbPass,                sizeof(_nbPass));
     os.write ((const char*)_repart_table.data(),    sizeof(Value) * _nb_minims);
@@ -306,9 +304,8 @@ void Repartitor::save (tools::storage::impl::Group& group)
 *********************************************************************/
 void Repartitor::printInfo ()
 {
-    size_t nbMinimizers = 1 << (_mm*2);
-    printf("Repartitor : nbMinimizers=%ld\n", nbMinimizers);
-    for (u_int64_t ii=0; ii<nbMinimizers; ii++ )  {  printf("   table[%ld] = %d \n",ii,_repart_table[ii]); }
+    printf("Repartitor : nbMinimizers=%ld\n", _nb_minims);
+    for (u_int64_t ii=0; ii<_nb_minims; ii++ )  {  printf("   table[%ld] = %d \n",ii,_repart_table[ii]); }
 }
 
 /********************************************************************************/
