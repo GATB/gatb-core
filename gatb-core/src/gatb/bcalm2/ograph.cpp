@@ -255,7 +255,7 @@ void graph3<span>::debruijn(){
             //~ if (debug_index > 0) if (kL.indice == debug_index || kR.indice == debug_index ) std::cout << " identical, kl / kR " << kL.indice << " " << kR.indice << " unitigs " << unitigs[kL.indice] << " " << unitigs[kR.indice] << " positions "  << kL.position << " " << kR.position << std::endl;
             //~ if(isNumber (unitigs[kL.indice][0])){
 			//~ }
-            if(not kL.indice==kR.indice){
+            if(kL.indice!=kR.indice){
 				update_connected(kL);
 				update_connected(kR);
 			}
@@ -265,7 +265,7 @@ void graph3<span>::debruijn(){
 			++iL;++iR;
 			if(left[iL].kmmer==kL.kmmer){
 				go=false;
-				if(not left[iL].indice==right[iR].indice){
+				if(left[iL].indice!=right[iR].indice){
 					update_connected(left[iL]);
 				}
 				//~ while(left[++iL].kmmer<=kR.kmmer ){}
@@ -277,7 +277,7 @@ void graph3<span>::debruijn(){
 			}
 			if(right[iR].kmmer==kL.kmmer){
 				go=false;
-				if(not left[iL].indice==right[iR].indice){
+				if(left[iL].indice!=right[iR].indice){
 					update_connected(right[iR]);
 				}
 				//~ while(right[++iR].kmmer<=kL.kmmer ){}
