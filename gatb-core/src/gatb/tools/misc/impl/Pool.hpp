@@ -347,11 +347,9 @@ public:
     //clear all previous allocs, and alloc pool capacity
     void reserve(u_int64_t size)
     {
-        if(size ==0 && mainbuffer !=NULL)
+        if(mainbuffer !=NULL)
         {
             FREE (mainbuffer);
-            capacity = used_space = 0;
-            mainbuffer = NULL ;
         }
 
         /** We add a little bit of memory in case "align" method is called often.

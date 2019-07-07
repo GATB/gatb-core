@@ -85,6 +85,7 @@ public:
     {
         FREE (_histogram);
         FREE (_histogram_smoothed);
+        FREE (_histogram2D);
     }
 
     /** \copydoc IHistogram::inc */
