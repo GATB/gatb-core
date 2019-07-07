@@ -182,7 +182,7 @@ public:
             size_t superKmerLen = superKmer.size();
 
             /** We increase superkmer counter the current minimizer. */
-            _local_pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmerLen);
+            _pInfo.incSuperKmer_per_minimBin (superKmer.minimizer, superKmerLen);
 
             /** We loop over the kmer of the superkmer (except the first one).
              *  We update the pInfo each time we find a kxmer in the superkmer. */
@@ -193,7 +193,7 @@ public:
                 if (superKmer[ii].which() != prev_which || kx_size >= _kx) // kxmer_size = 1 //cost should diminish with larger kxmer
                 {
                     /** We increase the number of kxmer found for the current minimizer. */
-                    _local_pInfo.incKxmer_per_minimBin (superKmer.minimizer);
+                    _pInfo.incKxmer_per_minimBin (superKmer.minimizer);
                     kx_size = 0;
                 }
                 else
@@ -205,7 +205,7 @@ public:
             }
 
             /** We add the pending kxmer to the bin. */
-            _local_pInfo.incKxmer_per_minimBin (superKmer.minimizer);
+            _pInfo.incKxmer_per_minimBin (superKmer.minimizer);
         
             // see if we need to stop
             _nbSuperKmersSeenSoFar ++;
@@ -221,8 +221,6 @@ public:
     SampleRepart (
         Model&            model,
         Configuration&    config,
-        size_t            nbPasses,
-        size_t            currentPass,
         size_t            nbPartitions,
         IteratorListener* progress,
         bool *            cancelIterator,
@@ -230,24 +228,17 @@ public:
         BankStats&        bankStats,
         PartiInfo<5>&     pInfo
     )
-    :   Sequence2SuperKmer<span> (model, nbPasses, currentPass, nbPartitions, progress, bankStats)
-        ,_kx(4), _extern_pInfo(pInfo), _local_pInfo(config._nb_partitions, model.getMmersModel().getKmerSize()),
+    :   Sequence2SuperKmer<span> (model, 1, 0, nbPartitions, progress, bankStats)
+        ,_kx(4), _pInfo(pInfo),
         _cancelIterator(cancelIterator), _nbSeqsToSee(nbSeqsToSee), _nbSuperKmersSeenSoFar(0)
     {
-    }
-
-    /** Destructor. */
-    ~SampleRepart ()
-    {
-        //add to global parti_info
-        _extern_pInfo += _local_pInfo;
     }
 
 
 private:
     size_t        _kx;
-    PartiInfo<5>& _extern_pInfo;
-    PartiInfo<5>  _local_pInfo;
+    PartiInfo<5>& _pInfo;
+
     bool*         _cancelIterator;
     size_t        _nbSeqsToSee;
     size_t        _nbSuperKmersSeenSoFar;
@@ -429,52 +420,14 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
         Iterator<Sequence>* it = _bank->iterator(); LOCAL (it);
         std::vector<Iterator<Sequence>*> itBanks =  it->getComposition(); 
 
-        /*
-        bool dummyBoolean = false;
-        SampleRepart<span> sampleRepart (
-            	        model,
-            	        _config,
-            	        1, // we don't care about the actual number of passes, we just use 1
-            	        0, // we don't care about the actual number of passes, the current one is 0
-            	        _config._nb_partitions,
-            	        NULL,
-            	        &dummyBoolean, // will be set to true when iteration needs to be stopped
-            	        nbseq_sample, // how many sequences we need to see
-            	        bstatsDummy,
-            	        sample_info
-            	    );*/
-
-		//SerialDispatcher serialDispatcher;
-		//BankStats bstatsDummy;
-
         for(size_t i=0; i<_config._nb_banks; i++){
-        	//cout << i << endl;
-        	//u_int64_t nbseq_sample_ = min(nbseq_sample, u_int64_t (500000));
-        	//TruncateIterator<Sequence>* it = new TruncateIterator<Sequence> (*(itBanks[i]), nbseq_sample_);
-        	//LOCAL(it);
-    	    //serialDispatcher.iterate (it, sampleRepart);
-        	//Iterator<Sequence>* bankit = itBanks[i];
-        	//LOCAL(bankit);
             CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*itBanks[i]);
             LOCAL(cancellable_it);
-
-        	//cout << nbseq_sample << endl;
-    		/** We create a sequence iterator and give it a progress message */
-    		//Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
-            //		cancellable_it,
-            //		_bank->getNbItems(),
-            //		Stringify::format (progressFormat0, bankShortName.c_str()).c_str()
-            //		);
-            //LOCAL (it_all_reads);
-
-
 
     		/** We compute a distribution of Superkmers from a part of the bank. */
     		serialDispatcher.iterate (cancellable_it, SampleRepart<span> (
     			model,
     			_config,
-    			1, // we don't care about the actual number of passes, we just use 1
-    			0, // we don't care about the actual number of passes, the current one is 0
     			_config._nb_partitions,
     			NULL,
     			&(cancellable_it->_cancel), // will be set to true when iteration needs to be stopped
@@ -496,11 +449,9 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
         CancellableIterator<Sequence>* cancellable_it = new CancellableIterator<Sequence> (*(it));
         LOCAL(cancellable_it);
 
-
 		// how many seqs we need to see
 		u_int64_t nbseq_sample = std::max ( u_int64_t (_config._estimateSeqNb * 0.05) ,u_int64_t( 1000000ULL) ) ;
 
-    	//cout << nbseq_sample << endl;
 		/** We create a sequence iterator and give it a progress message */
 		Iterator<Sequence>* it_all_reads = createIterator<Sequence> (
 				cancellable_it,
@@ -509,7 +460,6 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 				);
 		LOCAL (it_all_reads);
 
-
 		BankStats bstatsDummy;
 
 		/** We compute a distribution of Superkmers from a part of the bank. */
@@ -517,8 +467,6 @@ void RepartitorAlgorithm<span>::computeRepartition (Repartitor& repartitor)
 		serialDispatcher.iterate (it_all_reads, SampleRepart<span> (
 			model,
 			_config,
-			1, // we don't care about the actual number of passes, we just use 1
-			0, // we don't care about the actual number of passes, the current one is 0
 			_config._nb_partitions,
 			NULL,
 			&(cancellable_it->_cancel), // will be set to true when iteration needs to be stopped
