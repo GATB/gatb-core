@@ -337,6 +337,9 @@ void DebloomAlgorithm<span>::execute_aux (
             /** We may have reach the maximum number of items in the partition. */
             if (partition.size() >= partition.getMaxNbItems())
             {
+				//first erase the destination file because BagFile creator does not erase previous file anymore
+				system::impl::System::file().remove (outputUri);
+				
                 /** We exclude the partition content from the critical false positive file. */
                 end_debloom_partition (
                     partition,
