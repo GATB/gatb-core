@@ -80,7 +80,7 @@ struct NodeDepth
 template<size_t span, typename Node, typename Edge, typename Graph>
 bool IterativeExtensions<span, Node, Edge, Graph>::compare_and_mark_last_k_minus_one_mer (const string& node, set<kmer_type>& kmers_set)
 {
-    KmerModel leftKmer = modelMinusOne.codeSeed (node.c_str(), Data::ASCII, node.size() - modelMinusOne.getKmerSize());
+    KmerModelDirect leftKmer = modelMinusOne.codeSeed (node.c_str(), Data::ASCII, node.size() - modelMinusOne.getKmerSize());
     kmer_type kmer = leftKmer.value();
 
     if (kmers_set.find(kmer) != kmers_set.end())
@@ -115,7 +115,7 @@ IterativeExtensions<span, Node, Edge, Graph>::IterativeExtensions (
       max_depth(max_depth), max_nodes(max_nodes)
 {
     model         = Model (graph.getKmerSize()  );
-    modelMinusOne = Model (graph.getKmerSize()-1);
+    modelMinusOne = ModelDirect (graph.getKmerSize()-1);
 }
 
 /*********************************************************************
@@ -168,7 +168,7 @@ void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
 
 #ifndef DONTMARK
     set<kmer_type> already_extended_from;
-    //   compare_and_mark_last_k_minus_one_mer(L, already_extended_from); // mark first kmer to never extend from it again, // L will be marked at first iteration below
+    compare_and_mark_last_k_minus_one_mer(L, already_extended_from); // mark first kmer to never extend from it again
 #endif
 
     /** We will need a Path object and a Sequence object during the extension. */
@@ -271,8 +271,8 @@ void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
         }
 
 #ifndef DONTMARK
-        // make sure this is the only time we see this (k-1)-overlap
-        bool already_seen = compare_and_mark_last_k_minus_one_mer (graph.toString(ksd.node), already_extended_from);
+        // make sure this is the only time we see this (k-1)-overlap (end of the just built contig)
+        bool already_seen = compare_and_mark_last_k_minus_one_mer (graph.toString(endNode), already_extended_from);
         if (already_seen)
         {
             INFO (("... XXX not extending node %s becaues last k-1-mer was already seen\n", seq.toString().c_str()));

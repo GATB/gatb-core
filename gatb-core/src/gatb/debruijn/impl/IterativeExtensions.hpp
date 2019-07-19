@@ -46,6 +46,8 @@ public:
     /** ShortcutS. */
     typedef typename kmer::impl::Kmer<span>::ModelCanonical       Model;
     typedef typename kmer::impl::Kmer<span>::ModelCanonical::Kmer KmerModel;
+    typedef typename kmer::impl::Kmer<span>::ModelDirect       ModelDirect;
+    typedef typename kmer::impl::Kmer<span>::ModelDirect::Kmer KmerModelDirect;
     typedef typename kmer::impl::Kmer<span>::Type                 kmer_type;
 
     /** Constructor.
@@ -109,7 +111,7 @@ private:
     int                             max_nodes;
 
     Model model;
-    Model modelMinusOne;
+    ModelDirect modelMinusOne;
 
     /** Fill a Sequence instance from the results of the current graph traversal.
      * \param[in] node : starting node of the path
