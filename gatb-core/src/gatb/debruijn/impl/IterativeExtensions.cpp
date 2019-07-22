@@ -271,12 +271,14 @@ void IterativeExtensions<span, Node, Edge, Graph>::construct_linear_seqs (
         }
 
 #ifndef DONTMARK
-        // make sure this is the only time we see this (k-1)-overlap (end of the just built contig)
-        bool already_seen = compare_and_mark_last_k_minus_one_mer (graph.toString(endNode), already_extended_from);
-        if (already_seen)
-        {
-            INFO (("... XXX not extending node %s becaues last k-1-mer was already seen\n", seq.toString().c_str()));
-            continue;
+        if(len_right>0){  //==0 particular case of the first contig, contig already marked (before the loop), do not mark again, this will stop extension
+            // make sure this is the only time we see this (k-1)-overlap (end of the just built contig)
+            bool already_seen = compare_and_mark_last_k_minus_one_mer (graph.toString(endNode), already_extended_from);
+            if (already_seen)
+            {
+                INFO (("... XXX not extending node %s becaues last k-1-mer was already seen\n", seq.toString().c_str()));
+                continue;
+            }
         }
 #endif
 
