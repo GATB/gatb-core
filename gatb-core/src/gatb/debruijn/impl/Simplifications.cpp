@@ -1281,7 +1281,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     unsigned int k = _graph.getKmerSize();
     unsigned int maxBulgeLength = std::max((unsigned int)((double)k * _bulgeLen_kMult), (unsigned int)(k + _bulgeLen_kAdd)); // SPAdes, exactly
     unsigned int backtrackingLimit = k+_bulgeAltPath_kAdd;//maxBulgeLength; // arbitrary, but if too high it will take much time; // with unitigs, no reason that it has to depend on k, but for some reason, setting it to just "k" doesnt remove nearly as many bulges as k=20. todo investigate that someday.
-    unsigned int altPathCovMult = _bulgeAltPath_covMult;
+    double       altPathCovMult = _bulgeAltPath_covMult;
 
     // stats
     //
