@@ -197,7 +197,6 @@ static string skip_first_abundance(const string& list)
     return res;
 }
 
-
 template<int SPAN>
 struct markedSeq
 {
@@ -246,7 +245,7 @@ static seq_idx_t no_rev_index(seq_idx_t index)
  * output: res, a list of lists of sequences that will be glued together
  */
 template<int SPAN>
-static void determine_order_sequences(vector<vector<seq_idx_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize, bool debug=false)
+static void determine_order_sequences(vector<vector<seq_idx_t>> &res, vector<bool> &res_is_circular, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize, bool debug=false)
 {
     typedef typename Kmer<SPAN>::Type Type;
     unordered_map<Type, set<seq_idx_t> > kmerIndex;
@@ -344,6 +343,7 @@ static void determine_order_sequences(vector<vector<seq_idx_t>> &res, const vect
             }
 
         res.push_back(chain);
+        res_is_circular.push_back(expect_circular);
         nb_chained += chain.size();
 
     };
@@ -411,7 +411,7 @@ static void determine_order_sequences(vector<vector<seq_idx_t>> &res, const vect
  * sequences should be ordered and in the right orientation
  * so, it's just a matter of chopping of the first kmer of elements i>1 of each chain
  */
-static void glue_sequences(vector<seq_idx_t> &chain, std::vector<std::string> &sequences, std::vector<std::string> &abundances, int kmerSize, string &res_seq, string &res_abundances)
+static void glue_sequences(vector<seq_idx_t> &chain, bool is_circular, std::vector<std::string> &sequences, std::vector<std::string> &abundances, int kmerSize, string &res_seq, string &res_abundances)
 {
     bool debug=false;
 
@@ -449,7 +449,24 @@ static void glue_sequences(vector<seq_idx_t> &chain, std::vector<std::string> &s
         previous_kmer = seq.substr(seq.size() - k);
         assert(previous_kmer.size() == k);
     }
-     if (debug) std::cout << std::endl;
+    if (is_circular) 
+    {
+        if (debug) std::cout << "chopping off last nucleotide" << std::endl;
+        if (debug) std::cout << res_seq << std::endl;
+        if (debug) std::cout << res_abundances << std::endl;
+        // trick: do it with the first kmer instead
+        res_seq = rc(res_seq);
+        res_abundances = reverse_abundances(res_abundances);
+
+        res_seq = res_seq.substr(1);
+        res_abundances = skip_first_abundance(res_abundances);
+
+        res_seq = rc(res_seq);
+        res_abundances = reverse_abundances(res_abundances);
+        if (debug) std::cout << res_seq << std::endl;
+        if (debug) std::cout << res_abundances << std::endl;
+    }
+    if (debug) std::cout << std::endl;
 }
 
 
@@ -772,7 +789,10 @@ void bglue(Storage *storage,
 
     int gamma = 3; // make it even faster.
  
-    // TODO: why not iterate the UF hashes from disk instead of loading them in memory (to construt that mphf)?
+    // side question:
+    // why not iterate the UF hashes from disk instead of loading them in memory (to construt that mphf)?
+    // I believe it's because the UF will anyway be loaded in memory after and will also take as much space as those hashes
+    
     boomphf::mphf<uf_hashes_t, /*TODO we don't need hasher_t here now that we're not hashing kmers, but I forgot to change*/ hasher_t< uf_hashes_t> > uf_mphf(nb_uf_keys, uf_hashes, nb_threads, gamma, verbose);
 
     free_memory_vector(uf_hashes);
@@ -1011,7 +1031,7 @@ void bglue(Storage *storage,
         {
             const string abundances = comment.substr(3);
             float mean_abundance = get_mean_abundance(abundances);
-            uint32_t sum_abundances = get_sum_abundance(abundances);
+            uint64_t sum_abundances = get_sum_abundance(abundances);
             
             // km is not a standard GFA field so i'm putting it in lower case as per the spec
             output(seq, out, "LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
@@ -1121,14 +1141,16 @@ void bglue(Storage *storage,
                 seq_index++;
             }
 
+            vector<vector<seq_idx_t>> seqs_to_glue;
+            vector<bool>              seqs_to_glue_is_circular;
+
             // now iterates all sequences in a partition to determine the order in which they're going to be glued
-            vector<vector<seq_idx_t>> ordered_sequences_idxs ;
             for (auto it = msInPart.begin(); it != msInPart.end(); it++)
             {
                 bool debug = false; //debug = it->first == 38145; // debug specific partition
                 //std::cout << "1.processing partition " << it->first << std::endl;
-                determine_order_sequences<SPAN>(ordered_sequences_idxs, it->second, kmerSize, debug); // return indices of markedSeq's inside it->second
-                //std::cout << "2.processing partition " << it->first << " nb ordered sequences: " << ordered_sequences_idxs.size() << std::endl;
+                determine_order_sequences<SPAN>(seqs_to_glue, seqs_to_glue_is_circular, it->second, kmerSize, debug); // return indices of markedSeq's inside it->second
+                //std::cout << "2.processing partition " << it->first << " nb of final sequences: " << seqs_to_glue.size() << std::endl;
                 free_memory_vector(it->second);
             }
 
@@ -1149,10 +1171,12 @@ void bglue(Storage *storage,
                 abundances.push_back(abundance_str);
             }
 
-            for (auto itO = ordered_sequences_idxs.begin(); itO != ordered_sequences_idxs.end(); itO++)
+            uint64_t  nb_seqs_to_glue = seqs_to_glue.size();
+            assert(seqs_to_glue_is_circular.size() == nb_seqs_to_glue);
+            for (uint64_t i = 0; i < nb_seqs_to_glue; i++)
             {
                 string seq, abs;
-                glue_sequences(*itO, sequences, abundances, kmerSize, seq, abs); // takes as input the indices of ordered sequences, and the markedSeq's themselves
+                glue_sequences(seqs_to_glue[i], seqs_to_glue_is_circular[i], sequences, abundances, kmerSize, seq, abs); // takes as input the indices of ordered sequences, whether that sequence is circular, and the markedSeq's themselves along with their abundances
 
                 float mean_abundance = get_mean_abundance(abs);
                 uint32_t sum_abundances = get_sum_abundance(abs);
@@ -1161,7 +1185,8 @@ void bglue(Storage *storage,
                 }
             }
                 
-            free_memory_vector(ordered_sequences_idxs);
+            free_memory_vector(seqs_to_glue);
+            free_memory_vector(seqs_to_glue_is_circular);
 
             partitionBank.finalize(); // BankFasta
 
