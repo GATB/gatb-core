@@ -384,7 +384,7 @@ static void determine_order_sequences(vector<vector<seq_idx_t>> &res, vector<boo
     // they are circular unitigs, to be glued with other sequences all containing doubled kmers at extremities
     while (nb_chained < markedSequences.size())
     {
-        std::cout << "nb chained " << nb_chained << " markedseq size" << markedSequences.size() << std::endl;
+        //std::cout << "nb chained " << nb_chained << " markedseq size" << markedSequences.size() << std::endl;
         vector<seq_idx_t> remaining_indices;
         for (seq_idx_t i = 0; i < markedSequences.size(); i++)
         {
@@ -399,12 +399,6 @@ static void determine_order_sequences(vector<vector<seq_idx_t>> &res, vector<boo
         
         glue_from_extremity(current, chain_index, remaining_indices[0], true);
     }
-    
-    if (nb_chained < markedSequences.size())
-    {
-        std::cout << " Note: " << markedSequences.size() - nb_chained << " sequence chunks not returned in output unitigs (likely small circular contigs)" << std::endl;
-    }
-    // assert(sequences.size() == nb_chained); // make sure we've scheduled to glue all sequences in this partition
 }
 
 /* straightforward glueing of a chain
