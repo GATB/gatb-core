@@ -60,10 +60,18 @@ using namespace gatb::core::tools::dp::impl;
 using namespace gatb::core::tools::collections;
 using namespace gatb::core::tools::collections::impl;
 
-
-
 using namespace std;
 
+// let's be clear here:
+// UF hashes will be stored in 32 bits for efficiency (as I don't want to have a 64-bits UF for memory reasons, also, would require to modify unionFind.hpp)
+typedef uint32_t uf_hashes_t;
+// but there can be more than 2^{32} sequences in the glue file
+typedef uint64_t seq_idx_t;
+// so, potentially, more than 2^{32} UF hashes (but not necessarily, consider that some sequences don't need to be glued)
+// what will happen is that more one UF class won't be linked to a single unitig, but multiple unitigs
+// let's hope that there won't be saturation (only 1 UF class with all unitigs)
+// if this happens, then "Top 10 glue partitions by size:" will show only one entry and BCALM will blow up in memory
+// a fix would be to use a 64 bits UF (to be coded later)
 
 namespace gatb { namespace core { namespace debruijn { namespace impl  {
 
@@ -194,13 +202,13 @@ template<int SPAN>
 struct markedSeq
 {
     // there used to be "string seq; string abundance" but i noticed that i did not need that info for determining the chain of glues. not much space saved though (like 10-20%). I suppose the biggest memory-hog is the ks/ke unordered_map
-    uint64_t index;
+    seq_idx_t index;
     bool rc;
     bool lmark, rmark;
     typedef typename Kmer<SPAN>::Type Type;
     Type ks, ke; // [start,end] kmers of seq, in canonical form (redundant information with seq, but helpful)
 
-    markedSeq(uint64_t index, bool lmark, bool rmark, const Type &ks, const Type &ke) : index(index), rc(false), lmark(lmark), rmark(rmark), ks(ks), ke(ke) {};
+    markedSeq(seq_idx_t index, bool lmark, bool rmark, const Type &ks, const Type &ke) : index(index), rc(false), lmark(lmark), rmark(rmark), ks(ks), ke(ke) {};
 
     void revcomp()
     {
@@ -213,22 +221,22 @@ struct markedSeq
 
 // hack to refer to a sequences in msInPart as reverse complemented
 
-static uint32_t is_rev_index(uint32_t index)
+static seq_idx_t is_rev_index(seq_idx_t index)
 {
-    return ((index >> 31 & 1) == 1);
+    return (((index >> (uint64_t)63) & (uint64_t)1) == 1);
 }
 
 
-static uint32_t rev_index(uint32_t index)
+static seq_idx_t rev_index(seq_idx_t index)
 {
     if (is_rev_index(index))
     { std::cout << "Error: glue sequence index too large " << index << std::endl; exit(1);}
-    return index | (1<<31);
+    return index | ((uint64_t)1<<(uint64_t)63);
 }
 
-static uint32_t no_rev_index(uint32_t index)
+static seq_idx_t no_rev_index(seq_idx_t index)
 {
-    return index & ((1LL<<31) - 1LL);
+    return index & (((uint64_t)1<<(uint64_t)63) - (uint64_t)1);
 }
 
 //typedef lazy::memory::buffer_allocator<markedSeq> custom_allocator_t;
@@ -238,27 +246,27 @@ static uint32_t no_rev_index(uint32_t index)
  * output: res, a list of lists of sequences that will be glued together
  */
 template<int SPAN>
-static void determine_order_sequences(vector<vector<uint32_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize, bool debug=false)
+static void determine_order_sequences(vector<vector<seq_idx_t>> &res, const vector<markedSeq<SPAN>> &markedSequences, int kmerSize, bool debug=false)
 {
     typedef typename Kmer<SPAN>::Type Type;
-    unordered_map<Type, set<uint32_t> > kmerIndex;
-    set<uint32_t> usedSeq;
-    unsigned int nb_chained = 0;
+    unordered_map<Type, set<seq_idx_t> > kmerIndex;
+    set<seq_idx_t> usedSeq;
+    uint64_t nb_chained = 0;
 
     // index kmers to their seq
     // kmerIndex associates a kmer extremity to its index in markedSequences
-    for (uint32_t i = 0; i < markedSequences.size(); i++)
+    for (seq_idx_t i = 0; i < markedSequences.size(); i++)
     {
         kmerIndex[markedSequences[i].ks].insert(i);
         kmerIndex[markedSequences[i].ke].insert(i);
     }
 
-    auto glue_from_extremity = [&](markedSeq<SPAN> current, uint32_t chain_index, uint32_t markedSequence_index, bool expect_circular=false)
+    auto glue_from_extremity = [&](markedSeq<SPAN> current, seq_idx_t chain_index, seq_idx_t markedSequence_index, bool expect_circular=false)
     {
 #ifndef NDEBUG
-        uint32_t first_index = markedSequence_index;
+        seq_idx_t first_index = markedSequence_index;
 #endif
-        vector<uint32_t> chain;
+        vector<seq_idx_t> chain;
         chain.push_back(chain_index);
 
         bool rmark = current.rmark;
@@ -270,14 +278,14 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
                 std::cout << "current ke " << current.ke << " index " << no_rev_index(chain_index) << " markings: " << current.lmark << current.rmark <<std::endl;
 
             // this sequence has a rmark, so necessarily there is another sequence to glue it with. find it here.
-            set<uint32_t> candidateSuccessors = kmerIndex[current.ke];
+            set<seq_idx_t> candidateSuccessors = kmerIndex[current.ke];
            
             assert(candidateSuccessors.find(markedSequence_index) != candidateSuccessors.end()); // remove the current seq from our indexing data structure 
             candidateSuccessors.erase(markedSequence_index);
 
             assert(candidateSuccessors.size() == 1); // normally there is exactly one sequence to glue with
 
-            uint32_t successor_index = *candidateSuccessors.begin(); // pop()
+            seq_idx_t successor_index = *candidateSuccessors.begin(); // pop()
             assert(successor_index != markedSequence_index);
             markedSeq<SPAN> successor = markedSequences[successor_index];
 
@@ -317,6 +325,11 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
                 if (usedSeq.find(markedSequence_index) != usedSeq.end())
                 {
                     assert(markedSequence_index == first_index);
+                    if (debug)
+                        std::cout << "breaking at circular unitig" << std::endl;
+                    // here it would be tempting to remove the last element of the chain to remove the last kmer
+                    // but this strategy doesn't work as that element might be longer than a kmer 
+                    // so the preferred strategy is to cut the last nucleotide of a circular unitig
                     break;
                 }
             }
@@ -335,7 +348,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
     };
 
-    // iterated markedSequences, and picks extremities of a chain
+    // iterate markedSequences, and picks extremities of a chain
     for (unsigned int i = 0; i < markedSequences.size(); i++)
     {
         markedSeq<SPAN> current = markedSequences[i];
@@ -354,7 +367,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
         }
     
         /* normalize sequence so that lmark is false */
-        uint32_t chain_index = markedSequences[i].index;
+        seq_idx_t chain_index = markedSequences[i].index;
         if (current.lmark)
         {
             current.revcomp(); 
@@ -367,13 +380,13 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
     }
 
-    // special case: a circular unitig, to be glued with multiple sequences all containing doubled kmers at extremities
-    // my fix plan: we pick an extremity at random, and chop the last nucleotide and mark it to not be glued. also find the corresponding kmer in other extremity, and mark it as not to be glued
+    // handle the special cases undetected in the previous loop: 
+    // they are circular unitigs, to be glued with other sequences all containing doubled kmers at extremities
     while (nb_chained < markedSequences.size())
     {
-        //std::cout << "nb chained " << nb_chained << " markedseq size" << markedSequences.size() << std::endl;
-        vector<int> remaining_indices;
-        for (uint32_t i = 0; i < markedSequences.size(); i++)
+        std::cout << "nb chained " << nb_chained << " markedseq size" << markedSequences.size() << std::endl;
+        vector<seq_idx_t> remaining_indices;
+        for (seq_idx_t i = 0; i < markedSequences.size(); i++)
         {
             if (usedSeq.find(i) == usedSeq.end())
                 remaining_indices.push_back(i);
@@ -382,7 +395,7 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
         assert(remaining_indices.size()>0);
 
         markedSeq<SPAN> current = markedSequences[remaining_indices[0]];
-        uint32_t chain_index = markedSequences[remaining_indices[0]].index;
+        seq_idx_t chain_index = markedSequences[remaining_indices[0]].index;
         
         glue_from_extremity(current, chain_index, remaining_indices[0], true);
     }
@@ -396,9 +409,9 @@ static void determine_order_sequences(vector<vector<uint32_t>> &res, const vecto
 
 /* straightforward glueing of a chain
  * sequences should be ordered and in the right orientation
- * so, it' just a matter of chopping of the first kmer
+ * so, it's just a matter of chopping of the first kmer of elements i>1 of each chain
  */
-static void glue_sequences(vector<uint32_t> &chain, std::vector<std::string> &sequences, std::vector<std::string> &abundances, int kmerSize, string &res_seq, string &res_abundances)
+static void glue_sequences(vector<seq_idx_t> &chain, std::vector<std::string> &sequences, std::vector<std::string> &abundances, int kmerSize, string &res_seq, string &res_abundances)
 {
     bool debug=false;
 
@@ -408,7 +421,7 @@ static void glue_sequences(vector<uint32_t> &chain, std::vector<std::string> &se
     if (debug) std::cout << "glueing new chain: ";
     for (auto it = chain.begin(); it != chain.end(); it++)
     {
-        uint32_t idx = *it;
+        seq_idx_t idx = *it;
 
         string seq = sequences[no_rev_index(idx)];
         string abs = abundances[no_rev_index(idx)];
@@ -481,8 +494,6 @@ class hasher_t
     }
 };
     
-typedef uint64_t partition_t;
-
 /* computes and uniquifies the hashes of marked kmers at extremities of all to-be-glued sequences */
 template <int SPAN>
 void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSize, int pass, int nb_passes, uint64_t &nb_elts, uint64_t estimated_nb_glue_sequences)
@@ -491,7 +502,7 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
     std::atomic<unsigned long> nb_marked_extremities, nb_unmarked_extremities; 
     nb_marked_extremities = 0; nb_unmarked_extremities = 0;
 
-    std::vector<std::vector<partition_t >> uf_hashes_vectors(nb_threads);
+    std::vector<std::vector<uf_hashes_t>> uf_hashes_vectors(nb_threads);
     
     // relatively accurate number of sequences to be inserted
     for (int i = 0; i < nb_threads; i++)
@@ -499,7 +510,7 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
 
     /* class (formerly a simple lambda function) to process a kmer and decide which bucket(s) it should go to */
     /* needed to make it a class because i want it to remember its thread index */
-    class UniquifyKeys 
+    class RepartHashes 
     {
         typedef typename Kmer<SPAN>::ModelCanonical ModelCanon;
         
@@ -508,13 +519,13 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
         ModelCanon modelCanon;
         Hasher_T<ModelCanon> hasher;
         std::atomic<unsigned long> &nb_marked_extremities, &nb_unmarked_extremities; 
-        std::vector<std::vector<partition_t >> &uf_hashes_vectors;
+        std::vector<std::vector<uf_hashes_t>> &uf_hashes_vectors;
         int _currentThreadIndex;
 
         public: 
-        UniquifyKeys(int k, int pass, int nb_passes, int nb_threads,
+        RepartHashes(int k, int pass, int nb_passes, int nb_threads,
                      std::atomic<unsigned long> &nb_marked_extremities, std::atomic<unsigned long> & nb_unmarked_extremities,
-                    std::vector<std::vector<partition_t >> &uf_hashes_vectors
+                    std::vector<std::vector<uf_hashes_t>> &uf_hashes_vectors
                      ) : k(k), pass(pass), nb_passes(nb_passes), nb_threads(nb_threads), modelCanon(k), hasher(modelCanon),
                         nb_marked_extremities(nb_marked_extremities), nb_unmarked_extremities(nb_unmarked_extremities),
                          uf_hashes_vectors(uf_hashes_vectors), _currentThreadIndex(-1)
@@ -531,12 +542,13 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
             if (lmark)
             {
                 const string kmerBegin = seq.substr(0, k );
-                // UF of canonical kmers in ModelCanon form, then hashed
+                // canonical kmers in ModelCanon form, then hashed
                 const typename ModelCanon::Kmer kmmerBegin = modelCanon.codeSeed(kmerBegin.c_str(), Data::ASCII);
                 const uint64_t h1 = hasher(kmmerBegin);
                 if (h1 % (uint64_t)nb_passes == (uint64_t)pass)
                 {
-                    uf_hashes_vectors[thread].push_back(h1);
+                    uf_hashes_vectors[thread].push_back(h1); // this is where the 64 bits "hasher() result" to the 32 bits "uf_hash_t" conversion is taking place
+                                                             // but hopefully it's okay 
                     nb_marked_extremities++;
                 }
             }
@@ -581,10 +593,10 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
 
     Dispatcher dispatcher (nb_threads);
 
-    UniquifyKeys uniquifyKeys(kmerSize, pass, nb_passes, nb_threads,
+    RepartHashes repartHashes(kmerSize, pass, nb_passes, nb_threads,
                               nb_marked_extremities, nb_unmarked_extremities,
                               uf_hashes_vectors);
-    dispatcher.iterate (in->iterator(), uniquifyKeys);
+    dispatcher.iterate (in->iterator(), repartHashes);
     logging( std::to_string(nb_marked_extremities.load()) + " marked kmers, " + std::to_string(nb_unmarked_extremities.load()) + " unmarked kmers");
 
 
@@ -595,7 +607,7 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
         prepareUF(it->item());*/
 
 
-    logging("created vector of hashes, size approx " + std::to_string( sizeof(partition_t)*nb_marked_extremities.load()/1024/1024) + " MB)");
+    logging("created vector of hashes, size approx " + std::to_string( sizeof(uf_hashes_t)*nb_marked_extremities.load()/1024/1024) + " MB)");
     ThreadPool uf_sort_pool(nb_threads); // ThreadPool
   //  ctpl::thread_pool uf_merge_pool(nb_threads);
 
@@ -604,7 +616,7 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
     {
         auto sortuniq = [&uf_hashes_vectors, i] (int thread_id)
         {
-            std::vector<partition_t> &vec = uf_hashes_vectors[i];
+            std::vector<uf_hashes_t> &vec = uf_hashes_vectors[i];
             sort( vec.begin(), vec.end() );
             vec.erase( unique( vec.begin(), vec.end() ), vec.end() );
         };
@@ -615,13 +627,16 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
 
     uf_sort_pool.join(); // ThreadPool
     
-    
     // a single-threaded merge and write to file before they're loaded again in bglue
-    BagFile<uint64_t> * bagf = new BagFile<uint64_t>( prefix+".glue.hashes."+ to_string(pass)); LOCAL(bagf); 
-	Bag<uint64_t> * currentbag =  new BagCache<uint64_t> (  bagf, 10000 ); LOCAL(currentbag);// really? we have to through these hoops to do a simple binary file in gatb? gotta change this.
-    uint64_t nb_elts_pass = 0;
+    BagFile<uf_hashes_t> * bagf = new BagFile<uf_hashes_t>( prefix+".glue.hashes."+ to_string(pass)); LOCAL(bagf); 
+	Bag<uf_hashes_t> * currentbag =  new BagCache<uf_hashes_t> (  bagf, 10000 ); LOCAL(currentbag);// really? we have to through these hoops to do a simple binary file in gatb? gotta change this.
 
-    priority_queue<std::tuple<uint64_t,int>, std::vector<std::tuple<uint64_t,int>>, std::greater<std::tuple<uint64_t,int>> > pq; // http://stackoverflow.com/questions/2439283/how-can-i-create-min-stl-priority-queue
+    uint64_t nb_elts_pass = 0; // it's a counter
+
+    // tuple is uf_hash_t, thread_id(=int)
+    priority_queue<std::tuple<uf_hashes_t,int>, std::vector<std::tuple<uf_hashes_t,int>>, std::greater<std::tuple<uf_hashes_t,int>> > pq; // http://stackoverflow.com/questions/2439283/how-can-i-create-min-stl-priority-queue
+
+    // auxiliary info for threads 
     vector<uint64_t> hash_vector_idx(nb_threads);
     vector<uint64_t> hash_vector_size(nb_threads);
 
@@ -634,11 +649,11 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
             pq.emplace(make_tuple(uf_hashes_vectors[i][hash_vector_idx[i]++], i));
     }
 
-    uint64_t prev = -1;
+    uint64_t prev = UINT64_MAX; // should be uf_hash_t but let's have it larger to mark a special "prev" initial value 
     while (pq.size() > 0)
     {
-        std::tuple<uint64_t, int> elt = pq.top(); pq.pop();
-        uint64_t cur = get<0>(elt);
+        std::tuple<uf_hashes_t, int> elt = pq.top(); pq.pop();
+        uf_hashes_t cur = get<0>(elt);
         //std::cout << "got " << cur << " queue " << get<1>(elt) << std::endl;
         if (cur != prev)
         {
@@ -660,7 +675,7 @@ void prepare_uf(std::string prefix, IBank *in, const int nb_threads, int& kmerSi
     
     free_memory_vector(uf_hashes_vectors);
 
-    logging("pass " + to_string(pass+1) + "/" + to_string(nb_passes) + ", " + std::to_string(nb_elts_pass) + " unique hashes written to disk, size " + to_string(nb_elts_pass* sizeof(partition_t) / 1024/1024) + " MB");
+    logging("pass " + to_string(pass+1) + "/" + to_string(nb_passes) + ", " + std::to_string(nb_elts_pass) + " unique hashes written to disk, size " + to_string(nb_elts_pass* sizeof(uf_hashes_t) / 1024/1024) + " MB");
 
     nb_elts += nb_elts_pass;
 }
@@ -741,11 +756,11 @@ void bglue(Storage *storage,
         prepare_uf<SPAN>(prefix, in, nb_threads, kmerSize, pass, nb_prepare_passes, nb_elts, nb_glue_sequences);
 
     // load uf hashes from disk
-    std::vector<partition_t> uf_hashes;
+    std::vector<uf_hashes_t> uf_hashes;
     uf_hashes.reserve(nb_elts);
     for (int pass = 0; pass < nb_prepare_passes; pass++)
     {
-        IteratorFile<uint64_t> file(prefix+".glue.hashes." + to_string(pass));
+        IteratorFile<uf_hashes_t> file(prefix+".glue.hashes." + to_string(pass));
         for (file.first(); !file.isDone(); file.next())
             uf_hashes.push_back(file.item());
     }
@@ -753,12 +768,12 @@ void bglue(Storage *storage,
         uf_hashes.push_back(0);
 
     unsigned long nb_uf_keys = uf_hashes.size();
-    logging("loaded all unique UF elements (" + std::to_string(nb_uf_keys) + ") into a single vector of size " + to_string(nb_uf_keys* sizeof(partition_t) / 1024/1024) + " MB");
+    logging("loaded all unique UF elements (" + std::to_string(nb_uf_keys) + ") into a single vector of size " + to_string(nb_uf_keys* sizeof(uf_hashes_t) / 1024/1024) + " MB");
 
     int gamma = 3; // make it even faster.
  
-    // TODO: why not iterate the UF hashes from disk instead of loading them in memory?
-    boomphf::mphf<partition_t , /*TODO we don't need hasher_t here now that we're not hashing kmers, but I forgot to change*/ hasher_t< partition_t> > uf_mphf(nb_uf_keys, uf_hashes, nb_threads, gamma, verbose);
+    // TODO: why not iterate the UF hashes from disk instead of loading them in memory (to construt that mphf)?
+    boomphf::mphf<uf_hashes_t, /*TODO we don't need hasher_t here now that we're not hashing kmers, but I forgot to change*/ hasher_t< uf_hashes_t> > uf_mphf(nb_uf_keys, uf_hashes, nb_threads, gamma, verbose);
 
     free_memory_vector(uf_hashes);
 
@@ -766,6 +781,12 @@ void bglue(Storage *storage,
     {
         unsigned long uf_mphf_memory = uf_mphf.totalBitSize();
         logging("UF MPHF constructed (" + std::to_string(uf_mphf_memory/8/1024/1024) + " MB)" );
+    }
+
+    if (nb_uf_keys > (uint64_t)UINT32_MAX)
+    {
+        std::cout << "cannot create a union-find data structure, too many elements. This should in fact not even happen. Please contact a BCALM developer" << std::endl;
+        exit(1);
     }
 
     // create a UF data structure
@@ -781,7 +802,7 @@ void bglue(Storage *storage,
 // those were toy one, here is the real one:
     
     // instead of UF of kmers, we do a union find of hashes of kmers. less memory. will have collisions, but that's okay i think. let's see.
-    // actually, in the current implementation, partition_t is not used, but values are indeed hardcoded in 32 bits (the UF implementation uses a 64 bits hash table for internal stuff)
+    // actually, in the current implementation, values are indeed hardcoded in 32 bits (the UF implementation uses a 64 bits hash table but don't get fooled, it's 32 bits of values and 32 bits of internal stuff)
 
     // We loop over sequences.
 
@@ -877,11 +898,12 @@ void bglue(Storage *storage,
         return;
 
     /* now we're mirroring the UF to a vector of uint32_t's, it will take less space, and strictly same information
-     * this is to get rid of the rank (one uint32) per element in the current UF implementation 
-     * we're using the disk to save space of populating one vector from the other in memory. */
+     * this is to get rid of the rank (one uint32) per element in the current UF implementation. 
+     * To do this, we're using the disk to save space of populating one vector from the other in memory. 
+     * (saves having to allocate both vectors at the same time) */
     
-    BagFile<uint64_t> *ufkmers_bagf = new BagFile<uint64_t>(prefix+".glue.uf");  LOCAL(ufkmers_bagf);
-	BagCache<uint64_t> *ufkmers_bag = new BagCache<uint64_t>(  ufkmers_bagf, 10000 );   LOCAL(ufkmers_bag);
+    BagFile<uf_hashes_t> *ufkmers_bagf = new BagFile<uf_hashes_t>(prefix+".glue.uf");  LOCAL(ufkmers_bagf);
+	BagCache<uf_hashes_t> *ufkmers_bag = new BagCache<uf_hashes_t>(  ufkmers_bagf, 10000 );   LOCAL(ufkmers_bag);
 
     for (unsigned long i = 0; i < nb_uf_keys; i++)
         //ufkmers_vector[i] = ufkmers.find(i); // just in-memory without the disk
@@ -894,15 +916,15 @@ void bglue(Storage *storage,
 
     ufkmers_bag->flush();
 
-    std::vector<uint32_t > ufkmers_vector(nb_uf_keys);
-    IteratorFile<uint64_t> ufkmers_file(prefix+".glue.uf");
+    std::vector<uf_hashes_t> ufkmers_vector(nb_uf_keys);
+    IteratorFile<uf_hashes_t> ufkmers_file(prefix+".glue.uf");
     unsigned long i = 0;
     for (ufkmers_file.first(); !ufkmers_file.isDone(); ufkmers_file.next())
             ufkmers_vector[i++] = ufkmers_file.item();
 
     System::file().remove (prefix+".glue.uf");
     
-    logging("loaded 32-bit UF (" + to_string(nb_uf_keys*sizeof(uint32_t)/1024/1024) + " MB)");
+    logging("loaded 32-bit UF (" + to_string(nb_uf_keys*sizeof(uf_hashes_t)/1024/1024) + " MB)");
   
     // setup output file
     string output_prefix = prefix;
@@ -1063,7 +1085,7 @@ void bglue(Storage *storage,
             outLock.unlock();
 
             unordered_map<int, vector< markedSeq<SPAN> >> msInPart;
-            uint64_t seq_index = 0;
+            seq_idx_t seq_index = 0;
 
             for (it.first(); !it.isDone(); it.next()) // BankFasta
             {
@@ -1099,8 +1121,8 @@ void bglue(Storage *storage,
                 seq_index++;
             }
 
-            // now iterates all sequences in a partition to determine the order in which they're going to be glues (avoid intermediate gluing)
-            vector<vector<uint32_t>> ordered_sequences_idxs ;
+            // now iterates all sequences in a partition to determine the order in which they're going to be glued
+            vector<vector<seq_idx_t>> ordered_sequences_idxs ;
             for (auto it = msInPart.begin(); it != msInPart.end(); it++)
             {
                 bool debug = false; //debug = it->first == 38145; // debug specific partition
