@@ -239,6 +239,7 @@ public:
     _filename(it._filename), _gzfile(0),  _buffer(0), _cpt_buffer(0), _idx(0), _cacheItemsNb(it._cacheItemsNb), _isDone(true)
     {
         _gzfile =   gzopen(_filename.c_str(),"rb");
+        gzbuffer(_gzfile,2*1024*1024);
         _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
     }
     
@@ -248,6 +249,7 @@ public:
     
     {
         _gzfile =   gzopen(_filename.c_str(),"rb");
+        gzbuffer(_gzfile,2*1024*1024);
         _buffer  = (Item*) MALLOC (sizeof(Item) * _cacheItemsNb);
     }
     
@@ -273,6 +275,7 @@ public:
             _isDone       = it._isDone;
             
             _gzfile =   gzopen(_filename.c_str(),"r");
+            gzbuffer(_gzfile,2*1024*1024);
             _buffer  = (Item*) MALLOC (sizeof(Item) * it._cacheItemsNb);
         }
         return *this;

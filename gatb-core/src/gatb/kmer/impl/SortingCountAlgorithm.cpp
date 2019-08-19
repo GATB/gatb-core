@@ -1300,6 +1300,16 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 				itBanks[i]->finalize();
 			}
 		}
+
+        // force close partitions and re-open them for reading
+        // may prevent crash in large multi-bank counting instance on Lustre filesystems
+		if(_config._solidityKind != KMER_SOLIDITY_SUM)
+		{
+			string tmpStorageName = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("dsk_partitions");
+			setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
+			setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts", _config._nb_partitions));
+			
+		}
 	}
 
 /*********************************************************************

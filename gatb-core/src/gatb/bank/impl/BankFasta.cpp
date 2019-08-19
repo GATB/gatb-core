@@ -651,6 +651,7 @@ void BankFasta::Iterator::init ()
         *bf = (buffered_file_t *)  CALLOC (1, sizeof(buffered_file_t));
         (*bf)->buffer = (unsigned char*)  MALLOC (BUFFER_SIZE);
         (*bf)->stream = gzopen (fname, "r");
+        gzbuffer((*bf)->stream,2*1024*1024);
 		
         /** We check that we can open the file. */
         if ((*bf)->stream == NULL)
