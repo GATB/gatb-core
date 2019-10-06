@@ -112,6 +112,14 @@ if (debug)
     message("-- COMPILATION IN DEBUG MODE")
 else()
     set (LIBRARY_COMPILE_DEFINITIONS  "${LIBRARY_COMPILE_DEFINITIONS} -O3 -DNDEBUG ${LIB_COMPILE_WARNINGS}")
+    set (CMAKE_BUILD_TYPE Release) # Avoids the "RelWithDebInfo" build type of Cmake, which creates problems with "make package" later. It gave that error:
+    #CMake Error at /scratchdir/test-suite-debian7-64bits-gcc-4.7/gatb-core/build/thirdparty/cmake_install.cmake:41 (file):
+    #file INSTALL cannot find
+    #"/scratchdir/test-suite-debian7-64bits-gcc-4.7/gatb-core/build/include/RelWithDebInfo/hdf5".
+    #Call Stack (most recent call first):
+    #/scratchdir/test-suite-debian7-64bits-gcc-4.7/gatb-core/build/cmake_install.cmake:65 (include)
+    #
+    # so, to fix that, I'm forcing build type to be release.
 endif()
 
 if (INT128_FOUND)
