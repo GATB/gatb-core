@@ -84,6 +84,7 @@ public:
     const char* kmer_size      ()  { return "-kmer-size";      }
     const char* minimizer_size ()  { return "-minimizer-size"; }
     const char* edge_km_representation ()  { return "-edge-km"; }
+    const char* all_abundance_counts   ()  { return "-all-abundance-counts"; }
     const char* kmer_abundance ()  { return "-abundance"; }
     const char* kmer_abundance_min ()  { return "-abundance-min"; }
     const char* kmer_abundance_min_threshold ()  { return "-abundance-min-threshold"; }
@@ -140,6 +141,7 @@ public:
 #define STR_KMER_SIZE           gatb::core::tools::misc::StringRepository::singleton().kmer_size ()
 #define STR_MINIMIZER_SIZE      gatb::core::tools::misc::StringRepository::singleton().minimizer_size ()
 #define STR_EDGE_KM_REPRESENTATION      gatb::core::tools::misc::StringRepository::singleton().edge_km_representation ()
+#define STR_ALL_ABUNDANCE_COUNTS        gatb::core::tools::misc::StringRepository::singleton().all_abundance_counts ()
 #define STR_INTEGER_PRECISION   gatb::core::tools::misc::StringRepository::singleton().integer_precision ()
 #define STR_KMER_ABUNDANCE      gatb::core::tools::misc::StringRepository::singleton().kmer_abundance ()
 #define STR_KMER_ABUNDANCE_MIN  gatb::core::tools::misc::StringRepository::singleton().kmer_abundance_min ()
