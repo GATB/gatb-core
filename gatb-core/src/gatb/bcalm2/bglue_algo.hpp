@@ -150,6 +150,7 @@ void bglue(gatb::core::tools::storage::impl::Storage* storage,
         int kmerSize, 
         int nb_glue_partitions, 
         int nb_threads, 
+        bool all_abundance_counts,
         bool verbose
         );
 

@@ -197,6 +197,24 @@ static string skip_first_abundance(const string& list)
     return res;
 }
 
+static string make_header(const int seq_size, const string& abundances, bool all_abundance_counts)
+{
+    string header;
+    float mean_abundance = get_mean_abundance(abundances);
+    uint64_t sum_abundances = get_sum_abundance(abundances);
+    if (all_abundance_counts)
+    {
+        // in this setting, all kmer wabundances are printed in the order of the kmers in the sequence
+        header = "LN:i:" + to_string(seq_size) + " ab:Z:" + abundances;
+    }
+    else
+    {
+        // km is not a standard GFA field so i'm putting it in lower case as per the spec
+        header = "LN:i:" + to_string(seq_size) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance);
+    }
+    return header;
+}
+
 template<int SPAN>
 struct markedSeq
 {
@@ -699,6 +717,7 @@ void bglue(Storage *storage,
         int kmerSize, 
         int nb_glue_partitions, 
         int nb_threads, 
+        bool all_abundance_counts,
         bool verbose
         )
 {
@@ -1000,7 +1019,7 @@ void bglue(Storage *storage,
 
     // partition the glue into many files, à la dsk
     auto partitionGlue = [k, &modelCanon /* crashes if copied!*/, \
-        &get_UFclass, &gluePartitions,
+        &get_UFclass, &gluePartitions, all_abundance_counts,
         &out, &outLock, &nb_seqs_in_partition, nbGluePartitions]
             (const Sequence& sequence)
     {
@@ -1024,11 +1043,8 @@ void bglue(Storage *storage,
         if (!found_class) // this one doesn't need to be glued
         {
             const string abundances = comment.substr(3);
-            float mean_abundance = get_mean_abundance(abundances);
-            uint64_t sum_abundances = get_sum_abundance(abundances);
-            
-            // km is not a standard GFA field so i'm putting it in lower case as per the spec
-            output(seq, out, "LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance)); 
+            string header = make_header(seq.size(),abundances, all_abundance_counts);
+            output(seq, out, header); 
             return;
         }
 
@@ -1082,7 +1098,7 @@ void bglue(Storage *storage,
     for (int partition = 0; partition < nbGluePartitions; partition++)
     {
         auto glue_partition = [&modelCanon, &ufkmers, partition, &gluePartition_prefix, nbGluePartitions, &copy_nb_seqs_in_partition,
-        &get_UFclass, &out, &outLock, kmerSize]( int thread_id)
+        &get_UFclass, &out, &outLock, kmerSize, all_abundance_counts]( int thread_id)
         {
             int k = kmerSize;
 
@@ -1172,10 +1188,9 @@ void bglue(Storage *storage,
                 string seq, abs;
                 glue_sequences(seqs_to_glue[i], seqs_to_glue_is_circular[i], sequences, abundances, kmerSize, seq, abs); // takes as input the indices of ordered sequences, whether that sequence is circular, and the markedSeq's themselves along with their abundances
 
-                float mean_abundance = get_mean_abundance(abs);
-                uint32_t sum_abundances = get_sum_abundance(abs);
                 {
-                    output(seq, out, "LN:i:" + to_string(seq.size()) + " KC:i:" + to_string(sum_abundances) + " km:f:" + to_string_with_precision(mean_abundance));
+                    string header = make_header(seq.size(),abs, all_abundance_counts);
+                    output(seq, out, header);
                 }
             }
                 

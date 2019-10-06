@@ -91,18 +91,15 @@ UnitigsConstructionAlgorithm<span>::~UnitigsConstructionAlgorithm ()
 template <size_t span>
 void UnitigsConstructionAlgorithm<span>::execute ()
 {
-    kmerSize =
-            getInput()->getInt(STR_KMER_SIZE);
-    int abundance = 
-            getInput()->getInt(STR_KMER_ABUNDANCE_MIN); // note: doesn't work when it's "auto"
-    int minimizerSize =
-        getInput()->getInt(STR_MINIMIZER_SIZE);
-    int nb_threads =
-        getInput()->getInt(STR_NB_CORES);
-    int minimizer_type =
-        getInput()->getInt(STR_MINIMIZER_TYPE);
-    bool verbose = getInput()->getInt(STR_VERBOSE);
+    kmerSize                    = getInput()->getInt(STR_KMER_SIZE);
+    int abundance               = getInput()->getInt(STR_KMER_ABUNDANCE_MIN); // note: doesn't work when it's "auto"
+    int minimizerSize           = getInput()->getInt(STR_MINIMIZER_SIZE);
+    int nb_threads              = getInput()->getInt(STR_NB_CORES);
+    int minimizer_type          = getInput()->getInt(STR_MINIMIZER_TYPE);
+    bool verbose                = getInput()->getInt(STR_VERBOSE);
     bool edge_km_representation = getInput()->getInt(STR_EDGE_KM_REPRESENTATION);
+    bool all_abundance_counts   = getInput()->get(STR_ALL_ABUNDANCE_COUNTS);
+   
     int nb_glue_partitions = 0;
     if (getInput()->get("-nb-glue-partitions"))
         nb_glue_partitions = getInput()->getInt("-nb-glue-partitions");
@@ -111,8 +108,8 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     if ((unsigned int)nb_threads > nbThreads)
         std::cout << "Uh. Unitigs graph construction called with nb_threads " << nb_threads << " but dispatcher has nbThreads " << nbThreads << std::endl;
 
-    if (do_bcalm) bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type, verbose); 
-    if (do_bglue) bglue<span> (&_storage, unitigs_filename, kmerSize, nb_glue_partitions,       nbThreads,                 verbose);
+    if (do_bcalm) bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type,       verbose); 
+    if (do_bglue) bglue<span> (&_storage, unitigs_filename, kmerSize, nb_glue_partitions,       nbThreads, all_abundance_counts, verbose);
     if (do_links) link_tigs<span>(unitigs_filename, kmerSize, nbThreads, nb_unitigs, verbose, edge_km_representation);
 
     /** We gather some statistics. */
