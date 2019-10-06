@@ -268,6 +268,7 @@ private:
                 std::string actualName = this->getFullId('/');
 
                 /** We create the HDF5 group if needed. */
+//std::cout << "actualname: "<< actualName << " end"<<std::endl;
                 htri_t doesExist = H5Lexists (storage->getFileId(), actualName.c_str(), H5P_DEFAULT);
 
                 if (doesExist <= 0)

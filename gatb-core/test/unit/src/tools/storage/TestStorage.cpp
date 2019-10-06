@@ -132,7 +132,10 @@ public:
         {
             size_t nbIter = 0;
             Iterator<NativeInt64>* it = partition[i].iterator();    LOCAL(it);
-            for (it->first(); !it->isDone(); it->next(), nbIter++)  {  CPPUNIT_ASSERT (it->item() == 2*i);  }
+            for (it->first(); !it->isDone(); it->next(), nbIter++)  {  
+                 if (it->item() != 2*i)
+                    std::cout << std::endl << "item " << it->item() << " expected: " << 2*i << std::endl;            
+                CPPUNIT_ASSERT (it->item() == 2*i);  }
             CPPUNIT_ASSERT (nbIter == 1);
         }
 
@@ -152,7 +155,9 @@ public:
             Iterator<NativeInt64>* it = partition[i].iterator();    LOCAL(it);
             for (it->first(); !it->isDone(); it->next(), nbIter++)
             {
-                if (nbIter==0)  {  CPPUNIT_ASSERT (it->item() == 2*i  ); }
+                if (nbIter==0)  { if (it->item() != 2*i)
+                                    std::cout << "item " << it->item() << " expected: " << 2*i << std::endl;            
+                      CPPUNIT_ASSERT (it->item() == 2*i  ); }
                 if (nbIter==1)  {  CPPUNIT_ASSERT (it->item() == 2*i+1); }
             }
             CPPUNIT_ASSERT (nbIter == 2);

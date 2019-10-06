@@ -36,6 +36,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <iostream>
 
 /********************************************************************************/
 namespace gatb      {
@@ -60,6 +61,7 @@ public:
     {
         _isStdout = path && strcmp(path,"stdout")==0;
         _handle   = _isStdout ? stdout : fopen (path, mode);
+        //std::cout << "opening file " << _path << " handle " << _handle << std::endl;
 		if(_handle == 0)
 		{
 			throw Exception ("cannot open %s %s",path,strerror(errno));
@@ -67,7 +69,9 @@ public:
     }
 
     /** Destructor. */
-    virtual ~CommonFile ()  {  if (_handle && !_isStdout)  {  fclose (_handle);  }  }
+    virtual ~CommonFile ()  {  if (_handle && !_isStdout)  {  
+        //std::cout << "closing file " << _path << " handle " << _handle << std::endl; 
+        fclose (_handle);  }  }
 
     /** \copydoc IFile::isOpen */
     bool isOpen ()  { return getHandle() != 0; }

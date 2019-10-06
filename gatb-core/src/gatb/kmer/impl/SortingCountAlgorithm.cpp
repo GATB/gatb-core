@@ -1307,7 +1307,7 @@ void SortingCountAlgorithm<span>::fillPartitions (size_t pass, Iterator<Sequence
 		{
 			string tmpStorageName = getInput()->getStr(STR_URI_OUTPUT_TMP) + "/" + System::file().getTemporaryFilename("dsk_partitions");
 			setPartitions        (0); // close the partitions first, otherwise new files are opened before  closing parti from previous pass
-			setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts", _config._nb_partitions));
+			setPartitions        ( & (*_tmpPartitionsStorage)().getPartition<Type> ("parts"));
 			
 		}
 	}

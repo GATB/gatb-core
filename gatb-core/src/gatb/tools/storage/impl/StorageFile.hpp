@@ -96,7 +96,8 @@ namespace impl      {
             /** */
             ~GroupFile()
             {
-				system::impl::System::file().rmdir(folder); // hack to remove the trashme folers. I'd have liked to make that call in remove() but for some reason remove() isn't called
+                //std::cout << "groupfile destructor called, removing folder " << folder << std::endl;
+                system::impl::System::file().rmdir(folder); // hack to remove the trashme folers. I'd have liked to make that call in remove() but for some reason remove() isn't called
             }
 
             /** */
@@ -219,17 +220,24 @@ public:
         if (!system::impl::System::file().isFolderEndingWith(storage_prefix,"_gatb"))
             file_folder += "_gatb/";
 
-        std::string filename = file_folder + parent->getFullId('.') + std::string(".") + name;
-        std::string folder = system::impl::System::file().getDirectory(filename);
-        std::string prefix = system::impl::System::file().getBaseName(filename) + std::string(".") + name; // because gatb's getBaseName is stupid and cuts after the last dot
+        std::string full_path = file_folder;
+        std::string parent_base = parent->getFullId('.');
+        std::string base_name = parent_base;
+        if (parent_base.size() > 0)
+            base_name += std::string(".");  // because gatb's getBaseName is stupid and cuts after the last dot
+        base_name += name; 
+
+        full_path += base_name; // but then base_name might have a suffix like ".1" for partitions
+
+        //std::cout <<"name: " << name << " filename " << full_path << " prefix " << base_name<< std::endl;
 
         if (nb == 0)
         {   // if nb is 0, it means we're opening partitions and not creating them, thus we need to get the number of partitions.
 
            int nb_partitions=0;
-           for (auto filename : system::impl::System::file().listdir(folder))
+           for (auto filename : system::impl::System::file().listdir(file_folder))
             {
-                if (!filename.compare(0, prefix.size(), prefix)) // startswith
+                if (!filename.compare(0, base_name.size(), base_name)) // startswith
                 {
                     nb_partitions++;
                 }
@@ -240,19 +248,20 @@ public:
                 std::cout << "error: could not get number of partition for " << name << " using StorageFile" << std::endl;
                 exit(1);
             }
+            //std::cout << "got " << nb << " partitions" << std::endl;
 		}
         else
         {
             // else, if nb is set, means we're creating some partitions. let's delete all the previous ones to avoid wrongly counting 
-            for (auto filename : system::impl::System::file().listdir(folder))
+            for (auto filename : system::impl::System::file().listdir(file_folder))
             {
-                //std::cout <<"name: " << name << " comparing " << filename << " with prefix " << prefix << std::endl;
-                if (!filename.compare(0, prefix.size(), prefix)) // startswith
+                //std::cout <<"name: " << name << " comparing " << filename << " with prefix " << base_name << std::endl;
+                if (!filename.compare(0, base_name.size(), base_name)) // startswith
                 {
                     // some additional guard:
                     if (filename == "." ||filename == "..") continue;
-                    system::impl::System::file().remove(folder + "/" + filename);
-                    //std::cout << "deleting" << folder << "/" << filename << std::endl;
+                    system::impl::System::file().remove(file_folder + "/" + filename);
+                    //std::cout << "deleting " << file_folder << "/" << filename << std::endl;
                 }
             }
         }

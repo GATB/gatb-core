@@ -181,7 +181,7 @@ public:
 
     /** Get a child partition from its name. Created if not already exists.
      * \param[in] name : name of the child partition to be retrieved.
-     * \param[in] nb : in case of creation, tells how many collection belong to the partition.
+     * \param[in] nb : in case of creation, tells how many collection belong to the partition. IMPORTANT: if nb != 0, StorageFile will erase the partition before opening it. So if you're opening a partition, just set nb=0 and let it autodetect the size
      * \return the child partition.
      */
     template <class Type>  Partition<Type>& getPartition (const std::string& name, size_t nb=0);

@@ -266,6 +266,7 @@ public:
         herr_t status = 0;
 
         {
+            //std::cout << "begin insert" << std::endl;
             system::LocalSynchronizer localsynchro (_common->_synchro);
 
             /** We get the dataset id. */
@@ -300,6 +301,7 @@ public:
             status = H5Sclose (filespaceId);
             status = H5Sclose (memspaceId);
             if (status != 0)  { std::cout << "err H5Sclose" << std::endl; }
+            //std::cout << "end insert" << std::endl;
         }
 
         /** We periodically clean up some HDF5 resources. */
@@ -373,12 +375,14 @@ private:
          * NOTE !!!  the 'clean' method called after this block is also synchronized,
          * and therefore must not be in the same instruction block. */
         {
+            //std::cout << "begin retrievecache" << std::endl;
             system::LocalSynchronizer localsynchro (_common->_synchro);
 
             hid_t memspaceId = H5Screate_simple (1, &count, NULL);
 
             /** Select hyperslab on file dataset. */
             hid_t filespaceId = H5Dget_space(_common->getDatasetId());
+            //std::cout << "filespaceId "  << filespaceId << std::endl;
             status = H5Sselect_hyperslab (filespaceId, H5S_SELECT_SET, &start, NULL, &count, NULL);
             if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Sselect_hyperslab), status %d", status);  }
 
@@ -390,6 +394,7 @@ private:
             status = H5Sclose (filespaceId);
             status = H5Sclose (memspaceId);
             if (status < 0)  { throw gatb::core::system::Exception ("HDF5 error (H5Sclose), status %d", status);  }
+            //std::cout << "end retrievecache" << std::endl;
         }
 
         /** We periodically clean up some HDF5 resources. */

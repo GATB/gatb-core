@@ -471,6 +471,9 @@ public:
         // printf ("min=%ld  max=%ld  nb=%ld  check=%ld \n",
         //    nksMin, nksMax, sortingCount.getSolidCounts()->getNbItems(),checkNb
         // );
+        
+        if (sortingCount.getSolidCounts()->getNbItems() != (int)checkNb)
+            std::cout << "counted " <<sortingCount.getSolidCounts()->getNbItems()<< " kmers, expected " << (int)checkNb << std::endl;
 
         CPPUNIT_ASSERT (sortingCount.getSolidCounts()->getNbItems() == (int)checkNb);
     }
