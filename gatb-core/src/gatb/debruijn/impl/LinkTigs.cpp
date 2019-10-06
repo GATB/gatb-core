@@ -52,7 +52,7 @@ namespace gatb { namespace core { namespace debruijn { namespace impl  {
  *  Normally bcalm outputs consecutive unitig ID's but LinkTigs can also work with non-consecutive, non-sorted IDs
  */
 template<size_t span>
-void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose, bool renumber_unitigs)
+void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &nb_unitigs, bool verbose,  bool edge_km_representation, bool renumber_unitigs)
 {
     bcalm_logging = verbose;
     BankFasta* out = new BankFasta(unitigs_filename+".linked");
@@ -60,7 +60,7 @@ void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &
     logging("Finding links between unitigs");
 
     for (int pass = 0; pass < nb_passes; pass++)
-        link_unitigs_pass<span>(unitigs_filename, verbose, pass, kmerSize, renumber_unitigs);
+        link_unitigs_pass<span>(unitigs_filename, verbose, pass, kmerSize, edge_km_representation, renumber_unitigs );
 
     write_final_output(unitigs_filename, verbose, out, nb_unitigs, renumber_unitigs);
    
@@ -265,7 +265,7 @@ static void record_links(uint64_t utig_id, int pass, const string &link, std::of
 
 
 template<size_t span>
-void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pass, const int kmerSize, const bool renumber_unitigs)
+void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pass, const int kmerSize, bool edge_km_representation, const bool renumber_unitigs)
 {
     typedef typename kmer::impl::Kmer<span>::ModelCanonical Model;
     typedef typename kmer::impl::Kmer<span>::Type           Type;
@@ -376,7 +376,12 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
                     //bool rc = e_in.rc ^ (!beginInSameOrientation); // "rc" sets the destination strand // i don't think it's the right formula because of k-1-mers that are their self revcomp. see the mikko bug in the test folder, that provides a nice illustration of that 
                     bool rc = e_in.pos == UNITIG_END; // a better way to determine the rc flag is just looking at position of e_in k-1-mer 
 
-                    in_links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"-":"+") + " "; 
+                    
+                    if(edge_km_representation){
+                        in_links += "J:0:" + to_string(e_in.unitig) + ":" + (rc?"1":"0") + " "; 
+                    }else{
+                        in_links += "L:-:" + to_string(e_in.unitig) + ":" + (rc?"-":"+") + " "; 
+                    }
 
                     /* what to do when kmerBegin is same as forward and reverse?
                      used to have this:
@@ -432,7 +437,13 @@ void link_unitigs_pass(const string unitigs_filename, bool verbose, const int pa
                     
                     bool rc = e_out.pos == UNITIG_END; // a better way to determine the rc flag is just looking at position of e_in k-1-mer 
 
-                    out_links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+") + " "; 
+                    if(edge_km_representation){
+                        out_links += "J:1:" + to_string(e_out.unitig) + ":" + (rc?"1":"0") + " "; 
+                    }else{
+                        out_links += "L:+:" + to_string(e_out.unitig) + ":" + (rc?"-":"+") + " "; 
+                    }
+                    
+
 
                     if (debug) std::cout << " [valid] ";
                 }

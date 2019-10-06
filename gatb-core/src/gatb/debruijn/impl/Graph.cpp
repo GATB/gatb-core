@@ -648,6 +648,7 @@ IOptionsParser* GraphTemplate<Node, Edge, GraphDataVariant>::getOptionsParser (b
     IOptionsParser* parserGeneral  = new OptionsParser ("general");
     parserGeneral->push_front (new OptionOneParam (STR_INTEGER_PRECISION, "integers precision (0 for optimized value)", false, "0", false));
     parserGeneral->push_front (new OptionOneParam (STR_VERBOSE,           "verbosity level",      false, "1"  ));
+    parserGeneral->push_front (new OptionOneParam (STR_EDGE_KM_REPRESENTATION,           "edge km representation",      false, "0"  ));
     parserGeneral->push_front (new OptionOneParam (STR_NB_CORES,          "number of cores",      false, "0"  ));
     parserGeneral->push_front (new OptionNoParam  (STR_CONFIG_ONLY,       "dump config only"));
     

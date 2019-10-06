@@ -91,6 +91,8 @@
           -verbose           (1 arg) :    verbosity level  [default '1']
           -email             (1 arg) :    send statistics to the given email address  [default '']
           -email-fmt         (1 arg) :    'raw' or 'xml'  [default 'raw']
+          -edge-km           (1 arg) :    Kececioglu-Myers edge representation  [default '0']
+ 
  * \endcode
  *
  *
