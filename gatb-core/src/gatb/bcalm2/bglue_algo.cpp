@@ -1213,7 +1213,7 @@ void bglue(Storage *storage,
 
     logging("end");
 
-    bool debug_keep_glue_files = true; // for debugging // TODO enable it if -redo-bglue param was provided (need some info from UnitigsConstructionAlgorithm). 
+    bool debug_keep_glue_files = false; // for debugging // TODO warning: if debug_keep_glue_files is set to 'false,' then the debug option '-redo-bglue' cannot work because it needs those bglue files
     if (debug_keep_glue_files)
     {
         std::cout << "debug: not deleting glue files" << std::endl;

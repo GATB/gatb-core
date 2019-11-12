@@ -259,7 +259,7 @@ void GraphUnitigsTemplate<span>::build_unitigs_postsolid(std::string unitigs_fil
     }
     
     bool redo_bcalm = props->get("-redo-bcalm");
-    bool redo_bglue = props->get("-redo-bglue");
+    bool redo_bglue = props->get("-redo-bglue"); // note: if that option is to be used, make sure to enable debug_keep_glue_files=true in bglue_algo.cpp
     bool redo_links = props->get("-redo-links");
 
     bool skip_bcalm = props->get("-skip-bcalm");
