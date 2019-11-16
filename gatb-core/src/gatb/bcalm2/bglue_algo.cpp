@@ -63,12 +63,9 @@ using namespace gatb::core::tools::collections::impl;
 using namespace std;
 
 // let's be clear here:
-// UF hashes will be stored in 32 bits for efficiency (as I don't want to have a 64-bits UF for memory reasons, also, would require to modify unionFind.hpp)
-typedef uint32_t uf_hashes_t;
-// but there can be more than 2^{32} sequences in the glue file
+typedef uint64_t uf_hashes_t; // UF hashes are the hash values of k-mers to be inserted into the UF data structure. Don't try setting to uint32_t, would be a disaster
 typedef uint64_t seq_idx_t;
-// so, potentially, more than 2^{32} UF hashes (but not necessarily, consider that some sequences don't need to be glued)
-// what will happen is that more one UF class won't be linked to a single unitig, but multiple unitigs
+typedef uint32_t uf_class_t; // UF class is the identifier of an element in the UF
 // let's hope that there won't be saturation (only 1 UF class with all unitigs)
 // if this happens, then "Top 10 glue partitions by size:" will show only one entry and BCALM will blow up in memory
 // a fix would be to use a 64 bits UF (to be coded later)
@@ -823,7 +820,7 @@ void bglue(Storage *storage,
     }
 
     // create a UF data structure
-    // this one stores nb_uf_keys * uint64_t (actually, atomic's). so it's bigger than uf_hashes
+    // this one stores nb_uf_keys * uint64_t (actually, atomic's).
     unionFind ufkmers(nb_uf_keys);
 
 #if 0
@@ -930,13 +927,13 @@ void bglue(Storage *storage,
     if (only_uf) // for debugging
         return;
 
-    /* now we're mirroring the UF to a vector of uint32_t's, it will take less space, and strictly same information
+    /* now we're mirroring the UF to a vector of uint32_t's (uf_class_t), it will take less space, and strictly same information
      * this is to get rid of the rank (one uint32) per element in the current UF implementation. 
      * To do this, we're using the disk to save space of populating one vector from the other in memory. 
      * (saves having to allocate both vectors at the same time) */
     
-    BagFile<uf_hashes_t> *ufkmers_bagf = new BagFile<uf_hashes_t>(prefix+".glue.uf");  LOCAL(ufkmers_bagf);
-	BagCache<uf_hashes_t> *ufkmers_bag = new BagCache<uf_hashes_t>(  ufkmers_bagf, 10000 );   LOCAL(ufkmers_bag);
+    BagFile<uf_class_t> *ufkmers_bagf = new BagFile<uf_class_t>(prefix+".glue.uf");  LOCAL(ufkmers_bagf);
+	BagCache<uf_class_t> *ufkmers_bag = new BagCache<uf_class_t>(  ufkmers_bagf, 10000 );   LOCAL(ufkmers_bag);
 
     for (unsigned long i = 0; i < nb_uf_keys; i++)
         //ufkmers_vector[i] = ufkmers.find(i); // just in-memory without the disk
@@ -949,15 +946,15 @@ void bglue(Storage *storage,
 
     ufkmers_bag->flush();
 
-    std::vector<uf_hashes_t> ufkmers_vector(nb_uf_keys);
-    IteratorFile<uf_hashes_t> ufkmers_file(prefix+".glue.uf");
+    std::vector<uf_class_t> ufkmers_vector(nb_uf_keys);
+    IteratorFile<uf_class_t> ufkmers_file(prefix+".glue.uf");
     unsigned long i = 0;
     for (ufkmers_file.first(); !ufkmers_file.isDone(); ufkmers_file.next())
             ufkmers_vector[i++] = ufkmers_file.item();
 
     System::file().remove (prefix+".glue.uf");
     
-    logging("loaded 32-bit UF (" + to_string(nb_uf_keys*sizeof(uf_hashes_t)/1024/1024) + " MB)");
+    logging("loaded 32-bit UF (" + to_string(nb_uf_keys*sizeof(uf_class_t)/1024/1024) + " MB)");
   
     // setup output file
     string output_prefix = prefix;
