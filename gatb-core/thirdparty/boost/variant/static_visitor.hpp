@@ -13,11 +13,11 @@
 #ifndef BOOST_VARIANT_STATIC_VISITOR_HPP
 #define BOOST_VARIANT_STATIC_VISITOR_HPP
 
-#include "boost/config.hpp"
-#include "boost/detail/workaround.hpp"
+#include <boost/config.hpp>
+#include <boost/detail/workaround.hpp>
 
-#include "boost/mpl/if.hpp"
-#include "boost/type_traits/is_base_and_derived.hpp"
+#include <boost/mpl/if.hpp>
+#include <boost/type_traits/is_base_and_derived.hpp>
 
 #include <boost/type_traits/integral_constant.hpp>
 #include <boost/mpl/aux_/lambda_support.hpp>
@@ -50,10 +50,8 @@ public: // typedefs
 protected: // for use as base class only
 #if !defined(BOOST_NO_CXX11_DEFAULTED_FUNCTIONS) && !defined(BOOST_NO_CXX11_NON_PUBLIC_DEFAULTED_FUNCTIONS)
     static_visitor() = default;
-    ~static_visitor() = default;
 #else
     static_visitor()  BOOST_NOEXCEPT { }
-    ~static_visitor()  BOOST_NOEXCEPT { }
 #endif
 };
 

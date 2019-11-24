@@ -8,6 +8,8 @@
 
 #ifdef _MSC_VER
 #pragma once
+#pragma warning(push)
+#pragma warning(disable:4702) // Unreachable code (release mode only warning)
 #endif
 
 #include <boost/math/special_functions/math_fwd.hpp>
@@ -18,6 +20,16 @@
 #include <boost/math/constants/constants.hpp>
 #include <boost/mpl/comparison.hpp>
 #include <boost/math/tools/big_constant.hpp>
+
+#if defined(__GNUC__) && defined(BOOST_MATH_USE_FLOAT128)
+//
+// This is the only way we can avoid
+// warning: non-standard suffix on floating constant [-Wpedantic]
+// when building with -Wall -pedantic.  Neither __extension__
+// nor #pragma dianostic ignored work :(
+//
+#pragma GCC system_header
+#endif
 
 namespace boost{
 namespace math{
@@ -489,7 +501,7 @@ T digamma_imp(T x, const mpl::int_<0>* t, const Policy& pol)
    // limit = 10 at 50 bit precision and
    // limit = 250 at 1000 bit precision.
    //
-   T lim = 10 + (tools::digits<T>() - 50) * 240 / 950;
+   int lim = 10 + ((tools::digits<T>() - 50) * 240L) / 950;
    T two_x = ldexp(x, 1);
    if(x >= lim)
    {
@@ -624,5 +636,10 @@ inline typename tools::promote_args<T>::type
 
 } // namespace math
 } // namespace boost
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #endif
 

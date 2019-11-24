@@ -60,7 +60,7 @@ T ellint_d_imp(T phi, T k, const Policy& pol)
     if(phi >= tools::max_value<T>())
     {
        // Need to handle infinity as a special case:
-       result = policies::raise_overflow_error<T>("boost::math::ellint_e<%1%>(%1%,%1%)", 0, pol);
+       result = policies::raise_overflow_error<T>("boost::math::ellint_d<%1%>(%1%,%1%)", 0, pol);
     }
     else if(phi > 1 / tools::epsilon<T>())
     {
@@ -82,12 +82,16 @@ T ellint_d_imp(T phi, T k, const Policy& pol)
           s = -1;
           rphi = constants::half_pi<T>() - rphi;
        }
+       BOOST_MATH_INSTRUMENT_VARIABLE(rphi);
+       BOOST_MATH_INSTRUMENT_VARIABLE(m);
        T sinp = sin(rphi);
        T cosp = cos(rphi);
+       BOOST_MATH_INSTRUMENT_VARIABLE(sinp);
+       BOOST_MATH_INSTRUMENT_VARIABLE(cosp);
        T c = 1 / (sinp * sinp);
        T cm1 = cosp * cosp / (sinp * sinp);  // c - 1
        T k2 = k * k;
-       if(k2 > 1)
+       if(k2 * sinp * sinp > 1)
        {
           return policies::raise_domain_error<T>("boost::math::ellint_d<%1%>(%1%, %1%)", "The parameter k is out of range, got k = %1%", k, pol);
        }
@@ -99,6 +103,7 @@ T ellint_d_imp(T phi, T k, const Policy& pol)
        {
           // http://dlmf.nist.gov/19.25#E10
           result = s * ellint_rd_imp(cm1, T(c - k2), c, pol) / 3;
+          BOOST_MATH_INSTRUMENT_VARIABLE(result);
        }
        if(m != 0)
           result += m * ellint_d_imp(k, pol);
@@ -113,14 +118,10 @@ T ellint_d_imp(T k, const Policy& pol)
     BOOST_MATH_STD_USING
     using namespace boost::math::tools;
 
-    if (abs(k) > 1)
+    if (abs(k) >= 1)
     {
-       return policies::raise_domain_error<T>("boost::math::ellint_e<%1%>(%1%)",
+       return policies::raise_domain_error<T>("boost::math::ellint_d<%1%>(%1%)",
             "Got k = %1%, function requires |k| <= 1", k, pol);
-    }
-    if (abs(k) == 1)
-    {
-        return static_cast<T>(1);
     }
     if(fabs(k) <= tools::root_epsilon<T>())
        return constants::pi<T>() / 4;

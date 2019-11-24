@@ -20,6 +20,16 @@
 #include <boost/math/tools/big_constant.hpp>
 #include <boost/math/special_functions/polygamma.hpp>
 
+#if defined(__GNUC__) && defined(BOOST_MATH_USE_FLOAT128)
+//
+// This is the only way we can avoid
+// warning: non-standard suffix on floating constant [-Wpedantic]
+// when building with -Wall -pedantic.  Neither __extension__
+// nor #pragma dianostic ignored work :(
+//
+#pragma GCC system_header
+#endif
+
 namespace boost{
 namespace math{
 namespace detail{
@@ -69,22 +79,22 @@ T trigamma_prec(T x, const mpl::int_<53>*, const Policy&)
    // Expected Error Term :                       -6.895e-018
    // Maximum Relative Change in Control Points :  8.497e-004
    static const T P_4_inf[] = {
-      0.68947581948701249e-17L,
-      0.49999999999998975L,
-      1.0177274392923795L,
-      2.498208511343429L,
-      2.1921221359427595L,
-      1.5897035272532764L,
-      0.40154388356961734L,
+      static_cast<T>(0.68947581948701249e-17L),
+      static_cast<T>(0.49999999999998975L),
+      static_cast<T>(1.0177274392923795L),
+      static_cast<T>(2.498208511343429L),
+      static_cast<T>(2.1921221359427595L),
+      static_cast<T>(1.5897035272532764L),
+      static_cast<T>(0.40154388356961734L),
    };
    static const T Q_4_inf[] = {
-      1.0L,
-      1.7021215452463932L,
-      4.4290431747556469L,
-      2.9745631894384922L,
-      2.3013614809773616L,
-      0.28360399799075752L,
-      0.022892987908906897L,
+      static_cast<T>(1.0L),
+      static_cast<T>(1.7021215452463932L),
+      static_cast<T>(4.4290431747556469L),
+      static_cast<T>(2.9745631894384922L),
+      static_cast<T>(2.3013614809773616L),
+      static_cast<T>(0.28360399799075752L),
+      static_cast<T>(0.022892987908906897L),
    };
 
    if(x <= 2)

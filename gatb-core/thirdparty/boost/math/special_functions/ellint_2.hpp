@@ -49,6 +49,9 @@ T ellint_e_imp(T phi, T k, const Policy& pol)
     using namespace boost::math::constants;
 
     bool invert = false;
+    if (phi == 0)
+       return 0;
+
     if(phi < 0)
     {
        phi = fabs(phi);
@@ -74,7 +77,7 @@ T ellint_e_imp(T phi, T k, const Policy& pol)
     }
     else if(fabs(k) == 1)
     {
-       return invert ? T(-sin(phi)) : sin(phi);
+       return invert ? T(-sin(phi)) : T(sin(phi));
     }
     else
     {
@@ -94,30 +97,23 @@ T ellint_e_imp(T phi, T k, const Policy& pol)
           s = -1;
           rphi = constants::half_pi<T>() - rphi;
        }
-       T sinp = sin(rphi);
-       T cosp = cos(rphi);
-       T c = 1 / (sinp * sinp);
-       T cm1 = cosp * cosp / (sinp * sinp);  // c - 1
        T k2 = k * k;
-       if(k2 > 1)
+       if(boost::math::pow<3>(rphi) * k2 / 6 < tools::epsilon<T>() * fabs(rphi))
        {
-          return policies::raise_domain_error<T>("boost::math::ellint_2<%1%>(%1%, %1%)", "The parameter k is out of range, got k = %1%", k, pol);
-       }
-       else if(rphi == 0)
-       {
-          result = 0;
-       }
-       else if(sinp * sinp < tools::min_value<T>())
-       {
-          T x = cosp * cosp;
-          T t = k * k * sinp * sinp;
-          T y = 1 - t;
-          T z = 1;
-          result = s * sinp * (ellint_rf_imp(x, y, z, pol) - t * ellint_rd_imp(x, y, z, pol) / 3);
+          // See http://functions.wolfram.com/EllipticIntegrals/EllipticE2/06/01/03/0001/
+          result = s * rphi;
        }
        else
        {
           // http://dlmf.nist.gov/19.25#E10
+          T sinp = sin(rphi);
+          if (k2 * sinp * sinp >= 1)
+          {
+             return policies::raise_domain_error<T>("boost::math::ellint_2<%1%>(%1%, %1%)", "The parameter k is out of range, got k = %1%", k, pol);
+          }
+          T cosp = cos(rphi);
+          T c = 1 / (sinp * sinp);
+          T cm1 = cosp * cosp / (sinp * sinp);  // c - 1
           result = s * ((1 - k2) * ellint_rf_imp(cm1, T(c - k2), c, pol) + k2 * (1 - k2) * ellint_rd(cm1, c, T(c - k2), pol) / 3 + k2 * sqrt(cm1 / (c * (c - k2))));
        }
        if(m != 0)
