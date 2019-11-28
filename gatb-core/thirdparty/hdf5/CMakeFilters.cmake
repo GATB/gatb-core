@@ -74,7 +74,7 @@ if (HDF5_ENABLE_Z_LIB_SUPPORT)
         message (STATUS "Filter ZLIB is built")
       else ()
           #message (FATAL_ERROR " ZLib is Required for ZLib support in HDF5") # let's be more relaxed here for GATB: if Zlib is not found, don't insist and we'll just compile without zlib
-          message(STATUS "zlib not found, compiling without zlib support")
+          message(STATUS "zlib not found by HDF5, compiling without zlib support for HDF5 (but you will still need zlib for gatb-core)")
           set (H5_GATB_GIVE_UP_ZLIB 1)
       endif ()
     endif ()
