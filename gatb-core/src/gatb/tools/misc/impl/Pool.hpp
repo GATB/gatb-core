@@ -359,6 +359,12 @@ public:
         capacity   = size+extraMem;
         mainbuffer = (char*) CALLOC(capacity,1);
         used_space = 0;
+        
+        if (mainbuffer == NULL)
+        {
+            throw system::Exception ("Pool reserve() failed for %lld (+ %lld extra for %d cores) bytes",
+                                      size, extraMem, _nbCores);
+        }
     }
 
     //should be thread safe
