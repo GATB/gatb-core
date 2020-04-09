@@ -77,7 +77,7 @@ generate the wanted artifacts:
 The following third parties have to be already installed to compile GATB-Core:
 
 * a **C++/11 capable compiler** (*e.g.* gcc 4.7+, clang 3.5+, Apple/clang 6.0+)
-* **CMake 3.1+**
+* **CMake 3.10+**
 
 In addition, you could install these optional tools:
 
