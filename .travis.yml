@@ -1,4 +1,5 @@
 language: cpp
+dist: xenial
 os:
 - linux
 compiler:
@@ -7,19 +8,10 @@ compiler:
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
-    - llvm-toolchain-precise-3.7
     - george-edison55-precise-backports  # for cmake 3
     packages:
-    - libcppunit-dev
-    - g++-4.8
-    - clang-3.7
     - cmake
     - cmake-data
-install:
-- if [ "`echo $CXX`" == "g++" ]     && [ "$TRAVIS_OS_NAME" == "linux" ]; then export CXX=g++-4.8; fi
-- if [ "`echo $CXX`" == "clang++" ] && [ "$TRAVIS_OS_NAME" == "linux" ]; then export CXX=clang++-3.7; fi
-matrix:
 script:
 - cd gatb-core
 - mkdir build
