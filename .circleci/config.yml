@@ -13,7 +13,18 @@ jobs:
             command: 'apt-get update && apt-get install -y gcc g++'
         - run:
             name: Install CMAKE
-            command: 'apt-get update && sudo apt-get install -y cmake'
+			command: |
+			  wget https://cmake.org/files/v3.10/cmake-3.10.2-Linux-x86_64.tar.gz
+			  tar -xvzf cmake-3.10.2-Linux-x86_64.tar.gz
+			  chmod +x ./cmake-3.10.2-Linux-x86_64/bin/ccmake
+			  chmod +x ./cmake-3.10.2-Linux-x86_64/bin/cmake
+			  chmod +x ./cmake-3.10.2-Linux-x86_64/bin/cpack
+			  chmod +x ./cmake-3.10.2-Linux-x86_64/bin/ctest
+			  DIR=$(pwd)
+			  ln -s $DIR/cmake-3.10.2-Linux-x86_64/bin/ccmake /usr/bin/ccmake
+			  ln -s $DIR/cmake-3.10.2-Linux-x86_64/bin/cmake /usr/bin/cmake
+			  ln -s $DIR/cmake-3.10.2-Linux-x86_64/bin/cpack /usr/bin/cpack
+			  ln -s $DIR/cmake-3.10.2-Linux-x86_64/bin/ctest /usr/bin/ctest
         - run:
             name: Install CPPUnit
             command: 'apt-get update && sudo apt-get install -y libcppunit-dev'
