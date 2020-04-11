@@ -31,6 +31,7 @@ jobs:
         - run:
             name: Creating Build Files
             command: 'cd gatb-core && mkdir build && cd build && cmake .. && make -j 4'
-        - run:
-            name: CPPUnit test
-            command: 'export CPPUNIT_VERBOSE=TRUE && cd gatb-core/build && ./bin/gatb-core-cppunit'
+        # looks like circleci charges credits so i better not run the cppunit tests..
+        #        - run:
+        #            name: CPPUnit test
+        #            command: 'export CPPUNIT_VERBOSE=TRUE && cd gatb-core/build && ./bin/gatb-core-cppunit'
