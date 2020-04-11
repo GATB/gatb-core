@@ -19,7 +19,7 @@ jobs:
             command: 'apt-get update && sudo apt-get install -y libcppunit-dev'
         - run:
             name: Creating Build Files
-            command: 'mkdir build && cd build && cmake .. && make -j 4'
+            command: 'cd gatb-core && mkdir build && cd build && cmake .. && make -j 4'
         - run:
             name: CPPUnit test
-            command: 'export CPPUNIT_VERBOSE=TRUE && ./bin/gatb-core-cppunit'
+            command: 'export CPPUNIT_VERBOSE=TRUE && cd gatb-core/build && ./bin/gatb-core-cppunit'
