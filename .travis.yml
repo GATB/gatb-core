@@ -16,7 +16,6 @@ script:
 - cd gatb-core
 - mkdir build
 - cd build
-- cmake .. && make 
 - export CPPUNIT_VERBOSE=TRUE && ./bin/gatb-core-cppunit
 env:
   global:
