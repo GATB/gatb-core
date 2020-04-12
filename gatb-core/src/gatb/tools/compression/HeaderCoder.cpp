@@ -25,6 +25,7 @@
 #define PRINT_DEBUG_ENCODER
 #define PRINT_DEBUG_DECODER
 */
+#include <string>
 		
 
 //====================================================================================
@@ -703,13 +704,10 @@ void HeaderDecoder::decodeNumeric(){
 	u_int64_t value = CompressionUtils::decodeNumeric(_rangeDecoder, _numericModels[_misIndex]);
 	//_currentHeader += CompressionUtils::numberToString(value);
 	
-	char temp[200];
-	snprintf(temp,200,"%llu",value);
-	_currentHeader += string(temp);
-	//_currentHeader += to_string(value); // C++11
+	_currentHeader += std::to_string(value);
 	
 	#ifdef PRINT_DEBUG_DECODER
-		cout << "\t\t\tAdding: " << string(temp) << endl;
+		cout << "\t\t\tAdding: " << std::to_string(value) << endl;
 	#endif
 }
 
@@ -723,13 +721,10 @@ void HeaderDecoder::decodeDelta(){
 
 	value = CompressionUtils::getValueFromDelta(1, _prevFieldValues[_fieldIndex], value);
 	
-	char temp[200];
-	snprintf(temp,200,"%llu",value);
-	_currentHeader += string(temp);
-	//_currentHeader += to_string(value);
+	_currentHeader += std::to_string(value);
 	
 	#ifdef PRINT_DEBUG_DECODER
-		cout << "\t\t\tAdding: " << string(temp) << endl;
+		cout << "\t\t\tAdding: " << std::to_string(value) << endl;
 	#endif
 }
 
@@ -742,13 +737,10 @@ void HeaderDecoder::decodeDelta2(){
 	u_int64_t value = CompressionUtils::decodeNumeric(_rangeDecoder, _numericModels[_misIndex]);
 
 	value = CompressionUtils::getValueFromDelta(2, _prevFieldValues[_fieldIndex], value);
-	char temp[200];
-	snprintf(temp,200,"%llu",value);
-	_currentHeader += string(temp);
-	//_currentHeader += to_string(value);
+	_currentHeader += std::to_string(value);
 	
 	#ifdef PRINT_DEBUG_DECODER
-		cout << "\t\t\tAdding: " << string(temp) << endl;
+		cout << "\t\t\tAdding: " << std::to_string(value) << endl;
 	#endif
 }
 
