@@ -119,7 +119,7 @@ public:
 				fprintf(histo2Dfile,"%5i:\t",ii);
 				for(int jj=0; jj<= _histogram->getLength2(); jj++)
 				{
-					fprintf(histo2Dfile,"\t%6lli", _histogram->get2D(ii,jj));
+					fprintf(histo2Dfile,"\t%6lli", (long long)_histogram->get2D(ii,jj));
 				}
 				fprintf(histo2Dfile,"\n");
 			}
@@ -134,7 +134,7 @@ public:
 			//output 1D histogram now
 			for(int ii=1; ii<= _histogram->getLength(); ii++)
 			{
-				fprintf(histo1Dfile,"%i\t%lli",ii,_histogram->get(ii));
+				fprintf(histo1Dfile,"%i\t%lli",ii,(long long)_histogram->get(ii));
 				fprintf(histo1Dfile,"\n");
 			}
 			

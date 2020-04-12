@@ -46,7 +46,7 @@ public:
 
     static const char* getName ()  { return "LargeInt<1>"; }
 
-    static const size_t getSize ()  { return 8*sizeof(u_int64_t); }
+    static size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
     /** Returns lower 64 bits */
     u_int64_t toInt () const  {  return value;  }
