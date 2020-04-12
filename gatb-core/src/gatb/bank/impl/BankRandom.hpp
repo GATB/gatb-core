@@ -81,7 +81,7 @@ public:
     void estimate (u_int64_t& number, u_int64_t& totalSize, u_int64_t& maxSize);
 
     /** \return maximum number of files. */
-    static const size_t getMaxNbFiles ()  { return 0; }
+    static size_t getMaxNbFiles ()  { return 0; }
 
     /************************************************************/
 

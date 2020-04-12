@@ -51,7 +51,7 @@ public:
 
     static const char* getName ()  { return "NativeInt8"; }
 
-    static const size_t getSize ()  { return 8*sizeof(u_int8_t); }
+    static size_t getSize ()  { return 8*sizeof(u_int8_t); }
 
     operator char ()  const {  return (char) value[0];  }
 

@@ -114,7 +114,7 @@ public:
     /** Get the size of an instance of the class used by the variant  (ie. one of the Ti template class parameters)
      * \return the size of an object (in bits).
      */
-    const size_t getSize ()         { return boost::apply_visitor (Integer_size(),  *(*this)); }
+    size_t getSize ()         { return boost::apply_visitor (Integer_size(),  *(*this)); }
 
     /** Get the HDF5 type for the the class used by the variant  (ie. one of the Ti template class parameters)
      * \param[in] isCompound : tells whether the type is composed or not
@@ -310,7 +310,7 @@ private:
         template<typename T>  const char* operator() (const T& a) const { return a.getName();  }};
 
     struct Integer_size : public boost::static_visitor<const size_t>    {
-        template<typename T>  const size_t operator() (const T& a) const  { return a.getSize();  }};
+        template<typename T>  size_t operator() (const T& a) const  { return a.getSize();  }};
 
     struct Integer_plus : public boost::static_visitor<IntegerTemplate>    {
         template<typename T>              IntegerTemplate operator() (const T& a, const T& b) const  { return IntegerTemplate(a + b);  }

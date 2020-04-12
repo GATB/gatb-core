@@ -59,7 +59,7 @@ public:
      void setVal (u_int64_t c)  { value = c; }
 
     
-    static const size_t getSize ()  { return 8*sizeof(u_int64_t); }
+    static size_t getSize ()  { return 8*sizeof(u_int64_t); }
 
     NativeInt64 operator+  (const NativeInt64& other)   const   {  return value + other.value;  }
     NativeInt64 operator-  (const NativeInt64& other)   const   {  return value - other.value;  }

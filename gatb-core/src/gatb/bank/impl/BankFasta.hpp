@@ -209,7 +209,7 @@ public:
 protected:
 
     /** \return maximum number of files. */
-    static const size_t getMaxNbFiles ()  { return 1; }
+    static size_t getMaxNbFiles ()  { return 1; }
 
     friend class Iterator;
 
