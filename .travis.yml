@@ -8,8 +8,11 @@ compiler:
 addons:
   apt:
     sources:
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.7
     - george-edison55-precise-backports  # for cmake 3
     packages:
+    - libcppunit-dev
     - cmake
     - cmake-data
 script:
