@@ -5,12 +5,20 @@ os:
 compiler:
 - clang
 - gcc
+addons:
+  apt:
+    sources:
+    - george-edison55-precise-backports  # for cmake 3
+    packages:
+    - cmake
+    - cmake-data
 script:
 - cd gatb-core
 - mkdir build
 - cd build
-- make $MAKEFLAGS
+- cmake .. && make $MAKEFLAGS 
 - export CPPUNIT_VERBOSE=TRUE && ./bin/gatb-core-cppunit
 env:
   global:
     - MAKEFLAGS="-j 4"
+
