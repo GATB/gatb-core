@@ -1,0 +1,15 @@
+language: cpp
+dist: xenial
+os:
+- linux
+compiler:
+- clang
+- gcc
+script:
+- cd gatb-core
+- mkdir build
+- cd build
+- export CPPUNIT_VERBOSE=TRUE && ./bin/gatb-core-cppunit
+env:
+  global:
+    - MAKEFLAGS="-j 4"
