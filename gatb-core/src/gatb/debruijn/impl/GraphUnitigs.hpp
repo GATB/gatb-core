@@ -252,7 +252,7 @@ public:
     /**********************************************************************/
 
     /* perform tip removal, bulge removal and EC removal, as in Minia */
-    void simplify(unsigned int nbCores = 1, bool verbose=true);
+    void simplify(unsigned int nbCores = 1, bool verbose=false);
 
     /**********************************************************************/
     /*                         SIMPLE PATH METHODS                        */

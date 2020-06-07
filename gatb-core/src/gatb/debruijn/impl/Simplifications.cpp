@@ -406,13 +406,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> *itNode; 
     if (_firstNodeIteration )
     {
-        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, _verbose);
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, /*_verbose*/true);
         if (_verbose)
             std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
     }
     else
     {
-        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, _verbose);
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, /*_verbose*/true);
         if (_verbose)
             std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
@@ -1307,13 +1307,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> *itNode; 
     if (_firstNodeIteration )
     {
-        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, _verbose);
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, /*_verbose*/true);
         if (_verbose)
             std::cout << "iterating on " << itNode->size() << " nodes" << std::endl;
     }
     else
     {
-        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, _verbose);
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, /*_verbose*/true); // always display
         if (_verbose)
             std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
@@ -1630,13 +1630,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> *itNode; 
     if (_firstNodeIteration )
     {
-        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, _verbose);
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, /*_verbose*/true);
         if (_verbose)
             std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
     }
     else
     {
-        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, _verbose);
+        itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, /*_verbose*/true);
         if (_verbose)
             std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }

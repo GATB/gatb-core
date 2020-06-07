@@ -970,6 +970,7 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
     if (this != &graph)
     {
         BaseGraph::_kmerSize        = graph._kmerSize;
+        BaseGraph::_nbSolidKmers    = graph._nbSolidKmers;
         BaseGraph::_storageMode     = graph._storageMode;
         BaseGraph::_name            = graph._name;
         BaseGraph::_info            = graph._info;
@@ -1020,6 +1021,7 @@ GraphUnitigsTemplate<span>& GraphUnitigsTemplate<span>::operator= (GraphUnitigsT
     if (this != &graph)
     {
         BaseGraph::_kmerSize        = graph._kmerSize;
+        BaseGraph::_nbSolidKmers    = graph._nbSolidKmers;
         BaseGraph::_storageMode     = graph._storageMode;
         BaseGraph::_name            = graph._name;
         BaseGraph::_info            = graph._info;

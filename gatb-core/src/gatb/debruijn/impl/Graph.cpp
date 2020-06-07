@@ -417,8 +417,12 @@ void build_visitor_solid<Node,Edge,GraphDataVariant>::operator() (GraphData<span
     DEBUG ((cout << "build_visitor : SortingCountAlgorithm END\n"));
 
     /** We save the state and kmer size at storage root level. */
-    graph.getGroup().setProperty ("state",     Stringify::format("%d", graph._state));
-    graph.getGroup().setProperty ("kmer_size", Stringify::format("%d", graph._kmerSize));
+    graph.getGroup().setProperty ("state",          Stringify::format("%d", graph._state));
+    graph.getGroup().setProperty ("kmer_size",      Stringify::format("%d", graph._kmerSize));
+    graph.getGroup().setProperty ("nb_solid_kmers", Stringify::format("%d", solidCounts->getNbItems()));
+
+    // also set _nbSolidKmers here, as for example, _kmerSize was set at startup since we knew it already
+    graph._nbSolidKmers = solidCounts->getNbItems();
 }
 
 
@@ -605,6 +609,10 @@ void build_visitor_postsolid<Node,Edge,GraphDataVariant>::operator() (GraphData<
     /** We save the state and kmer size at storage root level. */
     graph.getGroup().setProperty ("state",     Stringify::format("%d", graph._state));
     graph.getGroup().setProperty ("kmer_size", Stringify::format("%d", graph._kmerSize));
+    graph.getGroup().setProperty ("nb_solid_kmers", Stringify::format("%d", solidCounts->getNbItems()));
+    
+    // also set _nbSolidKmers here, as for example, _kmerSize was set at startup since we knew it already
+    graph._nbSolidKmers = solidCounts->getNbItems();
 
     /************************************************************/
     /*                        Clean up                          */
@@ -778,7 +786,8 @@ GraphTemplate<Node, Edge, GraphDataVariant_t>::GraphTemplate (const std::string&
 
     /** We get some properties. */
     _state     = (GraphTemplate<Node, Edge, GraphDataVariant_t>::StateMask) atol (getGroup().getProperty ("state").c_str());
-    _kmerSize  =                    atol (getGroup().getProperty ("kmer_size").c_str());
+    _kmerSize  =                                                            atol (getGroup().getProperty ("kmer_size").c_str());
+    _nbSolidKmers=                                                          atol (getGroup().getProperty ("nb_solid_kmers").c_str());
 
     /** We get library information in the root of the storage. */
     string xmlString = getGroup().getProperty ("xml");
@@ -940,8 +949,8 @@ GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate ()
 *********************************************************************/
 template<typename Node, typename Edge, typename GraphDataVariant>
 GraphTemplate<Node, Edge, GraphDataVariant>::GraphTemplate (const GraphTemplate<Node, Edge, GraphDataVariant>& graph)
-    : _storageMode(graph._storageMode), _storage(0),
-      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _info("graph"), _name(graph._name), _state(graph._state)
+    : _storageMode(graph._storageMode), _storage(0), 
+      _variant(new GraphDataVariant()), _kmerSize(graph._kmerSize), _nbSolidKmers(graph._nbSolidKmers), _info("graph"), _name(graph._name), _state(graph._state)
 {
     setStorage (graph._storage);
 
@@ -962,6 +971,7 @@ GraphTemplate<Node, Edge, GraphDataVariant>& GraphTemplate<Node, Edge, GraphData
     if (this != &graph)
     {
         _kmerSize        = graph._kmerSize;
+        _nbSolidKmers    = graph._nbSolidKmers;
         _storageMode     = graph._storageMode;
         _name            = graph._name;
         _info            = graph._info;

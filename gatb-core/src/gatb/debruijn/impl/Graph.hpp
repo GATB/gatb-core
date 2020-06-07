@@ -1044,6 +1044,9 @@ public: // was private: before, but had many compilation errors during the chang
 
     /** kmer size of the graph */
     size_t _kmerSize;
+    
+    /** nb solid kmers in the graph (only populated by GraphUnitigs */
+    size_t _nbSolidKmers;
 
     /** Creation information. */
     tools::misc::impl::Properties _info;
