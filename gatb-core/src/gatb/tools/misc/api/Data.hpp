@@ -35,6 +35,7 @@
 
 #include <iostream>
 #include <string.h>
+#include <string>
 
 /********************************************************************************/
 namespace gatb      {
@@ -80,6 +81,11 @@ public:
 
     /** Default constructor. */
     Data (char* buffer)  : encoding(ASCII) { setRef(buffer,strlen(buffer)); }
+    Data (const char* buffer)  : encoding(ASCII) { set(buffer,strlen(buffer)); }
+    /**
+     * Constructor from string
+     */
+    Data (const std::string& buffer)  : encoding(ASCII) { set(buffer.c_str(), buffer.size()); }
 
     /** Constructor. */
     Data (size_t len, Encoding_e encode = BINARY)  : Vector<char>(len), encoding(encode)  {}

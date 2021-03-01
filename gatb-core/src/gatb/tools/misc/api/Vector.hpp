@@ -123,7 +123,7 @@ public:
     /** Set the current data. Copy is done.
      * \param[in] buffer : data referred by the current instance.
      * \param[in] length : size of the data */
-    void set (T* buffer, size_t length)
+    void set (const T* buffer, size_t length)
     {
         _size        = length;
         if (_isAllocated == false)  { _buffer = 0; }
