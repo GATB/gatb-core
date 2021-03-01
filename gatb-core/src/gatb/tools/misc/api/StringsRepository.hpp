@@ -124,6 +124,7 @@ public:
     const char* compress_level()   { return "-out-compress"; }
     const char* config_only()      { return "-config-only"; }
     const char* storage_type()     { return "-storage-type"; }
+    const char* kff()              { return "-kff"; }
 
     const char* attr_uri_input      ()  { return "input";           }
     const char* attr_kmer_size      ()  { return "kmer_size";       }
@@ -181,6 +182,7 @@ public:
 #define STR_COMPRESS_LEVEL      gatb::core::tools::misc::StringRepository::singleton().compress_level()
 #define STR_CONFIG_ONLY         gatb::core::tools::misc::StringRepository::singleton().config_only()
 #define STR_STORAGE_TYPE        gatb::core::tools::misc::StringRepository::singleton().storage_type ()
+#define STR_KFF                 gatb::core::tools::misc::StringRepository::singleton().kff()
 
 /********************************************************************************/
 

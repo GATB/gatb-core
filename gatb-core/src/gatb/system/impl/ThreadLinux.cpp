@@ -51,6 +51,7 @@ public:
 		int ret = pthread_attr_init ( &tattr ) ;
 		size_t size = 4096*2000 ; // must be multiple of page size
 		ret = pthread_attr_setstacksize(&tattr, size);
+        (void)ret; // just to suppress warning
 		
 		pthread_create (&_thread, NULL,  mainloop, data);
 		

@@ -438,7 +438,7 @@ public:
           _nbRead(0), _total(0), _memspaceId(0)
     {
         _data = (Item*) MALLOC (_blockSize*sizeof(Item));
-        memset (_data, 0, _blockSize*sizeof(Item));
+        memset (static_cast<void*>(_data), 0, _blockSize*sizeof(Item));
 
         _total = _ref->_common->_nbItems;
     }

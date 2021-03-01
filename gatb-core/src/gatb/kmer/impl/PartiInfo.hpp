@@ -63,7 +63,7 @@ class PartiInfo
         parti_record& operator+=(const parti_record& other) {
             nb_kmers += other.nb_kmers;
             nb_kxmers += other.nb_kxmers;
-            for(int i = 0 ; i < xmer * 256 ; i++) {
+            for(long unsigned int i = 0 ; i < xmer * 256 ; i++) {
                 nbk_per_radix[i] += other.nbk_per_radix[i];
             }
             return *this;
@@ -109,11 +109,11 @@ public:
 
     /** Adds count to *this from other */
     PartiInfo &add(const PartiInfo &other) {
-        for (int np = 0; np < _nbpart; np++) {
+        for (u_int16_t np = 0; np < _nbpart; np++) {
             _parti_records[np] += other._parti_records[np];
         }
 
-        for (int ii = 0; ii < _num_mm_bins; ii++) {
+        for (u_int64_t ii = 0; ii < _num_mm_bins; ii++) {
             _mmer_bin_records[ii] += other._mmer_bin_records[ii];
         }
 

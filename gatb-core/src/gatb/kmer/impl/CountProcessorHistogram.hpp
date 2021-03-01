@@ -114,10 +114,10 @@ public:
 			//output 2D histogram now
 			//printf("output 2D histo gram to file %s \n",_histo2Dfilename.c_str());
 			
-			for(int ii=0; ii<= _histogram->getLength(); ii++)
+			for(size_t ii=0; ii<= _histogram->getLength(); ii++)
 			{
 				fprintf(histo2Dfile,"%5i:\t",ii);
-				for(int jj=0; jj<= _histogram->getLength2(); jj++)
+				for(size_t jj=0; jj<= _histogram->getLength2(); jj++)
 				{
 					fprintf(histo2Dfile,"\t%6lli", (long long)_histogram->get2D(ii,jj));
 				}
@@ -132,7 +132,7 @@ public:
 			FILE * histo1Dfile = fopen (_histo1Dfilename.c_str(),"w");
 			
 			//output 1D histogram now
-			for(int ii=1; ii<= _histogram->getLength(); ii++)
+			for(size_t ii=1; ii<= _histogram->getLength(); ii++)
 			{
 				fprintf(histo1Dfile,"%i\t%lli",ii,(long long)_histogram->get(ii));
 				fprintf(histo1Dfile,"\n");

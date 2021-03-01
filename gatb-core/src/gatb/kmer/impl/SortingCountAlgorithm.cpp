@@ -223,6 +223,7 @@ IOptionsParser* SortingCountAlgorithm<span>::getOptionsParser (bool mandatory)
     parser->push_back (new OptionOneParam (STR_STORAGE_TYPE,      "storage type of kmer counts ('hdf5' or 'file')", false, "hdf5"  ));
 	parser->push_back (new OptionOneParam (STR_HISTO2D,"compute the 2D histogram (with first file = genome, remaining files = reads)",false,"0"));
 	parser->push_back (new OptionOneParam (STR_HISTO,"output the kmer abundance histogram",false,"0"));
+	parser->push_back (new OptionNoParam  (STR_KFF,"also output kmers in kff format",false));
 
     IOptionsParser* devParser = new OptionsParser ("kmer count, advanced performance tweaks");
 
@@ -337,6 +338,36 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
 
     if (params==0 || dskStorage==0 || otherStorage==0)  { throw Exception ("Bad parameters in SortingCountAlgorithm<span>::getDefaultProcessor"); }
 
+	string kff_prefix;
+   
+    if(params->get(STR_URI_OUTPUT))
+    {
+        std::string uri_input = params->getStr(STR_URI_OUTPUT);
+        kff_prefix =  uri_input + ".kff";
+    }
+    else
+    {
+        if(params->get(STR_URI_INPUT))
+        {
+            std::string uri_input = params->getStr(STR_URI_INPUT);
+            std::string delimiter = ",";
+            std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
+            kff_prefix =  system::impl::System::file().getBaseName(firstbankname) + ".kff";
+        }
+        else if(params->get(STR_URI_FILE))
+        {
+            std::string uri_input = params->getStr(STR_URI_FILE);
+            std::string delimiter = ",";
+            std::string firstbankname = uri_input.substr(0, uri_input.find(delimiter));
+            kff_prefix =  system::impl::System::file().getBaseName(firstbankname) + ".kff";
+        }
+        else
+        {
+            kff_prefix = "output.kff";
+        }
+    }
+	
+
     /** The default count processor is defined as the following chain :
      *      1) histogram
      *      2) solidity filter
@@ -360,6 +391,11 @@ ICountProcessor<span>* SortingCountAlgorithm<span>::getDefaultProcessor (
             dskStorage->getGroup("dsk"),
             params->getInt(STR_KMER_SIZE)
         ),
+        params->get(STR_KFF) ? new CountProcessorDumpKff<span> (
+            kff_prefix,
+            dskStorage->getGroup("dsk"),
+            params->getInt(STR_KMER_SIZE)
+        ) : NULL,
         NULL
     );
 

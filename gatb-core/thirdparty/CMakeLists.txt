@@ -49,15 +49,18 @@ foreach (header ${headerfiles})
   add_custom_command (TARGET hdf5_postbuild POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header} ${HDF5_INSTALL_INCLUDE_DIR}  )
 endforeach()
 
-# include other smaller libraries (json, Boophf)
+# include other smaller libraries (json, Boophf, kff)
 
 add_custom_target (thirdparty_copy ALL)
 add_custom_command (TARGET thirdparty_copy COMMAND ${CMAKE_COMMAND} -E
     make_directory ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json)
 add_custom_command (TARGET thirdparty_copy COMMAND ${CMAKE_COMMAND} -E
     make_directory ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF)
+add_custom_command (TARGET thirdparty_copy COMMAND ${CMAKE_COMMAND} -E
+    make_directory ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/kff-cpp-api)
 add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/BooPHF/BooPHF.h ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF/)
 add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/json/json.hpp   ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json/)
+add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/kff-cpp-api/kff_io.hpp   ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/kff-cpp-api/)
 
 ################################################################################
 #  INSTALL 
@@ -66,4 +69,5 @@ IF (NOT DEFINED GATB_CORE_INSTALL_EXCLUDE)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/hdf5 DESTINATION include)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json DESTINATION include)
     INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF DESTINATION include)
+    INSTALL (DIRECTORY ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/kff-cpp-api DESTINATION include)
 ENDIF ()
