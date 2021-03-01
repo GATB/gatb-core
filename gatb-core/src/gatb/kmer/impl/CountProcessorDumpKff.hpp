@@ -67,7 +67,7 @@ public:
         if(!System::file().doesExist(_prefix)){
             int ok = System::file().mkdir(_prefix, 0755);
             if(ok != 0){
-                throw Exception ("Error: can't create kff directory");
+                //throw Exception ("Error: can't create kff directory");
             }
         }
     }
