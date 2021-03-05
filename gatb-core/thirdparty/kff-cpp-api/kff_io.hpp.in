@@ -65,9 +65,6 @@ public:
 	std::fstream fs;
 	// encoding:        A:0  C:1 G:3 T:2
 	uint8_t encoding[4] = {0, 1, 3, 2};
-	uint64_t k_value = 0;
-	uint64_t data_size = 0;
-	uint64_t max_kmers = 255;
 	
 	uint32_t metadata_size = 0;
 
@@ -452,10 +449,5 @@ public:
 	uint64_t get_var(std::string name);
 	uint8_t * get_encoding();
 };
-
-
-
-void leftshift8(uint8_t * bitarray, size_t length, size_t bitshift);
-void rightshift8(uint8_t * bitarray, size_t length, size_t bitshift);
 
 #endif
