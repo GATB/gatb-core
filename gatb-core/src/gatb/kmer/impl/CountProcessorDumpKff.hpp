@@ -26,7 +26,7 @@
 #include <gatb/kmer/impl/CountProcessorAbstract.hpp>
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
-#include "../../../../thirdparty/kff-cpp-api/kff_io.hpp"
+#include <kff-cpp-api/kff_io.hpp>
 
 
 /********************************************************************************/
