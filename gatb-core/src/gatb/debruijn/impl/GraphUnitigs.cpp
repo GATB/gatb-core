@@ -464,7 +464,6 @@ void GraphUnitigsTemplate<span>::print_unitigs_mem_stats(uint64_t incoming_size,
 {
     uint64_t mem_vec_sizes = /*unitigs_sizes.get_alloc_byte_num(); // formerly */(unitigs_sizes.capacity() * sizeof(uint32_t));
 
-    std::cout <<  "Stats:"  << std::endl;
     std::cout <<  "Number of unitigs: " << nb_unitigs << std::endl;
     std::cout <<  "Average number of incoming/outcoming neighbors: " << incoming_size/(float)nb_unitigs << "/" <<  outcoming_size/(float)nb_unitigs  << std::endl;
     std::cout <<  "Total number of nucleotides in unitigs: " << total_unitigs_size << std::endl;
