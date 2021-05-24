@@ -75,8 +75,9 @@ using namespace gatb::core::tools::storage::impl;
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 
-#undef NDEBUG
-#include <cassert>
+// uncomment to have asserts
+//#undef NDEBUG
+//#include <cassert>
 
 #define DEBUG(a)  //a
 
@@ -378,11 +379,11 @@ insert_compressed_navigational_vector(std::vector<uint64_t> &v, std::vector<uint
 // here we dynamically insert at the next open space in the vector after the position indicated by the v_map (pos variable)
 // since we precomputed v_map, we know that there is no way to overflow
 static void
-insert_navigational_vector_gfa(std::vector<uint64_t> &v, uint64_t to_insert, uint64_t pos)
+insert_navigational_vector_gfa(std::vector<uint64_t> &v, uint64_t to_insert, uint64_t pos, uint64_t from_unitig_id)
 {
     bool inserted = false;
-    uint64_t v_size = v.size();
-    for (uint i = 0 ; i < 16; i ++) // 16 is just some upper bound
+    uint64_t v_size = v.size(); 
+    for (uint i = 0 ; i < 16; i ++) // 16 is just some upper bound, we're not expected to cross it due to dbg nodes having no more than 16 neighbors
     {
         if (pos+i < v_size && v[pos+i] == 0)
         {
@@ -393,8 +394,12 @@ insert_navigational_vector_gfa(std::vector<uint64_t> &v, uint64_t to_insert, uin
     }
     if (!inserted)
     {
-        std::cout << "bad navigational vector insert at position " << pos << " / " << v_size << "! could not find a spot to insert. some debug: " << std::endl;
-        std::cout << v[pos] << " " << v[pos+1] << " " << v[pos+2] << std::endl;
+        std::cout << "[critical bug] bad navigational vector insert for unitig id "<< from_unitig_id << " at position " << pos << " (out of " << v_size << "). could not find a spot to insert. some debug: " << std::endl;
+        for (int j = 0; j < 16; j ++)
+        {
+            ExtremityInfo e(v[pos+j]); 
+            std::cout << e.toString() << std::endl;
+        }
         exit(1);
     }
 }
@@ -648,7 +653,10 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
     pack_unitigs = true;
 	bool verbose = true;
     
+    nb_unitigs_extremities = 0; // will be used by NodeIterator (getNodes)
 	uint64_t incoming_size = 0, outcoming_size = 0, total_unitigs_size = 0;
+    uint64_t unitig_id_corresp_size = std::max(incoming_map.size(), outcoming_map.size());
+    //std::cout << "load_unitigs_from_gfa, incoming map size: " << incoming_map.size() <<  " outcoming_map size: " << outcoming_map.size() << std::endl;
 
 	ifstream gfi;
 	gfi.open(gfa_filename.c_str(), std::ifstream::in);
@@ -722,11 +730,11 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
                 exit(1);
             }
 
-            if (incoming_map.size() < unitig_id_corresp[unitig_id])
+            if (unitig_id_corresp[unitig_id]+1 >= unitig_id_corresp_size)
             {
-                // linear resizing
-                incoming_map.resize(unitig_id_corresp[unitig_id]+100000);
-                outcoming_map.resize(unitig_id_corresp[unitig_id]+100000);
+                unitig_id_corresp_size = unitig_id_corresp[unitig_id]+100000; // linear resizing
+                incoming_map.resize(unitig_id_corresp_size, 0);
+                outcoming_map.resize(unitig_id_corresp_size, 0);
             }
 
 			if (in)
@@ -772,9 +780,9 @@ void GraphUnitigsTemplate<span>::load_unitigs_from_gfa(string gfa_filename, unsi
                 rc = !rc;
             ExtremityInfo li(to_unitig_id, rc, pos);
             if (in)
-                insert_navigational_vector_gfa(incoming, li.pack(), incoming_map[unitig_id_corresp[from_unitig_id]]);
+                insert_navigational_vector_gfa(incoming, li.pack(), incoming_map[unitig_id_corresp[from_unitig_id]], from_unitig_id);
             else
-                insert_navigational_vector_gfa(outcoming, li.pack(), outcoming_map[unitig_id_corresp[from_unitig_id]]);
+                insert_navigational_vector_gfa(outcoming, li.pack(), outcoming_map[unitig_id_corresp[from_unitig_id]], from_unitig_id);
 		}
 	}		    
 

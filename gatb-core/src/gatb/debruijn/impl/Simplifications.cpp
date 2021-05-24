@@ -79,14 +79,13 @@ Simplifications<GraphType, Node, Edge>::Simplifications(GraphType *graph, int nb
         // this is just to get number of nodes
         ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem> itNode (this->_graph.iterator(), "");
         nbNodes = itNode.size();
+
+        // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
+        // (before, the previous system was to do a fixed amount of passes)
+        cutoffEvents = std::max((uint64_t)(nbNodes / 10000), (uint64_t)1); 
+        // maybe todo: estimate better and illustrate on sample genomes
     }
 
-    // compute a fair amount of tips/bubble/ec after which it's useless to do another pass
-    // (before, the previous system was to do a fixed amount of passes)
-
-    cutoffEvents = std::max((uint64_t)(nbNodes / 10000), (uint64_t)1); 
-    // maybe todo: estimate better and illustrate on sample genomes
-    
     
     // set some default parameters for aggressive graph simplifications (minia)
 

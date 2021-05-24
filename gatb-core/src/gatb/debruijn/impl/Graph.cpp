@@ -75,8 +75,9 @@ using namespace gatb::core::tools::storage::impl;
 using namespace gatb::core::tools::misc;
 using namespace gatb::core::tools::misc::impl;
 
-#undef NDEBUG
-#include <cassert>
+// uncomment to see asserts
+//#undef NDEBUG
+//#include <cassert>
 
 #define DEBUG(a)  //a
 
