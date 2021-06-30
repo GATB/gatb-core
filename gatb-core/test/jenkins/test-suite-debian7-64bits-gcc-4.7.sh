@@ -94,10 +94,12 @@ if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR"
    make package
    pwd
    ls -atlhrsF
-   #scp gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+
+   #-- Move the generated bin bundle to the workspace (so that it can be uploaded as a Jenkins job artifact)
+   mv gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz $JENKINS_WORKSPACE/
+
    echo "Testing the distribution..."
-   gunzip gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz
-   tar -xf gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar
+   tar -xzf $JENKINS_WORKSPACE/gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz
    cd gatb-core-${BRANCH_TO_BUILD}-bin-Linux
 
    code_snippets=($(find ./examples -name "*1.cpp"))
@@ -109,9 +111,8 @@ if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR"
 
    # do some cleanup to save disk space
    cd ..
-   rm -rf gatb-core-${BRANCH_TO_BUILD}-bin-Linux/ # remove directory, but not tar.gz file (Jenkins job artifact)
+   rm -rf gatb-core-${BRANCH_TO_BUILD}-bin-Linux/
 fi
-
 
 ################################################################
 #                       UNIT TESTS                             #
