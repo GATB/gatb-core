@@ -60,8 +60,12 @@ cmake --version
 
 [ `gcc -dumpversion` = 4.7 ] && { echo "GCC 4.7"; } || { echo "GCC version is not 4.7, we exit"; exit 1; }
 
-JENKINS_TASK=test-suite-debian7-64bits-gcc-4.7
-GIT_DIR=/builds/workspace/$JENKINS_TASK/gatb-core
+#JENKINS_TASK=test-suite-debian7-64bits-gcc-4.7
+JENKINS_TASK=test-suite-debian7-64bits-gcc-4.7-gitlab
+JENKINS_WORKSPACE=/builds/workspace/$JENKINS_TASK/
+
+#GIT_DIR=/builds/workspace/$JENKINS_TASK/gatb-core
+GIT_DIR=$JENKINS_WORKSPACE/gatb-core
 BUILD_DIR=/scratchdir/$JENKINS_TASK/gatb-core/build
 
 rm -rf $BUILD_DIR
@@ -79,12 +83,18 @@ make -j 2 || error_code
 ################################################################
 #                       PACKAGING                              #
 ################################################################
-# Upload bin bundle to the forge; source bundle is made by OSX Jenkins task
+
+#-- Upload bin bundle as a build artifact
+#   -> bin bundle *-bin-Linux.tar.gz will be archived as a build artifact
+#   -> source package is handled by the osx task
+
 if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR" != true ]; then
    echo "Creating a binary archive... "
    echo "N.B. this is NOT an official binary release"
    make package
-   scp gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+   pwd
+   ls -atlhrsF
+   #scp gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
    echo "Testing the distribution..."
    gunzip gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar.gz
    tar -xf gatb-core-${BRANCH_TO_BUILD}-bin-Linux.tar
@@ -99,8 +109,9 @@ if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR"
 
    # do some cleanup to save disk space
    cd ..
-   rm -rf gatb-core-${BRANCH_TO_BUILD}-bin-Linux*
+   rm -rf gatb-core-${BRANCH_TO_BUILD}-bin-Linux/ # remove directory, but not tar.gz file (Jenkins job artifact)
 fi
+
 
 ################################################################
 #                       UNIT TESTS                             #
