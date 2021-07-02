@@ -56,6 +56,7 @@ JENKINS_TASK=test-suite-macos-10.9.5-gcc-4.2.1
 GIT_DIR=/builds/workspace/$JENKINS_TASK/gatb-core
 #BUILD_DIR=/scratchdir/$JENKINS_TASK/gatb-core/build
 BUILD_DIR=$GIT_DIR/build         #N.B. /scratchdir not yet mounted on the osx slave (ciosx)
+JENKINS_WORKSPACE=$BUILD_DIR
 
 rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
@@ -76,11 +77,11 @@ if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR"
    make package
    echo "Creating a source archive... "
    make package_source
-   scp gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
-   scp gatb-core-${BRANCH_TO_BUILD}-Source.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+   #scp gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
+   #scp gatb-core-${BRANCH_TO_BUILD}-Source.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
    echo "Testing the distribution..."
-   gunzip gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar.gz
-   tar -xf gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar
+
+   tar -xzf gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar
    cd gatb-core-${BRANCH_TO_BUILD}-bin-Darwin
 
    code_snippets=($(find ./examples -name "*1.cpp"))
@@ -91,7 +92,7 @@ if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR"
    done
    # do some cleanup to save disk space
    cd ..
-   rm -rf gatb-core-${BRANCH_TO_BUILD}-bin-Darwin*
+   rm -rf gatb-core-${BRANCH_TO_BUILD}-bin-Darwin/
 fi
 
 ################################################################
