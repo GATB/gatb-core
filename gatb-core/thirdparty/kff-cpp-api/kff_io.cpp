@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include <map>
+#include <vector>
 
 #include "kff_io.hpp"
 
@@ -14,12 +15,30 @@ using namespace std;
 // Utils
 
 template<typename T>
+void store_big_endian(uint8_t * buff, const T& data) {
+	for (int b = sizeof(T) - 1; b >= 0; --b) {
+		*buff++ = data >> (8 * b);
+	}
+}
+template<typename T>
 void write_value(T val, fstream & fs) {
-	fs.write((char*)&val, sizeof(T));
+	uint8_t tmp[sizeof(T)];
+	store_big_endian(tmp, val);
+	fs.write((char *)tmp, sizeof(val));
+}
+
+template<typename T>
+void load_big_endian(uint8_t * buff, T& data) {
+	data = 0;
+	for (uint b=0 ; b < sizeof(T); b++) {
+		data |= ((T)buff[b]) << 8 * (sizeof(data) - 1 - b);
+	}
 }
 template<typename T>
 void read_value(T & val, fstream & fs) {
-	fs.read((char*)&val, sizeof(T));
+	uint8_t tmp[sizeof(T)];
+	fs.read((char *)tmp, sizeof(val));
+	load_big_endian(tmp, val);
 }
 
 uint64_t bytes_from_bit_array(uint64_t bits_per_elem, uint64_t nb_elem) {
@@ -40,7 +59,7 @@ Kff_file::Kff_file(const string filename, const string mode) {
 	// Variable init
 	this->is_writer = false;
 	this->is_reader = false;
-	auto streammode = fstream::binary;
+	std::ios_base::openmode streammode = fstream::binary;
 
 	// Determine the mode and open the file
 	if (mode[0] == 'w') {
@@ -57,31 +76,105 @@ Kff_file::Kff_file(const string filename, const string mode) {
 	// Open the file
 	this->filename = filename;
 	this->fs.open(filename, streammode);
+
+    if (!this->fs.good())
+    {
+        cerr << "Unable to open file: " << filename << endl;
+        throw "Error opening input file";
+    }
+
 	this->tmp_closed = false;
 	this->header_over = false;
+	this->indexed = false;
+	this->footer = nullptr;
+	this->footer_discovery_ended = true;
 
-	// Write the version at the beginning of the file
+	// Write the signature and the version at the beginning of the file
 	if (this->is_writer) {
+		// Signature
+		this->fs << "KFF";
+		// KFF version
 		this->fs << (char)KFF_VERSION_MAJOR << (char)KFF_VERSION_MINOR;
+		// Write default encoding
+		this->fs << (char)0b00011110;
+		// kmer fundamental properties (default all to false)
+		//         Uniqueness Canonicity
+		this->fs << (char)0 << (char)0;
+
+		this->indexed = true;
 	}
 
 	// Read the header
 	else if (this->is_reader) {
-		this->fs >> this->major_version >> this->minor_version;
+		// Header integrity marker
+		char a,b,c;
+		this->fs >> a >> b >> c;
+		if (a != 'K' or b != 'F' or c != 'F') {
+			cerr << "Absent KFF signature at the beginning of the file." << endl;
+			cerr << "Please check that the file is not corrupted" << endl;
+			throw "Absent signature at the beginning";
+		}
 
+		// Footer integrity marker
+		this->fs.seekg(-3, this->fs.end);
+		this->end_position = this->fs.tellp();
+		this->fs >> a >> b >> c;
+		if (a != 'K' or b != 'F' or c != 'F') {
+			cerr << "Absent KFF signature at the end of the file." << endl;
+			cerr << "Please check that the file is not corrupted" << endl;
+			throw "Absent signature at the end";
+		}
+
+		// Back to the start
+		this->fs.seekg(3, this->fs.beg);
+		this->footer_discovery_ended = false;
+
+		// Version reading
+		this->fs >> this->major_version >> this->minor_version;
 		if (KFF_VERSION_MAJOR < this->major_version or (KFF_VERSION_MAJOR == this->major_version and KFF_VERSION_MINOR < this->minor_version)) {
 			cerr << "The software version " << (uint)KFF_VERSION_MAJOR << "." << (uint)KFF_VERSION_MINOR << " can't read files writen in version " << (uint)this->major_version << "." << (uint)this->minor_version << endl;
 			throw "Unexpected version number";
 		}
 
+		// Encoding load
 		this->read_encoding();
+		// Read global flags
+		char flag;
+		this->fs >> flag;
+		this->uniqueness = flag != 0;
+		this->fs >> flag;
+		this->canonicity = flag != 0;
+		// Read metadata
 		this->read_size_metadata();
+
+		// Discover footer
+		this->footer_discovery();
+		this->index_discovery();
 	}
 }
 
 
 Kff_file::~Kff_file() {
+	if (this->footer != nullptr)
+		delete this->footer;
+
+	for (Section_Index * si : this->index)
+		delete si;
+
 	this->close();
+}
+
+
+void Kff_file::set_indexation(bool indexed) {
+	if (this->is_writer)
+		this->indexed = indexed;
+}
+
+
+void Kff_file::register_position(char section_type) {
+	if (this->is_writer and this->indexed) {
+		this->section_positions[this->fs.tellp()] = section_type;
+	}
 }
 
 
@@ -91,7 +184,7 @@ void Kff_file::complete_header() {
 
 	// If the metadata has not been read, jump over
 	if (this->is_reader) {
-		this->fs.seekp(this->fs.tellp() + (long)this->metadata_size);
+		this->fs.seekp((long)this->fs.tellp() + (long)this->metadata_size);
 	}
 
 	// If metadata has not been write, write a 0 byte one.
@@ -100,6 +193,86 @@ void Kff_file::complete_header() {
 	}
 
 	this->header_over = true;
+}
+
+
+void Kff_file::footer_discovery() {
+	long current_pos = this->fs.tellp();
+
+	// Look at the footer
+	this->fs.seekg(-23, this->fs.end);
+	// Try to extract the footer size
+	stringstream ss;
+	char c = 'o';
+	for (uint i=0 ; i<11 ; i++) {
+		this->fs >> c;
+		ss << c;
+	}
+	if (ss.str().compare("footer_size") != 0) {
+		return;
+	}
+	this->fs >> c; // remove the '\0'
+
+	uint64_t size = 0;
+	read_value(size, this->fs);
+	// Jump to value section start
+	this->fs.seekg(-size-3, this->fs.end);
+	this->footer = new Section_GV(this);
+	this->footer->close();
+	this->footer_discovery_ended = true;
+
+	this->fs.seekg(current_pos, this->fs.beg);
+}
+
+
+void Kff_file::index_discovery() {
+	long current_pos = this->fs.tellp();
+	bool header_over = this->header_over;
+	this->complete_header();
+
+	// Search in footer
+	if (this->footer != nullptr and this->footer->vars.find("first_index") != this->footer->vars.end()) {
+		this->indexed = true;
+		this->read_index((long)this->footer->vars["first_index"]);
+	}
+
+	// Search first section
+	if (not this->indexed) {
+		char type = this->fs.peek();
+		if (type == 'i') {
+			this->indexed = true;
+			this->read_index(this->fs.tellp());
+		}
+
+	}
+
+	this->header_over = header_over;
+	this->index_discovery_ended = true;
+
+	this->fs.seekg(current_pos, this->fs.beg);
+}
+
+
+void Kff_file::read_index(long position) {
+	long current_pos = this->fs.tellp();
+
+	while (position != 0) {
+		// Move to the beginning
+		this->fs.seekg(position, this->fs.beg);
+		// read the local index content
+		Section_Index * si = new Section_Index(this);
+		this->index.push_back(si);
+		si->close();
+		// Update index position to the next index section
+		if (si->next_index == 0)
+			position = 0;
+		else {
+
+			position = this->fs.tellp() + si->next_index;
+		}
+	}
+
+	this->fs.seekg(current_pos, this->fs.beg);
 }
 
 
@@ -123,7 +296,39 @@ void Kff_file::reopen() {
 }
 
 
+void Kff_file::write_footer() {
+	Section_Index si(this);
+
+	// Compute end position
+	long position = si.beginning + 17 + 9 * this->section_positions.size();
+	// Add the values
+	for (map<int64_t, char>::iterator it=this->section_positions.begin() ; it!=this->section_positions.end() ; it++) {
+		si.register_section(it->second, it->first - position);
+	}
+
+	si.close();
+
+	// Write a value section to register everything
+	Section_GV sgv(this);
+	sgv.write_var("first_index", si.beginning);
+	sgv.write_var("footer_size", 9 + 2 * (12 + 8));
+	sgv.close();
+}
+
+
 void Kff_file::close() {
+	// Write the end signature
+	if (this->tmp_closed)
+		this->reopen();
+
+	if (this->is_writer) {
+		// Write the index
+		if (this->indexed)
+			this->write_footer();
+		// End signature
+		this->fs << "KFF";
+	}
+
 	if (this->fs.is_open())
 		this->fs.close();
 	this->tmp_closed = false;
@@ -151,7 +356,23 @@ void Kff_file::write_encoding(uint8_t a, uint8_t c, uint8_t g, uint8_t t) {
 
 	// Write to file
 	uint8_t code = (a << 6) | (c << 4) | (g << 2) | t;
+	long position = this->fs.tellp();
+	this->fs.seekg(5, this->fs.beg);
 	this->fs << code;
+	this->fs.seekg(position, this->fs.beg);
+}
+
+void Kff_file::set_uniqueness(bool uniqueness) {
+	long position = this->fs.tellp();
+	this->fs.seekg(6, this->fs.beg);
+	this->fs << (char)(uniqueness ? 1 : 0);
+	this->fs.seekg(position, this->fs.beg);	
+}
+void Kff_file::set_canonicity(bool canonicity) {
+	long position = this->fs.tellp();
+	this->fs.seekg(6, this->fs.beg);
+	this->fs << (char)(canonicity ? 1 : 0);
+	this->fs.seekg(position, this->fs.beg);
 }
 
 void Kff_file::write_encoding(uint8_t * encoding) {
@@ -216,62 +437,59 @@ char Kff_file::read_section_type() {
 
 	char type = '\0';
 	this->fs >> type;
-	this->fs.seekp(this->fs.tellp() - 1l);
+	this->fs.seekp((long)this->fs.tellp() - 1l);
 	return type;
+}
+
+
+Section::Section(Kff_file * file) {
+	this->file = file;
+
+	if (file->tmp_closed) {
+		file->reopen();
+	}
+	if (not file->header_over and file->footer_discovery_ended) {
+		file->complete_header();
+	}
+
+	this->beginning = file->fs.tellp();
+}
+
+void Section::close() {
+	this->file = nullptr;
 }
 
 
 // ----- Global variables sections -----
 
-Section_GV::Section_GV(Kff_file * file) {
-	if (file->tmp_closed) {
-		file->reopen();
-	}
-
-	if (not file->header_over) {
-		file->complete_header();
-	}
-
-	this->file = file;
-	this->begining = file->fs.tellp();
+Section_GV::Section_GV(Kff_file * file) : Section(file) {
 	this->nb_vars = 0;
-	this->is_closed = true;
+	this->file->global_vars.clear();
 
-	if (file->is_reader) {
+	if (this->file->is_reader) {
 		this->read_section();
 	}
 
 	if (file->is_writer) {
-		this->is_closed = false;
-		fstream & fs = file->fs;
-		fs << 'v';
-		write_value(nb_vars, fs);
+		if (file->indexed)
+			file->register_position('v');
+		file->fs << 'v';
 	}
 }
 
 void Section_GV::write_var(const string & var_name, uint64_t value) {
-	assert(!this->is_closed);
-
-	if (file->tmp_closed) {
-		file->reopen();
-	}
-
-	auto & fs = this->file->fs;
-	fs << var_name << '\0';
-	write_value(value, fs);
 	this->nb_vars += 1;
-
 	this->vars[var_name] = value;
 	this->file->global_vars[var_name] = value;
 }
 
 void Section_GV::read_section() {
-	char type;
-	file->fs >> type;
+	char type = '\0';
+	this->file->fs >> type;
 	if (type != 'v')
 		throw "The section do not start with the 'v' char, you can't open a Global Variable section.";
 
-	read_value(this->nb_vars, file->fs);
+	read_value(this->nb_vars, this->file->fs);
 	for (uint64_t i=0 ; i<nb_vars ; i++) {
 		this->read_var();
 	}
@@ -291,7 +509,7 @@ void Section_GV::read_var() {
 	}
 
 	// Value reading
-	uint64_t value;
+	uint64_t value = 0;
 	read_value(value, file->fs);
 
 	// Saving
@@ -304,17 +522,76 @@ void Section_GV::close() {
 	if (file->is_writer) {
 		if (file->tmp_closed)
 			file->reopen();
-		// Save current position
-		fstream &	 fs = this->file->fs;
-		long position = fs.tellp();
-		// Go write the number of variables in the correct place
-		fs.seekp(this->begining + 1);
-		write_value(nb_vars, fs);
 
-		fs.seekp(position);
-		this->is_closed = true;
+		fstream &	 fs = this->file->fs;
+		// write the number of block values
+		write_value(this->nb_vars, fs);
+		// Write the variables
+		for (std::map<std::string,uint64_t>::iterator var_tuple=this->vars.begin() ; var_tuple != this->vars.end() ; var_tuple++) {
+			fs << var_tuple->first << '\0';
+			write_value(var_tuple->second, fs);
+		}
+	}
+
+	Section::close();
+}
+
+
+
+Section_Index::Section_Index(Kff_file * file) : Section(file) {
+	this->next_index = 0;
+
+	if (this->file->is_reader) {
+		fstream & fs = this->file->fs;
+		char type = '\0';
+		fs >> type;
+		if (type != 'i')
+			throw "The section do not start with the 'i' char, you can not open an Index section.";
+
+		uint64_t nb_vars;
+		read_value(nb_vars, fs);
+		for (uint64_t i=0 ; i<nb_vars ; i++) {
+			char c = '\0';
+			int64_t idx = 0;
+			read_value(c, fs);
+			read_value(idx, fs);
+			this->index[idx] = c;
+		}
+
+		if (nb_vars != this->index.size())
+			throw "index collision in i section";
+
+		read_value(this->next_index, fs);
 	}
 }
+
+void Section_Index::register_section(char section_type, int64_t pos) {
+	this->index[pos] = section_type;
+}
+
+void Section_Index::set_next_index(int64_t index) {
+	this->next_index = index;
+}
+
+void Section_Index::close() {
+	if (this->file->is_writer) {
+		// Section header
+		this->file->fs << (char)'i';
+		write_value((uint64_t)this->index.size(), this->file->fs);
+		// Write index
+		for (std::map<int64_t, char>::iterator it=this->index.begin(); it!=this->index.end(); ++it) {
+			// Section type
+		  write_value(it->second, this->file->fs);
+		  // Section index
+		  write_value(it->first, this->file->fs);
+		}
+		write_value(this->next_index, this->file->fs);
+	}
+
+	Section::close();
+}
+
+
 
 Block_section_reader * Block_section_reader::construct_section(Kff_file * file) {
 	// Very and complete if needed the header
@@ -332,7 +609,7 @@ Block_section_reader * Block_section_reader::construct_section(Kff_file * file) 
 
 // ----- Raw sequence section -----
 
-Section_Raw::Section_Raw(Kff_file * file) {
+Section_Raw::Section_Raw(Kff_file * file) : Section(file){
 	if (file->global_vars.find("k") == file->global_vars.end())
 		throw "Impossible to read the raw section due to missing k variable";
 	if(file->global_vars.find("max") == file->global_vars.end())
@@ -344,18 +621,7 @@ Section_Raw::Section_Raw(Kff_file * file) {
 	uint64_t max = file->global_vars["max"];
 	uint64_t data_size = file->global_vars["data_size"];
 
-	if (file->tmp_closed) {
-		file->reopen();
-	}
-
-	if (not file->header_over) {
-		file->complete_header();
-	}
-
-	this->file = file;
-	this->begining = file->fs.tellp();
 	this->nb_blocks = 0;
-	this->is_closed = true;
 
 	this->k = k;
 	this->max = max;
@@ -370,10 +636,10 @@ Section_Raw::Section_Raw(Kff_file * file) {
 	}
 
 	if (file->is_writer) {
-		this->is_closed = false;
-		fstream & fs = file->fs;
-		fs << 'r';
-		write_value(nb_blocks, fs);
+		if (file->indexed)
+			file->register_position('r');
+		file->fs << 'r';
+		write_value(nb_blocks, file->fs);
 	}
 }
 
@@ -392,13 +658,12 @@ uint32_t Section_Raw::read_section_header() {
 }
 
 void Section_Raw::write_compacted_sequence(uint8_t* seq, uint64_t seq_size, uint8_t * data_array) {
-	assert(!this->is_closed);
-	if (file->tmp_closed) {
-		file->reopen();
+	if (this->file->tmp_closed) {
+		this->file->reopen();
 	}
 	// 1 - Write nb kmers
 	uint64_t nb_kmers = seq_size - k + 1;
-	file->fs.write((char*)&nb_kmers, this->nb_kmers_bytes);
+	this->file->fs.write((char*)&nb_kmers, this->nb_kmers_bytes);
 	// 2 - Write sequence
 	uint64_t seq_bytes_needed = bytes_from_bit_array(2, seq_size);
 	this->file->fs.write((char *)seq, seq_bytes_needed);
@@ -413,14 +678,14 @@ uint64_t Section_Raw::read_compacted_sequence(uint8_t* seq, uint8_t* data) {
 	uint64_t nb_kmers_in_block = 1;
 	// 1 - Read the number of kmers in the sequence
 	if (nb_kmers_bytes != 0)
-		file->fs.read((char*)&nb_kmers_in_block, this->nb_kmers_bytes);
+		this->file->fs.read((char*)&nb_kmers_in_block, this->nb_kmers_bytes);
 	// 2 - Read the sequence
 	size_t seq_size = nb_kmers_in_block + k - 1;
 	size_t seq_bytes_needed = bytes_from_bit_array(2, seq_size);
-	file->fs.read((char*)seq, seq_bytes_needed);
+	this->file->fs.read((char*)seq, seq_bytes_needed);
 	// 3 - Read the data.
 	uint64_t data_bytes_used = bytes_from_bit_array(data_size*8, nb_kmers_in_block);
-	file->fs.read((char*)data, data_bytes_used);
+	this->file->fs.read((char*)data, data_bytes_used);
 
 	this->remaining_blocks -= 1;
 
@@ -439,7 +704,7 @@ void Section_Raw::jump_sequence() {
 	// 3 - Determine the data size
 	size_t data_bytes_used = bytes_from_bit_array(data_size*8, nb_kmers_in_block);
 	// 4 - Jumb over the 
-	file->fs.seekp(file->fs.tellp() + (long)(seq_bytes_needed + data_bytes_used));
+	file->fs.seekp((long)file->fs.tellp() + (long)(seq_bytes_needed + data_bytes_used));
 	this->remaining_blocks -= 1;
 }
 
@@ -453,10 +718,9 @@ void Section_Raw::close() {
 		fstream &	 fs = this->file->fs;
 		long position = fs.tellp();
 		// Go write the number of variables in the correct place
-		fs.seekp(this->begining + 1);
+		fs.seekp(this->beginning + 1);
 		write_value(nb_blocks, fs);
 		fs.seekp(position);
-		this->is_closed = true;
 	}
 
 	if (file->is_reader) {
@@ -464,13 +728,15 @@ void Section_Raw::close() {
 		while (this->remaining_blocks > 0)
 			this->jump_sequence();
 	}
+
+	Section::close();
 }
 
 
 
 // ----- Minimizer sequence section -----
 
-Section_Minimizer::Section_Minimizer(Kff_file * file) {
+Section_Minimizer::Section_Minimizer(Kff_file * file) : Section(file) {
 	if (file->global_vars.find("k") == file->global_vars.end())
 		throw "Impossible to read the minimizer section due to missing k variable";
 	if (file->global_vars.find("m") == file->global_vars.end())
@@ -485,18 +751,7 @@ Section_Minimizer::Section_Minimizer(Kff_file * file) {
 	uint64_t max = file->global_vars["max"];
 	uint64_t data_size = file->global_vars["data_size"];
 
-	if (file->tmp_closed) {
-		file->reopen();
-	}
-
-	if (not file->header_over) {
-		file->complete_header();
-	}
-
-	this->file = file;
-	this->begining = file->fs.tellp();
 	this->nb_blocks = 0;
-	this->is_closed = true;
 
 	this->k = k;
 	this->m = m;
@@ -517,11 +772,13 @@ Section_Minimizer::Section_Minimizer(Kff_file * file) {
 	}
 
 	if (file->is_writer) {
-		this->is_closed = false;
+		if (file->indexed)
+			file->register_position('m');
+
 		fstream & fs = file->fs;
 		fs << 'm';
 		this->write_minimizer(this->minimizer);
-		file->fs.seekp(file->fs.tellp()+(long)nb_bytes_mini);
+		file->fs.seekp((long)file->fs.tellp()+(long)nb_bytes_mini);
 		write_value(nb_blocks, fs);
 	}
 }
@@ -533,8 +790,7 @@ Section_Minimizer::~Section_Minimizer() {
 Section_Minimizer& Section_Minimizer::operator= ( Section_Minimizer && sm) {
 	file = sm.file;
 	sm.file = nullptr;
-	begining = sm.begining;
-	is_closed = sm.is_closed;
+	beginning = sm.beginning;
 	nb_blocks = sm.nb_blocks;
 	m = sm.m;
 	nb_bytes_mini = sm.nb_bytes_mini;
@@ -544,13 +800,12 @@ Section_Minimizer& Section_Minimizer::operator= ( Section_Minimizer && sm) {
 }
 
 void Section_Minimizer::write_minimizer(uint8_t * minimizer) {
-	assert(!this->is_closed);
 	if (file->tmp_closed) {
 		file->reopen();
 	}
 
 	uint64_t pos = file->fs.tellp();
-	file->fs.seekp(this->begining+1);
+	file->fs.seekp(this->beginning+1);
 	file->fs.write((char *)minimizer, this->nb_bytes_mini);
 	memcpy(this->minimizer, minimizer, this->nb_bytes_mini);
 	file->fs.seekp(pos);
@@ -567,7 +822,7 @@ uint32_t Section_Minimizer::read_section_header() {
 		throw "The section do not start with the 'm' char, you can't open a Minimizer sequence section.";
 
 	// Read the minimizer
-	file->fs.read((char *)this->minimizer, this->nb_bytes_mini);
+	fs.read((char *)this->minimizer, this->nb_bytes_mini);
 
 	// Read the number of following blocks
 	read_value(nb_blocks, fs);
@@ -576,7 +831,6 @@ uint32_t Section_Minimizer::read_section_header() {
 }
 
 void Section_Minimizer::write_compacted_sequence_without_mini(uint8_t* seq, uint64_t seq_size, uint64_t mini_pos, uint8_t * data_array) {
-	assert(!this->is_closed);
 	if (file->tmp_closed) {
 		file->reopen();
 	}
@@ -631,7 +885,7 @@ void Section_Minimizer::jump_sequence() {
 	// 3 - Determine the data size
 	size_t data_bytes_used = bytes_from_bit_array(data_size*8, nb_kmers_in_block);
 	// 4 - Jumb over the 
-	file->fs.seekp(file->fs.tellp() + (long)(seq_bytes_needed + data_bytes_used));
+	file->fs.seekp((long)file->fs.tellp() + (long)(seq_bytes_needed + data_bytes_used));
 
 	this->remaining_blocks -= 1;
 }
@@ -672,7 +926,6 @@ static uint8_t fusion8(uint8_t left_bits, uint8_t right_bits, size_t merge_index
 }
 
 void Section_Minimizer::write_compacted_sequence (uint8_t* seq, uint64_t seq_size, uint64_t mini_pos, uint8_t * data_array) {
-	assert(!this->is_closed);
 	if (file->tmp_closed) {
 		file->reopen();
 	}
@@ -812,10 +1065,9 @@ void Section_Minimizer::close() {
 		fstream &	fs = this->file->fs;
 		long position = fs.tellp();
 		// Go write the number of variables in the correct place
-		fs.seekp(this->begining + 1l + (long)this->nb_bytes_mini);
+		fs.seekp(this->beginning + 1l + (long)this->nb_bytes_mini);
 		write_value(nb_blocks, fs);
 		fs.seekp(position);
-		this->is_closed = true;
 	}
 
 	if (file->is_reader) {
@@ -823,6 +1075,8 @@ void Section_Minimizer::close() {
 		while (this->remaining_blocks > 0)
 			this->jump_sequence();
 	}
+
+	Section::close();
 }
 
 
@@ -855,6 +1109,8 @@ Kff_reader::Kff_reader(std::string filename) {
 Kff_reader::~Kff_reader() {
 	delete[] this->current_kmer;
 	delete[] this->current_data;
+	if (this->current_section != NULL)
+		delete this->current_section;
 
 	for (uint i=0 ; i<4 ; i++)
 		delete[] this->current_shifts[i];
@@ -866,11 +1122,12 @@ Kff_reader::~Kff_reader() {
 void Kff_reader::read_until_first_section_block() {
 
 	while (current_section == NULL or remaining_blocks == 0) {
+		if (this->file->fs.tellp() == this->file->end_position) {
+			break;
+		}
+
 		// char section_type = this->file->read_section_type();
 		char section_type = file->read_section_type();
-		if (section_type == 0)
-			if (this->file->fs.eof())
-				break;
 		// --- Update data structure sizes ---
 		if (section_type == 'v') {
 			// Read the global variable block
@@ -907,7 +1164,10 @@ void Kff_reader::read_until_first_section_block() {
 			}
 		}
 		// Mount data from the files to the datastructures.
-		else {
+		else if (section_type == 'i') {
+			Section_Index index(file);
+			index.close();
+		} else {
 			current_section = Block_section_reader::construct_section(file);
 			remaining_blocks = current_section->nb_blocks;
 		}
@@ -931,9 +1191,9 @@ void Kff_reader::read_next_block() {
 }
 
 bool Kff_reader::has_next() {
-	if (current_section == NULL and !file->fs.eof())
+	if (current_section == NULL and (file->end_position > file->fs.tellp()))
 		read_until_first_section_block();
-	return !file->fs.eof();
+	return file->end_position > file->fs.tellp();
 }
 
 uint64_t Kff_reader::next_block(uint8_t* & sequence, uint8_t* & data) {
