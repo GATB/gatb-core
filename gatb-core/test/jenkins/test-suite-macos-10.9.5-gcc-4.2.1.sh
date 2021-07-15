@@ -52,7 +52,7 @@ cmake --version
 
 cd gatb-core
 
-JENKINS_TASK=test-suite-macos-10.9.5-gcc-4.2.1
+JENKINS_TASK=test-suite-macos-10.9.5-gcc-4.2.1-gitlab
 GIT_DIR=/builds/workspace/$JENKINS_TASK/gatb-core
 #BUILD_DIR=/scratchdir/$JENKINS_TASK/gatb-core/build
 BUILD_DIR=$GIT_DIR/build         #N.B. /scratchdir not yet mounted on the osx slave (ciosx)
