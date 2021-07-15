@@ -81,7 +81,7 @@ if [ $? -eq 0 ] && [ "$INRIA_FORGE_LOGIN" != none ] && [ "$DO_NOT_STOP_AT_ERROR"
    #scp gatb-core-${BRANCH_TO_BUILD}-Source.tar.gz ${INRIA_FORGE_LOGIN}@scm.gforge.inria.fr:/home/groups/gatb-core/htdocs/ci-inria
    echo "Testing the distribution..."
 
-   tar -xzf gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar
+   tar -xzf gatb-core-${BRANCH_TO_BUILD}-bin-Darwin.tar.gz
    cd gatb-core-${BRANCH_TO_BUILD}-bin-Darwin
 
    code_snippets=($(find ./examples -name "*1.cpp"))
