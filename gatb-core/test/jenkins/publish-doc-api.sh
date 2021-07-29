@@ -84,13 +84,11 @@ cmake -Wno-dev -DJENKINS_TAG=${BRANCH_TO_BUILD} -DJENKINS_GFORGE_USER=${INRIA_FO
 
 #---------------------------------------------------------------
 make -j 2 doc || error_code
-make deploy-doc || error_code
-###########################################################################
-# TODO_migration_gitlab (ChD, 2021-07-15) :  
-# - this used to move the GATB doc to gforge.inria.ssh using scp and ssh
-#   (not possible any more)
-# - move this doc elsewhere (gitlabpages?)
-###########################################################################
+make tgz-doc || error_code
+mv doc.tgz $GIT_DIR/..  # move to Jenkins workspace, to be kept as a job artifact
+
+# Trigger gitlab-ci job to deploy doc.tgz on gitlabpages
+# TODO
 
 
 ################################################################
