@@ -60,11 +60,9 @@ cmake --version
 
 [ `gcc -dumpversion` = 4.7 ] && { echo "GCC 4.7"; } || { echo "GCC version is not 4.7, we exit"; exit 1; }
 
-#JENKINS_TASK=test-suite-debian7-64bits-gcc-4.7
 JENKINS_TASK=test-suite-debian7-64bits-gcc-4.7-gitlab
 JENKINS_WORKSPACE=/builds/workspace/$JENKINS_TASK/
 
-#GIT_DIR=/builds/workspace/$JENKINS_TASK/gatb-core
 GIT_DIR=$JENKINS_WORKSPACE/gatb-core
 BUILD_DIR=/scratchdir/$JENKINS_TASK/gatb-core/build
 
