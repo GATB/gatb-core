@@ -21,7 +21,8 @@ cat $git_config | grep --quiet "scm.gforge.inria.fr"
 
 if [ $? -eq 1 ];then
   echo "This Git repository is not targeting Inria Forge."
-  exit 2
+  echo "TODO_migration_gitlab: we do not stop however"
+  #exit 2
 fi
 
 
