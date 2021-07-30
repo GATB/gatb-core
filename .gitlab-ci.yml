@@ -1,0 +1,12 @@
+---
+pages:
+  image: busybox
+  stage: deploy
+  script:
+    - wget https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/publish-doc-api-gitlab/lastSuccessfulBuild/artifact/doc.tgz
+    - mkdir -p public/doc/api
+    - tar -xvzf doc.tgz -C public/doc/api/
+  artifacts:
+    paths:
+      - public
+
