@@ -1,4 +1,6 @@
 ---
+# Publish GATB-CORE API doxygen documentation on gitlabpages
+# https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/index.html
 pages:
   image: busybox
   stage: deploy
