@@ -90,7 +90,7 @@ mv doc/doc.tgz $GIT_DIR/..  # move to Jenkins workspace, to be kept as a job art
 # Trigger gitlab-ci job to deploy doc.tgz on gitlabpages
 curl -X POST \
      -F token=$GITLAB_CI_TRIGGER_TO_PUBLISH_API_DOC \
-     -F ref=deploy_api_doc \
+     -F ref=deploy-api-doc \
    https://gitlab.inria.fr/api/v4/projects/30845/trigger/pipeline
 
 ################################################################
