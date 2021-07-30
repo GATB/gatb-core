@@ -10,11 +10,12 @@ if (DOXYGEN_FOUND)
     ADD_CUSTOM_TARGET (doc 
       ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     )
-    ADD_CUSTOM_TARGET (deploy-doc 
+    ADD_CUSTOM_TARGET (tgz-doc 
       COMMAND tar -zcf ${CMAKE_BINARY_DIR}/doc/doc.tgz -C ${CMAKE_BINARY_DIR}/doc/html .
-      COMMAND scp ${CMAKE_BINARY_DIR}/doc/doc.tgz ${gatb-doc-user-login}@scm.gforge.inria.fr:/home/groups/gatb-core/
-      COMMAND ssh ${gatb-doc-user-login}@scm.gforge.inria.fr "rm -rf /home/groups/gatb-core/htdocs/doc/api/*"
-      COMMAND ssh ${gatb-doc-user-login}@scm.gforge.inria.fr "tar -xf /home/groups/gatb-core/doc.tgz --no-overwrite-dir -C /home/groups/gatb-core/htdocs/doc/api"
+      #doc.tgz is kept by Jenkins as a job artifact 
+      #COMMAND scp ${CMAKE_BINARY_DIR}/doc/doc.tgz ${gatb-doc-user-login}@scm.gforge.inria.fr:/home/groups/gatb-core/
+      #COMMAND ssh ${gatb-doc-user-login}@scm.gforge.inria.fr "rm -rf /home/groups/gatb-core/htdocs/doc/api/*"
+      #COMMAND ssh ${gatb-doc-user-login}@scm.gforge.inria.fr "tar -xf /home/groups/gatb-core/doc.tgz --no-overwrite-dir -C /home/groups/gatb-core/htdocs/doc/api"
     )
     
     INSTALL (CODE "execute_process(COMMAND ${CMAKE_BUILD_TOOL} doc)")
