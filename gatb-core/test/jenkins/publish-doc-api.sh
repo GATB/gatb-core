@@ -85,7 +85,7 @@ cmake -Wno-dev -DJENKINS_TAG=${BRANCH_TO_BUILD} -DJENKINS_GFORGE_USER=${INRIA_FO
 #---------------------------------------------------------------
 make -j 2 doc || error_code
 make tgz-doc || error_code
-mv doc.tgz $GIT_DIR/..  # move to Jenkins workspace, to be kept as a job artifact
+mv doc/doc.tgz $GIT_DIR/..  # move to Jenkins workspace, to be kept as a job artifact
 
 # Trigger gitlab-ci job to deploy doc.tgz on gitlabpages
 # TODO
