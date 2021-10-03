@@ -27,7 +27,9 @@
 #include <gatb/tools/storage/impl/Storage.hpp>
 #include <gatb/tools/misc/impl/Stringify.hpp>
 #include <kff-cpp-api/kff_io.hpp>
-
+#include <kff-cpp-api/merge.hpp>
+#include <dirent.h>
+#include <errno.h>
 
 /********************************************************************************/
 namespace gatb      {
@@ -70,6 +72,8 @@ public:
                 //throw Exception ("Error: can't create kff directory");
             }
         }
+
+
     }
 
     /** Destructor */
@@ -112,7 +116,42 @@ public:
                 }
             }
         }
+
+        // get list of KFF files
+		std::vector<std::string> list_kff_files;
+		if (auto dir = opendir((_prefix + "/").c_str())) {
+			while (auto f = readdir(dir)) {
+				if (!f->d_name || f->d_name[0] == '.')
+					continue; // Skip everything that starts with a dot
+				list_kff_files.push_back(std::string(_prefix + "/" + f->d_name));
+			}
+			closedir(dir);
+		}
+        
+        // this seems like a good place to do KFF merge
+        kff_merge(list_kff_files,_prefix + ".merged.kff");
+
+        // cleanup
+        for (auto kff_file : list_kff_files)
+        {
+            remove(kff_file.c_str());
+        }
+
+        // print list of KFF files (in case directory removal didn't work)
+		if (auto dir = opendir((_prefix + "/").c_str())) {
+			while (auto f = readdir(dir)) {
+				if (!f->d_name || (f->d_name[0] == '.' && (f->d_name[1] == '.' || f->d_name[1] == '\0')))
+					continue; // Skip "." and ".."
+                std::cout << "file couldn't be deleted:" << std::string(_prefix + "/" + f->d_name) << std::endl;
+			}
+			closedir(dir);
+		}
+
+        int rmdir_res = rmdir((_prefix + "/").c_str());
+        if (rmdir_res != 0)
+            std::cout << "failed to remove folder (" << _prefix << "): "<< strerror(errno) << std::endl;
     }
+
 
     /********************************************************************/
     /*   METHODS CALLED ON ONE CLONED INSTANCE (in a separate thread).  */
@@ -147,9 +186,8 @@ public:
     void endPart (size_t passId, size_t partId)
     {
         /** We flush the current collection for the partition just processed. */
-        //std::cout <<"end part"<<std::endl;
         sr->close();
-        _outfile->close();
+        delete _outfile;
     }
 
    

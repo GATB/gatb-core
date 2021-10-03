@@ -61,6 +61,7 @@ add_custom_command (TARGET thirdparty_copy COMMAND ${CMAKE_COMMAND} -E
 add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/BooPHF/BooPHF.h ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/BooPHF/)
 add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/json/json.hpp   ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/json/)
 add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/kff-cpp-api/kff_io.hpp   ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/kff-cpp-api/)
+add_custom_command (TARGET thirdparty_copy  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROJECT_SOURCE_DIR}/thirdparty/kff-cpp-api/merge.hpp    ${PROJECT_BINARY_DIR}/include/${CMAKE_BUILD_TYPE}/kff-cpp-api/)
 
 ################################################################################
 #  INSTALL 
