@@ -82,7 +82,7 @@ void Kff_file::open(string mode) {
 			// Compute the file length
 			long position = this->fs.tellp();
 			this->fs.seekg(0, this->fs.end);
-			this->file_size = this->fs.tellp() - position;
+			this->file_size = (long)(this->fs.tellp()) - position;
 			// Go back to the beginning
 			this->fs.seekg(0, this->fs.beg);
 		}
@@ -302,7 +302,7 @@ void Kff_file::index_discovery() {
 		char type = this->fs.peek();
 		if (type == 'i') {
 			this->indexed = true;
-			this->read_index(this->fs.tellp());
+			this->read_index(this->tellp());
 		}
 
 	}
@@ -989,6 +989,7 @@ Section_Minimizer::Section_Minimizer(Kff_file * file) : Section(file) {
 	uint64_t data_size = file->global_vars["data_size"];
 
 	this->nb_blocks = 0;
+	this->remaining_blocks = 0;
 
 	this->k = k;
 	this->m = m;
@@ -1028,7 +1029,15 @@ Section_Minimizer& Section_Minimizer::operator= ( Section_Minimizer && sm) {
 	sm.file = nullptr;
 	beginning = sm.beginning;
 	nb_blocks = sm.nb_blocks;
+
 	m = sm.m;
+	k = sm.k;
+	max = sm.max;
+	data_size = sm.data_size;
+
+	this->remaining_blocks = sm.remaining_blocks;
+	this->nb_kmers_bytes = nb_kmers_bytes;
+
 	nb_bytes_mini = sm.nb_bytes_mini;
 	std::swap(minimizer, sm.minimizer);
 
