@@ -64,13 +64,13 @@ public:
     /********************************************************************************/
     struct Entry
     {
-        u_int16_t index;
+        u_int32_t index;
         u_int64_t abundance;
 
         inline static hid_t hdf5 (bool& compound)
         {
             hid_t result = H5Tcreate (H5T_COMPOUND, sizeof(Entry));
-            H5Tinsert (result, "index",      HOFFSET(Entry, index),     H5T_NATIVE_UINT16);
+            H5Tinsert (result, "index",      HOFFSET(Entry, index),     H5T_NATIVE_UINT32);
             H5Tinsert (result, "abundance",  HOFFSET(Entry, abundance), H5T_NATIVE_UINT64);
             compound = true;
             return result;
@@ -101,12 +101,12 @@ public:
 	
     /** Increase the number of kmers occurring X time
      * \param[in] index : the X value. */
-    virtual void inc (u_int16_t index) = 0;
+    virtual void inc (u_int32_t index) = 0;
 
 	/** Increase the number of kmers occurring X time in genome and Y times in read
 	 * \param[in] index1 : the X value.
 	 * \param[in] index2 : the Y value. */
-	virtual void inc2D (u_int16_t index1, u_int16_t index2) = 0;
+	virtual void inc2D (u_int32_t index1, u_int32_t index2) = 0;
 	
 	
     /** Save the distribution. It is saved into the bag provided at construction. */
@@ -117,7 +117,7 @@ public:
 	
     /** Get the solid cutoff, ie the x0 at first minimum.
      * \return x0 */
-	virtual u_int16_t get_solid_cutoff () = 0;
+	virtual u_int32_t get_solid_cutoff () = 0;
 
     /** Get the number of kmers for x>x0, aka solid kmers for x0 threshold
      * \return number of kmers. */
@@ -129,19 +129,19 @@ public:
 	virtual float get_ratio_weak () = 0;
 	
 	/** Get the x1 value at the first maximum after x0. */
-    virtual u_int16_t get_first_peak () = 0;
+    virtual u_int32_t get_first_peak () = 0;
 
     /** Retrieve the value for x.
      * \param[in] idx : x value.
      * \return y(x). */
-    virtual u_int64_t& get (u_int16_t idx) = 0;
+    virtual u_int64_t& get (u_int32_t idx) = 0;
 	
 	
 	/** Retrieve the value for x and y of histo2D.
 	 * \param[in] idx1 : x value.
 	 * \param[in] idx2 : y value.
 	 * \return cpt(x,y). */
-	virtual u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2) = 0;
+	virtual u_int64_t& get2D (u_int32_t idx1,u_int32_t idx2) = 0;
 	
 	
 };

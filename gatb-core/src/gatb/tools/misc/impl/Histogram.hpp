@@ -89,10 +89,10 @@ public:
     }
 
     /** \copydoc IHistogram::inc */
-    void inc (u_int16_t index)  { _histogram [(index >= _length) ? _length : index].abundance ++; }
+    void inc (u_int32_t index)  { _histogram [(index >= _length) ? _length : index].abundance ++; }
 
 	/** \copydoc IHistogram::inc2D */
-	void inc2D (u_int16_t index1, u_int16_t index2)
+	void inc2D (u_int32_t index1, u_int32_t index2)
 	{
 		_histogram2D [   ((index1 >= _length) ? _length : index1)    + (_length+1) *    ((index2 >= _length_dim2) ? _length_dim2 : index2)  ] ++ ;
 	}
@@ -104,13 +104,13 @@ public:
 	void compute_threshold (int min_auto_threshold) ;  //min_auto_threshold = prevents the auto_cutoff from being below this value. Default =3
 	
     /** \copydoc IHistogram::get_solid_cutoff */
-	u_int16_t get_solid_cutoff ()  { return _cutoff; }
+	u_int32_t get_solid_cutoff ()  { return _cutoff; }
 
     /** \copydoc IHistogram::get_nbsolids_auto */
 	u_int64_t get_nbsolids_auto ()  { return _nbsolids; }
 
     /** \copydoc IHistogram::get_first_peak */
-	u_int16_t get_first_peak ()  { return _firstPeak; }
+	u_int32_t get_first_peak ()  { return _firstPeak; }
 
 	
 	/** \copydoc IHistogram::get_ratio_weak */
@@ -126,20 +126,20 @@ public:
 	
 	
     /** \copydoc IHistogram::get */
-    u_int64_t& get (u_int16_t idx)  { return _histogram[idx].abundance; }
+    u_int64_t& get (u_int32_t idx)  { return _histogram[idx].abundance; }
 
 	/** \copydoc IHistogram::get2D */
-	u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2)  { return _histogram2D[idx1 + (_length+1)*idx2]; }
+	u_int64_t& get2D (u_int32_t idx1,u_int32_t idx2)  { return _histogram2D[idx1 + (_length+1)*idx2]; }
 	
 private:
 
     size_t    _length;
 	size_t    _length_dim2; // used for histo 2D
 
-	u_int16_t _cutoff;
+	u_int32_t _cutoff;
 	u_int64_t _nbsolids;
 	float _ratio_weak_volume;
-    u_int16_t _firstPeak;
+    u_int32_t _firstPeak;
 	
     Entry*  _histogram;
 	Entry*  _histogram_smoothed;
@@ -157,16 +157,16 @@ class HistogramNull : public IHistogram, public system::SmartPointer
 public:
 
     /** \copydoc IHistogram::inc */
-    void inc (u_int16_t index) {}
+    void inc (u_int32_t index) {}
 
 	/** \copydoc IHistogram::inc2D */
-	void inc2D (u_int16_t index1, u_int16_t index2) {}
+	void inc2D (u_int32_t index1, u_int32_t index2) {}
 	
     /** \copydoc IHistogram::save */
     void save (tools::storage::impl::Group& group)  {}
 	
     /** \copydoc IHistogram::get_solid_cutoff */
-	u_int16_t get_solid_cutoff  () { return 0; }
+	u_int32_t get_solid_cutoff  () { return 0; }
 
     /** \copydoc IHistogram::get_nbsolids_auto */
 	u_int64_t get_nbsolids_auto () { return 0; }
@@ -175,7 +175,7 @@ public:
 	float get_ratio_weak () { return 0; }
 
     /** \copydoc IHistogram::get_first_peak */
-	u_int16_t get_first_peak    () { return 0; }
+	u_int32_t get_first_peak    () { return 0; }
 
     /** \copydoc IHistogram::compute_threshold */
 	void compute_threshold (int min_auto_threshold) { }
@@ -188,10 +188,10 @@ public:
 
 	
     /** \copydoc IHistogram::get */
-    u_int64_t& get (u_int16_t idx)  { static u_int64_t foo; return foo; }
+    u_int64_t& get (u_int32_t idx)  { static u_int64_t foo; return foo; }
 	
 	/** \copydoc IHistogram::get2D */
-	u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2) { static u_int64_t foo; return foo;  }
+	u_int64_t& get2D (u_int32_t idx1,u_int32_t idx2) { static u_int64_t foo; return foo;  }
 	
 	
 };
@@ -236,10 +236,10 @@ public:
     }
 
     /** \copydoc IHistogram::inc */
-    void inc (u_int16_t index)  { _localHisto.inc (index); }
+    void inc (u_int32_t index)  { _localHisto.inc (index); }
 
 	/** \copydoc IHistogram::inc2D */
-	void inc2D (u_int16_t index1, u_int16_t index2)
+	void inc2D (u_int32_t index1, u_int32_t index2)
 	{
 		 _localHisto.inc2D (index1,index2);
 	}
@@ -251,7 +251,7 @@ public:
 	void compute_threshold (int min_auto_threshold) { return _ref->compute_threshold(min_auto_threshold); }
 
     /** \copydoc IHistogram::get_solid_cutoff */
-	u_int16_t get_solid_cutoff () {return _ref->get_solid_cutoff();}
+	u_int32_t get_solid_cutoff () {return _ref->get_solid_cutoff();}
 	
     /** \copydoc IHistogram::get_nbsolids_auto */
 	u_int64_t get_nbsolids_auto () {return _ref->get_nbsolids_auto();}
@@ -261,7 +261,7 @@ public:
 	
 	
     /** \copydoc IHistogram::get_first_peak */
-    u_int16_t get_first_peak () { return _ref->get_first_peak(); }
+    u_int32_t get_first_peak () { return _ref->get_first_peak(); }
 
     /** \copydoc IHistogram::getLength */
     size_t getLength() { return _localHisto.getLength(); }
@@ -271,10 +271,10 @@ public:
 	
 	
     /** \copydoc IHistogram::get */
-    u_int64_t& get (u_int16_t idx)  { return _localHisto.get(idx); }
+    u_int64_t& get (u_int32_t idx)  { return _localHisto.get(idx); }
 
 	/** \copydoc IHistogram::get2D */
-	 u_int64_t& get2D (u_int16_t idx1,u_int16_t idx2) { return _localHisto.get2D(idx1,idx2); }
+	 u_int64_t& get2D (u_int32_t idx1,u_int32_t idx2) { return _localHisto.get2D(idx1,idx2); }
 
 	
 private:
