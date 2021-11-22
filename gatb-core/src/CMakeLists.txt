@@ -76,7 +76,7 @@ ENDFOREACH ()
 #  LIBRARY GENERATION 
 ################################################################################
 
-file (GLOB_RECURSE  ComponentFiles  *  ${PROJECT_BINARY_DIR}/src/gatb/*.cpp ${PROJECT_SOURCE_DIR}/thirdparty/kff-cpp-api/kff_io.cpp)
+file (GLOB_RECURSE  ComponentFiles  *  ${PROJECT_BINARY_DIR}/src/gatb/*.cpp ${PROJECT_SOURCE_DIR}/thirdparty/kff-cpp-api/kff_io.cpp ${PROJECT_SOURCE_DIR}/thirdparty/kff-cpp-api/merge.cpp)
 #MESSAGE ("FILES TO BE COMPILED: " ${ComponentFiles})
 
 # We add the compilation options for the library
