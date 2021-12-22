@@ -123,7 +123,7 @@ Then type:
 
 The gatb-core-cppunit command may also take as argument the categories of tests that show up in the verbose output, e.g. './gatb-core-cppunit TestBank'.
 
-More about GATB-CORE code compiling instruction is available [here](http://gatb-core.gforge.inria.fr/doc/api/compilation.html).
+More about GATB-CORE code compiling instruction is available [here](https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/compilation.html).
 
 # Work on GATB-Core code using Eclipse
 
@@ -142,7 +142,7 @@ The project also contains many [code examples](https://github.com/GATB/gatb-core
 
 # Documentation
 
-The complete GATB-Core documentation is available [here](http://gatb-core.gforge.inria.fr/doc/api/). It contains: API, code snippets, compile instructions, *etc*.
+The complete GATB-Core documentation is available [here](https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/). It contains: API, code snippets, compile instructions, *etc*.
 
 Nevertheless, you can create a local copy of the documentation as follows (we suppose you already compiled the c++ code, see above; requires 'doxygen'):
 
@@ -237,7 +237,7 @@ move it anywhere you want.
 
 Such a project can be a start for building applications based on GATB-CORE. 
 
-More on creating a new GATB-Core based project: [http://gatb-core.gforge.inria.fr/doc/api/new_project.html](http://gatb-core.gforge.inria.fr/doc/api/new_project.html)
+More on creating a new GATB-Core based project: [https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/new_project.html](https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/new_project.html)
 
 
 #Contact
