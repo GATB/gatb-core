@@ -194,6 +194,8 @@ void Kff_file::close(bool write_buffer) {
 			this->delete_on_destruction = true;
 		}
 
+		// cout << "delete_on_destruction " << delete_on_destruction << endl;
+		// cout << this->filename << endl;
 		if (this->fs.is_open())
 			this->fs.close();
 	}
@@ -336,7 +338,7 @@ void Kff_file::read_index(long position) {
 }
 
 
-void Kff_file::read(uint8_t * bytes, size_t size) {
+void Kff_file::read(uint8_t * bytes, unsigned long size) {
 	if (not this->is_reader) {
 		cerr << "Cannot read a file in writing mode." << endl;
 		exit(1);
@@ -381,7 +383,7 @@ void Kff_file::read(uint8_t * bytes, size_t size) {
 	this->current_position += size;
 }
 
-void Kff_file::write(const uint8_t * bytes, size_t size) {
+void Kff_file::write(const uint8_t * bytes, unsigned long size) {
 	if (not this->is_writer) {
 		if (this->is_reader)
 			cerr << "Cannot write a file in reading mode." << endl;
@@ -390,7 +392,7 @@ void Kff_file::write(const uint8_t * bytes, size_t size) {
 		exit(1);
 	}
 
-	uint64_t buff_space = this->buffer_size - this->next_free;
+	unsigned long buff_space = this->buffer_size - this->next_free;
 
 	// Resize buffer
 	while (buff_space < size and this->buffer_size < this->max_buffer_size) {
@@ -436,7 +438,7 @@ void Kff_file::write(const uint8_t * bytes, size_t size) {
 	this->current_position += size;
 }
 
-void Kff_file::write_at(const uint8_t * bytes, size_t size, unsigned long position) {
+void Kff_file::write_at(const uint8_t * bytes, unsigned long size, unsigned long position) {
 	if (not this->is_writer) {
 		if (this->is_reader)
 			cerr << "Cannot write a file in reading mode." << endl;
@@ -451,7 +453,7 @@ void Kff_file::write_at(const uint8_t * bytes, size_t size, unsigned long positi
 	}
 
 	// Write the file on disk
-	if (position <= this->file_size) {
+	if (position < this->file_size) {
 		// Only in file
 		if (position + size <= this->file_size) {
 			if (this->tmp_closed) {
@@ -467,7 +469,7 @@ void Kff_file::write_at(const uint8_t * bytes, size_t size, unsigned long positi
 		}
 		// On both file and buffer
 		else {
-			uint64_t in_file_size = this->file_size - position;
+			unsigned long in_file_size = this->file_size - position;
 			// Write the file part
 			this->write_at(bytes, in_file_size, position);
 			// Write the buffer part
@@ -476,7 +478,7 @@ void Kff_file::write_at(const uint8_t * bytes, size_t size, unsigned long positi
 	}
 	// Write the buffer in RAM
 	else {
-		long corrected_position = position - this->file_size;
+		unsigned long corrected_position = position - this->file_size;
 		
 		// Write in the current buffer space
 		if (corrected_position + size <= this->next_free) {
@@ -684,6 +686,24 @@ void Section::close() {
 }
 
 
+Section * SectionBuilder::build(Kff_file * file) {
+	char type = file->read_section_type();
+	switch (type) {
+		case 'i':
+			return new Section_Index(file);
+		case 'v':
+			return new Section_GV(file);
+		case 'r':
+			return new Section_Raw(file);
+		case 'm':
+			return new Section_Minimizer(file);
+		default:
+			cerr << "Unknown section " << type << "(" << (uint)type << ")" << endl;
+			throw std::runtime_error("Unknown section type" + type);
+	}
+}
+
+
 // ----- Global variables sections -----
 
 Section_GV::Section_GV(Kff_file * file) : Section(file) {
@@ -747,6 +767,21 @@ void Section_GV::read_var() {
 	this->file->global_vars[name] = value;
 }
 
+void Section_GV::copy(Kff_file * file) {
+	// Remove empty variable sections
+	if (this->vars.size() == 0)
+		return;
+
+	// Open the copy
+	Section_GV sgv(file);
+	// Copy all the variables
+	for (const auto & it : this->vars) {
+		sgv.write_var(it.first, it.second);
+	}
+	// Clos the copy
+	sgv.close();
+}
+
 void Section_GV::close() {
 	if (file->is_writer) {
 		uint8_t buff[8];
@@ -804,6 +839,12 @@ void Section_Index::register_section(char section_type, int64_t pos) {
 void Section_Index::set_next_index(int64_t index) {
 	this->next_index = index;
 }
+
+// void Section_Index::copy(Kff_file * file) {
+// 	cerr << "You are trying to copy an index from a file to another. ";
+// 	cerr << "As the positions can be different between the files, this operation is not allowed." << endl;
+// 	exit(2);
+// }
 
 void Section_Index::close() {
 	if (this->file->is_writer) {
@@ -931,6 +972,27 @@ uint64_t Section_Raw::read_compacted_sequence(uint8_t* seq, uint8_t* data) {
 	this->remaining_blocks -= 1;
 
 	return nb_kmers_in_block;
+}
+
+
+void Section_Raw::copy(Kff_file * file) {
+	uint max_nucl = this->k + this->max - 1;
+	uint8_t * seq_buffer = new uint8_t[(max_nucl + 3) / 4];
+	uint8_t * data_buffer = new uint8_t[this->max * this->data_size];
+
+	// Open the copy
+	Section_Raw sr(file);
+	// Copy all the variables
+	for (uint i=0 ; i<this->nb_blocks ; i++) {
+		// Read
+		uint64_t size = this->read_compacted_sequence(seq_buffer, data_buffer);
+		// Rewrite
+		sr.write_compacted_sequence(seq_buffer, this->k + size - 1, data_buffer);
+	}
+	// Clos the copy
+	sr.close();
+	delete[] seq_buffer;
+	delete[] data_buffer;
 }
 
 
@@ -1113,6 +1175,29 @@ uint64_t Section_Minimizer::read_compacted_sequence_without_mini(uint8_t* seq, u
 
 	this->remaining_blocks -= 1;
 	return nb_kmers_in_block;
+}
+
+void Section_Minimizer::copy(Kff_file * file) {
+	uint max_nucl = this->k + this->max - 1;
+	uint8_t * seq_buffer = new uint8_t[(max_nucl + 3) / 4];
+	uint8_t * data_buffer = new uint8_t[this->max * this->data_size];
+	uint64_t mini_pos = 0;
+
+	// Open the copy
+	Section_Minimizer sm(file);
+	sm.write_minimizer(this->minimizer);
+
+	// Copy all the variables
+	for (uint i=0 ; i<this->nb_blocks ; i++) {
+		// Read
+		uint64_t size = this->read_compacted_sequence_without_mini(seq_buffer, data_buffer, mini_pos);
+		// Rewrite
+		sm.write_compacted_sequence_without_mini(seq_buffer, this->k + size - 1 - this->m, mini_pos, data_buffer);
+	}
+	// Clos the copy
+	sm.close();
+	delete[] seq_buffer;
+	delete[] data_buffer;
 }
 
 void Section_Minimizer::jump_sequence() {
