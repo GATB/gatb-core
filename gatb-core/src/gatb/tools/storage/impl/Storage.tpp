@@ -447,7 +447,6 @@ inline PartitionCacheSorted<Type>::PartitionCacheSorted (const PartitionCacheSor
 template<typename Type>
 inline PartitionCacheSorted<Type>::~PartitionCacheSorted ()
 {
-    //printf("destruc parti cache sorted tid %i \n",_numthread);
     flush ();
 
     for (size_t i=0; i<_cachedCollections.size(); i++)  {

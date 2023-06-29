@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #usage: make -j 4 2> MAKE ; cat MAKE | python parse_gcc_output.py | less -R
 import sys,fileinput
