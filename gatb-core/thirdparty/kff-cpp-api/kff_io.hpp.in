@@ -133,18 +133,18 @@ public:
 	 * 
 	 * @return true if everything is ok.
 	 */
-	void read(uint8_t * bytes, size_t size);
+	void read(uint8_t * bytes, unsigned long size);
 	/** Writes size bytes into the file buffer. Written on disk if size > 1MB or on file closing.
 	 * @param bytes Bytes to write
 	 * @param Size in bytes to copy
 	 */
-	void write(const uint8_t * bytes, size_t size);
+	void write(const uint8_t * bytes, unsigned long size);
 	/** Writes size bytes at position and returns at the same position than initially.
 	 * @param bytes Bytes to write.
 	 * @param size Number of bytes to write
 	 * @param position Where to write in the file (will overwrite the previous data)
 	 */
-	void write_at(const uint8_t * bytes, size_t size, unsigned long position);
+	void write_at(const uint8_t * bytes, unsigned long size, unsigned long position);
 	/** Give the current position in the file
 	 * 
 	 * @return position from the beginning of the file.
@@ -266,8 +266,28 @@ class Section {
 
 		Section(Kff_file * file);
 		virtual ~Section() {};
+		
+		/** Copy the current section in the file poited by the function.
+		 * 
+		 * @param file The file where to copy the section
+		 **/
+		virtual void copy(Kff_file * file) {};
 		void close();
 };
+
+
+class SectionBuilder {
+public:
+	/** Build the next section in the file.
+	 * The file pointer must be aligned on the first Byte of a section.
+	 * 
+	 * @param file Pointer to a file to read.
+	 * 
+	 * @return The correct section from the file.
+	 **/
+	static Section * build(Kff_file * file);
+};
+
 
 /**
  * File manipulator for Global Variable sections.
@@ -297,8 +317,13 @@ public:
 	 *
 	 */
 	void write_var(const std::string & var_name, uint64_t value);
+	/** Copy the current section in the file pointed by the function.
+	 * 
+	 * @param file The file where to copy the section
+	 **/
+	void copy(Kff_file * file);
 	/**
-	 * Close the section.
+	 * Closes the section.
 	 * If w mode, go back to the beginning of the section to write the correct number of variables.
 	 *
 	 */
@@ -307,9 +332,6 @@ public:
 
 class Block_section_reader {
 protected:
-	uint64_t k;
-	uint64_t max;
-	uint64_t data_size;
 	uint8_t nb_kmers_bytes;
 
 	friend class Kff_reader;
@@ -322,6 +344,9 @@ public:
 	 */
 	uint64_t nb_blocks;
 	uint64_t remaining_blocks;
+	uint64_t k;
+	uint64_t max;
+	uint64_t data_size;
 
 	virtual ~Block_section_reader(){};
 
@@ -359,6 +384,7 @@ class Section_Index : public Section {
 private:
 
 	friend class Kff_file;
+	using Section::copy;
 
 public:
 	std::map<int64_t, char> index;
@@ -411,6 +437,11 @@ public:
 	 * Jumb over the next block of the section.
 	 */
 	void jump_sequence();
+	/** Copy the current section in the file pointed by the function.
+	 * 
+	 * @param file The file where to copy the section
+	 **/
+	void copy(Kff_file * file);
 	/**
 	 * Close the section.
 	 * If w mode, go back to the beginning of the section to write the correct number of blocks.
@@ -432,13 +463,13 @@ private:
 	friend class Kff_file;
 	friend class Block_section_reader;
 
-	uint8_t m;
 	uint8_t nb_bytes_mini;
 	uint8_t mini_pos_bytes;
 
 	uint32_t read_section_header();
 
 public:
+	uint8_t m;
 	Section_Minimizer(Kff_file * file);
 	Section_Minimizer& operator= ( Section_Minimizer && sm);
 	~Section_Minimizer();
@@ -513,6 +544,11 @@ public:
 	 * Jumb over the next block of the section.
 	 */
 	void jump_sequence();
+	/** Copy the current section in the file pointed by the function.
+	 * 
+	 * @param file The file where to copy the section
+	 **/
+	void copy(Kff_file * file);
 	/**
 	 * Close the section.
 	 * If w mode, go back to the beginning of the section to write the correct number of blocks.

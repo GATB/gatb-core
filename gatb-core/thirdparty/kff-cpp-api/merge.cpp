@@ -39,6 +39,7 @@ void kff_merge2(const vector<Kff_file*> &files, string output) {
 	Kff_file outfile(output, "w");
 	outfile.set_indexation(true);
 	outfile.set_uniqueness(true);
+	outfile.set_canonicity(true);
 	outfile.write_encoding(
 		global_encoding[0],
 		global_encoding[1],

@@ -11,13 +11,13 @@
 
 |**Linux**| **gcc 4.7** | **gcc 4.8** | **gcc 4.9** | **clang 3.6** | **clang 3.9**| **Valgrind** |
 |---------|-------------|-------------|-------------|---------------|--------------|--------------|
-|*Debian 8*|    | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc48/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc48/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc49/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-gcc49/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang36/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang36/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang39/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-docker-gatb-core-compile-clang39/) |  - | 
-|*Debian 7*| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-debian7-64bits-gcc-4.7/) | - | - | - | - | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-valgrind-debian7-64bits-gcc-4.7/) | 
-|*Fedora 20*| - | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-fedora20-gcc-4.8/) | - | - | - | - | 
+|*Debian 8*|    | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-gcc48-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-gcc48-gitlab/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-gcc49-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-gcc49-gitlab/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-clang36-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-clang36-gitlab/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-clang39-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-docker-gatb-core-compile-clang39-gitlab/) |  - | 
+|*Debian 7*| [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-debian7-64bits-gcc-4.7-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-debian7-64bits-gcc-4.7-gitlab/) | - | - | - | - | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-valgrind-debian7-64bits-gcc-4.7-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-valgrind-debian7-64bits-gcc-4.7-gitlab/) | 
+|*Fedora 20*| - | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-fedora20-gcc-4.8-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-fedora20-gcc-4.8-gitlab/) | - | - | - | - | 
 
 | **Mac OSX** | **clang-600** | **gcc 4.2.1** |
 |    :--:     |---------------|---------------|
-| *10.9* | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-clang-6.0/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-clang-6.0/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE/job/test-suite-macos-10.9.5-gcc-4.2.1/) | 
+| *10.9* | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-macos-10.9.5-clang-6.0-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-macos-10.9.5-clang-6.0-gitlab/) | [![Build Status](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-macos-10.9.5-gcc-4.2.1-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/GATB-CORE-gitlab/job/test-suite-macos-10.9.5-gcc-4.2.1-gitlab/) | 
 
 
 --------------------------------------------------------------------------------
@@ -123,7 +123,7 @@ Then type:
 
 The gatb-core-cppunit command may also take as argument the categories of tests that show up in the verbose output, e.g. './gatb-core-cppunit TestBank'.
 
-More about GATB-CORE code compiling instruction is available [here](http://gatb-core.gforge.inria.fr/doc/api/compilation.html).
+More about GATB-CORE code compiling instruction is available [here](https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/compilation.html).
 
 # Work on GATB-Core code using Eclipse
 
@@ -142,7 +142,7 @@ The project also contains many [code examples](https://github.com/GATB/gatb-core
 
 # Documentation
 
-The complete GATB-Core documentation is available [here](http://gatb-core.gforge.inria.fr/doc/api/). It contains: API, code snippets, compile instructions, *etc*.
+The complete GATB-Core documentation is available [here](https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/). It contains: API, code snippets, compile instructions, *etc*.
 
 Nevertheless, you can create a local copy of the documentation as follows (we suppose you already compiled the c++ code, see above; requires 'doxygen'):
 
@@ -237,7 +237,7 @@ move it anywhere you want.
 
 Such a project can be a start for building applications based on GATB-CORE. 
 
-More on creating a new GATB-Core based project: [http://gatb-core.gforge.inria.fr/doc/api/new_project.html](http://gatb-core.gforge.inria.fr/doc/api/new_project.html)
+More on creating a new GATB-Core based project: [https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/new_project.html](https://gatb.gitlabpages.inria.fr/gatb-core/doc/api/new_project.html)
 
 
 #Contact
