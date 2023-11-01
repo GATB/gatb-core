@@ -1788,7 +1788,7 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         seqLength += unitigLength - (kmerSize-1);
         coverage += unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1); // here too, coverage is computed according to whole unitig
         
-        //if (debug) std::cout << "seqlength add " << (unitigLength - (kmerSize-1)) << " added cov " << (unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1)) << " mean ab " << unitigMeanAbundance(cur_node) << std::endl;
+        if (debug) std::cout << "simplePathLongest_avance seqlength add " << (unitigLength - (kmerSize-1)) << " added cov " << (unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1)) << " mean ab " << unitigMeanAbundance(cur_node) << std::endl;
 
         if (markDuringTraversal&& unitigIsMarked(cur_node)) // just a debug, can be removed
         {

@@ -119,7 +119,7 @@ class NodesDeleter
 
     }
 
-   // TODO speed: tell graph whenever all the neighbors of a node will be deleted too, that way, don't need to update their adjacency! 
+    // TODO speed opt: tell graph whenever all the neighbors of a node will be deleted too, that way, don't need to update their adjacency! 
     void flush()
     {
         if (useList)

@@ -1022,7 +1022,7 @@ void Simplifications<GraphType,Node,Edge>::heuristic_most_covered_path_unitigs(
         return;
     }
     
-    nbCalls++;
+    //nbCalls++; // that variable is a misnomer.. TODO refactor. It's actually tracking a path length in bases. So I don't see why we'd increase it by 1 here. We increase it lateR.
 
     Node current_node = startNode;
     if (debug)
@@ -1279,7 +1279,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 {
     unsigned int k = _graph.getKmerSize();
     unsigned int maxBulgeLength = std::max((unsigned int)((double)k * _bulgeLen_kMult), (unsigned int)(k + _bulgeLen_kAdd)); // SPAdes, exactly
-    unsigned int backtrackingLimit = k+_bulgeAltPath_kAdd;//maxBulgeLength; // arbitrary, but if too high it will take much time; // with unitigs, no reason that it has to depend on k, but for some reason, setting it to just "k" doesnt remove nearly as many bulges as k=20. todo investigate that someday.
+    unsigned int backtrackingLimit = k+_bulgeAltPath_kAdd;// it's a length in bases 
     double       altPathCovMult = _bulgeAltPath_covMult;
 
     // stats
@@ -1401,7 +1401,9 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                 }
 
                 if (!isShort || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
+                {
                     continue;
+                }
                 
                 __sync_fetch_and_add(&nbShortSimplePaths, 1);
 
@@ -1425,6 +1427,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
                     // at this point, the last node in "nodes" is the last node of a potential Bulge path, and endNode is hopefully a branching node right after.
                     // check if it's connected to something that has in-branching. 
                     bool isDoublyConnected = (dir==DIR_OUTCOMING && _graph.indegree(endNode) > 1) || (dir==DIR_INCOMING && _graph.outdegree(endNode) > 1);
+                    //if (!isDoublyConnected) cout << "dir " << DIR2STR(dir) << " not a topo bulge because: in_degree=" <<_graph.indegree(endNode) << " out_degree=" << _graph.outdegree(endNode) << endl;
     
                     bool isTopologicalBulge = isDoublyConnected;
     
