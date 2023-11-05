@@ -317,7 +317,7 @@ public:
     void setNodeState (const NodeGU& node, int state) const;
     void resetNodeState () const ;
     void disableNodeState () const ;
-    void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL) const;
+    void deleteNodesByIndex(std::vector<bool> &bitmap, int nbCores = 1, gatb::core::system::ISynchronizer* synchro=NULL);
     unsigned long nodeMPHFIndex(const NodeGU& node) const;
     void cacheNonSimpleNodes(unsigned int nbCores, bool verbose); 
 

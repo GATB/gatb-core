@@ -65,7 +65,7 @@ class NodesDeleter
          * todo: someday, introduce a --fast parameter that uses a bit more memory but does optimizations like this
          */
         //std::cout << "sizeof node: " << sizeof(Node) << std::endl;
-        useList = true;
+        useList = false;
         onlyListMethod = false;
           
         // compute a fair amount of nodes that can be kept of memory
@@ -97,6 +97,11 @@ class NodesDeleter
             unsigned long index =_graph.nodeMPHFIndex(node);
             return get(index);
         }
+    }
+    
+    void markToDeleteIndex(uint64_t index)
+    {
+            nodesToDelete[index] = true;
     }
 
     void markToDelete(Node &node)

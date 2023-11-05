@@ -1406,10 +1406,11 @@ void GraphUnitigsTemplate<span>::cacheNonSimpleNodes(unsigned int nbCores, bool 
 }
  
 template<size_t span>
-void GraphUnitigsTemplate<span>::deleteNodesByIndex(vector<bool> &bitmap, int nbCores, gatb::core::system::ISynchronizer* synchro) const
+void GraphUnitigsTemplate<span>::deleteNodesByIndex(vector<bool> &bitmap, int nbCores, gatb::core::system::ISynchronizer* synchro) 
 {
-    std::cout << "deleteNodesByIndex called, shouldn't be." << std::endl; 
-    exit(1);
+    for (unsigned long i = 0; i < bitmap.size(); i++)
+        if (bitmap[i])
+            unitigs_deleted[i] = true;
 }
 
 /********************************************************************************/
@@ -1583,9 +1584,9 @@ template<size_t span>
 void GraphUnitigsTemplate<span>::
 unitigDelete (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
-    nodesDeleter.onlyListMethod = true; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
+    //nodesDeleter.onlyListMethod = true; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
     //std::cout << "GraphU queuing to delete unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << " mean abundance " << unitigMeanAbundance(node) << std::endl; 
-    nodesDeleter.markToDelete(node);
+    nodesDeleter.markToDeleteIndex(node.unitig);
 }
 
 template<size_t span>
