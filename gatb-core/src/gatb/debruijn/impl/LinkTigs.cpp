@@ -57,7 +57,7 @@ void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &
     bcalm_logging = verbose;
     BankFasta* out = new BankFasta(unitigs_filename+".linked");
     if (kmerSize < 4) { std::cout << "error, link_unitigs doesn't support k<5, sorry. Contact a developer if you really need k<4 support (alternatively: construct that tiny dBG using Python :)" << std::endl; exit(1); }
-    logging("Finding links between unitigs");
+    logging("Finding links between tigs");
 
     for (int pass = 0; pass < nb_passes; pass++)
         link_unitigs_pass<span>(unitigs_filename, verbose, pass, kmerSize, edge_km_representation, renumber_unitigs );
@@ -68,7 +68,7 @@ void link_tigs(string unitigs_filename, int kmerSize, int nb_threads, uint64_t &
     system::impl::System::file().remove (unitigs_filename);
     system::impl::System::file().rename (unitigs_filename+".linked", unitigs_filename);
 
-    logging("Done finding links between unitigs");
+    logging("Done finding links between tigs");
 }
 
 
