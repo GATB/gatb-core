@@ -1681,7 +1681,9 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
     if (markDuringTraversal) // no need to mark, that unitig should already be marked by minia, but doing it anyway just to be safe
         unitigMark(cur_node);
 
+
     set<uint64_t> traversed_unitigs;
+    traversed_unitigs.insert(node.unitig);
     
     while (true)
     { // invariant here: cur_node is the last node of a unitig
@@ -1773,6 +1775,16 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         if (nodesList != nullptr)
             nodesList->push_back(cur_node);
 
+        if (markDuringTraversal && unitigIsMarked(cur_node)) 
+        {
+            // It was indeed a perfect loop
+            //std::cout << "marked node during a simple path traversal, that shouldn't happen. Maybe it's a perfect loop." << std::endl;
+            //std::cout << "seq so far         : " << *seq << std::endl;
+            //std::cout << "would have appended: " << internal_get_unitig_sequence(cur_node.unitig) << " " << (same_orientation?"":"(but revcomp'd)") << std::endl;
+            return;
+        }
+
+
         // append the sequence (except the overlap part, of length k-1.
         if (seq != nullptr)
         {
@@ -1790,12 +1802,6 @@ simplePathLongest_avance(const NodeGU& node, Direction dir, int& seqLength, int&
         coverage += unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1); // here too, coverage is computed according to whole unitig
         
         if (debug) std::cout << "simplePathLongest_avance seqlength add " << (unitigLength - (kmerSize-1)) << " added cov " << (unitigMeanAbundance(cur_node) * (unitigLength - kmerSize + 1)) << " mean ab " << unitigMeanAbundance(cur_node) << std::endl;
-
-        if (markDuringTraversal&& unitigIsMarked(cur_node)) // just a debug, can be removed
-        {
-            //std::cout << "marked node during a simple path traversal, that shouldn't happen. Maybe it's a perfect loop." << std::endl;
-            return;
-        }
 
         if (markDuringTraversal)
             unitigMark(cur_node);
