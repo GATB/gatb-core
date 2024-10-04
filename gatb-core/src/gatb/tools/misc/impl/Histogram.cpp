@@ -101,7 +101,7 @@ void Histogram::compute_threshold (int min_auto_threshold)
 
 	if(index_first_increase ==-1 )
 	{
-		_cutoff = min_auto_threshold; //def val
+		_cutoff = (size_t)min_auto_threshold; //def val
 		return;
 	}
 	
@@ -127,7 +127,7 @@ void Histogram::compute_threshold (int min_auto_threshold)
 
 	u_int64_t sum_elim = 0 ;
 	double ratio = 0.0;
-	int max_cutoff=0;
+	size_t max_cutoff=0;
 	for (size_t i=0; i<_length+1; i++)
 	{
 		sum_elim +=  _histogram[i].abundance * i ;
@@ -145,8 +145,8 @@ void Histogram::compute_threshold (int min_auto_threshold)
 	if (_cutoff > max_cutoff)
 		_cutoff = max_cutoff;
 	
-	if (_cutoff< min_auto_threshold)
-		_cutoff = min_auto_threshold;
+	if (_cutoff< (size_t)min_auto_threshold)
+		_cutoff = (size_t)min_auto_threshold;
 
 	DEBUG (("cutoff  %i  maxcutoff %i \n",index_minval,max_cutoff));
 
