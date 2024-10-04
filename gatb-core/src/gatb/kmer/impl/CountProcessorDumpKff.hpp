@@ -114,40 +114,40 @@ public:
                 {
                     this->_namesOccur[it->first] += it->second;
                 }
-            }
-        }
+	    }
+	}
 
-        // get list of KFF files
-		std::vector<std::string> list_kff_files;
-		if (auto dir = opendir((_prefix + "/").c_str())) {
-			while (auto f = readdir(dir)) {
-				if (!f->d_name || f->d_name[0] == '.')
-					continue; // Skip everything that starts with a dot
-				list_kff_files.push_back(std::string(_prefix + "/" + f->d_name));
-			}
-			closedir(dir);
+	// get list of KFF files
+	std::vector<std::string> list_kff_files;
+	if (auto dir = opendir((_prefix + "/").c_str())) {
+		while (auto f = readdir(dir)) {
+			if (f->d_name[0] == '.' && (f->d_name[1] == '.' || f->d_name[1] == '\0'))
+				continue; // Skip "." and ".."
+			list_kff_files.push_back(std::string(_prefix + "/" + f->d_name));
 		}
-        
-        // this seems like a good place to do KFF merge
+		closedir(dir);
+	}
+
+	// this seems like a good place to do KFF merge
         kff_merge(list_kff_files,_prefix + ".merged.kff");
 
         // cleanup
         for (auto kff_file : list_kff_files)
-        {
-            remove(kff_file.c_str());
-        }
+	{
+		remove(kff_file.c_str());
+	}
 
-        // print list of KFF files (in case directory removal didn't work)
-		if (auto dir = opendir((_prefix + "/").c_str())) {
-			while (auto f = readdir(dir)) {
-				if (!f->d_name || (f->d_name[0] == '.' && (f->d_name[1] == '.' || f->d_name[1] == '\0')))
-					continue; // Skip "." and ".."
-                std::cout << "file couldn't be deleted:" << std::string(_prefix + "/" + f->d_name) << std::endl;
-			}
-			closedir(dir);
+	// print list of KFF files (in case directory removal didn't work)
+	if (auto dir = opendir((_prefix + "/").c_str())) {
+		while (auto f = readdir(dir)) {
+			if (f->d_name[0] == '.' && (f->d_name[1] == '.' || f->d_name[1] == '\0'))
+				continue; // Skip "." and ".."
+			std::cout << "file couldn't be deleted:" << std::string(_prefix + "/" + f->d_name) << std::endl;
 		}
+		closedir(dir);
+	}
 
-        int rmdir_res = rmdir((_prefix + "/").c_str());
+	int rmdir_res = rmdir((_prefix + "/").c_str());
         if (rmdir_res != 0)
             std::cout << "failed to remove folder (" << _prefix << "): "<< strerror(errno) << std::endl;
     }

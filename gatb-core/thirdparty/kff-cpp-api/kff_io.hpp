@@ -14,14 +14,17 @@
 #include <unordered_map>
 #include <map>
 #include <vector>
-
-#ifndef KFF_IO
-#define KFF_IO
+#include <cstdint>  
 
 #ifdef _WIN32
 #include <iso646.h>
 using uint = unsigned long;
 #endif
+
+
+#ifndef KFF_IO
+#define KFF_IO
+
 
 // the configured options and settings for Tutorial
 #define KFF_VERSION_MAJOR 1
@@ -360,9 +363,19 @@ public:
 	 * @param data Array filled with data linked to the kmers of the sequence.
 	 *
 	 * @return The number of kmers in the sequence.
-	 *
 	 */
 	virtual uint64_t read_compacted_sequence(uint8_t* seq, uint8_t* data) {return 0;}
+	/**
+	 * Read the next block of the section.
+	 * The sequence of the block is pushed in the seq_data array, immediatly followed by data.
+	 * The array must be already allocated.
+	 * 
+	 * @param seq_data Array filled with the compacted sequence (2 bit / nucl) immediatly followed
+	 * with data linked to the kmers of the sequence.
+	 *
+	 * @return The number of kmers in the sequence.
+	 */
+	virtual uint64_t read_compacted_sequence(uint8_t* seq_data) {return 0;}
 	/**
 	 * Jumb over the next block of the section.
 	 */
@@ -424,6 +437,17 @@ public:
 	 *
 	 */
 	uint64_t read_compacted_sequence(uint8_t* seq, uint8_t* data);
+	/**
+	 * Read the next block of the section.
+	 * The sequence of the block is pushed in the seq_data array, immediatly followed by data.
+	 * The array must be already allocated.
+	 * 
+	 * @param seq_data Array filled with the compacted sequence (2 bit / nucl) immediatly followed
+	 * with data linked to the kmers of the sequence.
+	 *
+	 * @return The number of kmers in the sequence.
+	 */
+	uint64_t read_compacted_sequence(uint8_t* seq_data);
 	/**
 	 * Write a block containing the sequence seq with kmer data associated.
 	 * 
@@ -530,6 +554,19 @@ public:
 	uint64_t read_compacted_sequence_without_mini(uint8_t* seq, uint8_t* data, uint64_t & mini_pos);
 	/**
 	 * Read the next block of the section.
+	 * The sequence and the kmer data of the block are pushed in the seq_data array.
+	 * The array must already be allocated.
+	 * 
+	 * @param seq Array filled with the compacted sequence (2 bit / nucl) where the minimizer is absent.
+	 * @param data Array filled with data linked to the kmers of the sequence.
+	 * @param mini_pos Index of the first character of the minimizer.
+	 *
+	 * @return The number of kmers in the sequence.
+	 *
+	 */
+	uint64_t read_compacted_sequence_without_mini(uint8_t* seq_data, uint64_t & mini_pos);
+	/**
+	 * Read the next block of the section.
 	 * The sequence of the block is pushed in the seq array and the data in the data array.
 	 * These arrays must be already allocated.
 	 * 
@@ -540,6 +577,17 @@ public:
 	 *
 	 */
 	uint64_t read_compacted_sequence(uint8_t* seq, uint8_t* data);
+	/**
+	 * Read the next block of the section.
+	 * The sequence of the block is pushed in the seq_data array, immediatly followed by data.
+	 * The array must already be allocated.
+	 * 
+	 * @param seq_data Array filled with the compacted sequence (2 bit / nucl) immediatly followed
+	 * with data linked to the kmers of the sequence.
+	 *
+	 * @return The number of kmers in the sequence.
+	 */
+	uint64_t read_compacted_sequence(uint8_t* seq_data);
 	/**
 	 * Jumb over the next block of the section.
 	 */
@@ -563,7 +611,8 @@ private:
 	// Space alocated for copying the current kmer given to the user.
 	uint8_t * current_kmer;
 	// Current sequence
-	uint8_t * current_sequence;
+	uint8_t * current_seq_data;
+	// uint8_t * current_sequence;
 	// Current sequence shifted to match the 4 different alignements
 	uint8_t ** current_shifts;
 	// Size in nucleotides of current sequence
@@ -575,7 +624,7 @@ private:
 	// Number of kmer remaining in the current block
 	uint64_t remaining_kmers;
 	// Data array for the current block
-	uint8_t * current_data;
+	// uint8_t * current_data;
 	// Section currently readed.
 	Block_section_reader * current_section;
 	// Remaining blocks before end of the section

@@ -3,6 +3,8 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <cstdint>
+#include <map>
 
 #include "kff_io.hpp"
 
@@ -20,19 +22,25 @@ int main(int argc, char * argv[]) {
 	file->write_encoding(0, 1, 3, 2);
 	// Set metadata
 	std::string meta = "D@rK W@99ic";
-	file->write_metadata(11, (uint8_t *)meta.c_str());
+	file->write_metadata(meta.length(), (uint8_t *)meta.c_str());
+
+	// Prepare for indexing
+	map<long, char> section_absolute_indexes;
 
 	// --- global variable write ---
 
 	// Set global variables
 	Section_GV sgv(file);
+	section_absolute_indexes[sgv.beginning] = 'v';
 	sgv.write_var("k", 10);
+	sgv.write_var("m", 8);
 	sgv.write_var("max", 240);
 	sgv.write_var("data_size", 1);
 	sgv.close();
 
 	// --- Write a raw sequence bloc ---
 	Section_Raw sr(file);
+	section_absolute_indexes[sr.beginning] = 'r';
 	// 2-bit sequence encoder
 	uint8_t encoded[1024];
 	uint8_t counts[255];
@@ -47,12 +55,9 @@ int main(int argc, char * argv[]) {
 	sr.write_compacted_sequence(encoded, 11, counts);
 	sr.close();
 
-	sgv = Section_GV(file);
-	sgv.write_var("m", 8);
-	sgv.close();
-
 	// --- write a minimizer sequence block ---
 	Section_Minimizer sm(file);
+	section_absolute_indexes[sm.beginning] = 'm';
 	encode_sequence("AAACTGAT", encoded);
 	sm.write_minimizer(encoded);
 
@@ -69,6 +74,7 @@ int main(int argc, char * argv[]) {
 	sm.close();
 
 	// Close and end writing of the file
+	// The index + footer are automatically created on close
 	file->close();
 	delete file;
 
@@ -79,14 +85,31 @@ int main(int argc, char * argv[]) {
 	uint8_t * metadata = new uint8_t[file->metadata_size + 1];
 	file->read_metadata(metadata);
 	metadata[file->metadata_size] = '\0';
-	cout << "metadata: " << string((char *)metadata) << endl << endl;
 	delete[] metadata;
+
+	// --- index discovery has been done during header reading ---
+	if (file->footer == nullptr) {
+		cerr << "No footer when one expected!" << endl;
+		exit(1);
+	}
+	cout << "Footer discoverd" << endl;
+
+	// --- index has been discovered during file opening ---
+	cout << "First index at position " << file->footer->vars["first_index"] << endl;
+	for (Section_Index * si : file->index) {
+		cout << "Index section " << si->beginning << endl;
+
+		for (map<int64_t, char>::iterator it=si->index.begin() ; it!=si->index.end() ; it++)
+			cout << "- section " << it->second << " at relative position " << it->first << endl;
+	}
+	cout << endl;
 
 	// --- Global variable read ---
 	char section_name = file->read_section_type();
 	sgv = Section_GV(file);
 
 	uint64_t k = file->global_vars["k"];
+	uint64_t m = file->global_vars["m"];
 	uint64_t max = file->global_vars["max"];
 	uint64_t data_size = file->global_vars["data_size"];
 
@@ -95,9 +118,10 @@ int main(int argc, char * argv[]) {
 	cout << "Read section " << section_name << endl;
 	sr = Section_Raw(file);
 	cout << "nb blocks: " << sr.nb_blocks << endl;
-
 	uint8_t * seq = new uint8_t[(max + k) / 8 + 1];
+	memset(seq, 0, (max + k) / 8 + 1);
 	uint8_t * data = new uint8_t[max * data_size];
+	memset(data, 0, max * data_size);
 	for (uint64_t i=0 ; i<sr.nb_blocks ; i++) {
 		cout << "bloc " << (i+1) << ": ";
 		uint32_t nb_kmers = sr.read_compacted_sequence(seq, data);
@@ -107,13 +131,6 @@ int main(int argc, char * argv[]) {
 			cout << (uint64_t)data[i] << ", ";
 		cout << endl;
 	}
-	cout << endl;
-
-	// --- Read variables to load m ---
-	section_name = file->read_section_type();
-	cout << "Read section " << section_name << endl;
-	sgv = Section_GV(file);
-	uint64_t m = file->global_vars["m"];
 	cout << endl;
 
 	// --- Read Minimizer block ---
@@ -200,7 +217,7 @@ uint8_t uint8_packing(std::string sequence) {
 void uint8_unpacking(uint8_t packed, char * decoded, size_t size);
 string decode_sequence(uint8_t * encoded, size_t size) {
 	stringstream ss;
-	char tmp_chars[4];
+	char tmp_chars[4] = {0, 0, 0, 0};
 
 	// Decode the truncated first compacted 8 bits
 	size_t remnant = size % 4;

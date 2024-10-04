@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstring>
 #include <sstream>
+#include <cstdint>
 #include <math.h>
 
 #include <map>
@@ -79,6 +80,10 @@ void Kff_file::open(string mode) {
 		if (this->file_size == 0 and this->next_free == 0) {
 			// Open the fp
 			this->fs.open(this->filename, fstream::binary | fstream::in);
+			if (this->fs.fail()) {
+				std::string msg = "Cannot open file " + this->filename;
+				throw std::runtime_error(msg);
+			}
 			// Compute the file length
 			long position = this->fs.tellp();
 			this->fs.seekg(0, this->fs.end);
@@ -373,7 +378,8 @@ void Kff_file::read(uint8_t * bytes, unsigned long size) {
 		// Compute the buffer positions to read
 		uint64_t buffer_position = this->current_position - this->file_size;
 		if (buffer_position + size > this->next_free) {
-			cerr << "Read out of the file, Byte " << (this->file_size + this->next_free) << endl;
+			string error = string("Read out of the file, Byte ") + to_string(this->file_size + this->next_free);
+			throw out_of_range(error);
 			exit(1);
 		}
 
@@ -699,7 +705,7 @@ Section * SectionBuilder::build(Kff_file * file) {
 			return new Section_Minimizer(file);
 		default:
 			cerr << "Unknown section " << type << "(" << (uint)type << ")" << endl;
-			throw std::runtime_error("Unknown section type" + type);
+			throw std::runtime_error("Unknown section type " + std::string(1, type));
 	}
 }
 
@@ -975,6 +981,26 @@ uint64_t Section_Raw::read_compacted_sequence(uint8_t* seq, uint8_t* data) {
 }
 
 
+uint64_t Section_Raw::read_compacted_sequence(uint8_t* seq_data) {
+	uint8_t buff[8];
+	uint64_t nb_kmers_in_block = 1;
+	// 1 - Read the number of kmers in the sequence
+	if (nb_kmers_bytes != 0) {
+		file->read(buff, this->nb_kmers_bytes);
+		load_big_endian(buff, this->nb_kmers_bytes, nb_kmers_in_block);
+	}
+	// 2 - Read the sequence
+	size_t seq_size = nb_kmers_in_block + k - 1;
+	size_t seq_bytes_needed = (seq_size + 3) / 4;
+	uint64_t data_bytes_used = data_size * nb_kmers_in_block;
+	this->file->read(seq_data, seq_bytes_needed + data_bytes_used);
+
+	this->remaining_blocks -= 1;
+
+	return nb_kmers_in_block;
+}
+
+
 void Section_Raw::copy(Kff_file * file) {
 	uint max_nucl = this->k + this->max - 1;
 	uint8_t * seq_buffer = new uint8_t[(max_nucl + 3) / 4];
@@ -1177,6 +1203,27 @@ uint64_t Section_Minimizer::read_compacted_sequence_without_mini(uint8_t* seq, u
 	return nb_kmers_in_block;
 }
 
+uint64_t Section_Minimizer::read_compacted_sequence_without_mini(uint8_t* seq_data, uint64_t & mini_pos) {
+	uint8_t buff[8];
+	uint64_t nb_kmers_in_block = 1;
+	// 1 - Read the number of kmers in the sequence
+	if (nb_kmers_bytes != 0) {
+		file->read(buff, this->nb_kmers_bytes);
+		load_big_endian(buff, this->nb_kmers_bytes, nb_kmers_in_block);
+	}
+	// 2 - Read the minimizer position
+	file->read(buff, this->mini_pos_bytes);
+	load_big_endian(buff, this->mini_pos_bytes, mini_pos);
+	// 3 - Read the sequence + data
+	size_t seq_size = nb_kmers_in_block + k - m - 1;
+	size_t seq_bytes_needed = bytes_from_bit_array(2, seq_size);
+	uint64_t data_bytes_needed = bytes_from_bit_array(data_size*8, nb_kmers_in_block);
+	file->read(seq_data, seq_bytes_needed + data_bytes_needed);
+
+	this->remaining_blocks -= 1;
+	return nb_kmers_in_block;
+}
+
 void Section_Minimizer::copy(Kff_file * file) {
 	uint max_nucl = this->k + this->max - 1;
 	uint8_t * seq_buffer = new uint8_t[(max_nucl + 3) / 4];
@@ -1302,7 +1349,7 @@ void Section_Minimizer::add_minimizer(uint64_t nb_kmer, uint8_t * seq, uint64_t 
 	uint64_t no_mini_size = seq_size - m;
 	uint64_t no_mini_bytes = bytes_from_bit_array(2, no_mini_size);
 	uint64_t no_mini_left_offset = (4 - (no_mini_size % 4)) % 4;
-	// Shift the whole sequence to the left to have np padding on byte 0.
+	// Shift the whole sequence to the left to have no padding on byte 0.
 	leftshift8(seq, no_mini_bytes, no_mini_left_offset*2);
 
 
@@ -1318,7 +1365,6 @@ void Section_Minimizer::add_minimizer(uint64_t nb_kmer, uint8_t * seq, uint64_t 
 	// Shift to the left
 	uint no_mini_suff_offset = no_mini_suff_start_nucl % 4;
 	leftshift8(suffix, no_mini_suff_bytes, no_mini_suff_offset * 2);
-
 
 
 	// Prepare the minimizer
@@ -1337,14 +1383,6 @@ void Section_Minimizer::add_minimizer(uint64_t nb_kmer, uint8_t * seq, uint64_t 
 	uint final_mini_byte_size = (m + final_mini_offset + 3) / 4;
 	rightshift8(mini, seq_bytes, final_mini_offset * 2);
 
-	// Align the suffix with the end of the minimizer
-	uint final_suff_start_nucl = final_mini_start_nucl + m;
-	uint final_suff_start_byte = final_suff_start_nucl / 4;
-	uint final_suff_offset = final_suff_start_nucl % 4;
-	uint final_suff_byte_size = (suff_nucl + final_suff_offset + 3) / 4;
-	rightshift8(suffix, seq_bytes, final_suff_offset * 2);
-
-
 	// Merge minimizer
 	seq[final_mini_start_byte] = fusion8(
 		seq[final_mini_start_byte],
@@ -1355,14 +1393,25 @@ void Section_Minimizer::add_minimizer(uint64_t nb_kmer, uint8_t * seq, uint64_t 
 		seq[final_mini_start_byte+idx] = mini[idx];
 	}
 
-	// Merge the suffix
-	seq[final_suff_start_byte] = fusion8(
-		seq[final_suff_start_byte],
-		suffix[0],
-		final_suff_offset * 2
-	);
-	for (uint64_t idx=1 ; idx<final_suff_byte_size ; idx++) {
-		seq[final_suff_start_byte+idx] = suffix[idx];
+
+	// Align the suffix with the end of the minimizer
+	uint final_suff_start_nucl = final_mini_start_nucl + m;
+	uint final_suff_start_byte = final_suff_start_nucl / 4;
+	uint final_suff_offset = final_suff_start_nucl % 4;
+	uint final_suff_byte_size = (suff_nucl + final_suff_offset + 3) / 4;
+	if (final_suff_byte_size > 0)
+	{
+		rightshift8(suffix, seq_bytes, final_suff_offset * 2);
+
+		// Merge the suffix
+		seq[final_suff_start_byte] = fusion8(
+			seq[final_suff_start_byte],
+			suffix[0],
+			final_suff_offset * 2
+		);
+		for (uint64_t idx=1 ; idx<final_suff_byte_size ; idx++) {
+			seq[final_suff_start_byte+idx] = suffix[idx];
+		}
 	}
 
 	// Align everything to the right
@@ -1383,17 +1432,41 @@ uint64_t Section_Minimizer::read_compacted_sequence(uint8_t* seq, uint8_t* data)
 	return nb_kmers_in_block;
 }
 
+uint64_t Section_Minimizer::read_compacted_sequence(uint8_t* seq_data) {
+	// Read the block
+	uint64_t mini_pos;
+	uint64_t nb_kmers_in_block = this->read_compacted_sequence_without_mini(seq_data, mini_pos);
+	
+	// Determine the number of new bytes needed for minimizer insertion
+	uint64_t seq_size_nucls = k - m + nb_kmers_in_block - 1;
+	uint64_t free_nucls = (4 - seq_size_nucls) % 4;
+	uint64_t bytes_needed = (m - free_nucls + 3) / 4;
+	
+	if (bytes_needed > 0)
+	{
+		// Move the data to the right to have the hole needed for minimizer insertion
+		uint64_t seq_size_bytes = (seq_size_nucls + 3) / 4;
+		uint64_t data_size_bytes = data_size * nb_kmers_in_block;
+		for (size_t i=0 ; i<data_size_bytes ; i++)
+		{
+			// Shift the ith byte to "byte_needed" bytes on the right
+			size_t byte_idx = seq_size_bytes + data_size_bytes - 1 - i;
+			seq_data[byte_idx + bytes_needed] = seq_data[byte_idx];
+			seq_data[byte_idx] = 0;
+		}
+	}
+
+	// Insert minimizer
+	this->add_minimizer(nb_kmers_in_block, seq_data, mini_pos);
+	
+	return nb_kmers_in_block;
+}
+
 void Section_Minimizer::close() {
 	if (file->is_writer) {
 		uint8_t tmp[8];
 		store_big_endian(tmp, 8, this->nb_blocks);
 		this->file->write_at(tmp, 8, this->beginning + 1l + (long)this->nb_bytes_mini);
-		// // Save current position
-		// long position = this->file.tellp();
-		// // Go write the number of variables in the correct place
-		// fs.seekp(this->beginning + 1l + (long)this->nb_bytes_mini);
-		// write_value(nb_blocks, fs);
-		// fs.seekp(position);
 	}
 
 	if (file->is_reader) {
@@ -1415,15 +1488,16 @@ Kff_reader::Kff_reader(std::string filename) {
 	// Open the file
 	this->file = new Kff_file(filename, "r");
 
+	this->current_seq_data = new uint8_t[1];
+	this->current_seq_data[0] = 0;
+
 	// Create fake small datastrucutes waiting for the right values.
 	this->current_shifts = new uint8_t*[4];
-	for (uint8_t i=0 ; i<4 ; i++) {
+	this->current_shifts[0] = this->current_seq_data;
+	for (uint8_t i=1 ; i<4 ; i++) {
 		this->current_shifts[i] = new uint8_t[1];
 		this->current_shifts[i][0] = 0;
 	}
-	this->current_sequence = this->current_shifts[0];
-	this->current_data = new uint8_t[1];
-	this->current_data[0] = 0;
 
 	this->current_section = NULL;
 	this->current_kmer = new uint8_t[1];
@@ -1438,11 +1512,11 @@ Kff_reader::Kff_reader(std::string filename) {
 
 Kff_reader::~Kff_reader() {
 	delete[] this->current_kmer;
-	delete[] this->current_data;
+	delete[] this->current_seq_data;
 	if (this->current_section != NULL)
 		delete this->current_section;
 
-	for (uint i=0 ; i<4 ; i++)
+	for (uint i=1 ; i<4 ; i++)
 		delete[] this->current_shifts[i];
 	delete[] this->current_shifts;
 
@@ -1458,23 +1532,33 @@ void Kff_reader::read_until_first_section_block() {
 		// char section_type = this->file->read_section_type();
 		char section_type = file->read_section_type();
 		// --- Update data structure sizes ---
-		if (section_type == 'v') {
+		if (section_type == 'v')
+		{
 			// Read the global variable block
 			Section_GV gvs(file);
 			// Update sequence size if k or max change
 			if (gvs.vars.find("k") != gvs.vars.end()
-				or gvs.vars.find("max") != gvs.vars.end()) {
+				or gvs.vars.find("max") != gvs.vars.end())
+			{
 				// Compute the max size of a sequence
 				this->k = this->file->global_vars["k"];
 				this->max = this->file->global_vars["max"];
-				uint64_t max_size = bytes_from_bit_array(2, max + k - 1);
-				// Allocate the right amount of memory and place the pointers to the right addresses
-				for (uint8_t i=0 ; i<4 ; i++) {
+				uint64_t seq_max_size = bytes_from_bit_array(2, max + k - 1);
+				uint64_t data_max_size = data_size * max;
+				// sequence + data buffer
+				delete[] this->current_seq_data;
+				this->current_seq_data = new uint8_t[seq_max_size + data_max_size];
+				
+				// Shifts
+				this->current_shifts[0] = this->current_seq_data;
+				for (uint8_t i=1 ; i<4 ; i++)
+				{
 					delete[] this->current_shifts[i];
-					this->current_shifts[i] = new uint8_t[max_size];
-					memset(this->current_shifts[i], 0, max_size);
+					this->current_shifts[i] = new uint8_t[seq_max_size];
+					memset(this->current_shifts[i], 0, seq_max_size);
 				}
-				this->current_sequence = this->current_shifts[0];
+
+				// Current kmer
 				delete[] this->current_kmer;
 				this->current_kmer = new uint8_t[k/4 + 1];
 				memset(this->current_kmer, 0, (k/4+1));
@@ -1482,15 +1566,18 @@ void Kff_reader::read_until_first_section_block() {
 
 			// Update the data array size
 			if (gvs.vars.find("data_size") != gvs.vars.end()
-				or gvs.vars.find("max") != gvs.vars.end()) {
-				// Compute the max size of a data array
-				auto data_size = this->file->global_vars["data_size"];
-				this->data_size = data_size;
+				or gvs.vars.find("max") != gvs.vars.end())
+			{
+				// Update global variables
 				this->max = this->file->global_vars["max"];
-				uint64_t max_size = data_size * max;
-				delete[] this->current_data;
-				this->current_data = new uint8_t[max_size];
-				memset(this->current_data, 0, max_size);
+				this->data_size = this->file->global_vars["data_size"];
+				// Update buffer size
+				uint64_t seq_max_size = bytes_from_bit_array(2, max + k - 1);
+				uint64_t data_max_size = this->data_size * max;
+				delete[] this->current_seq_data;
+				this->current_seq_data = new uint8_t[seq_max_size + data_max_size];
+				this->current_shifts[0] = this->current_seq_data;
+				memset(this->current_seq_data, 0, seq_max_size + data_max_size);
 			}
 		}
 		// Mount data from the files to the datastructures.
@@ -1507,14 +1594,14 @@ void Kff_reader::read_until_first_section_block() {
 
 void Kff_reader::read_next_block() {
 	// Read from the file
-	current_seq_kmers = remaining_kmers = current_section->read_compacted_sequence(current_sequence, current_data);
+	current_seq_kmers = remaining_kmers = current_section->read_compacted_sequence(current_seq_data);
 	current_seq_nucleotides = remaining_kmers + current_section->k - 1;
 	current_seq_bytes = bytes_from_bit_array(2, current_seq_nucleotides);
 
 	// Create the 4 possible shifts of the sequence for easy use.
 	for (uint8_t i=1 ; i<min((uint64_t)4, remaining_kmers) ; i++) {
 		// Copy
-		memcpy(current_shifts[i], current_sequence, current_seq_bytes);
+		memcpy(current_shifts[i], current_shifts[0], current_seq_bytes);
 		// Shift
 		rightshift8(current_shifts[i], current_seq_bytes, 2 * i);
 	}
@@ -1570,7 +1657,7 @@ bool Kff_reader::next_kmer(uint8_t* & kmer, uint8_t* & data) {
 
 	memcpy(current_kmer, current_shifts[right_shift]+start_byte, end_byte-start_byte+1);
 	kmer = current_kmer;
-	data = current_data + (current_seq_kmers - remaining_kmers) * this->data_size;
+	data = current_seq_data + current_seq_bytes + (current_seq_kmers - remaining_kmers) * this->data_size;
 	
 	// Read the next block if needed.
 	remaining_kmers -= 1;

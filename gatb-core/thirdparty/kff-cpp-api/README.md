@@ -64,9 +64,12 @@ The *get_encoding* function return an array of the 4 encoded values in order A, 
 ```C++
   // Get the file encoding
   uint8_t * encoding = reader.get_encoding();
-  // Get the current k and data_size values
-  uint64_t k = reader.get_var("k");
-  uint64_t ds = reader.get_var("data_size");
+  // Get a variable from the previous value section (minimizer size example)
+  // WARNING: This get function is base on unordered_map and can be very slow if repeated a lot
+  uint64_t m = reader.get_var("m");
+  // Variables that are usefull for all kmers are directly available a properties of the object
+  uint64_t k = reader.k;
+  uint64_t ds = reader.data_size;
 ```
 
 
@@ -84,6 +87,26 @@ This is the object needed to manipulate a binary kff file.
   Kff_file infile("path/to/file/myfile.kff", "r");
   // [...]
   infile.close();
+```
+
+During the opening, the API automatically look at the beginning and end of the file to find potential index chain and footer values.
+Here is an example code to explore both of them:
+```C++
+  if (infile.footer != nullptr)
+    // Explore footer values
+    for (const auto & val_pair : infile.footer.vars)
+      cout << val_pair.first << " : " << val_pair.second << endl;
+
+  // Explore the known index sections
+  if (infile.index.size() > 0)
+    for (Section_Index * section : infile.index) {
+      // Get the index section position in the file
+      cout << "section position in file: " << section->beginning << endl;
+
+      for (const auto & index_pair : section->index)
+        // Get the relative position (from the end of the index section) of the registered section
+        cout << "section " << index_pair.second << " at relative position " << index_pair.first << endl;
+    }
 ```
 
 ### Header
@@ -122,7 +145,21 @@ You can use *read_section_type* to get this char and then use the dedicated func
   char type = infile.read_section_type();
 ```
 
-### Global variable section
+### Index section
+
+When 'i' char is detected, you can call the opening of a Section_Index.
+The file slice containing the index is read on section creation.
+All the pairs (relative position, section type) from the section are then accessible over the index map of the Section_Index object.
+
+```C++
+  // Open the index section
+  Section_Index si(&infile);
+  // Print the index pair
+  for (const auto & it : si.index)
+    std::cout << "position " << it.first << " -> " << it.second << " section" << std::endl;
+```
+
+### Value section
 
 When 'v' char is detected, you can call the the opening of a Section_GV.
 The creation of the section on a file will automatically read the variables inside of the section.
@@ -132,10 +169,10 @@ The variables are accessible as a std::map<string, uint64_t> with the public sec
   // Open the section (automatically read the variables)
   Section_GV sgv(&infile);
   // Read the variables from the section map
-  for (auto it : sgv.vars)
+  for (const auto & it : sgv.vars)
     std::cout << it.first << ": " << it.second << std::endl;
   // Read the variables from the global map
-  for (auto it : infile.global_vars)
+  for (const auto & it : infile.global_vars)
     std::cout << it.first << ": " << it.second << std::endl;
 ```
 
@@ -144,6 +181,7 @@ The variables are accessible as a std::map<string, uint64_t> with the public sec
 When 'r' char is detected, you can call the opening of a Section_Raw.
 At the section creation, the number of blocks inside of it is automatically read and stored in the property *nb_blocks*.
 The number of remaining blocks in the section is also available in the property *remaining_blocks*.
+The variables 'max' and 'data_size' are to be set as per: https://github.com/Kmer-File-Format/kff-reference#section-raw-sequences
 
 ```C++
   // Get the global variables needed
@@ -291,9 +329,9 @@ If you do not set any metadata, the API will automatically create a 0 Byte metad
 ```
 
 
-### Global Variable section
+### Values section
 
-GV sections start with the number of variables described in it.
+v sections start with the number of variables described in it.
 Initially this value is automatically set to 0 and updated when you call the close function.
 
 ```C++
@@ -307,6 +345,16 @@ Initially this value is automatically set to 0 and updated when you call the clo
   sgv.write_var("data_size", 1);
 
   sgv.close();
+```
+
+
+### Index section
+
+To write a i section, you only need to register the pairs (relative position, section type) using the Section_Index object function *register_section*.
+
+
+```C++
+  
 ```
 
 

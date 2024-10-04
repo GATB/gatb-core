@@ -3,6 +3,7 @@
 
 
 #include <vector>
+#include <cstdint>
 #include <string>
 
 #include "kff_io.hpp"

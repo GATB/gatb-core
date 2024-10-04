@@ -606,23 +606,43 @@ void GraphUnitigsTemplate<span>::load_unitigs(string unitigs_filename)
 }
 
 //https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-// trim from start
-static inline std::string &ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))));
+
+// trim from start (in place)
+inline void ltrim_inplace(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+inline void rtrim_inplace(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+inline void trim_inplace(std::string &s) {
+    rtrim_inplace(s);
+    ltrim_inplace(s);
+}
+
+// trim from start (copying)
+inline std::string ltrim(std::string s) {
+    ltrim_inplace(s);
     return s;
 }
 
-// trim from end
-static inline std::string &rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+// trim from end (copying)
+inline std::string rtrim(std::string s) {
+    rtrim_inplace(s);
     return s;
 }
 
-// trim from both ends
-static inline std::string &trim(std::string &s) {
-    return ltrim(rtrim(s));
+// trim from both ends (copying)
+inline std::string trim(std::string s) {
+    trim_inplace(s);
+    return s;
 }
 
 //http://stackoverflow.com/questions/236129/split-a-string-in-c
