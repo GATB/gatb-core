@@ -99,9 +99,11 @@ class NodesDeleter
         }
     }
     
-    void markToDeleteIndex(uint64_t index)
+    bool markToDeleteIndex(uint64_t index)
     {
-            nodesToDelete[index] = true;
+        bool prev = nodesToDelete[index];
+        nodesToDelete[index] = true;
+        return prev;
     }
 
     void markToDelete(Node &node)

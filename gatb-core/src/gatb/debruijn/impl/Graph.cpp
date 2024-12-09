@@ -2715,7 +2715,7 @@ simplePathLength (Node& node, Direction dir) const
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant>
-void GraphTemplate<Node, Edge, GraphDataVariant>::
+bool    GraphTemplate<Node, Edge, GraphDataVariant>::
 unitigDelete (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>> &nodesDeleter) 
 {
     std::cout << "Graph::unitigDelete not implemented" << std::endl; exit(1);
@@ -2730,13 +2730,14 @@ unitigDelete (Node& node)
 
 
 template<typename Node, typename Edge, typename GraphDataVariant>
-void GraphTemplate<Node, Edge, GraphDataVariant>::
+bool    GraphTemplate<Node, Edge, GraphDataVariant>::
 simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant>>& nodesDeleter) 
 {
     GraphIterator <Node> itNodes = simplePath (node, dir);
     for (itNodes.first(); !itNodes.isDone(); itNodes.next())
         nodesDeleter.markToDelete(*itNodes);
     nodesDeleter.markToDelete(node); // don't forget the start node
+    std::cout << "Graph::simplePathDelete called but only the GraphUnitigs version is modern." << std::endl; exit(1);
 }
 
 template<typename Node, typename Edge, typename GraphDataVariant>

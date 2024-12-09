@@ -288,9 +288,9 @@ public:
     unsigned int simplePathLength            (const NodeGU& node, Direction dir) ; /* same reason as above*/ /* NOTE: return number of traversed kmers, so (nucleotide length-k)*/
     double           unitigMeanAbundance     (const NodeGU& node) const;
     double       simplePathMeanAbundance     (const NodeGU& node, Direction dir) ;
-    void             unitigDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter);
+    bool             unitigDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter);
     void             unitigDelete          (NodeGU& node) ;
-    void         simplePathDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter);
+    bool         simplePathDelete          (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter);
     std::string  unitigSequence            (const NodeGU& node, bool& isolatedLeft, bool& isolatedRight) const;
     void         unitigMark                (const NodeGU& node); // used to flag simple path as traversed, in minia
     bool         unitigIsMarked        (const NodeGU& node) const;

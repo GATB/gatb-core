@@ -1600,28 +1600,31 @@ unitigDelete (NodeGU& node)
 
 
 // wrapper that only puts the node into nodesDeleter
+// returns true if the node was already there to be deleted
 template<size_t span>
-void GraphUnitigsTemplate<span>::
+bool GraphUnitigsTemplate<span>::
 unitigDelete (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
     //nodesDeleter.onlyListMethod = true; // a bit inefficient to always tell the deleter to be in that mode, but so be it for now. just 1 instruction, won't hurt.
     //std::cout << "GraphU queuing to delete unitig " << node.unitig << " seq: "  << unitigs[node.unitig] << " mean abundance " << unitigMeanAbundance(node) << std::endl; 
-    nodesDeleter.markToDeleteIndex(node.unitig);
+    return nodesDeleter.markToDeleteIndex(node.unitig);
 }
 
 template<size_t span>
-void GraphUnitigsTemplate<span>::
+bool GraphUnitigsTemplate<span>::
 simplePathDelete (NodeGU& node, Direction dir, NodesDeleter<NodeGU, EdgeGU, GraphUnitigsTemplate<span>>& nodesDeleter) 
 {
     std::vector<NodeGU> nodesList;
     int seqLength = 0, endDegree;
     float coverage = 0;
-    unitigDelete(node, dir, nodesDeleter);
+    bool containedAlreadyDeleted = false;
+    containedAlreadyDeleted |= unitigDelete(node, dir, nodesDeleter);
     simplePathLongest_avance(node, dir, seqLength, endDegree, false /*markDuringTraversal*/, coverage, nullptr, &nodesList);
     for (auto cur_node : nodesList)
     {
-        unitigDelete(cur_node, dir, nodesDeleter);
+        containedAlreadyDeleted |= unitigDelete(cur_node, dir, nodesDeleter);
     }
+    return containedAlreadyDeleted;
 }
 
 /* actually I don't think this function is called at all */

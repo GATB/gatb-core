@@ -405,7 +405,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     unsigned int _maxTipLengthTopological = (unsigned int)((float)k * _tipLen_Topo_kMult); // aggressive with SPAdes length threshold, but no coverage criterion
     unsigned int _maxTipLengthRCTC = (unsigned int)(k * _tipLen_RCTC_kMult); // experimental, SPAdes-like
 
-    unsigned long nbTipsRemoved = 0;
+    unsigned long nbTipsRemoved = 0, nbTipsRemovedDup = 0;
 
     // stats
     unsigned long timeAll = 0, timeDecision = 0, timeProcessing = 0, timeSimplePath = 0, timeSimplePathLong = 0, timeSimplePathShortTopo = 0, timeSimplePathShortRCTC = 0, timeDel = 0, timeCache = 0;
@@ -507,6 +507,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
             TIME(auto start_simplepath_t=get_wtime());
             Node&     simplePathStart = neighbors[0].from;
             Direction simplePathDir   = neighbors[0].direction;
+            assert(simplePathStart == node);
             unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
             TIME(auto end_simplepath_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
@@ -549,9 +550,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 
             bool isTopologicalShortTip = isShortTopological && isConnected; 
             bool isMaybeRCTCTip = isShortRCTC && isConnected;
-
-            DEBUG_TIPS(cout << endl << "pathlen: " << pathLen << " last node " << _graph.toString(lastNode) << " neighbors in/out: " <<_graph.indegree(lastNode) << " " << _graph.outdegree(lastNode) << " istoposhorttip: " << isTopologicalShortTip << endl);
-            
+ 
             double pathMeanAbundance = _graph.simplePathMeanAbundance(simplePathStart,simplePathDir);
 
             bool isRCTCTip = false;
@@ -563,6 +562,8 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 
             bool isTip = isTopologicalShortTip || isRCTCTip; 
             
+            DEBUG_TIPS(cout << endl << "pathlen: " << pathLen << " last node " << _graph.toString(lastNode) << " neighbors in/out: " <<_graph.indegree(lastNode) << " " << _graph.outdegree(lastNode) << " istoposhorttip: " << isTopologicalShortTip << " pathmeanabundance: " << pathMeanAbundance << " istip: " << isTip << endl);
+
             TIME(auto end_tip_decision_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeDecision, diff_wtime(start_tip_decision_t,end_tip_decision_t)));
 
@@ -570,18 +571,15 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
 
             if (isTip)
             {
-                if (nodesDeleter.get(simplePathStart))
-                    {
-                        // not double-counting that delete
-                    }
-                else
-                {
-                    // delete it
-                    _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
+                // delete it
+                bool containedAlreadyDeleted = _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
 
+                if (!containedAlreadyDeleted)
                     __sync_fetch_and_add(&nbTipsRemoved, 1);
-                    DEBUG_TIPS(cout << endl << "TIP FOUND, deleting node : " << _graph.toString(simplePathStart) << endl);
-                }
+                else
+                    __sync_fetch_and_add(&nbTipsRemovedDup, 1);
+
+                DEBUG_TIPS(cout << endl << "TIP FOUND, deleting node : " << _graph.toString(simplePathStart) << " " << (containedAlreadyDeleted ? "(already partly deleted)" : "") << endl);
             } // end if isTip
 
             TIME(auto end_tip_processing_t=get_wtime());
@@ -618,7 +616,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     cout.precision(1);
     if (_verbose)
     {
-        cout << nbTipsRemoved << " tips removed. " << endl;
+        cout << nbTipsRemoved << " tips removed. (+ " << nbTipsRemovedDup << " from previously partly removed)" << endl;
         cout << nbTipCandidates << " tip candidates passed degree check. " << endl;
         TIME(cout << "Tips timings:   " << timeAll / unit << " CPUsecs total."<< endl);
         TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal, including:" << endl);
@@ -1301,6 +1299,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     //
     unsigned long nbBulgesCandidates = 0;
     unsigned long nbBulgesRemoved = 0;
+    unsigned long nbBulgesRemovedDup = 0;
     unsigned long nbSimplePaths = 0;
     unsigned long nbLongSimplePaths = 0;
     unsigned long nbShortSimplePaths = 0;
@@ -1341,223 +1340,218 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 #ifdef SIMPLIFICATION_LAMBDAS 
     dispatcher.iterate (itNode, [&] (Node& node) {
 #else
-    for (itNode->first(); !itNode->isDone(); itNode->next())
-    {
-        Node& node = itNode->item();
+            for (itNode->first(); !itNode->isDone(); itNode->next())
+            {
+            Node& node = itNode->item();
 #endif
-        TIME(auto start_thread_t=get_wtime());
+            TIME(auto start_thread_t=get_wtime());
 
-        if (_graph.isNodeDeleted(node)) { 
+            if (_graph.isNodeDeleted(node)) { 
 #ifdef SIMPLIFICATION_LAMBDAS
             return; 
 #else
             continue;
 #endif
-        }
-
-      TIME(auto start_various_overhead_t=get_wtime());
-
-          unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
-
-      TIME(auto end_various_overhead_t=get_wtime());
-      TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
-
-
-
-      // need to search in both directions
-      for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
-      {
-         if ((outDegree >= 2 && dir == DIR_OUTCOMING) || (inDegree >= 2 && dir == DIR_INCOMING))
-         {
-            __sync_fetch_and_add(&nbBulgesCandidates,1);
+            }
 
             TIME(auto start_various_overhead_t=get_wtime());
-    
-                /** We follow the outgoing simple paths to get their length and last neighbor */
-                GraphVector<Edge> neighbors = _graph.neighborsEdge(node, dir);
-                
-                DEBUG_BULGES(DebugBR debugBR(_graph.toString(node), neighbors.size()););
 
+            unsigned inDegree = _graph.indegree(node), outDegree = _graph.outdegree(node);
 
             TIME(auto end_various_overhead_t=get_wtime());
             TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
 
-            // do everying for each possible short simple path that is neighbor of that node
-            assert(neighbors.size() > 1);
-            for (unsigned int i = 0; i < neighbors.size(); i++)
+
+
+            // need to search in both directions
+            for (Direction dir=DIR_OUTCOMING; dir<DIR_END; dir = (Direction)((int)dir + 1) )
             {
-                if (node == (neighbors[i].to)) // node being it's own neighbors, is rare, but let's avoid it
-                    continue;
-            
-                TIME(auto start_various_overhead_t=get_wtime());
-
-                    if (_graph.isNodeDeleted(neighbors[i].to)) { 
-                         __sync_fetch_and_add(&nbFirstNodeGraphDeleted, 1);
-                        continue;}
-
-                TIME(auto end_various_overhead_t=get_wtime());
-                TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
-
-                /* that's the putative bulge*/
-                TIME(auto start_simplepath_t=get_wtime());
-                Node&     simplePathStart = neighbors[i].to;
-                Direction simplePathDir   = dir;
-                unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
-                TIME(auto end_simplepath_t=get_wtime());
-                TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
-                __sync_fetch_and_add(&nbSimplePaths, 1);
-
-                bool isShort = true;
-
-                if (k + pathLen > maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+                if ((outDegree >= 2 && dir == DIR_OUTCOMING) || (inDegree >= 2 && dir == DIR_INCOMING))
                 {
-                    __sync_fetch_and_add(&nbLongSimplePaths, 1);
-                    isShort = false;
-                }
+                    __sync_fetch_and_add(&nbBulgesCandidates,1);
 
-                if (!isShort || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
-                {
-                    continue;
-                }
-                
-                __sync_fetch_and_add(&nbShortSimplePaths, 1);
+                    TIME(auto start_various_overhead_t=get_wtime());
 
-                TIME(start_various_overhead_t=get_wtime());
+                    /** We follow the outgoing simple paths to get their length and last neighbor */
+                    GraphVector<Edge> neighbors = _graph.neighborsEdge(node, dir);
 
-                
-                    Node lastNode = _graph.simplePathLastNode(simplePathStart,simplePathDir);
-                    GraphVector<Edge> outneighbors = _graph.neighborsEdge(lastNode, dir);
-    
-                    if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
-                        continue;
-   
-                    // so here is a hidden assumption: maybe outneighbors is of size more than 1, we used to care about the first noed after.
-                    // i could decide to enforce bulge popping only if the outneighbor has size 1. 
-                    //if (outneighbors.size() != 1) 
-                    //    continue;
-                    //  but i'm decided to do without for now. TODO: explore all the end nodes, not just the first once
+                    DEBUG_BULGES(DebugBR debugBR(_graph.toString(node), neighbors.size()););
 
-                    Node endNode = outneighbors[0].to;
-    
-                    // at this point, the last node in "nodes" is the last node of a potential Bulge path, and endNode is hopefully a branching node right after.
-                    // check if it's connected to something that has in-branching. 
-                    bool isDoublyConnected = (dir==DIR_OUTCOMING && _graph.indegree(endNode) > 1) || (dir==DIR_INCOMING && _graph.outdegree(endNode) > 1);
-                    //if (!isDoublyConnected) cout << "dir " << DIR2STR(dir) << " not a topo bulge because: in_degree=" <<_graph.indegree(endNode) << " out_degree=" << _graph.outdegree(endNode) << endl;
-    
-                    bool isTopologicalBulge = isDoublyConnected;
-    
-                    DEBUG_BULGES(debugBR.infoNeighbor(i, _graph.toString(neighbors[i].to), DIR2STR(dir), _graph.toString(lastNode), pathLen, outneighbors.size(), _graph.toString(endNode), isTopologicalBulge););
 
-                TIME(end_various_overhead_t=get_wtime());
-                TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
+                    TIME(auto end_various_overhead_t=get_wtime());
+                    TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
 
-                if (!isTopologicalBulge)
-                    continue;
-                    
-                //cout << "endnode has indegree/outdegree: " <<_graph.indegree(endNode) << "/" << _graph.outdegree(endNode) <<  " and the node before has indegree/outdegree: " <<_graph.indegree(nodes.back()) << "/" << _graph.outdegree(nodes.back()) << endl;
-
-                __sync_fetch_and_add(&nbTopologicalBulges, 1);
-
-                unsigned int maxlen = std::max((unsigned int)(pathLen * 1.1),(unsigned int) (pathLen + 3)); // following SPAdes
-                double mean_abundance_most_covered;
-                int success;
-                Node startNode = node;
-
-                TIME(auto start_pathfinding_t=get_wtime());
-
-                Path_t<Node>  heuristic_p_most; // actually won't be used.. (it's just for debug) so would be nice to get rid of it someday, but i don't want to deal with pointers.
-
-                /* startNode is branching, because we want to find alternative paths, except the one that go through (neighbors[i].to)*/
-                this->heuristic_most_covered_path(dir, startNode, endNode, 
-                            maxlen, 
-                            success, mean_abundance_most_covered,
-                            heuristic_p_most,
-                            backtrackingLimit, // avoid too much backtracking
-                            &(neighbors[i].to), // avoid that node
-                            true, // most covered path
-                            false // kmer version (true), unitigs version (false) 
-                            );
-
-                TIME(auto end_pathfinding_t=get_wtime());
-                TIME(__sync_fetch_and_add(&timePathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
-
-                if (success != 1)
-                {
-                    DEBUG_BULGES(cout << "HMCP failed: " << hmcpstatus2ascii(success) << endl);
-                    TIME(__sync_fetch_and_add(&timeFailedPathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
-                    TIME(if (diff_wtime(start_pathfinding_t,end_pathfinding_t) > timeLongestFailure) { timeLongestFailure = diff_wtime(start_pathfinding_t,end_pathfinding_t); });
-                    longestFailureDepth = maxlen;
-
-                    if (success == HMCP_LOOP)
-                        __sync_fetch_and_add(&nbNoAltPathBulgesLoop, 1);
-                    if (success == HMCP_MAX_DEPTH)
-                         __sync_fetch_and_add(&nbNoAltPathBulgesDepth, 1);
-                    if (success == HMCP_DIDNT_FIND_END )
-                         __sync_fetch_and_add(&nbNoAltPathBulgesDeadend, 1);
-                    continue;
-                }
-
-                TIME(auto start_post_t=get_wtime());
-
-                    bool debug_hmcp = false;
-                    if (debug_hmcp)
+                    // do everying for each possible short simple path that is neighbor of that node
+                    assert(neighbors.size() > 1);
+                    for (unsigned int i = 0; i < neighbors.size(); i++)
                     {
+                        if (node == (neighbors[i].to)) // node being it's own neighbors, is rare, but let's avoid it
+                            continue;
 
-                        double mean_abundance_least_covered;
-                        Path_t<Node> heuristic_p_least, heuristic_p_most;
-                        this->heuristic_most_covered_path(dir, startNode, endNode, maxlen, success, mean_abundance_most_covered,  heuristic_p_most,  backtrackingLimit, &(neighbors[i].to),  true, true /* old version */);
-                        this->heuristic_most_covered_path(dir, startNode, endNode, maxlen, success, mean_abundance_least_covered, heuristic_p_least, backtrackingLimit, &(neighbors[i].to), false,  true /* old version */);
-                        cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl;
-                        DEBUG_BULGES(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
-                    }
+                        TIME(auto start_various_overhead_t=get_wtime());
 
-                    double simplePathCoverage = _graph.simplePathMeanAbundance(simplePathStart, simplePathDir);
-    
-                    bool isBulge =  simplePathCoverage <=  mean_abundance_most_covered * altPathCovMult /*typically 1.1 in genome assembly, SPAdes*/;
-    
-                    DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage << " (path: " << _graph.toString(simplePathStart) << ") vs most covered:" <<  mean_abundance_most_covered  << endl);
-    
-                    if (!isBulge)
-                    {
-                        __sync_fetch_and_add(&nbBadCovBulges, 1);
-                        DEBUG_BULGES(cout << "not a bulge due to coverage criterion" << endl);
+                        if (_graph.isNodeDeleted(neighbors[i].to)) { 
+                            __sync_fetch_and_add(&nbFirstNodeGraphDeleted, 1);
+                            continue;}
+
+                        TIME(auto end_various_overhead_t=get_wtime());
+                        TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
+
+                        /* that's the putative bulge*/
+                        TIME(auto start_simplepath_t=get_wtime());
+                        Node&     simplePathStart = neighbors[i].to;
+                        Direction simplePathDir   = dir;
+                        unsigned int pathLen = _graph.simplePathLength(simplePathStart,simplePathDir);
+                        TIME(auto end_simplepath_t=get_wtime());
+                        TIME(__sync_fetch_and_add(&timeSimplePath, diff_wtime(start_simplepath_t,end_simplepath_t)));
+                        __sync_fetch_and_add(&nbSimplePaths, 1);
+
+                        bool isShort = true;
+
+                        if (k + pathLen > maxBulgeLength) // "k +" is to take into account that's we're actually traversing a path of extensions from "node"
+                        {
+                            __sync_fetch_and_add(&nbLongSimplePaths, 1);
+                            isShort = false;
+                        }
+
+                        if (!isShort || pathLen == 0) // can't do much if it's pathLen=0, we don't support edge removal, only node removal
+                        {
+                            continue;
+                        }
+
+                        __sync_fetch_and_add(&nbShortSimplePaths, 1);
+
+                        TIME(start_various_overhead_t=get_wtime());
+
+
+                        Node lastNode = _graph.simplePathLastNode(simplePathStart,simplePathDir);
+                        GraphVector<Edge> outneighbors = _graph.neighborsEdge(lastNode, dir);
+
+                        if (outneighbors.size() == 0) // might still be a tip, unremoved for some reason
+                            continue;
+
+                        // so here is a hidden assumption: maybe outneighbors is of size more than 1, we used to care about the first noed after.
+                        // i could decide to enforce bulge popping only if the outneighbor has size 1. 
+                        //if (outneighbors.size() != 1) 
+                        //    continue;
+                        //  but i'm decided to do without for now. TODO: explore all the end nodes, not just the first once
+
+                        Node endNode = outneighbors[0].to;
+
+                        // at this point, the last node in "nodes" is the last node of a potential Bulge path, and endNode is hopefully a branching node right after.
+                        // check if it's connected to something that has in-branching. 
+                        bool isDoublyConnected = (dir==DIR_OUTCOMING && _graph.indegree(endNode) > 1) || (dir==DIR_INCOMING && _graph.outdegree(endNode) > 1);
+                        //if (!isDoublyConnected) cout << "dir " << DIR2STR(dir) << " not a topo bulge because: in_degree=" <<_graph.indegree(endNode) << " out_degree=" << _graph.outdegree(endNode) << endl;
+
+                        bool isTopologicalBulge = isDoublyConnected;
+
+                        DEBUG_BULGES(debugBR.infoNeighbor(i, _graph.toString(neighbors[i].to), DIR2STR(dir), _graph.toString(lastNode), pathLen, outneighbors.size(), _graph.toString(endNode), isTopologicalBulge););
+
+                        TIME(end_various_overhead_t=get_wtime());
+                        TIME(__sync_fetch_and_add(&timeVarious, diff_wtime(start_various_overhead_t,end_various_overhead_t)));
+
+                        if (!isTopologicalBulge)
+                            continue;
+
+                        //cout << "endnode has indegree/outdegree: " <<_graph.indegree(endNode) << "/" << _graph.outdegree(endNode) <<  " and the node before has indegree/outdegree: " <<_graph.indegree(nodes.back()) << "/" << _graph.outdegree(nodes.back()) << endl;
+
+                        __sync_fetch_and_add(&nbTopologicalBulges, 1);
+
+                        unsigned int maxlen = std::max((unsigned int)(pathLen * 1.1),(unsigned int) (pathLen + 3)); // following SPAdes
+                        double mean_abundance_most_covered;
+                        int success;
+                        Node startNode = node;
+
+                        TIME(auto start_pathfinding_t=get_wtime());
+
+                        Path_t<Node>  heuristic_p_most; // actually won't be used.. (it's just for debug) so would be nice to get rid of it someday, but i don't want to deal with pointers.
+
+                        /* startNode is branching, because we want to find alternative paths, except the one that go through (neighbors[i].to)*/
+                        this->heuristic_most_covered_path(dir, startNode, endNode, 
+                                maxlen, 
+                                success, mean_abundance_most_covered,
+                                heuristic_p_most,
+                                backtrackingLimit, // avoid too much backtracking
+                                &(neighbors[i].to), // avoid that node
+                                true, // most covered path
+                                false // kmer version (true), unitigs version (false) 
+                                );
+
+                        TIME(auto end_pathfinding_t=get_wtime());
+                        TIME(__sync_fetch_and_add(&timePathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
+
+                        if (success != 1)
+                        {
+                            DEBUG_BULGES(cout << "HMCP failed: " << hmcpstatus2ascii(success) << endl);
+                            TIME(__sync_fetch_and_add(&timeFailedPathFinding, diff_wtime(start_pathfinding_t,end_pathfinding_t)));
+                            TIME(if (diff_wtime(start_pathfinding_t,end_pathfinding_t) > timeLongestFailure) { timeLongestFailure = diff_wtime(start_pathfinding_t,end_pathfinding_t); });
+                            longestFailureDepth = maxlen;
+
+                            if (success == HMCP_LOOP)
+                                __sync_fetch_and_add(&nbNoAltPathBulgesLoop, 1);
+                            if (success == HMCP_MAX_DEPTH)
+                                __sync_fetch_and_add(&nbNoAltPathBulgesDepth, 1);
+                            if (success == HMCP_DIDNT_FIND_END )
+                                __sync_fetch_and_add(&nbNoAltPathBulgesDeadend, 1);
+                            continue;
+                        }
+
+                        TIME(auto start_post_t=get_wtime());
+
+                        bool debug_hmcp = false;
+                        if (debug_hmcp)
+                        {
+
+                            double mean_abundance_least_covered;
+                            Path_t<Node> heuristic_p_least, heuristic_p_most;
+                            this->heuristic_most_covered_path(dir, startNode, endNode, maxlen, success, mean_abundance_most_covered,  heuristic_p_most,  backtrackingLimit, &(neighbors[i].to),  true, true /* old version */);
+                            this->heuristic_most_covered_path(dir, startNode, endNode, maxlen, success, mean_abundance_least_covered, heuristic_p_least, backtrackingLimit, &(neighbors[i].to), false,  true /* old version */);
+                            cout << "alternative path is:  "<< this->path2string(dir, heuristic_p_most, endNode)<< " abundance: "<< mean_abundance_most_covered <<endl;
+                            DEBUG_BULGES(cout << endl << "alternative least is: "<< this->path2string(dir, heuristic_p_least, endNode)<< " abundance: "<< mean_abundance_least_covered <<endl);
+                        }
+
+                        double simplePathCoverage = _graph.simplePathMeanAbundance(simplePathStart, simplePathDir);
+
+                        bool isBulge =  simplePathCoverage <=  mean_abundance_most_covered * altPathCovMult /*typically 1.1 in genome assembly, SPAdes*/;
+
+                        DEBUG_BULGES(cout << "bulge coverages: " << simplePathCoverage << " (path: " << _graph.toString(simplePathStart) << ") vs most covered:" <<  mean_abundance_most_covered  << endl);
+
+                        if (!isBulge)
+                        {
+                            __sync_fetch_and_add(&nbBadCovBulges, 1);
+                            DEBUG_BULGES(cout << "not a bulge due to coverage criterion" << endl);
+
+                            TIME(auto end_post_t=get_wtime());
+                            TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
+                            continue;
+                        }
+
+                        // delete the bulge
+                        //
+                        DEBUG_BULGES(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (simplePathStart) << (containedAlreadyDeleted ? " (already partly deleted)" : "") << endl);
+                        bool containedAlreadyDeleted = _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
+                        if (!containedAlreadyDeleted)
+                            __sync_fetch_and_add(&nbBulgesRemoved, 1);
+                        else
+                            __sync_fetch_and_add(&nbBulgesRemovedDup, 1);
 
                         TIME(auto end_post_t=get_wtime());
                         TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
-                        continue;
-                    }
 
-                    if (nodesDeleter.get(simplePathStart))
-                    {
-                        // not double-counting that delete
-                    }
-                    else
-                    {
-                        // delete the bulge
-                        //
-                        DEBUG_BULGES(cout << endl << "BULGE of length " << pathLen << " FOUND: " <<  _graph.toString (simplePathStart) << endl);
-                        _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
+                        break; // quite important to break here: don't try to remove the other neighbor (which might also satisfy the bulge condition)
 
-                        __sync_fetch_and_add(&nbBulgesRemoved, 1);
-                    }
+                    } // for neighbors
 
-                TIME(auto end_post_t=get_wtime());
-                TIME(__sync_fetch_and_add(&timePost, diff_wtime(start_post_t,end_post_t)));
+                    DEBUG_BULGES(debugBR.draw(););
+                } // if outdegree
+            } // for direction
+            TIME(auto end_thread_t=get_wtime());
+            TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
 
-                break; // quite important to break here: don't try to remove the other neighbor (which might also satisfy the bulge condition)
-
-            } // for neighbors
-
-            DEBUG_BULGES(debugBR.draw(););
-        } // if outdegree
-      } // for direction
-        TIME(auto end_thread_t=get_wtime());
-        TIME(__sync_fetch_and_add(&timeAll, diff_wtime(start_thread_t,end_thread_t)));
-    
 #ifdef SIMPLIFICATION_LAMBDAS
             }); // parallel
 #else
-}
+    }
 #endif
 
 
@@ -1571,7 +1565,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
 
     if (_verbose)
     {
-        cout << nbBulgesRemoved << " bulges removed. " << endl <<
+        cout << nbBulgesRemoved << " tips removed. (+ " << nbBulgesRemovedDup << " from previously partly removed)" << endl << 
             nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads, among them " <<
             nbTopologicalBulges << " topological bulges, " << nbFirstNodeDeleted << "+" << nbFirstNodeGraphDeleted << " were first-node duplicates." << endl;
         cout << nbBulgesCandidates << " bulges candidates passed degree check. " << endl;
@@ -1636,7 +1630,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     unsigned long nbLongSimplePaths = 0;
     unsigned long nbShortSimplePaths = 0;
     unsigned long nbTopologicalEC = 0;
-    unsigned long nbECRemoved = 0;
+    unsigned long nbECRemoved = 0, nbECRemovedDup = 0;
     unsigned long nbECCandidates = 0;
     unsigned long timeDelete = 0, timeProcessing = 0, timeCoverage = 0;
     unsigned long timeAll = 0, timeSimplePath = 0;
@@ -1793,19 +1787,14 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
                             if (isEC)
                             {
-                                if (nodesDeleter.get(simplePathStart))
-                                {
-                                    // not double-counting that delete
-                                }
-                                else
-                                {
-                                    // delete it
-                                    //
-                                    _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
-                                    DEBUG_EC(cout << endl << "EC of length " << pathLen << " FOUND: " <<  _graph.toString (node) << endl);
-
+                                // delete it
+                                //
+                                bool containedAlreadyDeleted = _graph.simplePathDelete(simplePathStart, simplePathDir, nodesDeleter);
+                                DEBUG_EC(cout << endl << "EC of length " << pathLen << " FOUND: " <<  _graph.toString (node) << (containedAlreadyDeleted ? "(already partly deleted)" : "") << endl);
+                                if (!containedAlreadyDeleted)
                                     __sync_fetch_and_add(&nbECRemoved, 1);
-                                }
+                                else
+                                    __sync_fetch_and_add(&nbECRemovedDup, 1);
 
                             }
                             TIME(auto end_ec_processing_t=get_wtime());
@@ -1832,7 +1821,7 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
 
     if (_verbose)
     {
-        cout << nbECRemoved << " erroneous connections removed. " << endl;
+        cout << nbECRemoved << " erroneous connections removed. (+ " << nbECRemovedDup << " from previously partly removed)" << endl;
         cout << nbECCandidates << " EC candidates passed degree check. " << endl;
         cout << nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads" << endl;
         cout << nbTopologicalEC << " topological ECs. " << endl;

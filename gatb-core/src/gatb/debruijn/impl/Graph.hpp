@@ -828,9 +828,9 @@ public:
     unsigned int simplePathLength            (Node& node, Direction dir) const;
     double           unitigMeanAbundance     (Node& node) const;
     double       simplePathMeanAbundance     (Node& node, Direction dir) const;
-    void             unitigDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant> >& nodesDeleter) ;
+    bool             unitigDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant> >& nodesDeleter) ;
     void             unitigDelete          (Node& node) ;
-    void         simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant> >& nodesDeleter) ;
+    bool             simplePathDelete          (Node& node, Direction dir, NodesDeleter<Node,Edge, GraphTemplate<Node, Edge, GraphDataVariant> >& nodesDeleter) ;
     std::string  unitigSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
     std::string  unitigPathSequence (Node& node, bool& isolatedLeft, bool& isolatedRight) const;
     void         unitigMark            (Node& node) ; // used to flag simple path as traversed, in minia
