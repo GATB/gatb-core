@@ -67,7 +67,7 @@ static const char* simplprogressFormat3 = "removing ec,      pass %2d ";
 
 
 template<typename GraphType, typename Node, typename Edge>
-Simplifications<GraphType, Node, Edge>::Simplifications(GraphType *graph, int nbCores, bool verbose)
+Simplifications<GraphType, Node, Edge>::Simplifications(GraphType *graph, int nbCores, int verbose)
         : _nbTipRemovalPasses(0), _nbBubbleRemovalPasses(0), _nbBulgeRemovalPasses(0), _nbECRemovalPasses(0), _graph(*graph), 
         _nbCores(nbCores), _firstNodeIteration(true), _verbose(verbose)
 {
@@ -421,13 +421,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     if (_firstNodeIteration )
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, /*_verbose*/true);
-        if (_verbose)
+        if (_verbose > 1)
             std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
     }
     else
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, /*_verbose*/true);
-        if (_verbose)
+        if (_verbose > 1)
             std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
 
@@ -617,16 +617,20 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeTips()
     if (_verbose)
     {
         cout << nbTipsRemoved << " tips removed. (+ " << nbTipsRemovedDup << " from previously partly removed)" << endl;
-        cout << nbTipCandidates << " tip candidates passed degree check. " << endl;
+        if (_verbose > 1)
+            cout << nbTipCandidates << " tip candidates passed degree check. " << endl;
         TIME(cout << "Tips timings:   " << timeAll / unit << " CPUsecs total."<< endl);
-        TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal, including:" << endl);
-        TIME(cout << "                    " << timeSimplePathLong  / unit << " CPUsecs long simple paths" << endl);
-        TIME(cout << "                    " << timeSimplePathShortTopo / unit << " CPUsecs short (topological) simple paths" << endl);
-        TIME(cout << "                    " << timeSimplePathShortRCTC / unit << " CPUsecs short (RCTC) simple paths" << endl);
-        TIME(cout << "                " << timeDecision   / unit << " CPUsecs tip decision" << endl);
-        TIME(cout << "                " << timeProcessing / unit << " CPUsecs tip processing" << endl);
-        TIME(cout << "Nodes deletion:   " << timeDel / unit << " CPUsecs."<< endl);
-        TIME(cout << "Nodes caching :   " << timeCache / unit << " CPUsecs."<< endl);
+        if (_verbose > 1)
+        {
+            TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal" << endl);
+            TIME(cout << "                    " << timeSimplePathLong  / unit << " CPUsecs long simple paths" << endl);
+            TIME(cout << "                    " << timeSimplePathShortTopo / unit << " CPUsecs short (topological) simple paths" << endl);
+            TIME(cout << "                    " << timeSimplePathShortRCTC / unit << " CPUsecs short (RCTC) simple paths" << endl);
+            TIME(cout << "                " << timeDecision   / unit << " CPUsecs tip decision" << endl);
+            TIME(cout << "                " << timeProcessing / unit << " CPUsecs tip processing" << endl);
+            TIME(cout << "Nodes deletion:   " << timeDel / unit << " CPUsecs."<< endl);
+            TIME(cout << "Nodes caching :   " << timeCache / unit << " CPUsecs."<< endl);
+        }
     }
     
     _firstNodeIteration = false;
@@ -1321,13 +1325,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     if (_firstNodeIteration )
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, /*_verbose*/true);
-        if (_verbose)
+        if (_verbose > 1)
             std::cout << "iterating on " << itNode->size() << " nodes" << std::endl;
     }
     else
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, /*_verbose*/true); // always display
-        if (_verbose)
+        if (_verbose > 1)
             std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
 
@@ -1563,14 +1567,17 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     TIME(auto end_nodedelete_t=get_wtime());
     TIME(__sync_fetch_and_add(&timeDelete, diff_wtime(start_nodedelete_t,end_nodedelete_t)));
 
-    if (_verbose)
+    if (_verbose > 0)
     {
-        cout << nbBulgesRemoved << " tips removed. (+ " << nbBulgesRemovedDup << " from previously partly removed)" << endl << 
-            nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads, among them " <<
-            nbTopologicalBulges << " topological bulges, " << nbFirstNodeDeleted << "+" << nbFirstNodeGraphDeleted << " were first-node duplicates." << endl;
-        cout << nbBulgesCandidates << " bulges candidates passed degree check. " << endl;
-        cout << nbNoAltPathBulgesDepth << "+" << nbNoAltPathBulgesLoop << "+" << nbNoAltPathBulgesDeadend << " without alt. path (complex+loop+noend), " 
-            << nbBadCovBulges << " didn't satisfy cov. criterion." << endl;
+        cout << nbBulgesRemoved << " bulges removed. (+ " << nbBulgesRemovedDup << " from previously partly removed)" << endl;
+        if (_verbose > 1)
+        {
+            cout << nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads, among them " <<
+                nbTopologicalBulges << " topological bulges, " << nbFirstNodeDeleted << "+" << nbFirstNodeGraphDeleted << " were first-node duplicates." << endl;
+            cout << nbBulgesCandidates << " bulges candidates passed degree check. " << endl;
+            cout << nbNoAltPathBulgesDepth << "+" << nbNoAltPathBulgesLoop << "+" << nbNoAltPathBulgesDeadend << " without alt. path (complex+loop+noend), " 
+                << nbBadCovBulges << " didn't satisfy cov. criterion." << endl;
+        }
     }
 
     double unit = 1000000000;
@@ -1580,11 +1587,14 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeBulges()
     if (_verbose)
     {
         TIME(cout << "Bulges timings: " << timeAll / unit << " CPUsecs total."<< endl);
-        TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal." << endl);
-        TIME(cout << "                " << timePathFinding / unit << "(/" << timePathFinding / unit << ") CPUsecs path-finding(/failed). Longest: " << timeLongestFailure / (unit/1000) << " CPUmillisecs (depth " << longestFailureDepth << ")." << endl);
-        TIME(cout << "                " << timePost / unit << " CPUsecs topological bulge processing, " << endl);
-        TIME(cout << "                " << timeDelete / unit << " CPUsecs nodes deletion." << endl);
-        TIME(cout << "                " << timeVarious / unit << " CPUsecs various overhead." << endl);
+        if (_verbose > 1)
+        {
+            TIME(cout << "                " << timeSimplePath / unit << " CPUsecs simple path traversal." << endl);
+            TIME(cout << "                " << timePathFinding / unit << "(/" << timePathFinding / unit << ") CPUsecs path-finding(/failed). Longest: " << timeLongestFailure / (unit/1000) << " CPUmillisecs (depth " << longestFailureDepth << ")." << endl);
+            TIME(cout << "                " << timePost / unit << " CPUsecs topological bulge processing, " << endl);
+            TIME(cout << "                " << timeDelete / unit << " CPUsecs nodes deletion." << endl);
+            TIME(cout << "                " << timeVarious / unit << " CPUsecs various overhead." << endl);
+        }
     }
 
     return nbBulgesRemoved;
@@ -1642,13 +1652,13 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     if (_firstNodeIteration )
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iterator(), buffer, /*_verbose*/true);
-        if (_verbose)
+        if (_verbose > 1)
             std::cout << "iterating on " << itNode->size() << " nodes on disk" << std::endl;
     }
     else
     {
         itNode = new ProgressGraphIteratorTemplate<Node,ProgressTimerAndSystem>(_graph.GraphType::iteratorCachedNodes(), buffer, /*_verbose*/true);
-        if (_verbose)
+        if (_verbose > 1)
             std::cout << "iterating on " << itNode->size() << " cached nodes" << std::endl;
     }
 
@@ -1822,17 +1832,23 @@ unsigned long Simplifications<GraphType,Node,Edge>::removeErroneousConnections()
     if (_verbose)
     {
         cout << nbECRemoved << " erroneous connections removed. (+ " << nbECRemovedDup << " from previously partly removed)" << endl;
-        cout << nbECCandidates << " EC candidates passed degree check. " << endl;
-        cout << nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads" << endl;
-        cout << nbTopologicalEC << " topological ECs. " << endl;
+        if (_verbose > 1)
+        {
+            cout << nbECCandidates << " EC candidates passed degree check. " << endl;
+            cout << nbSimplePaths << "/" << nbLongSimplePaths << "+" <<nbShortSimplePaths << " any=long+short simple path examined across all threads" << endl;
+            cout << nbTopologicalEC << " topological ECs. " << endl;
+        }
         double unit = 1000000000;
         cout.setf(ios_base::fixed);
         cout.precision(1);
-        TIME(cout << "EC Timings: " << timeAll / unit << " CPUsecs total, including"<< endl);
-        TIME(cout << "                " << timeSimplePath / unit << " CPUsecs EC simple paths" << endl);
-        TIME(cout << "                " << timeCoverage / unit << " CPUsecs EC coverage test" << endl);
-        TIME(cout << "                " << timeProcessing / unit << " CPUsecs EC processing" << endl);
-        TIME(cout << "Nodes deletion: " << timeDelete / unit << " CPUsecs." << endl);
+        TIME(cout << "EC Timings: " << timeAll / unit << " CPUsecs total"<< endl);
+        if (_verbose > 1)
+        {
+            TIME(cout << "                " << timeSimplePath / unit << " CPUsecs EC simple paths" << endl);
+            TIME(cout << "                " << timeCoverage / unit << " CPUsecs EC coverage test" << endl);
+            TIME(cout << "                " << timeProcessing / unit << " CPUsecs EC processing" << endl);
+            TIME(cout << "Nodes deletion: " << timeDelete / unit << " CPUsecs." << endl);
+        }
     }
 
     return nbECRemoved;

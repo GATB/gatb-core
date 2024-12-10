@@ -36,5 +36,4 @@ unsigned long logging(std::string message="")
     return mem;
 }
 
-
 }}}}

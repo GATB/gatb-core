@@ -38,7 +38,7 @@ class Simplifications : public system::SmartPointer
 {
 public:
 
-    Simplifications (/*const, removed because of cacheNonSimpleNodes calling a setStats */ GraphType * /* set as a pointer because could be null*/ graph, int nbCores, bool verbose = false);
+    Simplifications (/*const, removed because of cacheNonSimpleNodes calling a setStats */ GraphType * /* set as a pointer because could be null*/ graph, int nbCores, int verbose = 1);
 
     void simplify(); // perform many rounds of all simplifications, as in Minia
 
@@ -78,7 +78,7 @@ protected:
     uint64_t cutoffEvents;
 
     bool _firstNodeIteration;
-    bool _verbose;
+    int _verbose;
 
     std::string path2string(Direction dir, Path_t<Node> p, Node endNode);
     double path2abundance(Direction dir, Path_t<Node> p, Node endNode, unsigned int skip_first = 0, unsigned int skip_last = 0);

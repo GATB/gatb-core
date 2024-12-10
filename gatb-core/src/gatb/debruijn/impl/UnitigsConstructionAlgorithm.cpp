@@ -96,7 +96,7 @@ void UnitigsConstructionAlgorithm<span>::execute ()
     int minimizerSize           = getInput()->getInt(STR_MINIMIZER_SIZE);
     int nb_threads              = getInput()->getInt(STR_NB_CORES);
     int minimizer_type          = getInput()->getInt(STR_MINIMIZER_TYPE);
-    bool verbose                = getInput()->getInt(STR_VERBOSE);
+    int verbose                 = getInput()->getInt(STR_VERBOSE);
     bool edge_km_representation = getInput()->getInt(STR_EDGE_KM_REPRESENTATION);
     bool all_abundance_counts   = getInput()->get(STR_ALL_ABUNDANCE_COUNTS);
    
@@ -110,7 +110,7 @@ void UnitigsConstructionAlgorithm<span>::execute ()
 
     if (do_bcalm) bcalm2<span>(&_storage, unitigs_filename, kmerSize, abundance, minimizerSize, nbThreads, minimizer_type,       verbose); 
     if (do_bglue) bglue<span> (&_storage, unitigs_filename, kmerSize, nb_glue_partitions,       nbThreads, all_abundance_counts, verbose);
-    if (do_links) link_tigs<span>(unitigs_filename, kmerSize, nbThreads, nb_unitigs, verbose, edge_km_representation);
+    if (do_links) link_tigs<span>(unitigs_filename, kmerSize, nbThreads, nb_unitigs, verbose > 0, edge_km_representation);
 
     /** We gather some statistics. */
     // nb_unitigs will be used in GraphUnitigs
