@@ -10,6 +10,7 @@
  *
  */
 
+#include <cstdint>
 #include <fstream>
 #include <unordered_map>
 #include <map>
