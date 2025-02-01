@@ -136,17 +136,23 @@ void Simplifications<GraphType,Node,Edge>::simplify()
     // do one round of bubble removal, then one EC, then go on with the rest of the rounds
     // that's because bubble removal gets much faster after EC
 
-    nbBubblesRemovedPreviously = nbBubblesRemoved;
-    nbBubblesRemoved = removeBulges();
-    if (bubbleRemoval.size() != 0)
-        bubbleRemoval += " + ";
-    bubbleRemoval += to_string(nbBubblesRemoved);
+    if (_doBulgeRemoval)
+    {
+        nbBubblesRemovedPreviously = nbBubblesRemoved;
+        nbBubblesRemoved = removeBulges();
+        if (bubbleRemoval.size() != 0)
+            bubbleRemoval += " + ";
+        bubbleRemoval += to_string(nbBubblesRemoved);
+    }
 
-    nbECRemovedPreviously = nbECRemoved;
-    nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
-    if (ECRemoval.size() != 0)
-        ECRemoval += " + ";
-    ECRemoval += to_string(nbECRemoved);
+    if (_doECRemoval)
+    {
+        nbECRemovedPreviously = nbECRemoved;
+        nbECRemoved = removeErroneousConnections(); // now we're using bulges removal, not bubbles (to follow SPAdes)
+        if (ECRemoval.size() != 0)
+            ECRemoval += " + ";
+        ECRemoval += to_string(nbECRemoved);
+    }
 
     if (_doBulgeRemoval)
     {
